@@ -1,3 +1,5 @@
+const visibleText = e => Array.isArray(e) ? e.map(visibleText).join('') : e && typeof e === 'object' ? visibleText(e.props?.children) : e == null ? '' : String(e);
+import * as terms from '../src/lib/tr-terms.ts';
 import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import path from 'node:path';
@@ -63,7 +65,7 @@ test('real control shows both Advantage consequences, is unchecked, and disables
   const tree=nodes(ui.RecklessAttackControl({available:true,active:false,selected:false,disabled:false,onChange:v=>chosen=v}));
   const input=tree.find(n=>n.type==='input'); assert.equal(input.props.checked,false);
   input.props.onChange({target:{checked:true}}); assert.equal(chosen,true);
-  const text=JSON.stringify(tree); assert.match(text,/Strength/); assert.match(text,/Avantaj/); assert.match(text,/sana/); assert.match(text,/sonraki/i);
+  const text=JSON.stringify(tree); assert.match(text,/Kuvvet saldırı zarların Avantaj kazanır/); assert.match(text,/sana karşı saldırı zarları da Avantaj kazanır/); assert.match(text,/Çeviklik saldırısı bu seçimi yapabilir ancak saldırı Avantajı kazanmaz/); assert.match(text,/Avantaj/); assert.match(text,/sana/); assert.match(text,/sonraki/i);
   const disabled=nodes(ui.RecklessAttackControl({available:true,active:false,selected:false,disabled:true,onChange:v=>chosen=v})).find(n=>n.type==='input');
   chosen=false; disabled.props.onChange({target:{checked:true}}); assert.equal(chosen,false);
 });
@@ -98,11 +100,11 @@ async function panelHarness(initialState=panelState()) {
   React:{createElement:(type,props,...children)=>({type,props:{...props,children}})},
   useRef(value){const index=cursor++;return slots[index]??=( {current:value} );},
   useState(value){const index=cursor++;if(!(index in slots))slots[index]=value;return[slots[index],next=>{slots[index]=typeof next==='function'?next(slots[index]):next;}];}};
- vm.runInNewContext(code,env);
+ Object.assign(env, terms); vm.runInNewContext(code,env);
  const props={state:initialState,targetId:'npc',sending:false,onCommand:(_,command)=>sent.push(JSON.parse(JSON.stringify(command)))};
  const render=()=>{cursor=0;return nodes(env.panel(props));};
  const choose=()=>render().find(n=>n.type===ui.RecklessAttackControl).props.onChange(true);
- const click=(kind)=>{const labels={attack:'Saldır · Action',reaction:'Reaction kullan',continue:'Attack Action devamı'};render().find(n=>n.type==='button'&&n.props.children.includes(labels[kind])).props.onClick();};
+ const click=(kind)=>{const labels={attack:'Saldır · Eylem',reaction:'Tepkiyi kullan',continue:'Saldırı eylemine devam'};render().find(n=>n.type==='button'&&visibleText(n.props.children) === labels[kind]).props.onClick();};
  return {props,sent,render,choose,click};
 }
 test('actual panel sends opt-in through existing typed attack owner and blocks duplicate/pending handlers',async()=>{

@@ -212,15 +212,15 @@ test('species picker shows 2024 additions and retains the 2014 Half species with
     catalog: defaultCatalog,
   });
 
-  assert.ok(html.includes('Göksoylu (Aasimar)'));
-  assert.ok(html.includes('Devsoylu (Goliath)'));
-  assert.ok(html.includes('Ork (Orc)'));
-  assert.ok(html.includes('Yarı-Elf (Half-Elf)'));
-  assert.ok(html.includes('Yarı-Ork (Half-Orc)'));
+  assert.ok(html.includes('Göksoylu'));
+  assert.ok(html.includes('Devsoylu'));
+  assert.ok(html.includes('Ork'));
+  assert.ok(html.includes('Yarı-Elf'));
+  assert.ok(html.includes('Yarı-Ork'));
   assert.ok(html.includes('D&amp;D 2024 PHB'));
   assert.equal((html.match(/D&amp;D 2014 · Eski seçenek/g) ?? []).length, 2);
-  assert.ok(html.includes('Göksel Tecelli (Celestial Revelation)'));
-  assert.ok(html.includes('Adrenalin Patlaması (Adrenaline Rush)'));
+  assert.ok(html.includes('Göksel Tecelli'));
+  assert.ok(html.includes('Adrenalin Patlaması'));assert.ok(!html.includes('(Celestial Revelation)'));assert.ok(!html.includes('(Adrenaline Rush)'));
 });
 
 test('normalizes server catalog fields and keeps spell selection keyed by unique IDs', () => {
@@ -454,7 +454,7 @@ test('identity step exposes player-owned appearance, personality, and backstory 
   assert.ok(!html.includes('(Lawful Good)'));
   assert.ok(!html.includes('(Alignment)'));
   assert.ok(!html.includes('(Appearance)'));
-  assert.ok(html.includes('>Dwarvish<'));
+  assert.ok(html.includes('>Cücece<'));assert.ok(html.includes('value="Dwarvish"'));
 });
 
 test('review step renders comprehensive summary including roleplay identity box', () => {
@@ -516,7 +516,7 @@ test('Half-Elf uses its own portrait while other species keep atlas and unknown 
     assert.ok(start >= 0);
     return html.slice(start, index);
   }
-  const halfElf = portraitPrefix('Yarı-Elf (Half-Elf)');
+  const halfElf = portraitPrefix('Yarı-Elf');
   assert.ok(halfElf.includes('ai-dnd-half-elf-portrait.png'));
   assert.ok(halfElf.includes('background-size:cover'));
   assert.ok(halfElf.includes('background-position:center'));

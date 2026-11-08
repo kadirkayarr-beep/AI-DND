@@ -584,15 +584,21 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)
 
 
+def coin_label_gp(name: object) -> int | None:
+    """The gold a whole coin label names ("10 Altın", "15 GP"), or None for anything else ("10 Parşömen")."""
+    match = re.fullmatch(r"(\d+) (?:Altın|GP)", str(name))
+    return int(match.group(1)) if match else None
+
+
 def settle_coin_labels(world: dict[str, Any]) -> None:
-    """"8 Altın" written in the pack becomes real money the first time money is spent."""
+    """"8 Altın" written in the pack becomes real money: at new-character creation, and in an older save the first time money is spent."""
     kept = []
     wallets = world.setdefault("currency", {})
     for item in world.get("inventory", []):
         name = item.get("name") if isinstance(item, dict) else item
-        match = re.fullmatch(r"(\d+) (?:Altın|GP)", str(name))
-        if match:
-            wallets["player"] = wallets.get("player", 0) + int(match.group(1)) * 100
+        gp = coin_label_gp(name)
+        if gp is not None:
+            wallets["player"] = wallets.get("player", 0) + gp * 100
         else:
             kept.append(item)
     world["inventory"] = kept
@@ -676,7 +682,7 @@ def _tender_or_none(world: dict[str, Any], amount: int | None, price: int, purse
     return amount if amount is not None and price <= amount <= purse else None
 
 
-def take_room(session, text: str) -> dict[str, Any] | None:
+def take_room(session, text: str, *, server=None, requested: bool = False) -> dict[str, Any] | None:
     """A night's room asked for: whoever serves here opens the room card; nothing is paid by the words.
 
     The price is the house's own (_ROOM_PRICE) and, when the card is confirmed, it goes to nobody: the inn keeps no
@@ -696,9 +702,15 @@ def take_room(session, text: str) -> dict[str, Any] | None:
     if decision is not None:
         server = _decision_server(session, decision) if decision.kind == "room" else None
         return None if server is None else _open_room(session, server)
+    if not requested and getattr(session, "_front_economic_none", False):
+        return None
     folded = fold(session, text)
-    server = _server_here(session)
-    if server is None or not (_ROOM.search(folded) and _wants_the_bed(folded)):
+    if server is None:
+        server = _server_here(session)
+    else:
+        server = next((npc for npc in session.active_npcs() if npc.get("id") == server.get("id")), None)
+    if (server is None or not _SERVER.search(fold(session, str(server.get("role", ""))))
+            or (not requested and not (_ROOM.search(folded) and _wants_the_bed(folded)))):
         return None
     return _open_room(session, server)
 
@@ -757,6 +769,8 @@ def _room_reply(session, room: dict[str, Any]) -> dict[str, Any]:
 
 def _room_asked(session, text: str) -> dict[str, Any] | None:
     """'Oda ne kadar?' is answered with what a room really costs, by whoever serves; a bed asked for in the same line opens the room card."""
+    if getattr(session, "_front_economic_none", False):
+        return None
     folded = fold(session, text)
     server = _server_here(session)
     if server is None or not _ROOM.search(folded) or _WALKS.search(folded):  # 'odaya giriyorum' is a walk
@@ -765,6 +779,11 @@ def _room_asked(session, text: str) -> dict[str, Any] | None:
         return _room_reply(session, take_room(session, text))
     if "?" not in text and not _PRICE_ASKED.search(folded):
         return None
+    return room_quote(session, server)
+
+
+def room_quote(session, server):
+    """The same bound server quotes the engine price; no proposal, tender or room right is written."""
     import world_reactions
     if world_reactions.refuses(session.world_state, server):
         return _reply(session, world_reactions.refusal_line(server), "lodging", "refused", None, [])
@@ -812,6 +831,10 @@ def _with_tender(session, server: dict[str, Any], key: str, coin: int | None) ->
         label = quoted["label"][:1].upper() + quoted["label"][1:]
         _say_too(reply, f"{label} {quoted['unit_cp']} bakır + bahşiş {tip} bakır = {tender} bakır; "
                         f"onaylarsan {tender} bakır geçer.")
+    import economic_actions
+    economic_actions.cancel_prepared(
+        world, actor_id="player", predicate=lambda offer: offer.counter_binding is not None
+        and not shop_trade.binding_matches(world, offer))
     return _coin_seen(reply, coin)
 
 
@@ -888,7 +911,7 @@ def repair_counter_tip(world: dict[str, Any]) -> list[str]:
     return dropped
 
 
-def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict[str, Any] | None:
+def shop_offer(session, text: str, server: dict[str, Any] | None = None, *, requested: bool = False) -> dict[str, Any] | None:
     """A line that wants something on the list opens the counter's offer. Words move no coin and no goods:
     only the one counter trade (shop_trade.commit) does, at the price this offer shows.
 
@@ -901,7 +924,7 @@ def shop_offer(session, text: str, server: dict[str, Any] | None = None) -> dict
     wanted = shop_trade.priced_in(folded)
     server = server if server is not None else _server_here(session)
     walking = _WALKS.search(folded)  # the order follows the walk
-    if wanted is None or server is None or walking or "?" in text or not _BUY.search(folded):
+    if wanted is None or server is None or walking or (not requested and ("?" in text or not _BUY.search(folded))):
         return None
     return _counter_offer(session, server, wanted[0])
 

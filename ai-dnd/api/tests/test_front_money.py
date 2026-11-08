@@ -165,13 +165,22 @@ class SayModeCoin(Table):
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 50, "deal": "room",
                              "deal_goods": "none", "keep_change": False}
-        await self.say_to("barman", "Akşam kalabalık olur mu?")
+        self.people["sera"] = next(npc for npc in self.world["npcs"] if npc["id"] == "npc_private_sera")
+        await self.say_to("sera", "Akşam kalabalık olur mu?")  # anyone but whoever serves: no coin, no reading
         self.assertNotIn("front", self.client.kinds)
         self.assertEqual(self.routes()[-1]["route"], "skipped:typed")
         await self.say_to("barman", "Oda için beş gümüş ödüyorum")
         self.assertIn("front", self.client.kinds)
         self.assertEqual(self.front_coin, 50)
         self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+
+    async def test_a_say_line_to_whoever_serves_is_read_even_without_coin(self):
+        # D0 joined (2026-11-08): said to the vendor, a room or an order can name its bound recipient with no coin.
+        await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        await self.say_to("barman", "Akşam kalabalık olur mu?")
+        self.assertEqual(self.client.kinds.count("front"), 1)
+        self.assertEqual(self.front_coin, 0)
 
     async def test_the_coin_reading_stays_within_the_turns_call_cap(self):
         await self.begin()

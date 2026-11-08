@@ -1,10 +1,22 @@
 {
   "id": "16_past_tense",
-  "title": "Geçmiş zaman: 'az önce 5 bakır verdim' yeni teklif açmaz (ön okuma, modelin okumasını taklit eder: coin_cp=500). Ne için olduğu söylenmeyen para kart açmaz; ön okuma 'deal: paid_before' derse de kart açılmaz, kese aynı kalır",
-  "source_items": [3],
+  "title": "Geçmiş zaman: 'az önce 5 bakır verdim' yeni teklif açmaz (ön okuma, modelin okumasını taklit eder: coin_cp=500). Ne için olduğu söylenmeyen para kart açmaz; ön okuma 'economic_intent: none' ya da 'deal: paid_before' derse de kart açılmaz, kese aynı kalır",
+  "source_items": [
+    3
+  ],
   "setup": {
-    "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
-    "currency": {"player": 100, "barman": 0},
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
     "inventory": [],
     "seed": 7,
     "front_proposal": true
@@ -12,13 +24,33 @@
   "steps": [
     {
       "say": "az önce 5 bakır verdim",
-      "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 500}},
-      "expect": {"kart": null, "kese": 100}
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "barman",
+          "coin_cp": 500,
+          "economic_intent": "none"
+        }
+      },
+      "expect": {
+        "kart": null,
+        "kese": 100
+      }
     },
     {
       "say": "az önce 5 bakır verdim",
-      "script": {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 500, "deal": "paid_before"}},
-      "expect": {"kart": null, "kese": 100}
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "barman",
+          "coin_cp": 500,
+          "deal": "paid_before"
+        }
+      },
+      "expect": {
+        "kart": null,
+        "kese": 100
+      }
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
+import { packageGoods } from '@/lib/starting-purse';
 import { asiChoiceLabel, sourceAsiChoice } from '@/lib/asi-choices';
 import { BarbarianStartingChoices, BarbarianStartingLevelControl, BarbarianStartingSummary } from '@/components/barbarian-starting-creation';
 import { FighterStartingChoices, FighterStartingLevelControl, FighterStartingSummary } from '@/components/fighter-starting-creation';
@@ -39,6 +40,7 @@ import type {
   CharacterCreationCatalogResponse,
 } from '@workspace/api-client-react';
 import { CharacterIdentitySuggestion } from '@/components/character-identity-suggestion';
+import { skillLabel } from '@/lib/skill-label';
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
 import {
   applyObservedJob,
@@ -123,12 +125,12 @@ type AbilityKey = 'strength' | 'dexterity' | 'constitution' | 'intelligence' | '
 const ABILITY_KEYS: AbilityKey[] = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
 
 const ABILITY_NAMES_TR: Record<AbilityKey, { short: string; full: string }> = {
-  strength: { short: 'KUV', full: 'Kuvvet (Strength)' },
-  dexterity: { short: 'ÇEV', full: 'Çeviklik (Dexterity)' },
-  constitution: { short: 'DAY', full: 'Dayanıklılık (Constitution)' },
-  intelligence: { short: 'ZEK', full: 'Zekâ (Intelligence)' },
-  wisdom: { short: 'BİL', full: 'Bilgelik (Wisdom)' },
-  charisma: { short: 'KAR', full: 'Karizma (Charisma)' },
+  strength: { short: 'KUV', full: 'Kuvvet' },
+  dexterity: { short: 'ÇEV', full: 'Çeviklik' },
+  constitution: { short: 'DAY', full: 'Dayanıklılık' },
+  intelligence: { short: 'ZEK', full: 'Zekâ' },
+  wisdom: { short: 'BİL', full: 'Bilgelik' },
+  charisma: { short: 'KAR', full: 'Karizma' },
 };
 
 const ALIGNMENT_LABELS: Record<string, string> = {
@@ -158,7 +160,7 @@ function namedCatalogLabel(catalogSection: unknown, id: string): string {
 }
 
 function languageLabel(id: string) {
-  return id === 'Common' ? 'Ortak Dil' : id;
+  return ({ Common: 'Ortak Dil', Dwarvish: 'Cücece', Elvish: 'Elfçe', Draconic: 'Ejderce', Giant: 'Devce', Gnomish: 'Gnomca', Goblin: 'Goblin dili', Halfling: 'Buçukluk dili', Orc: 'Orkça', 'Common Sign Language': 'Ortak İşaret Dili' } as Record<string, string>)[id] ?? id;
 }
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
@@ -219,10 +221,10 @@ function speciesTraitDetails(
   }
   if (!trait || typeof trait !== 'object') return null;
 
-  const record = trait as { name?: unknown; desc?: unknown };
+  const record = trait as { name?: unknown; name_tr?: unknown; desc?: unknown };
   if (typeof record.name !== 'string' || !record.name.trim()) return null;
   return {
-    name: record.name,
+    name: typeof record.name_tr === 'string' && record.name_tr.trim() ? record.name_tr : record.name,
     description:
       typeof record.desc === 'string' && record.desc.trim()
         ? record.desc
@@ -704,9 +706,9 @@ export function CharacterCreationScreen({
       case 'class':
         return startingDraft.startingLevel > 1 && !(characterClass === 'Barbarian' ? barbarianStartingMetadata : characterClass === 'Fighter' ? fighterStartingMetadata : characterClass === 'Rogue' ? rogueStartingMetadata : characterClass === 'Monk' ? monkStartingMetadata : characterClass === 'Paladin' ? paladinStartingMetadata : startingMetadata) ? 'Seviye kataloğunu yeniden deneyin veya seviye 1 seçin.' : 'İlerlemek için bir sınıf seçin.';
       case 'background':
-        return 'İlerlemek için bir geçmiş (background) seçin.';
+        return 'İlerlemek için bir geçmiş seçin.';
       case 'species':
-        if (!species) return 'İlerlemek için bir tür (species) seçin.';
+        if (!species) return 'İlerlemek için bir tür seçin.';
         if (species === 'Goliath' && !giantAncestry) {
           return 'Devsoylu karakterin için bir Dev Atası seçmelisin.';
         }
@@ -1869,7 +1871,7 @@ export function CharacterCreationScreen({
               <section className="cc-step-panel">
                 <div className="cc-step-header">
                   <div className="cc-label">Adım 6</div>
-                  <h2 className="cc-step-title-text">Başlangıç Ekipman Paketi</h2><StartingEquipmentNotice characterClass={characterClass} classes={propCatalog?.classes} equipmentPackage={equipmentPackage} backgroundOption={backgroundEquipmentOption} backgroundData={backgroundData} />
+                  <h2 className="cc-step-title-text">Başlangıç Ekipman Paketi</h2><StartingEquipmentNotice characterClass={characterClass} catalog={propCatalog} equipmentPackage={equipmentPackage} background={background} backgroundOption={backgroundEquipmentOption} />
                   <p className="cc-literary">Karakterinin macera yolculuğuna başlarken kuşanacağı silah, zırh ve teçhizatı seç.</p>
                 </div>
 
@@ -1888,7 +1890,7 @@ export function CharacterCreationScreen({
                           <span className="cc-card-title">Paket {pkg.id}: {pkg.label}</span>
                         </div>
                         <ul className="cc-item-list">
-                          {pkg.items?.map((it: string) => (
+                          {packageGoods(pkg).map((it: string) => (
                             <li key={it}>{it}</li>
                           ))}
                         </ul>
@@ -2212,7 +2214,7 @@ export function CharacterCreationScreen({
                     data-testid="select-death-mode"
                   >
                     <option value="PERMADEATH">Gerçek ölüm — ölüm ölümdür</option>
-                    <option value="IRONMAN">Ironman — ölüm kampanyayı bitirir</option>
+                    <option value="IRONMAN">Tek yaşam — ölüm kampanyayı bitirir</option>
                   </select>
                   <p>
                     {deathMode === 'PERMADEATH'
@@ -2367,11 +2369,12 @@ export function CharacterCreationScreen({
                       {characterClass === 'Fighter' && startingDraft.startingLevel > 1 && <FighterStartingSummary draft={startingDraft} metadata={fighterStartingMetadata} />}
                       {characterClass === 'Paladin' && startingDraft.startingLevel > 1 && <PaladinStartingSummary draft={startingDraft} metadata={paladinStartingMetadata} />}
                       {characterClass === 'Monk' && startingDraft.startingLevel > 1 && <MonkStartingSummary draft={startingDraft} metadata={monkStartingMetadata} />}
-                      <StartingEquipmentNotice characterClass={characterClass} classes={propCatalog?.classes} equipmentPackage={equipmentPackage} backgroundOption={backgroundEquipmentOption} backgroundData={backgroundData} /><div className="cc-sheet-sec-title mt-4">Kuşanılan Ekipman</div>
+                      <StartingEquipmentNotice characterClass={characterClass} catalog={propCatalog} equipmentPackage={equipmentPackage} background={background} backgroundOption={backgroundEquipmentOption} /><div className="cc-sheet-sec-title mt-4">Kuşanılan Ekipman</div>
                       <ul className="cc-sheet-items">
-                        {classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage)?.items?.map((it: string) => (
-                          <li key={it}>{it}</li>
-                        )) ?? <li>Standart Başlangıç Teçhizatı</li>}
+                        {(() => {
+                          const selected = classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage);
+                          return selected?.items ? packageGoods(selected).map((it: string) => <li key={it}>{it}</li>) : <li>Standart Başlangıç Teçhizatı</li>;
+                        })()}
                       </ul>
                     </div>
                   </div>
@@ -2435,7 +2438,7 @@ export function CharacterCreationScreen({
                   <p className="cc-summary-note">Can <StartingHitPoints level={startingDraft.startingLevel} hitPoints={derivedStats.hp} />. Zırh {derivedStats.ac}. İnisiyatif <StartingDerivedValue level={startingDraft.startingLevel} value={formatModifier(derivedStats.initiative)} />. Hız {derivedStats.speed}.</p>
                 )}
                 {derivedStats.allSkills.length > 0 && (
-                  <p className="cc-summary-note">Beceriler: {derivedStats.allSkills.join(', ')}.</p>
+                  <p className="cc-summary-note">Beceriler: {derivedStats.allSkills.map(skillLabel).join(', ')}.</p>
                 )}
                 {equipmentPackage && (
                   <p className="cc-summary-note">

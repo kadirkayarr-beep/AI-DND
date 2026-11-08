@@ -1,3 +1,4 @@
+import { term, termTitle } from '@/lib/tr-terms';
 import { SpellSlotConversionControl } from './spell-slot-conversion';
 export { SpellSlotConversionChoice, createConversionDraft } from './spell-slot-conversion';
 import type { CombatActionInput, GameState } from '@workspace/api-client-react';
@@ -29,7 +30,7 @@ export function SpellcastingPanel({ spellcasting, decisionScope = '', conversion
           </div>)}
         </dl>
       </div>
-      {spellcasting.sorcery_points && <p className="subtle-text mt-3" data-testid="spell-sorcery-points">Sorcery Points: {spellcasting.sorcery_points.current}/{spellcasting.sorcery_points.max}</p>}
+      {spellcasting.sorcery_points && <p className="subtle-text mt-3" data-testid="spell-sorcery-points"><span title={termTitle('sorcery_points')}>{term('sorcery_points')}</span>: {spellcasting.sorcery_points.current}/{spellcasting.sorcery_points.max}</p>}
       {onCommand && <SpellSlotConversionControl spellcasting={spellcasting} decisionScope={decisionScope} blocked={conversionBlocked} onCommand={onCommand} />}
       {spellcasting.slot_turn && <p className="subtle-text mt-3" data-testid="spell-slot-turn">
         Son yuva kullanımı: Raunt {spellcasting.slot_turn[1]} · Sıra {spellcasting.slot_turn[2]}

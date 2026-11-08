@@ -1,6 +1,6 @@
 {
   "id": "17_refused_gift_not_charged",
-  "title": "Reddedilen para kesilmez (103; D3, D25, D26): kervancı uzatılan 5 bakırı neyi reddettiği belli olmadan geri çevirir; ret kart açtırmaz ve o kişiye hiçbir ödeme ilerlemez: panelden hazırlanan bahşiş reddedilir, aynı kişiye yine uzatılan para cevap gelmeyince kart açmaz (ret sürer). Ret yalnız aynı kalem için açık 'alırım' ile kalkar: bahşişi açıkça alınca Bahşiş kartı açılır ve onayı 5 bakır keser; genel retteki öteki kalem (hediye) kapalı kalır",
+  "title": "Reddedilen para kesilmez (103; D3, D25, D26): kervancı uzatılan 5 bakırı neyi reddettiği belli olmadan geri çevirir; ret kart açtırmaz ve o kişiye hiçbir ödeme ilerlemez: panelden hazırlanan bahşiş reddedilir, aynı kişiye yine uzatılan para cevap gelmeyince kart açmaz (ret sürer). Ret yalnız aynı kalem için açık 'alırım' ile kalkar: bahşişi açıkça alınca Bahşiş kartı açılır ve onayı 5 bakır keser; genel retteki öteki kalem (hediye) kapalı kalır Güncel hediye teklifi doğrulanmış alıcıya bağlanır (economic_intent) ve reddedilen ya da kabulü belirsiz teklif aynı kabul kaydını kullanır",
   "source_items": [
     103
   ],
@@ -28,7 +28,8 @@
         "front": {
           "kind": "speak_to",
           "person_id": "caravaner",
-          "coin_cp": 5
+          "coin_cp": 5,
+          "economic_intent": "gift"
         },
         "spoken": "Paranı istemem, sakla onu; bahşiş almam.",
         "speech": {

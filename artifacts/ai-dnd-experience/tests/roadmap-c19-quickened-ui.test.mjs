@@ -1,3 +1,5 @@
+const visibleText = e => Array.isArray(e) ? e.map(visibleText).join('') : e && typeof e === 'object' ? visibleText(e.props?.children) : e == null ? '' : String(e);
+import * as terms from '../src/lib/tr-terms.ts';
 import assert from 'node:assert/strict';
 import {before,after,test} from 'node:test';
 import path from 'node:path';
@@ -21,7 +23,7 @@ test('actual panel clears consent for a different owner/campaign/session despite
  const functions=['quickenedProjection','ActionEconomyPanel'].map(name=>ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===name).getText(ast).replace(/^export /,''));
  const code=ts.transpileModule(functions.join('\n')+'\nglobalThis.Panel=ActionEconomyPanel;',{compilerOptions:{target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText;
  const slots=[];let index=0;const env={FighterControl:'FighterControl',PaladinControl:'PaladinControl',SacredWeaponChoice:'SacredWeaponChoice',readPaladinProjection:()=>null,sacredWeaponFields:()=>({}),MonkControl:'MonkControl',RogueControl:'RogueControl',CunningStrikeControl:'CunningStrikeControl',readRogueProjection:()=>null,cunningStrikeFields:()=>({}),readRageProjection:ui.readRageProjection,RageControl:ui.RageControl,createQuickenedIntent:ui.createQuickenedIntent,createRecklessIntent:ui.createRecklessIntent,MagicMissileControl:'MagicMissileControl',RecklessAttackControl:'RecklessAttackControl',React:{createElement:(type,props,...children)=>({type,props:{...props,children}})},useRef:value=>{const i=index++;return slots[i]??=( {current:value} );},useState:value=>{const i=index++;slots[i]??=value;return [slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];}};
- vm.runInNewContext(code,env);const actual=structuredClone(state);Object.assign(actual.combat,{combat_id:'same',round:1,current_turn_index:0});Object.assign(actual.combat.action_economy.actors.player,{legal_actions:[],additional_actions:[],bonus_rules:[]});
+ Object.assign(env, terms); vm.runInNewContext(code,env);const actual=structuredClone(state);Object.assign(actual.combat,{combat_id:'same',round:1,current_turn_index:0});Object.assign(actual.combat.action_economy.actors.player,{legal_actions:[],additional_actions:[],bonus_rules:[]});
  const sends=[];
  let targetId='npc-1';
  const renderPanel=scope=>{index=0;return nodes(env.Panel({state:actual,targetId,sending:false,decisionScope:scope,onCommand:(_label,command)=>sends.push(command)})).find(n=>n.type==='MagicMissileControl');};
@@ -42,6 +44,6 @@ test('actual panel clears consent for a different owner/campaign/session despite
 test('character spell panel displays adopted authoritative points outside combat and leaves legacy absence unchanged',async()=>{
  const {SpellcastingPanel}=await vite.ssrLoadModule('/src/components/spellcasting-panel.tsx');
  const casting={cantrips:[],prepared:['Magic Missile'],slots:{1:1},slot_turn:null,sorcery_points:{current:0,max:3}};
- const tree=nodes(SpellcastingPanel({spellcasting:casting}));const pool=find(tree,'spell-sorcery-points');assert.ok(pool);assert.match(JSON.stringify(pool),/Sorcery Points/);assert.deepEqual(pool.props.children,['Sorcery Points: ',0,'/',3]);
+ const tree=nodes(SpellcastingPanel({spellcasting:casting}));const pool=find(tree,'spell-sorcery-points');assert.ok(pool);assert.match(JSON.stringify(pool),/Sorcery Points/);assert.equal(visibleText(pool), 'Büyücülük Puanı: 0/3');assert.equal(nodes(pool).find(n=>n.type==='span').props.title,'Sorcery Points');
  const legacy={...casting};delete legacy.sorcery_points;assert.equal(find(nodes(SpellcastingPanel({spellcasting:legacy})),'spell-sorcery-points'),undefined);
 });

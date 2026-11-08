@@ -111,7 +111,7 @@ test('starting components show the live levels and the server scope, and choosin
   select.props.onChange({ target: { value: '4' } }); assert.equal(picked, undefined);
   select.props.onChange({ target: { value: '3' } }); assert.equal(picked, 3);
   const html = render(React.createElement(ui.MonkStartingScope, { metadata: helper.readMonkStartingCreationOptions(raw5()), level: 5 }));
-  assert.match(html, /Stunning Strike supported/); assert.match(html, /Higher-start equipment pending/); assert.doesNotMatch(html, /Focus supported/);
+  assert.match(html,/>1 özellik</);assert.doesNotMatch(html,/Stunning Strike supported/);assert.match(html,/Bu seviyede oyunda işleyenler/); assert.match(html,/Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(html,/Higher-start equipment pending/); assert.doesNotMatch(html, /Focus supported/);
   let next;
   const choices = nodes(ui.MonkStartingChoices({ draft: draftN(3, { subclassId: '' }), metadata: helper.readMonkStartingCreationOptions(raw5()), onChange: d => next = d }));
   assert.equal(byId(choices, 'monk-subclass').props.value, '');
@@ -172,7 +172,7 @@ test('projection reader refuses malformed blocks; nothing is derived from the cl
 
 test('status shows the server values only', () => {
   const html = render(React.createElement(controls.MonkStatus, { monk: MONK() }));
-  assert.match(html, /1d8/); assert.match(html, /3\/5/); assert.match(html, /DC 13/); assert.match(html, /\+10 ft/);
+  assert.match(html, /1d8/); assert.match(html, /3\/5/); assert.match(html, /DC 13/); assert.match(html.replace(/<[^>]+>/g, ''), /\+10 fit/); assert.match(html, /title="feet"/);
   const low = render(React.createElement(controls.MonkStatus, { monk: LEVEL_ONE() }));
   assert.match(low, /1d6/); assert.doesNotMatch(low, /Focus/);
 });

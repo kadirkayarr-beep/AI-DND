@@ -234,6 +234,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .story-text + .story-text { margin-top: 16px; }
 .player-entry { margin: 30px 0; border-left: 1px solid #4b3b2b; padding-left: 17px; color: #b7a88c; font-size: 19px; font-style: italic; line-height: 1.5; }
 .player-label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #887556; font-size: 9px; font-style: normal; letter-spacing: .16em; text-transform: uppercase; }
+/* A turn the player took back: it stays in the story, faded and labelled (Dilim 0, 52 / EK 6/6). */
+.transcript-undone { opacity: .5; }
+.transcript-undone-label { display: inline-block; margin: 0 0 6px; border: 1px solid currentColor; padding: 0 6px; color: #b8965f; font-size: 9px; font-style: normal; letter-spacing: .16em; line-height: 1.6; text-transform: uppercase; }
+.player-label .transcript-undone-label { margin: 0; }
 .story-divider { display: flex; align-items: center; gap: 12px; margin: 27px 0; }
 .story-divider span { color: #7d6748; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .2em; }
 .command-box { margin-top: 36px; border: 1px solid rgba(113, 82, 45, .85); background: rgba(34, 26, 19, .75); padding: 16px; }
@@ -540,13 +544,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .play-shell .command-box { position: static; flex: 0 0 auto; margin-top: 12px; z-index: 1; background: #1b1510; }
 .play-shell .command-form { position: static; z-index: 1; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; background: #1b1510; padding-top: 8px; }
 .play-shell .command-form .command-target-label { flex: 0 1 12rem; min-width: 0; max-width: 100%; }
-.play-shell .transcript-scroll { flex: 1 1 auto; min-height: 8rem; max-height: 30dvh; overflow-y: auto; }
+.play-shell .transcript-scroll { flex: 1 1 auto; min-height: max(220px, 38dvh); max-height: none; overflow-y: auto; }
 .play-shell .story-heading { margin-bottom: 12px; }
 @media (max-width: 1120px), (max-height: 699px) {
   .play-shell .drawer-backdrop { align-items: flex-end; }
   .play-shell .drawer-sheet { width: 100%; max-height: 86dvh; }
   .play-shell .command-context { max-height: 6.5rem; }
-  .play-shell .transcript-scroll { max-height: 18dvh; }
+  .play-shell .transcript-scroll { max-height: none; }
 }
 .player-account {
   position: fixed;

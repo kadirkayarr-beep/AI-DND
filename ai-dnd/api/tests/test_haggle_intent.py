@@ -97,8 +97,11 @@ class NegotiationRoutes(JourneyCase):
         value = {"offer_id": "$room:barman", "npc_id": "barman", "evidence_quote": text}
         step = replace(step, say=text, script={"intent": {"intent": "persuasion", "price_negotiation": value},
                                               "front": {"kind": "attempt"}})
+        # With the reading on, the room card is opened by the model's deal, not by room words.
+        first = replace(scenario.steps[0], script={"front": {"kind": "speak_to", "person_id": "barman",
+                                                             "deal": "room"}})
         scenario = replace(scenario, setup={**scenario.setup, "front_proposal": True},
-                           steps=(scenario.steps[0], step))
+                           steps=(first, step))
         with patch.object(game, "parse_player_intent", wraps=game.parse_player_intent) as parser:
             results = await self.run_scenario(scenario)
         self.assertEqual([r.status for r in results], ["pass", "pass"], results)
@@ -109,8 +112,10 @@ class NegotiationRoutes(JourneyCase):
         step = replace(scenario.steps[1], say="Köprüden geçmeye ikna etmeye çalışıyorum.",
                        script={"intent": "persuasion", "front": {"kind": "attempt"}},
                        expect={"kart": {"max_total_cp": 50}, "kese": 100})
+        first = replace(scenario.steps[0], script={"front": {"kind": "speak_to", "person_id": "barman",
+                                                             "deal": "room"}})
         scenario = replace(scenario, setup={**scenario.setup, "front_proposal": True},
-                           steps=(scenario.steps[0], step))
+                           steps=(first, step))
         with patch.object(game, "apply_check_outcome_to_world_state",
                           wraps=game.apply_check_outcome_to_world_state) as checks:
             results = await self.run_scenario(scenario)

@@ -122,7 +122,9 @@ class TheDecisionOpensTheOffer(Routes):
         self.assertEqual(self.purse(), 100)
 
     async def test_without_a_decision_the_word_path_is_unchanged(self):
-        self.client.front = {"kind": "speak_to", "person_id": "barman"}
+        # Merged with D0 (2026-11-08): in a turn whose reading was obtained, room words are never read (the reading's
+        # own `deal` or `economic_intent` decides); the old word path is what runs when there is no reading at all.
+        self.enterContext(patch.dict(os.environ, {front_proposal.FLAG: "0"}))
         await self.line("bi oda tutayım usta")
         self.assertIsNone(money_owner.current(self.session))
         self.assertEqual({key: self.card()[key] for key in ROOM_CARD}, ROOM_CARD)

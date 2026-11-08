@@ -1,3 +1,5 @@
+import { speciesLabel } from '@/lib/campaign-presentation';
+import { term, termTitle } from '@/lib/tr-terms';
 import { applyGameState, nextRevision } from '@/lib/game-state-gate';
 import { stableTurnActionId, clearPendingTurnAction, reconcileState, useActionLifetime, RETRY_MESSAGE } from '@/lib/action-reconciliation';
 import { currentAccountOwner } from '@/lib/account-session';
@@ -238,7 +240,7 @@ export function SpeciesTraitControls({
           <span className="combat-overline">KARAKTERİNİN KÖKENİ</span>
           <h3 id="species-traits-heading">Tür yetenekleri</h3>
         </div>
-        <span className="species-traits-species">{species}</span>
+        <span className="species-traits-species">{speciesLabel(species)}</span>
       </div>
 
       {species === 'Aasimar' && (
@@ -391,7 +393,7 @@ export function SpeciesTraitControls({
           disabled={!notBusy || character.current_hp >= character.max_hp}
           onClick={() => send({ action: 'second_wind' })}
         >
-          Second Wind · {fighter?.second_wind.uses_remaining} kullanım
+          <span title={termTitle('second_wind')}>{term('second_wind')}</span> · {fighter?.second_wind.uses_remaining} kullanım
         </button>
       )}
 
@@ -403,7 +405,7 @@ export function SpeciesTraitControls({
           disabled={!notBusy || layAmount < 1}
           onClick={() => send({ action: 'lay_on_hands', healing_amount: layAmount })}
         >
-          Lay On Hands · {layAmount} can ({paladin.lay_on_hands.pool_remaining} havuz)
+          <span title={termTitle('lay_on_hands')}>{term('lay_on_hands')}</span> · {layAmount} can ({paladin.lay_on_hands.pool_remaining} havuz)
         </button>
       )}
 

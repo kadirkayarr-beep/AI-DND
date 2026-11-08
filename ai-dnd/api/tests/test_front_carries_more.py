@@ -81,6 +81,8 @@ class ProposalClient(FrontClient):
 class TheReadingCarriesTheProposal(FrontTable):
     async def set_up(self):
         await self.begin()
+        # This fixture tests general proposals, not the random template's parcel job.
+        self.thread.pop("item_noun", None)
         self.client = ProposalClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         for key in ("active_npc_id", "last_npc_id"):
@@ -112,6 +114,16 @@ class TheReadingCarriesTheProposal(FrontTable):
         reply = await self.line(line)
         self.assertEqual(reply["turn_outcome"]["status"], "recorded")
         self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+
+    async def test_a_promise_about_an_owned_job_stays_with_the_job_owner(self):
+        await self.set_up()
+        self.thread["item_noun"] = "paket"
+        line = f"{self.name}, sana soz veriyorum, paketi yarin getiririm"
+        self.proposal("promise", line, self.npc["id"])
+        reply = await self.line(line)
+        self.assertNotEqual(reply["turn_outcome"]["status"], "recorded")
+        self.assertEqual(self.session._thread_turn["thread_id"], self.thread["thread_id"])
+        self.assertTrue(self.session._thread_turn["offer_talk"])
 
     async def test_a_reading_that_left_the_addressee_out_lets_the_person_answer(self):
         await self.set_up()

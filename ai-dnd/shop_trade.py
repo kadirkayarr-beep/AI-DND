@@ -9,6 +9,7 @@ coin itself moves only through the one economic owner (economic_actions.apply_re
 from __future__ import annotations
 
 import copy
+import dataclasses
 import re
 from typing import Any
 
@@ -211,7 +212,74 @@ def _tender(world: dict[str, Any], npc_id: str, key: str, count: int, fresh: dic
     return tender
 
 
+def binding_matches(world: dict[str, Any], offer: Any) -> bool:
+    binding = offer.counter_binding
+    opened = (world.get("flags") or {}).get("counter_offer_v1")
+    if not isinstance(binding, dict) or not isinstance(opened, dict) or offer.proposal.purpose != "purchase":
+        return False
+    import economic_actions
+    npc = _npc(world, offer.proposal.recipient_id)
+    if npc is None or economic_actions._held_deed(world, npc) is not None:
+        return False  # a serving arrest owner must answer through the law/bribe route
+    return (offer.proposal.recipient_id == binding.get("npc_id") == opened.get("npc_id")
+            and offer.proposal.item_id == binding.get("key") == opened.get("key")
+            and type(binding.get("count")) is int and binding["count"] == offer.proposal.count == 1
+            and type(opened.get("seq")) is int and opened["seq"] == binding.get("seq") == seq(world)
+            and type(opened.get("turn")) is int and opened["turn"] == binding.get("quote_turn")
+            and type(opened.get("tender_cp")) is int
+            and opened["tender_cp"] == binding.get("tender_cp") == offer.proposal.tender_cp)
+
+
+def prepare_keep_change(session: Any, npc_id: str, key: str, tender_cp: int) -> Any:
+    import economic_actions as ea
+    world = session.world_state
+    opened = (world.get("flags") or {}).get("counter_offer_v1")
+    fresh = quote(world, npc_id, key, 1)
+    npc = _npc(world, npc_id)
+    if npc is not None and ea._held_deed(world, npc) is not None:
+        return ea._clarify("bribe_in_turn_only")
+    if (not isinstance(opened, dict) or fresh is None or opened.get("npc_id") != npc_id
+            or opened.get("key") != key or type(opened.get("seq")) is not int or opened["seq"] != seq(world)
+            or type(opened.get("turn")) is not int):
+        return ea._clarify("shop_unavailable")
+    if type(tender_cp) is not int or tender_cp <= 0:
+        return ea._clarify("amount_required")
+    if tender_cp > fresh["purse_cp"]:
+        return ea._clarify("purse_below_base")
+    if tender_cp < fresh["total_cp"] or opened.get("tender_cp") != tender_cp:
+        return ea._clarify("client_price_mismatch")
+    proposal = dataclasses.replace(ea.turn_proposal("purchase", npc_id), source_id=npc_id,
+                                   item_id=key, count=1, tender_cp=tender_cp,
+                                   tip_cp=tender_cp - fresh["total_cp"])
+    result = ea.prepare_from_turn(session, proposal)
+    if result.offer is not None:
+        binding = {"npc_id": npc_id, "key": key, "count": 1, "seq": fresh["seq"],
+                   "quote_turn": opened["turn"], "tender_cp": tender_cp}
+        offer = dataclasses.replace(result.offer, counter_binding=binding)
+        offer = dataclasses.replace(offer, confirmation_digest=ea.confirmation_digest(offer))
+        ea.offer_records(world)[offer.offer_id] = dataclasses.asdict(offer)
+        result = dataclasses.replace(result, offer=offer)
+    return result
+
+
+def confirm_bound_offer(world: dict[str, Any], offer: Any, *, operation_id: str) -> Any:
+    if not binding_matches(world, offer):
+        raise TradeRefused("offer_stale")
+    base = next((line for line in offer.lines if line.kind == "goods"), None)
+    if base is None:
+        raise TradeRefused("goods_unknown")
+    return _commit_sale(world, offer.proposal.recipient_id, str(offer.proposal.item_id), offer.proposal.count,
+                        offer.counter_binding["seq"], base.total_cp,
+                        stored_offer=offer, operation_id=operation_id)[1]
+
+
 def commit(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: int, confirmed_total_cp: int) -> str:
+    return _commit_sale(world, npc_id, key, count, offer_seq, confirmed_total_cp)[0]
+
+
+def _commit_sale(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: int,
+                 confirmed_total_cp: int, *, stored_offer: Any = None,
+                 operation_id: str | None = None) -> tuple[str, Any]:
     """The counter sale: the price, purse, goods and stock checked here; the coin moved by the one economic owner.
 
     Everything is written on one candidate copy: the coin and the ledger by `economic_actions.apply_resolution`,
@@ -245,36 +313,48 @@ def commit(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: 
         raise TradeRefused("offer_stale", fresh)
     if type(count) is not int or count < 1:
         raise TradeRefused("invalid_count", fresh)
-    recorded = _recorded_tip(candidate, npc_id, key, fresh)
-    tip = _tip(candidate, npc_id, key, count, fresh)
-    if tip and confirmed_total_cp == fresh["total_cp"] + tip:
-        pass  # the goods and the tip, as the offer showed them
-    elif confirmed_total_cp == fresh["total_cp"]:
-        tip = 0  # the goods alone: the tip stays in the purse
-    elif recorded and confirmed_total_cp == fresh["total_cp"] + recorded:
-        raise TradeRefused("tip_unavailable", fresh)
+    recorded = tip = 0
+    if stored_offer is not None:
+        # A bound card is confirmed for the goods it shows; the card's own lines (goods and its tip) are settled by
+        # `resolve_offer`, and a tip line the person refuses since is left out there, never charged.
+        if confirmed_total_cp != fresh["total_cp"]:
+            raise TradeRefused("price_changed", fresh)
     else:
-        raise TradeRefused("price_changed", fresh)
+        recorded = _recorded_tip(candidate, npc_id, key, fresh)
+        tip = _tip(candidate, npc_id, key, count, fresh)
+        if tip and confirmed_total_cp == fresh["total_cp"] + tip:
+            pass  # the goods and the tip, as the offer showed them
+        elif confirmed_total_cp == fresh["total_cp"]:
+            tip = 0  # the goods alone: the tip stays in the purse
+        elif recorded and confirmed_total_cp == fresh["total_cp"] + recorded:
+            raise TradeRefused("tip_unavailable", fresh)
+        else:
+            raise TradeRefused("price_changed", fresh)
     if count > fresh["stock"]:
         raise TradeRefused("out_of_stock", fresh)
     if world_reactions.refuses(candidate, npc):
         raise TradeRefused("vendor_refuses", fresh)
-    if not fresh["can_pay"]:
+    if not fresh["can_pay"] and stored_offer is None:
         raise TradeRefused("insufficient_funds", fresh)
     total = fresh["total_cp"]
     candidate_before = copy.deepcopy(candidate)
-    tender = total + tip if tip else _tender(candidate, npc_id, key, count, fresh)
-    offer = economic_actions.counter_purchase_offer(candidate, npc_id=npc_id, key=key, count=count,
-                                                    unit_cp=fresh["unit_cp"], tender_cp=tender, tip_cp=tip)
+    if stored_offer is not None:
+        offer = stored_offer
+    else:
+        tender = total + tip if tip else _tender(candidate, npc_id, key, count, fresh)
+        offer = economic_actions.counter_purchase_offer(candidate, npc_id=npc_id, key=key, count=count,
+                                                        unit_cp=fresh["unit_cp"], tender_cp=tender, tip_cp=tip)
     state = economic_actions.EconomicState(world=candidate, character=None)
     resolution = economic_actions.resolve_offer(
-        state, offer, operation_id=economic_actions.operation_id_for(candidate, "purchase"))
+        state, offer, operation_id=operation_id or economic_actions.operation_id_for(candidate, "purchase"))
     if resolution.status == "applied":
         resolution = economic_actions.apply_resolution(state, resolution, confirmed_offer=offer)
+    if resolution.status != "applied" and stored_offer is not None:
+        return resolution.public_summary, resolution
     if resolution.status != "applied":
         raise TradeRefused("insufficient_funds" if resolution.reason_code in ("no_money", "tender_invalid")
                            else "offer_stale", fresh)
-    if resolution.net_debit_cp != confirmed_total_cp:
+    if stored_offer is None and resolution.net_debit_cp != confirmed_total_cp:
         # A tip line the economic owner refused (it no longer fits, or it was declined) leaves the candidate unused:
         # the confirmed total is paid whole or not at all.
         raise TradeRefused("tip_unavailable" if tip else "price_changed", fresh)
@@ -287,7 +367,7 @@ def commit(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: 
     record = candidate.setdefault(KEY, {})
     record["seq"] = fresh["seq"] + 1
     ledger = [*(record.get("ledger") or [])[-(LEDGER_CAP - 1):],
-              {"seq": record["seq"], "npc_id": npc_id, "key": key, "count": count, "total_cp": total, "turn_index": turn}]
+              {"seq": record["seq"], "npc_id": npc_id, "key": key, "count": count, "total_cp": resolution.net_debit_cp, "turn_index": turn}]
     record["ledger"] = ledger
     flags["served_turn"] = turn
     # Decision 12: the one receipt checks the coin, the goods and the stock together on the candidate.
@@ -298,13 +378,16 @@ def commit(world: dict[str, Any], npc_id: str, key: str, count: int, offer_seq: 
     world.clear()
     world.update(candidate)
     who = living_world.public_npc_name(npc)
+    if stored_offer is not None:
+        return resolution.public_summary, resolution
     if tip:
         return (f"{who} önüne {count} {fresh['label']} bırakıyor; "
-                f"{total} bakır ve {tip} bakır bahşiş kesenden tezgâha geçiyor.")
+                f"{total} bakır ve {tip} bakır bahşiş kesenden tezgâha geçiyor."), resolution
     change = f" Uzattığın {resolution.tender_cp} bakırdan {resolution.change_cp} bakır para üstü sayılıyor." \
         if resolution.tender_cp is not None and resolution.change_cp else ""
     kept = f" {TIP_KEPT}" if recorded else ""
-    return f"{who} önüne {count} {fresh['label']} bırakıyor; {total} bakır kesenden tezgâha geçiyor.{change}{kept}"
+    return (f"{who} önüne {count} {fresh['label']} bırakıyor; {total} bakır kesenden tezgâha geçiyor.{change}{kept}",
+            resolution)
 
 
 def commit_typed(world: dict[str, Any], args: list[str]) -> str:

@@ -7,6 +7,7 @@ classifier call, so a turn never spends a third call on it. Anything wrong with 
 from __future__ import annotations
 
 import json
+import copy
 import os
 import tempfile
 import unittest
@@ -264,11 +265,23 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         reply = await self.line("şu yandakine yaklaşıyorum")
         self.assertEqual(reply["turn_outcome"]["status"], "clarification")
 
-    async def test_typed_speech_keeps_its_own_way_and_says_why_in_the_log(self):
+    async def test_typed_speech_reads_purpose_once_without_general_front_side_effects(self):
         await self.begin()
+        self.npc["role"] = "barmen"  # a line said to whoever serves is read without coin (a line to anyone else is not)
+        here = self.world["location"]
+        money = copy.deepcopy(self.world.get("currency"))
+        wants = copy.deepcopy(world_threads.wants_of(self.world))
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"],
+                             "threat_to": self.npc["id"], "want": "coin", "economic_intent": "none"}
         await self.line("selam", mode="say", target=True)
-        self.assertEqual(self.front_calls(), [])
-        self.assertEqual(self.routes()[-1]["route"], "skipped:typed")
+        self.assertEqual(len(self.front_calls()), 1)
+        self.assertEqual(sum("intent" in (schema.get("properties") or {}) for schema in self.client.schemas), 1)
+        self.assertEqual(self.routes()[-1]["route"], "typed:no_economic")
+        self.assertEqual(self.world["location"], here)
+        self.assertEqual(self.world.get("currency"), money)
+        self.assertEqual(world_threads.wants_of(self.world), wants)
+        self.assertFalse(self.world.get("combat", {}).get("active"))
+        self.assertEqual(self.world["flags"].get("active_npc_id"), self.npc["id"])
 
     async def test_the_route_log_never_holds_the_players_words(self):
         await self.begin()

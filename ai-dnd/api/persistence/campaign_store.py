@@ -18,6 +18,7 @@ import game
 from api import action_contract
 from api.auth import AuthenticationError, Principal, current_principal
 from api.campaign_journal import empty_campaign_journal
+from api.history_view import mark_undone, undo_links
 from api.lore_authority.models import CampaignLoreState
 from api.persistence import receipt_archive
 from api.persistence.campaign_models import (
@@ -1648,7 +1649,7 @@ class CampaignStore:
                 from api.schemas import SkillCheckResult
                 skill_rows = connection.execute(
                     """
-                    SELECT action_id, request_hash, response_json
+                    SELECT action_id, request_hash, response_json, created_at
                     FROM campaign_turn_actions
                     WHERE campaign_id = ?
                     ORDER BY rowid ASC
@@ -1661,19 +1662,31 @@ class CampaignStore:
                     history_row["sequence"]: history_row
                     for history_row in history_rows
                 }
+                # Every live receipt, decoded once; one that fails the identity check carries no response.
+                receipts = []
                 for receipt_row in skill_rows:
+                    receipt = None
+                    # Only the committed receipt for this campaign/turn may
+                    # annotate history; a different or damaged identity is
+                    # not evidence for a player-visible skill result or undo.
+                    request_hash = receipt_row["request_hash"]
+                    if (isinstance(request_hash, str)
+                            and len(request_hash) == 64
+                            and all(c in "0123456789abcdef" for c in request_hash)):
+                        try:
+                            decoded = json.loads(str(receipt_row["response_json"]))
+                        except (json.JSONDecodeError, TypeError, ValueError):
+                            decoded = None
+                        if isinstance(decoded, dict) and decoded.get("action_id") == receipt_row["action_id"]:
+                            receipt = decoded
+                    receipts.append({
+                        "action_id": receipt_row["action_id"],
+                        "created_at": receipt_row["created_at"],
+                        "response": receipt,
+                    })
+                    if receipt is None:
+                        continue
                     try:
-                        # Only the committed receipt for this campaign/turn may
-                        # annotate history; a different or damaged identity is
-                        # not evidence for a player-visible skill result.
-                        request_hash = receipt_row["request_hash"]
-                        if (not isinstance(request_hash, str)
-                                or len(request_hash) != 64
-                                or any(c not in "0123456789abcdef" for c in request_hash)):
-                            continue
-                        receipt = json.loads(str(receipt_row["response_json"]))
-                        if not isinstance(receipt, dict) or receipt.get("action_id") != receipt_row["action_id"]:
-                            continue
                         skill = receipt.get("skill_check_result")
                         if not isinstance(skill, dict) or skill.get("action_id") != receipt_row["action_id"]:
                             continue
@@ -1713,6 +1726,10 @@ class CampaignStore:
                 for index, history_row in enumerate(history_rows):
                     if history_row["sequence"] in accepted and history_row["sequence"] not in ambiguous:
                         history[index]["skill_check_result"] = accepted[history_row["sequence"]]
+                # Read-only undo flags from the live receipts' own link (decision 31): never saved, never
+                # inferred from adjacency or from the marker text alone. Archived receipts keep no link, so
+                # they prove nothing here (decision 37).
+                history = mark_undone(history, undo_links(history, receipts))
                 combat_rows = connection.execute(
                     """
                     SELECT sequence, event_id, turn_index, result_json, created_at

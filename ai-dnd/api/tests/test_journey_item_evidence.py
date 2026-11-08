@@ -133,22 +133,20 @@ class ItemJourneyEvidence(JourneyCase):
         self.assertEqual(observed["cephane"], {"arrow": 20})
         self.assertEqual(observed["kese"], 100)
 
-    async def test_the_creation_purse_counts_the_class_gold_the_live_purse_does_not(self):
+    async def test_the_creation_purse_and_the_live_purse_agree(self):
         """14 (item 34): Fighter pack C with Soldier option B. The creation response shows 6000 cp (50 gp plus
-        the written '10 Altın'); the game starts with 5000 cp and '10 Altın' left as an item."""
+        the written '10 Altın'); the game starts with the same 6000 cp and no '10 Altın' left as an item."""
         setup = load_scenario(START_PURSE).setup
         campaign = await self._journey_campaign(setup)
         self.assertEqual(campaign["state"]["wallet"]["total_cp"], 6000)
         observed = read_observed(self, campaign["session_id"])
-        self.assertEqual(observed["kese"], 5000)
-        self.assertEqual(observed["envanter"].get("10 Altın"), 1)
+        self.assertEqual(observed["kese"], 6000)
+        self.assertNotIn("10 Altın", observed["envanter"])
 
         results, _ = await self.play(START_PURSE)
-        self.assertEqual([result.status for result in results], ["known_broken", "pass", "pass"], results)
-        self.assertIn("kese: beklenen 6000, gözlenen 5000", results[0].failures)
-        self.assertTrue(any(failure.startswith("envanter:") and "10 Altın" in failure
-                            for failure in results[0].failures), results[0].failures)
-        # The first coin trade settles the label: 6000 - 4 = 5996, the barman holds the 4.
+        self.assertEqual([result.status for result in results], ["pass", "pass", "pass"], results)
+        self.assertEqual(tuple(results[0].failures), ())
+        # The first coin trade spends from the purse: 6000 - 4 = 5996, the barman holds the 4.
         self.assertEqual(self.last_observations[2]["kese"], 5996)
         self.assertEqual(self.last_observations[2]["kisi_kese"], {"barman": 4})
 

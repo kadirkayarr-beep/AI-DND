@@ -44,7 +44,9 @@ class SourceCorrectionsTests(unittest.TestCase):
             with self.subTest(background=background):
                 self.assertEqual(BACKGROUND_DEFINITIONS[background]['equipment'], items)
                 session = self.create(background, 'A')
-                self.assertEqual(session.world_state['currency']['player'], gp * 100)
+                # The background's gold plus Fighter package A's written "10 Altın".
+                self.assertEqual(session.world_state['currency']['player'], (gp + 10) * 100)
+                self.assertNotIn('10 Altın', session.world_state['inventory'])
                 self.assertIn(f'{gp} GP', session.character['equipment_choices'])
                 self.assertNotIn(f'{gp} GP', session.world_state['inventory'])
                 for item in items[:-1]:
@@ -58,7 +60,9 @@ class SourceCorrectionsTests(unittest.TestCase):
         for background, (items, _, _, _) in PACKAGES.items():
             with self.subTest(background=background):
                 session = self.create(background, 'B')
-                self.assertEqual(session.world_state['currency']['player'], 5000)
+                # Option B's 50 gold plus Fighter package A's written "10 Altın".
+                self.assertEqual(session.world_state['currency']['player'], 6000)
+                self.assertNotIn('10 Altın', session.world_state['inventory'])
                 self.assertIn('50 Altın', session.character['equipment_choices'])
                 self.assertNotIn('50 Altın', session.world_state['inventory'])
                 self.assertNotIn(items[1], session.world_state['inventory'])

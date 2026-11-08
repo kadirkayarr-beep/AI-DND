@@ -132,7 +132,7 @@ test('choices component: explicit subclass and skill selects, owned skills exclu
 test('scope text for level 3 lists the supported and pending effects and claims no full class',()=>{
   const meta=fn('readBarbarianStartingCreationOptions')(raw3());
   const html=render(React.createElement(ui.BarbarianStartingScope,{metadata:meta,level:3}));
-  assert.match(html,/Primal Knowledge/);assert.match(html,/Frenzy pending/);assert.doesNotMatch(html,/Metamagic|Sorcerer/);
+  assert.match(html,/İlkel Bilgi/);assert.match(html,/Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(html,/Frenzy pending/);assert.doesNotMatch(html,/Metamagic|Sorcerer/);
   assert.match(render(React.createElement(ui.BarbarianStartingScope,{metadata:meta})),/seviyesi 2/);
 });
 

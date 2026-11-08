@@ -8426,7 +8426,7 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     return gate
 
 
-def _thread_gate(player_input, target_id, interaction_mode):
+def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     """A line about someone's work is decided here, before any phrase owner reads it.
 
     Python reads the player's own words and writes the state; the model only voices the
@@ -8448,6 +8448,11 @@ def _thread_gate(player_input, target_id, interaction_mode):
             # Money asked of someone with no job to their name is still said to them, and they answer it.
             spoken_to = isinstance(person, dict) and world_threads.asks_for_pay(player_input) and not _physical_line(player_input)
             return {"decision": None, "npc_id": person["id"]} if spoken_to else None
+        # A validated payment utterance is not a work action. Explicit front work has its own writer.
+        coin = getattr(session, "_front_coin", 0)
+        if (gate["decision"] == "work" and isinstance(front, dict) and front.get("kind") == "speak_to"
+                and type(coin) is int and coin > 0):
+            return None
         if (gate["decision"] is None and not gate.get("yes_heard") and interaction_mode != "say"
                 and _physical_line(player_input)):
             return None
@@ -8664,6 +8669,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
         lines.append(f"Oyuncu az önce sana şunu verdi, artık sende: {handed}.")
         _session()._handed_note = None
     decision = money_owner.current(_session())
+    told_coin = False
     if decision is not None and decision.amount_cp > 0 and decision.npc_id == npc.get("id"):
         # Read from the money owner's decision: coin waiting for a card is not theirs yet (decisions 3 and 11), coin
         # with no meaning opens no card and is only shown. Only the person it was held out to hears of it; a past
@@ -8671,9 +8677,16 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
         if decision.kind in money_owner.WAITS_FOR_CONFIRMATION:
             lines.append(f"Oyuncu sana {decision.amount_cp} bakır uzatıyor; para henüz sende değil, "
                          "oyuncu kartı onaylarsa geçer.")
+            told_coin = True
         elif decision.kind == "unclear":
             lines.append(f"Oyuncu sana {decision.amount_cp} bakır gösterdi, ne için olduğu belli değil; "
                          "para el değiştirmedi.")
+            told_coin = True
+    pending = getattr(_session(), "_spoken_coin_proposal", None)
+    if not told_coin and pending is not None and pending.recipient_id == npc.get("id"):
+        # A validated gift or tip waiting for this person's own spoken answer (D0): prompt evidence only, never tender.
+        lines.append(f"Oyuncu sana {pending.amount_cp} bakır uzatıyor; para henüz sende değil, "
+                     "oyuncu kartı onaylarsa geçer.")
     import bold_acts
     import pocket
     lines.append(bold_acts.room_note(npc, player_input, world=world))
@@ -17880,6 +17893,10 @@ def _clear_turn_transients(session) -> None:
     session._handed_note = None
     session._coin_paid = None
     session._front_coin = 0
+    session._front_economic_none = False
+    session._front_economic_front = None
+    session._spoken_coin_proposal = None
+    session._spoken_coin_result = None
     session._bribe_held_out = 0
     session._counter_held = None
     session._economic_turn_key = None
@@ -17965,7 +17982,23 @@ def _tell_the_coin(result):
     """
     session = _session()
     try:
+        pending = getattr(session, "_spoken_coin_proposal", None)
+        if pending is not None:
+            person = next((n for n in active_npcs() if n.get("id") == pending.recipient_id), None)
+            if person is not None:
+                _record_spoken_coin_response(person, None)  # a deterministic reply supplies no semantic acceptance
+        spoken = getattr(session, "_spoken_coin_result", None)
+        session._spoken_coin_result = None
+        declined = getattr(session, "_coin_answer", None) == "declines"
+        # The person's spoken answer about the coin and the card this turn's decision names (D1) come first: a spoken
+        # decline is written per part and closes what it covers, with its own line.
         money_owner.open_card_after_reply(session, result)
+        if spoken is not None and isinstance(result, dict):
+            # The validated gift or tip was put to this person; the card (or the refusal) is the engine's word.
+            if not declined:
+                result["narration"] = f"{result.get('narration') or ''} {spoken.public_message}".strip()
+            result.setdefault("action_result", {}).update(status=spoken.status, success=spoken.status == "prepared",
+                                                          reason_code=spoken.reason_code)
         note = (result.get("action_result") or {}).get("haggle_note")
         if isinstance(note, str) and note:
             result["narration"] = f"{result.get('narration') or ''} {note}".strip()
@@ -18412,13 +18445,19 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                      or combat_lifecycle.is_flight(session, player_input)
                      or combat_lifecycle.is_standing_down(session, player_input)):
         return None  # a fight's own words need no reading
-    # Said to a chosen person, a line is read only when a clause hands coin now, and only for that coin:
-    # a say line without coin spends no model call.
-    said_coin = (interaction_mode == "say" and target_id is not None and combat_action is None
+    # Said to a chosen person, a line is read when a clause hands coin now (D1), or when it is said to whoever serves
+    # here so a room or an order can name its bound recipient without coin (D0); a say line to anyone else that names
+    # no coin spends no model call. Either way the line stays with the person the player chose.
+    import shop_trade
+    typed_economic = interaction_mode == "say" and target_id is not None
+    said_coin = (typed_economic and combat_action is None
                  and check_feature is None and not fighting and isinstance(player_input, str)
                  and front_proposal.names_coin(player_input))
-    if not said_coin and (combat_action is not None or check_feature is not None or target_id is not None
-                          or interaction_mode in {"say", "ask_dm"}):
+    served = (typed_economic and combat_action is None and check_feature is None and not fighting
+              and shop_trade.is_vendor(world, next((n for n in active_npcs() if n.get("id") == target_id), None)))
+    if (combat_action is not None or check_feature is not None
+            or (interaction_mode in {"say", "ask_dm"} and not (said_coin or served))
+            or (target_id is not None and not typed_economic)):
         front_proposal.note(session, "skipped:typed")
         return None
     journey = world.get("journey")
@@ -18457,12 +18496,32 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable")
                             else "fallback:no_front" if answered else "fallback:failed", reached=answered)
         return None
+    raw_front = reply.get("front")
+    session._front_economic_none = True  # only the validated owner may prepare room/gift cards in a front-enabled turn
+    economic = front_proposal.economic_route(reply, listed, target_id=target_id if typed_economic else None)
+    if economic is not None:
+        if fighting:
+            front_proposal.note(session, "skipped:combat", reached=True)
+            return None
+        session._front_coin = front_proposal.coin_in(reply, player_input) if economic["valid"] else 0
+        session._front_economic_front = raw_front  # the owner route reads the model's `deal` from it, if it gave one
+        front_proposal.note(session, "front:economic", reached=True)
+        return economic
     if said_coin:  # the line stays with the person the player chose; of the reading only its coin and deal count
         session._front_coin = front_proposal.coin_in(reply, player_input)
         route = {"kind": "speak_to", "id": target_id}
         front_proposal.note(session, "front:speak_to", reached=True)
-        _hand_over_coin(route, listed, reply.get("front"))
+        _hand_over_coin(route, listed, raw_front)
         return route
+    if typed_economic:
+        front_proposal.note(session, "typed:no_economic", reached=True)
+        person = raw_front.get("person_id") if isinstance(raw_front, dict) else None
+        if (isinstance(raw_front, dict) and raw_front.get("kind") == "speak_to" and isinstance(person, str)
+                and person != front_proposal.NONE and person in front_proposal._ids(listed["people"])
+                and (target_id is None or target_id == person)):
+            session._front_coin = front_proposal.coin_in(reply, player_input)  # evidence only; no tender/card
+            return {"kind": "speak_to", "id": person}
+        return None  # typed speech never enters general movement/strike/person-repair routes
     import world_happenings
     import world_threads
     session._front_deed = front_proposal.deed_in(reply)
@@ -18540,7 +18599,149 @@ _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_
                       "blow_asked", "wait", "consume"}
 
 
-def _hand_over_coin(route, listed, front=None):
+def _defer_spoken_coin_offer(route):
+    """Only an admitted gift/tip can ask this bound person before the card is shown."""
+    session = _session()
+    amount = getattr(session, "_front_coin", 0)
+    if (not route.get("valid") or route.get("purpose") not in ("gift", "tip")
+            or type(amount) is not int or amount <= 0 or session.world_state.get("combat", {}).get("active")):
+        return False
+    person = next((n for n in active_npcs() if n.get("id") == route.get("id")), None)
+    import equipment_economy
+    import bold_acts
+    import economic_actions
+    import world_reactions
+    if (person is None or not equipment_economy.npc_can_act(person)
+            or economic_actions._held_deed(session.world_state, person) is not None
+            or bold_acts.offer_still_open(session.world_state, person) is not None):
+        return False
+    session._spoken_coin_proposal = economic_actions.turn_proposal(route["purpose"], person["id"], amount_cp=amount)
+    return True
+
+
+def _record_spoken_coin_response(npc, response):
+    session = _session()
+    proposal = getattr(session, "_spoken_coin_proposal", None)
+    if proposal is None or proposal.recipient_id != npc.get("id"):
+        return
+    session._spoken_coin_proposal = None
+    import economic_actions
+    economic_actions.record_coin_response(session.world_state, npc, proposal.amount_cp, response,
+                                          source_action_id=turn_source_key(session))
+    session._spoken_coin_result = economic_actions.prepare_from_turn(session, proposal)
+
+
+def _economic_listing(session, person):
+    """The little list `_hand_over_coin` reads for a validated purpose route: this person and the goods they sell."""
+    import front_proposal
+    return {"people": [{"id": person["id"]}], "speaking_with": person["id"],
+            "goods": front_proposal._goods_here(session.world_state, person, [person])}
+
+
+def _front_economic_offer(route, player_input):
+    """A current semantic purpose selects an existing engine owner, never a price or a debit."""
+    import bold_acts
+    import economic_actions
+    session = _session()
+    session._coin_paid = None
+    session._counter_held = None
+    if session.world_state.get("combat", {}).get("active"):
+        line = economic_actions._CLARIFY["combat_active"]
+        return {"messages": session.messages, "narration": line, "model_calls": 0,
+                "action_result": {"action": "narrative", "status": "clarification", "success": False,
+                                  "reason_code": "combat_active", "state_changes": [], "direct_response": line}}
+    person = next((npc for npc in active_npcs() if npc.get("id") == route.get("id")), None)
+    if not route.get("valid") or person is None:
+        result = bold_acts._reply(session, economic_actions._CLARIFY["npc_unknown"], "narrative", "clarification", None, [], reason_code="npc_unknown")
+        result["action_result"]["success"] = False
+        return result
+    import equipment_economy
+    if not equipment_economy.npc_can_act(person):
+        line = economic_actions._CLARIFY["npc_not_here"]
+        return {"messages": session.messages, "narration": line, "model_calls": 0,
+                "action_result": {"action": "narrative", "status": "clarification", "success": False,
+                                  "reason_code": "npc_not_here", "state_changes": [], "direct_response": line}}
+    purpose = route["purpose"]
+    coin = getattr(session, "_front_coin", 0)
+    amount = coin if type(coin) is int and coin > 0 else None
+    if purpose == "purchase":
+        import shop_trade
+        session._front_economic_none = True  # purchase stays with its counter, never room/gift guessing
+        counter = shop_trade.counter(session.world_state)
+        if (counter.get("vendor") or {}).get("npc_id") != person["id"] or counter["status"] != "ready":
+            reason = "npc_refuses" if counter["reason"] == "vendor_refuses" else "shop_not_now" if counter["reason"] == "not_now" else "shop_unavailable"
+            result = bold_acts._reply(session, economic_actions._CLARIFY.get(reason, economic_actions._CLARIFY["shop_unavailable"]), "narrative", "clarification", None, [], reason_code=reason)
+            result["action_result"]["success"] = False
+            return result
+        _hand_over_coin({"kind": "speak_to", "id": person["id"]}, _economic_listing(session, person),
+                        getattr(session, "_front_economic_front", None), owner_routed=True)
+        if getattr(session, "_bribe_held_out", 0):
+            return None  # the existing law owner has priority even for a serving guard
+        decision = money_owner.current(session)
+        if decision is not None and decision.kind != "goods":
+            # The model's own `deal` disagrees with the purchase it also read: nothing opens (a card of another kind
+            # is never the fallback), and the coin stays in the purse.
+            session._coin_paid = None
+            result = bold_acts._reply(session, economic_actions._CLARIFY["no_stock_or_service"], "narrative", "clarification", None, [], reason_code="no_stock_or_service")
+            result["action_result"]["success"] = False
+            return result
+        wanted = shop_trade.priced_in(bold_acts.fold(session, player_input))
+        if wanted is not None:
+            offered = bold_acts.shop_offer(session, player_input, person, requested=True)
+        else:
+            offered = bold_acts.standing_offer(session, person) if amount is not None else None
+        session._coin_paid = None
+        if offered is not None:
+            if route.get("keep_change"):
+                opened = (session.world_state.get("flags") or {}).get("counter_offer_v1") or {}
+                prepared = shop_trade.prepare_keep_change(session, person["id"], str(opened.get("key")), amount)
+                result = bold_acts._reply(session, prepared.public_message, "narrative", prepared.status, None, [],
+                                          reason_code=prepared.reason_code)
+                result["action_result"]["success"] = prepared.status == "prepared"
+                return result
+            return offered
+        result = bold_acts._reply(session, economic_actions._CLARIFY["no_stock_or_service"], "narrative", "clarification", None, [], reason_code="no_stock_or_service")
+        result["action_result"]["success"] = False
+        return result
+    import world_reactions
+    guard = world_reactions.arrester(session.world_state)
+    if amount is not None and purpose in {"gift", "tip"} and guard is not None and guard.get("id") == person.get("id"):
+        _hand_over_coin({"kind": "speak_to", "id": person["id"]}, _economic_listing(session, person),
+                        getattr(session, "_front_economic_front", None), owner_routed=True)
+        return None  # the existing law owner alone prepares/pauses/escalates a bribe
+    if amount is not None and purpose in {"gift", "tip"} and bold_acts.offer_still_open(session.world_state, person):
+        session._coin_paid = (amount, person, session.world_state.get("location"))
+        standing = bold_acts.standing_offer(session, person)
+        session._coin_paid = None
+        if standing is not None:
+            return standing
+        result = bold_acts._reply(session, economic_actions._CLARIFY["shop_not_now"], "narrative", "clarification", None, [], reason_code="shop_not_now")
+        result["action_result"]["success"] = False
+        return result
+    if purpose in {"room", "room_quote"}:
+        if not bold_acts._SERVER.search(bold_acts.fold(session, str(person.get("role", "")))):
+            result = bold_acts._reply(session, economic_actions._CLARIFY["npc_unknown"], "narrative", "clarification", None, [], reason_code="npc_unknown")
+            result["action_result"]["success"] = False
+            return result
+        if purpose == "room_quote":
+            result = bold_acts.room_quote(session, person)
+            action = result["action_result"]
+            action.update(success=action["status"] == "quoted", reason_code="npc_refuses" if action["status"] == "refused" else None)
+            return result
+        if amount is not None:
+            session._coin_paid = (amount, person, session.world_state.get("location"))
+        room = bold_acts.take_room(session, player_input, server=person, requested=True)
+        result = bold_acts._room_reply(session, room)
+        result["action_result"].update(success=room["status"] in {"held", "offered"}, reason_code=room.get("reason_code"))
+        return result
+    prepared = economic_actions.prepare_from_turn(session, economic_actions.turn_proposal(
+        purpose, person["id"], amount_cp=amount))
+    result = bold_acts._reply(session, prepared.public_message, "narrative", prepared.status, None, [], reason_code=prepared.reason_code)
+    result["action_result"]["success"] = prepared.status == "prepared"
+    return result
+
+
+def _hand_over_coin(route, listed, front=None, *, owner_routed=False):
     """Coin the reading saw held out: nothing is paid by it. It waits, with who it was for and where, for a card.
 
     `_coin_paid` is (amount, person, place_id): the room or the counter the decision names takes it as tender
@@ -18549,6 +18750,7 @@ def _hand_over_coin(route, listed, front=None):
     for someone else (the innkeeper) is no bribe.
     `front` is the reading itself: the money owner's decision for this turn is written from its `deal` and the coin,
     also when the deal came with no coin (D29: asking for a room or goods opens an offer and hands nothing over).
+    `owner_routed` is a purpose route `front_proposal.economic_route` admitted: without a `deal` it writes no decision.
     """
     import bold_acts
     import money_owner
@@ -18563,8 +18765,11 @@ def _hand_over_coin(route, listed, front=None):
     taker = taker or listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
     person = next((npc for npc in active_npcs() if npc.get("id") == taker), None)
     guard = world_reactions.arrester(session.world_state)
-    session._coin_decision = money_owner.decide(session.world_state, person=person, amount_cp=amount, deal=deal,
-                                                arrester=guard)
+    if not (owner_routed and deal is None):
+        # A purpose route the engine already validated (D0) with no deal from the model keeps the coin without a
+        # decision: it is then a counter tender or a room's, read from the route, and never a structural guess.
+        session._coin_decision = money_owner.decide(session.world_state, person=person, amount_cp=amount, deal=deal,
+                                                    arrester=guard)
     if not amount:
         return  # an offer asked for with no coin in hand: the decision alone, nothing waits for a card
     if guard is not None and (person is None or person.get("id") == guard.get("id")):
@@ -18573,7 +18778,7 @@ def _hand_over_coin(route, listed, front=None):
     held_out = (amount, person, session.world_state.get("location"))
     decided = money_owner.current(session)
     if (bold_acts.offer_still_open(session.world_state, person) is not None
-            and decided is not None and decided.kind == "goods"):
+            and (decided.kind == "goods" if decided is not None else owner_routed)):
         # Coin the decision gives the counter is no gift: the counter trade alone takes it. Coin it gives a room, a
         # gift or a tip is theirs, never the open offer's tender (one amount, one operation: D5).
         session._counter_held = person
@@ -18879,13 +19084,19 @@ def _dispatch_player_turn(
             },
         }
     read = getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False) else None
+    import front_proposal
+    if (front_proposal.enabled() and not getattr(_session(), "_front_ahead", False)
+            and not getattr(_session(), "_front_strike", None)):
+        read = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
+        _session()._front_read = read
+        _session()._front_ahead = True
     if getattr(_session(), "_front_strike", None):
         target_id, interaction_mode = _session()._front_strike["id"], "do"
     if combat_action is None:
         import fallen
         body = fallen.addressed_body(_session(), player_input) if not combat_lifecycle.is_attack_decision(_session(), player_input) else None
         if (body is not None and _reads_as_address(player_input)
-                and (read is None or read["kind"] == "speak_to")):  # a line read as an act is no word to them
+                and (read is None or read["kind"] == "speak_to" or (read["kind"] == "economic" and read.get("valid")))):  # a line read as an act is no word to them
             line = fallen.silence(body)
             return {
                 "messages": _session().messages, "narration": line, "model_calls": 0,
@@ -18897,6 +19108,16 @@ def _dispatch_player_turn(
             and not _session().world_state.get("combat", {}).get("active")):
         import bold_acts
         confessed = bold_acts.hear_confession(_session(), player_input)
+    if read is not None and read.get("kind") == "economic":
+        economic_result = None
+        if not confessed:
+            with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+                economic_result = None if _defer_spoken_coin_offer(read) else _front_economic_offer(read, player_input)
+        if economic_result is not None:
+            return economic_result
+        read = {"kind": "speak_to", "id": read["id"]}
+        _session()._front_read = read
+        interaction_mode, target_id = "say", read["id"]  # law/confession delegation keeps the bound hearer
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and not confessed
             and not _session().world_state.get("combat", {}).get("active")):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
@@ -18994,7 +19215,7 @@ def _dispatch_player_turn(
                     else _front_consume(front, player_input) if front is not None and front["kind"] == "consume"
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
                     else _front_work(front, player_input) if front is not None and front["kind"] == "work"
-                    else _thread_gate(player_input, target_id, interaction_mode))
+                    else _thread_gate(player_input, target_id, interaction_mode, front=front))
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]
         if gate is not None and gate.get("paid_line"):
@@ -22070,6 +22291,13 @@ def _run_player_turn_internal(
                     if not text.casefold().startswith(name.casefold()):
                         text = f'{name}, “{text}”'
 
+            if experimental_npc_dialogue:
+                # The person's own spoken answer about the coin (`coin_answer`, read for every accepted speech) is also
+                # the semantic reply to a validated gift or tip put to them: takes accepts it, declines refuses it,
+                # and anything else leaves the card without their consent (the line refused, nothing charged).
+                coin_reply = ({"takes": "accept", "declines": "refuse"}.get(getattr(_session(), "_coin_answer", None))
+                              if accepted_model_speech else None)
+                _record_spoken_coin_response(npc_target, coin_reply)
             if (
                 empty_model_narration
                 or unverified_history_echo

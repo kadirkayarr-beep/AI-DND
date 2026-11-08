@@ -1,3 +1,4 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 // R02 recovery wiring in the REAL GameBrowser source: serverRecovery, recoveryHandlers and showServerOpenAction are selected
 // from src/pages/game-browser.tsx by AST and run in a vm; only hooks, view setters and the transport are replaced. The
 // transport answers with the shared backend bodies (ai-dnd/api/tests/fixtures/r02_intent_contract.json). This proves the
@@ -9,6 +10,7 @@ import { afterEach, beforeEach, test } from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { QueryClient } from '@tanstack/react-query';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 import { createActionLifetime, reconcileState, RETRY_MESSAGE, ReconciliationError } from '../src/lib/action-reconciliation.ts';
 import * as pending from '../src/lib/pending-action.ts';
 import * as recovery from '../src/lib/action-recovery.ts';
@@ -73,7 +75,7 @@ function render({ sessionId = 'session-a', campaignId = 'campaign-a', sharedRef,
       return answers.unresolved ?? { unresolved: null };
     },
   };
-  const env = {
+  const env = { ...combatStartInjection(),
     sessionId, campaignId, serverRecoveryRef: sharedRef ?? { current: null },
     RECOVERY_API: api, askServer: recovery.askServer, settlePending: recovery.settlePending, findUnresolvedOnServer: recovery.findUnresolvedOnServer, RecoveryTimeoutError: recovery.RecoveryTimeoutError,
     readPending: pending.readPending, currentAccountOwner: () => OWNER, LOCAL_OWNER: 'local',
@@ -87,7 +89,7 @@ function render({ sessionId = 'session-a', campaignId = 'campaign-a', sharedRef,
     getGameSessionState: async () => state, queryClient: client, setEntries: (v) => entries.push(v),
     writeAdvisoryCache() {}, TRANSCRIPT_KEY: 't-', setCombatEntries() {}, mergeCombatHistory: (v) => v,
     getGetCampaignsQueryKey: () => ['campaigns'], setNotice: (v) => { notices.push(typeof v === 'function' ? v(notices.at(-1) ?? null) : v); },
-    retryPendingTurn() {}, setLastTurn() {}, setPanelEpoch() {}, friendlyError: (e) => e?.message ?? 'error', messageRef: { current: composer }, setMessage: (v) => messages.push(v),
+    retryPendingTurn() {}, setLastTurn() {}, setUndoneJustNow() {}, historyToEntries, setPanelEpoch() {}, friendlyError: (e) => e?.message ?? 'error', messageRef: { current: composer }, setMessage: (v) => messages.push(v),
     window: globalThis.window,
   };
   vm.runInNewContext(code, env);
@@ -105,6 +107,7 @@ test('applied: authoritative state is reconciled BEFORE the pending move closes,
   await view.env.serverRecovery('check');
   assert.deepEqual(seenWhileReconciling, [true], 'still pending while the state is read');
   assert.equal(pending.readPending(OWNER, 'campaign-a'), null, 'closed only after the reconcile');
+  assert.deepEqual(view.env.combatStartNotices, [null]);
   assert.equal(view.entries.length, 1, 'the story is rebuilt from the server history');
   assert.equal(view.notices.at(-1).tone, 'success');
   assert.deepEqual(view.calls.filter((c) => c.startsWith('status') || c.startsWith('abandon')), [`status session-a ${key.actionId}`]);

@@ -20448,6 +20448,9 @@ export const CreateCampaignResponse = zod.object({
   "action_id": zod.string().uuid().optional(),
   "resolution_id": zod.string().nullish()
 }).optional(),
+  "undone": zod.boolean().optional(),
+  "undo_note": zod.boolean().optional(),
+  "undo_target_unknown": zod.boolean().optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.date()
@@ -21776,6 +21779,9 @@ export const GetCampaignResponse = zod.object({
   "action_id": zod.string().uuid().optional(),
   "resolution_id": zod.string().nullish()
 }).optional(),
+  "undone": zod.boolean().optional(),
+  "undo_note": zod.boolean().optional(),
+  "undo_target_unknown": zod.boolean().optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -23081,6 +23087,9 @@ export const ResumeCampaignResponse = zod.object({
   "action_id": zod.string().uuid().optional(),
   "resolution_id": zod.string().nullish()
 }).optional(),
+  "undone": zod.boolean().optional(),
+  "undo_note": zod.boolean().optional(),
+  "undo_target_unknown": zod.boolean().optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -32034,6 +32043,9 @@ export const CreateLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().optional(),
   "resolution_id": zod.string().nullish()
 }).optional(),
+  "undone": zod.boolean().optional(),
+  "undo_note": zod.boolean().optional(),
+  "undo_target_unknown": zod.boolean().optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.date()
@@ -33364,6 +33376,9 @@ export const GetLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().optional(),
   "resolution_id": zod.string().nullish()
 }).optional(),
+  "undone": zod.boolean().optional(),
+  "undo_note": zod.boolean().optional(),
+  "undo_target_unknown": zod.boolean().optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -34670,6 +34685,9 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().optional(),
   "resolution_id": zod.string().nullish()
 }).optional(),
+  "undone": zod.boolean().optional(),
+  "undo_note": zod.boolean().optional(),
+  "undo_target_unknown": zod.boolean().optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()

@@ -34,10 +34,11 @@ test('generated Create/Get/Resume campaign history accepts absent legacy skill r
 });
 
 test('public generated interface, OpenAPI and game upper flow agree without a narrowing cast',async()=>{
-  const [spec,client,source]=await Promise.all([
+  const [spec,client,source,helper]=await Promise.all([
     readFile(new URL('../../../lib/api-spec/openapi.yaml',import.meta.url),'utf8'),
     readFile(new URL('../../../lib/api-client-react/src/generated/api.schemas.ts',import.meta.url),'utf8'),
-    readFile(new URL('../src/pages/game-browser.tsx',import.meta.url),'utf8')
+    readFile(new URL('../src/pages/game-browser.tsx',import.meta.url),'utf8'),
+    readFile(new URL('../src/lib/transcript-history.ts',import.meta.url),'utf8')
   ]);
   const block=client.match(/export interface CampaignHistoryEntry \{([^}]+)\}/);
   assert.ok(block,'generated interface exists');
@@ -57,11 +58,15 @@ test('public generated interface, OpenAPI and game upper flow agree without a na
     ts.forEachChild(node,visit);
   };
   visit(ast);
+  // Dilim 0 Görev 5: the four history mappings are one helper (historyToEntries); it carries the skill field once.
   for(const owner of ['undoLastTurn','handleResume','submitTurn','serverRecovery']){
     assert.ok(owners.has(owner),owner+' exists');
-    assert.equal(owners.get(owner).match(/skillCheckResult: entry\.skill_check_result/g)?.length,1,
-      owner+' preserves exactly one generated history skill field');
+    assert.equal(owners.get(owner).match(/historyToEntries\(/g)?.length,1,
+      owner+' maps the generated history through exactly one historyToEntries call');
   }
-  assert.equal(source.match(/skillCheckResult: entry\.skill_check_result/g)?.length,4,
-    'undo, resume, real turn reconciliation and server-proven recovery all preserve the skill field');
+  assert.equal(source.match(/historyToEntries\(/g)?.length,4,
+    'undo, resume, real turn reconciliation and server-proven recovery all map history through the helper');
+  assert.equal(source.match(/entry\.skill_check_result/g),null,'the play screen maps no history skill field of its own');
+  assert.equal(helper.match(/skillCheckResult: entry\.skill_check_result/g)?.length,1,
+    'the helper preserves exactly one generated history skill field');
 });

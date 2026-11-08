@@ -136,43 +136,43 @@ RARE_LANGUAGES = (
 
 ORIGIN_FEATS = {
     "Alert": {
-        "name_tr": "Uyanık (Alert)",
+        "name_tr": "Uyanık",
         "desc": "İnisiyatif zarlarına ustalık bonusu (+2) eklenir. Tur başında istekli bir müttefikle inisiyatif sırası takas edilebilir.",
     },
     "Crafter": {
-        "name_tr": "Zanaatkâr (Crafter)",
+        "name_tr": "Zanaatkâr",
         "desc": "Büyü dışı eşyaları %20 indirimle alır ve hızlı eşya üretebilir.",
     },
     "Healer": {
-        "name_tr": "Şifacı (Healer)",
+        "name_tr": "Şifacı",
         "desc": "Şifa verirken atılan zarlardaki 1'ler yeniden atılabilir. Şifacı çantasıyla can yenileyebilir.",
     },
     "Lucky": {
-        "name_tr": "Şanslı (Lucky)",
+        "name_tr": "Şanslı",
         "desc": "Ustalık bonusun kadar (2) Şans Puanı kazandırır. Kendi zarlarına avantaj ekleyebilir veya rakibin zarını zorlaştırabilir.",
     },
     "Magic Initiate": {
-        "name_tr": "Büyüye Giriş (Magic Initiate)",
-        "desc": "Seçilen sınıftan 2 cantrip ve 1 adet 1. seviye büyü öğrenilir. 1. seviye büyü günde bir kez ücretsiz kullanılır.",
+        "name_tr": "Büyüye Giriş",
+        "desc": "Seçilen sınıftan 2 küçük büyüsü ve 1 adet 1. seviye büyü öğrenilir. 1. seviye büyü günde bir kez ücretsiz kullanılır.",
     },
     "Musician": {
-        "name_tr": "Müzisyen (Musician)",
-        "desc": "Kısa veya Uzun Dinlenmeden sonra müttefiklere Kahramanca İlham (Heroic Inspiration) verir.",
+        "name_tr": "Müzisyen",
+        "desc": "Kısa veya Uzun Dinlenmeden sonra müttefiklere Kahramanca İlham verir.",
     },
     "Savage Attacker": {
-        "name_tr": "Vahşi Saldırgan (Savage Attacker)",
+        "name_tr": "Vahşi Saldırgan",
         "desc": "Turda bir kez silah hasarı zarı iki kez atılıp yüksek olanı seçilebilir.",
     },
     "Skilled": {
-        "name_tr": "Yetenekli (Skilled)",
+        "name_tr": "Yetenekli",
         "desc": "İstenen 3 beceri veya alet uzmanlığı kazandırır.",
     },
     "Tavern Brawler": {
-        "name_tr": "Meyhane Dövüşçüsü (Tavern Brawler)",
+        "name_tr": "Meyhane Dövüşçüsü",
         "desc": "Silahsız vuruşlar 1d4 + KUV hasar verir, hasar zarlarındaki 1'ler yeniden atılır ve hedef 5 fit itilebilir.",
     },
     "Tough": {
-        "name_tr": "Dayanıklı (Tough)",
+        "name_tr": "Dayanıklı",
         "desc": "Maksimum can puanı seviye başına 2 artar (1. seviyede +2 Can).",
         "hp_bonus": 2,
     },
@@ -199,7 +199,7 @@ ARTISAN_TOOLS = (
 
 BACKGROUND_DEFINITIONS = {
     "Acolyte": {
-        "name_tr": "Kutsal Hizmetkâr (Acolyte)",
+        "name_tr": "Kutsal Hizmetkâr",
         "desc": "Bir tapınakta dine ve kutsal geleneklere hizmet ederek yetiştin.",
         "abilities": ["wisdom", "intelligence", "charisma"],
         "skills": ["Insight", "Religion"],
@@ -209,7 +209,7 @@ BACKGROUND_DEFINITIONS = {
         "starting_gp": 8,
     },
     "Artisan": {
-        "name_tr": "Zanaatkâr (Artisan)",
+        "name_tr": "Zanaatkâr",
         "desc": "Bir loncada ustalıkla alet kullanmayı ve değerli eşyalar üretmeyi öğrendin.",
         "abilities": ["strength", "dexterity", "intelligence"],
         "skills": ["Investigation", "Persuasion"],
@@ -220,7 +220,7 @@ BACKGROUND_DEFINITIONS = {
         "starting_gp": 32,
     },
     "Charlatan": {
-        "name_tr": "Şarlatan (Charlatan)",
+        "name_tr": "Şarlatan",
         "desc": "İnsanların zaaflarını okuyup onları kandırarak hayatta kaldın.",
         "abilities": ["dexterity", "constitution", "charisma"],
         "skills": ["Deception", "Sleight of Hand"],
@@ -229,7 +229,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Sahte Mühür Seti", "Gösterişli Giysi", "İşaretli Zarlar", "15 Altın"],
     },
     "Criminal": {
-        "name_tr": "Suçlu (Criminal)",
+        "name_tr": "Suçlu",
         "desc": "Şehrin gölgelerinde, kanunların bittiği sokaklarda yetiştin.",
         "abilities": ["dexterity", "constitution", "intelligence"],
         "skills": ["Sleight of Hand", "Stealth"],
@@ -238,7 +238,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Hırsız Aletleri", "Koyu Renkli Pelerin", "Levye", "16 Altın"],
     },
     "Entertainer": {
-        "name_tr": "Gösterici (Entertainer)",
+        "name_tr": "Gösterici",
         "desc": "Tavernaları ve meydanları şarkılarınla, hikâyelerinle büyüledin.",
         "abilities": ["strength", "dexterity", "charisma"],
         "skills": ["Acrobatics", "Performance"],
@@ -247,7 +247,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Lavta (Müzik Aleti)", "Gösteri Kostümü", "Ayna", "16 Altın"],
     },
     "Farmer": {
-        "name_tr": "Çiftçi (Farmer)",
+        "name_tr": "Çiftçi",
         "desc": "Toprağın bereketini, sabrı ve doğanın sert döngüsünü yakından bilirsin.",
         "abilities": ["strength", "constitution", "wisdom"],
         "skills": ["Animal Handling", "Nature"],
@@ -256,7 +256,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Marangoz Aletleri", "Sağlam İş Giysisi", "Demir Orak", "25 Altın"],
     },
     "Guard": {
-        "name_tr": "Muhafız (Guard)",
+        "name_tr": "Muhafız",
         "desc": "Şehir surlarında ve kapılarda nöbet tutarak düzeni korudun.",
         "abilities": ["strength", "intelligence", "wisdom"],
         "skills": ["Athletics", "Perception"],
@@ -265,7 +265,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Şehir Muhafızı Nişanı", "Fener", "Deri Zırh", "Demir Kelepçe", "12 Altın"],
     },
     "Guide": {
-        "name_tr": "Rehber (Guide)",
+        "name_tr": "Rehber",
         "desc": "Yabanıl arazide yolunu kaybetmeden yolculara rehberlik ettin.",
         "abilities": ["dexterity", "constitution", "wisdom"],
         "skills": ["Stealth", "Survival"],
@@ -274,7 +274,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Haritacı Seti", "Yolcu Pusulası", "Sıcak Tutacak Pelerin", "İp (15 metre)", "10 Altın"],
     },
     "Hermit": {
-        "name_tr": "Münzevi (Hermit)",
+        "name_tr": "Münzevi",
         "desc": "Medeniyetten uzakta, doğanın ve kendi zihninin derinliklerinde tek başına yaşadın.",
         "abilities": ["constitution", "wisdom", "charisma"],
         "skills": ["Medicine", "Religion"],
@@ -283,7 +283,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Şifalı Bitkiler Çantası", "Kaba Yün Battaniye", "Kutsal Notlar", "15 Altın"],
     },
     "Merchant": {
-        "name_tr": "Tüccar (Merchant)",
+        "name_tr": "Tüccar",
         "desc": "Pazarlarda mal alıp satarak ticaret yollarında ömür tükettin.",
         "abilities": ["constitution", "intelligence", "charisma"],
         "skills": ["Animal Handling", "Persuasion"],
@@ -292,7 +292,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Pusula ve Rota Haritası", "Kalem ve Defter", "Tüccar Kesesi", "30 Altın"],
     },
     "Noble": {
-        "name_tr": "Soylu (Noble)",
+        "name_tr": "Soylu",
         "desc": "Ayrıcalıklı bir ailede, saray adabı ve güç oyunları içinde büyüdün.",
         "abilities": ["strength", "intelligence", "charisma"],
         "skills": ["History", "Persuasion"],
@@ -301,7 +301,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["İpek Giysiler", "Mühür Yüzüğü", "Soy Kütüğü Belgesi", "25 Altın"],
     },
     "Sage": {
-        "name_tr": "Bilge (Sage)",
+        "name_tr": "Bilge",
         "desc": "Yıllarını kütüphanelerde tozlu parşömenler ve kadim sırlar arasında geçirdin.",
         "abilities": ["constitution", "intelligence", "wisdom"],
         "skills": ["Arcana", "History"],
@@ -310,7 +310,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Hattat Takımı", "Parşömen ve Mürekkep", "Kadim Bir Teori Kitabı", "10 Altın"],
     },
     "Sailor": {
-        "name_tr": "Denizci (Sailor)",
+        "name_tr": "Denizci",
         "desc": "Açık denizlerin fırtınalarıyla ve güvertedeki sert yaşamla yoğruldun.",
         "abilities": ["strength", "dexterity", "wisdom"],
         "skills": ["Acrobatics", "Perception"],
@@ -321,7 +321,7 @@ BACKGROUND_DEFINITIONS = {
         "starting_gp": 20,
     },
     "Scribe": {
-        "name_tr": "Katip (Scribe)",
+        "name_tr": "Katip",
         "desc": "Büyük loncaların ve kütüphanelerin resmi kayıtlarını tuttun.",
         "abilities": ["dexterity", "intelligence", "wisdom"],
         "skills": ["Investigation", "Perception"],
@@ -332,7 +332,7 @@ BACKGROUND_DEFINITIONS = {
         "starting_gp": 23,
     },
     "Soldier": {
-        "name_tr": "Asker (Soldier)",
+        "name_tr": "Asker",
         "desc": "Düzenli bir ordunun sancağı altında disiplin ve savaş eğitimi aldın.",
         "abilities": ["strength", "dexterity", "constitution"],
         "skills": ["Athletics", "Intimidation"],
@@ -341,7 +341,7 @@ BACKGROUND_DEFINITIONS = {
         "equipment": ["Birlik Sancağı Parçası", "Zar Seti", "Askeri Pelerin", "14 Altın"],
     },
     "Wayfarer": {
-        "name_tr": "Gezgin (Wayfarer)",
+        "name_tr": "Gezgin",
         "desc": "Kök salmadan bir diyardan diğerine yürüyen, sokakları ev bilen bir yolcusun.",
         "abilities": ["dexterity", "wisdom", "charisma"],
         "skills": ["Insight", "Stealth"],
@@ -358,7 +358,7 @@ BACKGROUND_DEFINITIONS = {
 
 SPECIES_DEFINITIONS = {
     "Aasimar": {
-        "name_tr": "Göksoylu (Aasimar)",
+        "name_tr": "Göksoylu",
         "desc": "Ruhunda Yukarı Düzlemlerden bir kıvılcım taşıyan ölümlüler; göksel mirasları ışık, şifa ve kudret olarak belirir.",
         "size": "Medium or Small",
         "speed": 30,
@@ -368,15 +368,15 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), p. 186",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Göksel Direnç (Celestial Resistance)", "desc": "Necrotic ve radiant hasara karşı direncin vardır."},
-            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Şifa Veren Eller (Healing Hands)", "desc": "Büyü eylemiyle dokunduğun bir yaratığa Ustalık Bonusun kadar d4 toplamı kadar can kazandırırsın; uzun dinlenmede yenilenir."},
-            {"name": "Işık Taşıyıcısı (Light Bearer)", "desc": "Karizmanı kullanarak Light cantrip'ini bilirsin."},
-            {"name": "Göksel Tecelli (Celestial Revelation)", "desc": "3. seviyede bir dakikalığına Kanatlı Gökyüzü, İç Işıma veya Nekrotik Örtü biçimlerinden birini seçersin; tur başına bir kez fazladan hasar ve seçilen biçime özgü etki sağlar, uzun dinlenmede yenilenir."},
+            {"name": "Göksel Direnç (Celestial Resistance)", "desc": "Nekrotik ve ışınım hasara karşı direncin vardır.", "name_tr": "Göksel Direnç"},
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin.", "name_tr": "Karanlık Görüşü"},
+            {"name": "Şifa Veren Eller (Healing Hands)", "desc": "Büyü eylemiyle dokunduğun bir yaratığa Ustalık Bonusun kadar d4 toplamı kadar can kazandırırsın; uzun dinlenmede yenilenir.", "name_tr": "Şifa Veren Eller"},
+            {"name": "Işık Taşıyıcısı (Light Bearer)", "desc": "Karizmanı kullanarak Light küçük büyüsünü bilirsin.", "name_tr": "Işık Taşıyıcısı"},
+            {"name": "Göksel Tecelli (Celestial Revelation)", "desc": "3. seviyede bir dakikalığına Kanatlı Gökyüzü, İç Işıma veya Nekrotik Örtü biçimlerinden birini seçersin; tur başına bir kez fazladan hasar ve seçilen biçime özgü etki sağlar, uzun dinlenmede yenilenir.", "name_tr": "Göksel Tecelli"},
         ],
     },
     "Human": {
-        "name_tr": "İnsan (Human)",
+        "name_tr": "İnsan",
         "desc": "Hırslı, uyumlu ve son derece becerikli. Faerûn'un en yaygın türü.",
         "size": "Medium",
         "speed": 30,
@@ -388,9 +388,9 @@ SPECIES_DEFINITIONS = {
         "skill_bonus_count": 1,
         "origin_feat_bonus_count": 1,
         "traits": [
-            {"name": "Becerikli (Skillful)", "desc": "Seçtiğin fazladan bir beceride ustalık kazanırsın."},
-            {"name": "Çok Yönlü (Versatile)", "desc": "Fazladan 1 adet 1. seviye Başlangıç Hüneri (Origin Feat) kazanırsın."},
-            {"name": "Azimli (Resourceful)", "desc": "Uzun dinlenmeyi her tamamladığında Kahramanca İlham kazanırsın."},
+            {"name": "Becerikli (Skillful)", "desc": "Seçtiğin fazladan bir beceride ustalık kazanırsın.", "name_tr": "Becerikli"},
+            {"name": "Çok Yönlü (Versatile)", "desc": "Fazladan 1 adet 1. seviye Başlangıç Hüneri kazanırsın.", "name_tr": "Çok Yönlü"},
+            {"name": "Azimli (Resourceful)", "desc": "Uzun dinlenmeyi her tamamladığında Kahramanca İlham kazanırsın.", "name_tr": "Azimli"},
         ],
     },
     "Elf": {
@@ -404,15 +404,15 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), pp. 189–190",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Elf Soyu (Elven Lineage)", "desc": "Drow, High Elf veya Wood Elf soyunu seçersin; bu seçim başlangıç büyülerini, 3. ve 5. seviyede öğrendiğin büyüleri etkiler."},
-            {"name": "Fey Soyu (Fey Ancestry)", "desc": "Charmed durumunu önlemek veya sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır."},
-            {"name": "Keskin Duyular (Keen Senses)", "desc": "Insight, Perception veya Survival becerilerinden birinde uzmanlık kazanırsın."},
-            {"name": "Trans (Trance)", "desc": "Uykuya ihtiyaç duymazsın; 4 saatlik bilinçli transla uzun dinlenmeyi tamamlayabilirsin."},
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin.", "name_tr": "Karanlık Görüşü"},
+            {"name": "Elf Soyu (Elven Lineage)", "desc": "Kara Elf, Yüce Elf veya Orman Elfi soyunu seçersin; bu seçim başlangıç büyülerini, 3. ve 5. seviyede öğrendiğin büyüleri etkiler.", "name_tr": "Elf Soyu"},
+            {"name": "Fey Soyu (Fey Ancestry)", "desc": "Büyülenmiş durumunu önlemek veya sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır.", "name_tr": "Fey Soyu"},
+            {"name": "Keskin Duyular (Keen Senses)", "desc": "İçgörü, Algı veya Hayatta Kalma becerilerinden birinde uzmanlık kazanırsın.", "name_tr": "Keskin Duyular"},
+            {"name": "Trans (Trance)", "desc": "Uykuya ihtiyaç duymazsın; 4 saatlik bilinçli transla uzun dinlenmeyi tamamlayabilirsin.", "name_tr": "Trans"},
         ],
     },
     "Dwarf": {
-        "name_tr": "Cüce (Dwarf)",
+        "name_tr": "Cüce",
         "desc": "Dağların bağrında taş ve maden ustası, sarsılmaz derecede dirençli savaşçılar.",
         "size": "Medium",
         "speed": 30,
@@ -423,14 +423,14 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), pp. 188–189",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Üstün Karanlık Görüşü", "desc": "120 fit mesafeye kadar zifiri karanlıkta görebilirsin."},
-            {"name": "Cüce Dayanıklılığı (Resilience)", "desc": "Zehir hasarına karşı direnç ve zehirlenmeye karşı kurtarma zarlarında avantaj."},
-            {"name": "Cüce Sağlamlığı (Toughness)", "desc": "Maksimum can puanın seviye başına 1 artar."},
-            {"name": "Taş Hissi (Stonecunning)", "desc": "Taşa temas ederken Bonus Eylemle 10 dakika 60 fit Tremorsense kazanırsın; kullanımların Ustalık Bonusuna eşittir ve uzun dinlenmede yenilenir."},
+            {"name": "Üstün Karanlık Görüşü", "desc": "120 fit mesafeye kadar zifiri karanlıkta görebilirsin.", "name_tr": "Üstün Karanlık Görüşü"},
+            {"name": "Cüce Dayanıklılığı (Resilience)", "desc": "Zehir hasarına karşı direnç ve zehirlenmeye karşı kurtarma zarlarında avantaj.", "name_tr": "Cüce Dayanıklılığı"},
+            {"name": "Cüce Sağlamlığı (Toughness)", "desc": "Maksimum can puanın seviye başına 1 artar.", "name_tr": "Cüce Sağlamlığı"},
+            {"name": "Taş Hissi (Stonecunning)", "desc": "Taşa temas ederken Bonus Eylemle 10 dakika 60 fit Titreşim Algısı kazanırsın; kullanımların Ustalık Bonusuna eşittir ve uzun dinlenmede yenilenir.", "name_tr": "Taş Hissi"},
         ],
     },
     "Halfling": {
-        "name_tr": "Buçukluk (Halfling)",
+        "name_tr": "Buçukluk",
         "desc": "Küçük cüsseli, neşeli, barışçıl ama inanılmaz derecede şanslı ve cesur bir halk.",
         "size": "Small",
         "speed": 30,
@@ -440,14 +440,14 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), p. 193",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Şans (Luck)", "desc": "Bir d20 Testinde d20'de 1 attığında zarı yeniden atıp yeni sonucu kullanabilirsin."},
-            {"name": "Cesur (Brave)", "desc": "Frightened durumunu önlemek veya sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır."},
-            {"name": "Buçukluk Çevikliği (Halfling Nimbleness)", "desc": "Senden büyük yaratıkların alanından geçebilirsin; onların alanında sona eremezsin."},
-            {"name": "Doğal Gizlilik (Naturally Stealthy)", "desc": "Senden en az bir beden büyük bir yaratık seni örterken Hide eylemini kullanabilirsin."},
+            {"name": "Şans (Luck)", "desc": "Bir d20 Testinde d20'de 1 attığında zarı yeniden atıp yeni sonucu kullanabilirsin.", "name_tr": "Şans"},
+            {"name": "Cesur (Brave)", "desc": "Korkmuş durumunu önlemek veya sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır.", "name_tr": "Cesur"},
+            {"name": "Buçukluk Çevikliği (Halfling Nimbleness)", "desc": "Senden büyük yaratıkların alanından geçebilirsin; onların alanında sona eremezsin.", "name_tr": "Buçukluk Çevikliği"},
+            {"name": "Doğal Gizlilik (Naturally Stealthy)", "desc": "Senden en az bir beden büyük bir yaratık seni örterken Saklan eylemini kullanabilirsin.", "name_tr": "Doğal Gizlilik"},
         ],
     },
     "Gnome": {
-        "name_tr": "Gnóm (Gnome)",
+        "name_tr": "Gnóm",
         "desc": "Meraklı, zeki ve büyüye doğal yatkınlığı olan mucit ve gözlemciler.",
         "size": "Small",
         "speed": 30,
@@ -457,9 +457,9 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), p. 191",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Gnom Kurnazlığı (Gnomish Cunning)", "desc": "Intelligence, Wisdom ve Charisma kurtarma zarlarında avantajın vardır."},
-            {"name": "Gnom Soyu (Gnomish Lineage)", "desc": "Forest Gnome veya Rock Gnome soyunu seçerek ek doğaüstü yetenekler kazanırsın."},
+            {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin.", "name_tr": "Karanlık Görüşü"},
+            {"name": "Gnom Kurnazlığı (Gnomish Cunning)", "desc": "Zekâ, Bilgelik ve Karizma kurtarma zarlarında avantajın vardır.", "name_tr": "Gnom Kurnazlığı"},
+            {"name": "Gnom Soyu (Gnomish Lineage)", "desc": "Orman Gnomu veya Kaya Gnomu soyunu seçerek ek doğaüstü yetenekler kazanırsın.", "name_tr": "Gnom Soyu"},
         ],
     },
     "Tiefling": {
@@ -473,13 +473,13 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), pp. 196–197",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Şeytani Miras (Fiendish Legacy)", "desc": "Abyssal, Chthonic veya Infernal mirasını seçersin; direnç, cantrip ve 1., 3. ve 5. seviyelerde büyüler sağlar."},
-            {"name": "Öteki Dünyadan Varlık (Otherworldly Presence)", "desc": "Thaumaturgy cantrip'ini seçtiğin büyü yeteneğiyle bilirsin."},
+            {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin.", "name_tr": "Karanlık Görüşü"},
+            {"name": "Şeytani Miras (Fiendish Legacy)", "desc": "Uçurum, Yeraltı veya Cehennem mirasını seçersin; direnç, küçük büyüsü ve 1., 3. ve 5. seviyelerde büyüler sağlar.", "name_tr": "Şeytani Miras"},
+            {"name": "Öteki Dünyadan Varlık (Otherworldly Presence)", "desc": "Thaumaturgy küçük büyüsünü seçtiğin büyü yeteneğiyle bilirsin.", "name_tr": "Öteki Dünyadan Varlık"},
         ],
     },
     "Dragonborn": {
-        "name_tr": "Ejderhasoyu (Dragonborn)",
+        "name_tr": "Ejderhasoyu",
         "desc": "Ejderhaların asil gücünü, pullarını ve nefesini taşıyan kudretli savaşçılar.",
         "size": "Medium",
         "speed": 30,
@@ -489,14 +489,14 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), p. 187",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Ejderha Soyu (Draconic Ancestry)", "desc": "Ejderha atana göre nefes silahının hasar türünü ve hasar direncini seçersin."},
-            {"name": "Nefes Silahı (Breath Weapon)", "desc": "Bir saldırı yerine 15 fit koni veya 30×5 fit hat boyunca 1d10 hasar verirsin; hasar 5., 11. ve 17. seviyelerde artar. Kullanımların Ustalık Bonusuna eşittir."},
-            {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Ejderha Uçuşu (Draconic Flight)", "desc": "5. seviyede bir uzun dinlenmede bir kez, 10 dakika boyunca hızına eşit Uçuş Hızı kazanırsın."},
+            {"name": "Ejderha Soyu (Draconic Ancestry)", "desc": "Ejderha atana göre nefes silahının hasar türünü ve hasar direncini seçersin.", "name_tr": "Ejderha Soyu"},
+            {"name": "Nefes Silahı (Breath Weapon)", "desc": "Bir saldırı yerine 15 fit koni veya 30×5 fit hat boyunca 1d10 hasar verirsin; hasar 5., 11. ve 17. seviyelerde artar. Kullanımların Ustalık Bonusuna eşittir.", "name_tr": "Nefes Silahı"},
+            {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin.", "name_tr": "Karanlık Görüşü"},
+            {"name": "Ejderha Uçuşu (Draconic Flight)", "desc": "5. seviyede bir uzun dinlenmede bir kez, 10 dakika boyunca hızına eşit Uçuş Hızı kazanırsın.", "name_tr": "Ejderha Uçuşu"},
         ],
     },
     "Half-Elf": {
-        "name_tr": "Yarı-Elf (Half-Elf)",
+        "name_tr": "Yarı-Elf",
         "desc": "İnsan ve elf miraslarını bir arada taşıyan, 2014 kurallarındaki beceri çok yönlülüğü korunmuş eski bir seçenek.",
         "size": "Medium",
         "speed": 30,
@@ -507,14 +507,14 @@ SPECIES_DEFINITIONS = {
         "source_url": "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf",
         "skill_bonus_count": 2,
         "traits": [
-            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Fey Ataları (Fey Ancestry)", "desc": "Charmed durumuna karşı kurtarma zarlarında avantajın vardır; büyü seni uyutamaz."},
-            {"name": "Beceri Çok Yönlülüğü (Skill Versatility)", "desc": "Seçtiğin iki beceride uzmanlık kazanırsın."},
-            {"name": "Diller (Languages)", "desc": "Common ve Elvish'in yanı sıra seçtiğin bir dili bilirsin."},
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin.", "name_tr": "Karanlık Görüşü"},
+            {"name": "Fey Ataları (Fey Ancestry)", "desc": "Büyülenmiş durumuna karşı kurtarma zarlarında avantajın vardır; büyü seni uyutamaz.", "name_tr": "Fey Ataları"},
+            {"name": "Beceri Çok Yönlülüğü (Skill Versatility)", "desc": "Seçtiğin iki beceride uzmanlık kazanırsın.", "name_tr": "Beceri Çok Yönlülüğü"},
+            {"name": "Diller (Languages)", "desc": "Ortak Dil ve Elfçe'in yanı sıra seçtiğin bir dili bilirsin.", "name_tr": "Diller"},
         ],
     },
     "Half-Orc": {
-        "name_tr": "Yarı-Ork (Half-Orc)",
+        "name_tr": "Yarı-Ork",
         "desc": "İnsan ve ork soylarını birleştiren; 2014 kurallarındaki dayanıklılığı, tehditkâr duruşu ve kritik vuruş gücü korunmuş eski bir seçenek.",
         "size": "Medium",
         "speed": 30,
@@ -524,14 +524,14 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Wizards of the Coast, Systems Reference Document 5.1 (2016), Half-Orc Traits",
         "source_url": "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf",
         "traits": [
-            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Tehditkâr (Menacing)", "desc": "Intimidation becerisinde uzmanlık kazanırsın."},
-            {"name": "Yılmayan Direnç (Relentless Endurance)", "desc": "Uzun dinlenmede bir kez, 0 can puanına düşüp anında ölmediğinde 1 can puanıyla ayakta kalırsın."},
-            {"name": "Vahşi Saldırılar (Savage Attacks)", "desc": "Yakın dövüş silahı saldırısıyla kritik vuruşta silahın hasar zarlarından birini bir kez daha atıp sonuca eklersin."},
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin.", "name_tr": "Karanlık Görüşü"},
+            {"name": "Tehditkâr (Menacing)", "desc": "Gözdağı becerisinde uzmanlık kazanırsın.", "name_tr": "Tehditkâr"},
+            {"name": "Yılmayan Direnç (Relentless Endurance)", "desc": "Uzun dinlenmede bir kez, 0 can puanına düşüp anında ölmediğinde 1 can puanıyla ayakta kalırsın.", "name_tr": "Yılmayan Direnç"},
+            {"name": "Vahşi Saldırılar (Savage Attacks)", "desc": "Yakın dövüş silahı saldırısıyla kritik vuruşta silahın hasar zarlarından birini bir kez daha atıp sonuca eklersin.", "name_tr": "Vahşi Saldırılar"},
         ],
     },
     "Goliath": {
-        "name_tr": "Devsoylu (Goliath)",
+        "name_tr": "Devsoylu",
         "desc": "İlk devlerin uzak torunları; dev atalarının izleri doğaüstü armağanlarda ve geçici olarak büyüyebilme yetilerinde görülür.",
         "size": "Medium",
         "speed": 35,
@@ -549,13 +549,13 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), p. 192",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Dev Atası (Giant Ancestry)", "desc": "Bulut, ateş, ayaz, tepe, taş veya fırtına devi kökenli bir armağan seçersin; Ustalık Bonusun kadar kullanıp uzun dinlenmede yenilersin."},
-            {"name": "Büyük Biçim (Large Form)", "desc": "5. seviyede bir uzun dinlenmede bir kez, 10 dakika Büyük boyuta geçersin; Kuvvet kontrollerinde avantaj ve +10 fit hız kazanırsın."},
-            {"name": "Güçlü Yapı (Powerful Build)", "desc": "Grappled durumunu sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır; taşıma kapasitesinde bir beden büyük sayılırsın."},
+            {"name": "Dev Atası (Giant Ancestry)", "desc": "Bulut, ateş, ayaz, tepe, taş veya fırtına devi kökenli bir armağan seçersin; Ustalık Bonusun kadar kullanıp uzun dinlenmede yenilersin.", "name_tr": "Dev Atası"},
+            {"name": "Büyük Biçim (Large Form)", "desc": "5. seviyede bir uzun dinlenmede bir kez, 10 dakika Büyük boyuta geçersin; Kuvvet kontrollerinde avantaj ve +10 fit hız kazanırsın.", "name_tr": "Büyük Biçim"},
+            {"name": "Güçlü Yapı (Powerful Build)", "desc": "Kavranmış durumunu sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır; taşıma kapasitesinde bir beden büyük sayılırsın.", "name_tr": "Güçlü Yapı"},
         ],
     },
     "Orc": {
-        "name_tr": "Ork (Orc)",
+        "name_tr": "Ork",
         "desc": "Gruumsh'un armağanlarını taşıyan; dayanıklılık, kararlılık ve karanlıkta görme yetileriyle uzun yolculuklara çıkan bir halk.",
         "size": "Medium",
         "speed": 30,
@@ -565,9 +565,9 @@ SPECIES_DEFINITIONS = {
         "source_citation": "Player's Handbook (2024), p. 195",
         "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Adrenalin Patlaması (Adrenaline Rush)", "desc": "Bonus Eylemle Dash yapıp Ustalık Bonusun kadar geçici can kazanırsın; kullanımların Ustalık Bonusuna eşittir ve kısa veya uzun dinlenmede yenilenir."},
-            {"name": "Karanlık Görüşü (Darkvision)", "desc": "120 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Yılmayan Direnç (Relentless Endurance)", "desc": "Uzun dinlenmede bir kez, 0 can puanına düşüp anında ölmediğinde 1 can puanıyla ayakta kalırsın."},
+            {"name": "Adrenalin Patlaması (Adrenaline Rush)", "desc": "Bonus Eylemle Koş yapıp Ustalık Bonusun kadar geçici can kazanırsın; kullanımların Ustalık Bonusuna eşittir ve kısa veya uzun dinlenmede yenilenir.", "name_tr": "Adrenalin Patlaması"},
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "120 fit mesafeye kadar karanlıkta görebilirsin.", "name_tr": "Karanlık Görüşü"},
+            {"name": "Yılmayan Direnç (Relentless Endurance)", "desc": "Uzun dinlenmede bir kez, 0 can puanına düşüp anında ölmediğinde 1 can puanıyla ayakta kalırsın.", "name_tr": "Yılmayan Direnç"},
         ],
     },
 }
@@ -593,7 +593,7 @@ for _name, _background in BACKGROUND_DEFINITIONS.items():
 
 CLASS_DEFINITIONS = {
     "Barbarian": {
-        "name_tr": "Barbar (Barbarian)",
+        "name_tr": "Barbar",
         "desc": "Savaş alanında durdurulamaz bir öfkeyle dövüşen vahşi savaşçı.",
         "hit_die": 12,
         "primary_ability": "strength",
@@ -602,7 +602,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"],
         "armor_proficiencies": ["Light", "Medium", "Shields"],
         "weapon_proficiencies": ["Simple", "Martial"],
-        "features": ["Öfke (Rage)", "Zırsız Savunma (Unarmored Defense)", "Silah Ustalığı (Weapon Mastery)"],
+        "features": ["Öfke", "Zırhsız Savunma", "Silah Ustalığı"],
         "is_spellcaster": False,
         "equipment_packages": [
             {"id": "A", "label": "Greataxe, 4 Handaxes, Explorer's Pack + 15 GP (yalnız sınıf payı)", "items": ["Büyük Balta (Greataxe)", "4 Handaxes", "Explorer's Pack", "15 GP"]},
@@ -610,7 +610,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Bard": {
-        "name_tr": "Ozan (Bard)",
+        "name_tr": "Ozan",
         "desc": "Müzik, sözler ve fey büyüsüyle müttefiklerine ilham veren çok yönlü sanatçı.",
         "hit_die": 8,
         "primary_ability": "charisma",
@@ -620,7 +620,7 @@ CLASS_DEFINITIONS = {
         "expertise_progression": [{"level": 2, "choices": 2}, {"level": 9, "choices": 2}],
         "armor_proficiencies": ["Light"],
         "weapon_proficiencies": ["Simple"],
-        "features": ["Ozan İlhamı (Bardic Inspiration d6)", "Büyücülük (Spellcasting)"],
+        "features": ["Ozan İlhamı (d6)", "Büyücülük"],
         "is_spellcaster": True,
         "spellcasting_ability": "charisma",
         "cantrips_count": 2,
@@ -632,7 +632,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Cleric": {
-        "name_tr": "Ruhban (Cleric)",
+        "name_tr": "Ruhban",
         "desc": "Tanrısının kutsal gücünü kuşanıp şifa veren ve adalet dağıtan ilahi elçi.",
         "hit_die": 8,
         "primary_ability": "wisdom",
@@ -641,7 +641,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["History", "Insight", "Medicine", "Persuasion", "Religion"],
         "armor_proficiencies": ["Light", "Medium", "Shields"],
         "weapon_proficiencies": ["Simple"],
-        "features": ["İlahi Düzen (Divine Order)", "İlahi Büyücülük (Spellcasting)"],
+        "features": ["İlahi Düzen", "İlahi Büyücülük"],
         "is_spellcaster": True,
         "spellcasting_ability": "wisdom",
         "cantrips_count": 3,
@@ -662,7 +662,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Arcana", "Animal Handling", "Insight", "Medicine", "Nature", "Perception", "Religion", "Survival"],
         "armor_proficiencies": ["Light", "Shields"],
         "weapon_proficiencies": ["Simple"],
-        "features": ["Kadim Düzen (Primal Order)", "Doğa Büyücülüğü (Spellcasting)"],
+        "features": ["Kadim Düzen", "Doğa Büyücülüğü"],
         "is_spellcaster": True,
         "spellcasting_ability": "wisdom",
         "cantrips_count": 2,
@@ -674,7 +674,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Fighter": {
-        "name_tr": "Savaşçı (Fighter)",
+        "name_tr": "Savaşçı",
         "desc": "Tüm silahlarda ve zırhlarda uzmanlaşmış, disiplinli dövüş ustası.",
         "hit_die": 10,
         "primary_ability": "strength",
@@ -683,7 +683,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Persuasion", "Perception", "Survival"],
         "armor_proficiencies": ["Light", "Medium", "Heavy", "Shields"],
         "weapon_proficiencies": ["Simple", "Martial"],
-        "features": ["Dövüş Stili (Fighting Style)", "İkinci Nefes (Second Wind)", "Silah Ustalığı (Weapon Mastery)"],
+        "features": ["Dövüş Stili", "İkinci Nefes", "Silah Ustalığı"],
         "is_spellcaster": False,
         "fighting_styles": [
             {"id": "Archery", "name_tr": "Okçuluk (+2 Menzilli Saldırı Bonusu)"},
@@ -699,7 +699,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Monk": {
-        "name_tr": "Keşiş (Monk)",
+        "name_tr": "Keşiş",
         "desc": "Bedenini ve zihnini kusursuz bir silaha dönüştürmüş silahsız dövüş ustası.",
         "hit_die": 8,
         "primary_ability": "dexterity",
@@ -708,7 +708,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Acrobatics", "Athletics", "History", "Insight", "Religion", "Stealth"],
         "armor_proficiencies": [],
         "weapon_proficiencies": ["Simple", "Martial (Light)"],
-        "features": ["Dövüş Sanatları (Martial Arts d6)", "Zırsız Savunma (Unarmored Defense)"],
+        "features": ["Dövüş Sanatları (d6)", "Zırhsız Savunma"],
         "is_spellcaster": False,
         "equipment_packages": [
             {"id": "A", "label": "Mızrak & Hançerler", "items": ["Mızrak (Spear)", "5 Hançer", "Zindan Çantası", "11 Altın"]},
@@ -716,7 +716,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Paladin": {
-        "name_tr": "Şövalye (Paladin)",
+        "name_tr": "Şövalye",
         "desc": "Kutsal bir yemine bağlı kalarak adaleti ve ışığı savunan ilahi zırhlı şövalye.",
         "hit_die": 10,
         "primary_ability": "strength",
@@ -725,7 +725,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Athletics", "Insight", "Intimidation", "Medicine", "Persuasion", "Religion"],
         "armor_proficiencies": ["Light", "Medium", "Heavy", "Shields"],
         "weapon_proficiencies": ["Simple", "Martial"],
-        "features": ["Şifa Eli (Lay on Hands - 5 Can)", "Kutsal Büyücülük (Spellcasting)", "Silah Ustalığı"],
+        "features": ["Şifa Eli (5 Can)", "Kutsal Büyücülük", "Silah Ustalığı"],
         "is_spellcaster": True,
         "spellcasting_ability": "charisma",
         "cantrips_count": 0,
@@ -737,7 +737,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Ranger": {
-        "name_tr": "Kolcu (Ranger)",
+        "name_tr": "Kolcu",
         "desc": "Yabanıl toprakların iz sürücüsü ve menzilli dövüş uzmanı.",
         "hit_die": 10,
         "primary_ability": "dexterity",
@@ -746,7 +746,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Animal Handling", "Athletics", "Insight", "Investigation", "Nature", "Perception", "Stealth", "Survival"],
         "armor_proficiencies": ["Light", "Medium", "Shields"],
         "weapon_proficiencies": ["Simple", "Martial"],
-        "features": ["Avcı İşareti (Hunter's Mark)", "Doğa Büyücülüğü (Spellcasting)", "Silah Ustalığı"],
+        "features": ["Avcı İşareti", "Doğa Büyücülüğü", "Silah Ustalığı"],
         "is_spellcaster": True,
         "spellcasting_ability": "wisdom",
         "cantrips_count": 0,
@@ -758,7 +758,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Rogue": {
-        "name_tr": "Hırsız (Rogue)",
+        "name_tr": "Hırsız",
         "desc": "Gölgelerden vuran, tuzakları çözen ve ölümcül zayıflıkları bulan kurnaz uzman.",
         "hit_die": 8,
         "primary_ability": "dexterity",
@@ -768,7 +768,7 @@ CLASS_DEFINITIONS = {
         "expertise_progression": [{"level": 1, "choices": 2}, {"level": 6, "choices": 2}],
         "armor_proficiencies": ["Light"],
         "weapon_proficiencies": ["Simple", "Martial (Finesse/Light)"],
-        "features": ["Gizli Saldırı (Sneak Attack +1d6)", "Uzmanlık (Expertise)", "Hırsız Dili (Thieves' Cant)", "Silah Ustalığı"],
+        "features": ["Gizli Saldırı (+1d6)", "Uzmanlık", "Hırsız Dili", "Silah Ustalığı"],
         "is_spellcaster": False,
         "equipment_packages": [
             {"id": "A", "label": "Deri Zırh & Kısa Kılıç & Hırsız Aletleri", "items": ["Deri Zırh", "Kısa Kılıç", "2 Hançer", "Hırsız Aletleri", "Hırsız Çantası", "8 Altın"]},
@@ -776,7 +776,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Sorcerer": {
-        "name_tr": "Büyücü (Sorcerer)",
+        "name_tr": "Büyücü",
         "desc": "Büyüyü öğrenmeyen, kanında doğuştan bir ejderha veya kaos kıvılcımıyla taşıyan büyücü.",
         "hit_die": 6,
         "primary_ability": "charisma",
@@ -785,7 +785,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Arcana", "Deception", "Insight", "Intimidation", "Persuasion", "Religion"],
         "armor_proficiencies": [],
         "weapon_proficiencies": ["Simple"],
-        "features": ["Doğuştan Büyü (Innate Sorcery)", "Büyücülük (Spellcasting)"],
+        "features": ["Doğuştan Büyü", "Büyücülük"],
         "is_spellcaster": True,
         "spellcasting_ability": "charisma",
         "cantrips_count": 4,
@@ -797,7 +797,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Warlock": {
-        "name_tr": "Gözcü / Cadı (Warlock)",
+        "name_tr": "Gözcü / Cadı",
         "desc": "Kadim bir varlıkla (İblis, Peri veya Ulu Varlık) karanlık bir anlaşma yaparak güç kazanan büyücü.",
         "hit_die": 8,
         "primary_ability": "charisma",
@@ -806,7 +806,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Arcana", "Deception", "History", "Intimidation", "Investigation", "Nature", "Religion"],
         "armor_proficiencies": ["Light"],
         "weapon_proficiencies": ["Simple"],
-        "features": ["Pakt Büyüsü (Pact Magic)", "Gizemli Yakarış (Eldritch Invocation)"],
+        "features": ["Pakt Büyüsü", "Gizemli Yakarış"],
         "is_spellcaster": True,
         "spellcasting_ability": "charisma",
         "cantrips_count": 2,
@@ -818,7 +818,7 @@ CLASS_DEFINITIONS = {
         ],
     },
     "Wizard": {
-        "name_tr": "Büyücü / İlimci (Wizard)",
+        "name_tr": "Büyücü / İlimci",
         "desc": "Evrenin dokusunu formüllerle çözen, büyü kitabına bağımlı kadim ilim üstadı.",
         "hit_die": 6,
         "primary_ability": "intelligence",
@@ -827,7 +827,7 @@ CLASS_DEFINITIONS = {
         "skill_options": ["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"],
         "armor_proficiencies": [],
         "weapon_proficiencies": ["Simple"],
-        "features": ["Büyü Kitabı (Spellbook)", "Gizemli İyileşme (Arcane Recovery)", "Ritüel Büyücülüğü"],
+        "features": ["Büyü Kitabı", "Gizemli İyileşme", "Ritüel Büyücülüğü"],
         "is_spellcaster": True,
         "spellcasting_ability": "intelligence",
         "cantrips_count": 3,
@@ -859,7 +859,7 @@ SPELLS_CATALOG = {
         "spells_level_1": [
             {"id": "Magic Missile", "name_tr": "Sihirli Füze (Magic Missile)", "desc": "Iskalamayan üç büyü oku fırlatır (her biri 1d4 + 1 güç hasarı)."},
             {"id": "Shield", "name_tr": "Kalkan (Shield)", "desc": "Tepki olarak zırh sınıfına +5 ekler ve Sihirli Füzeyi engeller."},
-            {"id": "Mage Armor", "name_tr": "Büyücü Zırhı (Mage Armor)", "desc": "Zırsız hedefin Zırh Sınıfını 13 + ÇEV mod yapar."},
+            {"id": "Mage Armor", "name_tr": "Büyücü Zırhı (Mage Armor)", "desc": "Zırhsız hedefin Zırh Sınıfını 13 + ÇEV mod yapar."},
             {"id": "Detect Magic", "name_tr": "Büyü Algılama (Detect Magic)", "desc": "30 fit içindeki büyü etkilerini ve okullarını hisseder."},
             {"id": "Sleep", "name_tr": "Uyku (Sleep)", "desc": "Hedefleri büyülü uykuya daldırır."},
             {"id": "Burning Hands", "name_tr": "Alevli Eller (Burning Hands)", "desc": "15 fitlik koniye 3d6 ateş hasarı saçar."},
@@ -1111,11 +1111,29 @@ def armor_class_total(
 UNOFFERED_FIGHTING_STYLES = ("Protection",)
 
 
+def _with_coin(entry: dict[str, Any], items: list[Any]) -> dict[str, Any]:
+    """Name the written coin among a pack's items: its gold total and the coin items, in order."""
+    from bold_acts import coin_label_gp
+
+    coin_items = [item for item in items if coin_label_gp(item) is not None]
+    entry["coin_gp"] = sum(coin_label_gp(item) for item in coin_items)
+    entry["coin_items"] = coin_items
+    return entry
+
+
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
+    from api.character_creation import BACKGROUND_OPTION_B_GP
     from character_progression import (barbarian_starting_creation_options, fighter_starting_creation_options,
                                        monk_starting_creation_options, paladin_starting_creation_options, rogue_starting_creation_options, sorcerer_starting_creation_options)
 
+    classes = copy.deepcopy(CLASS_DEFINITIONS)
+    for class_def in classes.values():
+        for package in class_def.get("equipment_packages", []):
+            _with_coin(package, package.get("items", []))
+    backgrounds = copy.deepcopy(BACKGROUND_DEFINITIONS)
+    for background_def in backgrounds.values():
+        _with_coin(background_def, background_def.get("equipment", []))  # option A; option B is background_option_b_gp
     return {
         "sorcerer_starting_creation": sorcerer_starting_creation_options(),
         "barbarian_starting_creation": barbarian_starting_creation_options(),
@@ -1124,8 +1142,8 @@ def get_character_creation_catalog() -> dict[str, Any]:
         "rogue_starting_creation": rogue_starting_creation_options(),
         "monk_starting_creation": monk_starting_creation_options(),
         "races": copy.deepcopy(SPECIES_DEFINITIONS),
-        "classes": copy.deepcopy(CLASS_DEFINITIONS),
-        "backgrounds": copy.deepcopy(BACKGROUND_DEFINITIONS),
+        "classes": classes,
+        "backgrounds": backgrounds,
         "ability_score_methods": [
             {
                 "id": "standard_array",
@@ -1160,6 +1178,7 @@ def get_character_creation_catalog() -> dict[str, Any]:
             "armor_class": copy.deepcopy(ARMOR_CLASS_RULES),
             "armor_name_aliases": copy.deepcopy(ARMOR_NAME_ALIASES),
             "shield_item_tokens": list(SHIELD_ITEM_TOKENS),
+            "background_option_b_gp": BACKGROUND_OPTION_B_GP,
         },
     }
 

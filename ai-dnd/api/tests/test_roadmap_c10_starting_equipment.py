@@ -44,10 +44,10 @@ class StartingEquipmentTests(unittest.TestCase):
         p=serialize_campaign_payload(s);t=game.create_session(seed=9);restore_campaign_session(t,p)
         self.assertEqual(serialize_campaign_payload(t),p)
 
-    def test_unknown_background_cash_retained_and_wallet_partial(self):
-        for package,amount in (('A',1500),('B',7500)):
+    def test_unknown_background_cash_joins_the_purse_at_creation(self):
+        for package,amount in (('A',3100),('B',9100)):
             s=create(package,'A')
-            self.assertIn('16 Altın',s.world_state['inventory'])
+            self.assertNotIn('16 Altın',s.world_state['inventory'])
             self.assertEqual(s.world_state.get('currency',{}).get('player'),amount)
 
     def test_background_extra_handaxe_not_deduped_after_expansion(self):
@@ -71,8 +71,9 @@ class StartingEquipmentTests(unittest.TestCase):
         bg=copy.deepcopy(BACKGROUND_DEFINITIONS['Criminal'])
         bg['equipment']=['15 GP','15 GP','Handaxe'];bg['starting_gp']=15
         with patch.dict(BACKGROUND_DEFINITIONS,{'Criminal':bg}):s=create('A','A')
-        self.assertEqual(s.world_state['currency']['player'],3000)
-        self.assertEqual(s.world_state['inventory'].count('15 GP'),1)
+        # Class 15 + certified 15 + the other written 15 (joins the purse at creation).
+        self.assertEqual(s.world_state['currency']['player'],4500)
+        self.assertEqual(s.world_state['inventory'].count('15 GP'),0)
         self.assertEqual(s.world_state['inventory'].count('Handaxe'),5)
 
     def test_historical_inventory_wallet_and_advance_do_not_regrant(self):

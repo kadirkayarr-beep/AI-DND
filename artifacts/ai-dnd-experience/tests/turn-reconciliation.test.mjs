@@ -1,3 +1,4 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
@@ -11,6 +12,7 @@ import { unresolvedActionFrom } from '../src/lib/action-recovery.ts';
 import { rotateAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import { QueryClient } from '@tanstack/react-query';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 // Execute production AST-selected bodies; replace only hook, transport and view boundaries.
 const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -32,14 +34,14 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
  const requests = [], shown = [], errors = [], setters = [];
  const life = createActionLifetime();
- const env = {
+ const env = { ...combatStartInjection(),
   stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError,
   closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, pendingAmbientActionRef: { current: null }, notice: null, currentAccountOwner: () => 'user-a', LOCAL_OWNER: 'local',
   PENDING_TURN_NOTICE: { tone: 'warning', title: 'pending', detail: 'pending' }, retryPendingTurn() {}, messageRef: { current: '' },
   pendingTurnNotice: () => ({ tone: 'warning', title: 'pending', detail: 'pending', retry() {}, recover: { check() {}, abandon() {} } }),
   recoveryHandlers: () => ({ check() {}, abandon() {} }), unresolvedActionFrom,
   turnLifetime: life,
-   wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue(value) { env.resultCue = value; }, setLastTurn() {},
+   wasAtBottom: { current: true }, storyScrollRef: { current: null }, setResultCue(value) { env.resultCue = value; }, setLastTurn() {}, setUndoneJustNow() {}, historyToEntries,
    transcriptFollowsBottom,
   window: { sessionStorage, localStorage: storage(), crypto: { randomUUID: () => crypto.randomUUID() } },
   sessionId: 'session-a', campaignId: 'campaign-a', interactionMode: 'do', conversationTargetId: '', combatTargetId: '', state: current,
@@ -57,7 +59,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
    setCombatEntries() {}, setCombatEndNotice() {}, setCombatTargetId() {}, setConversationTargetId() {}, setMessage() {}, setComposerOpen() {},
    statusCode: e => e.status, friendlyError: e => e?.message ?? 'Synthetic error',
  };
-  for (const name of ['setInFlightSessions', 'setNotice', 'setEntries', 'setCombatEntries', 'setCombatEndNotice', 'setCombatTargetId', 'setConversationTargetId', 'setMessage', 'setComposerOpen']) {
+  for (const name of ['setInFlightSessions', 'setNotice', 'setEntries', 'setCombatEntries', 'setCombatStartNotice', 'setCombatEndNotice', 'setCombatTargetId', 'setConversationTargetId', 'setMessage', 'setComposerOpen']) {
   const original = env[name]; env[name] = (...args) => { setters.push([name, ...args]); return original(...args); };
  }
  vm.runInNewContext(code, env);
@@ -77,6 +79,7 @@ test('a failed optional transcript cache does not turn a committed turn into an 
  await h.run();
  assert.equal(h.requests.length, 1);
   assert.equal(h.errors.length, 0, JSON.stringify(h.errors));
+ assert.deepEqual(h.env.combatStartNotices, [null]);
  assert.equal(h.shown.at(-1).at(-1).text, 'Synthetic receipt');
  assert.equal(h.client.getQueryData(['state', 'session-a']).revision, current.revision);
  assert.equal(draft, '');
@@ -495,6 +498,59 @@ test('real submitTurn keeps server skill_check_result when reconciling saved cam
   'real submit/reconciliation must pass the persisted result to Transcript and SkillCheckResultCard');
  assert.deepEqual(JSON.parse(h.env.window.localStorage.getItem('transcript-session-a')).at(-1).skillCheckResult, skill,
   'the resume-friendly transcript cache must not drop the real skill result');
+ h.client.clear();
+});
+
+test('real submitTurn keeps the server undo flags in the transcript and its cache (Dilim 0 Görev 5)', async () => {
+ const history = [{player_message:'/item shop_buy barman bira 1 0 4', narration:'Bira aldın.', undone:true},
+  {player_message:'↶ Son turu geri al', narration:'Son tur geri alındı.', undo_note:true, undo_target_unknown:true},
+  {player_message:'Etrafa bakıyorum.', narration:'Salon sakin.'}];
+ const h = harness({ history, transport:async () => ({ state:old, narration:'Salon sakin.' }) });
+ await h.run();
+ const flags = entries => entries.map(e => [e.kind, e.undone === true, e.undoNote === true, e.undoTargetUnknown === true]);
+ const expected = [['player',true,false,false],['narration',true,false,false],['player',false,true,true],['narration',false,true,true],
+  ['player',false,false,false],['narration',false,false,false]];
+ assert.deepEqual(flags(h.shown.at(-1)), expected, 'the transcript shows the server flags as they came');
+ assert.deepEqual(flags(JSON.parse(h.env.window.localStorage.getItem('transcript-session-a'))), expected,
+  'the transcript cache keeps the same flags and no others');
+ assert.equal(h.shown.at(-1).at(-2).mode, 'do', 'only the last player line carries the sent move type');
+ assert.equal(h.shown.at(-1)[0].mode, undefined);
+ h.client.clear();
+});
+
+test('real submitTurn keeps the undo target on a card prepare or cancel, as the engine does (Dilim 0 Görev 5, karar 31)', async () => {
+ // main.py economic_step: "Prepare and cancel are not turns: the undo checkpoint stays." The bar must keep pointing
+ // at the turn the engine would undo; a confirm is the engine's to judge, so it becomes the target as any turn does.
+ const outcomes = { prepare: { action: 'economic_prepare', status: 'prepared' }, cancel: { action: 'economic_cancel', status: 'cancelled' },
+  confirm: { action: 'economic_confirm', status: 'applied' } };
+ const h = harness({ transport: async ({ data }) => ({ state: old, narration: 'Synthetic receipt',
+  turn_outcome: data.economic_action ? outcomes[data.economic_action.kind] : { action: 'everyday_action', kind: 'look' } }) });
+ const lastTurns = [], justUndone = [];
+ h.env.setLastTurn = value => { lastTurns.push(value); };
+ h.env.setUndoneJustNow = value => { justUndone.push(value); };
+ const settle = async () => {
+  for (let i = 0; i < 100 && h.env.inFlightSessionsRef.current.size; i++) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.env.inFlightSessionsRef.current.size, 0, 'turn settled');
+ };
+ globalThis.window = h.env.window;
+ h.env.submit('Synthetic action'); await settle();
+ assert.equal(lastTurns.length, 1);
+ const turn = lastTurns[0];
+ assert.equal(turn.actionId, h.requests[0].data.action_id);
+ assert.deepEqual(turn.outcome, { action: 'everyday_action', kind: 'look' });
+ assert.deepEqual(justUndone, [false]);
+ const proposal = { purpose: 'gift', recipient_id: 'npc_001', amount_cp: 4 };
+ h.env.submit('Teklif hazırla', undefined, 'do', false, { kind: 'prepare', proposal }); await settle();
+ h.env.submit('Teklifi iptal et', undefined, 'do', false, { kind: 'cancel', offer_id: 'offer-1' }); await settle();
+ assert.equal(h.requests.length, 3, 'both card steps reached the engine');
+ assert.deepEqual(h.requests.slice(1).map(r => r.data.economic_action.kind), ['prepare', 'cancel']);
+ assert.equal(lastTurns.length, 1, 'a card prepare or cancel never becomes the undo target');
+ assert.deepEqual(justUndone, [false], 'a card step is not the next turn of decision 39a');
+ h.env.submit('Teklifi onayla', undefined, 'do', false, { kind: 'confirm', offer_id: 'offer-2', confirmation_digest: 'd' }); await settle();
+ assert.equal(lastTurns.length, 2, 'a confirm is a turn the engine may undo');
+ assert.equal(lastTurns[1].actionId, h.requests[3].data.action_id);
+ assert.deepEqual(lastTurns[1].outcome, outcomes.confirm);
+ assert.deepEqual(justUndone, [false, false]);
  h.client.clear();
 });
 

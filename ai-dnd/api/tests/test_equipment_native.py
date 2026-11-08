@@ -203,7 +203,9 @@ class NativeEquipmentTests(unittest.TestCase):
                     background_ability_bonuses=bonuses, proficient_skills=skills,
                     proficient_tools=[item] if background == "Artisan" else ["Calligrapher's Supplies"],
                 )
-                self.assertEqual(session.world_state["currency"]["player"], expected_gp * 100)
+                # The background's gold plus Fighter package A's written "10 Altın".
+                self.assertEqual(session.world_state["currency"]["player"], (expected_gp + 10) * 100)
+                self.assertNotIn("10 Altın", session.world_state["inventory"])
                 self.assertIn(item, session.world_state["inventory"] if option == "A"
                               else session.character["proficient_tools"])
                 self.assertNotIn(f"{expected_gp} GP", session.world_state["inventory"])

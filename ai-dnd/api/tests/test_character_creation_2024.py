@@ -1409,8 +1409,12 @@ class CharacterCreation2024Tests(unittest.TestCase):
         # Canonical equipment package was chosen authoritatively and transferred to inventory
         self.assertIn("equipment_package", char1)
         self.assertTrue(len(char1["equipment_choices"]) > 0)
-        self.assertEqual(session1.world_state["inventory"], char1["equipment_choices"])
-        self.assertEqual(session1.inventory, char1["equipment_choices"])
+        # Seed 42 is a Wizard (package A "10 Altın") with Sage A ("10 Altın"): the written coin is the purse.
+        self.assertEqual(char1["equipment_choices"].count("10 Altın"), 2)
+        goods = [item for item in char1["equipment_choices"] if item != "10 Altın"]
+        self.assertEqual(session1.world_state["inventory"], goods)
+        self.assertEqual(session1.inventory, goods)
+        self.assertEqual(session1.world_state["currency"]["player"], 2000)
         self.assertEqual(char1["inventory"], char1["equipment_choices"])
 
         # Deterministic RNG seed produces reproducible result
@@ -1469,8 +1473,11 @@ class CharacterCreation2024Tests(unittest.TestCase):
         )
         self.assertIn("Zincir Zırh", session.world_state["inventory"])
         self.assertIn("Kalkan", session.world_state["inventory"])
-        self.assertEqual(session.world_state["inventory"], session.character["equipment_choices"])
-        self.assertEqual(session.world_state["inventory"], session.character["inventory"])
+        # Fighter A "10 Altın" and Soldier A "14 Altın" become the purse; every other item is transferred in order.
+        self.assertEqual(session.world_state["inventory"],
+                         [item for item in session.character["equipment_choices"] if item not in ("10 Altın", "14 Altın")])
+        self.assertEqual(session.world_state["currency"]["player"], 2400)
+        self.assertEqual(session.character["inventory"], session.character["equipment_choices"])
 
     def test_a1_1_invalid_and_fake_equipment_rejected(self):
         """Arbitrary/fake equipment invented by client is rejected fail-closed."""

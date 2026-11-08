@@ -7058,6 +7058,12 @@ components:
       properties:
         skill_check_result:
           $ref: '#/components/schemas/SkillCheckResult'
+        undone:
+          type: boolean
+        undo_note:
+          type: boolean
+        undo_target_unknown:
+          type: boolean
         player_message:
           type: string
         narration:

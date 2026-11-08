@@ -164,12 +164,12 @@ test('choices component: ASI picker and explicit confirmation appear from level 
 test('summary and scope: level 4 and 5 text lists the server effects, the ASI pick and the equipment limit',()=>{
   const meta=fn('readBarbarianStartingCreationOptions')(raw5());assert.equal(typeof ui.BarbarianStartingSummary,'function');
   const four=render(React.createElement(ui.BarbarianStartingScope,{metadata:meta,level:4}));
-  assert.match(four,/seviyesi 4/);assert.match(four,/Weapon Mastery pending/);assert.match(four,/Selected level4 ordinary/);assert.match(four,/Normal başlangıç ekipmanı korunur/);
+  assert.match(four,/seviyesi 4/);assert.match(four,/Bu seviyedeki 2 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(four,/Weapon Mastery pending/);assert.match(four,/>1 özellik</);assert.doesNotMatch(four,/Selected level4 ordinary/);assert.match(four,/Bu seviyede oyunda işleyenler/);assert.match(four,/Normal başlangıç ekipmanı korunur/);
   const five=render(React.createElement(ui.BarbarianStartingScope,{metadata:meta,level:5}));
-  assert.match(five,/seviyesi 5/);assert.match(five,/Extra Attack: two attacks/);assert.match(five,/Fast Movement tracking pending/);assert.doesNotMatch(five,/Metamagic|Sorcerer/);
+  assert.match(five,/seviyesi 5/);assert.match(five,/>1 özellik</);assert.doesNotMatch(five,/Extra Attack: two attacks/);assert.match(five,/Bu seviyede oyunda işleyenler/);assert.match(five,/Bu seviyedeki 2 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(five,/Fast Movement tracking pending/);assert.doesNotMatch(five,/Metamagic|Sorcerer/);
   assert.match(render(React.createElement(ui.BarbarianStartingScope,{metadata:fn('readBarbarianStartingCreationOptions')(raw3()),level:4})),/doğrulanamadı/);
   const summary=render(React.createElement(ui.BarbarianStartingSummary,{draft:draftN(5),metadata:meta}));
-  assert.match(summary,/Path of the Berserker/);assert.match(summary,/Survival/);assert.match(summary,/strength \+2/);assert.match(summary,/seviyesi 5/);
+  assert.match(summary,/Path of the Berserker/);assert.match(summary,/Hayatta Kalma/);assert.doesNotMatch(summary,/>Survival/);assert.match(summary,/strength \+2/);assert.match(summary,/seviyesi 5/);
   const three=render(React.createElement(ui.BarbarianStartingSummary,{draft:draftN(3),metadata:meta}));assert.doesNotMatch(three,/Ability Score Improvement/);
   assert.equal(render(React.createElement(ui.BarbarianStartingSummary,{draft:draftN(1),metadata:meta})),'');
 });

@@ -1,15 +1,14 @@
+import { originFeatLabel } from '@/lib/catalog-display';
+import { CombatStatusStrip, CombatTransitionBanner } from '@/components/combat-status-strip';
+import { showsCounter } from '@/lib/play-panels';
+import { runningQuestCount } from '@/lib/quest-counter';
 import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
 import { TacticalMindControl, tacticalMindAvailable } from '@/components/fighter-controls';
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
-import { RageStatus } from '@/components/rage-controls';
-import { FighterStatus } from '@/components/fighter-controls';
-import { PaladinStatus } from '@/components/paladin-controls';
-import { RogueStatus } from '@/components/rogue-controls';
-import { MonkStatus } from '@/components/monk-controls';
+import { CharacterPanel, InventoryPanel, PurseLine, StoredProgressionChoices } from '@/components/character-panel';
 import { LevelUpControls, levelUpEarned, type LevelUpRequest } from '@/components/level-up-controls';
 import { ECONOMIC_MESSAGES, EconomicOfferCard, EconomicPrepareControls, ShopControls, shopProbeKey } from '@/components/shop-panel';
-import { ProgressionEffectsNotice } from '@/components/sorcerer-starting-creation';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved, unresolvedElsewhere } from '@/lib/pending-action';
 import { askServer, findUnresolvedOnServer, modelRefusalLine, RecoveryTimeoutError, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
@@ -35,7 +34,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  Backpack,
   BookOpen,
   Check,
   ChevronDown,
@@ -95,13 +93,17 @@ import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-f
 import type { EconomicAction, TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
+import { NoticeBanner, type Notice, type RecoveryState } from '@/components/notice-banner';
+import { skillLabel } from '@/lib/skill-label';
+import { historyToEntries } from '@/lib/transcript-history';
+import { resumeComposerMode } from '@/lib/resume-mode';
 import { accountWriteAllowed, currentAccountOwner } from '@/lib/account-session';
 import { applyGameState, gameStateScope, nextRevision } from '@/lib/game-state-gate';
 import { ActionDeadlineError, startDeadline, withActionDeadline } from '@/lib/action-deadline';
 import { gatedStateRead, stateStructuralSharing } from '@/lib/state-envelope';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
-import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
+import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
 import { Transcript, type TranscriptEntry } from '@/components/campaign-transcript';
 import { ReadingSettings } from '@/components/reading-settings';
 import { readReadingPreferences, writeReadingPreferences, type ReadingPreferences } from '@/lib/reading-preferences';
@@ -110,7 +112,6 @@ import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
 import { ActionEconomyPanel } from '@/components/action-economy-panel';
 import { SpellcastingPanel } from '@/components/spellcasting-panel';
-import { CharacterIdentityNotes } from '@/components/character-identity-notes';
 import { CampaignContextPanel, CampaignDate } from '@/components/campaign-context-panel';
 import { currentSceneContext, classLabel, speciesLabel } from '@/lib/campaign-presentation';
 import { OuroborosMark } from '@/components/ouroboros-mark';
@@ -126,15 +127,6 @@ import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.p
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
-// `recover` is the server-proven way out of an unresolved action: ask the server what it recorded, or close the id for good.
-// `recovery` is what the last server check left: `unknown` keeps every new change locked and offers a manual re-check.
-// `scope` is the campaign (or session) the check was about; blockingMutation honours the lock only for that scope.
-type RecoveryState = { status: 'applied' | 'not_applied' | 'unresolved' | 'unknown'; loading: boolean; mutationAllowed: boolean; scope: string };
-// `recheck` re-runs a lookup that timed out before any action id was known (nothing to abandon yet).
-type Notice = {
-  tone: 'error' | 'success' | 'warning'; title: string; detail: string; retry?: () => void;
-  recover?: { check: () => void; abandon: () => void }; checkLabel?: string; recovery?: RecoveryState; recheck?: () => void;
-};
 const RECOVERY_API: RecoveryApi = {
   status: getGameActionStatus, abandon: abandonGameAction, unresolved: getUnresolvedGameAction,
 };
@@ -204,19 +196,6 @@ function Rule() {
   return <div className="dnd-rule" aria-hidden="true" />;
 }
 
-function NoticeBanner({ notice }: { notice: Notice }) {
-  return (
-    <div className={`notice ${notice.tone === 'error' ? 'error' : notice.tone === 'success' ? 'success' : ''}`} role="status" data-testid={`status-${notice.tone}`}>
-      <AlertTriangle size={15} className="shrink-0" />
-      <div><strong>{notice.title}</strong><div>{notice.detail}</div></div>
-      {notice.retry && <button type="button" className="dnd-button" data-testid="button-retry-turn" onClick={notice.retry}>Aynı hamleyi yeniden dene</button>}
-      {notice.recover && <button type="button" className="dnd-button" data-testid="button-check-action" onClick={notice.recover.check}>{notice.checkLabel ?? 'Durumu sunucudan kontrol et'}</button>}
-      {notice.recover && <button type="button" className="dnd-button" data-testid="button-abandon-action" onClick={notice.recover.abandon}>Bu hamleden vazgeç (sunucu doğrular)</button>}
-      {notice.recheck && <button type="button" className="dnd-button" data-testid="button-recheck-open-action" onClick={notice.recheck}>Tekrar kontrol et</button>}
-    </div>
-  );
-}
-
 function EngineHealth() {
   const health = useGetGameHealth({ query: { queryKey: getGetGameHealthQueryKey(), staleTime: 30_000, retry: 1 } });
   const ready = Boolean(health.data && ['ok', 'healthy', 'ready'].includes(health.data.status.toLowerCase()));
@@ -264,47 +243,12 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
         </div>
         <aside className="real-entry-card">
           <div className="real-card-mark"><Shield size={17} aria-hidden="true" /></div>
-          <div className="real-card-copy"><span className="eyebrow">HESABIN VE KAMPANYALARIN</span><strong>Gerçek oyun, güvenli oturumunla açılır.</strong></div>
+          <div className="real-card-copy"><span className="eyebrow">HESABIN VE KAMPANYALARIN</span>{' '}<strong>Gerçek oyun, güvenli oturumunla açılır.</strong></div>
           <span className="entry-health"><EngineHealth /></span>
         </aside>
       </section>
     </main>
   );
-}
-
-function StoredProgressionChoices({ character }: { character: GameCharacter }) {
-  return <>
-    {character.metamagic?.length ? <p>Kaydedilen Metamagic seçimleri: {character.metamagic.join(', ')}</p> : null}
-    {character.subclass_id && <p>Kaydedilen alt sınıf seçimi: {character.subclass_id}</p>}
-    <ProgressionEffectsNotice effects={character.progression_effects_pending} />
-  </>;
-}
-
-function CharacterPanel({ character, compact = false }: { character: GameCharacter; compact?: boolean }) {
-  const abilities = [['KUV', character.strength], ['ÇEV', character.dexterity], ['DAY', character.constitution], ['ZEK', character.intelligence], ['BİL', character.wisdom], ['KAR', character.charisma]];
-  const hp = character.max_hp > 0 ? Math.max(0, Math.min(100, character.current_hp / character.max_hp * 100)) : 0;
-  return (
-    <section className={`state-panel ${compact ? 'compact-character' : ''}`} data-testid="panel-character">
-      <div className="character-top"><div><Kicker>Yolcu kaydı</Kicker><h2 data-testid="text-character-name">{character.name}</h2><div className="character-sub">{speciesLabel(character.race)} {classLabel(character.class)} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div>
-      <div className="health-row"><span className="flex items-center gap-2"><Heart size={13} /> Can durumu</span><span data-testid="text-character-hp">{character.current_hp} / {character.max_hp}</span></div>
-      <div className="health-track"><div className="health-fill" style={{ width: `${hp}%` }} data-testid="meter-health" /></div>
-      <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div></div>
-      <div className="data-row mt-3" data-testid="text-character-xp">Deneyim: {character.xp}</div>
-      {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
-      {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
-      <RageStatus rage={character.rage} />
-      <FighterStatus fighter={character.fighter} />
-      <PaladinStatus paladin={character.paladin} />
-      <RogueStatus rogue={character.rogue} />
-      <MonkStatus monk={character.monk} />
-      <StoredProgressionChoices character={character} />
-      <CharacterIdentityNotes character={character} />
-    </section>
-  );
-}
-
-function InventoryPanel({ items }: { items: string[] }) {
-  return <section className="state-panel" data-testid="panel-inventory"><div className="flex items-end justify-between"><div><Kicker>Üzerinde</Kicker><h2>Envanter</h2></div><span className="character-badge">{String(items.length).padStart(2, '0')}</span></div>{items.length ? <div className="list-stack">{items.map((item, index) => <div className="list-row" key={`${item}-${index}`} data-testid={`item-inventory-${index}`}><span className="list-icon"><Backpack size={14} /></span>{item}</div>)}</div> : <div className="empty-line mt-4">Çantada kaydedilmiş eşya yok.</div>}</section>;
 }
 
 function WorldPanel({ state }: { state: GameState }) {
@@ -411,7 +355,7 @@ function RailSummary({ panel, state }: { panel: RailPanelId; state: GameState })
   }
   if (panel === 'journal') return <div className="rail-summary" data-testid="summary-journal">
     <span>Yerler {state.journal.discovered_locations.length} · Kişiler {state.journal.known_npcs.length}</span>
-    <span>Görevler {state.quests?.length ?? 0}</span>
+    <span>Süren görevler {runningQuestCount(state)}</span>
   </div>;
   return <div className="rail-summary" data-testid="summary-combat">
     {state.combat.active
@@ -473,8 +417,8 @@ function DetailsPanel({ state }: { state: GameState }) {
   </section>;
 }
 
-function LeftColumn({ state, decisionScope = '', conversionBlocked = true, onCommand }: { state: GameState; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
-  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
+function LeftColumn({ state, catalog, decisionScope = '', conversionBlocked = true, onCommand }: { state: GameState; catalog?: unknown; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
+  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} catalog={catalog} walletTotalCp={state.wallet?.total_cp ?? null} /><SpellcastingPanel spellcasting={state.spellcasting} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
 }
 
 const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
@@ -706,6 +650,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, c
 }
 
 function StoryColumn({
+  topControls,
   state,
   entries,
   readingPreferences,
@@ -739,6 +684,7 @@ function StoryColumn({
   newResponseEntryIndex,
   onJumpToNewResponse,
   combatEndNotice,
+  combatStartNotice,
   combatTargetId,
   setCombatTargetId,
   ambientActionResult,
@@ -748,6 +694,7 @@ function StoryColumn({
   onAmbientAction,
   onRetryAmbientAction,
 }: {
+  topControls?: ReactNode;
   state: GameState;
   decisionScope: string;
   entries: TranscriptEntry[];
@@ -781,6 +728,7 @@ function StoryColumn({
   newResponseEntryIndex: number | null;
   onJumpToNewResponse: (focusTarget?: boolean) => void;
   combatEndNotice: string | null;
+  combatStartNotice: string | null;
   combatTargetId: string;
   setCombatTargetId: (value: string) => void;
   ambientActionResult: AmbientEventResult | null;
@@ -850,6 +798,8 @@ function StoryColumn({
           <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
           <ReadingSettings value={readingPreferences} onChange={setReadingPreferences} />
         </div>
+        {topControls}
+        <CombatStatusStrip combat={state.combat} />
         <ActionEconomyPanel decisionScope={decisionScope} state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
         <AmbientEventActionPanel
           event={ambientEvent}
@@ -861,19 +811,13 @@ function StoryColumn({
           onAction={onAmbientAction}
           onRetry={onRetryAmbientAction}
         />
-        {combatEndNotice && (
-          <div className="combat-transition-banner" role="status" data-testid="status-combat-ended">
-            <Swords size={14} aria-hidden="true" />
-            <div><strong>ÇATIŞMA SONA ERDİ</strong><span>{combatEndNotice}</span></div>
-          </div>
-        )}
+        {combatStartNotice && <CombatTransitionBanner kind="start" text={combatStartNotice} />}
+        {combatEndNotice && <CombatTransitionBanner kind="end" text={combatEndNotice} />}
         {state.combat.active && currentActor && currentActor.id !== 'player' && (
           <div className="command-combat-turn-note" role="status" data-testid="status-combat-turn-owner">
             Sıra {currentActor.name}'de. Önce bu anı tamamlayacak bir söz gönder; ardından kendi hamleni anlat.
           </div>
         )}
-      </div>
-      <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} readingPreferences={readingPreferences} resultCue={resultCue} newResponseEntryIndex={newResponseEntryIndex} onJumpToNewResponse={onJumpToNewResponse} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
       {state.conversation.active && state.conversation.interlocutor && (
           <div className="active-interlocutor" role="status" data-testid="active-interlocutor">
@@ -892,6 +836,9 @@ function StoryColumn({
         setComposerOpen(true);
         messageInputRef.current?.focus();
       }} />
+      </div>
+      <div className="story-reading-column">
+      <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} readingPreferences={readingPreferences} resultCue={resultCue} newResponseEntryIndex={newResponseEntryIndex} onJumpToNewResponse={onJumpToNewResponse} />
       {!composerOpen && <button ref={composerTriggerRef} className="dnd-button turn-open-button" type="button" disabled={sending} data-testid="button-open-composer" onClick={() => setComposerOpen(true)}><Send size={15} aria-hidden="true" /> Hamle yap</button>}
       {composerOpen && <div className="command-box" data-testid="command-box">
         <div className="composer-heading">
@@ -951,6 +898,7 @@ function StoryColumn({
         </div>}
         <div className="command-help" id="player-message-help"><span>Sözlerinle anlat · 1–4000 karakter</span>{desktopEnterSupported && <span className="desktop-enter-hint" data-testid="desktop-enter-hint"><kbd>Enter</kbd> gönder · <kbd>Shift+Enter</kbd> yeni satır</span>}<span data-testid="text-message-count">{message.length} / 4000</span></div>
       </div>}
+      </div>
     </section>
   );
 }
@@ -988,7 +936,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
   );
 }
 
-function DrawerSheet({ drawer, state, decisionScope, conversionBlocked, onEconomyCommand, onClose, returnFocus, focusAfterCloseRef, activeTab, setActiveTab, combatEntries, sessionId, campaignId, sending, onExplorationCommand, onDraft, onSetCombatTarget }: { drawer: Drawer; state: GameState; decisionScope?: string; conversionBlocked?: boolean; onEconomyCommand?: (message: string, command: CombatActionInput) => void; onClose: () => void; returnFocus: HTMLElement | null; focusAfterCloseRef: React.MutableRefObject<'opener' | 'composer'>; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string; sending: boolean; onExplorationCommand: (message: string) => void; onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void; onSetCombatTarget: (targetId: string) => void }) {
+function DrawerSheet({ drawer, state, catalog, decisionScope, conversionBlocked, onEconomyCommand, onClose, returnFocus, focusAfterCloseRef, activeTab, setActiveTab, combatEntries, sessionId, campaignId, sending, onExplorationCommand, onDraft, onSetCombatTarget }: { drawer: Drawer; state: GameState; catalog?: unknown; decisionScope?: string; conversionBlocked?: boolean; onEconomyCommand?: (message: string, command: CombatActionInput) => void; onClose: () => void; returnFocus: HTMLElement | null; focusAfterCloseRef: React.MutableRefObject<'opener' | 'composer'>; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string; sending: boolean; onExplorationCommand: (message: string) => void; onDraft: (message: string, mode?: InteractionMode, targetId?: string) => void; onSetCombatTarget: (targetId: string) => void }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   const returnFocusRef = useRef(returnFocus);
@@ -1050,10 +998,10 @@ function DrawerSheet({ drawer, state, decisionScope, conversionBlocked, onEconom
     };
   }, [drawer, focusAfterCloseRef]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} decisionScope={decisionScope} conversionBlocked={conversionBlocked} onCommand={onEconomyCommand} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} catalog={catalog} decisionScope={decisionScope} conversionBlocked={conversionBlocked} onCommand={onEconomyCommand} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
 }
 
-function CharacterReveal({ state, equipmentClasses, onContinue, onBack }: { state: GameState; equipmentClasses?: unknown; onContinue: () => void; onBack: () => void }) {
+function CharacterReveal({ state, catalog, onContinue, onBack }: { state: GameState; catalog?: unknown; onContinue: () => void; onBack: () => void }) {
   const character = state.character;
   const classPortraitCells: Record<string, number> = {
     fighter: 0, barbarian: 1, paladin: 2, ranger: 3, rogue: 4, monk: 5,
@@ -1108,10 +1056,11 @@ function CharacterReveal({ state, equipmentClasses, onContinue, onBack }: { stat
                 <h2 data-testid="reveal-character-name">{character.name}</h2>
                 <div className="character-sub">{speciesLabel(character.race)} {classLabel(character.class)} · Seviye {character.level}</div>
               </div>
-              <span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span>
+              <span className="character-badge">Sv. {character.level}</span>
             </div>
-            <StartingEquipmentNotice characterClass={character.class} classes={equipmentClasses} />
-            <StoredProgressionChoices character={character} />
+            <StartingEquipmentNotice characterClass={character.class} catalog={catalog} />
+            <PurseLine totalCp={state.wallet?.total_cp ?? null} />
+            <StoredProgressionChoices character={character} catalog={catalog} />
             {character.origin && (
               <div className="reveal-origin" data-testid="reveal-character-origin">
                 <Kicker>Kişisel köken</Kicker>
@@ -1124,12 +1073,12 @@ function CharacterReveal({ state, equipmentClasses, onContinue, onBack }: { stat
                 <div className="mt-2 flex flex-wrap gap-2">
                   {character.origin_feat && (
                     <span className="status-pill" data-testid="reveal-background-origin-feat">
-                      Geçmiş: {character.origin_feat}
+                      Geçmiş: {originFeatLabel((catalog as { origin_feats?: unknown } | undefined)?.origin_feats, character.origin_feat)}
                     </span>
                   )}
                   {character.species_bonus_feat && (
                     <span className="status-pill" data-testid="reveal-species-bonus-feat">
-                      Tür: {character.species_bonus_feat}
+                      Tür: {originFeatLabel((catalog as { origin_feats?: unknown } | undefined)?.origin_feats, character.species_bonus_feat)}
                     </span>
                   )}
                 </div>
@@ -1158,7 +1107,7 @@ function CharacterReveal({ state, equipmentClasses, onContinue, onBack }: { stat
               <Kicker>Usta olunan beceriler</Kicker>
               <div className="mt-3 flex flex-wrap gap-2">
                 {character.proficient_skills.length
-                  ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>)
+                  ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skillLabel(skill)}</span>)
                   : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}
               </div>
             </div>
@@ -1167,7 +1116,7 @@ function CharacterReveal({ state, equipmentClasses, onContinue, onBack }: { stat
                 <Kicker>Tür becerileri</Kicker>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {character.species_bonus_skills.map((skill) => (
-                    <span className="status-pill" key={skill}>{skill}</span>
+                    <span className="status-pill" key={skill}>{skillLabel(skill)}</span>
                   ))}
                 </div>
               </div>
@@ -1202,6 +1151,7 @@ export default function GameBrowser() {
   }, [readingPreferences]);
   const [combatEntries, setCombatEntries] = useState<CombatLogEntry[]>([]);
   const [combatEndNotice, setCombatEndNotice] = useState<string | null>(null);
+  const [combatStartNotice, setCombatStartNotice] = useState<string | null>(null);
   const [combatTargetId, setCombatTargetId] = useState('');
   const [conversationTargetId, setConversationTargetId] = useState('');
   const [message, setMessage] = useState('');
@@ -1241,7 +1191,7 @@ export default function GameBrowser() {
   const characterCatalogQuery = useGetCharacterCreationCatalog({
     query: {
       queryKey: getGetCharacterCreationCatalogQueryKey(),
-      enabled: phase === 'creation',
+      enabled: phase === 'creation' || phase === 'reveal' || phase === 'adventure',
       retry: false,
     },
   });
@@ -1261,6 +1211,8 @@ export default function GameBrowser() {
   const [lastTurn, setLastTurn] = useState<{ sessionId: string; actionId: string; outcome: TurnOutcome | null } | null>(null);
   const lastTurnRef = useRef(lastTurn);
   lastTurnRef.current = lastTurn;
+  // True right after a successful undo until the next turn reply (or a reset, a new campaign, a resume).
+  const [undoneJustNow, setUndoneJustNow] = useState(false);
   const [undoPendingSessions, setUndoPendingSessions] = useState<Set<string>>(new Set());
   const undoPendingRef = useRef(new Set<string>());
   const undoRequestsRef = useRef(new globalThis.Map<string, {
@@ -1344,19 +1296,16 @@ export default function GameBrowser() {
           return;
         }
         if (!isCurrent()) return;
-        applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent });
+        if (!applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent })) throw new ReconciliationError();
         if (snapshot.history) {
-          setEntries([
-            ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
-            ...snapshot.history.flatMap((entry) => [
-              { kind: 'player' as const, text: entry.player_message },
-              { kind: 'narration' as const, text: entry.narration,
-                skillCheckResult: entry.skill_check_result ?? undefined },
-            ]),
-          ]);
+          setEntries(historyToEntries(snapshot.history, { opening: snapshot.state.scene?.opening }));
         }
         if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
+        // Undo invalidates an open quote even when the same vendor remains here.
+        setPanelEpoch((epoch) => epoch + 1);
         if (lastTurnRef.current?.sessionId === sessionId && lastTurnRef.current.actionId === target) setLastTurn(null);
+        // One step only (the engine's rule): until a new turn lands the bar says why there is no second undo.
+        setUndoneJustNow(true);
         setNotice({ tone: 'success', title: 'Son tur geri alındı', detail: 'Dünya o turdan önceki hâline döndü.' });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       })
@@ -1523,6 +1472,11 @@ export default function GameBrowser() {
   const pendingAmbientActionRef = useRef<AmbientEventActionRequest | null>(null);
   const storyScrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
+  const storyLayoutRef = useRef<{ width: number; height: number; contentHeight: number; top: number } | null>(null);
+  const storyLayoutScrollTopRef = useRef<number | null>(null);
+  const readStoryLayout = (node: HTMLDivElement) => ({
+    width: node.clientWidth, height: node.clientHeight, contentHeight: node.scrollHeight, top: node.scrollTop,
+  });
   const seenEntryCount = useRef(0);
   const isStoryNearBottom = (node: HTMLDivElement) => {
     const hasOwnScroll = node.scrollHeight > node.clientHeight + 2
@@ -1547,6 +1501,10 @@ export default function GameBrowser() {
   }, [sessionId, state?.scene?.ambient_event?.instance_id]);
 
   useEffect(() => {
+    setCombatStartNotice(null);
+  }, [sessionId, campaignId]);
+
+  useEffect(() => {
     setCombatEndNotice(null);
     setCombatTargetId('');
     if (!sessionId) { setEntries([]); return; }
@@ -1557,9 +1515,12 @@ export default function GameBrowser() {
       const stored = JSON.parse(window.localStorage.getItem(`${TRANSCRIPT_KEY}${sessionId}`) ?? '[]') as unknown;
       const restored = Array.isArray(stored) ? stored.flatMap((entry): TranscriptEntry[] => {
         if (!entry || typeof entry !== 'object') return [];
-        const candidate = entry as { kind?: unknown; text?: unknown };
+        const candidate = entry as { kind?: unknown; text?: unknown; undone?: unknown; undoNote?: unknown; undoTargetUnknown?: unknown };
         if ((candidate.kind !== 'player' && candidate.kind !== 'narration') || typeof candidate.text !== 'string') return [];
-        return [{ kind: candidate.kind, text: candidate.text }];
+        return [{ kind: candidate.kind, text: candidate.text,
+          ...(candidate.undone === true ? { undone: true } : {}),
+          ...(candidate.undoNote === true ? { undoNote: true } : {}),
+          ...(candidate.undoTargetUnknown === true ? { undoTargetUnknown: true } : {}) }];
       }) : [];
       setEntries(restored);
     } catch { setEntries([]); }
@@ -1609,9 +1570,20 @@ export default function GameBrowser() {
     const node = storyScrollRef.current;
     const content = node?.querySelector('[data-testid="transcript-local"]');
     if (!node || !content || typeof ResizeObserver === 'undefined') return;
+    storyLayoutRef.current = readStoryLayout(node);
     const observer = new ResizeObserver(() => {
+      const previous = storyLayoutRef.current;
+      const current = readStoryLayout(node);
+      if (previous && (previous.width !== current.width || previous.height !== current.height
+        || previous.contentHeight !== current.contentHeight)) {
+        // A resize can clamp scrollTop and queue scroll after this callback.
+        if (previous.top !== current.top) storyLayoutScrollTopRef.current = current.top;
+      }
+      storyLayoutRef.current = current;
       if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
     });
+    // The reader can shrink without changing the transcript content box.
+    observer.observe(node);
     observer.observe(content);
     return () => observer.disconnect();
   }, [entries.length]);
@@ -1648,9 +1620,24 @@ export default function GameBrowser() {
     };
   }, [phase, sessionId]);
 
-  const handleStoryScroll = () => {
+  const handleStoryScroll = (event?: { currentTarget: EventTarget | null }) => {
     const node = storyScrollRef.current;
     if (!node) return;
+    // Moving the document does not express reading intent in this own scroller.
+    if (event?.currentTarget === window && node.scrollHeight > node.clientHeight + 2
+      && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)) return;
+    const previous = storyLayoutRef.current;
+    const current = readStoryLayout(node);
+    storyLayoutRef.current = current;
+    const layoutScrollTop = storyLayoutScrollTopRef.current;
+    storyLayoutScrollTopRef.current = null;
+    // Layout can dispatch scroll before ResizeObserver. Keep the preference
+    // from before that resize; genuine same-layout scrolling still updates it.
+    if ((previous && (previous.width !== current.width || previous.height !== current.height
+      || previous.contentHeight !== current.contentHeight)) || layoutScrollTop === node.scrollTop) {
+      if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
+      return;
+    }
     wasAtBottom.current = isStoryNearBottom(node);
     if (wasAtBottom.current) {
       setNewResponseEntryIndex(null);
@@ -1686,8 +1673,10 @@ export default function GameBrowser() {
     setEntries([]);
     setCombatEntries([]);
     setCombatEndNotice(null);
+    setCombatStartNotice(null);
     setConversationTargetId('');
     setInteractionMode('do');
+    setUndoneJustNow(false);
     setMessage('');
     setNotice(null);
     setResumingCampaignId(null);
@@ -1721,8 +1710,10 @@ export default function GameBrowser() {
         setEntries([]);
         setCombatEntries([]);
         setCombatEndNotice(null);
+        setCombatStartNotice(null);
         setInteractionMode('do');
         setConversationTargetId('');
+        setUndoneJustNow(false);
         setActiveTab('world');
         previousCombatActive.current = null;
         setSessionId(created.session_id);
@@ -1772,25 +1763,19 @@ export default function GameBrowser() {
     resumeCampaign.mutate({ campaignId: selectedCampaignId }, {
       onSuccess: (resumed) => {
         if (!accountWriteAllowed(epoch)) return;
-        const opening = resumed.state.scene?.opening;
-        const transcript: TranscriptEntry[] = [
-          ...(typeof opening === 'string' && opening.trim()
-            ? [{ kind: 'narration' as const, text: opening }]
-            : []),
-          ...resumed.history.flatMap((entry: CampaignHistoryEntry) => [
-          { kind: 'player' as const, text: entry.player_message },
-          { kind: 'narration' as const, text: entry.narration,
-            skillCheckResult: entry.skill_check_result ?? undefined },
-          ]),
-        ];
+        const transcript: TranscriptEntry[] = historyToEntries(resumed.history, { opening: resumed.state.scene?.opening });
         setCampaignId(resumed.campaign_id);
         writeAdvisoryCache(LAST_CAMPAIGN_KEY, resumed.campaign_id);
         writeAdvisoryCache(`${TRANSCRIPT_KEY}${resumed.session_id}`, JSON.stringify(transcript));
         setEntries(transcript);
         setCombatEntries(mergeCombatHistory(resumed.combat_history));
         setCombatEndNotice(null);
-        setInteractionMode('do');
-        setConversationTargetId('');
+        setCombatStartNotice(null);
+        // An open conversation (the engine's projection) stays in "Söyle" with that person; otherwise "Yap".
+        const resumedMode = resumeComposerMode(resumed.state);
+        setInteractionMode(resumedMode.mode);
+        setConversationTargetId(resumedMode.targetId);
+        setUndoneJustNow(false);
         setActiveTab('world');
         previousCombatActive.current = null;
         setSessionId(resumed.session_id);
@@ -1974,14 +1959,9 @@ export default function GameBrowser() {
         const stillVisible = activeSessionRef.current === sessionId;
         // Only a reconciled, committed result closes the pending action.
         closePending(key, 'confirmed');
-        const next: TranscriptEntry[] = snapshot.history ? [
-          ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
-          ...snapshot.history.flatMap((entry, index) => [
-            { kind: 'player' as const, text: entry.player_message, mode: index === snapshot.history!.length - 1 ? metadata.interaction_mode : undefined },
-            { kind: 'narration' as const, text: entry.narration,
-            skillCheckResult: entry.skill_check_result ?? undefined },
-          ]),
-        ] : [
+        const next: TranscriptEntry[] = snapshot.history ? historyToEntries(snapshot.history, {
+          opening: snapshot.state.scene?.opening, lastPlayerMode: metadata.interaction_mode,
+        }) : [
           ...entries,
           { kind: 'player' as const, text: trimmed, mode: metadata.interaction_mode },
           {
@@ -1997,8 +1977,9 @@ export default function GameBrowser() {
         }
         writeAdvisoryCache(
           `${TRANSCRIPT_KEY}${sessionId}`,
-          JSON.stringify(next.map(({ kind, text, skillCheckResult, mode }) => ({
+          JSON.stringify(next.map(({ kind, text, skillCheckResult, mode, undone, undoNote, undoTargetUnknown }) => ({
             kind, text, ...(mode ? { mode } : {}), ...(skillCheckResult ? { skillCheckResult } : {}),
+            ...(undone ? { undone } : {}), ...(undoNote ? { undoNote } : {}), ...(undoTargetUnknown ? { undoTargetUnknown } : {}),
           }))),
         );
         const combatResult = result.combat_result;
@@ -2029,6 +2010,10 @@ export default function GameBrowser() {
           }
         } else if (stillVisible) {
           setCombatEndNotice(null);
+        }
+        if (stillVisible) {
+          const actor = result.state.combat.participant_records?.find((participant) => participant.is_current_actor);
+          setCombatStartNotice(combatResult?.combat_started === true ? `Sıra: ${actor?.name ?? result.state.combat.current_actor_id ?? ''}` : null);
         }
         applyGameState(queryClient, sessionId, result.state, { revision: readRevision, isCurrent: operation.isCurrent });
         if (stillVisible && !stored) setConversationTargetId('');
@@ -2064,7 +2049,17 @@ export default function GameBrowser() {
     setNotice({ tone: receipt.status === 'applied' ? 'success' : 'warning', title: 'Teklif',
       detail: changed ? 'Teklif değişti; yeni kart gerekir.' : receipt.public_summary });
   }
-        if (stillVisible) setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
+        // Prepare/cancel and non-consuming confirm refusals retain the engine's previous undo checkpoint.
+        // Other refusals consume the card and are turns, just like applied confirmations.
+        const nonConsumingConfirm = result.turn_outcome?.action === 'economic_confirm'
+          && receipt?.status === 'refused'
+          && ['offer_not_prepared', 'digest_mismatch', 'stale'].includes(receipt.reason_code ?? '');
+        const cardStepOnly = result.turn_outcome?.action === 'economic_prepare'
+          || result.turn_outcome?.action === 'economic_cancel' || nonConsumingConfirm;
+        if (stillVisible && !cardStepOnly) {
+          setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
+          setUndoneJustNow(false);
+        }
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       }).catch((error) => {
         // A superseded or closed screen proves nothing about the server: the pending action stays.
@@ -2192,17 +2187,13 @@ export default function GameBrowser() {
       if (!operation.isCurrent()) throw new ReconciliationError();
       const accepted = applyGameState(queryClient, sessionId, snapshot.state, { revision: readRevision, isCurrent: operation.isCurrent });
       if (!accepted) throw new ReconciliationError();
+      setCombatStartNotice(null);
       if (snapshot.history) {
-        const next: TranscriptEntry[] = [
-          ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
-          ...snapshot.history.flatMap((entry) => [
-            { kind: 'player' as const, text: entry.player_message },
-            { kind: 'narration' as const, text: entry.narration, skillCheckResult: entry.skill_check_result ?? undefined },
-          ]),
-        ];
+        const next: TranscriptEntry[] = historyToEntries(snapshot.history, { opening: snapshot.state.scene?.opening });
         setEntries(next);
-        writeAdvisoryCache(`${TRANSCRIPT_KEY}${sessionId}`, JSON.stringify(next.map(({ kind, text, skillCheckResult }) => ({
+        writeAdvisoryCache(`${TRANSCRIPT_KEY}${sessionId}`, JSON.stringify(next.map(({ kind, text, skillCheckResult, undone, undoNote, undoTargetUnknown }) => ({
           kind, text, ...(skillCheckResult ? { skillCheckResult } : {}),
+          ...(undone ? { undone } : {}), ...(undoNote ? { undoNote } : {}), ...(undoTargetUnknown ? { undoTargetUnknown } : {}),
         }))));
       }
       if (snapshot.combat_history) setCombatEntries(mergeCombatHistory(snapshot.combat_history));
@@ -2254,7 +2245,8 @@ export default function GameBrowser() {
       else if (verdict.kind === 'applied') await reconcileFromServer();
       // State, story and the last-turn slot come from the same server read: an earlier turn's outcome or undo target is
       // dropped, and a historical answer (an undone move) is never put back as the last turn.
-      if (verdict.kind === 'applied') setLastTurn(null);
+      // A recovered applied move is a turn reply too: the "only the last turn" line no longer applies.
+      if (verdict.kind === 'applied') { setLastTurn(null); setUndoneJustNow(false); }
       // A settled verdict also resets the counter panel (its waiting gate and old quote/seq) from the same server read.
       if (verdict.kind === 'applied' || verdict.kind === 'not_applied') setPanelEpoch((epoch) => epoch + 1);
       if (verdict.kind === 'not_applied' && stored && typeof stored.request.message === 'string' && stored.request.interaction_mode && !messageRef.current.trim()) {
@@ -2306,7 +2298,7 @@ export default function GameBrowser() {
     />
   );
   if (!sessionId || phase === 'opening') return <OpeningScreen onCreate={handleCreate} onContinue={handleContinue} creating={createCampaign.isPending} notice={notice} loadingCampaigns={campaignsQuery.isLoading} hasCampaigns={Boolean(campaignsQuery.data?.length)} showNoCampaigns={!campaignsQuery.isLoading && !campaignsQuery.error} />;
-  if (phase === 'reveal' && state) return <CharacterReveal state={state} equipmentClasses={characterCatalogQuery.data?.classes} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
+  if (phase === 'reveal' && state) return <CharacterReveal state={state} catalog={characterCatalogQuery.data} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
   return (
     <EnvironmentThemeProvider state={state}>
       <div className="design-preview dnd-app play-shell" data-testid="app-session">
@@ -2355,20 +2347,25 @@ export default function GameBrowser() {
             </div>
           ) : state ? (
             <>
+      <StoryColumn
+                topControls={<>
       {campaignId && levelUpEarned(state.character) && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} onConfirm={submitLevelUp} />}
       {state.economic_offer && <EconomicOfferCard key={state.economic_offer.offer_id} offer={state.economic_offer}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())}
         onConfirm={async (offerId, digest) => { submitTurn(ECONOMIC_MESSAGES.confirm, undefined, 'do', false, { kind: 'confirm', offer_id: offerId, confirmation_digest: digest }); }}
         onCancel={async (offerId) => { submitTurn(ECONOMIC_MESSAGES.cancel, undefined, 'do', false, { kind: 'cancel', offer_id: offerId }); }} />}
-      {!state.combat.active && <EconomicPrepareControls
+      {!state.combat.active && <details className="economic-prepare-drawer" data-testid="economic-prepare-drawer">
+        <summary>Para ver ya da teklif hazırla</summary>
+        <EconomicPrepareControls
         counterparties={(state.npcs ?? []).filter(npc => npc.location === state.location).map(npc => ({ id: npc.id, label: npc.name }))}
         disabled={Boolean(state.economic_offer) || turnSending || undoBusy || Boolean(blockingMutation())}
-        onPrepare={async (proposal) => { submitTurn(ECONOMIC_MESSAGES.prepare, undefined, 'do', false, { kind: 'prepare', proposal }); }} />}
-      {campaignId && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}:${panelEpoch}`} sessionId={sessionId} campaignId={campaignId}
+        onPrepare={async (proposal) => { submitTurn(ECONOMIC_MESSAGES.prepare, undefined, 'do', false, { kind: 'prepare', proposal }); }} />
+      </details>}
+      {showsCounter(state, campaignId) && <ShopControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}:${panelEpoch}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} outcome={visibleLastTurn?.outcome ?? null} outcomeKey={visibleLastTurn?.actionId ?? null}
         probeKey={shopProbeKey(state)} onTrade={(text) => submitTurn(text, undefined, 'do')} />}
-      <StoryColumn
+                </>}
                 decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])}
                 state={state}
                 entries={entries}
@@ -2402,6 +2399,7 @@ export default function GameBrowser() {
                 newResponseEntryIndex={newResponseEntryIndex}
                 onJumpToNewResponse={jumpToNewResponse}
                 combatEndNotice={combatEndNotice}
+                combatStartNotice={combatStartNotice}
                 combatTargetId={combatTargetId}
                 setCombatTargetId={setCombatTargetId}
                 ambientActionResult={ambientActionResult}
@@ -2417,12 +2415,14 @@ export default function GameBrowser() {
                 recoveringUndo={undoRequestsRef.current.has(sessionId)}
                 busy={undoBusy || turnSending}
                 onUndo={undoLastTurn}
+                combatActive={Boolean(visibleLastTurn) && state.combat.active}
+                justUndone={undoneJustNow}
               />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
           </main>
         </div>
-        {state && <DrawerSheet drawer={drawer} state={state} decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])} conversionBlocked={turnSending || undoBusy || Boolean(blockingMutation())} onEconomyCommand={(text, command) => submitTurn(text, command, 'do')} returnFocus={panelOpener} focusAfterCloseRef={focusAfterDrawerCloseRef} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={turnSending} onExplorationCommand={(text) => submitTurn(text, undefined, 'do')} onSetCombatTarget={setCombatTargetId} onDraft={(text, mode = 'do', targetId) => { setInteractionMode(mode); setConversationTargetId(mode === 'say' ? targetId ?? '' : ''); if (state.combat.active && targetId) setCombatTargetId(targetId); setMessage(text); setComposerOpen(true); }} />}
+        {state && <DrawerSheet drawer={drawer} state={state} catalog={characterCatalogQuery.data} decisionScope={JSON.stringify([currentAccountOwner() ?? LOCAL_OWNER, campaignId, sessionId])} conversionBlocked={turnSending || undoBusy || Boolean(blockingMutation())} onEconomyCommand={(text, command) => submitTurn(text, command, 'do')} returnFocus={panelOpener} focusAfterCloseRef={focusAfterDrawerCloseRef} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={turnSending} onExplorationCommand={(text) => submitTurn(text, undefined, 'do')} onSetCombatTarget={setCombatTargetId} onDraft={(text, mode = 'do', targetId) => { setInteractionMode(mode); setConversationTargetId(mode === 'say' ? targetId ?? '' : ''); if (state.combat.active && targetId) setCombatTargetId(targetId); setMessage(text); setComposerOpen(true); }} />}
         <div className="session-footnote" data-testid="text-session-label">
           {sessionLabel} · sahnenin izleri yol boyunca korunur
           {campaignId && <div data-testid="text-campaign-id">Defter numarası: {campaignId}</div>}

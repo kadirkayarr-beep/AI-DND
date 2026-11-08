@@ -1,3 +1,4 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 // Actual GameBrowser closures extracted by TypeScript AST; scripted transport is not real HTTP evidence.
 import assert from 'node:assert/strict';
@@ -9,6 +10,7 @@ import {QueryClient} from '@tanstack/react-query';
 import {gateInjection} from './support/state-gate-env.mjs';
 import * as pending from '../src/lib/pending-action.ts';
 import * as recovery from '../src/lib/action-recovery.ts';
+import { historyToEntries } from '../src/lib/transcript-history.ts';
 import {createActionLifetime,reconcileState,ReconciliationError,RETRY_MESSAGE} from '../src/lib/action-reconciliation.ts';
 import {startDeadline,withActionDeadline,ActionDeadlineError} from '../src/lib/action-deadline.ts';
 import {currentAuthEpoch,rotateAuthEpoch} from '@workspace/api-client-react/custom-fetch';
@@ -23,14 +25,14 @@ const request={campaign_id:'c',expected_revision:7,target_level:4,choices:{cantr
 const tick=()=>new Promise(r=>setImmediate(r));
 function render({owner='a',campaignId='c',sessionId='s',apply,canonical}={}){
  const calls=[],notices=[],client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:Infinity}}}),life=createActionLifetime();
- const env={...pending,...recovery,...gateInjection(), ...primalKnowledgeInjection(),currentAuthEpoch,rotateAuthEpoch,sessionId,campaignId,currentAccountOwner:()=>owner,LOCAL_OWNER:'local',accountWriteAllowed:()=>true,
+ const env={ ...combatStartInjection(),...pending,...recovery,...gateInjection(), ...primalKnowledgeInjection(),currentAuthEpoch,rotateAuthEpoch,sessionId,campaignId,currentAccountOwner:()=>owner,LOCAL_OWNER:'local',accountWriteAllowed:()=>true,
  submitLevelUpRef:{current:null},submitTurnRef:{current:()=>calls.push('play')},serverRecoveryRef:{current:null},pendingAmbientActionRef:{current:null},notice:null,setPanelEpoch(){},PENDING_TURN_NOTICE:{title:'pending'},
  inFlightSessionsRef:{current:new Set()},undoPendingRef:{current:new Set()},undoRequestsRef:{current:new Map()},setInFlightSessions(){},turnLifetime:life,
  startDeadline,withActionDeadline,ActionDeadlineError,reconcileState,ReconciliationError,RETRY_MESSAGE,queryClient:client,
  getGetGameSessionStateQueryKey:id=>['state',id],getGetCampaignsQueryKey:()=>['campaigns'],
  applyGameSessionLevelUp:async(s,r)=>{calls.push(structuredClone(r));if(apply)return apply(s,r);return {session_id:s,action_id:r.action_id,result:{status:'applied'}};},
  getCampaign:async id=>{calls.push('canonical '+id);if(canonical)return canonical(id);return {state:{hp:30},history:null,combat_history:null};},
- setLastTurn:()=>calls.push('clearUndo'),setNotice:n=>notices.push(n),friendlyError:e=>e.message,statusCode:e=>e.status,
+ setLastTurn:()=>calls.push('clearUndo'),setUndoneJustNow(){},historyToEntries,setNotice:n=>notices.push(n),friendlyError:e=>e.message,statusCode:e=>e.status,
  RECOVERY_API:{status:async(s,id)=>({action_id:id,state:'applied',response:null}),abandon:async(s,id)=>({action_id:id,state:'not_applied',detail:{not_applied:true,code:'abandoned'}})},
  state:{combat:{active:false}}, interactionMode:'do', conversationTargetId:'',combatTargetId:'npc-1',activeSessionRef:{current:sessionId},setResultCue(){},getTurnInteractionMetadata:()=>({interaction_mode:'do'}),
  setEntries(){},setCombatEntries(){},writeAdvisoryCache(){},mergeCombatHistory:v=>v,TRANSCRIPT_KEY:'t',messageRef:{current:''},setMessage(){},
@@ -102,4 +104,17 @@ test('Barbarian4 applied-null recovery waits for authoritative HP/AC card and ne
  const first=render({apply:async()=>{throw Error('lost reply')}});first.env.submitLevelUp(chosen);await tick();const original=first.calls[0];
  const state={character:{class:'Barbarian',level:4,progression_level:4,constitution:16,max_hp:45,current_hp:41,armor_class:16}};
  const next=render({canonical:async()=>({state,history:[],combat_history:[]})});await next.env.serverRecovery();await tick();assert.equal(pending.readPending('a','c'),null);assert.deepEqual(next.client.getQueryData(['state','s']),state);assert.equal(first.calls[0].action_id,original.action_id);assert.deepEqual(original.choices,chosen.choices);
+});
+
+
+test('accepted recovery clears the combat banner only after the canonical projection is accepted',async()=>{
+ for(const accepted of [true,false]){
+  window.sessionStorage=storage();pending.clearPendingFallback();
+  pending.createIntentKey('a','c',request,'level_up');
+  const view=render();view.env.applyGameState=()=>accepted;
+  await view.env.serverRecovery('check');
+  assert.deepEqual(view.env.combatStartNotices,accepted?[null]:[]);
+  assert.equal(pending.readPending('a','c')===null,accepted);
+  view.client.clear();
+ }
 });

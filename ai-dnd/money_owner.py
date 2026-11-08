@@ -304,6 +304,12 @@ def open_card_after_reply(session: Any, result: dict[str, Any], coin_answer: str
             return  # a capped/unwritten no must not open a card either
         if answer == "takes" and part not in (None, "unclear", "*"):
             economic_actions.clear_decline(session.world_state, speaker, part)
+            taken = current(session)
+            if taken is not None and taken.npc_id == speaker and taken.amount_cp > 0:
+                # The same explicit take also lifts an earlier recorded refusal of exactly this coin (D0's
+                # `coin_responses`); without it that older refusal would keep refusing what the person now takes.
+                economic_actions.record_coin_response(session.world_state, npc, taken.amount_cp, "accept",
+                                                      source_action_id=None)
     if not held or not isinstance(action, dict):
         return
     amount, person, place = held

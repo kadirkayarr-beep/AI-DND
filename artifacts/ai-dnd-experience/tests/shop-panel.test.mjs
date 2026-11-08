@@ -111,11 +111,37 @@ test('the probe key names the people here, so a counter is looked for only where
   assert.equal(ui.shopProbeKey({ location: 'han', npcs: [{ id: 'b', location: 'han' }, { id: 'a', location: 'han' }, { id: 'c', location: 'yol' }] }), 'han:a,b');
 });
 
-test('the play screen mounts the counter inline above the story, never in the drawer, and confirms through the turn submit', async () => {
+test('the play screen mounts one counter in the auxiliary pane, outside the drawer, and confirms through the turn submit', async () => {
   const page = await readFile('src/pages/game-browser.tsx', 'utf8');
   const mount = page.indexOf('<ShopControls');
   assert.ok(mount > 0);
-  assert.ok(mount < page.indexOf('<StoryColumn', mount));
+  const ts = await import('typescript');
+  const file = ts.createSourceFile('game-browser.tsx', page, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const nodes = [];
+  const visit = node => { nodes.push(node); ts.forEachChild(node, visit); };
+  visit(file);
+  const shops = nodes.filter(node => ts.isJsxSelfClosingElement(node) && node.tagName.getText(file) === 'ShopControls');
+  assert.equal(shops.length, 1);
+  const ancestors = node => { const list = []; for (let p = node.parent; p; p = p.parent) list.push(p); return list; };
+  const shop = shops[0];
+  const prop = ancestors(shop).find(node => ts.isJsxAttribute(node) && node.name.getText(file) === 'topControls');
+  assert.ok(prop, 'counter belongs to topControls');
+  assert.equal(prop.parent.parent.tagName.getText(file), 'StoryColumn');
+  assert.ok(ancestors(shop).some(node => ts.isBinaryExpression(node) && node.left.getText(file) === 'showsCounter(state, campaignId)'));
+  const attributes = Object.fromEntries(shop.attributes.properties.map(node => [node.name.getText(file), node.initializer.expression.getText(file)]));
+  assert.equal(attributes.disabled, 'turnSending || undoBusy || Boolean(blockingMutation())');
+  assert.equal(attributes.key, '`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}:${panelEpoch}`');
+  assert.equal(attributes.sessionId, 'sessionId');
+  assert.equal(attributes.campaignId, 'campaignId');
+  assert.equal(attributes.probeKey, 'shopProbeKey(state)');
+  assert.equal(attributes.outcome, 'visibleLastTurn?.outcome ?? null');
+  assert.equal(attributes.outcomeKey, 'visibleLastTurn?.actionId ?? null');
+  assert.equal(attributes.onTrade, "(text) => submitTurn(text, undefined, 'do')");
+  const content = nodes.filter(node => ts.isJsxExpression(node) && node.expression?.getText(file) === 'topControls');
+  assert.equal(content.length, 1);
+  assert.ok(ancestors(content[0]).some(node => ts.isJsxElement(node) && node.openingElement.attributes.properties.some(attr => ts.isJsxAttribute(attr) && attr.name.getText(file) === 'className' && attr.initializer?.text === 'story-scene-context')));
+  assert.ok(ancestors(content[0]).some(node => ts.isFunctionDeclaration(node) && node.name?.text === 'StoryColumn'));
+  assert.ok(!ancestors(shop).some(node => ts.isFunctionDeclaration(node) && node.name?.text === 'DrawerSheet'));
   assert.match(page.slice(mount, page.indexOf('/>', mount)), /onTrade=\{\(text\) => submitTurn\(text, undefined, 'do'\)\}/);
   assert.doesNotMatch(await readFile('src/components/shop-panel.tsx', 'utf8'), /DrawerSheet|playGameTurn|fetch\(/);
 });

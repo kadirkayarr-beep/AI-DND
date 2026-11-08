@@ -152,7 +152,9 @@ class AnInnHasRooms(OneTownScene):
 
     async def test_a_room_taken_is_not_haggled_over_afterwards(self):
         await self.inn()
-        client = ReadingClient({"kind": "speak_to", "person_id": "npc_veyra", "also_says": "kimse uyandirmasin"},
+        # With the reading on, the model's own `deal` says the room is the talk; room words alone are no longer read.
+        client = ReadingClient({"kind": "speak_to", "person_id": "npc_veyra", "deal": "room",
+                                "also_says": "kimse uyandirmasin"},
                                spoken="Gecelik beş gümüş, bırak tezgâha.")
         with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}):
             out = await self.say("bi gecelik oda ne kadar? yaticam, sabaha kadar kimse uyandirmasin", client)

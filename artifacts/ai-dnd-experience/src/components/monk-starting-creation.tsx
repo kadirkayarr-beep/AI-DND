@@ -28,7 +28,7 @@ export function MonkStartingLevelControl({ draft, metadata, onChange, onRetry, d
     }}>{(metadata?.supported_starting_levels ?? [1]).map(level => <option key={level} value={level}>{level}</option>)}
       {unavailable && <option value={draft.startingLevel} disabled>{draft.startingLevel} — kullanılamıyor</option>}
     </select></label>
-    {unavailable && <p role="status">Seçili Monk seviyesi doğrulanamıyor. Yeniden deneyin veya açıkça seviye 1 seçin; seçim otomatik düşürülmez.</p>}
+    {unavailable && <p role="status">Seçili Keşiş seviyesi doğrulanamıyor. Yeniden deneyin veya açıkça seviye 1 seçin; seçim otomatik düşürülmez.</p>}
     {!metadata && <button type="button" disabled={disabled} onClick={onRetry}>Yeniden dene</button>}
     {SELECTABLE_LEVELS.some(level => level === draft.startingLevel) && metadata && <MonkStartingScope metadata={metadata} level={draft.startingLevel} />}
   </div>;
@@ -39,7 +39,7 @@ export function MonkStartingChoices({ draft, metadata, onChange, disabled = fals
   draft: StartingDraft; metadata?: MonkStartingCreationOptions; onChange: (draft: StartingDraft) => void; disabled?: boolean;
 }) {
   const source = metadata?.level_3;
-  if (!source) return <p role="status">Monk seviye 3 seçenekleri doğrulanamadı.</p>;
+  if (!source) return <p role="status">Keşiş seviye 3 seçenekleri doğrulanamadı.</p>;
   const four = draft.startingLevel >= LEVEL_FOUR ? metadata?.level_4 : undefined;
   const asi = four && draft.level4Asi ? sourceAsiChoice(four.supported_asi_choices, draft.level4Asi) : undefined;
   return <div className="cc-sub-section" data-testid="monk-start3-choices">
@@ -48,8 +48,8 @@ export function MonkStartingChoices({ draft, metadata, onChange, disabled = fals
       <option value="">Seçin</option>
       {source.subclass_options.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
     </select></label>
-    {draft.startingLevel >= LEVEL_FOUR && !four && <p role="status">Monk seviye 4 seçenekleri doğrulanamadı.</p>}
-    {four && <fieldset disabled={disabled} className="cc-sub-section"><legend>4. seviye Ability Score Improvement</legend>
+    {draft.startingLevel >= LEVEL_FOUR && !four && <p role="status">Keşiş seviye 4 seçenekleri doğrulanamadı.</p>}
+    {four && <fieldset disabled={disabled} className="cc-sub-section"><legend>4. seviye Yetenek Puanı Artışı</legend>
       <AsiChoicePicker choices={four.supported_asi_choices} selected={asi} disabled={disabled} testId="monk-asi-choice"
         onChange={choice => onChange({ ...draft, level4Asi: choice, level4ConConfirmed: false })} />
       <label><input type="checkbox" data-testid="monk-asi-confirm" disabled={disabled || !asi} checked={draft.level4ConConfirmed ?? false}
@@ -60,10 +60,10 @@ export function MonkStartingChoices({ draft, metadata, onChange, disabled = fals
 }
 
 const SCOPE_HEADINGS: Record<number, string> = {
-  [LEVEL_TWO]: 'Monk başlangıç seviyesi 2 — ek seçim gerektirmez.',
-  [LEVEL_THREE]: 'Monk başlangıç seviyesi 3 — alt sınıf seçimi gerekir.',
-  [LEVEL_FOUR]: 'Monk başlangıç seviyesi 4 — alt sınıf ve Ability Score Improvement seçimi gerekir.',
-  [LEVEL_FIVE]: 'Monk başlangıç seviyesi 5 — alt sınıf ve 4. seviye ASI seçimi gerekir; 5. seviye ek seçim istemez.',
+  [LEVEL_TWO]: 'Keşiş başlangıç seviyesi 2 — ek seçim gerektirmez.',
+  [LEVEL_THREE]: 'Keşiş başlangıç seviyesi 3 — alt sınıf seçimi gerekir.',
+  [LEVEL_FOUR]: 'Keşiş başlangıç seviyesi 4 — alt sınıf ve Yetenek Puanı Artışı seçimi gerekir.',
+  [LEVEL_FIVE]: 'Keşiş başlangıç seviyesi 5 — alt sınıf ve 4. seviye yetenek puanı artışı seçimi gerekir; 5. seviye ek seçim istemez.',
 };
 
 function scopeBlock(metadata: MonkStartingCreationOptions | undefined, level: number) {
@@ -74,12 +74,12 @@ function scopeBlock(metadata: MonkStartingCreationOptions | undefined, level: nu
 /** Every level's server list is cumulative, so the block of the chosen level is the whole scope. */
 export function MonkStartingScope({ metadata, level = LEVEL_TWO }: { metadata?: MonkStartingCreationOptions; level?: number }) {
   const block = scopeBlock(metadata, level);
-  if (!metadata || !block) return <p role="status">Monk seviye {level} kapsamı doğrulanamadı.</p>;
+  if (!metadata || !block) return <p role="status">Keşiş seviye {level} kapsamı doğrulanamadı.</p>;
   return <aside className="cc-progression-notice" data-testid="monk-starting-scope">
     <strong>{SCOPE_HEADINGS[level]}</strong>
-    <p>Seviye seçimini son Oluştur onayıyla uygularsın. Bu akış tüm Monk özelliklerinin uygulandığı anlamına gelmez.</p>
-    <h4>Desteklenen kapsam</h4>
-    <ul>{block.effects_supported.map((effect, index) => <li key={index}>{effect}</li>)}</ul>
+    <p>Seviye seçimini son Oluştur onayıyla uygularsın. Bu akış tüm Keşiş özelliklerinin uygulandığı anlamına gelmez.</p>
+    <h4>Bu seviyede oyunda işleyenler</h4>
+    <p>{block.effects_supported.length} özellik</p>
     <ProgressionEffectsNotice effects={block.effects_pending} />
     <p>Can ve XP sunucu tarafından oluşturulur.</p>
   </aside>;
@@ -93,7 +93,7 @@ export function MonkStartingSummary({ draft, metadata }: { draft: StartingDraft;
     <MonkStartingScope metadata={metadata} level={draft.startingLevel} />
     {draft.startingLevel >= LEVEL_THREE && <div className="cc-sub-section">
       <p>Alt sınıf seçimi: {metadata?.level_3?.subclass_options.find(option => option.id === draft.subclassId)?.name ?? '—'}</p>
-      {draft.startingLevel >= LEVEL_FOUR && <p>Ability Score Improvement: {asiChoiceLabel(asi)} (sunucu uygular)</p>}
+      {draft.startingLevel >= LEVEL_FOUR && <p>Yetenek Puanı Artışı: {asiChoiceLabel(asi)} (sunucu uygular)</p>}
     </div>}
   </>;
 }

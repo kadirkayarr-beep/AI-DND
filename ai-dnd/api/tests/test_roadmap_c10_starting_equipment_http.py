@@ -50,7 +50,7 @@ class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
         packages=response.json()['classes']['Barbarian']['equipment_packages']
         self.assertEqual({p['id']:p['items'] for p in packages},{'A':['Büyük Balta (Greataxe)','4 Handaxes',"Explorer's Pack",'15 GP'],'B':['75 GP']})
 
-    async def test_certified_artisan_and_uncertified_background_currency_are_distinct(self):
+    async def test_certified_artisan_and_uncertified_background_currency_both_reach_the_purse(self):
         def artisan(data):
             data.update(background='Artisan',background_ability_bonuses={'strength':2,'intelligence':1},
                 proficient_skills=['Athletics','Intimidation','Investigation','Persuasion','Perception'],
@@ -59,10 +59,10 @@ class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
             a,r=await self.create(package,background_option='A',edit=artisan)
             self.assertEqual(r.game_session.world_state['currency']['player'],cash)
             self.assertNotIn('32 GP',r.game_session.world_state['inventory'])
-        for package,cash in (('A',1500),('B',7500)):
+        for package,cash in (('A',3100),('B',9100)):
             a,r=await self.create(package,background_option='A')
             self.assertEqual(r.game_session.world_state['currency']['player'],cash)
-            self.assertIn('16 Altın',r.game_session.world_state['inventory'])
+            self.assertNotIn('16 Altın',r.game_session.world_state['inventory'])
 
     async def test_random_selected_barbarian_uses_source_package_without_guessing(self):
         # Existing random route supports level1 only; force source class, not final character state.
@@ -72,8 +72,8 @@ class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
         a=response.json();r=self.manager.get(a['session_id']);w=r.game_session.world_state
         self.assertEqual(r.game_session.character['class'],'Barbarian')
         self.assertEqual(r.game_session.character['level'],1)
-        self.assertEqual(w['currency']['player'],1500)
-        self.assertIn('25 Altın',w['inventory'])  # Farmer's uncertified label is not parsed as zero or cash.
+        self.assertEqual(w['currency']['player'],4000)
+        self.assertNotIn('25 Altın',w['inventory'])  # Farmer's written 25 gold joins the class 15 in the purse.
         await self.materialize(a)
         self.assertEqual(sum(i.get('weapon_id')=='handaxe' for i in w['inventory']),4)
 
@@ -109,7 +109,7 @@ class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.post(a,command)).json(),accepted.json());self.assertEqual(self.snapshot(r),before)
         r=await self.reopen(a);expected=accepted.json();expected['session_id']=a['session_id']
         self.assertEqual((await self.post(a,command)).json(),expected)
-        self.assertEqual(r.game_session.world_state['currency']['player'],1500)
+        self.assertEqual(r.game_session.world_state['currency']['player'],3100)
         self.assertEqual({i['item_id'] for i in r.game_session.world_state['inventory'] if i.get('weapon_id')=='handaxe'},set(axes[1:]))
 
     async def test_stale_package_labels_and_client_money_overrides_reject(self):
