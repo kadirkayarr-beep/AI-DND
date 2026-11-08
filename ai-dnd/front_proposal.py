@@ -167,6 +167,11 @@ def economic_route(reply: Any, listed: Mapping[str, Any], *, target_id: str | No
              and isinstance(person, str) and person != NONE and person in _ids(listed["people"])
              and (target_id is None or target_id == person)
              and (purpose != "purchase" or type(front.get("keep_change", False)) is bool))
+    if not valid:
+        # A coin deal said to someone whose recipient does not hold still asks who (no card opens on a guess). A
+        # reading that is not even a coin deal said to someone (a walk, an unknown purpose) leaves the line to its kind.
+        if not (purpose in ECONOMIC_INTENTS and front.get("kind") == "speak_to"):
+            return None
     return {"kind": "economic", "id": person if valid else target_id, "purpose": purpose if valid else None,
             "valid": valid, "keep_change": valid and purpose == "purchase" and front.get("keep_change") is True}
 

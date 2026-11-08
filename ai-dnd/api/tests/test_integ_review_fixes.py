@@ -148,6 +148,61 @@ class ASpokenReplyBelongsToOneDayAndOneKind(Keep):
         self.assertEqual(result['economic_resolution']['net_debit_cp'], 4)
 
 
+class ReviewTwoGaps(Keep):
+    """Second review's missing pins: the goods-tip reply kind, an older signed card's summary, a card open over midnight."""
+
+    def barman(self):
+        return next(n for n in self.world['npcs'] if n['id'] == 'barman')
+
+    def untouched_and_stale(self, result, card, before):
+        resolution = result['economic_resolution']
+        self.assertEqual((resolution['status'], resolution['reason_code']), ('refused', 'stale'))
+        self.assertEqual(resolution['net_debit_cp'], 0)
+        self.assertEqual(self.offers()[card['offer_id']]['status'], 'cancelled')
+        self.assertEqual(self.purse(), before)
+
+    def test_a_goods_tip_reply_is_its_own_kind_and_an_accept_clears_both_kinds(self):
+        npc = self.barman()
+        ea.record_coin_response(self.world, npc, 1, 'refuse', purpose='purchase_tip')
+        self.assertEqual(ea._coin_response(self.world, npc, 'purchase_tip', 1), 'refuse')
+        for other in ('tip', 'gift', 'offer'):
+            self.assertIsNone(ea._coin_response(self.world, npc, other, 1), other)
+        ea.record_coin_response(self.world, npc, 1, 'refuse', purpose='tip')
+        ea.record_coin_response(self.world, npc, 1, 'accept', purpose='tip')
+        self.assertIsNone(ea._coin_response(self.world, npc, 'tip', 1))
+        self.assertIsNone(ea._coin_response(self.world, npc, 'purchase_tip', 1))
+
+    async def test_a_card_signed_with_an_older_summary_goes_stale_and_pays_nothing(self):
+        card = await self.keep_card()
+        data = self.offers()[card['offer_id']]
+        data['context_digest'] = '0' * 64  # what an older build's differently shaped summary amounts to
+        data['confirmation_digest'] = ea.confirmation_digest(ea.offer_from_record(data))
+        self.save()
+        before = self.purse()
+        result, _ = await self.confirm(dict(card, confirmation_digest=data['confirmation_digest']))
+        self.untouched_and_stale(result, card, before)
+
+    async def test_the_same_card_without_a_reply_survives_the_day_boundary(self):
+        # Control for the next test: the day change alone does not make this card stale.
+        card = await self.keep_card()
+        campaign_time.initialize(self.world)
+        self.world['campaign_time']['elapsed_seconds'] += DAY
+        self.save()
+        result, _ = await self.confirm(card)
+        self.assertEqual(result['economic_resolution']['status'], 'applied')
+
+    async def test_a_card_open_with_a_goods_tip_reply_goes_stale_over_the_day_boundary(self):
+        ea.record_coin_response(self.world, self.barman(), 1, None, purpose='purchase_tip')
+        self.save()
+        card = await self.keep_card()
+        campaign_time.initialize(self.world)
+        self.world['campaign_time']['elapsed_seconds'] += DAY
+        self.save()
+        before = self.purse()
+        result, _ = await self.confirm(card)
+        self.untouched_and_stale(result, card, before)
+
+
 class TheDealSitsNextToKind(unittest.TestCase):
     """S4: the schema and the guide."""
 
@@ -167,6 +222,35 @@ class TheDealSitsNextToKind(unittest.TestCase):
         text = front_proposal.guidance(self.LISTED)
         self.assertLess(text.index("deal:"), text.index("economic_intent:"))
         self.assertLess(text.index("economic_intent:"), text.index("want:"))
+
+
+class AnUnusableEconomicReadingDoesNotSwallowTheLine(unittest.TestCase):
+    """S5: only a coin deal said to someone with no recipient asks who; every other bad reading leaves the line alone."""
+
+    LISTED = TheDealSitsNextToKind.LISTED
+
+    def route(self, target_id=None, **front):
+        reply = {"front": {"kind": "speak_to", "economic_intent": "purchase", "person_id": "npc_a", "keep_change": False,
+                           **front}}
+        return front_proposal.economic_route(reply, self.LISTED, target_id=target_id)
+
+    def test_a_good_reading_still_routes(self):
+        route = self.route()
+        self.assertEqual((route["valid"], route["id"], route["purpose"]), (True, "npc_a", "purchase"))
+
+    def test_a_walk_with_a_purchase_intent_is_no_economic_route(self):
+        self.assertIsNone(self.route(kind="go_to", person_id="none"))
+
+    def test_another_person_than_the_one_the_player_chose_still_asks_who_and_opens_no_card(self):
+        route = self.route(target_id="npc_b")
+        self.assertEqual((route["valid"], route["purpose"], route["id"]), (False, None, "npc_b"))
+
+    def test_an_unknown_purpose_is_no_economic_route(self):
+        self.assertIsNone(self.route(economic_intent="steal"))
+
+    def test_a_coin_deal_to_nobody_listed_still_asks_who(self):
+        route = self.route(person_id="none")
+        self.assertEqual((route["valid"], route["purpose"], route["id"]), (False, None, None))
 
 
 class ATypedLineKeepsAValidDeal(routes.Routes):
