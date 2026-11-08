@@ -41,7 +41,7 @@ SCHEMA = {
     "additionalProperties": False,
 }
 CALL = {
-    "model": "gemma4:e4b",
+    "model": "gemma4-fast",
     "messages": [{"role": "system", "content": "Kurallar."}, {"role": "user", "content": "Etrafa bakıyorum."}],
     "format": SCHEMA,
     "think": False,
@@ -887,11 +887,11 @@ class TheCharacterNote(unittest.TestCase):
         self.assertEqual(identity_suggestion.chain_provider(chain_for(cloud))("Alan: Kişilik."), "Yerel not.")
 
     def test_the_app_routes_notes_through_the_chain_only_when_it_is_on(self):
-        adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4:e4b")
+        adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4-fast")
         off = create_app(session_manager=TestPlayerSessionManager(), ollama_adapter=adapter,
                          authenticator=FixedAuthenticator(TEST_PLAYER))
         self.assertIs(off.state.identity_suggestions._provider, identity_suggestion.local_ollama_provider)
-        adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4:e4b", chain=chain_for(FakeCloud()))
+        adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4-fast", chain=chain_for(FakeCloud()))
         on = create_app(session_manager=TestPlayerSessionManager(), ollama_adapter=adapter,
                         authenticator=FixedAuthenticator(TEST_PLAYER))
         self.assertIsNot(on.state.identity_suggestions._provider, identity_suggestion.local_ollama_provider)
@@ -902,7 +902,7 @@ class EngineStub:
         self.calls = []
 
     def list(self):
-        return {"models": [{"model": "gemma4:e4b"}]}
+        return {"models": [{"model": "gemma4-fast"}]}
 
     def chat(self, *args, **kwargs):
         self.calls.append(kwargs)
@@ -912,7 +912,7 @@ class EngineStub:
 class TheAdapter(unittest.TestCase):
     def adapter(self, cloud):
         stub = EngineStub()
-        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4:e4b")
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4-fast")
         adapter._chain = chain_for(cloud)
         return adapter, stub
 
@@ -934,7 +934,7 @@ class TheAdapter(unittest.TestCase):
             self.assertIsNone(AuthenticatedOllamaAdapter(EngineStub())._chain)
             self.assertIsNone(AuthenticatedOllamaAdapter.from_environment()._chain)
             self.assertEqual(AuthenticatedOllamaAdapter.from_environment(use_cloud=True).model_chain,
-                             ["gemini-3.5-flash-lite", "gemma4:e4b"])
+                             ["gemini-3.5-flash-lite", "gemma4-fast"])
 
     def test_the_cloud_reply_reaches_the_engine_through_the_old_contract(self):
         adapter, stub = self.adapter(FakeCloud(gemini=ok(gemini_reply())))
@@ -947,18 +947,18 @@ class TheAdapter(unittest.TestCase):
         adapter, stub = self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
         response = self.engine_call(adapter)
         self.assertEqual(game.ollama_response_content(response), '{"narration": "yerel"}')
-        plain_adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4:e4b")
+        plain_adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4-fast")
         plain_adapter._chain = None
         self.engine_call(plain_adapter)
         self.assertEqual(stub.calls, plain_adapter._client.calls)
-        self.assertEqual(stub.calls[0]["options"], {"num_ctx": 8192, "temperature": 0.3, "num_predict": 400})
+        self.assertEqual(stub.calls[0]["options"], {"num_ctx": ollama_adapter.CONTEXT_WINDOW_TOKENS, "temperature": 0.3, "num_predict": 400})
         self.assertIs(stub.calls[0]["think"], False)
 
     def test_falling_through_costs_one_counted_call(self):
         adapter, _ = self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
         with adapter.capture_model_calls() as calls, adapter.capture_model_failures() as failures:
             self.engine_call(adapter)
-        self.assertEqual(calls, ["gemma4:e4b"])
+        self.assertEqual(calls, ["gemma4-fast"])
         self.assertEqual(failures, [])
 
     def test_the_turn_records_which_provider_answered_each_call(self):
@@ -1003,7 +1003,7 @@ class TheAdapter(unittest.TestCase):
     def test_with_no_chain_a_classifier_failure_stays_as_it_was(self):
         stub = EngineStub()
         stub.chat = lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ReadTimeout("slow"))
-        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4:e4b")
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4-fast")
         with adapter.capture_model_failures() as failures, self.assertRaises(RuntimeError), classifier_call():
             self.engine_call(adapter)
         self.assertEqual(failures, ["ReadTimeout"])
@@ -1024,14 +1024,14 @@ class TheAdapter(unittest.TestCase):
         cloud = FakeCloud(gemini=httpx.Response(429), haiku=httpx.Response(429))
         stub = EngineStub()
         stub.list = lambda: (_ for _ in ()).throw(ConnectionError("ollama down"))
-        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4:e4b", chain=chain_for(cloud, clock))
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4-fast", chain=chain_for(cloud, clock))
         adapter._chain.chat(CALL, LocalModel())
         with self.assertRaises(ollama_adapter.OllamaUnavailableError):
             adapter.ensure_required_model()
 
     def test_the_model_chain_lists_cloud_names_then_the_local_model(self):
         adapter, _ = self.adapter(FakeCloud())
-        self.assertEqual(adapter.model_chain, ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
+        self.assertEqual(adapter.model_chain, ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4-fast"])
         adapter._chain = None
         self.assertIsNone(adapter.model_chain)
 
@@ -1045,7 +1045,7 @@ class LocalEngine:
                 "done_reason": "stop", "prompt_eval_count": 11, "eval_count": 7}
 
     def list(self):
-        return {"models": [{"model": "gemma4:e4b"}]}
+        return {"models": [{"model": "gemma4-fast"}]}
 
 
 class RaisingLedger:
@@ -1069,7 +1069,7 @@ class TheUsageLedgerWiring(unittest.TestCase):
         providers = [model_chain.gemini(KEY), model_chain.haiku(KEY, model_chain.HaikuSpend(spend_file(), clock))]
         chain = model_chain.ModelChain(providers, transport=httpx.MockTransport(cloud), now=clock,
                                        observer=model_chain.ledger_observer(self.ledger))
-        adapter = AuthenticatedOllamaAdapter(client or LocalEngine(), model_name="gemma4:e4b", chain=chain)
+        adapter = AuthenticatedOllamaAdapter(client or LocalEngine(), model_name="gemma4-fast", chain=chain)
         adapter.usage_ledger = self.ledger
         return adapter
 
@@ -1103,7 +1103,7 @@ class TheUsageLedgerWiring(unittest.TestCase):
         self.assertEqual((gemma["input"], gemma["output"], gemma["thought"]), (11, 7, 0))
 
     def test_gemma_alone_without_a_chain_is_still_timed(self):
-        adapter = AuthenticatedOllamaAdapter(LocalEngine(), model_name="gemma4:e4b")
+        adapter = AuthenticatedOllamaAdapter(LocalEngine(), model_name="gemma4-fast")
         adapter.usage_ledger = self.ledger
         self.engine_call(adapter)
         (gemma,) = self.rows()
@@ -1151,7 +1151,7 @@ class TheUsageLedgerWiring(unittest.TestCase):
         reads it on every call); a new day that reaches the limit logs it again. Only the warning text is logged."""
         clock = Clock()
         ledger = usage_ledger.UsageLedger(self.path, now=clock)
-        adapter = AuthenticatedOllamaAdapter(LocalEngine(), model_name="gemma4:e4b")
+        adapter = AuthenticatedOllamaAdapter(LocalEngine(), model_name="gemma4-fast")
         adapter.usage_ledger = ledger
         ledger.record("haiku", input_tokens=30_000_000, output_tokens=0)
         with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
@@ -1175,7 +1175,7 @@ class TheUsageLedgerWiring(unittest.TestCase):
 
 class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4:e4b")
+        self.adapter = AuthenticatedOllamaAdapter(EngineStub(), model_name="gemma4-fast")
         self.enterContext(self.adapter.engine_binding())
         self.manager = TestPlayerSessionManager()
         app = create_app(session_manager=self.manager, ollama_adapter=self.adapter,
@@ -1185,14 +1185,14 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
 
     async def test_health_stays_as_it_was_with_no_chain(self):
         health = await self.http.get("/api/game/health")
-        self.assertEqual(health.json(), {"status": "ok", "engine": "AI-DND", "model": "gemma4:e4b"})
+        self.assertEqual(health.json(), {"status": "ok", "engine": "AI-DND", "model": "gemma4-fast"})
 
     async def test_health_shows_the_chain_without_calling_the_cloud_local(self):
         self.adapter._chain = chain_for(FakeCloud())
         for path in ("/api/game/health", "/api/health"):
             health = (await self.http.get(path)).json()
-            self.assertEqual(health["model"], "gemma4:e4b")
-            self.assertEqual(health["model_chain"], ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
+            self.assertEqual(health["model"], "gemma4-fast")
+            self.assertEqual(health["model_chain"], ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4-fast"])
             self.assertNotIn(KEY, json.dumps(health))
 
     def ledger_on_disk(self) -> usage_ledger.UsageLedger:
@@ -1208,7 +1208,7 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
         for path in ("/api/game/health", "/api/health"):
             health = (await self.http.get(path)).json()
             self.assertNotIn("spend_warning", health)
-            self.assertEqual(health["model_chain"], ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4:e4b"])
+            self.assertEqual(health["model_chain"], ["gemini-3.5-flash-lite", "claude-haiku-5-5", "gemma4-fast"])
 
     async def test_health_shows_spend_warning_when_over_three_usd(self):
         self.adapter.usage_ledger = self.ledger_on_disk()
@@ -1220,7 +1220,7 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
                 health = (await self.http.get(path)).json()
                 self.assertEqual(health["spend_warning"], expected)
                 self.assertIn("3.10 USD", health["spend_warning"])
-                self.assertEqual(health["model"], "gemma4:e4b")
+                self.assertEqual(health["model"], "gemma4-fast")
                 self.assertNotIn(KEY, json.dumps(health))
         # Health reads the warning on every call; the log gets it once that day.
         self.assertEqual(logs.output, [f"WARNING:ai_dnd.api.ollama:{expected}"])
@@ -1235,7 +1235,7 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
             health = await self.http.get("/api/game/health")
         self.assertIn("OSError", "\n".join(logs.output))
         self.assertEqual(health.status_code, 200)
-        self.assertEqual(health.json(), {"status": "ok", "engine": "AI-DND", "model": "gemma4:e4b"})
+        self.assertEqual(health.json(), {"status": "ok", "engine": "AI-DND", "model": "gemma4-fast"})
 
     async def test_no_cloud_model_joins_the_local_allow_list(self):
         self.assertFalse({"gemini-3.5-flash-lite", "claude-haiku-5-5"} & set(SUPPORTED_LOCAL_MODELS))

@@ -13,6 +13,7 @@ from api.local_model_config import PRODUCTION_LOCAL_MODEL, SUPPORTED_LOCAL_MODEL
 from api.main import create_app
 from api.ollama_adapter import (
     CONTEXT_WINDOW_TOKENS,
+    LOCAL_KEEP_ALIVE,
     MAX_MODEL_CALLS_PER_TURN,
     AuthenticatedOllamaAdapter,
     RequiredModelUnavailableError,
@@ -21,7 +22,7 @@ from api.schemas import TurnRequest
 
 NINE = 'qwen3.5:9b-q4_K_M'
 FOUR = 'qwen3.5:4b-q4_K_M'
-GEMMA = 'gemma4:e4b'
+GEMMA = 'gemma4-fast'
 START_LOCAL = Path(__file__).resolve().parents[3] / 'start_local.ps1'
 
 
@@ -71,7 +72,7 @@ class LocalModelSelectionTests(unittest.TestCase):
                 self.assertEqual(calls, [model])
                 # The adapter owns the context window (4096 default truncated live replies).
                 self.assertEqual(client.requests, [{
-                    'model': model, 'messages': [], 'think': False,
+                    'model': model, 'messages': [], 'think': False, 'keep_alive': LOCAL_KEEP_ALIVE,
                     'options': {'num_ctx': CONTEXT_WINDOW_TOKENS},
                 }])
 
@@ -88,8 +89,8 @@ class LocalModelSelectionTests(unittest.TestCase):
                     options={'temperature': 0.7, 'num_predict': 220},
                 )
                 self.assertEqual(client.requests, [{
-                    'model': model, 'messages': [], 'format': schema, 'think': False,
-                    'options': {'num_ctx': 8192, 'temperature': 0.7, 'num_predict': 220},
+                    'model': model, 'messages': [], 'format': schema, 'think': False, 'keep_alive': LOCAL_KEEP_ALIVE,
+                    'options': {'num_ctx': CONTEXT_WINDOW_TOKENS, 'temperature': 0.7, 'num_predict': 220},
                 }])
 
     def test_think_defaults_off_but_a_call_can_ask_for_it(self):

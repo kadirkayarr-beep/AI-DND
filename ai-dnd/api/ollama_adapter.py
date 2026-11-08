@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import time
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
@@ -29,7 +30,15 @@ MODEL_NAME = "qwen3:8b"
 MAX_MODEL_CALLS_PER_TURN = 2
 # Ollama defaults to a 4096-token window and silently truncates (done_reason=length);
 # live 9b prompts reach ~4100 tokens before the reply.
-CONTEXT_WINDOW_TOKENS = 8192
+CONTEXT_WINDOW_TOKENS = 16384
+# The model stays loaded while a game session is open (Ollama unloads after 5 minutes by default, and the
+# next call then waits for a cold load that can outlast a short client timeout).
+LOCAL_KEEP_ALIVE = "30m"
+# Ollama runs one request at a time here (OLLAMA_NUM_PARALLEL=1, one loaded model): local calls queue.
+_LOCAL_CALL_LOCK = threading.Lock()
+# Rough Turkish estimate for the prompt-size warning: one token per three characters. Not a tokenizer count.
+_CHARS_PER_TOKEN = 3
+_DEFAULT_REPLY_TOKENS = 700
 # Successful tavern narration has completed in about 25s. A hung call was
 # still inside the client at the smoke's 240s HTTP limit. 90s fails closed
 # first and leaves the turn lock.
@@ -53,6 +62,27 @@ if not _logger.handlers:
     _handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
     _logger.addHandler(_handler)
 _logger.propagate = False
+
+
+def _warn_if_prompt_too_big(call: Mapping[str, Any]) -> None:
+    """Ollama silently cuts a prompt that does not fit its window from the front, and the game then forgets."""
+    options = call.get("options") or {}
+    window = options.get("num_ctx") or CONTEXT_WINDOW_TOKENS
+    reply = options.get("num_predict") or _DEFAULT_REPLY_TOKENS
+    characters = sum(len(str(message.get("content", ""))) for message in call.get("messages") or [] if isinstance(message, Mapping))
+    estimate = characters // _CHARS_PER_TOKEN
+    if estimate + reply > window:
+        _logger.warning(
+            "Prompt may not fit the context window (estimated_prompt_tokens=%d, reply_tokens=%d, window=%d)",
+            estimate, reply, window,
+        )
+
+
+def _warn_if_window_filled(response: Any, call: Mapping[str, Any]) -> None:
+    window = (call.get("options") or {}).get("num_ctx") or CONTEXT_WINDOW_TOKENS
+    used = _spent(response, "prompt_eval_count") + _spent(response, "eval_count")
+    if used >= window:
+        _logger.warning("Reply filled the context window (used_tokens=%d, window=%d); older text may have been cut", used, window)
 
 
 class OllamaUnavailableError(RuntimeError):
@@ -292,10 +322,9 @@ class AuthenticatedOllamaAdapter:
             response = self._client.list()
         except Exception as error:
             raise OllamaUnavailableError(type(error).__name__) from None
-        if not any(
-            name == self.model_name
-            for name in self._model_names(response)
-        ):
+        # Ollama lists an untagged model as `<name>:latest`.
+        wanted = {self.model_name, f"{self.model_name}:latest"}
+        if not any(name in wanted for name in self._model_names(response)):
             raise RequiredModelUnavailableError()
 
     def chat(self, *args: Any, **kwargs: Any) -> Any:
@@ -319,12 +348,16 @@ class AuthenticatedOllamaAdapter:
             prepared = {"think": False, **prepared, "model": self.model_name}
             options = prepared.get("options")
             prepared["options"] = {"num_ctx": CONTEXT_WINDOW_TOKENS, **(options or {})}
+            prepared.setdefault("keep_alive", LOCAL_KEEP_ALIVE)
             local_seconds: list[float] = []
 
             def ask_local() -> Any:
-                started = time.monotonic()
-                local_response = self._client.chat(*args, **prepared)
-                local_seconds.append(time.monotonic() - started)
+                _warn_if_prompt_too_big(prepared)
+                with _LOCAL_CALL_LOCK:  # the clock starts after the queue: only the model's own time is measured
+                    started = time.monotonic()
+                    local_response = self._client.chat(*args, **prepared)
+                    local_seconds.append(time.monotonic() - started)
+                _warn_if_window_filled(local_response, prepared)
                 return local_response
 
             if self._chain is None:
