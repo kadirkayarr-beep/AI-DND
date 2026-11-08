@@ -32,6 +32,7 @@ import time
 from typing import Any
 
 import living_world
+import tr_case
 import name_catalog
 import npc_statements
 
@@ -2208,7 +2209,7 @@ def _do_search(run: _Run, step, *, move: bool = False) -> dict[str, Any]:
                 speaker = npc_statements._npc(run.world, target["record"]["said_by"])
                 said = f"{_whose(run, speaker)} tarif ettiği yeri arıyorsun. " if speaker else ""
             walk = f"{how}birkaç sokak dolaşıyorsun ve buluyorsun. " if how else "Birkaç sokak dolaşıp buluyorsun. "
-            prefix = said + walk[:1].upper() + walk[1:]
+            prefix = said + tr_case.upper_first(walk)
             text = _claim_contrast(run, target["record"] if target["kind"] == "reference" else None, record["record"])
             result = _found_place(run, record["record"], how=prefix, move=move, step=step)
             if text:
@@ -2246,7 +2247,7 @@ def _whose(run: _Run, npc) -> str:
     role = (living_world.public_npc_role(npc) or "kişi").strip()
     word = role[:1].lower() + role[1:]
     genitive = run.game._turkish_genitive_form(word).replace("'", "")
-    return genitive[:1].upper() + genitive[1:]
+    return tr_case.upper_first(genitive)
 
 
 def _claim_contrast(run: _Run, ref, record) -> str:
@@ -3497,7 +3498,7 @@ def _finish_clarification(run: _Run, options) -> dict[str, Any]:
     if not labels:
         text = clarification_text(run.session)
     elif len(labels) == 1:
-        text = f"{labels[0][:1].upper()}{labels[0][1:]} mi demek istiyorsun?"
+        text = f"{tr_case.upper_first(labels[0])} mi demek istiyorsun?"
     else:
         text = "Hangisine yöneliyorsun: " + ", ".join(labels[:-1]) + " ya da " + labels[-1] + "?"
     return _bookkeeping(run, text, {

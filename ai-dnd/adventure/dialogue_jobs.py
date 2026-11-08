@@ -5,6 +5,7 @@ import hashlib
 import re
 import equipment_economy
 import living_world
+import tr_case
 import local_dialogue
 import local_places
 import relationships
@@ -78,7 +79,7 @@ def accept_thread_job(session,thread,giver):
             raise ValueError('Job bindings unavailable.')
         qid='job:'+hashlib.sha256(thread['thread_id'].encode()).hexdigest()[:20]
         noun=thread.get('item_noun') or 'paket'
-        label=noun[:1].upper()+noun[1:]
+        label=tr_case.upper_first(noun)
         turn=world.get('flags',{}).get('turn_index',0)
         q=templates.instantiate('DELIVERY',quest_id=qid,turn=turn,opportunity_key='thread-job:'+qid,
            creation_evidence=THREAD_EVIDENCE+thread['thread_id'],
@@ -118,7 +119,7 @@ def shown_line(world,thread,kind,amount=None):
     if not lines: return ''
     line=lines[world_threads._rank(living_world._campaign_seed(world),thread['thread_id'],kind)%len(lines)]
     noun=thread.get('item_noun') or 'paket'
-    return world_threads.sentence(world_threads._fill(line,item=noun[:1].upper()+noun[1:],owner=world_threads.spoken_owner(world,thread),
+    return world_threads.sentence(world_threads._fill(line,item=tr_case.upper_first(noun),owner=world_threads.spoken_owner(world,thread),
         recipient=world_threads.spoken_recipient(world,thread),pay_text=world_threads.pay_text(thread),amount=amount))
 
 

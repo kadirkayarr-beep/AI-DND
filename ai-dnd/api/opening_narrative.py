@@ -11,6 +11,7 @@ from typing import Any
 
 import campaign_time
 import living_world
+import tr_case
 import name_catalog
 from api.world_metadata import world_metadata_for_state
 
@@ -107,7 +108,7 @@ def _home_elsewhere(origin: Any, location_name: str) -> str | None:
     if not isinstance(origin, str) or not origin.strip():
         return None
     key = re.sub(r"[^a-z]", "", origin.casefold())
-    home = _CITY_SPELLINGS.get(key) or " ".join(word[:1].upper() + word[1:] for word in origin.split())
+    home = _CITY_SPELLINGS.get(key) or " ".join(tr_case.upper_first(word) for word in origin.split())
     return None if key == re.sub(r"[^a-z]", "", location_name.casefold()) else home
 
 

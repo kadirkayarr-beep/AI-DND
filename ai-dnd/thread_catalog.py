@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 import local_places
+import tr_case
 
 CATALOG_DIR = Path(__file__).resolve().parents[1] / "content" / "world" / "catalog"
 _LOG = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ def _package(public: str) -> str | None:
     if not found:
         return None
     text = found.group(1)
-    return {"i": "İ", "ı": "I"}.get(text[:1], text[:1].upper()) + text[1:]
+    return tr_case.upper_first(text)
 
 
 def _owner_line(item: dict[str, Any]) -> str | None:

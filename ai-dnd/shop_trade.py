@@ -15,6 +15,7 @@ from typing import Any
 
 import equipment_economy
 import living_world
+import tr_case
 
 # key (as typed and folded), label (as told and as the item's name), unit price in copper
 PRICES = (("bira", "bira", 4), ("sarap", "şarap", 20), ("yemek", "tabak yemek", 30))
@@ -358,7 +359,7 @@ def _commit_sale(world: dict[str, Any], npc_id: str, key: str, count: int, offer
         # A tip line the economic owner refused (it no longer fits, or it was declined) leaves the candidate unused:
         # the confirmed total is paid whole or not at all.
         raise TradeRefused("tip_unavailable" if tip else "price_changed", fresh)
-    name = fresh["label"][:1].upper() + fresh["label"][1:]
+    name = tr_case.upper_first(fresh["label"])
     for _ in range(count):
         equipment_economy.grant_named_item(candidate, name)
     npc.setdefault("wares_v1", {})[key] = {"stock": fresh["stock"] - count}

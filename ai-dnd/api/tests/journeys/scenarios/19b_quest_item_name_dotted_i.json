@@ -43,11 +43,7 @@
         "envanter": {
           "İade takımı": 1
         }
-      },
-      "known_broken": [
-        115
-      ],
-      "broken_because": ["envanter: beklenen {'İade takımı': 1}, gözlenen {'Iade takımı': 1}"]
+      }
     }
   ]
 }

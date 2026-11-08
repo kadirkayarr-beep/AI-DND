@@ -10,6 +10,7 @@ from typing import Any
 
 import equipment_economy
 import living_world
+import tr_case
 import shop_trade
 import world_threads
 
@@ -81,12 +82,12 @@ def _take(session, text: str, words: list[str]) -> dict[str, Any] | None:
     thing = None if any(word.startswith(_WORTH) for word in words) else _thing_in(words, shown, _fixed_here(world))
     if thing is None:
         return None  # nothing here to put away: whoever else this line is for still reads it
-    got = _pick_up(session, thing[:1].upper() + thing[1:].casefold())
+    got = _pick_up(session, tr_case.upper_first(thing[:1] + thing[1:].casefold()))
     if not got:
         return None
     taken = [got]
     for other in _also_taken(session, words):
-        other = _pick_up(session, other[:1].upper() + other[1:].casefold())
+        other = _pick_up(session, tr_case.upper_first(other[:1] + other[1:].casefold()))
         if other:
             taken.append(other)
     return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.")
@@ -147,7 +148,7 @@ def take_named(session, text: str, word: str) -> dict[str, Any] | None:
         return None if any(w.startswith(_WORTH) for w in words) else _take(session, text, words)
     taken = [name for name in (_take_one(session, words, part) for part in _SEVERAL.split(word)) if name]
     for other in _also_taken(session, words):
-        other = _pick_up(session, other[:1].upper() + other[1:].casefold())
+        other = _pick_up(session, tr_case.upper_first(other[:1] + other[1:].casefold()))
         if other:
             taken.append(other)
     return _receipt(session, text, f"{' ve '.join(taken)} çantana giriyor.") if taken else None
@@ -161,7 +162,7 @@ def _take_one(session, words: list[str], word: str) -> str | None:
     if (len(stem) < 3 or stem.startswith(_WORTH) or not any(w.startswith(stem) for w in words)
             or not any(living_world.normalize_text(w).startswith(stem) for w in _shown(session))):
         return None
-    name = word[:1].upper() + word[1:].casefold()
+    name = tr_case.upper_first(word[:1] + word[1:].casefold())
     return None if _named_in_bag(world, stem) else _pick_up(session, name)
 
 
@@ -293,7 +294,7 @@ def _committed(session, item: str, stem: str, text: str, person: Any, line: Any)
             # Only the player's own taking line, never the narrator's say-so alone, picks up a thing told here.
             words = living_world.normalize_text(line).split() if isinstance(line, str) else []
             taken = any(word.startswith(stem) and _taken_by_its_verb(words, at) for at, word in enumerate(words))
-            return taken and _pick_up_told(session, _bare(item)[:1].upper() + _bare(item)[1:].casefold()) is not None
+            return taken and _pick_up_told(session, tr_case.upper_first(_bare(item)[:1] + _bare(item)[1:].casefold())) is not None
         source, held = found
     moved = item_transfers.transfer_now(world, item_id=held["item_id"], source_id=source, recipient_id="player")
     return moved.status == "applied"

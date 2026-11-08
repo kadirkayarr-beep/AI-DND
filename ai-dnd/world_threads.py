@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 import living_world
+import tr_case
 import local_places
 
 KEY = "world_threads_v1"
@@ -1606,7 +1607,7 @@ def _mid_sentence(label: str) -> str:
 
 
 def sentence(text: str) -> str:
-    return text[:1].upper() + text[1:]
+    return tr_case.upper_first(text)
 
 
 def spoken_owner(world: dict[str, Any], thread: dict[str, Any]) -> str:
@@ -1763,7 +1764,7 @@ def status_line(world: dict[str, Any], thread: dict[str, Any], kind: str) -> str
     place = world.get("locations", {}).get(thread.get("target_place_id")) or {}
     noun = thread.get("item_noun") or ""
     return _fill(line, days=terms.get("work_days") or "", pay_text=pay_text(thread), timing_text=timing_text(thread),
-                 start=start_text(world, thread), item=noun[:1].upper() + noun[1:],
+                 start=start_text(world, thread), item=tr_case.upper_first(noun),
                  recipient=thread.get("recipient_name") or "", target=place.get("name", ""),
                  deadline_text=terms.get("deadline_text") or "", who=thread.get("filled_by_name") or "başkası")
 

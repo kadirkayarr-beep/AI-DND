@@ -30,6 +30,7 @@ import dataclasses
 import hashlib
 import json
 import logging
+import tr_case
 import secrets
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -800,7 +801,7 @@ def _line_label(line: OfferLine) -> str:
     import shop_trade
     if line.kind == "goods":
         label = next((label for key, label, _ in shop_trade.PRICES if key == line.item_id), str(line.item_id))
-        return label[:1].upper() + label[1:]
+        return tr_case.upper_first(label)
     return {"room": "Oda (bir gece)", "gift": "Hediye", "tip": "Bahşiş"}.get(line.kind, "Eşya")
 
 

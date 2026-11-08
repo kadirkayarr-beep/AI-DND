@@ -12,6 +12,7 @@ import json
 import re
 import unicodedata
 import uuid
+import tr_case
 from typing import Any, Callable
 
 from ambient_event_catalog import select_ambient_event
@@ -317,7 +318,7 @@ def assign_visible_trait(world_state: dict[str, Any], npc: dict[str, Any]) -> No
 
 
 def turkish_initial_upper(text: str) -> str:
-    return ("İ" if text[:1] == "i" else text[:1].upper()) + text[1:]
+    return tr_case.upper_first(text)
 
 
 def turkish_initial_lower(text: str) -> str:

@@ -12,6 +12,7 @@ import re
 from typing import Any, Literal
 
 import living_world
+import tr_case
 import relationships
 import shop_trade
 
@@ -829,7 +830,7 @@ def _with_tender(session, server: dict[str, Any], key: str, coin: int | None) ->
         _say_too(reply, COIN_NOT_TENDERED)
     if tip:
         world["flags"]["counter_offer_v1"]["tip_cp"] = tip
-        label = quoted["label"][:1].upper() + quoted["label"][1:]
+        label = tr_case.upper_first(quoted["label"])
         _say_too(reply, f"{label} {quoted['unit_cp']} bakır + bahşiş {tip} bakır = {tender} bakır; "
                         f"onaylarsan {tender} bakır geçer.")
     import economic_actions
@@ -998,7 +999,7 @@ def _open_offer(session, server: dict[str, Any], key: str) -> dict[str, Any]:
                                           "turn": world["flags"]["served_turn"]}
     label = offer["label"]
     who = living_world.public_npc_name(server)
-    line = f"{who} tezgâha dayanıyor. “{label[:1].upper()}{label[1:]} {offer['unit_cp']} bakır. Kaç tane?”"
+    line = f"{who} tezgâha dayanıyor. “{tr_case.upper_first(label)} {offer['unit_cp']} bakır. Kaç tane?”"
     import npc_statements
     npc_statements.record(world, server, "", line, turn=None)
     return _reply(session, line, "shop_offer", "offer_open", None, [], offer=offer, npc_id=server["id"])

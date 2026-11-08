@@ -6,6 +6,7 @@ import unicodedata
 import collections
 import copy
 import equipment_economy
+import tr_case
 from pathlib import Path
 import hashlib
 import os
@@ -6362,7 +6363,7 @@ def _absent_person_text(place_word):
     present = (
         f" Yakında {living_world.public_scene_people(people)} var." if people else ""
     )
-    word = place_word[:1].upper() + place_word[1:]
+    word = tr_case.upper_first(place_word)
     return f"{word} başında öyle birini göremiyorsun.{present}"
 
 
@@ -13985,7 +13986,7 @@ def _bound_on_a_named_word(word, line):
         choice = bound_text.choose_detail(world_state, key, bound_text.place_tags(world_state, here), tag)
         name = next(iter(bound_text.rules()["object_words"][tag])) if bound_text.object_tag(word) is None else _clean_world_text(word, 60)
         feature = choice and create_local_feature({"location": here, "description": choice["text"], "kind": "detail",
-                                                   "name": f"{name[:1].upper()}{name[1:]}", "aliases": [name]})
+                                                   "name": f"{tr_case.upper_first(name)}", "aliases": [name]})
         if not isinstance(feature, dict):
             return None
         bound_text.keep(world_state, key, choice, feature_id=feature.get("id"))
@@ -14012,7 +14013,7 @@ def _found_on_a_pass(line=""):
         return None  # the small model said the last finding again: that is no new finding
     name = _clean_world_text(word, 60) or "Gözüne çarpan ayrıntı"
     feature = create_local_feature({"location": _session().world_state.get("location"), "description": text,
-                                    "name": f"{name[:1].upper()}{name[1:]}", "aliases": [name], "kind": "detail"})
+                                    "name": f"{tr_case.upper_first(name)}", "aliases": [name], "kind": "detail"})
     if not isinstance(feature, dict):
         return None
     return {"target_kind": "feature", "target_id": feature.get("id"), "target_name": feature.get("name"),
@@ -14170,7 +14171,7 @@ def _states_the_failed_check(narration, result, player_input):
     room = narration.strip()
     if told.strip() in room:
         return narration  # the narration already is the failure line
-    return f"{told} {room[:1].upper()}{room[1:]}".strip()
+    return f"{told} {tr_case.upper_first(room)}".strip()
 
 
 def _fallback_for_action_result(player_input, action_result=None, npc_target=None):
