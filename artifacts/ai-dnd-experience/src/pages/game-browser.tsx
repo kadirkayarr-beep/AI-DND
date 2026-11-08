@@ -1,7 +1,6 @@
 import { originFeatLabel } from '@/lib/catalog-display';
 import { CombatStatusStrip, CombatTransitionBanner } from '@/components/combat-status-strip';
 import { showsCounter } from '@/lib/play-panels';
-import { runningQuestCount } from '@/lib/quest-counter';
 import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
 import { TacticalMindControl, tacticalMindAvailable } from '@/components/fighter-controls';
@@ -355,7 +354,7 @@ function RailSummary({ panel, state }: { panel: RailPanelId; state: GameState })
   }
   if (panel === 'journal') return <div className="rail-summary" data-testid="summary-journal">
     <span>Yerler {state.journal.discovered_locations.length} · Kişiler {state.journal.known_npcs.length}</span>
-    <span>Süren görevler {runningQuestCount(state)}</span>
+    <span>Süren görevler {state.quest_log?.active_count ?? 0}</span>
   </div>;
   return <div className="rail-summary" data-testid="summary-combat">
     {state.combat.active
@@ -593,6 +592,7 @@ function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sess
         hasError={acceptQuest.isError || cancelQuest.isError}
         commandNotice={commandNotice}
         adventures={state.campaign_adventures}
+        questLog={state.quest_log}
       />
       <AdventureJournalSection adventure={state.adventure} />
     </section>

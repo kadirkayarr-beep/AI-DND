@@ -4189,6 +4189,128 @@ components:
       - cursor
       - location_id
       - steps
+    QuestLogRow:
+      type: object
+      description: One quest record as the journal shows it, under public names only.
+      additionalProperties: false
+      properties:
+        quest_id:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        giver:
+          anyOf:
+          - type: string
+          - type: 'null'
+        recipient:
+          anyOf:
+          - type: string
+          - type: 'null'
+        place:
+          anyOf:
+          - type: string
+          - type: 'null'
+        status:
+          type: string
+        objectives:
+          type: array
+          items:
+            type: string
+        result:
+          description: What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.
+          anyOf:
+          - type: string
+          - type: 'null'
+        record_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+        raw_status:
+          type: string
+      required:
+      - quest_id
+      - title
+      - summary
+      - giver
+      - recipient
+      - place
+      - status
+      - objectives
+      - result
+      - record_kind
+      - raw_status
+    QuestLogTrail:
+      type: object
+      description: A trail the engine really opened, pointing at a live record.
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        what:
+          type: string
+        where:
+          type: string
+        who:
+          anyOf:
+          - type: string
+          - type: 'null'
+        source:
+          type: string
+          enum:
+          - teslim
+          - mektup
+          - haber
+        followed:
+          type: boolean
+      required:
+      - id
+      - what
+      - where
+      - who
+      - source
+      - followed
+    QuestLog:
+      type: object
+      description: The one read-only view the counter, the journal and the old quest fields are built from.
+      additionalProperties: false
+      properties:
+        active:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestLogRow'
+        offered:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestLogRow'
+        done:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestLogRow'
+        let_go:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestLogRow'
+        trails:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestLogTrail'
+        rumors:
+          type: array
+          items:
+            $ref: '#/components/schemas/CampaignAdventureCard'
+        active_count:
+          type: integer
+          minimum: 0
+      required:
+      - active
+      - offered
+      - done
+      - let_go
+      - trails
+      - rumors
+      - active_count
     CampaignAdventureCard:
       type: object
       additionalProperties: false
@@ -4325,6 +4447,8 @@ components:
         turn_index:
           type: integer
           minimum: 0
+        quest_log:
+          $ref: '#/components/schemas/QuestLog'
         quests:
           type: array
           items:

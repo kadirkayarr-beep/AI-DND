@@ -32,6 +32,7 @@ import type { KnownScheduledEvent } from './knownScheduledEvent';
 import type { PendingEventDecision } from './pendingEventDecision';
 import type { PublicEconomicOffer } from './publicEconomicOffer';
 import type { PublicWallet } from './publicWallet';
+import type { QuestLog } from './questLog';
 import type { QuestOffer } from './questOffer';
 import type { QuestState } from './questState';
 import type { SceneIncident } from './sceneIncident';
@@ -65,6 +66,7 @@ export interface GameState {
   player_combat_status: GameStatePlayerCombatStatus;
   /** @minimum 0 */
   turn_index: number;
+  quest_log?: QuestLog;
   quests: QuestState[];
   quest_offers: QuestOffer[];
   adventure?: AdventureProjection;

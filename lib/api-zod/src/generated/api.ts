@@ -930,6 +930,8 @@ export const createGameSessionResponseStateDeathStateLastDeathSaveOneFailuresMax
 
 export const createGameSessionResponseStateTurnIndexMin = 0;
 
+export const createGameSessionResponseStateQuestLogActiveCountMin = 0;
+
 export const createGameSessionResponseStateQuestsItemQuestIdMax = 120;
 
 export const createGameSessionResponseStateQuestsItemTitleMax = 160;
@@ -1555,6 +1557,76 @@ export const CreateGameSessionResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(createGameSessionResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(createGameSessionResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(createGameSessionResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(createGameSessionResponseStateQuestsItemTitleMax),
@@ -1938,6 +2010,8 @@ export const getGameSessionStateResponseDeathStateLastDeathSaveOneFailuresMin = 
 export const getGameSessionStateResponseDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const getGameSessionStateResponseTurnIndexMin = 0;
+
+export const getGameSessionStateResponseQuestLogActiveCountMin = 0;
 
 export const getGameSessionStateResponseQuestsItemQuestIdMax = 120;
 
@@ -2562,6 +2636,76 @@ export const GetGameSessionStateResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getGameSessionStateResponseTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(getGameSessionStateResponseQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getGameSessionStateResponseQuestsItemQuestIdMax),
   "title": zod.string().max(getGameSessionStateResponseQuestsItemTitleMax),
@@ -2957,6 +3101,8 @@ export const resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneFai
 export const resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resolveSpeciesTraitActionResponseStateTurnIndexMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateQuestLogActiveCountMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateQuestsItemQuestIdMax = 120;
 
@@ -3586,6 +3732,76 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resolveSpeciesTraitActionResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(resolveSpeciesTraitActionResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemTitleMax),
@@ -3988,6 +4204,8 @@ export const resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSave
 export const resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resolveSpeciesTraitActionCompatResponseStateTurnIndexMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestLogActiveCountMin = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateQuestsItemQuestIdMax = 120;
 
@@ -4617,6 +4835,76 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemTitleMax),
@@ -5130,6 +5418,8 @@ export const playGameTurnResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const playGameTurnResponseStateTurnIndexMin = 0;
+
+export const playGameTurnResponseStateQuestLogActiveCountMin = 0;
 
 export const playGameTurnResponseStateQuestsItemQuestIdMax = 120;
 
@@ -5911,6 +6201,76 @@ export const PlayGameTurnResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(playGameTurnResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(playGameTurnResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(playGameTurnResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(playGameTurnResponseStateQuestsItemTitleMax),
@@ -6827,6 +7187,8 @@ export const getGameActionStatusResponseResponseTwoStateDeathStateLastDeathSaveO
 
 export const getGameActionStatusResponseResponseTwoStateTurnIndexMin = 0;
 
+export const getGameActionStatusResponseResponseTwoStateQuestLogActiveCountMin = 0;
+
 export const getGameActionStatusResponseResponseTwoStateQuestsItemQuestIdMax = 120;
 
 export const getGameActionStatusResponseResponseTwoStateQuestsItemTitleMax = 160;
@@ -7610,6 +7972,76 @@ export const GetGameActionStatusResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getGameActionStatusResponseResponseTwoStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(getGameActionStatusResponseResponseTwoStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getGameActionStatusResponseResponseTwoStateQuestsItemQuestIdMax),
   "title": zod.string().max(getGameActionStatusResponseResponseTwoStateQuestsItemTitleMax),
@@ -8451,6 +8883,8 @@ export const abandonGameActionResponseResponseTwoStateDeathStateLastDeathSaveOne
 
 export const abandonGameActionResponseResponseTwoStateTurnIndexMin = 0;
 
+export const abandonGameActionResponseResponseTwoStateQuestLogActiveCountMin = 0;
+
 export const abandonGameActionResponseResponseTwoStateQuestsItemQuestIdMax = 120;
 
 export const abandonGameActionResponseResponseTwoStateQuestsItemTitleMax = 160;
@@ -9234,6 +9668,76 @@ export const AbandonGameActionResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(abandonGameActionResponseResponseTwoStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(abandonGameActionResponseResponseTwoStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(abandonGameActionResponseResponseTwoStateQuestsItemQuestIdMax),
   "title": zod.string().max(abandonGameActionResponseResponseTwoStateQuestsItemTitleMax),
@@ -10079,6 +10583,8 @@ export const undoGameTurnResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const undoGameTurnResponseStateTurnIndexMin = 0;
 
+export const undoGameTurnResponseStateQuestLogActiveCountMin = 0;
+
 export const undoGameTurnResponseStateQuestsItemQuestIdMax = 120;
 
 export const undoGameTurnResponseStateQuestsItemTitleMax = 160;
@@ -10707,6 +11213,76 @@ export const UndoGameTurnResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(undoGameTurnResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(undoGameTurnResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(undoGameTurnResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(undoGameTurnResponseStateQuestsItemTitleMax),
@@ -11095,6 +11671,8 @@ export const acceptGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMin =
 export const acceptGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const acceptGameQuestResponseStateTurnIndexMin = 0;
+
+export const acceptGameQuestResponseStateQuestLogActiveCountMin = 0;
 
 export const acceptGameQuestResponseStateQuestsItemQuestIdMax = 120;
 
@@ -11747,6 +12325,76 @@ export const AcceptGameQuestResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(acceptGameQuestResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(acceptGameQuestResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(acceptGameQuestResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(acceptGameQuestResponseStateQuestsItemTitleMax),
@@ -12157,6 +12805,8 @@ export const cancelGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMin =
 export const cancelGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const cancelGameQuestResponseStateTurnIndexMin = 0;
+
+export const cancelGameQuestResponseStateQuestLogActiveCountMin = 0;
 
 export const cancelGameQuestResponseStateQuestsItemQuestIdMax = 120;
 
@@ -12809,6 +13459,76 @@ export const CancelGameQuestResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(cancelGameQuestResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(cancelGameQuestResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(cancelGameQuestResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(cancelGameQuestResponseStateQuestsItemTitleMax),
@@ -13227,6 +13947,8 @@ export const resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneFai
 export const resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resolveAmbientEventActionResponseStateTurnIndexMin = 0;
+
+export const resolveAmbientEventActionResponseStateQuestLogActiveCountMin = 0;
 
 export const resolveAmbientEventActionResponseStateQuestsItemQuestIdMax = 120;
 
@@ -13860,6 +14582,76 @@ export const ResolveAmbientEventActionResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resolveAmbientEventActionResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(resolveAmbientEventActionResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemTitleMax),
@@ -14257,6 +15049,8 @@ export const acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMin
 export const acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const acceptLegacyQuestResponseStateTurnIndexMin = 0;
+
+export const acceptLegacyQuestResponseStateQuestLogActiveCountMin = 0;
 
 export const acceptLegacyQuestResponseStateQuestsItemQuestIdMax = 120;
 
@@ -14909,6 +15703,76 @@ export const AcceptLegacyQuestResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(acceptLegacyQuestResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(acceptLegacyQuestResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(acceptLegacyQuestResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(acceptLegacyQuestResponseStateQuestsItemTitleMax),
@@ -15320,6 +16184,8 @@ export const cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMin
 export const cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const cancelLegacyQuestResponseStateTurnIndexMin = 0;
+
+export const cancelLegacyQuestResponseStateQuestLogActiveCountMin = 0;
 
 export const cancelLegacyQuestResponseStateQuestsItemQuestIdMax = 120;
 
@@ -15972,6 +16838,76 @@ export const CancelLegacyQuestResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(cancelLegacyQuestResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(cancelLegacyQuestResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(cancelLegacyQuestResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(cancelLegacyQuestResponseStateQuestsItemTitleMax),
@@ -16391,6 +17327,8 @@ export const resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSave
 export const resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resolveAmbientEventActionCompatResponseStateTurnIndexMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateQuestLogActiveCountMin = 0;
 
 export const resolveAmbientEventActionCompatResponseStateQuestsItemQuestIdMax = 120;
 
@@ -17024,6 +17962,76 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resolveAmbientEventActionCompatResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(resolveAmbientEventActionCompatResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestsItemTitleMax),
@@ -19570,6 +20578,8 @@ export const createCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 
 
 export const createCampaignResponseStateTurnIndexMin = 0;
 
+export const createCampaignResponseStateQuestLogActiveCountMin = 0;
+
 export const createCampaignResponseStateQuestsItemQuestIdMax = 120;
 
 export const createCampaignResponseStateQuestsItemTitleMax = 160;
@@ -20269,6 +21279,76 @@ export const CreateCampaignResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(createCampaignResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(createCampaignResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(createCampaignResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(createCampaignResponseStateQuestsItemTitleMax),
@@ -20890,6 +21970,8 @@ export const getCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
 export const getCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const getCampaignResponseStateTurnIndexMin = 0;
+
+export const getCampaignResponseStateQuestLogActiveCountMin = 0;
 
 export const getCampaignResponseStateQuestsItemQuestIdMax = 120;
 
@@ -21600,6 +22682,76 @@ export const GetCampaignResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getCampaignResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(getCampaignResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getCampaignResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(getCampaignResponseStateQuestsItemTitleMax),
@@ -22208,6 +23360,8 @@ export const resumeCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin = 
 export const resumeCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resumeCampaignResponseStateTurnIndexMin = 0;
+
+export const resumeCampaignResponseStateQuestLogActiveCountMin = 0;
 
 export const resumeCampaignResponseStateQuestsItemQuestIdMax = 120;
 
@@ -22908,6 +24062,76 @@ export const ResumeCampaignResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resumeCampaignResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(resumeCampaignResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resumeCampaignResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(resumeCampaignResponseStateQuestsItemTitleMax),
@@ -24687,6 +25911,8 @@ export const createLegacySessionResponseStateDeathStateLastDeathSaveOneFailuresM
 
 export const createLegacySessionResponseStateTurnIndexMin = 0;
 
+export const createLegacySessionResponseStateQuestLogActiveCountMin = 0;
+
 export const createLegacySessionResponseStateQuestsItemQuestIdMax = 120;
 
 export const createLegacySessionResponseStateQuestsItemTitleMax = 160;
@@ -25312,6 +26538,76 @@ export const CreateLegacySessionResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(createLegacySessionResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(createLegacySessionResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(createLegacySessionResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(createLegacySessionResponseStateQuestsItemTitleMax),
@@ -25696,6 +26992,8 @@ export const getLegacySessionStateResponseDeathStateLastDeathSaveOneFailuresMin 
 export const getLegacySessionStateResponseDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const getLegacySessionStateResponseTurnIndexMin = 0;
+
+export const getLegacySessionStateResponseQuestLogActiveCountMin = 0;
 
 export const getLegacySessionStateResponseQuestsItemQuestIdMax = 120;
 
@@ -26320,6 +27618,76 @@ export const GetLegacySessionStateResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getLegacySessionStateResponseTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(getLegacySessionStateResponseQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getLegacySessionStateResponseQuestsItemQuestIdMax),
   "title": zod.string().max(getLegacySessionStateResponseQuestsItemTitleMax),
@@ -26828,6 +28196,8 @@ export const playLegacyTurnResponseStateDeathStateLastDeathSaveOneFailuresMin = 
 export const playLegacyTurnResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const playLegacyTurnResponseStateTurnIndexMin = 0;
+
+export const playLegacyTurnResponseStateQuestLogActiveCountMin = 0;
 
 export const playLegacyTurnResponseStateQuestsItemQuestIdMax = 120;
 
@@ -27609,6 +28979,76 @@ export const PlayLegacyTurnResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(playLegacyTurnResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(playLegacyTurnResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(playLegacyTurnResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(playLegacyTurnResponseStateQuestsItemTitleMax),
@@ -28451,6 +29891,8 @@ export const undoLegacyTurnResponseStateDeathStateLastDeathSaveOneFailuresMax = 
 
 export const undoLegacyTurnResponseStateTurnIndexMin = 0;
 
+export const undoLegacyTurnResponseStateQuestLogActiveCountMin = 0;
+
 export const undoLegacyTurnResponseStateQuestsItemQuestIdMax = 120;
 
 export const undoLegacyTurnResponseStateQuestsItemTitleMax = 160;
@@ -29079,6 +30521,76 @@ export const UndoLegacyTurnResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(undoLegacyTurnResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(undoLegacyTurnResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(undoLegacyTurnResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(undoLegacyTurnResponseStateQuestsItemTitleMax),
@@ -31165,6 +32677,8 @@ export const createLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailures
 
 export const createLegacyCampaignResponseStateTurnIndexMin = 0;
 
+export const createLegacyCampaignResponseStateQuestLogActiveCountMin = 0;
+
 export const createLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
 
 export const createLegacyCampaignResponseStateQuestsItemTitleMax = 160;
@@ -31864,6 +33378,76 @@ export const CreateLegacyCampaignResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(createLegacyCampaignResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(createLegacyCampaignResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(createLegacyCampaignResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(createLegacyCampaignResponseStateQuestsItemTitleMax),
@@ -32487,6 +34071,8 @@ export const getLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin
 export const getLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const getLegacyCampaignResponseStateTurnIndexMin = 0;
+
+export const getLegacyCampaignResponseStateQuestLogActiveCountMin = 0;
 
 export const getLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
 
@@ -33197,6 +34783,76 @@ export const GetLegacyCampaignResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getLegacyCampaignResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(getLegacyCampaignResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getLegacyCampaignResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(getLegacyCampaignResponseStateQuestsItemTitleMax),
@@ -33806,6 +35462,8 @@ export const resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailures
 export const resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resumeLegacyCampaignResponseStateTurnIndexMin = 0;
+
+export const resumeLegacyCampaignResponseStateQuestLogActiveCountMin = 0;
 
 export const resumeLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
 
@@ -34506,6 +36164,76 @@ export const ResumeLegacyCampaignResponse = zod.object({
 }),
   "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resumeLegacyCampaignResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(resumeLegacyCampaignResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemQuestIdMax),
   "title": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemTitleMax),

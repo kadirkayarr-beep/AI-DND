@@ -24,6 +24,7 @@ import timed_gameplay
 import exploration
 import interaction_adventure
 import adventure.projection as adventure_projection
+import quest_log
 import incidents.projection as incident_projection
 from pydantic import ValidationError
 from api.schemas import (
@@ -760,30 +761,10 @@ def serialize_session_state(
         ).model_dump(exclude_none=True)
     except ValidationError:
         raise ValueError("Invalid death state projection.") from None
-    raw_quests = copy.deepcopy(world.get("quests", []))
-    quest_state = [
-        {
-            "quest_id": item.get("quest_id"),
-            "title": item.get("title"),
-            "description": item.get("description"),
-            "status": item.get("status"),
-            "giver_npc_id": item.get("giver_npc_id"),
-            "objectives": [
-                {
-                    "objective_id": objective.get("objective_id"),
-                    "description": objective.get("description"),
-                    "status": objective.get("status"),
-                    "progress": objective.get("progress", 0),
-                    "required_count": objective.get("required_count", 1),
-                }
-                for objective in item.get("objectives", [])
-            ],
-        }
-        for item in raw_quests
-        if isinstance(item, dict)
-        and item.get("record_kind") != "dynamic"
-        and item.get("status") in {"accepted", "completed", "cancelled"}
-    ]
+    quest_view = quest_log.view(
+        world, lore_state if lore_state is not None else getattr(session, "campaign_lore_state", None)
+    )
+    quest_state = quest_log.legacy_quests(world)
     offers = [
         {
             "quest_id": item["quest_id"],
@@ -842,6 +823,7 @@ def serialize_session_state(
         ),
         "death_state": death_state,
         "turn_index": copy.deepcopy(flags.get("turn_index", 0)),
+        "quest_log": quest_view,
         "quests": quest_state,
         "quest_offers": offers,
         "adventure": interaction_adventure.public(world),

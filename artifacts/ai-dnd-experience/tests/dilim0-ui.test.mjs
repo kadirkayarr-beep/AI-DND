@@ -227,7 +227,7 @@ test('the quest section never says no quests while an adventure runs', () => {
 });
 test('the rail summary says Süren görevler from the same count', async () => {
   const source = await readFile('src/pages/game-browser.tsx', 'utf8');
-  assert.match(source, /Süren görevler \{runningQuestCount\(state\)\}/);
+  assert.match(source, /Süren görevler \{state\.quest_log\?\.active_count \?\? 0\}/);
   assert.doesNotMatch(source, /Görevler \{state\.quests\?\.length/);
 });
 

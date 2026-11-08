@@ -1,0 +1,83 @@
+{
+  "id": "19c_quest_log_one_source",
+  "title": "Görev günlüğü tek kaynak: kasaba işi kabul edilince sayaç 1 ve 'Süren maceralar'da işin başlığı; teslimden sonra sayaç 0, iş 'Tamamlananlar'da ve sonuç (12 bakır) biten satırında",
+  "source_items": [
+    115
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "kese": 100,
+        "esya_sayisi": 1,
+        "gunluk": {
+          "sayac": 1,
+          "suren": [
+            "Teslimat"
+          ]
+        }
+      }
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "expect": {
+        "gunluk": {
+          "sayac": 1,
+          "suren": [
+            "Teslimat"
+          ]
+        }
+      }
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "script": {
+        "front": {
+          "kind": "hand_over"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "gunluk": {
+          "sayac": 0,
+          "suren": [],
+          "biten": [
+            "Teslimat"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -25,31 +25,19 @@ def affordances(quest):
 
 
 def journal(world, lore_state=None):
-    rumors = []
     active = []
     completed = []
     failed = []
     timeline = []
     labels = []
     from adventure.play import dungeon_affordances
+    import quest_log
 
     labels.extend(dungeon_affordances(world))
-    heard = _heard_rumors(world, lore_state)
-    for text in heard:
-        rumors.append({"label": "Söylenti", "text": text})
-    for quest in world.get("quests", []):
-        if not isinstance(quest, dict) or quest.get("record_kind") != "dynamic":
-            continue
-        card = {
-            "title": quest.get("title"),
-            "summary": quest.get("description"),
-            "objectives": [
-                objective["description"]
-                for objective in quest.get("objectives", [])
-                if objective.get("visibility") == "known" and objective.get("graph_state") != "HIDDEN"
-            ],
-        }
-        status = quest.get("status")
+    rumors = quest_log.view(world, lore_state)["rumors"]
+    for row, quest in quest_log.dynamic_records(world):
+        card = {"title": row["title"], "summary": row["summary"], "objectives": row["objectives"]}
+        status = row["raw_status"]
         if status in {"DISCOVERED", "ACTIVE", "BLOCKED"}:
             if status in {"ACTIVE", "BLOCKED"}:
                 active.append(card)
@@ -58,13 +46,6 @@ def journal(world, lore_state=None):
             completed.append({**card, "label": "Doğrulandı"})
         elif status in {"FAILED", "ABANDONED"}:
             failed.append(card)
-        for objective in quest.get("objectives", []):
-            if (
-                objective.get("type") == "discover_clue"
-                and objective.get("graph_state") == "COMPLETE"
-                and objective.get("visibility") == "known"
-            ):
-                rumors.append({"label": "İpucu", "text": objective.get("description") or ""})
         for line in quest.get("timeline", []):
             if isinstance(line, str):
                 timeline.append(line)

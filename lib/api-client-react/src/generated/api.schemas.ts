@@ -1969,6 +1969,67 @@ export const GameStatePlayerCombatStatus = {
   dead: 'dead',
 } as const;
 
+/**
+ * One quest record as the journal shows it, under public names only.
+ */
+export interface QuestLogRow {
+  quest_id: string;
+  title: string;
+  summary: string;
+  giver: string | null;
+  recipient: string | null;
+  place: string | null;
+  status: string;
+  objectives: string[];
+  /** What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise. */
+  result: string | null;
+  record_kind: string | null;
+  raw_status: string;
+}
+
+export type QuestLogTrailSource = typeof QuestLogTrailSource[keyof typeof QuestLogTrailSource];
+
+
+export const QuestLogTrailSource = {
+  teslim: 'teslim',
+  mektup: 'mektup',
+  haber: 'haber',
+} as const;
+
+/**
+ * A trail the engine really opened, pointing at a live record.
+ */
+export interface QuestLogTrail {
+  id: string;
+  what: string;
+  where: string;
+  who: string | null;
+  source: QuestLogTrailSource;
+  followed: boolean;
+}
+
+export interface CampaignAdventureCard {
+  title?: string;
+  summary?: string;
+  label?: string;
+  text?: string;
+  objectives?: string[];
+}
+
+/**
+ * The one read-only view the counter, the journal and the old quest fields are built from.
+ */
+export interface QuestLog {
+  active: QuestLogRow[];
+  offered: QuestLogRow[];
+  done: QuestLogRow[];
+  let_go: QuestLogRow[];
+  trails: QuestLogTrail[];
+  rumors: CampaignAdventureCard[];
+  /** @minimum 0 */
+  active_count: number;
+}
+
 export type QuestStateStatus = typeof QuestStateStatus[keyof typeof QuestStateStatus];
 
 
@@ -2186,14 +2247,6 @@ export interface AdventureProjection {
   recent_events: AdventureProjectionRecentEventsItem[];
 }
 
-export interface CampaignAdventureCard {
-  title?: string;
-  summary?: string;
-  label?: string;
-  text?: string;
-  objectives?: string[];
-}
-
 export interface CampaignAdventureJournal {
   rumors: CampaignAdventureCard[];
   active: CampaignAdventureCard[];
@@ -2339,6 +2392,7 @@ export interface GameState {
   player_combat_status: GameStatePlayerCombatStatus;
   /** @minimum 0 */
   turn_index: number;
+  quest_log?: QuestLog;
   quests: QuestState[];
   quest_offers: QuestOffer[];
   adventure?: AdventureProjection;

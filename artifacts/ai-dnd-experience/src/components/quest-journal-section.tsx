@@ -1,6 +1,12 @@
 import { runningQuestCount } from '@/lib/quest-counter';
 import type { GameState } from '@workspace/api-client-react';
 
+const TRAIL_SOURCE_LABELS: Record<string, string> = {
+  teslim: 'teslimden',
+  mektup: 'mektuptan',
+  haber: 'haberden',
+};
+
 const QUEST_STATUS_LABELS: Record<string, string> = {
   accepted: 'Sürüyor',
   active: 'Sürüyor',
@@ -13,6 +19,7 @@ type QuestJournalSectionProps = {
   offers: NonNullable<GameState['quest_offers']>;
   knownNpcs: GameState['journal']['known_npcs'];
   adventures?: GameState['campaign_adventures'];
+  questLog?: GameState['quest_log'];
   onAccept: (questId: string) => void;
   onCancel: (questId: string) => void;
   acceptPending: boolean;
@@ -26,6 +33,7 @@ export function QuestJournalSection({
   offers,
   knownNpcs,
   adventures,
+  questLog,
   onAccept,
   onCancel,
   acceptPending,
@@ -39,11 +47,21 @@ export function QuestJournalSection({
       : null
   );
 
+  // rows the quests list above already draws (older records) are not drawn twice
+  const notInQuestList = <Row extends { quest_id: string }>(rows: Row[]) => (
+    rows.filter((row) => !quests.some((quest) => quest.quest_id === row.quest_id))
+  );
+  const activeRows = notInQuestList(questLog?.active ?? []);
+  const doneRows = notInQuestList(questLog?.done ?? []);
+  const letGoRows = notInQuestList(questLog?.let_go ?? []);
+  const rumorRows = questLog ? questLog.rumors : adventures?.rumors ?? [];
+  const trails = questLog?.trails ?? [];
+
   return (
     <section className="journal-section" data-testid="section-journal-quests">
       <div className="journal-section-heading">
         <div><span className="eyebrow">Kayıt defteri</span><h3>Görevler</h3></div>
-        <span className="character-badge">{String(runningQuestCount({ quests, campaign_adventures: adventures })).padStart(2, '0')}</span>
+        <span className="character-badge">{String(questLog ? questLog.active_count : runningQuestCount({ quests, campaign_adventures: adventures })).padStart(2, '0')}</span>
       </div>
       {hasError && (
         <p className="mt-3 text-sm text-red-700" role="alert" data-testid="quest-command-error">
@@ -59,7 +77,8 @@ export function QuestJournalSection({
         || (adventures?.active.length ?? 0) > 0
         || (adventures?.rumors.length ?? 0) > 0
         || (adventures?.completed.length ?? 0) > 0
-        || (adventures?.failed.length ?? 0) > 0) ? (
+        || (adventures?.failed.length ?? 0) > 0
+        || (questLog !== undefined && (activeRows.length + doneRows.length + letGoRows.length + questLog.rumors.length) > 0)) ? (
         <div className="mt-3">
           {offers.map((quest) => (
             <article
@@ -155,38 +174,84 @@ export function QuestJournalSection({
           Henüz kayıtlı görev yok.
         </div>
       )}
-      {adventures && (
+      {(adventures || questLog) && (
         <div className="mt-4" data-testid="campaign-adventures">
-          {adventures.rumors.length > 0 && <h3 className="data-row-head">Söylentiler</h3>}
-          {adventures.rumors.map((item) => (
+          {rumorRows.length > 0 && <h3 className="data-row-head">Söylentiler</h3>}
+          {rumorRows.map((item) => (
             <article className="data-row journal-record" key={item.text}>
               <div className="data-row-head"><span>{item.label ?? 'Söylenti'}</span></div>
               <p className="data-row-desc">{item.text}</p>
             </article>
           ))}
-          {adventures.active.length > 0 && <h3 className="data-row-head">Süren maceralar</h3>}
-          {adventures.active.map((item) => (
-            <article className="data-row journal-record" key={item.title}>
-              <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Sürüyor</span></div>
-              <p className="data-row-desc">{item.summary}</p>
-              <ul className="journal-objectives">
-                {(item.objectives ?? []).map((line) => <li key={line}><span>{line}</span></li>)}
-              </ul>
-            </article>
-          ))}
-          {adventures.completed.length > 0 && <h3 className="data-row-head">Tamamlananlar</h3>}
-          {adventures.completed.map((item) => (
-            <article className="data-row journal-record" key={`done-${item.title}`}>
-              <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Doğrulandı</span></div>
-            </article>
-          ))}
-          {adventures.failed.length > 0 && <h3 className="data-row-head">Sonuçsuz kalanlar</h3>}
-          {adventures.failed.map((item) => (
-            <article className="data-row journal-record" key={`fail-${item.title}`}>
-              <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Sonuçsuz</span></div>
-            </article>
-          ))}
-          {adventures.timeline.map((line) => (
+          {questLog ? (
+            <>
+              {activeRows.length > 0 && <h3 className="data-row-head">Süren maceralar</h3>}
+              {activeRows.map((item) => (
+                <article className="data-row journal-record" key={item.quest_id}>
+                  <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Sürüyor</span></div>
+                  <p className="data-row-desc">{item.summary}</p>
+                  <ul className="journal-objectives">
+                    {item.objectives.map((line) => <li key={line}><span>{line}</span></li>)}
+                  </ul>
+                </article>
+              ))}
+              {doneRows.length > 0 && <h3 className="data-row-head">Tamamlananlar</h3>}
+              {doneRows.map((item) => (
+                <article className="data-row journal-record" key={`done-${item.quest_id}`}>
+                  <div className="data-row-head">
+                    <span>{item.result ? `${item.title}: ${item.result}` : item.title}</span>
+                    <span className="status-pill">Doğrulandı</span>
+                  </div>
+                </article>
+              ))}
+              {letGoRows.length > 0 && <h3 className="data-row-head">Sonuçsuz kalanlar</h3>}
+              {letGoRows.map((item) => (
+                <article className="data-row journal-record" key={`fail-${item.quest_id}`}>
+                  <div className="data-row-head">
+                    <span>{item.result ? `${item.title}: ${item.result}` : item.title}</span>
+                    <span className="status-pill">Sonuçsuz</span>
+                  </div>
+                </article>
+              ))}
+              <h3 className="data-row-head">İzler</h3>
+              {trails.length === 0 && <p className="data-row-desc">Henüz bir iz yok.</p>}
+              {trails.map((trail) => (
+                <article className="data-row journal-record" key={trail.id} data-testid={`journal-trail-${trail.id}`}>
+                  <div className="data-row-head">
+                    <span>{trail.what}</span>
+                    {trail.followed && <span className="status-pill">izlendi</span>}
+                  </div>
+                  <p className="data-row-desc">{`→ ${trail.where} · ${TRAIL_SOURCE_LABELS[trail.source] ?? trail.source}`}</p>
+                </article>
+              ))}
+            </>
+          ) : adventures && (
+            <>
+              {adventures.active.length > 0 && <h3 className="data-row-head">Süren maceralar</h3>}
+              {adventures.active.map((item) => (
+                <article className="data-row journal-record" key={item.title}>
+                  <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Sürüyor</span></div>
+                  <p className="data-row-desc">{item.summary}</p>
+                  <ul className="journal-objectives">
+                    {(item.objectives ?? []).map((line) => <li key={line}><span>{line}</span></li>)}
+                  </ul>
+                </article>
+              ))}
+              {adventures.completed.length > 0 && <h3 className="data-row-head">Tamamlananlar</h3>}
+              {adventures.completed.map((item) => (
+                <article className="data-row journal-record" key={`done-${item.title}`}>
+                  <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Doğrulandı</span></div>
+                </article>
+              ))}
+              {adventures.failed.length > 0 && <h3 className="data-row-head">Sonuçsuz kalanlar</h3>}
+              {adventures.failed.map((item) => (
+                <article className="data-row journal-record" key={`fail-${item.title}`}>
+                  <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Sonuçsuz</span></div>
+                </article>
+              ))}
+            </>
+          )}
+          {(adventures?.timeline ?? []).map((line) => (
             <p className="data-row-desc" key={line}>{line}</p>
           ))}
         </div>
