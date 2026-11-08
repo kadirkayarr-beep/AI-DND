@@ -515,6 +515,29 @@ class TheRunnerSortsEveryStep(JourneyCase):
                             {"npcs": [owner], "job": wrong})
             self.assertIn(word, str(raised.exception))
 
+    async def test_letter_setup_offers_a_sealed_letter_where_the_job_ends_and_a_trouble_where_it_goes(self):
+        owner = {"id": "potter", "name": "Halil", "role": "Çömlekçi", "current_hp": 10}
+        clerk = {"id": "clerk", "name": "Selin", "role": "Kâtip", "current_hp": 10}
+        errand = {"type": "errand", "owner": "potter", "status": "offered", "pay": 12, "noun": "iade takımı",
+                  "recipient": "Tuna", "target_kind": "harbor", "line": "İade takımını iskeledeki Tuna'ya götür."}
+        letter = {"owner": "clerk", "pay": 10, "noun": "mühürlü mektup", "recipient": "Ozan", "target_kind": "graveyard",
+                  "line": "Mühürlü mektubu Ozan'a götür, mührü bozma."}
+        campaign = await self._journey_campaign({"campaign_start": NEVERWINTER})
+        apply_setup(self, campaign, {"npcs": [owner, clerk], "job": errand, "letter": letter})
+        world = self.manager.get(campaign["session_id"]).game_session.world_state
+        job, sealed, *rest = world["world_threads_v1"]["threads"]
+        self.assertEqual((sealed["type"], sealed["status"], sealed["owner_npc_id"], sealed["item_noun"]),
+                         ("errand", "offered", "clerk", "mühürlü mektup"))
+        self.assertEqual(world["npcs"][1]["location"], job["target_place_id"])            # waits where the job ends
+        self.assertNotIn(world["npcs"][1]["place_role_of"], {job["place_id"], job["target_place_id"]})
+        self.assertEqual([t["type"] for t in rest if t["place_id"] == sealed["target_place_id"]], ["trouble"])
+        for wrong, word in (({**letter, "seal": 1}, "seal"), ({**letter, "owner": "potter"}, "owner"),
+                            ({**letter, "line": "Mektubu götür."}, "line"), ({**letter, "pay": 0}, "pay")):
+            with self.subTest(wrong=wrong), self.assertRaises(ScenarioError) as raised:
+                apply_setup(self, await self._journey_campaign({"campaign_start": NEVERWINTER}),
+                            {"npcs": [owner, clerk], "job": errand, "letter": wrong})
+            self.assertIn(word, str(raised.exception))
+
     async def test_a_konus_step_is_say_mode_to_that_person(self):
         campaign = await self.create_campaign()
         apply_setup(self, campaign, beer_scenario().setup)

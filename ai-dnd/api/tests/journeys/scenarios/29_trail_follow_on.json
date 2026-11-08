@@ -1,0 +1,179 @@
+{
+  "id": "29_trail_follow_on",
+  "title": "İzler: iskeledeki Tuna'ya teslim edilen iş, kasabanın kendi kuralıyla bir sonraki işi açar ve günlükte 'teslim' izi olur; Selin'in mühürlü mektubu okununca mektubun gittiği yerdeki dert ikinci iz olur ('mektup'); sokağa çıkıp ilk izin yerine gidilince o iz 'izlendi' olur",
+  "source_items": [
+    115
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      },
+      {
+        "id": "clerk",
+        "name": "Selin",
+        "role": "Kâtip",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    },
+    "letter": {
+      "owner": "clerk",
+      "pay": 10,
+      "noun": "mühürlü mektup",
+      "recipient": "Ozan",
+      "target_kind": "graveyard",
+      "line": "Mühürlü mektubu mezarlıktaki Ozan'a götür, mührü sakın bozma. On bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "kese": 100,
+        "esya_sayisi": 1,
+        "gunluk": {
+          "iz": [],
+          "iz_sayisi": 0
+        }
+      }
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "expect": {
+        "kese": 100,
+        "gunluk": {
+          "iz_sayisi": 0
+        }
+      }
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "script": {
+        "front": {
+          "kind": "hand_over"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "envanter": {},
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "teslim",
+              "izlendi": false
+            }
+          ],
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "Selin, olur, mektubu götürürüm",
+      "script": {
+        "front": {
+          "kind": "offer_answer",
+          "person_id": "clerk",
+          "offer_id": "$is:clerk",
+          "answer": "accept"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "envanter": {
+          "Mühürlü mektup": 1
+        },
+        "gunluk": {
+          "sayac": 1,
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "mührü kırıp mektubu okuyorum",
+      "expect": {
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "teslim",
+              "izlendi": false
+            },
+            {
+              "kaynak": "mektup",
+              "izlendi": false
+            }
+          ],
+          "iz_sayisi": 2
+        }
+      }
+    },
+    {
+      "say": "dışarı, sokağa çıkıyorum",
+      "script": {
+        "front": {
+          "kind": "go_to",
+          "place_id": "fr:city:neverwinter"
+        }
+      },
+      "expect": {
+        "konum": "fr:city:neverwinter",
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "teslim",
+              "izlendi": false
+            }
+          ],
+          "iz_sayisi": 2
+        }
+      }
+    },
+    {
+      "say": "ilk izin peşinden oraya gidiyorum",
+      "script": {
+        "front": {
+          "kind": "go_to",
+          "place_id": "$iz:1"
+        }
+      },
+      "expect": {
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "teslim",
+              "izlendi": true
+            },
+            {
+              "kaynak": "mektup"
+            }
+          ],
+          "iz_sayisi": 2
+        }
+      }
+    }
+  ]
+}

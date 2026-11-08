@@ -16,7 +16,7 @@ import world_threads
 KEY = "happenings"
 MAX_HAPPENINGS = 16
 MAX_LINE_BYTES = 90
-KINDS = ("visit", "closed", "lost", "averted")
+KINDS = ("visit", "closed", "lost", "averted", "delivered")
 OUTCOMES = ("visit", "closed", "lost")
 RECENT_SECONDS = 2 * world_threads.DAY  # how long it stays what people talk about
 CLOSED_SECONDS = 2 * world_threads.DAY
@@ -25,6 +25,7 @@ FOLLOW_ON = {
     "visit": (("trouble", True), ("trouble", False)),
     "lost": (("errand", False), ("trouble", False)),
     "closed": (("errand", False), ("trouble", False)),
+    "delivered": (("trouble", False), ("errand", False)),
 }
 SECOND_CHANCE_SECONDS = 6 * world_threads.HOUR
 LINKS = "links"  # words said aloud that come due: kept beside the threads, closed by the same clock
@@ -270,6 +271,11 @@ def on_close(world: dict[str, Any], thread: dict[str, Any], status: str) -> None
     state = world_threads.view(world)
     if state is not None and thread.get("type") == "errand":
         _letter_closed(world, thread, status)
+        if status == "done":  # handed over: the player knows, and the town may take it further by the one rule
+            seed = world_threads.living_world._campaign_seed(world)
+            row = write(state, thread, "delivered", thread.get("closed_at") or world_threads._now(world),
+                        _line_for(world, seed, thread, world_threads.job_lines("errand", "delivered_lines")), known=True)
+            row["next_thread_id"] = _follow_on(world, state, seed, thread, "delivered", world_threads._now(world))
     if state is None or thread.get("type") != "trouble":
         return
     closed = thread.get("closed_at") or world_threads._now(world)

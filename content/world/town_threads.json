@@ -855,6 +855,11 @@
           "{recipient} mührün kırıldığını hemen görüyor; sana uzun uzun bakıp ücretin yarısını masaya bırakıyor: {amount} bakır."
         ]
       },
+      "delivered_lines": [
+        "{place} işi yerine ulaştı; teslimat kasabada konuşuluyor.",
+        "{place} yükü teslim edildi; bunu duyanlar var.",
+        "{place} emaneti sahibine vardı; laf çarşıya yayıldı."
+      ],
       "letters": [
         "Sözünü ettiğim yük {target} yoluyla bu hafta gelmeyecek. Soran olursa bir şey bilmiyorsun. Bu kâğıdı okuyunca yak.",
         "Hesap tutmuyor. {target} tarafında biri defterlere bakmış. Bir sonraki sayımdan önce konuşmamız gerek, yalnız gel.",

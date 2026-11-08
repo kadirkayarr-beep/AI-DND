@@ -49,7 +49,7 @@
       "say": "iskeleye gidiyorum",
       "expect": {
         "kese": 100,
-        "konum": "location_005"
+        "konum": "$is_hedefi"
       }
     },
     {
@@ -65,6 +65,9 @@
         "gorev": {
           "aktif": 0,
           "kayit": []
+        },
+        "gunluk": {
+          "iz_sayisi": 1
         }
       }
     },
@@ -77,6 +80,10 @@
         },
         "gorev": {
           "aktif": 1
+        },
+        "gunluk": {
+          "iz": [],
+          "iz_sayisi": 0
         }
       }
     },

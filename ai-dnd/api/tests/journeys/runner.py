@@ -72,10 +72,19 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 # the day) or errand (a parcel carried to ``recipient`` in a new ``target_kind`` place of the town); ``owner`` the
 # person's id; ``status`` offered or accepted (hiring only: an errand is accepted by a step, which puts the parcel in
 # hand); ``pay`` in copper; ``line`` what the owner said; ``work_days`` (hiring), ``noun`` (errand).
+#
+# ``letter`` (with an errand ``job``) is a second errand: a sealed letter (``line`` speaks of the seal) that one of the
+# scenario's people (``owner``, whose own place is another place of the town, standing at the job's target place)
+# offers there, for ``recipient`` in a
+# ``target_kind`` place of the town; a trouble of the town is opened at that place by the product's own opener, so the
+# letter, once read, points at something real. It is taken by a step (one town job at a time: after the first is done).
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
-                        "current_hp", "seed", "front_proposal", "death_mode", "job"})
+                        "current_hp", "seed", "front_proposal", "death_mode", "job", "letter"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
+LETTER_KEYS = frozenset({"owner", "pay", "line", "noun", "recipient", "target_kind"})
+# An expected ``konum`` naming the setup errand's target place (see ``_with_job_target``).
+JOB_TARGET = "$is_hedefi"
 SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration", "speech"})
 # ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
 # too, so a scenario can try a missing or broken answer). ``spoken`` stays the spoken line.
@@ -245,7 +254,7 @@ class ScriptedModel:
 
     @contextmanager
     def bind(self, case: "JourneyCase", step: Step) -> Iterator[ScriptedClient]:
-        client = ScriptedClient(_with_price_offer_ids(case, _with_bag_ids(case, step.script)))
+        client = ScriptedClient(_with_price_offer_ids(case, _with_live_ids(case, _with_bag_ids(case, step.script))))
         with (
             patch("socket.socket.connect",
                   side_effect=AssertionError("External network is disabled in journey tests.")),
@@ -282,6 +291,45 @@ def _with_bag_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, A
     return {**script, "front": reading}
 
 
+def _with_job_target(case: Any, expect: Mapping[str, Any], session_id: str) -> Mapping[str, Any]:
+    """An expected ``konum`` of ``$is_hedefi`` is the target place of the setup's errand, read from the live world (a
+    town's places are numbered as the campaign's seed made them, so the id is the engine's, never the scenario's)."""
+    if expect.get("konum") != JOB_TARGET:
+        return expect
+    world = case.manager.get(session_id).game_session.world_state
+    thread = world_threads.by_id(world, getattr(case, "setup_job_id", None))
+    if thread is None or not thread.get("target_place_id"):
+        raise ScenarioError(f"'{JOB_TARGET}': kurulumda hedef yeri olan bir iş yok")
+    return {**expect, "konum": thread["target_place_id"]}
+
+
+def _with_live_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    """A front reading's ``place_id`` ``$iz:N`` turned into the place of the record the N-th trail of the quest log
+    points at (1 = the newest), and its ``offer_id`` ``$is:PERSON`` into the one job that person has on offer, both
+    read from the live world: a trail's place and a job's id are the engine's, never the scenario's."""
+    front = (script or {}).get("front")
+    offer = front.get("offer_id") if isinstance(front, Mapping) else None
+    if isinstance(offer, str) and offer.startswith("$is:"):  # the one job this person has on offer
+        world = case.manager.get(case.last_session_id).game_session.world_state
+        found = [t["thread_id"] for t in (world_threads.view(world) or {}).get("threads", [])
+                 if t.get("status") == "offered" and t.get("owner_npc_id") == offer[4:]]
+        if len(found) != 1:
+            raise ScenarioError(f"'{offer}': o kişinin tam bir açık teklifi olmalı ({len(found)} var)")
+        front = {**front, "offer_id": found[0]}
+        script = {**script, "front": front}
+    place = front.get("place_id") if isinstance(front, Mapping) else None
+    if not isinstance(place, str) or not place.startswith("$iz:"):
+        return script
+    import quest_log
+    world = case.manager.get(case.last_session_id).game_session.world_state
+    rows = quest_log._trail_rows(world)
+    number = int(place[4:]) if place[4:].isdigit() else 0
+    if not 1 <= number <= len(rows):
+        raise ScenarioError(f"'{place}': günlükte o sırada bir iz yok ({len(rows)} iz var)")
+    record = world_threads.by_id(world, rows[number - 1]["_to_thread_id"])
+    return {**script, "front": {**front, "place_id": record["place_id"]}}
+
+
 def _bag_id(world: Mapping[str, Any], name: Any) -> str:
     """The ``item_id`` of the first record in the live bag that bears this name; ``none`` when no record does."""
     return next((item["item_id"] for item in world.get("inventory") or []
@@ -315,8 +363,11 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         _hands_hold_only_the_bag(world)
     if "current_hp" in setup:
         session.character.update(current_hp=setup["current_hp"])
+    case.setup_job_id = None
     if "job" in setup:
-        _give_job(world, setup["job"])
+        case.setup_job_id = _give_job(world, setup["job"])
+    if "letter" in setup:
+        _give_letter(world, setup["letter"])
     if "seed" in setup:
         session.rng.seed(setup["seed"])
     case.manager.save_campaign(campaign["campaign_id"])
@@ -337,8 +388,8 @@ def _hands_hold_only_the_bag(world: dict[str, Any]) -> None:
             hands[hand] = None
 
 
-def _give_job(world: dict[str, Any], job: Any) -> None:
-    """One town job for one of the scenario's people, where the player stands (see ``SETUP_KEYS``)."""
+def _give_job(world: dict[str, Any], job: Any) -> str:
+    """One town job for one of the scenario's people, where the player stands (see ``SETUP_KEYS``); its thread id."""
     if not isinstance(job, Mapping):
         raise ScenarioError("setup 'job' bir nesne olmalı")
     unknown = sorted(str(key) for key in job if key not in JOB_KEYS)
@@ -394,6 +445,62 @@ def _give_job(world: dict[str, Any], job: Any) -> None:
     world["npc_speech_log"] = {owner["id"]: [{"player": "iş var mı", "npc": line}]}
     if status == "accepted":
         world_threads.accept_hired(world, thread)
+    return thread["thread_id"]
+
+
+def _give_letter(world: dict[str, Any], letter: Any) -> None:
+    """A sealed letter offered at the setup job's target place, and a trouble where it is bound (see ``SETUP_KEYS``)."""
+    from adventure import dialogue_jobs
+    if not isinstance(letter, Mapping):
+        raise ScenarioError("setup 'letter' bir nesne olmalı")
+    unknown = sorted(str(key) for key in letter if key not in LETTER_KEYS)
+    if unknown:
+        raise ScenarioError(
+            f"bilinmeyen letter anahtarı: {', '.join(unknown)} (izinli: {', '.join(sorted(LETTER_KEYS))})"
+        )
+    state = world_threads.view(world)
+    job = (state or {}).get("threads", [None])[0]
+    if not isinstance(job, dict) or job.get("type") != "errand":
+        raise ScenarioError("setup 'letter' bir errand 'job' ister")
+    pay, line, noun, recipient = letter.get("pay"), letter.get("line"), letter.get("noun"), letter.get("recipient")
+    if isinstance(pay, bool) or not isinstance(pay, int) or pay <= 0:
+        raise ScenarioError("setup 'letter.pay' pozitif bir tam sayı olmalı")
+    if not all(isinstance(value, str) and value for value in (line, noun, recipient)):
+        raise ScenarioError("setup 'letter.line', 'letter.noun' ve 'letter.recipient' boş olmayan metinler olmalı")
+    owner = next((npc for npc in world.get("npcs") or [] if npc.get("id") == letter.get("owner")), None)
+    if owner is None or owner.get("id") == job.get("owner_npc_id"):
+        raise ScenarioError(f"setup 'letter.owner' işin sahibi dışında senaryonun kişilerinden biri olmalı: {letter.get('owner')}")
+    there = job["target_place_id"]
+    settlement = local_places.settlement_of(world, there)
+    kind = letter.get("target_kind")
+    target = local_places.create_local_place(world, settlement, kind) if kind in local_places.PLACE_KINDS else None
+    if target is None or target["id"] in {there, job["place_id"]}:
+        raise ScenarioError(f"setup 'letter.target_kind' ayrı bir yer olarak kurulamadı: {kind}")
+    target["resident_name"] = recipient
+    taken = {there, job["place_id"], target["id"]}
+    own = next((record for _, record in sorted(world.get("locations", {}).items()) if isinstance(record, dict)
+                and record.get("parent_location_id") == settlement and record.get("place_kind")
+                and record["id"] not in taken), None)
+    if own is None:
+        raise ScenarioError("setup 'letter': mektubun sahibine kasabada ayrı bir yer kalmadı")
+    turn = world["flags"].get("turn_index", 0)
+    thread = copy.deepcopy(job)
+    thread.update(thread_id=f"thread_{state['next_number']:03d}", template_id="sealed_letter", place_id=own["id"],
+                  owner_npc_id=owner["id"], owner_name=owner.get("name"), offered_at=0, offered_turn=turn,
+                  offer_line=line, owner_line=line, offer_line_turn=turn, target_place_id=target["id"],
+                  recipient_name=recipient, item_noun=noun,
+                  terms={**job["terms"], "pay": pay})
+    if not dialogue_jobs.sealed(thread):
+        raise ScenarioError("setup 'letter.line' mührü anmalı (mühürlü mektup)")
+    state["next_number"] += 1
+    state["threads"].append(thread)
+    owner.update(location=there, place_role_of=own["id"])  # their own place is elsewhere; they wait where the job ends
+    world.setdefault("npc_speech_log", {})[owner["id"]] = [{"player": "iş var mı", "npc": line}]
+    opened = next((found for template in world_threads.catalog()["templates"] if template["type"] == "trouble"
+                   for found in (world_threads._open_thread(world, state, template, settlement, create=False,
+                                                           now=world_threads._now(world), place=target),) if found), None)
+    if opened is None:
+        raise ScenarioError("setup 'letter': mektubun gittiği yerde bir dert açılamadı")
 
 
 def _stand_in_place(world: dict[str, Any], place: Any) -> None:
@@ -673,7 +780,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                                   else self._play(session_id, step, model))
                 observed = read_observed(self, session_id)
             self.last_observations.append(observed)
-            failures.extend(check_expect(step.expect, observed))
+            failures.extend(check_expect(_with_job_target(self, step.expect, session_id), observed))
             if step.sifir_tolerans:
                 failures.extend(check_invariant(step.sifir_tolerans, observed))
             journal = observed.get("gunluk")
