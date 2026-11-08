@@ -430,7 +430,16 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
         if parcel is not None:
             return {"kind": kind, "thread_id": parcel["thread_id"], "person_id": parcel["person_id"]}
         word = front.get("thing_word")
-        return {"kind": kind, "word": word.strip() if isinstance(word, str) else ""}
+        word = word.strip() if isinstance(word, str) else ""
+        item = front.get("item_id")
+        if item in [row["id"] for row in listed["bag"]]:
+            return {"kind": kind, "item_id": item, "word": word}
+        thing = next((row for row in listed["things"] if row["id"] == item), None)
+        if thing is not None:  # a thing the scene listed: the repair names it
+            return {"kind": kind, "word": word or thing["name"]}
+        if isinstance(item, str) and item.strip() not in ("", NONE):
+            return {"kind": "unclear"}  # an id nobody listed: no word fallback, nothing is taken
+        return {"kind": kind, "word": word}
     thing = front.get("thing_id")
     if kind == "attempt" and thing in [row["id"] for row in listed["things"]]:
         return {"kind": kind, "thing": thing}

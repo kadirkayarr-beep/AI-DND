@@ -18540,6 +18540,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         world_happenings.threatened(world, world_threads._npc(world, threatened))
     session._front_coin = front_proposal.coin_in(reply, player_input)
     route = front_proposal.validate(reply, listed)
+    if route == {"kind": "unclear"} and isinstance(raw_front, dict) and raw_front.get("kind") == "take":
+        route = {"kind": "unclear", "dropped": True}  # a take that named an id nobody listed: no old word reader
     if fighting and (route is None or route["kind"] != "strike"):
         return None  # in a fight the reading is only asked for a blow the fight's own words did not hear
     word = front_proposal.person_word_in(reply)
@@ -19003,6 +19005,23 @@ def _front_work(route, player_input):
         return None
 
 
+def _take_names_a_job(route):
+    """A take that names a job's parcel (by the bag's id or by the job's own words) belongs to `_front_take`: the old
+    word reader would answer a parcel already in the bag with the giver's speech."""
+    import world_threads
+    from adventure import dialogue_jobs
+    if route.get("kind") != "take":
+        return False
+    world = _session().world_state
+    if route.get("item_id") and world_threads.parcel_thread(world, route["item_id"]) is not None:
+        return True
+    if route.get("word"):
+        return dialogue_jobs.parcel_for_word(world, route["word"]).status != "none"
+    jobs = [t for t in ((world_threads.view(world) or {}).get("threads") or [])
+            if t.get("status") == "accepted" and t.get("quest_id")]
+    return bool(jobs) and all(dialogue_jobs.already_in_hand(world, t) for t in jobs)  # nothing left to hand over
+
+
 def _front_take(route, player_input):
     """A job's parcel, or a plain thing the screen showed; if neither, the prose may not say it was taken."""
     import pocket
@@ -19014,11 +19033,44 @@ def _front_take(route, player_input):
     session.require_player_can_act()
     thread = world_threads.by_id(world, route["thread_id"]) if route.get("thread_id") else None
     person = next((npc for npc in active_npcs() if npc.get("id") == route.get("person_id")), None)
+
+    def note(text):
+        if getattr(session, "_turn_notes", None) is None:
+            session._turn_notes = []
+        session._turn_notes.append((None, text))
+
+    def held(thread):
+        """The parcel is in the bag: nothing is made and the job's own line says so."""
+        return dialogue_jobs.already_reply(session, thread, player_input)
+
     try:
+        item_id = route.get("item_id")
+        if item_id:  # what the bag already holds is never made again
+            bag_item = next((i for i in world.get("inventory", []) if isinstance(i, dict) and i.get("item_id") == item_id), None)
+            held_job = world_threads.parcel_thread(world, item_id)
+            if held_job is not None and dialogue_jobs.already_in_hand(world, held_job):
+                return held(held_job)
+            if bag_item is not None:
+                return pocket.already_in_bag(session, player_input, str(bag_item.get("name") or "Eşya"))
         if thread is not None and person is not None:
             action = dialogue_jobs.hand_over(session, thread, person)
             return dialogue_jobs.take_reply(session, thread, player_input, action) if action else None
-        taken = pocket.take_named(session, player_input, route.get("word") or "")
+        match = dialogue_jobs.parcel_for_word(world, route.get("word") or "") if route.get("word") else None
+        if match is not None and match.status == "one":
+            job = match.thread
+            if dialogue_jobs.already_in_hand(world, job):
+                return held(job)
+            giver = next((npc for npc in active_npcs() if npc.get("id") == job.get("owner_npc_id")), None)
+            if giver is not None:
+                action = dialogue_jobs.hand_over(session, job, giver)
+                return dialogue_jobs.take_reply(session, job, player_input, action) if action else None
+            note(f"olmadı: {tr_case.upper_first(job.get('item_noun') or 'paket')} burada değil")
+            taken = None
+        elif match is not None and match.status == "many":
+            note("olmadı: hangi işin eşyasını kastettiğin belli değil")
+            taken = None
+        else:
+            taken = pocket.take_named(session, player_input, route.get("word") or "")
     except Exception:
         town_knowledge.log_failure()
         taken = None
@@ -19218,7 +19270,8 @@ def _dispatch_player_turn(
     if (combat_action is None and not getattr(_session(), "_thread_gate_done", False)
             and not getattr(_session(), "_front_strike", None)):  # a blow stood behind is no answer to an offer
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            gate = (_front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
+            gate = (None if front is not None and (front.get("dropped") or _take_names_a_job(front))
+                    else _front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
                     else _front_consume(front, player_input) if front is not None and front["kind"] == "consume"
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
                     else _front_work(front, player_input) if front is not None and front["kind"] == "work"

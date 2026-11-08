@@ -840,6 +840,10 @@
         "returned": [
           "{item} yeniden {owner} yanında; iş kapandı, para çıkmıyor."
         ],
+        "already_in_hand": [
+          "{item} zaten çantanda.",
+          "{item} zaten sende; yeniden almana gerek yok."
+        ],
         "not_in_hand": [
           "{item} elinde değil; hâlâ {owner} yanında."
         ],

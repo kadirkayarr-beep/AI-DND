@@ -1,0 +1,93 @@
+{
+  "id": "19e_take_quest_item_variants",
+  "title": "Görev eşyası (115): iş eşyası çantadayken 'İade takımını alıyorum' üç ayrı önerinin hiçbiriyle ikinci eşya üretmez (adı sözle, hâl ekiyle ya da çantadaki kimlikle gelse de); cevap 'zaten' der, eşya sayısı 1 ve kese 100 kalır",
+  "source_items": [
+    115
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "kese": 100,
+        "esya_sayisi": 1
+      }
+    },
+    {
+      "say": "İade takımını alıyorum",
+      "independent": true,
+      "script": {
+        "front": {
+          "kind": "take",
+          "thing_word": "İade takımını"
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "esya_sayisi": 1,
+        "gerekli_metin": "zaten"
+      }
+    },
+    {
+      "say": "takımını alıyorum",
+      "independent": true,
+      "script": {
+        "front": {
+          "kind": "take",
+          "thing_word": "takımını"
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "esya_sayisi": 1,
+        "gerekli_metin": "zaten"
+      }
+    },
+    {
+      "say": "İade takımını alıyorum",
+      "independent": true,
+      "script": {
+        "front": {
+          "kind": "take",
+          "item_name": "İade takımı"
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "esya_sayisi": 1,
+        "gerekli_metin": "zaten"
+      }
+    }
+  ]
+}

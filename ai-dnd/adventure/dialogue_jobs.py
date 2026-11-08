@@ -3,6 +3,8 @@ from __future__ import annotations
 import copy
 import hashlib
 import re
+from dataclasses import dataclass
+from typing import Literal
 import equipment_economy
 import living_world
 import tr_case
@@ -48,6 +50,28 @@ def _quest_of(world,thread):
 
 def holds_parcel(world,thread):
     return any(isinstance(i,dict) and i.get('item_id')==f"parcel:{thread.get('quest_id')}" for i in world.get('inventory',[]))
+
+
+def already_in_hand(world,thread):
+    """The job's parcel is already in the bag: taking it again makes nothing."""
+    return holds_parcel(world,thread)
+
+
+@dataclass(frozen=True)
+class WordMatch:
+    """Which accepted job a word names: one, none, or many (many means it is not told which)."""
+    status: Literal['one','none','many']
+    thread: dict|None
+
+
+def parcel_for_word(world,word):
+    """The accepted job whose item name the word starts with. 'none' and 'many' are different answers."""
+    import world_threads
+    words=living_world.normalize_text(word).split()
+    found=[t for t in ((world_threads.view(world) or {}).get('threads') or [])
+           if t.get('status')=='accepted' and t.get('quest_id')
+           and any(w.startswith(stem) for stem in world_threads._item_stems(t) for w in words)]
+    return WordMatch('one',found[0]) if len(found)==1 else WordMatch('many',None) if found else WordMatch('none',None)
 
 
 def _recipient_for(thread,world):
@@ -343,6 +367,13 @@ def take_reply(session,thread,text,action):
     action=dict(action,direct_response=shown)
     session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
     return {'messages':session.messages,'narration':shown,'action_result':action,'model_calls':0}
+
+
+def already_reply(session,thread,text):
+    shown=shown_line(session.world_state,thread,'already_in_hand')
+    session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
+    return {'messages':session.messages,'narration':shown,'model_calls':0,
+            'action_result':{'action':'pocket','status':'resolved','success':False,'state_changes':[],'direct_response':shown}}
 
 
 def abandon_thread_job(session,thread,owner):

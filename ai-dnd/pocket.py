@@ -258,7 +258,21 @@ def without_said(text: Any, stem: str) -> Any:
 
 
 def _named_in_bag(world: dict[str, Any], stem: str) -> bool:
-    return any(_stem(item.get("name") if isinstance(item, dict) else item) == stem for item in world.get("inventory", []))
+    """The bag holds a thing of this name. A case ending is no other thing: 'takimini' starts with the bag's 'takimi'."""
+    for item in world.get("inventory", []):
+        bag = _stem(item.get("name") if isinstance(item, dict) else item)
+        if stem == bag or (len(bag) >= 4 and stem.startswith(bag)):
+            return True
+    return False
+
+
+def already_in_bag(session, text: str, name: str) -> dict[str, Any]:
+    """The line takes what the bag already holds: nothing is made, and the reply says so."""
+    line = f"{name} zaten çantanda."
+    session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": line}])
+    return {"messages": session.messages, "narration": line, "model_calls": 0,
+            "action_result": {"action": "pocket", "status": "resolved", "success": False,
+                              "state_changes": [], "direct_response": line}}
 
 
 def _committed(session, item: str, stem: str, text: str, person: Any, line: Any) -> bool:
