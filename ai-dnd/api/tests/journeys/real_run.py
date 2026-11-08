@@ -2,7 +2,8 @@
 
 It spends money, so it plays only when told to (``--yap``). Without it, it prints the estimate (engine model calls,
 an upper bound: two a say step, three a conversation turn) and exits with 2 before anything can reach a model or a
-key. With ``--yap`` and a ``--max-calls`` below that estimate it does not start either, and exits with 3. Otherwise:
+key. With ``--yap`` and a ``--max-calls`` below that estimate it does not start either, and exits with 3. A finished run whose report was written still exits with 4 when any
+run broke a zero-tolerance state (4: sıfır tolerans ihlali). Otherwise:
 
 - the campaigns live in the runner's temporary store; the owner's save (``AI_DND_CAMPAIGN_DB``, the local play
   database) is taken out of this process's environment first, and the API's default app is not built;
@@ -54,6 +55,7 @@ DEFAULT_RUNS = 3
 DEFAULT_MAX_CALLS = 100
 EXIT_NOT_ASKED = 2
 EXIT_OVER_CAP = 3  # asked, but --max-calls is below the estimate: nothing started
+EXIT_ZERO_TOLERANCE = 4  # the run finished and the report is written, but a zero-tolerance state broke in some run
 # Engine model calls a say step makes at most: the reading (intent or front) and the narration, and in a conversation
 # turn the person's reply as well. A command, a card or combat button, an undo or a reload is the engine's alone.
 _SAY_CALLS = 2
@@ -197,6 +199,10 @@ def main(
         say(f"Ham kayıt: {backup}" if backup is not None else "Ham kayıt da yazılamadı.")
         return 1
     say(f"Rapor: {path}")
+    breaks = zero_tolerance_breaks(played)
+    if breaks:
+        say(f"Sıfır tolerans ihlali var ({len(breaks)}); çıkış {EXIT_ZERO_TOLERANCE}.")
+        return EXIT_ZERO_TOLERANCE
     return 0
 
 
@@ -387,6 +393,17 @@ def play(selection: Mapping[str, Scenario], runs: int, driver: RealChain) -> Pla
     return played
 
 
+def zero_tolerance_breaks(played: Played) -> list[str]:
+    """Every zero-tolerance failure of every step of every run (complete and cut): one break closes the gate, so a
+    run that only "mostly" held is still listed (tasarım karar 63)."""
+    runs = [(key, number, steps) for key, all_runs in played.complete.items()
+            for number, steps in enumerate(all_runs, start=1)]
+    runs += [(key, len(played.complete.get(key, ())) + 1, steps) for key, steps in played.partial.items()]
+    return [f"{key} koşu {number} adım {step.index}: {failure}"
+            for key, number, steps in runs for step in steps for failure in step.failures
+            if failure.startswith("sıfır tolerans: ")]
+
+
 def _cut(steps: Sequence[StepResult], cut_at: int) -> list[StepResult]:
     from api.tests.journeys.runner import StepResult
 
@@ -425,7 +442,9 @@ def assemble_report(selection: Mapping[str, Scenario], played: Played, driver: R
     text = build_report(results, dict(selection), real_runs=real_runs, latency=driver.latency,
                         usage_today=usage, date=day.isoformat())
     # The notes name scenarios and the cut too, so the whole text is scrubbed, not the report part alone.
-    return scrub(text + "\n" + _run_notes(selection, played, driver, args) + "\n")
+    breaks = zero_tolerance_breaks(played)
+    section = "## Sıfır tolerans ihlalleri\n" + ("\n".join(f"- {line}" for line in breaks) if breaks else "yok")
+    return scrub(text + "\n" + section + "\n\n" + _run_notes(selection, played, driver, args) + "\n")
 
 
 def _run_notes(selection: Mapping[str, Scenario], played: Played, driver: RealChain,

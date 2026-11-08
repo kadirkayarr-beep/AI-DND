@@ -8,9 +8,10 @@ validated there, when the setup is applied.
 
 from __future__ import annotations
 
+import copy
 import json
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +42,8 @@ EXPECT_KEYS = frozenset(
         "anlatilan",
         "konusmaya_giden",
         "inkar",
+        "gunluk",
+        "elinde",
     }
 )
 
@@ -52,7 +55,7 @@ _SCENARIO_KEYS = frozenset(
 )
 _SCENARIO_REQUIRED = ("id", "title", "steps")
 _STEP_KEYS = frozenset(
-    {*ACTION_KEYS, "konus", "script", "expect", "known_broken", "broken_because", "real_chain", "independent"}
+    {*ACTION_KEYS, "konus", "script", "expect", "sifir_tolerans", "known_broken", "broken_because", "real_chain", "independent"}
 )
 _TEXT_ACTIONS = ("say", "command")
 _DICT_ACTIONS = ("economic_action", "combat_action")
@@ -122,10 +125,43 @@ EXPECT_VALUE_RULES = {
     "anlaticiya_giden": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
     "konusmaya_giden": (_needles, "boş olmayan metin ya da boş olmayan metin listesi"),
     "inkar": (lambda value: isinstance(value, bool), "true ya da false"),
+    "gunluk": (lambda value: _journal_rule(value),
+               "sayac/suren/biten/iz/iz_sayisi alanlarından yalnız bilinenleri taşıyan, boş olmayan nesne"),
+    "elinde": (_or_none(lambda value: isinstance(value, str) and bool(value)), "boş olmayan metin ya da null"),
     "anlatilan": (lambda value: _filled_mapping(value) and all(isinstance(npc, str) and npc and _needles(needles)
                                                                for npc, needles in value.items()),
                   "boş olmayan kişi -> boş olmayan metin (listesi) nesnesi"),
 }
+
+
+_JOURNAL_KEYS = frozenset({"sayac", "suren", "biten", "iz", "iz_sayisi"})
+_TRAIL_KEYS = frozenset({"ne", "nerede", "kaynak", "izlendi"})
+
+
+def _journal_rule(value: Any) -> bool:
+    """``gunluk``: a filled mapping of the journal fields; counts are plain non-negative numbers, ``suren``/``biten``
+    lists of non-empty needles, ``iz`` a list of filled trail rows (``izlendi`` true or false)."""
+    if not _filled_mapping(value) or set(value) - _JOURNAL_KEYS:
+        return False
+    for key in ("sayac", "iz_sayisi"):
+        if key in value and not (_integer(value[key]) and value[key] >= 0):
+            return False
+    for key in ("suren", "biten"):
+        if key in value and not (isinstance(value[key], list)
+                                 and all(isinstance(item, str) and item for item in value[key])):
+            return False
+    if "iz" in value:
+        trails = value["iz"]
+        if not isinstance(trails, list):
+            return False
+        for row in trails:
+            if not _filled_mapping(row) or set(row) - _TRAIL_KEYS:
+                return False
+            if not all(isinstance(row[key], str) and row[key] for key in ("ne", "nerede", "kaynak") if key in row):
+                return False
+            if "izlendi" in row and not isinstance(row["izlendi"], bool):
+                return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -145,6 +181,8 @@ class Step:
     broken_because: tuple[str, ...] = ()
     # The person a ``say`` line is spoken to in say mode (the turn's ``interaction_mode: say`` and ``target_id``).
     konus: str | None = None
+    # Allowed states, any one of which the step's end state must match (zero tolerance, tasarım karar 63).
+    sifir_tolerans: list = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -222,6 +260,8 @@ def check_expect(expected: Mapping, observed: Mapping) -> list[str]:
             problems.extend(_check_spoken_to(want, observed.get(key)))
         elif key == "anlatilan":
             problems.extend(_check_kept(want, observed.get(key)))
+        elif key == "gunluk":
+            problems.extend(_check_journal(want, observed.get(key)))
         elif key in _SUBSET_KEYS and isinstance(want, Mapping) and isinstance(
             observed.get(key), Mapping
         ):
@@ -229,6 +269,55 @@ def check_expect(expected: Mapping, observed: Mapping) -> list[str]:
         elif key not in observed or observed[key] != want:
             problems.append(_mismatch(key, want, observed.get(key)))
     return problems
+
+
+def check_invariant(alternatives: Sequence[Mapping], seen: Mapping) -> list[str]:
+    """Zero tolerance: the state must match at least one allowed state; otherwise one error naming each state's misses."""
+    if any(not check_expect(alternative, seen) for alternative in alternatives):
+        return []
+    return ["sıfır tolerans: izinli durumların hiçbiri tutmadı ("
+            + " | ".join("; ".join(check_expect(alt, seen)) for alt in alternatives) + ")"]
+
+
+def _check_journal(want: Mapping, seen: Any) -> list[str]:
+    """``gunluk``: partial match on the one quest-log view. ``suren``/``biten`` have the same length as expected and each
+    wanted text sits (casefold) in the observed text at that place; ``iz`` is an in-order subsequence of trail rows, but an
+    expected empty list means no trail at all (an empty subsequence is in every list)."""
+    if not isinstance(seen, Mapping):
+        return ["gunluk: gözlenemedi (API yanıtında quest_log yok)"]
+    problems = []
+    if "sayac" in want and seen.get("sayac") != want["sayac"]:
+        problems.append(_mismatch("gunluk.sayac", want["sayac"], seen.get("sayac")))
+    for key in ("suren", "biten"):
+        if key not in want:
+            continue
+        observed = [str(text) for text in seen.get(key) or []]
+        if len(observed) != len(want[key]) or any(
+                needle.casefold() not in text.casefold() for needle, text in zip(want[key], observed)):
+            problems.append(_mismatch(f"gunluk.{key}", want[key], observed))
+    trails = [row for row in seen.get("iz") or [] if isinstance(row, Mapping)]
+    if "iz" in want:
+        if not want["iz"]:
+            if trails:
+                problems.append(f"gunluk.iz: boş bekleniyordu, {len(trails)} iz var")
+        else:
+            position = 0
+            for row in want["iz"]:
+                found = next((index for index in range(position, len(trails)) if _trail_matches(row, trails[index])), None)
+                if found is None:
+                    problems.append(f"gunluk.iz: beklenen iz bulunamadı (sırayla aranır): {_show(row)}")
+                else:
+                    position = found + 1
+    if "iz_sayisi" in want and len(trails) != want["iz_sayisi"]:
+        problems.append(f"gunluk.iz_sayisi: {want['iz_sayisi']} bekleniyordu, {len(trails)} var")
+    return problems
+
+
+def _trail_matches(want: Mapping, seen: Mapping) -> bool:
+    for key in ("ne", "nerede"):
+        if key in want and want[key].casefold() not in str(seen.get(key, "")).casefold():
+            return False
+    return all(seen.get(key) == want[key] for key in ("kaynak", "izlendi") if key in want)
 
 
 def _check_subset(key: str, want: Mapping, seen: Mapping) -> list[str]:
@@ -326,11 +415,13 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
     expect = raw.get("expect", {})
     if not isinstance(expect, dict):
         raise ScenarioError(f"{where}: 'expect' bir nesne olmalı")
-    _reject_unknown(expect, EXPECT_KEYS, where, "expect")
-    for key, value in expect.items():
-        rule, wanted = EXPECT_VALUE_RULES[key]
-        if not rule(value):
-            raise ScenarioError(f"{where}: expect '{key}' {wanted} olmalı, bulunan: {value!r}")
+    _check_expect_values(expect, where, "expect")
+    allowed = raw.get("sifir_tolerans", [])
+    if "sifir_tolerans" in raw and not (isinstance(allowed, list) and allowed and all(
+            isinstance(alternative, dict) and alternative for alternative in allowed)):
+        raise ScenarioError(f"{where}: 'sifir_tolerans' boş olmayan beklenti nesneleri listesi olmalı")
+    for number, alternative in enumerate(allowed, start=1):
+        _check_expect_values(alternative, where, f"sifir_tolerans[{number}]")
     known_broken = _integers(raw, "known_broken", where)
     if zero_tolerance and known_broken:
         raise ScenarioError(
@@ -361,7 +452,16 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
         reload="reload" in raw,
         broken_because=tuple(broken_because or ()),
         konus=raw.get("konus"),
+        sifir_tolerans=copy.deepcopy(allowed),
     )
+
+
+def _check_expect_values(expect: Mapping, where: str, kind: str) -> None:
+    _reject_unknown(expect, EXPECT_KEYS, where, kind)
+    for key, value in expect.items():
+        rule, wanted = EXPECT_VALUE_RULES[key]
+        if not rule(value):
+            raise ScenarioError(f"{where}: {kind} '{key}' {wanted} olmalı, bulunan: {value!r}")
 
 
 def _reject_unknown(data: Mapping, allowed: frozenset[str], where: str, kind: str) -> None:

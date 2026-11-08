@@ -48,7 +48,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests.auth_fixture import TEST_PLAYER
-from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect
+from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect, check_invariant
 
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
 
@@ -79,7 +79,7 @@ JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "no
 SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration", "speech"})
 # ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
 # too, so a scenario can try a missing or broken answer). ``spoken`` stays the spoken line.
-SPEECH_SCRIPT_KEYS = frozenset({"coin_answer", "coin_answer_for", "remember_player_line"})
+SPEECH_SCRIPT_KEYS = frozenset({"coin_answer", "coin_answer_for", "remember_player_line", "asks_for"})
 
 _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
 _DEFAULT_SPOKEN = "Ne istiyorsun?"
@@ -455,6 +455,8 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "cephane": copy.deepcopy(ammunition),
         "hareket": _combat_movement(combat),
         "olu": (state.get("death_state") or {}).get("status"),
+        "elinde": _held_name(world),
+        "gunluk": _journal(state.get("quest_log")),
         "xp": session.character.get("xp", 0),
         "saat": (world.get("campaign_time") or {}).get("elapsed_seconds", 0) // _HOUR,
         "gorev": _open_quests(world.get("quests") or []),
@@ -466,6 +468,28 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "konusmaya_giden": getattr(case, "last_speech_input", None),
         "inkar": getattr(case, "last_denial", False),
     }
+
+
+def _held_name(world: Mapping[str, Any]) -> str | None:
+    """The name of the item in the main hand (``world.equipment.main_hand``); None for an empty hand or a hand
+    that points at nothing in the bag."""
+    equipment = world.get("equipment")
+    held = equipment.get("main_hand") if isinstance(equipment, Mapping) else None
+    return next((item.get("name") for item in world.get("inventory") or []
+                 if isinstance(item, Mapping) and held is not None and item.get("item_id") == held), None)
+
+
+def _journal(log: Any) -> dict[str, Any] | None:
+    """The API's ``quest_log`` view as the journey reads it (None when the response carries no such field)."""
+    if not isinstance(log, Mapping):
+        return None
+    rows = lambda key: [row for row in log.get(key) or [] if isinstance(row, Mapping)]  # noqa: E731
+    return {"sayac": log.get("active_count"),
+            "suren": [str(row.get("title")) for row in rows("active")],
+            "biten": [f"{row.get('title')} ({row['result']})" if row.get("result") else str(row.get("title"))
+                      for row in rows("done")],
+            "iz": [{"ne": row.get("what"), "nerede": row.get("where"), "kaynak": row.get("source"),
+                    "izlendi": row.get("followed")} for row in rows("trails")]}
 
 
 def _told(world: Mapping[str, Any]) -> dict[str, list[str]]:
@@ -634,6 +658,12 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                 observed = read_observed(self, session_id)
             self.last_observations.append(observed)
             failures.extend(check_expect(step.expect, observed))
+            if step.sifir_tolerans:
+                failures.extend(check_invariant(step.sifir_tolerans, observed))
+            journal = observed.get("gunluk")
+            if journal is not None and journal["sayac"] != len(journal["suren"]):
+                failures.append("gunluk: sayaç ile süren sayısı farklı "
+                                f"(sayaç {journal['sayac']}, süren {len(journal['suren'])})")
             status = step_status(step, failures)
             if status == "known_broken":
                 blocked_by = index

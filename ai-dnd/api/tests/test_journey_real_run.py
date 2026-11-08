@@ -27,7 +27,7 @@ from api import model_chain
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence import campaign_store
 from api.tests.journeys import real_run
-from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, ScriptedClient
+from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, ScriptedClient, StepResult
 from api.tests.journeys.schema import ScenarioError, load_scenario
 from api.usage_ledger import UsageLedger
 
@@ -425,6 +425,55 @@ class TheRealRun(Offline):
         self.assertEqual(code, 1)
         self.assertIn("gerçek zincir kurulamadı", printed.getvalue())
         self.assertEqual(list(self.out.iterdir()), [])
+
+
+def _step(index, *failures):
+    return StepResult(index=index, status="new_break" if failures else "pass", failures=tuple(failures),
+                      items=(), narration="", seconds=0.0)
+
+
+class TheZeroToleranceList(Offline):
+    """J-014 #10 (tasarım karar 63): one zero-tolerance break in any run is listed and exits with 4."""
+
+    def played(self, *, broken: bool) -> real_run.Played:
+        played = real_run.Played()
+        if broken:
+            played.complete["rc6_quest_delivery_real"] = [
+                [_step(1), _step(4)],                                                   # run 1: clean
+                [_step(1), _step(4, "kese: 112 bekleniyordu, 100 var")],                # run 2: a functional miss only
+                [_step(1), _step(4, "sıfır tolerans: izinli durumların hiçbiri tutmadı (x | y)")],   # run 3: a break
+            ]
+        played.complete["rc7_absent_vendor_real"] = [[_step(3)], [_step(3)], [_step(3)]]
+        return played
+
+    def selection(self):
+        write_scenarios(self.scenarios, probe("rc6_quest_delivery_real", 4), probe("rc7_absent_vendor_real", 3))
+        return real_run.select_scenarios("all", self.scenarios)
+
+    def report_for(self, played):
+        driver = real_run.RealChain(100)
+        return real_run.assemble_report(self.selection(), played, driver, real_run.parse_args([]), TODAY)
+
+    def main_exit_code(self, played):
+        self.selection()
+        with patch.object(real_run, "play", return_value=played):
+            code, _ = self.run_command("--yap", "--scenarios", "all", "--out", str(self.out), "--max-calls", "500",
+                                       chain=FakeChain(self.folder))
+        return code
+
+    def test_a_zero_tolerance_break_in_any_run_is_listed_and_exits_4(self):
+        played = self.played(broken=True)
+        self.assertEqual(real_run.zero_tolerance_breaks(played),
+                         ["rc6_quest_delivery_real koşu 3 adım 4: sıfır tolerans: izinli durumların hiçbiri tutmadı (x | y)"])
+        clean = self.played(broken=False)
+        self.assertEqual(real_run.zero_tolerance_breaks(clean), [])
+        report = self.report_for(played)
+        self.assertIn("## Sıfır tolerans ihlalleri\n- rc6_quest_delivery_real koşu 3 adım 4: sıfır tolerans:", report)
+        self.assertIn("## Sıfır tolerans ihlalleri\nyok", self.report_for(clean))
+        self.assertEqual(self.main_exit_code(played), 4)
+        for path in self.out.iterdir():
+            path.unlink()
+        self.assertEqual(self.main_exit_code(clean), 0)
 
 
 class TheCoreSet(Offline):

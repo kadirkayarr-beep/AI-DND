@@ -14,6 +14,7 @@ from api.tests.journeys.schema import (
     ScenarioError,
     Step,
     check_expect,
+    check_invariant,
     load_scenario,
 )
 
@@ -126,7 +127,7 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
-                "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar",
+                "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
             },
         )
 
@@ -509,6 +510,65 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
     def test_check_expect_rejects_a_key_the_schema_does_not_know(self):
         with self.assertRaises(ScenarioError):
             check_expect({"kesee": 1}, {"kese": 1})
+
+
+class TheDilim2Keys(unittest.TestCase):
+    def test_the_expect_key_set_has_the_dilim2_keys(self):
+        self.assertTrue({"gunluk", "elinde"} <= set(EXPECT_KEYS))
+
+    def test_gunluk_and_elinde_values_are_checked(self):
+        for bad in ({"gunluk": 3}, {"gunluk": {"sayac": "1"}}, {"gunluk": {"iz": [{"kaynak": "x", "izlendi": "evet"}]}},
+                    {"gunluk": {"bilinmeyen": 1}}, {"elinde": 5}):
+            with self.subTest(expect=bad), self.assertRaises(ScenarioError):
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": bad}])))
+        loaded = load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {
+            "gunluk": {"sayac": 1, "suren": ["Teslimat"], "biten": [], "iz": [{"kaynak": "teslim"}]}, "elinde": None}}])))
+        self.assertEqual(loaded.steps[0].expect["elinde"], None)
+
+    def test_gunluk_matches_partially_and_trails_in_order(self):
+        seen = {"gunluk": {"sayac": 1, "suren": ["Teslimat: Revomar İskelesi"], "biten": ["Kayıp mektup (12 bakır ödendi)"],
+                           "iz": [{"ne": "Tuna bir sorundan söz etti", "nerede": "Revomar İskelesi", "kaynak": "teslim", "izlendi": False},
+                                  {"ne": "Mühürlü mektup", "nerede": "Değirmen", "kaynak": "mektup", "izlendi": True}]}}
+        self.assertEqual(check_expect({"gunluk": {"sayac": 1, "suren": ["teslimat"], "biten": ["12 bakır"],
+                                                  "iz": [{"kaynak": "teslim", "nerede": "revomar"}, {"kaynak": "mektup"}]}}, seen), [])
+        self.assertEqual(len(check_expect({"gunluk": {"iz": [{"kaynak": "mektup"}, {"kaynak": "teslim"}]}}, seen)), 1)  # order
+        self.assertEqual(len(check_expect({"gunluk": {"suren": []}}, seen)), 1)            # length differs
+        self.assertEqual(len(check_expect({"gunluk": {"sayac": 0}}, seen)), 1)
+
+    def test_elinde_compares_exactly(self):
+        self.assertEqual(check_expect({"elinde": "Greatsword"}, {"elinde": "Greatsword"}), [])
+        self.assertEqual(check_expect({"elinde": None}, {"elinde": None}), [])
+        self.assertEqual(len(check_expect({"elinde": "Greatsword"}, {"elinde": None})), 1)
+
+    def test_an_empty_trail_list_means_exactly_no_trails(self):
+        # J-014 #3: an empty subsequence is found in every list, so [] needs its own exact rule (tasarım karar 56)
+        trail = {"ne": "Tuna bir sorundan söz etti", "nerede": "Revomar İskelesi", "kaynak": "teslim", "izlendi": False}
+        empty = {"gunluk": {"sayac": 0, "suren": [], "biten": [], "iz": []}}
+        one = {"gunluk": {"sayac": 0, "suren": [], "biten": [], "iz": [trail]}}
+        self.assertEqual(check_expect({"gunluk": {"iz": []}}, empty), [])
+        self.assertEqual(check_expect({"gunluk": {"iz": []}}, one), ["gunluk.iz: boş bekleniyordu, 1 iz var"])   # counter-test
+        self.assertEqual(check_expect({"gunluk": {"iz_sayisi": 1}}, one), [])
+        self.assertEqual(check_expect({"gunluk": {"iz_sayisi": 0}}, one), ["gunluk.iz_sayisi: 0 bekleniyordu, 1 var"])
+        self.assertEqual(check_expect({"gunluk": {"iz": [{"kaynak": "teslim"}]}}, one), [])          # a filled list is still a subsequence
+        for bad in ({"gunluk": {"iz_sayisi": -1}}, {"gunluk": {"iz_sayisi": "1"}}, {"gunluk": {"iz_sayisi": True}}):
+            with self.subTest(expect=bad), self.assertRaises(ScenarioError):
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": bad}])))
+
+    def test_sifir_tolerans_passes_on_any_allowed_state_and_names_the_break(self):
+        delivered = {"kese": 112, "esya_sayisi": 0}
+        kept = {"kese": 100, "esya_sayisi": 1}
+        allowed = [delivered, kept]
+        self.assertEqual(check_invariant(allowed, {"kese": 112, "esya_sayisi": 0}), [])
+        self.assertEqual(check_invariant(allowed, {"kese": 100, "esya_sayisi": 1}), [])
+        seen = {"kese": 124, "esya_sayisi": 0}                                   # paid twice: in neither allowed state
+        self.assertEqual(check_invariant(allowed, seen),
+                         ["sıfır tolerans: izinli durumların hiçbiri tutmadı ("
+                          + " | ".join("; ".join(check_expect(alt, seen)) for alt in allowed) + ")"])
+        loaded = load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "sifir_tolerans": allowed}])))
+        self.assertEqual(loaded.steps[0].sifir_tolerans, allowed)
+        for bad in ([], [{"bilinmeyen": 1}], {"kese": 100}, [{"kese": "100"}]):
+            with self.subTest(sifir_tolerans=bad), self.assertRaises(ScenarioError):
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "sifir_tolerans": bad}])))
 
 
 if __name__ == "__main__":

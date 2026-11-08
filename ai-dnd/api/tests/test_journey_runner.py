@@ -18,6 +18,7 @@ from unittest.mock import patch
 
 import equipment_economy
 import front_proposal
+from api import serializers
 from api.tests.journeys import runner
 from api.tests.journeys.runner import (
     JourneyCase,
@@ -703,6 +704,55 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertIn("kese", str(raised.exception))
 
 
+    async def test_gunluk_is_read_from_the_quest_log_and_the_counter_is_checked(self):
+        campaign = await self.create_campaign()
+        sid = campaign["session_id"]
+        real = serializers.serialize_session_state
+        def with_log(log):
+            return patch.object(serializers, "serialize_session_state", lambda session: {**real(session), "quest_log": log})
+        log = {"active_count": 1, "active": [{"title": "Teslimat: Revomar İskelesi"}],
+               "done": [{"title": "Kayıp mektup", "result": "12 bakır ödendi"}],
+               "trails": [{"what": "Tuna bir sorundan söz etti", "where": "Revomar İskelesi", "source": "teslim", "followed": False}]}
+        with patch.object(serializers, "serialize_session_state", lambda session: {k: v for k, v in real(session).items() if k != "quest_log"}):
+            self.assertIsNone(read_observed(self, sid)["gunluk"])          # no quest_log field: None (before Görev 6)
+        with with_log(log):
+            self.assertEqual(read_observed(self, sid)["gunluk"], {
+                "sayac": 1, "suren": ["Teslimat: Revomar İskelesi"], "biten": ["Kayıp mektup (12 bakır ödendi)"],
+                "iz": [{"ne": "Tuna bir sorundan söz etti", "nerede": "Revomar İskelesi", "kaynak": "teslim", "izlendi": False}]})
+        with with_log({**log, "active_count": 2}):
+            results = await self.run_scenario(beer_scenario({"say": "etrafıma bakıyorum", "expect": {"kese": 100}}))
+        self.assertTrue(any("gunluk: sayaç ile süren sayısı farklı" in failure for failure in results[0].failures), results)
+
+    async def test_elinde_reads_the_main_hand_name(self):
+        campaign = await self.create_campaign()
+        sid = campaign["session_id"]
+        apply_setup(self, campaign, {"inventory": ["Greatsword"]})
+        world = self.manager.get(sid).game_session.world_state
+        equipment_economy.materialize(world)
+        world.setdefault("equipment", {})["main_hand"] = None
+        self.assertIsNone(read_observed(self, sid)["elinde"])
+        sword = next(item for item in world["inventory"] if isinstance(item, dict) and item.get("name") == "Greatsword")
+        world["equipment"]["main_hand"] = sword["item_id"]
+        self.assertEqual(read_observed(self, sid)["elinde"], "Greatsword")
+        world["equipment"]["main_hand"] = "item:not-in-the-bag"
+        self.assertIsNone(read_observed(self, sid)["elinde"])               # a hand pointing at nothing reads empty
+
+    async def test_wield_is_a_front_kind_and_item_name_becomes_the_bag_id(self):
+        # Dilim 1's item_name translation (name in the bag -> that item's id) applies to wield as to consume.
+        # The engine learns the kind in Görev 15; the harness accepts it now (a scripted front packet only).
+        campaign = await self.create_campaign()
+        apply_setup(self, campaign, {**beer_scenario().setup, "inventory": ["Greatsword"]})
+        self.last_session_id = campaign["session_id"]
+        (step,) = beer_scenario({"say": "kılıcımı çekiyorum",
+                                 "script": {"front": {"kind": "wield", "item_name": "Greatsword"}}}).steps
+        with ScriptedModel().bind(self, step) as client:
+            front = client._front()
+        bag = self.manager.get(campaign["session_id"]).game_session.world_state["inventory"]
+        sword = next(item for item in bag if item.get("name") == "Greatsword")
+        self.assertEqual((front["kind"], front["item_id"]), ("wield", sword["item_id"]))
+        self.assertNotIn("item_name", front)
+
+
 class TheSuiteSummary(unittest.TestCase):
     def test_new_breaks_and_stale_markers_fail_the_suite_and_scenarios_are_counted(self):
         def step(index, status, items=()):
@@ -815,6 +865,15 @@ class TheScriptedClient(unittest.TestCase):
             with self.subTest(wrong=wrong), self.assertRaises(ScenarioError) as raised:
                 ScriptedClient(wrong)
             self.assertIn("speech", str(raised.exception))
+
+
+    def test_speech_script_carries_asks_for(self):
+        speech_schema = {"type": "object", "properties": {"spoken_text": {"type": "string"}, "stage_direction": {"type": "string"},
+                                                          "asks_for": {"type": "string", "enum": ["room", "none"]}}}
+        packet = json.loads(ScriptedClient({"speech": {"asks_for": "room"}}).chat(format=speech_schema)["message"]["content"])
+        self.assertEqual(packet["asks_for"], "room")
+        plain = json.loads(ScriptedClient({}).chat(format=speech_schema)["message"]["content"])
+        self.assertNotIn("asks_for", plain)                                 # unscripted: the field is absent, never invented
 
 
 class TheNarratorInput(unittest.TestCase):
