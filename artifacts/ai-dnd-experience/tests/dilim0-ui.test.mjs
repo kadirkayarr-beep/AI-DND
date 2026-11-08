@@ -640,3 +640,25 @@ test('a cold saved-campaign resume enables and fills the real catalog query befo
     assert.match(render(panel.CharacterPanel, { character: { ...fighter, level: 3, subclass_id: 'champion' }, catalog: client.getQueryData(queryKey) }), /Alt sınıf: Şampiyon/);
   } finally { unsubscribe(); client.clear(); }
 });
+
+
+test('Second Wind explains an already spent bonus action in Turkish without changing availability', async () => {
+  const { FighterControl } = await vite.ssrLoadModule('/src/components/fighter-controls.tsx');
+  const fighter = {
+    fighting_style: null, tactical_mind: null, action_surge: null,
+    second_wind: { max_uses: 2, uses_remaining: 1, die: 10, level_bonus: 1,
+      tactical_shift: false, activate: { available: false, reason: 'bonus_action_spent' } },
+  };
+  const unchanged = JSON.stringify(fighter);
+  const html = render(FighterControl, { fighter, blocked: false, shift: '', onShiftChange() {}, onCommand() { throw new Error('render sent a command'); } });
+  assert.ok(html.includes('data-testid="fighter-controls"'), 'the real component must accept this server projection');
+  assert.match(html, /data-testid="button-second-wind"[^>]*disabled=""/);
+  assert.equal(html.includes('Bu tur bonus eylemini kullandın.'), true, 'the disabled action must explain the actual reason in Turkish');
+  assert.ok(!html.includes('bonus_action_spent'), 'machine reason must not become visible player text');
+  assert.match(html, /data-testid="button-second-wind"[^>]*disabled=""/);
+  assert.equal(JSON.stringify(fighter), unchanged, 'rendering must not change resources or availability');
+  fighter.second_wind.activate = { available: true, reason: null };
+  const enabled = render(FighterControl, { fighter, blocked: false, shift: '', onShiftChange() {}, onCommand() {} });
+  assert.ok(!enabled.includes('Bu tur bonus eylemini kullandın.'));
+  assert.match(enabled, /data-testid="button-second-wind"(?![^>]*disabled)/);
+});

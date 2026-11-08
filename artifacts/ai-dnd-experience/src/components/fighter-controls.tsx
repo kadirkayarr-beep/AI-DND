@@ -57,7 +57,7 @@ export function FighterControl({ fighter, blocked, shift, onShiftChange, onComma
     <button type="button" className="action-suggestion" data-testid="button-second-wind" disabled={!windEnabled} onClick={() => {
       if (windEnabled && windStep) onCommand(abilitySentence(term('second_wind')), windStep);
     }}><span title={termTitle('second_wind')}>{term('second_wind')}</span> · <span title={termTitle('bonus_action')}>{term('bonus_action')}</span></button>
-    {value.second_wind.activate.reason && <p role="status"><span title={termTitle('second_wind')}>{term('second_wind')}</span> kullanılamıyor: {value.second_wind.activate.reason}</p>}
+    {value.second_wind.activate.reason && <p role="status"><span title={termTitle('second_wind')}>{term('second_wind')}</span> kullanılamıyor: {value.second_wind.activate.reason === 'bonus_action_spent' ? 'Bu tur bonus eylemini kullandın.' : value.second_wind.activate.reason}</p>}
     {surge && <button type="button" className="action-suggestion" data-testid="button-action-surge" disabled={!surgeEnabled} onClick={() => {
       if (surgeEnabled) onCommand(abilitySentence(term('action_surge')), { kind: 'action_surge' });
     }}><span title={termTitle('action_surge')}>{term('action_surge')}</span> · ek eylem (Magic hariç)</button>}
