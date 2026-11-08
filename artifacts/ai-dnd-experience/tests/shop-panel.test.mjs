@@ -95,6 +95,15 @@ test('the panel reads what the last turn did from its outcome status and reason,
   assert.equal(step(null, true), 'other');
 });
 
+test('an open counter refreshes after a turn it did not send, so a paid card never leaves a stale purse or stock', () => {
+  const step = ui.shopOutcomeStep;
+  assert.equal(step({ action: 'economic_offer', status: 'resolved' }, false, true), 'refresh');
+  assert.equal(step({ action: 'dialogue', status: 'resolved' }, false, true), 'refresh');
+  assert.equal(step({ action: 'dialogue', status: 'resolved' }, false, false), null);
+  assert.equal(step({ action: 'equipment_transaction', status: 'resolved' }, true, true), 'done');
+  assert.equal(step({ action: 'shop_offer', status: 'offer_open' }, false, true), 'open');
+});
+
 test('a double press of confirm sends one trade until the gate is reopened', () => {
   const sent = [];
   const gate = ui.createConfirmGate(text => sent.push(text));

@@ -113,7 +113,10 @@ class T13ABeerIsPaidForOnce(AtTheCounter):
         self.assertEqual(len(beers), 1, self.bag())
         self.assertIn("4 bakır", out["narration"])
         again = await self.line(f"/item shop_buy {self.npc['id']} bira 1 0 4")
-        self.assertIn("offer_stale", again["narration"])
+        # Rewritten from assertIn("offer_stale", narration): the engine code stays in the outcome, the player reads Turkish.
+        self.assertEqual(again["turn_outcome"]["reason"], "offer_stale")
+        self.assertIn("Fiyat değişti, yeniden onayla.", again["narration"])
+        self.assertNotIn("offer_stale", again["narration"])
         self.assertEqual(self.purse(), self.PURSE - 4)
         self.assertEqual(self.bag().count("Bira"), 1)
 

@@ -12,6 +12,14 @@ from weapon_catalog import lookup
 
 COIN_VALUES = {"cp": 1, "sp": 10, "ep": 50, "gp": 100, "pp": 1000}
 
+# A refused counter trade tells the player in Turkish, as the shop panel does; the engine code stays in the outcome.
+_COUNTER_REFUSALS = {
+    "offer_stale": "Fiyat değişti, yeniden onayla.",
+    "price_changed": "Fiyat değişti, yeniden onayla.",
+    "insufficient_funds": "Kesende bu kadar para yok.",
+    "out_of_stock": "Tezgâhta o kadar kalmamış.",
+}
+
 
 class EquipmentError(ValueError):
     pass
@@ -949,6 +957,7 @@ def execute(session, text, *, advance_turn=True):
         reason = str(exc) if isinstance(exc, EquipmentError) else "invalid_economic_state"
         fresh_offer = getattr(exc, "quote", None)  # a refused counter trade shows the offer as it stands now
         narration = ("Kavganın ortasında çantanı karıştıracak vaktin yok." if natural_list
+                     else f"{_COUNTER_REFUSALS[reason]} Dünya durumu değişmedi." if reason in _COUNTER_REFUSALS
                      else f"Eşya işlemi reddedildi: {reason}. Dünya durumu değişmedi.")
     return {
         "messages": session.messages, "narration": narration, "model_calls": 0,

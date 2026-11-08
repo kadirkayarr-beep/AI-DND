@@ -70,7 +70,10 @@ class ShopTradeHttpTests(unittest.IsolatedAsyncioTestCase):
             trades = self.trade_state(restored)
             stale = await self.post(campaign, {**command, "action_id": str(uuid4())})
             self.assertEqual(stale.status_code, 200, stale.text)
-            self.assertIn("offer_stale", stale.json()["narration"])
+            # Rewritten from assertIn("offer_stale", narration): the code stays in the outcome, the narration is Turkish.
+            self.assertEqual(stale.json()["turn_outcome"]["reason"], "offer_stale")
+            self.assertIn("Fiyat değişti, yeniden onayla.", stale.json()["narration"])
+            self.assertNotIn("offer_stale", stale.json()["narration"])
             self.assertEqual(self.trade_state(restored), trades)
             self.assertEqual(restored.game_session.world_state["currency"], {"player": 492, "barman": 8})
 
@@ -96,7 +99,10 @@ class ShopTradeHttpTests(unittest.IsolatedAsyncioTestCase):
         trades = self.trade_state(record)
         refused = await self.post(campaign, command)
         self.assertEqual(refused.status_code, 200, refused.text)
-        self.assertIn("price_changed", refused.json()["narration"])
+        # Rewritten from assertIn("price_changed", narration): the code stays in the outcome, the narration is Turkish.
+        self.assertEqual(refused.json()["turn_outcome"]["reason"], "price_changed")
+        self.assertIn("Fiyat değişti, yeniden onayla.", refused.json()["narration"])
+        self.assertNotIn("price_changed", refused.json()["narration"])
         self.assertEqual(self.trade_state(record), trades)
 
 

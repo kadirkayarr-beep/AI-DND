@@ -31,9 +31,10 @@ const capital = (text: string) => text.slice(0, 1).toLocaleUpperCase('tr-TR') + 
 const purseText = (purse: ShopCounterResponse['purse']) => `${purse.gp} altın ${purse.sp} gümüş ${purse.cp} bakır`;
 
 /** What the last turn means for the counter, read from the turn outcome's status and reason only. */
-export function shopOutcomeStep(outcome: TurnOutcome | null | undefined, awaiting: boolean): 'open' | 'ask_again' | 'refused' | 'done' | 'other' | null {
+export function shopOutcomeStep(outcome: TurnOutcome | null | undefined, awaiting: boolean, panelOpen = false): 'open' | 'ask_again' | 'refused' | 'done' | 'other' | 'refresh' | null {
   if (outcome?.action === 'shop_offer') return outcome.status === 'offer_open' ? 'open' : null;
-  if (!awaiting) return null;
+  // A turn this panel did not send (a paid card, a word to the barman) may have moved the purse or the stock.
+  if (!awaiting) return panelOpen ? 'refresh' : null;
   if (outcome?.action !== 'equipment_transaction') return 'other';
   if (outcome.status === 'resolved') return 'done';
   return ASK_AGAIN.has(outcome.reason ?? '') ? 'ask_again' : 'refused';
@@ -143,9 +144,10 @@ export function ShopControls({ sessionId, campaignId, disabled, outcome, outcome
   const lastCounts = useRef<ShopCounts>({});
   useEffect(() => {
     if (!outcomeKey) return;
-    const step = shopOutcomeStep(outcome, gate.current!.waiting());
+    const step = shopOutcomeStep(outcome, gate.current!.waiting(), !!counter);
     if (step && step !== 'open') { gate.current!.reopen(); setWaiting(false); }
     if (step === 'open') void read(true);
+    else if (step === 'refresh') void read(true, { counts, notice });
     else if (step === 'ask_again') void read(true, { counts: lastCounts.current, notice: shopReasonText(outcome?.reason) });
     else if (step === 'refused') void read(true, { counts: lastCounts.current, notice: shopReasonText(outcome?.reason) });
     else if (step === 'done') { setCounter(null); setCounts({}); setNotice(null); void read(false); }
