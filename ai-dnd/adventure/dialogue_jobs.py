@@ -52,6 +52,13 @@ def holds_parcel(world,thread):
     return any(isinstance(i,dict) and i.get('item_id')==f"parcel:{thread.get('quest_id')}" for i in world.get('inventory',[]))
 
 
+def due_parcel(world,person):
+    """The one job whose parcel is in the bag and goes to this person; None when there is none or more than one."""
+    import world_threads
+    due=[t for t in world_threads.deliveries_to(world,person) if holds_parcel(world,t)]
+    return due[0] if len(due)==1 else None
+
+
 def already_in_hand(world,thread):
     """The job's parcel is already in the bag: taking it again makes nothing."""
     return holds_parcel(world,thread)

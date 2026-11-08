@@ -274,7 +274,7 @@ class HandingOver(ErrandBase):
         person = self.recipient()
         self.client.front = {"kind": "hand_over", "person_id": person["id"], "item_id": "item_999"}
         await self.line("hadi bakalim, senin icin getirdim", "Hm.")
-        self.assertEqual(self.routes()[-1]["route"], "fallback:invalid")
+        self.assertEqual(self.routes()[-1]["route"], "front:unclear")  # Dilim 2 karar 55: unclear, not the old path
 
     async def test_giving_what_is_not_there_is_told_as_it_is(self):
         await self.errand()

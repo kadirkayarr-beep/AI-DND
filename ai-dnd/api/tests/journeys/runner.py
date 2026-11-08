@@ -312,6 +312,7 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
             world[key] = copy.deepcopy(setup[key])
     if "inventory" in setup:
         equipment_economy.materialize(world)
+        _hands_hold_only_the_bag(world)
     if "current_hp" in setup:
         session.character.update(current_hp=setup["current_hp"])
     if "job" in setup:
@@ -319,6 +320,21 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
     if "seed" in setup:
         session.rng.seed(setup["seed"])
     case.manager.save_campaign(campaign["campaign_id"])
+
+
+def _hands_hold_only_the_bag(world: dict[str, Any]) -> None:
+    """The setup's bag is all the player has: a hand still naming a thing the bag does not hold holds nothing (a
+    hand nothing can resolve makes every item transfer out of the player's bag refuse)."""
+    hands = world.get("equipment")
+    if not isinstance(hands, dict):
+        return
+    for hand, held in hands.items():
+        if held is None:
+            continue
+        try:
+            equipment_economy.canonical_hands(world, "player", {"equipment": {"main_hand": held, "off_hand": None}})
+        except equipment_economy.EquipmentError:
+            hands[hand] = None
 
 
 def _give_job(world: dict[str, Any], job: Any) -> None:

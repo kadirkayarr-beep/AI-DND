@@ -18540,8 +18540,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         world_happenings.threatened(world, world_threads._npc(world, threatened))
     session._front_coin = front_proposal.coin_in(reply, player_input)
     route = front_proposal.validate(reply, listed)
-    if route == {"kind": "unclear"} and isinstance(raw_front, dict) and raw_front.get("kind") == "take":
-        route = {"kind": "unclear", "dropped": True}  # a take that named an id nobody listed: no old word reader
+    if route == {"kind": "unclear"} and isinstance(raw_front, dict) and raw_front.get("kind") in {"take", "hand_over"}:
+        route = {"kind": "unclear", "dropped": True}  # a take or hand-over that named nobody listed: no old word reader
     if fighting and (route is None or route["kind"] != "strike"):
         return None  # in a fight the reading is only asked for a blow the fight's own words did not hear
     word = front_proposal.person_word_in(reply)
@@ -18950,12 +18950,21 @@ def _front_hand_over(route, player_input):
         return None
     heard = {"decision": None, "npc_id": person["id"]}
     item_id = route["item"]
-    if item_id is None or "?" in player_input or world_threads.says_later(player_input):
+    asked = "?" in player_input or world_threads.says_later(player_input)
+    due = dialogue_jobs.due_parcel(world, person) if item_id is None and not asked else None
+    if item_id is None and not asked and due is None and any(
+            dialogue_jobs.holds_parcel(world, job) for job in world_threads.deliveries_to(world, person)):
+        # Two parcels for this person and the line names neither: nothing is handed, and the narrator hears why.
+        if getattr(session, "_turn_notes", None) is None:
+            session._turn_notes = []
+        session._turn_notes.append((person["id"], "olmadı: hangi eşyayı verdiğin belli değil"))
+        return heard
+    if (item_id is None and due is None) or asked:
         session._empty_handed = item_id is None and not getattr(session, "_coin_paid", None)
         return _thread_gate(player_input, person["id"], "say") or heard  # nothing named: the old reader, then their answer
     try:
         session.require_player_can_act()
-        thread = world_threads.parcel_thread(world, item_id)
+        thread = due if item_id is None else world_threads.parcel_thread(world, item_id)
         if thread is None and not item_id.startswith("parcel:"):
             if _line_gives(item_id, player_input):  # a plain thing never comes back: it goes only if the line means it
                 given = dialogue_jobs.give_plain(world, item_id, person)

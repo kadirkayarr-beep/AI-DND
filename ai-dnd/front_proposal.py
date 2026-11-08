@@ -391,14 +391,18 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
             person = listed["speaking_with"] if listed["speaking_with"] in people else (
                 people[0] if len(people) == 1 else None)
         if person not in people:
+            if kind == "hand_over" and isinstance(person, str) and person.strip() not in ("", NONE):
+                return {"kind": "unclear"}  # a person nobody listed: nothing is handed, no old word reader
             # Read as talk, with nobody to bind it to: it is still no walk and no act.
             return {"kind": "talk_around"} if kind == "speak_to" and person in (None, NONE) else None
         if kind in {"speak_to", "grab"}:
             return {"kind": "speak_to", "id": person}  # a hand on someone is answered by that someone
         item = front.get("item_id")
-        if item in (None, NONE):
+        if item in (None, NONE) or (isinstance(item, str) and not item.strip()):
             return {"kind": kind, "person_id": person, "item": None}
-        return {"kind": kind, "person_id": person, "item": item} if item in [row["id"] for row in listed["bag"]] else None
+        if item in [row["id"] for row in listed["bag"]]:
+            return {"kind": kind, "person_id": person, "item": item}
+        return {"kind": "unclear"}  # an id the bag does not hold: nothing is handed, no old word reader
     if kind == "consume":
         item = front.get("item_id")
         return {"kind": "consume", "item": item} if item in [row["id"] for row in listed["bag"]] else None

@@ -1,0 +1,123 @@
+{
+  "id": "19d_delivery_undo",
+  "title": "Teslim ve Geri Al (115, SIFIR TOLERANS): iskeledeki Tuna'ya kimliksiz teslim 12 bakırı bir kez öder ve görevi kapatır; Geri Al keseyi, iade takımını ve görev satırını birlikte geri getirir; yenileme aynısını okur; yeniden teslim yine bir kez öder ve yenilemede öyle kalır",
+  "source_items": [
+    115
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "kese": 100,
+        "esya_sayisi": 1
+      }
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "expect": {
+        "kese": 100,
+        "konum": "location_005"
+      }
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "script": {
+        "front": {
+          "kind": "hand_over"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "envanter": {},
+        "gorev": {
+          "aktif": 0,
+          "kayit": []
+        }
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        },
+        "gorev": {
+          "aktif": 1
+        }
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        },
+        "gorev": {
+          "aktif": 1
+        }
+      }
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "script": {
+        "front": {
+          "kind": "hand_over"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "envanter": {},
+        "gorev": {
+          "aktif": 0,
+          "kayit": []
+        }
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 112,
+        "envanter": {},
+        "gorev": {
+          "aktif": 0,
+          "kayit": []
+        }
+      }
+    }
+  ]
+}
