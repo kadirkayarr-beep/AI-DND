@@ -18520,7 +18520,13 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                 and person != front_proposal.NONE and person in front_proposal._ids(listed["people"])
                 and (target_id is None or target_id == person)):
             session._front_coin = front_proposal.coin_in(reply, player_input)  # evidence only; no tender/card
-            return {"kind": "speak_to", "id": person}
+            route = {"kind": "speak_to", "id": person}
+            deal = money_owner.read_deal(raw_front, listed)
+            if deal is not None and (deal.kind == "room" or (deal.kind == "goods" and deal.goods_key)):
+                # The model's own listed room or goods deal still stands when it read no economic intent: only the
+                # money owner's decision opens its offer, and no coin moves (an offer asked for is no coin held out).
+                _hand_over_coin(route, listed, raw_front)
+            return route
         return None  # typed speech never enters general movement/strike/person-repair routes
     import world_happenings
     import world_threads
@@ -18627,7 +18633,7 @@ def _record_spoken_coin_response(npc, response):
     session._spoken_coin_proposal = None
     import economic_actions
     economic_actions.record_coin_response(session.world_state, npc, proposal.amount_cp, response,
-                                          source_action_id=turn_source_key(session))
+                                          source_action_id=turn_source_key(session), purpose=proposal.purpose)
     session._spoken_coin_result = economic_actions.prepare_from_turn(session, proposal)
 
 
@@ -19456,7 +19462,7 @@ def _sleep_after_walk(walked, player_input, place_before, scene_plan=None):
         key = turn_source_key(_session())
         if key and economic_actions.prepared_by_action(world_state, source_action_id=key, purpose="room"):
             return  # this line already opened the room card; no second card, and no sleep before it is confirmed
-        room = bold_acts.take_room(_session(), player_input)
+        room = bold_acts.take_room(_session(), player_input, walk_to_bed=True)
         if room is not None:
             walked["narration"] = f"{walked.get('narration') or ''} {room['line']}".strip()
             if room["coin_seen"]:

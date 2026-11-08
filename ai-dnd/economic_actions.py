@@ -340,9 +340,24 @@ def _lines(world: dict[str, Any], proposal: EconomicProposal, npc: dict[str, Any
     return lines
 
 
+# A spoken reply belongs to one kind of coin offer: coin handed over on its own (a gift or a tip card share one
+# reply, as the scenario of a refused gift and the tip after it expects) or the tip line of a goods card.
+_REPLY_KINDS = ("offer", "purchase_tip")
+_REPLY_KIND_OF = {"gift": "offer", "tip": "offer", "offer": "offer", "purchase_tip": "purchase_tip"}
+
+
+def _reply_key(kind: str | None, amount_cp: int) -> str:
+    kind = _REPLY_KIND_OF.get(kind)
+    return f"{kind}:{amount_cp}" if kind else str(amount_cp)
+
+
 def record_coin_response(world: dict[str, Any], npc: dict[str, Any], amount_cp: int, response: Any,
-                         *, source_action_id: str | None = None) -> None:
-    """A shown reply to this bound coin offer, not a price or a transfer authorization."""
+                         *, source_action_id: str | None = None, purpose: str | None = None) -> None:
+    """A shown reply to this bound coin offer, not a price or a transfer authorization.
+
+    It is kept for this game day and for this kind of coin offer (`purpose`: gift or tip) and amount, so an unanswered
+    tip never refuses a later goods card's tip line and no reply outlives the day. An accept clears this amount's replies.
+    """
     import equipment_economy
     person = _npc(world, npc.get("id"))
     if (person is None or not _is_here(world, person) or not equipment_economy.npc_can_act(person)
@@ -351,21 +366,42 @@ def record_coin_response(world: dict[str, Any], npc: dict[str, Any], amount_cp: 
     replies = person.get("coin_responses")
     if not isinstance(replies, dict):
         replies = person["coin_responses"] = {}
-    key = str(amount_cp)
+    day = game_day(world)
+    for key in [key for key, entry in replies.items()
+                if isinstance(entry, dict) and type(entry.get("day")) is int and entry["day"] != day]:
+        replies.pop(key)  # an earlier day's reply has ended
     if response == "accept":
-        replies.pop(key, None)  # clears only this conversation gate; engine refusal still owns acceptance
+        # clears only this conversation gate; engine refusal still owns acceptance
+        for kind in (None, *_REPLY_KINDS):
+            replies.pop(_reply_key(kind, amount_cp), None)
     else:
-        replies[key] = {"status": "refuse" if response == "refuse" else "unknown", "source_action_id": source_action_id}
+        replies[_reply_key(purpose, amount_cp)] = {
+            "status": "refuse" if response == "refuse" else "unknown", "source_action_id": source_action_id,
+            "day": day}
 
 
-def _coin_response(npc: dict[str, Any], proposal: EconomicProposal) -> str | None:
-    if proposal.purpose not in ("gift", "tip"):
-        return None
+def _coin_reply(world: Mapping[str, Any], npc: Mapping[str, Any], kind: str, amount_cp: Any) -> Any:
+    """The recorded reply to this kind of coin and amount today: its own entry, else an older amount-only one.
+
+    An entry of an earlier day is no reply. An older build's amount-only entry has no day and is still honoured.
+    """
     replies = npc.get("coin_responses")
-    if not isinstance(replies, dict) or str(proposal.amount_cp) not in replies:
+    if not isinstance(replies, Mapping) or type(amount_cp) is not int:
         return None
-    response = replies[str(proposal.amount_cp)]
-    status = response.get("status") if isinstance(response, dict) else response
+    for key in (_reply_key(kind, amount_cp), str(amount_cp)):
+        if key in replies:
+            entry = replies[key]
+            if isinstance(entry, Mapping) and type(entry.get("day")) is int and entry["day"] != game_day(world):
+                return None
+            return entry
+    return None
+
+
+def _coin_response(world: Mapping[str, Any], npc: Mapping[str, Any], kind: str, amount_cp: Any) -> str | None:
+    entry = _coin_reply(world, npc, kind, amount_cp)
+    if entry is None:
+        return None
+    status = entry.get("status") if isinstance(entry, Mapping) else entry
     return "refuse" if status == "refuse" else "unknown"
 
 
@@ -391,13 +427,12 @@ def context_digest(state: EconomicState, proposal: EconomicProposal, lines: list
             person["refuses"] = world_reactions.refuses(world, npc)
             # Written only when the person actually answered, so a card prepared before any answer (and every card an
             # older build stored) keeps the digest it was signed with.
-            reply = ((npc.get("coin_responses") or {}).get(str(proposal.amount_cp))
+            reply = (_coin_reply(world, npc, proposal.purpose, proposal.amount_cp)
                      if proposal.purpose in ("gift", "tip") else None)
             if reply is not None:
                 person["coin_response"] = reply
             if proposal.purpose == "purchase" and proposal.tip_cp:
-                replies = npc.get("coin_responses")
-                tip_reply = replies.get(str(proposal.tip_cp)) if isinstance(replies, dict) else None
+                tip_reply = _coin_reply(world, npc, "purchase_tip", proposal.tip_cp)
                 if tip_reply is not None:
                     person["tip_response"] = tip_reply
     priced = []
@@ -737,13 +772,14 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
         if world_reactions.refuses(world, npc):
             return PrepareResult(status="refused", offer=None, reason_code="npc_refuses",
                                  public_message=world_reactions.refusal_line(npc))
-    response = _coin_response(npc, proposal) if check is None else None
+    response = (_coin_response(world, npc, proposal.purpose, proposal.amount_cp)
+                if check is None and proposal.purpose in ("gift", "tip") else None)
     if response == "refuse":
         return PrepareResult(status="refused", offer=None, reason_code="npc_refuses",
                              public_message="Bu para teklifi kabul edilmedi; para kesende kaldı.")
     reason = "npc_consent_required" if response == "unknown" else "check_required" if check is not None else "engine_accepts"
     decisions = []
-    tip_response = (_coin_response(npc, dataclasses.replace(proposal, purpose="tip", amount_cp=proposal.tip_cp))
+    tip_response = (_coin_response(world, npc, "purchase_tip", proposal.tip_cp)
                     if proposal.purpose == "purchase" and proposal.tip_cp else None)
     for line in lines:
         if tip_off and line.kind == "tip":  # the NPC's spoken decline of the tip (D1) refuses only this line

@@ -866,6 +866,10 @@ def _economic_projection(world: Any) -> dict[str, Any]:
     import economic_actions
     world = world if isinstance(world, dict) else {}
     offer = economic_actions.prepared_offer(world)
+    if offer is not None and offer.counter_binding is not None:
+        import shop_trade
+        if not shop_trade.binding_matches(world, offer):
+            offer = None  # the counter moved on (a sale, a new quote): hidden, not changed, so Undo can reopen it
     card = None
     if offer is not None:
         state = economic_actions.EconomicState(world=world, character=None)

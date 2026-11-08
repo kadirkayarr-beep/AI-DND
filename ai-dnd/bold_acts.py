@@ -682,7 +682,8 @@ def _tender_or_none(world: dict[str, Any], amount: int | None, price: int, purse
     return amount if amount is not None and price <= amount <= purse else None
 
 
-def take_room(session, text: str, *, server=None, requested: bool = False) -> dict[str, Any] | None:
+def take_room(session, text: str, *, server=None, requested: bool = False,
+              walk_to_bed: bool = False) -> dict[str, Any] | None:
     """A night's room asked for: whoever serves here opens the room card; nothing is paid by the words.
 
     The price is the house's own (_ROOM_PRICE) and, when the card is confirmed, it goes to nobody: the inn keeps no
@@ -702,8 +703,8 @@ def take_room(session, text: str, *, server=None, requested: bool = False) -> di
     if decision is not None:
         server = _decision_server(session, decision) if decision.kind == "room" else None
         return None if server is None else _open_room(session, server)
-    if not requested and getattr(session, "_front_economic_none", False):
-        return None
+    if not requested and not walk_to_bed and getattr(session, "_front_economic_none", False):
+        return None  # `walk_to_bed`: the walk to a bed is no free-line room word; its card still opens (and sleep waits)
     folded = fold(session, text)
     if server is None:
         server = _server_here(session)
