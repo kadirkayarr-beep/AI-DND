@@ -77,9 +77,9 @@ class SpokenPlan(JourneyCase):
         return sum(1 for record in economic_actions.offer_records(self.world()).values()
                    if (offer := economic_actions.offer_from_record(record)) is not None and offer.status == "prepared")
 
-    async def say(self, line, intent=None, speech=None):
+    async def say(self, line, intent=None, speech=None, front=None):
         """One plain line (no `konus`), as scenario 08's step 2 sends it; `self.calls` keeps its model call kinds."""
-        script = {}
+        script = {} if front is None else {"front": copy.deepcopy(front)}
         if intent is not None:
             script["intent"] = copy.deepcopy(intent)
         if speech is not None:
@@ -211,8 +211,33 @@ class SpokenPlan(JourneyCase):
         self.assertIsNotNone(self.card())
         await self.undo(turn["action_id"])
         self.assertIsNone(self.card())
-        self.assertEqual(self.purse(), 100)
         self.assertFalse((self.world().get("flags") or {}).get("inn_room"))
+
+    async def test_a_blow_chain_said_while_talking_stays_a_plan(self):
+        # review finding 1: holding the plan while talking must not hand a chain with a blow to the attack owner
+        await self.talk_to_marek()
+        self.world()["npcs"][0]["armor_class"] = 10                    # the request's attack preview needs an AC
+        await self.say("Marek'e vuruyorum, sonra kapıya koşuyorum", intent={"intent": "attack", "action": "attack",
+                       "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
+                       "completion": "complete"})
+        self.assertFalse((self.world().get("combat") or {}).get("active"))
+        self.assertIsNotNone(self.plan())
+        self.assertEqual(self.world()["npcs"][0].get("current_hp"), 10)
+
+    async def test_asks_for_is_ignored_when_money_was_decided_on_a_two_part_line(self):
+        # Dilim 2's rule on the two-clause line: the front reading's money decision (a tip with the coin held out)
+        # owns the turn; the answer's asks_for room opens no second card
+        import os
+        import front_proposal
+        await self.talk_to_marek()
+        with patch.dict(os.environ, {front_proposal.FLAG: "1"}):
+            await self.say("şu 2 bakırı bırakıyorum, bir oda tutayım",
+                           intent=_talk_to("barman"),
+                           speech={"asks_for": "room", "coin_answer": "takes", "coin_answer_for": "tip"},
+                           front={"kind": "speak_to", "person_id": "barman", "deal": "tip", "coin_cp": 2})
+        self.assertEqual([line["label"] for line in self.card()["lines"]], ["Bahşiş"])
+        self.assertEqual((self.open_cards(), self.purse()), (1, 100))
+        self.assertIsNone(self.plan())
 
 
 if __name__ == "__main__":

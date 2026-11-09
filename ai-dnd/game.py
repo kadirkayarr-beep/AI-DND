@@ -20814,8 +20814,8 @@ def _run_player_turn_internal(
         return finish_turn(action_result, fallback)
 
     ensure_campaign_clock()
-    if scene_plan is None and interaction_mode not in {"say", "ask_dm"}:
-        # The API plans first. Direct turns use the same local-entry owner.
+    if scene_plan is None and interaction_mode not in {"say", "ask_dm"} and held_plan is None:
+        # The API plans first. Direct turns use the same local-entry owner. A held plan walks nowhere before its reading.
         if (
             living_world.classify_scene_action(player_input) == "enter"
             or _names_current_local_exit(player_input)
@@ -21505,6 +21505,7 @@ def _run_player_turn_internal(
     # owners; this is only deterministic routing precedence.
     if (
         interaction_mode not in {"say", "ask_dm"}
+        and held_plan is None  # a blow inside clauses held for the reading is still part of the plan
         and combat_lifecycle.is_attack_decision(_session(), player_input)
     ):
         # The turn's own reading may name the weapon (Task 14's `weapon_word`): it goes only to the catalog (gear).
