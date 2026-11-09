@@ -165,6 +165,7 @@ export * from './gameLocation';
 export * from './gameNpc';
 export * from './gameScene';
 export * from './gameSceneAmbientEvent';
+export * from './gameSceneAmbientEventActionable';
 export * from './gameSceneAmbientEventEventType';
 export * from './gameSceneFeature';
 export * from './gameSceneNpc';

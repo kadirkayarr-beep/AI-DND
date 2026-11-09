@@ -3164,6 +3164,9 @@ components:
           - string
           - 'null'
           format: uuid
+        message:
+          type: string
+          maxLength: 240
       required:
       - event_instance_id
       - action_id
@@ -6215,6 +6218,8 @@ components:
         count:
           type: integer
           minimum: 1
+        actionable:
+          $ref: '#/components/schemas/GameSceneAmbientEventActionable'
       required:
       - event_id
       - instance_id
@@ -6222,6 +6227,19 @@ components:
       - event_type
       - repeat_group
       - count
+    GameSceneAmbientEventActionable:
+      type: object
+      additionalProperties: false
+      properties:
+        can_interact:
+          type: boolean
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+      required:
+      - can_interact
+      - reason
     GameScenePlayerPosition:
       type: object
       additionalProperties: false

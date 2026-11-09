@@ -1098,7 +1098,11 @@ export const CreateGameSessionResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -2181,7 +2185,11 @@ export const GetGameSessionStateResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -3281,7 +3289,11 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -4388,7 +4400,11 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -5758,7 +5774,11 @@ export const PlayGameTurnResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -7533,7 +7553,11 @@ export const GetGameActionStatusResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -9233,7 +9257,11 @@ export const AbandonGameActionResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -10782,7 +10810,11 @@ export const UndoGameTurnResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -11898,7 +11930,11 @@ export const AcceptGameQuestResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -13036,7 +13072,11 @@ export const CancelGameQuestResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -14034,6 +14074,8 @@ export const resolveAmbientEventActionResponseResultReasonCodeMax = 64;
 
 export const resolveAmbientEventActionResponseResultTransitionIdMax = 160;
 
+export const resolveAmbientEventActionResponseResultMessageMax = 240;
+
 
 
 export const ResolveAmbientEventActionResponse = zod.object({
@@ -14163,7 +14205,11 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -14858,7 +14904,8 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.enum(['APPLIED', 'REJECTED', 'NO_EFFECT', 'ALREADY_APPLIED']),
   "reason_code": zod.string().max(resolveAmbientEventActionResponseResultReasonCodeMax).nullable(),
   "transition_id": zod.string().max(resolveAmbientEventActionResponseResultTransitionIdMax).nullable(),
-  "canonical_event_id": zod.string().uuid().nullable()
+  "canonical_event_id": zod.string().uuid().nullable(),
+  "message": zod.string().max(resolveAmbientEventActionResponseResultMessageMax).optional()
 })
 })
 
@@ -15288,7 +15335,11 @@ export const AcceptLegacyQuestResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -16427,7 +16478,11 @@ export const CancelLegacyQuestResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -17426,6 +17481,8 @@ export const resolveAmbientEventActionCompatResponseResultReasonCodeMax = 64;
 
 export const resolveAmbientEventActionCompatResponseResultTransitionIdMax = 160;
 
+export const resolveAmbientEventActionCompatResponseResultMessageMax = 240;
+
 
 
 export const ResolveAmbientEventActionCompatResponse = zod.object({
@@ -17555,7 +17612,11 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -18250,7 +18311,8 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.enum(['APPLIED', 'REJECTED', 'NO_EFFECT', 'ALREADY_APPLIED']),
   "reason_code": zod.string().max(resolveAmbientEventActionCompatResponseResultReasonCodeMax).nullable(),
   "transition_id": zod.string().max(resolveAmbientEventActionCompatResponseResultTransitionIdMax).nullable(),
-  "canonical_event_id": zod.string().uuid().nullable()
+  "canonical_event_id": zod.string().uuid().nullable(),
+  "message": zod.string().max(resolveAmbientEventActionCompatResponseResultMessageMax).optional()
 })
 })
 
@@ -20876,7 +20938,11 @@ export const CreateCampaignResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -22283,7 +22349,11 @@ export const GetCampaignResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -23667,7 +23737,11 @@ export const ResumeCampaignResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -26147,7 +26221,11 @@ export const CreateLegacySessionResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -27231,7 +27309,11 @@ export const GetLegacySessionStateResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -28596,7 +28678,11 @@ export const PlayLegacyTurnResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -30142,7 +30228,11 @@ export const UndoLegacyTurnResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -33003,7 +33093,11 @@ export const CreateLegacyCampaignResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -34412,7 +34506,11 @@ export const GetLegacyCampaignResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
@@ -35797,7 +35895,11 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "variation_id": zod.string(),
   "event_type": zod.enum(['GREEN', 'BLUE']),
   "repeat_group": zod.string(),
-  "count": zod.number().int().min(1)
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
 }),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({

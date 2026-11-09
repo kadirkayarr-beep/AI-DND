@@ -2016,6 +2016,7 @@ def resolve_entry_target_reference(
 def public_scene_projection(
     world_state: dict[str, Any],
     turn_index: int,
+    current_hp: Any = None,
 ) -> dict[str, Any] | None:
     location_id = world_state.get("location")
     state = ensure_scene_state(world_state)
@@ -2069,6 +2070,8 @@ def public_scene_projection(
         if ref.get("lifecycle") in ("presented", "promoted")
     ]
     position = state.get("player_position", {})
+    import ambient_actions  # it reads this module; imported here so neither import waits on the other
+    rule = ambient_actions.actionable(world_state, current_hp)
     return {
         "id": scene.get("id"),
         "location_id": location_id,
@@ -2085,6 +2088,8 @@ def public_scene_projection(
                 "event_type": scene["ambient_event"].get("event_type"),
                 "repeat_group": scene["ambient_event"].get("repeat_group"),
                 "count": scene["ambient_event"].get("count"),
+                # The one rule the click obeys too (ambient_actions); the referent stays as saved.
+                "actionable": {key: rule[key] for key in ("can_interact", "reason")},
             }
             if isinstance(scene.get("ambient_event"), dict)
             else None

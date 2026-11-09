@@ -25,4 +25,6 @@ export interface AmbientEventResult {
   transition_id: string | null;
   /** @nullable */
   canonical_event_id: string | null;
+  /** @maxLength 240 */
+  message?: string;
 }

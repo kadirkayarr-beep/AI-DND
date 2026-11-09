@@ -778,7 +778,8 @@ def serialize_session_state(
         "journey": timed_gameplay.public_journey(world),
         "expedition": timed_gameplay.public_expedition(session, snapshot=snapshot),
         "scene": living_world.public_scene_projection(
-            visible_world, flags.get("turn_index", 0)
+            visible_world, flags.get("turn_index", 0),
+            (getattr(session, "character", None) or {}).get("current_hp"),
         ),
         "conversation": _conversation_projection(visible_world),
         "world": world_metadata,

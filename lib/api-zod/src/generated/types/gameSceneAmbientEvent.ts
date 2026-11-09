@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { GameSceneAmbientEventActionable } from './gameSceneAmbientEventActionable';
 import type { GameSceneAmbientEventEventType } from './gameSceneAmbientEventEventType';
 
 export interface GameSceneAmbientEvent {
@@ -15,4 +16,5 @@ export interface GameSceneAmbientEvent {
   repeat_group: string;
   /** @minimum 1 */
   count: number;
+  actionable?: GameSceneAmbientEventActionable;
 }

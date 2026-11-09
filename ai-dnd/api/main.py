@@ -2373,6 +2373,7 @@ def create_app(
                 reason_code: str | None = None,
                 transition_id: str | None = None,
                 canonical_event_id: str | None = None,
+                message: str | None = None,
             ) -> dict[str, Any]:
                 response = AmbientEventCommandResult(
                     session_id=session_id,
@@ -2384,6 +2385,7 @@ def create_app(
                         reason_code=reason_code,
                         transition_id=transition_id,
                         canonical_event_id=canonical_event_id,
+                        message=message,
                     ),
                 )
                 return redact_sensitive_values(response.model_dump())
@@ -2465,6 +2467,9 @@ def create_app(
 
             snapshot = _capture_session(session)
             journal_snapshot = copy.deepcopy(record.journal)
+            memory_snapshot = copy.deepcopy(record.narrative_memory)
+            metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
+            lore_snapshot = record.lore_authority
             try:
                 transition = session.resolve_ambient_event_action(
                     event_instance_key,
@@ -2496,6 +2501,9 @@ def create_app(
                         transition.get("reason_code"),
                         transition_id=transition_id,
                         canonical_event_id=canonical_event_id,
+                        # The panel's line for a refused click; nothing changed, so the last turn's undo stands.
+                        message=refusals.text_for(transition.get("reason_code"))
+                        if status == "REJECTED" else None,
                     )
 
                 after_save = session.serialize_game_state()
@@ -2541,6 +2549,17 @@ def create_app(
                     "player_message": transition["player_message"],
                     "narration": transition["narration"],
                 })
+                # V5: a joined event is undone like a typed turn, with the same fields as the turn route.
+                record.undo_checkpoint = {
+                    "action_id": action_id,
+                    "player_message": transition["player_message"],
+                    "snapshot": snapshot,
+                    "journal": journal_snapshot,
+                    "narrative_memory": memory_snapshot,
+                    "lore_authority": lore_snapshot,
+                    "world_metadata": metadata_snapshot,
+                    "post_turn_fingerprint": _state_fingerprint(session),
+                }
                 return response_payload
             except Exception as error:
                 # R05: a restore that fails or cannot be verified quarantines the session; it is never just logged.

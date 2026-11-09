@@ -1043,7 +1043,7 @@ class TheDilim3Additions(JourneyCase):
             {"say": "etrafa bakıyorum", "expect": {"olay": {"var": True}}},
             {"reload": True, "expect": {"olay": {"var": True}}}))
         self.assertEqual([result.status for result in results], ["pass", "pass"], results)
-        self.assertEqual(self.last_observations[0]["olay"], {"var": True, "tiklanabilir": None, "neden": None})
+        self.assertEqual(self.last_observations[0]["olay"], {"var": True, "tiklanabilir": True, "neden": None})
 
     async def test_a_scene_without_an_event_reads_as_no_event(self):
         campaign = await self.create_campaign()

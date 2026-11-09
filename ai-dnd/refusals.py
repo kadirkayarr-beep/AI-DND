@@ -32,6 +32,14 @@ REFUSAL_TEXT: dict[str, str] = {
     "no_exit_held": "Buradan çıkış yok; dövüşmeye devam edebilir ya da teslim olabilirsin.",
     # The same refusal, reached through the line that says "ready" with nothing after it.
     "ready_needs_trigger": "Hazırlanmak için neyi bekleyeceğini ve o olunca ne yapacağını söyle (ör. 'Haydut yaklaşırsa vururum').",
+    # A click on the scene's event the engine will not take (ambient_actions; Dilim 3, Task 8).
+    "event_expired": "Onlar çoktan dağıldı.",
+    "event_already_resolved": "Bu karşılaşma zaten gelişti.",
+    "combat": "Kavga sürerken buna yetişemezsin.",
+    "promotion_unavailable": "Kalabalıkta onlara yaklaşacak yer bulamıyorsun.",
+    "event_not_interactive": "Orada artık katılabileceğin bir şey yok.",
+    "event_referent_missing": "Orada artık katılabileceğin bir şey yok.",
+    "no_event": "Orada artık katılabileceğin bir şey yok.",
     # Everything else a fight or an action can say no to.
     "action_unavailable": "Bu tur bunun için kullanabileceğin bir hakkın kalmadı.",
     "actor_cannot_act": "Şu an bunu yapamazsın; durumun buna izin vermiyor.",

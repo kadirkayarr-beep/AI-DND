@@ -911,6 +911,11 @@ export const GameSceneAmbientEventEventType = {
   BLUE: 'BLUE',
 } as const;
 
+export interface GameSceneAmbientEventActionable {
+  can_interact: boolean;
+  reason: string | null;
+}
+
 export interface GameSceneAmbientEvent {
   event_id: string;
   instance_id: string;
@@ -919,6 +924,7 @@ export interface GameSceneAmbientEvent {
   repeat_group: string;
   /** @minimum 1 */
   count: number;
+  actionable?: GameSceneAmbientEventActionable;
 }
 
 /**
@@ -3366,6 +3372,8 @@ export interface AmbientEventResult {
   transition_id: string | null;
   /** @nullable */
   canonical_event_id: string | null;
+  /** @maxLength 240 */
+  message?: string;
 }
 
 export interface AmbientEventCommandResult {

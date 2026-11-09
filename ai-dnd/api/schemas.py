@@ -651,6 +651,8 @@ class AmbientEventResult(BaseModel):
     reason_code: str | None = Field(default=None, max_length=64)
     transition_id: str | None = Field(default=None, max_length=160)
     canonical_event_id: str | None = Field(default=None, max_length=36)
+    # A refused click's Turkish line (refusals.text_for). Left out when absent, so a stored receipt replays byte for byte.
+    message: str | None = Field(default=None, max_length=240, exclude_if=lambda value: value is None)
 
 
 class AmbientEventCommandResult(BaseModel):
