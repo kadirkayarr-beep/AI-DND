@@ -13,6 +13,10 @@ import local_places
 import npc_statements
 import weapon_catalog
 from api.tests import test_campaign_api
+from api.tests.journeys.runner import _campaign_seeded
+
+# A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
+TOWN_SEED = 10
 
 START = {
     "setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
@@ -98,7 +102,8 @@ class ThreePlaysTests(unittest.IsolatedAsyncioTestCase):
             body["character"] = character
         if death_mode is not None:
             body["death_mode"] = death_mode
-        created = await self.http.post("/api/game/campaigns", json=body)
+        with _campaign_seeded({"campaign_seed": TOWN_SEED}):  # a fixed town (see TOWN_SEED)
+            created = await self.http.post("/api/game/campaigns", json=body)
         self.assertEqual(created.status_code, 200, created.text)
         self.session_id = created.json()["session_id"]
         self.session = self.manager.get(self.session_id).game_session

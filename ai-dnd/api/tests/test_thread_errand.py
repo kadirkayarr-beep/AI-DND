@@ -14,8 +14,11 @@ import local_places
 import world_threads
 from adventure import deadlines, dialogue_jobs, director, play, templates
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.journeys.runner import _campaign_seeded
 
 DAY = 86400
+# A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
+TOWN_SEED = 10
 
 
 class ErrandTable(unittest.IsolatedAsyncioTestCase):
@@ -24,7 +27,8 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
     campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
 
     async def job(self, noun="mektup", pay=9):
-        self.city, self.session_id, self.session, self.turn_url, self.owner = await self.campaign_with_npc()
+        with _campaign_seeded({"campaign_seed": TOWN_SEED}):
+            self.city, self.session_id, self.session, self.turn_url, self.owner = await self.campaign_with_npc()
         self.client = speech.ScriptedNpcSpeechClient("Şimdilik sessiz bir gün.")
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         self.world = self.session.world_state
