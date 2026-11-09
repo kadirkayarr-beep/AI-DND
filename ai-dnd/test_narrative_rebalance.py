@@ -1090,7 +1090,7 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
             action_result=self.action, fallback_reason_code="UNVERIFIED_LORE_CLAIM",
             resolved_fallback_response=self.resolved_response, session=self.session,
         )
-        self.assertIn(result, game._GENERIC_NO_CHANGE_RESPONSES)
+        self.assertEqual(result, game._generic_no_change_response(session=self.session))
         self.assertNotEqual(result, rumor)
         self.assertEqual(self.session.last_narration_safety["reason_code"], "UNVERIFIED_LORE_CLAIM")
 

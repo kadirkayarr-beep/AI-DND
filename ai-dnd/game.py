@@ -10196,7 +10196,23 @@ _GENERIC_NO_CHANGE_RESPONSES = (
 )
 
 
+def _quiet_place_line():
+    """One line from the scene record: the place, the hour, the weather. None when no model could say it or none fits."""
+    from api import ollama_adapter, opening_narrative
+    from api.world_metadata import world_metadata_for_state
+    spent = ollama_adapter.usage_summary()
+    if spent["failed"] and not spent["calls"]:
+        return None
+    session = _session()
+    world = session.world_state
+    meta = world_metadata_for_state(world, getattr(session, "world_metadata", None))
+    return opening_narrative.catalog_line(world, world.get("location"), meta["weather"], meta["time_of_day"])
+
+
 def _generic_no_change_response():
+    line = _quiet_place_line()
+    if line:
+        return _stock(line)
     return _stock(_GENERIC_NO_CHANGE_RESPONSES[
         _variation_index(("no_change",), len(_GENERIC_NO_CHANGE_RESPONSES))
     ])
