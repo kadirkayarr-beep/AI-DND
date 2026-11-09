@@ -40,9 +40,7 @@
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": ""},
                             "completion": "complete"},
                  "speech": {"asks_for": "room"}},
-      "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false},
-      "known_broken": [4],
-      "broken_because": ["kart: beklenen {'max_total_cp': 50, 'counterparty_label': 'Marek'}, gözlenen yok"]
+      "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false}
     },
     {
       "say": "bir oda tutmak istiyorum",

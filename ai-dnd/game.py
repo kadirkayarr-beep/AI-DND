@@ -20306,6 +20306,24 @@ def _owner_module_reply(player_input, interaction_mode):
     return None
 
 
+def _said_to_someone_here(session, reading) -> dict | None:
+    """The person a line of several clauses is said to, or None when it stays the player's own plan.
+
+    The model proposes, Python checks: the reading's intent is `talk` and it names a living person here
+    (`talk_mode.people_here`), or names nobody while talk mode is open with a living person here.
+    """
+    if not isinstance(reading, dict) or reading.get("intent") != "talk":
+        return None
+    world = session.world_state
+    target = reading.get("target") if isinstance(reading.get("target"), dict) else {}
+    named = target.get("npc_id")
+    if isinstance(named, str) and named.strip() and named != "none":
+        return next((npc for npc in talk_mode.people_here(world)
+                     if isinstance(npc, dict) and npc.get("id") == named
+                     and npc.get("combat_status") not in {"dead", "unconscious"}), None)
+    return talk_mode.current(world)
+
+
 def _run_player_turn_internal(
     player_input, messages=None, target_id=None, scene_plan=None,
     interaction_mode=None, action_id=None, check_feature=None, check_evidence=None,
@@ -20779,6 +20797,11 @@ def _run_player_turn_internal(
             return _run_player_turn_internal(
                 request, messages, person["id"], None, "say", action_id
             )
+    # Talking with someone here, the clauses may be said to them: the turn's reading decides below, before any plan.
+    held_plan = None
+    if (compound is not None and not entry_combat["active"] and interaction_mode not in {"say", "ask_dm"}
+            and talk_mode.current(world_state) is not None):
+        held_plan, compound = compound, None
     if (compound is not None and not entry_combat["active"]
             and interaction_mode not in {"say", "ask_dm"}):
         # These steps are exact player spans, not model paraphrases. Recording
@@ -21562,6 +21585,17 @@ def _run_player_turn_internal(
         if raw.get("classifier_unusable"):
             classifier_unusable = True
             raw = None
+    if held_plan is not None:
+        hearer = _said_to_someone_here(_session(), raw)
+        if hearer is None:
+            # Not said to anyone here: the clauses are the player's own plan, recorded as before. A reading already
+            # spent is this turn's one call, so the plan's own line is told without a narrator call.
+            intent_source = "python_compound_plan"
+            action_result = interaction_adventure.resolve(_session(), player_input, held_plan)
+            return finish_turn(action_result, action_result.pop("direct_response", ""),
+                               is_final=intent_model_calls > 0)
+        # Said to that person: they answer it, and the answer's `asks_for` is read as for any line said to them.
+        npc_target, raw, interaction_hint, answer_in_person = hearer, None, None, True
     if raw is not None:
         conversation_resolution, conversation_rejected = (
             validate_interaction_conversation(
