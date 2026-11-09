@@ -132,7 +132,7 @@ class WieldFront(JourneyCase):
         await self.say("kılıcımı çekiyorum", front={"kind": "wield", "item_id": "none", "thing_word": "kılıcımı"})
         self.assertEqual(self.bag(), {"Macera Çantası": 1}); self.assertIsNone(self.held())
         text = "\n".join(self.narrator_input())
-        for needle in ("olmadı: istediğin silah çantanda yok; hiçbir şey çekilmedi (çantadaki silahlar: yok).",
+        for needle in ("olmadı: istediğin silah çantanda yok, kını ya da kabzası da yok; hiçbir şey çekilmedi (çantadaki silahlar: yok).",
                        "elin boş", "olmuş gibi anlatma"):
             self.assertIn(needle, text)
         self.assertNotIn("kılıcımı yok", text)                            # the model's word never enters the refusal
@@ -141,7 +141,7 @@ class WieldFront(JourneyCase):
         before = copy.deepcopy((self.world["inventory"], self.world.get("equipment")))
         await self.say("çantamı çekiyorum", front={"kind": "wield", "item_name": "Macera Çantası"})
         self.assertEqual((self.world["inventory"], self.world.get("equipment")), before)
-        self.assertIn((None, "olmadı: istediğin silah çantanda yok; hiçbir şey çekilmedi (çantadaki silahlar: yok)."),
+        self.assertIn((None, "olmadı: istediğin silah çantanda yok, kını ya da kabzası da yok; hiçbir şey çekilmedi (çantadaki silahlar: yok)."),
                       self.notes())
 
     async def test_a_dagger_the_hand_will_not_take_is_an_olmadi_note_not_a_turn_error(self):
@@ -169,7 +169,7 @@ class WieldFront(JourneyCase):
         await self.use_package_c()
         await self.say("kılıcımı çekiyorum", front={"kind": "wield", "item_id": "none", "thing_word": "kılıcımı"})
         self.assertIsNone(self.held())
-        self.assertIn((None, "olmadı: istediğin silah çantanda yok; hiçbir şey çekilmedi "
+        self.assertIn((None, "olmadı: istediğin silah çantanda yok, kını ya da kabzası da yok; hiçbir şey çekilmedi "
                              "(çantadaki silahlar: Greatsword, Ağır Tatar Yayı & 20 Ok)."), self.notes())
 
     async def test_undo_puts_the_drawn_weapon_back_and_a_save_keeps_it(self):
@@ -305,7 +305,7 @@ class WieldFront(JourneyCase):
         return [
             ("combat_refusal", combat_refusal, "olmadı: " + refusals.REFUSAL_TEXT["invalid_ready_trigger"], "engine"),
             ("nothing_to_draw", nothing_to_draw,
-             "olmadı: istediğin silah çantanda yok; hiçbir şey çekilmedi (çantadaki silahlar: yok).", "narrator"),
+             "olmadı: istediğin silah çantanda yok, kını ya da kabzası da yok; hiçbir şey çekilmedi (çantadaki silahlar: yok).", "narrator"),
             ("weapon_not_owned", weapon_not_owned, "olmadı: Kılıç yok; yumrukla vuruyorsun.", "engine"),
             ("parcel_not_here", parcel_not_here, "olmadı: İade takımı burada değil", "narrator"),
             ("which_parcel", which_parcel, "olmadı: hangi işin eşyasını kastettiğin belli değil", "narrator"),

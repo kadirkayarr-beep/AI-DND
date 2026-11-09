@@ -20,7 +20,7 @@ REFUSAL_TEXT: dict[str, str] = {
     "reaction_pending": "Rakibin açık veriyor; önce bu ana ne yapacağına karar vermelisin.",
     "invalid_combat_target": "Burada öyle vurabileceğin biri yok.",
     "weapon_not_owned": "{weapon} yok; yumrukla vuruyorsun.",
-    "nothing_to_draw": "olmadı: istediğin silah çantanda yok; hiçbir şey çekilmedi (çantadaki silahlar: {have}).",
+    "nothing_to_draw": "olmadı: istediğin silah çantanda yok, kını ya da kabzası da yok; hiçbir şey çekilmedi (çantadaki silahlar: {have}).",
     "which_enemy": "Hangisine yaklaşıyorsun: {names}?",
     "spell_visibility_unknown": "Büyünün hedefini açıkça görmen gerekiyor; şu an bu büyü için yeterince net görünmüyor.",
     "parcel_not_here": "olmadı: {item} burada değil",

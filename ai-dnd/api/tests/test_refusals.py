@@ -46,7 +46,7 @@ class RefusalTexts(unittest.TestCase):
         self.assertEqual(text, session._turn_notes[0][1])
         refusals.note(session, "nothing_to_draw", have="yok")
         self.assertEqual(session._turn_notes[1],
-                         (None, "olmadı: istediğin silah çantanda yok; hiçbir şey çekilmedi (çantadaki silahlar: yok)."))
+                         (None, "olmadı: istediğin silah çantanda yok, kını ya da kabzası da yok; hiçbir şey çekilmedi (çantadaki silahlar: yok)."))
         self.assertFalse(session._turn_notes[1][1].startswith("olmadı: olmadı:"))   # the text already says it
 
     def test_the_plain_notes_of_the_job_paths_keep_their_words(self):
