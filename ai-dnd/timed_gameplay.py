@@ -847,10 +847,24 @@ def pass_time(session, text):
         duration = clock.until_named_hour(session.world_state, normalized) or clock.requested_duration(text) or _A_WHILE
     except ValueError:
         return None
+    rested = _rest_if_said(session, normalized, duration)
+    if rested is not None:
+        return rested  # "bir saat kısa dinleniyorum" read as a wait is still a rest
     advancement = _advance(session, duration, "explicit_wait")
     import bold_acts
     seen = bold_acts.fire_line(session.world_state)
     return _result("wait", f"{_time_passed_line(advancement)} {seen}".strip(), advancement)
+
+
+def _rest_if_said(session, normalized, duration):
+    """The rest a waiting line names (sleep of 8 hours or more, or 'dinlen'), or None: one branch for every wait owner."""
+    if ("uyu" in normalized or _SLEEPING.search(normalized)) and duration >= 8 * 3600:
+        return _take_rest(session, "long_rest", duration)
+    if "dinlen" in normalized:
+        if duration < 3600:
+            return _result("rest", "Kısa dinlenme için en az bir saat gerekir.", status="clarification", success=False)
+        return _take_rest(session, "long_rest" if duration >= 8 * 3600 else "short_rest", duration)
+    return None
 
 
 def _take_rest(session, kind, duration):
@@ -935,12 +949,9 @@ def resolve_input(session, text):
             if not explicit_wait_request(text):
                 return None  # Non-action atmosphere remains with its existing owner.
             duration = _UNNAMED_WAIT
-        if ("uyu" in normalized or _SLEEPING.search(normalized)) and duration >= 8 * 3600:
-            return _take_rest(session, "long_rest", duration)
-        if "dinlen" in normalized:
-            if duration < 3600:
-                return _result("rest", "Kısa dinlenme için en az bir saat gerekir.", status="clarification", success=False)
-            return _take_rest(session, "long_rest" if duration >= 8 * 3600 else "short_rest", duration)
+        rested = _rest_if_said(session, normalized, duration)
+        if rested is not None:
+            return rested
         observation = {"kind": "observe", "location_id": world["location"]} if passive_observation and not (
             journey and journey["status"] != "ARRIVED"
         ) else None

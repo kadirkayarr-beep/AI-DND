@@ -20,6 +20,7 @@ import world_threads
 from api.tests.test_front_proposal import FrontTable
 from api.tests.test_lasting_consequences import OneTownScene
 from api.tests.test_three_plays import PlayClient
+from api.tests.town_seed import fixed_town
 from api.tests.test_world_reactions import GuardsActOnWhatTheyKnow
 
 
@@ -204,6 +205,45 @@ class FrontLines(FrontScene):
         await self.line("köşedeki masaya geçip iki saat takılıyorum")
         self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 7200)
         self.assertEqual(self.routes()[-1]["route"], "front:wait")
+
+    async def rest_scene(self):
+        """A little hurt, no Long Rest on record. (Second Wind and Action Surge: the Fighter tests of the same path.)"""
+        with fixed_town(self, 2731):
+            await self.begin()
+        self.session.character["current_hp"] = max(1, self.session.character["max_hp"] - 3)
+        self.world.pop("last_long_rest_completed_at", None)
+
+    async def test_a_long_rest_read_as_a_wait_is_a_long_rest(self):
+        await self.rest_scene()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        self.client.front = {"kind": "wait"}
+        out = await self.line("Sekiz saat uyuyarak uzun dinlenme yapıyorum")
+        self.assertEqual(self.routes()[-1]["route"], "front:wait")
+        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"], out["narration"])
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 8 * 3600)
+        self.assertEqual(self.world["last_long_rest_completed_at"], clock + 8 * 3600)
+
+    async def test_a_short_rest_read_as_a_wait_is_a_short_rest(self):
+        await self.rest_scene()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        self.client.front = {"kind": "wait"}
+        out = await self.line("bir saat kısa dinleniyorum")
+        self.assertEqual(self.routes()[-1]["route"], "front:wait")
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 3600, out["narration"])
+        self.assertEqual(self.session.character["hit_dice"]["window_second"], clock + 3600, out["narration"])
+        self.assertNotIn("last_long_rest_completed_at", self.world)
+
+    async def test_a_second_long_rest_too_soon_read_as_a_wait_rests_nothing(self):
+        await self.rest_scene()
+        self.client.front = {"kind": "wait"}
+        await self.line("Sekiz saat uyuyarak uzun dinlenme yapıyorum")
+        rested_at = self.world["last_long_rest_completed_at"]
+        self.session.character["current_hp"] = max(1, self.session.character["max_hp"] - 3)
+        hurt = self.session.character["current_hp"]
+        out = await self.line("Sekiz saat uyuyarak uzun dinlenme yapıyorum")
+        self.assertIn("Daha yeni dinlenmiştin", out["narration"])
+        self.assertEqual(self.world["last_long_rest_completed_at"], rested_at)
+        self.assertEqual(self.session.character["current_hp"], hurt)
 
     async def test_hanging_about_with_no_length_is_a_while(self):
         await self.begin()

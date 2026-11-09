@@ -174,6 +174,18 @@ class Rest(unittest.TestCase):
             session.resolve_species_trait_action("short_rest")
         self.assertEqual(session.world_state["campaign_time"], clock)
 
+    def test_a_rest_line_the_reading_called_a_wait_rests(self):
+        """Dilim 3 Task 31: the wait owner (front:wait) takes the same rest branch as the timed grammar."""
+        import timed_gameplay
+        for line, uses in (("bir saat kısa dinleniyorum", {"second_wind_spent": 1, "action_surge_spent": 0}),
+                           ("Sekiz saat uyuyarak uzun dinlenme yapıyorum", {"second_wind_spent": 0, "action_surge_spent": 0})):
+            with self.subTest(line=line):
+                session = created(2)
+                self.spent(session)
+                result = timed_gameplay.pass_time(session, line)
+                self.assertEqual(result["action"], "rest", result["direct_response"])
+                self.assertEqual(session.character["fighter_uses"], uses)
+
 
 class ActionSurge(unittest.TestCase):
     def test_it_needs_level_two(self):
