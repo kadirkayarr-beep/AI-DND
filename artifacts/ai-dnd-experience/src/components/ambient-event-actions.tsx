@@ -17,6 +17,12 @@ export function isActiveBlueAmbientEvent(
   event: GameSceneAmbientEvent | null | undefined,
   referents: GameSceneReferent[],
 ) {
+  if (event?.actionable) {
+    return event.event_type === 'BLUE'
+      && Boolean(event.instance_id)
+      && event.actionable.can_interact === true;
+  }
+  // Older server without the engine's verdict: fall back to the presented referent.
   return Boolean(
     event
       && event.event_type === 'BLUE'
@@ -179,7 +185,7 @@ export function AmbientEventActionPanel({
           data-testid="ambient-event-result"
           data-status={resultForEvent.status}
         >
-          <strong>{statusLabels[resultForEvent.status]}</strong>
+          <strong>{resultForEvent.message ?? statusLabels[resultForEvent.status]}</strong>
         </div>
       )}
     </section>

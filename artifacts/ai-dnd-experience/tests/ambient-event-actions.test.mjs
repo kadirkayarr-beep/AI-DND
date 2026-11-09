@@ -219,3 +219,38 @@ test('persisted applied outcomes are reconstructed only from the server journal'
   );
   assert.equal(findPersistedAmbientEventResult(state, 'another-event'), null);
 });
+test('the buttons follow the engine: actionable.can_interact decides, and presented is only the fallback for an older server', () => {
+  const withActionable = (actionable) => renderPanel({
+    ...basePanelProps,
+    event: { ...blueEvent, actionable },
+  });
+  const hasButtons = (html) => /data-testid="button-ambient-action-interact"/.test(html);
+
+  assert.equal(hasButtons(withActionable({ can_interact: false, reason: 'in_combat' })), false);
+  assert.equal(hasButtons(withActionable({ can_interact: true, reason: null })), true);
+  assert.equal(hasButtons(renderPanel(basePanelProps)), true);
+  // Not presented but the engine says yes: the engine wins.
+  assert.equal(isActiveBlueAmbientEvent(
+    { ...blueEvent, actionable: { can_interact: true, reason: null } },
+    [{ ...presentedReferent, lifecycle: 'promoted' }],
+  ), true);
+});
+
+test('a refusal shows the engine message when there is one', () => {
+  const html = renderPanel({
+    ...basePanelProps,
+    result: {
+      event_instance_id: blueEvent.instance_id,
+      action_id: '00000000-0000-4000-8000-000000000053',
+      status: 'REJECTED',
+      reason_code: 'event_expired',
+      transition_id: null,
+      canonical_event_id: null,
+      message: 'Onlar çoktan dağıldı.',
+    },
+  });
+
+  assert.match(html, /Onlar çoktan dağıldı\./);
+  assert.doesNotMatch(html, /Şu anda buna müdahale edemiyorsun/);
+  assert.doesNotMatch(html, /event_expired/);
+});
