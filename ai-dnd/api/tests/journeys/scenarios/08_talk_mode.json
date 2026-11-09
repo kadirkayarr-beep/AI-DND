@@ -64,9 +64,7 @@
     {
       "say": "odama gidip uyuyorum",
       "independent": true,
-      "expect": {"hp": 28, "oda": true, "kip": {"active": false, "interlocutor": null}},
-      "known_broken": [41],
-      "broken_because": ["kip.active: beklenen False, gözlenen True", "kip.interlocutor: beklenen yok, gözlenen {'id': 'barman', 'name': 'Marek', 'role': 'Barmen'}"]
+      "expect": {"hp": 28, "oda": true, "kip": {"active": false, "interlocutor": null}}
     },
     {
       "say": "Marek'e günaydın diyorum",
@@ -84,10 +82,10 @@
     {
       "say": "satıcıya yaklaşıp ne sattığını soruyorum",
       "independent": true,
-      "script": {"intent": {"intent": "talk", "action": "talk", "completion": "complete"}},
-      "expect": {"kip": {"active": false, "interlocutor": null}},
-      "known_broken": [15],
-      "broken_because": ["kip.active: beklenen False, gözlenen True", "kip.interlocutor: beklenen yok, gözlenen {'id': 'barman', 'name': 'Marek', 'role': 'Barmen'}"]
+      "script": {"intent": {"intent": "talk", "action": "talk",
+                            "target": {"type": "npc", "reference": "satıcı", "npc_id": null, "evidence_quote": "satıcı"},
+                            "completion": "complete"}},
+      "expect": {"kip": {"active": false, "interlocutor": null}, "anlaticiya_giden": "görünmüyor"}
     },
     {
       "say": "Marek'e selam veriyorum",

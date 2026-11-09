@@ -4,14 +4,18 @@ and the engine and the API read the conversation through one rule, one list and 
 from __future__ import annotations
 
 import copy
+import os
 import unittest
+from unittest.mock import call, patch
 
+import front_proposal
 import game
 import scheduled_events
 import talk_mode
+import timed_gameplay
 from api import serializers
 from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, ScriptedModel, _front_setting, apply_setup
-from api.tests.journeys.schema import load_scenario
+from api.tests.journeys.schema import Step, load_scenario
 
 
 def _world(turn=3, location="inn", combat=False, **flags):
@@ -72,6 +76,30 @@ class TalkModeRules(unittest.TestCase):
         a["active_npc_id"] = "x"
         self.assertEqual(b, {"last_npc_id": None, "active_npc_id": None, "active_npc_until_turn": -1})
 
+    def test_a_named_person_who_is_not_here_gets_nobody(self):
+        w = _world()
+        a = talk_mode.addressee(w, [MAREK], named_word="satıcı", active=None, last_id="barman")
+        self.assertEqual((a.status, a.npc, a.word), ("nobody_here", None, "satıcı"))
+        a = talk_mode.addressee(w, [MAREK], target_id="barman", named_word="satıcı")
+        self.assertEqual((a.status, a.npc["id"]), ("person", "barman"))      # a target on the screen wins
+        a = talk_mode.addressee(w, [MAREK], named_id="barman", named_word="satıcı")
+        self.assertEqual((a.status, a.npc["id"]), ("person", "barman"))
+
+    def test_a_missing_reference_keeps_todays_order(self):
+        w = _world()
+        for word in (None, "", "   ", 7):
+            with self.subTest(word=word):
+                self.assertEqual(talk_mode.addressee(w, [MAREK], named_word=word, last_id="barman").npc["id"], "barman")
+        self.assertEqual(talk_mode.addressee(w, [MAREK], named_word=None).npc["id"], "barman")   # the one person here
+        self.assertEqual(talk_mode.addressee(w, [], named_word=None).status, "none_named")
+
+    def test_the_active_person_comes_before_the_last_one_and_the_only_one(self):
+        w = _world()
+        other = {"id": "guest", "name": "Yolcu", "location": "inn"}
+        self.assertEqual(talk_mode.addressee(w, [MAREK, other], active="guest", last_id="barman").npc["id"], "guest")
+        self.assertEqual(talk_mode.addressee(w, [MAREK, other], last_id="barman").npc["id"], "barman")
+        self.assertEqual(talk_mode.addressee(w, [MAREK, other]).status, "none_named")
+
 
 class TalkModeThroughTheGame(JourneyCase):
     """Scenario 08's inn (Marek the barman) through the real app."""
@@ -86,13 +114,17 @@ class TalkModeThroughTheGame(JourneyCase):
             game._ACTIVE_SESSION.reset(self._token)
         await super().asyncTearDown()
 
-    async def session_talking_to_marek(self):
+    async def session_talking_to_marek(self, extra_people=None):
         """Scenario 08 setup, then "Marek'e selam veriyorum"; the engine is bound to the session afterwards."""
         if self._token is not None:
             game._ACTIVE_SESSION.reset(self._token)
             self._token = None
         campaign = await self._journey_campaign(self.scenario.setup)
         apply_setup(self, campaign, self.scenario.setup)
+        self.session_id = self.last_session_id = campaign["session_id"]
+        world = self.manager.get(self.session_id).game_session.world_state
+        for person in extra_people or []:
+            world["npcs"].append({"location": world["location"], **person})
         with _front_setting(self.scenario.setup):
             failures = await self._play(campaign["session_id"], self.scenario.steps[0], ScriptedModel())
         self.assertEqual(failures, [])
@@ -100,6 +132,37 @@ class TalkModeThroughTheGame(JourneyCase):
         self.assertEqual(session.world_state["flags"]["active_npc_id"], "barman")
         self._token = game._ACTIVE_SESSION.set(session)
         return session
+
+    async def play(self, session, line, front=None, intent=None):
+        """One scripted turn of the session; a reading (`front`) switches the front reading on for it."""
+        script = {key: value for key, value in (("front", front), ("intent", intent)) if value is not None}
+        step = Step(say=line, command=None, economic_action=None, combat_action=None, script=script or None,
+                    expect={}, known_broken=(), real_chain=False, independent=True)
+        flag = {front_proposal.FLAG: "1"} if front is not None else {}
+        with patch.dict(os.environ, flag):
+            failures = await self._play(self.session_id, step, ScriptedModel())
+        self.assertEqual(failures, [])
+
+    @staticmethod
+    def notes(session):
+        return list(getattr(session, "_turn_notes", None) or [])
+
+    def narrator_input(self, session):
+        return self.last_narrator_input or ""
+
+    @staticmethod
+    def sleep_after_walk_args(session):
+        # the path "odama gidip uyuyorum" takes once the walk to the room is done: the room is already rented
+        walked = {"narration": "", "action_result": {"action": "lodging", "status": "rented"}}
+        return walked, "odama gidip uyuyorum", session.world_state["location"]
+
+    @staticmethod
+    def kill_player(session):
+        # the way scenario 10 ends: the death state says dead, and ensure_death_state's dead branch settles it
+        session.character["current_hp"] = 0
+        session.world_state["player_combat_status"] = "dead"
+        session.world_state.setdefault("death_state", game._death_state_defaults())["dead"] = True
+        game.ensure_death_state()
 
     @staticmethod
     def npc(session, npc_id):
@@ -143,6 +206,103 @@ class TalkModeThroughTheGame(JourneyCase):
         flags = session.world_state["flags"]
         self.assertEqual((flags["active_npc_id"], flags["active_npc_until_turn"], flags["last_npc_id"]),
                          (None, -1, None))
+
+    async def test_sleeping_closes_the_talk(self):
+        session = await self.session_talking_to_marek()
+        timed_gameplay._take_rest(session, "long_rest", 8 * 3600)          # the real rest entry, same room
+        self.assertIsNone(game._active_interlocutor())
+        self.assertIs(serializers.serialize_session_state(session)["conversation"]["active"], False)
+        self.assertIsNone(session.world_state["flags"]["last_npc_id"])
+
+    async def test_sleep_after_a_walk_closes_the_talk(self):
+        session = await self.session_talking_to_marek()
+        game._sleep_after_walk(*self.sleep_after_walk_args(session))       # the path "odama gidip uyuyorum" takes
+        self.assertIsNone(game._active_interlocutor())
+
+    async def test_a_short_wait_keeps_the_talk(self):
+        session = await self.session_talking_to_marek()
+        await self.play(session, "biraz bekliyorum", front={"kind": "unclear"})
+        self.assertEqual(game._active_interlocutor()["id"], "barman")
+
+    async def test_the_main_talk_path_gives_nobody_for_an_absent_named_person(self):
+        line = "satıcıya yaklaşıp ne sattığını soruyorum"
+        # (i) talk open: Marek active inside the window; today the active/last branch answers Marek
+        session = await self.session_talking_to_marek()
+        flags = session.world_state["flags"]
+        self.assertGreaterEqual(flags["active_npc_until_turn"], flags["turn_index"])
+        found = game.resolve_npc_reference(line, force_dialogue=True, allow_active_fallback=True, named_word="satıcı")
+        self.assertEqual(found, {"status": "none", "npc": None, "nobody_here": "satıcı"})
+        self.assertEqual(flags["active_npc_id"], "barman")                 # the resolver writes nothing; the turn's _nobody_here closes
+        # (ii) after "konuşmayı bitiriyorum": close("ended") writes active_npc_until_turn = -1, so last_npc_id no
+        # longer counts on this path; Marek is scenario 08's only person, so today's one-person fallback answers him
+        await self.play(session, "konuşmayı bitiriyorum")
+        self.assertEqual((flags["active_npc_id"], flags["active_npc_until_turn"], flags["last_npc_id"]),
+                         (None, -1, "barman"))
+        self.assertEqual([npc["id"] for npc in game._conversation_npcs()], ["barman"])
+        found = game.resolve_npc_reference(line, force_dialogue=True, allow_active_fallback=True, named_word="satıcı")
+        self.assertEqual(found, {"status": "none", "npc": None, "nobody_here": "satıcı"})
+        self.assertIsNone(flags["active_npc_id"])
+        found = game.resolve_npc_reference(line, force_dialogue=True, allow_active_fallback=True)
+        self.assertEqual(found["npc"]["id"], "barman")                     # no word from the model: today's one-person fallback
+
+    async def test_the_job_path_gives_nobody_too(self):
+        session = await self.session_talking_to_marek()
+        session._named_word = "satıcı"
+        self.assertIsNone(game._thread_person("satıcıya soruyorum", None))
+
+    async def test_nobody_here_tells_the_narrator_who_is(self):
+        session = await self.session_talking_to_marek()
+        await self.play(session, "konuşmayı bitiriyorum")
+        await self.play(session, "satıcıya yaklaşıp ne sattığını soruyorum",
+                        intent={"intent": "talk", "action": "ask",
+                                "target": {"type": "npc", "reference": "satıcı", "npc_id": "", "evidence_quote": "satıcı"}})
+        self.assertIn((None, "burada 'satıcı' diye biri görünmüyor; görünenler: Marek (Barmen)"), self.notes(session))
+        self.assertIn("görünmüyor", self.narrator_input(session))
+        self.assertIsNone(game._active_interlocutor())
+
+    async def test_addressing_an_absent_person_closes_the_old_talk_for_the_next_turn(self):
+        # J-014 #4 (tasarım karar 57): the talk is open with Marek, the line names a vendor who is not here
+        absent = {"intent": "talk", "action": "ask",
+                  "target": {"type": "npc", "reference": "satıcı", "npc_id": "", "evidence_quote": "satıcı"}}
+        plain = {"intent": "talk", "action": "ask", "target": {"type": "none", "reference": ""}}
+        # (a) two people here (Marek and a guest): the next unnamed line is not Marek's by default
+        session = await self.session_talking_to_marek(extra_people=[{"id": "guest", "name": "Yolcu", "distance_ft": 3}])
+        with patch.object(talk_mode, "close", wraps=talk_mode.close) as closing:
+            await self.play(session, "satıcıya yaklaşıp ne sattığını soruyorum", intent=absent)
+        self.assertEqual(closing.call_args_list, [call(session.world_state, "addressed_absent")])
+        flags = session.world_state["flags"]
+        self.assertEqual({k: flags[k] for k in talk_mode.FIELDS},
+                         {"active_npc_id": None, "active_npc_until_turn": -1, "last_npc_id": None})
+        self.assertIs(serializers.serialize_session_state(session)["conversation"]["active"], False)
+        self.assertEqual(game.resolve_npc_reference("peki ne kadar?", force_dialogue=True,
+                                                    allow_active_fallback=True)["status"], "ambiguous")
+        self.assertIsNone(game._thread_person("peki ne kadar?", None))     # the job path no longer falls to last_npc_id
+        await self.play(session, "peki ne kadar?", intent=plain)
+        # the unnamed line goes to whoever stands nearest (the guest), not to Marek by the old talk
+        self.assertEqual(game._active_interlocutor()["id"], "guest")
+        # (b) Marek alone: today's one-person fallback answers the unnamed line, as a fresh open
+        session = await self.session_talking_to_marek()
+        await self.play(session, "satıcıya yaklaşıp ne sattığını soruyorum", intent=absent)
+        self.assertIs(serializers.serialize_session_state(session)["conversation"]["active"], False)
+        self.assertEqual(len([n for n in self.notes(session) if "görünmüyor" in n[1]]), 1)   # both callers, one note
+        await self.play(session, "peki sen ne satıyorsun?", intent=plain)
+        flags = session.world_state["flags"]
+        self.assertEqual(flags["active_npc_id"], "barman")
+        self.assertGreaterEqual(flags["active_npc_until_turn"], flags["turn_index"])
+        self.assertIs(serializers.serialize_session_state(session)["conversation"]["active"], True)
+
+    async def test_death_and_walking_out_close_through_talk_mode(self):
+        session = await self.session_talking_to_marek()
+        with patch.object(talk_mode, "close", wraps=talk_mode.close) as closing:
+            self.kill_player(session)          # the way scenario 10_death kills: ends in ensure_death_state's dead branch
+            self.assertIn(call(session.world_state, "death"), closing.call_args_list)
+        self.assertEqual(game.ensure_death_state()["dead"], True)
+        self.assertEqual({k: session.world_state["flags"][k] for k in talk_mode.FIELDS},
+                         {"active_npc_id": None, "active_npc_until_turn": -1, "last_npc_id": None})
+        session = await self.session_talking_to_marek()
+        with patch.object(talk_mode, "close", wraps=talk_mode.close) as closing:
+            game.commit_location_change(self.other_place(session))
+            self.assertIn(call(session.world_state, "moved"), closing.call_args_list)
 
     async def test_serializer_and_game_agree(self):
         session = await self.session_talking_to_marek()

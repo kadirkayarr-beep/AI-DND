@@ -79,7 +79,7 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 # ``target_kind`` place of the town; a trouble of the town is opened at that place by the product's own opener, so the
 # letter, once read, points at something real. It is taken by a step (one town job at a time: after the first is done).
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
-                        "current_hp", "seed", "front_proposal", "death_mode", "job", "letter"})
+                        "current_hp", "seed", "front_proposal", "death_mode", "job", "letter", "room"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
 LETTER_KEYS = frozenset({"owner", "pay", "line", "noun", "recipient", "target_kind"})
@@ -368,6 +368,10 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         case.setup_job_id = _give_job(world, setup["job"])
     if "letter" in setup:
         _give_letter(world, setup["letter"])
+    if setup.get("room") is True:  # an inn room already held here for a day (what a confirmed room card leaves)
+        import bold_acts
+        now = world.get("campaign_time", {}).get("elapsed_seconds", 0)
+        world["flags"]["inn_room"] = {"place": world["location"], "until": now + bold_acts._ROOM_DAY}
     if "seed" in setup:
         session.rng.seed(setup["seed"])
     case.manager.save_campaign(campaign["campaign_id"])

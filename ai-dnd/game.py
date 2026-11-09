@@ -3140,6 +3140,7 @@ def ensure_death_state():
             raise ValueError("Dead player state cannot have positive hit points.")
         state["dead"] = True
         world_state["player_combat_status"] = "dead"
+        talk_mode.close(world_state, "death")
         if state["mode"] == "IRONMAN":
             state["terminal"] = True
     elif character.get("current_hp", 0) <= 0 and status == "active":
@@ -6361,9 +6362,11 @@ def _settle_address(resolution, player_input):
 
 
 def resolve_npc_reference(
-    player_input, force_dialogue=False, allow_active_fallback=True
+    player_input, force_dialogue=False, allow_active_fallback=True, *, named_word=None
 ):
     world_state = _session().world_state
+    if named_word is None:
+        named_word = getattr(_session(), "_named_word", None)  # this turn's reading, whoever asks
     text = _normalize_turkish_typos(player_input)
     available = _conversation_npcs() if force_dialogue else active_npcs()
     matches = []
@@ -6442,6 +6445,10 @@ def resolve_npc_reference(
         absent = _absent_described_person(player_input, available)
         if absent:
             return {"status": "none", "npc": None, "absent": absent}
+        if isinstance(named_word, str) and named_word.strip():
+            # The reading named someone who is not here: nobody, never the last one spoken to (the turn closes the talk)
+            if talk_mode.addressee(world_state, available, named_word=named_word).status == "nobody_here":
+                return {"status": "none", "npc": None, "nobody_here": named_word.strip()}
     if allow_active_fallback and not matches and not explicit_unresolved_reference and not object_inspection and (
         force_dialogue
         or is_npc_dialogue_input(player_input)
@@ -7802,6 +7809,15 @@ def _validated_scene_npc_id(raw_intent, player_input):
     )
 
 
+def _named_word_of(raw_intent):
+    """The plain word the old reading gave for a person ("satıcı") when it validated none; None when it named no one."""
+    target = raw_intent.get("target") if isinstance(raw_intent, dict) else None
+    if not isinstance(target, dict) or target.get("type") != "npc" or _validated_local_person_proposal(raw_intent):
+        return None
+    reference = target.get("reference")
+    return reference.strip()[:80] or None if isinstance(reference, str) else None
+
+
 def _validated_local_person_proposal(raw_intent):
     """Return bounded NPC fields; they remain untrusted until canonical validation."""
     proposal = raw_intent.get("local_person_proposal") if isinstance(raw_intent, dict) else None
@@ -8290,6 +8306,21 @@ def _offer_terms_shown(world, npc, player_input, shown):
         return None
 
 
+def _nobody_here(word):
+    """The line named someone who is not here: tell the narrator who is, and end the old talk. Once per turn."""
+    session = _session()
+    word = str(word).strip()
+    here = active_npcs()[:3]
+    note = (None, f"burada '{word}' diye biri görünmüyor; görünenler: "
+                  f"{living_world.public_scene_people(here) if here else 'kimse'}")
+    if getattr(session, "_turn_notes", None) is None:
+        session._turn_notes = []
+    if note in session._turn_notes:
+        return
+    session._turn_notes.append(note)
+    talk_mode.close(session.world_state, "addressed_absent")
+
+
 def _thread_person(player_input, target_id):
     """Who this line is for, if anyone is here to answer for a job."""
     people = active_npcs()
@@ -8298,6 +8329,10 @@ def _thread_person(player_input, target_id):
     named = _explicit_addressee(player_input, people)
     if isinstance(named, dict):
         return named
+    word = getattr(_session(), "_named_word", None)
+    if talk_mode.addressee(_session().world_state, people, named_word=word).status == "nobody_here":
+        _nobody_here(word)
+        return None
     active = _active_interlocutor()
     if isinstance(active, dict) and any(npc.get("id") == active.get("id") for npc in people):
         return active
@@ -18509,6 +18544,10 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         if described is not None:
             route = {"kind": "speak_to", "id": described["id"]}
             _session()._set_scene_active_npc(described, world.get("flags", {}).get("turn_index", 0))
+        else:
+            session._named_word = word
+            if route is not None and route["kind"] == "speak_to":
+                route = {"kind": "talk_around"}  # the repair gave the line to whoever was at hand; the reading named another
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
         return None
@@ -19498,6 +19537,7 @@ def _sleep_after_walk(walked, player_input, place_before, scene_plan=None):
     slept = timed_gameplay.resolve_input(_session(), player_input)
     if slept is not None:
         walked["narration"] = f"{walked.get('narration') or ''} {slept['direct_response']}".strip()
+        talk_mode.close(world_state, "rest")
 
 
 def _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id):
@@ -20930,6 +20970,8 @@ def _run_player_turn_internal(
             selected_npc = _validated_scene_npc_id(
                 preparsed_scene_intent, player_input
             )
+            if selected_npc is None and _named_word_of(preparsed_scene_intent):
+                _session()._named_word = _named_word_of(preparsed_scene_intent)
             if selected_npc is not None:
                 canonical_npc = next(
                     (
@@ -20960,6 +21002,8 @@ def _run_player_turn_internal(
             npc_resolution = resolve_npc_reference(
                 player_input, force_dialogue=True, allow_active_fallback=True
             )
+        if npc_resolution.get("nobody_here"):
+            _nobody_here(npc_resolution["nobody_here"])
         if npc_resolution["status"] == "ambiguous" and not character_reply:
             if (
                 interaction_mode not in {"say", "ask_dm"}
@@ -21020,6 +21064,12 @@ def _run_player_turn_internal(
         intent_model_calls = scene_preparse_model_calls
         intent_source = "model"
         classifier_unusable = bool(preparsed_scene_intent.get("classifier_unusable"))
+        named_word = _named_word_of(preparsed_scene_intent)
+        if named_word and _validated_scene_npc_id(preparsed_scene_intent, player_input) is None:
+            # The reading names someone who is not here: the fallback's person does not answer for them
+            _session()._named_word = named_word
+            _nobody_here(named_word)
+            npc_target = None
 
     if (
         target_id is None

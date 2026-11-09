@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Literal
 
 FIELDS = ("active_npc_id", "active_npc_until_turn", "last_npc_id")
 WINDOW_TURNS = 6
@@ -89,3 +91,31 @@ def current(world: dict, people: list[dict] | None = None) -> dict | None:
     return next((npc for npc in (people_here(world) if people is None else people)
                  if isinstance(npc, dict) and npc.get("id") == active_id and npc.get("location") == here
                  and npc.get("combat_status") not in {"dead", "unconscious"}), None)
+
+
+@dataclass(frozen=True)
+class Addressee:
+    status: Literal["person", "nobody_here", "none_named"]
+    npc: dict | None
+    word: str | None
+
+
+def addressee(world: dict, people: list[dict], *, target_id: str | None = None, named_id: str | None = None,
+              named_word: str | None = None, active: str | None = None, last_id: str | None = None) -> Addressee:
+    """Who a line is for. A target on the screen or a person the line names wins; a word for someone who is not among
+    ``people`` means nobody is here (no talk opens); with no word at all, today's order: the active person, the last
+    one spoken to, the one person here. ``active`` and ``last_id`` are what the caller has already checked."""
+    def listed(npc_id):
+        if not isinstance(npc_id, str) or not npc_id:
+            return None
+        return next((npc for npc in people if isinstance(npc, dict) and npc.get("id") == npc_id), None)
+
+    found = listed(target_id) or listed(named_id)
+    if found is not None:
+        return Addressee("person", found, None)
+    if isinstance(named_word, str) and named_word.strip():
+        return Addressee("nobody_here", None, named_word.strip())
+    found = listed(active) or listed(last_id)
+    if found is None and len(people) == 1 and isinstance(people[0], dict):
+        found = people[0]
+    return Addressee("person", found, None) if found is not None else Addressee("none_named", None, None)
