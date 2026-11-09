@@ -18817,9 +18817,13 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                  and front_proposal.names_coin(player_input))
     served = (typed_economic and combat_action is None and check_feature is None and not fighting
               and shop_trade.is_vendor(world, next((n for n in active_npcs() if n.get("id") == target_id), None)))
+    # In a fight, a line about the one chosen there that the fight's own words did not hear is read for a blow only
+    # ('tatar yayımı bacağına doğrultup ateş ediyorum'); anything else it says still goes the old way.
+    fought = (fighting and target_id is not None and interaction_mode not in {"say", "ask_dm"}
+              and target_id in world.get("combat", {}).get("participants", []))
     if (combat_action is not None or check_feature is not None
             or (interaction_mode in {"say", "ask_dm"} and not (said_coin or served))
-            or (target_id is not None and not typed_economic)):
+            or (target_id is not None and not typed_economic and not fought)):
         front_proposal.note(session, "skipped:typed")
         return None
     journey = world.get("journey")
@@ -18909,7 +18913,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         # going to someone in the fight is a walk toward them: the reply's other half carries it as combat movement
         session._front_approach = raw_front["person_id"]
         held.update(intent="travel", action="approach", target={"type": "npc", "reference": ""})
-    if fighting and (route is None or route["kind"] != "strike"):
+    if fighting and (route is None or route["kind"] != "strike" or (fought and route["id"] != target_id)):
         return None  # in a fight the reading is only asked for a blow the fight's own words did not hear
     word = front_proposal.person_word_in(reply)
     if word and (route is None or route["kind"] in {"speak_to", "talk_around"}):
@@ -19233,7 +19237,9 @@ def _blow_in_the_words(player_input, target_id):
     """A reading picks who; whether it starts a fight needs the player's own words, or a fight already there."""
     spoken = living_world._text_outside_quotes(str(player_input))
     target = next((npc for npc in active_npcs() if npc.get("id") == target_id), None)
-    return bool((isinstance(target, dict) and target.get("hostile")) or _has_explicit_attack_verb(spoken)
+    combat = _session().world_state.get("combat", {})
+    fought = bool(combat.get("active")) and target_id in combat.get("participants", [])
+    return bool((isinstance(target, dict) and target.get("hostile")) or fought or _has_explicit_attack_verb(spoken)
                 or _BLOW_WORDS.search(_normalize_turkish_typos(spoken)))
 
 

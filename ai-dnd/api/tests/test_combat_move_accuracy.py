@@ -97,6 +97,20 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertIn(f"DC {save['dc']}", reply["narration"])
         self.assertIn(str(save["total"]), reply["narration"])
 
+    async def test_a_crossbow_fired_at_the_one_being_fought_rolls(self):
+        # H132: in a fight, with the target chosen, 'tatar yayımı ... ateş ediyorum' went to the narrator: no roll.
+        await self.begin()
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"], "thing_word": "yumruk"}
+        first = await self.line("Marek'e bir yumruk atıyorum", "Ne yapıyorsun sen?")
+        self.assertEqual(first["turn_outcome"]["action"], "attack", first["narration"])
+        self.assertTrue(self.world["combat"]["active"], first["narration"])
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+        reply = await self.line("Ağır tatar yayımı Marek'in bacağına doğrultup ateş ediyorum", target=True)
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(reply["combat_result"]["weapon"], "Heavy Crossbow")
+        self.assertIsNotNone(reply["combat_result"]["attack_roll"])
+
+
 class TheFightsOwnMoves(unittest.TestCase):
     def fight(self):
         session, npc = lifecycle.ready()
