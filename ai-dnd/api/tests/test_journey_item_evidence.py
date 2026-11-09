@@ -3,7 +3,7 @@
 HTTP refusals fail a scenario step rather than trivially passing empty-text checks.
 Task15 now materializes an unseeded arrow pack once; a separate loose-arrow setup
 and a genuinely empty bow pin both positive and negative accounting paths.
-Existing eating/drinking, Greatsword and initial-purse known breaks stay explicit.
+Existing eating/drinking and initial-purse known breaks stay explicit; the Greatsword one is fixed (Dilim 2 Task 14).
 """
 
 from __future__ import annotations
@@ -59,22 +59,21 @@ class ItemJourneyEvidence(JourneyCase):
         self.assertTrue(failure.startswith("HTTP 400: "), failure)
         self.assertIn(f'"code":"{code}"', failure)
 
-    async def test_a_refused_greatsword_attack_is_a_failed_step_not_an_empty_pass(self):
-        """05 steps 2-3 (item 39): the panel attack and the Ready attack are refused with no_weapon. The
-        refusal itself fails the step; the yasak_metin needles are never the reason (no narration)."""
+    async def test_the_greatsword_is_drawn_by_the_panel_attack_and_the_ready_blow_lands(self):
+        """05 (item 39, Dilim 2 Task 14): the panel attack draws the Greatsword and the Ready attack is accepted and
+        lands; every turn is a 200 with real narration, and no turn carries no_weapon."""
         results, turns = await self.play(GREATSWORD)
-        self.assertEqual([result.status for result in results],
-                         ["pass", "known_broken", "known_broken", "pass"], results)
-        self.assertEqual([status for status, _ in turns], [200, 400, 400, 200])
-        for result in results[1:3]:
-            # The refusal is the only failure: savas stays true and the needles find no narration, so
-            # without the HTTP failure the step would pass on an empty text.
-            self.assertEqual(len(result.failures), 1, result)
-            self.assert_refused(result, "no_weapon")
-            self.assertEqual(result.narration, "")
-        # The spoken attack draws the Greatsword and hits: the conversation path is green today.
-        self.assertTrue(self.last_observations[3]["savas"])
-        self.assertNotIn("no_weapon", json.dumps(turns[3][1], ensure_ascii=False))
+        self.assertEqual([result.status for result in results], ["pass"] * 5, results)
+        self.assertEqual([status for status, _ in turns], [200, 200, 200, 200, 200])
+        for result in results:
+            self.assertEqual(result.failures, (), result)
+            self.assertNotEqual(result.narration, "", result)   # a pass on real text, never on an empty one
+        self.assertTrue(results[1].narration.startswith("Çantandan çektiğin Greatsword ile vuruyorsun. "), results[1])
+        self.assertEqual([observed["elinde"] for observed in self.last_observations],
+                         [None, "Greatsword", "Greatsword", "Greatsword", "Greatsword"])
+        self.assertTrue(all(observed["savas"] for observed in self.last_observations))
+        for _, body in turns:
+            self.assertNotIn("no_weapon", json.dumps(body, ensure_ascii=False))
 
     async def test_the_bow_shot_materializes_the_pack_once(self):
         """Task15: the pack supplies 20 arrows once, the shot leaves 19; old consume breaks remain."""

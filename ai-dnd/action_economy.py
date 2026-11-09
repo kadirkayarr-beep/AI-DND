@@ -555,9 +555,7 @@ def prepare_ready(session, actor, trigger, response):
     if not isinstance(response, dict):
         fail("invalid_ready_response", "Ready needs one Action or movement response.")
     if response.get("kind") == "attack" and set(response) == {"kind", "target_id"}:
-        target(session, response["target_id"])
-        if not session.find_weapon_in_inventory("Kılıç")[0]:
-            fail("no_weapon", "No configured weapon is available.")
+        target(session, response["target_id"])  # the weapon is chosen when the attack lands (gear; a punch always exists)
     elif response.get("kind") == "move" and set(response) == {"kind", "distance_ft"}:
         cost = response["distance_ft"] if type(response["distance_ft"]) is int else 0
         if actor_data(session, actor).get("prone") or "prone" in conditions(session, actor):
@@ -646,11 +644,16 @@ def react(session, opportunity_id, actor="player", *, reckless_attack=None):
     if response["kind"] == "attack":
         npc = target(session, response["target_id"])
         weapon, data = session.find_weapon_in_inventory(session.world_state.get("equipment", {}).get("main_hand"))
+        choice, line = {} if reckless_attack is None else {"reckless_attack": reckless_attack}, None
         if not weapon:
-            fail("no_weapon", "No configured weapon is available.")
+            weapon, data, instance, line = _gear_weapon(session)
+            if instance:
+                choice["weapon_instance_id"] = instance
         with executing(session, "reaction", actor):
             result = session.resolve_attack("Saldırıyorum.", weapon, data, npc, origin="reaction",
-                                            attack_choice={} if reckless_attack is None else {"reckless_attack": reckless_attack})
+                                            attack_choice=choice)
+        if line:
+            result["weapon_line"] = line
     else:
         distance = response["distance_ft"]
         cost = distance * (2 if actor_data(session, actor).get("prone") or "prone" in conditions(session, actor) else 1)
@@ -720,6 +723,16 @@ def attacks_per_action(session, actor):
     return value
 
 
+def _gear_weapon(session):
+    """An empty hand: gear draws the first bag weapon (the line says which), or it is a punch."""
+    import gear
+    pick = gear.attack_weapon(session.world_state)
+    if pick.item is None:
+        return "unarmed", None, None, None
+    line = f"Çantandan çektiğin {gear.label(pick.data)} ile vuruyorsun." if pick.kind == "drawn" else None
+    return gear.label(pick.data), pick.data, pick.item.get("item_id"), line
+
+
 def attack_step(session, identity, continuation=False, *, weapon_id=None, choice=None, origin=None):
     validate_actor(session)
     r = ensure(session)["player"]
@@ -743,10 +756,17 @@ def attack_step(session, identity, continuation=False, *, weapon_id=None, choice
         choice = {**(choice or {}), "weapon_instance_id": selected}
     if weapon_id == "unarmed":
         weapon, data = "unarmed", None
+    line = None
+    if not weapon and not selected:  # an empty hand and no weapon asked for: gear draws one, or it is a punch
+        weapon, data, instance, line = _gear_weapon(session)
+        if instance:
+            choice = {**(choice or {}), "weapon_instance_id": instance}
     if not weapon:
         fail("no_weapon", "No configured weapon is available.")
     result = session.resolve_attack("Saldırıyorum.", weapon, data, npc,
                                    attack_choice=choice, origin=origin)
+    if line:
+        result["weapon_line"] = line
     if continuation:
         ongoing["remaining_attacks"] -= 1
     elif extra:

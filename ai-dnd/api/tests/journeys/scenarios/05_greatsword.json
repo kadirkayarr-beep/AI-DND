@@ -62,10 +62,8 @@
       "expect": {"savas": true}
     },
     {
-      "combat_action": {"steps": [{"kind": "attack", "target_id": "bandit"}]},
-      "expect": {"savas": true, "yasak_metin": ["uygun bir silahın yok", "bir silah yok", "kılıç yok"]},
-      "known_broken": [39],
-      "broken_because": ["no_weapon"]
+      "combat_action": {"steps": [{"kind": "attack", "target_id": "bandit"}, {"kind": "end_turn"}]},
+      "expect": {"savas": true, "elinde": "Greatsword", "gerekli_metin": "Çantandan çektiğin Greatsword ile vuruyorsun.", "yasak_metin": ["uygun bir silahın yok", "bir silah yok", "kılıç yok"]}
     },
     {
       "combat_action": {
@@ -74,13 +72,16 @@
             "kind": "ready",
             "trigger": {"event": "actor_attacks", "actor_id": "bandit"},
             "response": {"kind": "attack", "target_id": "bandit"}
-          }
+          },
+          {"kind": "end_turn"}
         ]
       },
       "independent": true,
-      "expect": {"savas": true, "yasak_metin": ["uygun bir silahın yok", "bir silah yok", "kılıç yok"]},
-      "known_broken": [39],
-      "broken_because": ["no_weapon"]
+      "expect": {"savas": true, "gerekli_metin": "hazır bekliyorsun", "yasak_metin": ["uygun bir silahın yok", "bir silah yok", "kılıç yok"]}
+    },
+    {
+      "say": "reaksiyonumu kullanıyorum",
+      "expect": {"savas": true, "elinde": "Greatsword", "gerekli_metin": "Hazırladığın tepkiyi uygularsın", "yasak_metin": ["uygun bir silahın yok", "bir silah yok", "kılıç yok"]}
     },
     {
       "say": "Haydut'a büyük kılıcımla saldırıyorum",

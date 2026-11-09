@@ -778,10 +778,13 @@ def _apply(world, operation, args):
         weapon = lookup(item.get("weapon_id"))
         if hand not in {"main_hand", "off_hand"} or weapon is None:
             fail("unsupported_equipment")
-        if "two_handed" in weapon.get("properties", []) or "two-handed" in weapon.get("properties", []):
+        two_handed = "two_handed" in weapon.get("properties", []) or "two-handed" in weapon.get("properties", [])
+        if two_handed and hand != "main_hand":
             fail("two_handed_owner_required")
         hands = world.setdefault("equipment", {"main_hand": None, "off_hand": None})
         canonical_hands(world, "player", world)
+        if two_handed:
+            hands["off_hand"] = None  # a two-handed weapon is held in both hands (Dilim 2, Task 14)
         if hands[hand] is not None or item["item_id"] in hands.values():
             fail("hand_occupied")
         hands[hand] = item["item_id"]

@@ -5684,6 +5684,8 @@ def _public_combatant_label(identity, *, player_fallback=None, fallback=None):
 
 def _combat_narration(result):
     """Render mechanical outcomes in natural language without another model call."""
+    if result.get("weapon_line"):  # which weapon was drawn, or which one is missing (gear), comes first
+        return f"{result['weapon_line']} {_combat_narration({k: v for k, v in result.items() if k != 'weapon_line'})}"
     if result.get("direct_response"):
         return result["direct_response"]
     target = _public_combatant_label(result.get("target_id") or result.get("target"), fallback=result.get("target_name"))
@@ -7711,6 +7713,7 @@ INTENT_SCHEMA = {
     "properties": {
         "intent": {"type": "string", "enum": sorted(INTENT_TYPES)},
         "action": {"type": "string", "maxLength": 60},
+        "weapon_word": {"type": "string", "maxLength": 40},
         "target": {
             "type": "object",
             "properties": {
@@ -9696,6 +9699,9 @@ def normalize_intent(raw_intent, player_input):
         normalized["query_type"] = query_type
     if explore_type:
         normalized["explore_type"] = explore_type
+    weapon_word = raw_intent.get("weapon_word")
+    if isinstance(weapon_word, str) and weapon_word.strip():
+        normalized["weapon_word"] = weapon_word.strip()[:40]  # only ever given to the weapon catalog (gear)
     return normalized
 
 
@@ -15800,10 +15806,19 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         if combat["active"]:
             action_economy.action_slot(_session(), "player", "attack")
 
+        import gear
         weapon_id, attack_choice = weapon_attack.natural_choice(_session(), player_input)
+        # The model's word for the weapon (intent or front reading) goes only to the catalog: one not owned is a punch.
+        asked = intent.get("weapon_word") or (getattr(_session(), "_front_strike", None) or {}).get("with")
+        missing = gear.not_owned(world_state, requested_name=asked) if asked else None
+        if missing:
+            weapon_id = "unarmed"
         weapon_name, weapon_data = find_weapon_in_inventory(weapon_id)
         if weapon_id == "unarmed":
             weapon_name, weapon_data = "unarmed", None
+        weapon_line = (refusals.text_for("weapon_not_owned", weapon=missing) if missing
+                       else f"Çantandan çektiğin {weapon_name} ile vuruyorsun."
+                       if isinstance(weapon_data, dict) and not gear.holds(world_state, weapon_data) else None)
         if not weapon_name:
             fallback_name = held_weapon.attack_weapon_name(world_state)
             if fallback_name:
@@ -15920,6 +15935,10 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         combat["target_id"] = target_npc["id"]
         result = resolve_attack(player_input, weapon_name, weapon_data, target_npc,
                                 attack_choice=attack_choice)
+        if weapon_line:
+            result["weapon_line"] = weapon_line
+        if missing:
+            refusals.note(_session(), "weapon_not_owned", weapon=missing)  # half done: the narrator hears it too
         result["combat_started"] = started
         if result.get("outcome") in ("invalid_target", "no_target"):
             result["combat_started"] = started

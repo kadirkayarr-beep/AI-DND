@@ -147,8 +147,13 @@ class CreationPackagesAndKernelTests(unittest.TestCase):
             w = world_with(name, game.WEAPONS[name]["weapon_id"])
             delta = equipment_rules.resolve_item_use(w, "item_000001", {"use": "equip", "hand": "main_hand"})
             if "two-handed" in book["properties"]:
-                self.assertEqual((delta["status"], delta["reason"]), ("rejected", "two_handed_owner_required"), name)
-                self.assertEqual(w["equipment"]["main_hand"], None, name)
+                # Dilim 2 Task 14: a two-handed weapon goes in the main hand and takes both hands; never the off hand alone.
+                self.assertEqual((delta["status"], delta["reason"]), ("applied", None), name)
+                self.assertEqual(w["equipment"], {"main_hand": "item_000001", "off_hand": None}, name)
+                w = world_with(name, game.WEAPONS[name]["weapon_id"])
+                off = equipment_rules.resolve_item_use(w, "item_000001", {"use": "equip", "hand": "off_hand"})
+                self.assertEqual((off["status"], off["reason"]), ("rejected", "two_handed_owner_required"), name)
+                self.assertEqual(w["equipment"], {"main_hand": None, "off_hand": None}, name)
             else:
                 self.assertEqual(delta["status"], "applied", name)
                 self.assertEqual(w["equipment"]["main_hand"], "item_000001", name)

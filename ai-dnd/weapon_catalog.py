@@ -77,6 +77,7 @@ TURKISH_NAMES = {
     "kisa kilic": "shortsword", "uzun kilic": "longsword", "kilic": "longsword",
     "hancer": "dagger", "ceyrek asa": "quarterstaff", "asa": "quarterstaff",
     "kisa yay": "shortbow", "uzun yay": "longbow", "hafif tatar yayi": "light_crossbow",
+    "agir tatar yayi": "heavy_crossbow", "buyuk kilic": "greatsword",
     "pala": "scimitar", "mizrak": "spear", "buyuk balta": "greataxe",
     "el baltasi": "handaxe", "sopa": "club", "gurz": "mace", "mec": "rapier",
     "kirbac": "whip",
