@@ -24,8 +24,8 @@ def scenario(scenario_id, steps=None, *, title=None, items=(), zero_tolerance=Fa
                     steps=tuple(steps if steps is not None else [step()]))
 
 
-def result(index, status="pass", *, failures=(), items=(), narration="", seconds=0.5):
-    return StepResult(index, status, tuple(failures), tuple(items), narration, seconds)
+def result(index, status="pass", *, failures=(), items=(), narration="", seconds=0.5, reading=""):
+    return StepResult(index, status, tuple(failures), tuple(items), narration, seconds, reading)
 
 
 def three_scenarios():
@@ -300,6 +300,25 @@ class RawLogAndSafetyTest(unittest.TestCase):
         self.assertIn("### 06_combat_actions", section)
         self.assertIn("### 03_room_sleep", section)
         self.assertIn("### 02_beer_tip", section)
+
+    def test_raw_step_log_shows_every_broken_scenario_with_its_reading(self):
+        # Görev 22 Step 6: rc7 broke but the three-scenario sample left it out; every scenario that breaks the gate
+        # is shown, and its failed step carries the model's reading next to the narration and the expected/observed
+        keys = ("01_a", "02_b", "03_c", "04_d", "05_e")
+        scenarios = {key: scenario(key, [step(say=f"cümle {key}"), step(say="ikinci")]) for key in keys}
+        results = {key: [result(1, narration=f"geçen {key}", reading='{"kind": "go_to"}'),
+                         result(2, "new_break", failures=[f"kip: beklenen kapalı, gözlenen açık {key}"],
+                                narration=f"anlatı {key}", reading=f'{{"kind": "speak_to", "who": "{key}"}}')]
+                   for key in keys[:4]}
+        results["05_e"] = [result(1), result(2)]
+        section = build_report(results, scenarios, date=DATE).split("## Ham adım kaydı", 1)[1]
+        for key in keys[:4]:
+            block = section.split(f"### {key}", 1)[1].split("\n### ", 1)[0]
+            self.assertIn(f"kip: beklenen kapalı, gözlenen açık {key}", block)
+            self.assertIn(f"anlatı {key}", block)
+            self.assertIn(f'ön okuma: {{"kind": "speak_to", "who": "{key}"}}', block)
+            self.assertNotIn('ön okuma: {"kind": "go_to"}', block)       # a passing step's reading is not repeated
+        self.assertIn("### 05_e", section)                                 # the sample still shows a passing one
 
     def test_report_never_contains_key_like_text(self):
         scenarios = {"02_beer_tip": scenario("02_beer_tip", [step(say="AIzaSyFAKEFAKEFAKEFAKE")])}

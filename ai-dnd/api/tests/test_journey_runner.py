@@ -934,6 +934,15 @@ class TheNarratorInput(unittest.TestCase):
         self.assertEqual(listen.speech_messages(), ["ikinci"])  # a copy
         self.assertEqual(listen.text(), "Anlat.")  # the narrator's input is unchanged
 
+    def test_the_readings_the_model_gave_are_kept_for_the_report(self):
+        replies = iter(['{"front": {"kind": "speak_to"}}', '{"intent": "talk"}', '{"narration": "x"}'])
+        listen = NarratorInput(lambda *args, **kwargs: {"message": {"content": next(replies)}})
+        self.assertEqual(listen.reading(), "")
+        listen(model="m", messages=[], format={"properties": {"front": {}, "intent": {}}})
+        listen(model="m", messages=[], format={"properties": {"intent": {}}})
+        listen(model="m", messages=[], format={"properties": {"narration": {}}})
+        self.assertEqual(listen.reading(), '{"front": {"kind": "speak_to"}} | {"intent": "talk"}')
+
 
 if __name__ == "__main__":
     unittest.main()

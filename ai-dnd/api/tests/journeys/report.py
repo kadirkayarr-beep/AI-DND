@@ -237,7 +237,9 @@ def _spend(usage: Mapping[str, Mapping[str, float]] | None) -> str:
 
 def _raw_log(rows: Sequence[_Row]) -> str:
     lines = ["## Ham adım kaydı", ""]
-    chosen = _sample(rows)
+    sample = _sample(rows)
+    # every scenario that breaks the gate is shown, not only the one the three-scenario sample picked
+    chosen = sorted({*sample, *(row for row in rows if row.outcome == "new_break")}, key=lambda row: row.scenario.id)
     if not chosen:
         return "\n".join(lines + ["Kaydedilecek adım yok."])
     for row in chosen:
@@ -248,6 +250,8 @@ def _raw_log(rows: Sequence[_Row]) -> str:
             lines += [f"   - hata: {_oneline(failure)}" for failure in result.failures]
             if result.narration:
                 lines.append(f"   - anlatı: {_oneline(result.narration)}")
+            if result.reading and result.status in ("new_break", "known_broken"):
+                lines.append(f"   - ön okuma: {_oneline(result.reading)}")
         lines.append("")
     return "\n".join(lines).rstrip()
 

@@ -118,6 +118,7 @@ class StepResult:
     items: tuple[int, ...]
     narration: str
     seconds: float
+    reading: str = ""  # what the model's front reading / classifier answered this step (the report's raw log)
 
 
 def _properties(schema: Any) -> Mapping[str, Any]:
@@ -146,6 +147,7 @@ class NarratorInput:
         self._chat = chat
         self._messages: list[str] | None = None
         self._speech: list[str] | None = None
+        self._readings: list[str] = []
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         kind = call_kind(kwargs.get("format"))
@@ -154,7 +156,17 @@ class NarratorInput:
             self._messages.extend(_message_texts(kwargs.get("messages")))
         elif kind == "speech":
             self._speech = _message_texts(kwargs.get("messages"))
-        return self._chat(*args, **kwargs)
+        reply = self._chat(*args, **kwargs)
+        if kind in ("front", "intent"):
+            try:
+                self._readings.append(str(reply["message"]["content"]))
+            except (KeyError, TypeError, IndexError):
+                pass
+        return reply
+
+    def reading(self) -> str:
+        """What the front reading and the classifier answered this step, in call order; "" when neither ran."""
+        return " | ".join(self._readings)
 
     def text(self) -> str | None:
         """Everything the narrator was sent, one message per line; None when no narrator call was made."""
@@ -795,7 +807,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
             if status == "known_broken":
                 blocked_by = index
             results.append(StepResult(index, status, tuple(failures), step.known_broken,
-                                      self.last_narration, time.monotonic() - started))
+                                      self.last_narration, time.monotonic() - started,
+                                      "" if step.undo or step.reload else self.last_reading))
         return results
 
     async def _journey_campaign(self, setup: Mapping[str, Any]) -> dict:
@@ -823,6 +836,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
             with patch.object(game.ollama, "chat", told):
                 response = await self.http.post(f"/api/game/sessions/{session_id}/turn", json=body)
         self.last_narrator_input = told.text()
+        self.last_reading = told.reading()
         spoken_to = told.speech_messages()
         self.last_speech_input = None if spoken_to is None else "\n".join(spoken_to)
         unexpected = getattr(client, "unexpected", None) or []
