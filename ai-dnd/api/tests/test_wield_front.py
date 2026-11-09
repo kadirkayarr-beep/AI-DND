@@ -274,6 +274,21 @@ class WieldFront(JourneyCase):
             await self.say("Tuna, getirdim, buyur",
                            front={"kind": "hand_over", "person_id": thread["recipient_npc_id"], "item_id": "none"})
 
+        async def which_enemy():
+            scenario = load_scenario(SCENARIO_DIR / "06_combat_actions.json")
+            results = await self.run_scenario(replace(scenario, steps=scenario.steps[:11]))   # step 11: "rakibin yanına"
+            self.assertEqual([r.status for r in results], ["pass"] * 11, results)
+            self.session_id = self.last_session_id
+
+        async def approach_short():
+            scenario = load_scenario(SCENARIO_DIR / "06_combat_actions.json")
+            setup = copy.deepcopy(scenario.setup)
+            next(npc for npc in setup["npcs"] if npc["id"] == "archer")["distance_ft"] = 60
+            short = replace(scenario.steps[9], expect={"savas": True, "hareket": 30})   # all 30 feet moved, 25 still to go
+            results = await self.run_scenario(replace(scenario, setup=setup, steps=(scenario.steps[0], short)))
+            self.assertEqual([r.status for r in results], ["pass"] * 2, results)
+            self.session_id = self.last_session_id
+
         # The last field is who tells the turn: the narrator model, the person's speech model, or the engine alone
         # (a fight's refusal and a punch for a weapon not owned are told in the engine's own words, with no model call).
         return [
@@ -284,12 +299,14 @@ class WieldFront(JourneyCase):
             ("parcel_not_here", parcel_not_here, "olmadı: İade takımı burada değil", "narrator"),
             ("which_parcel", which_parcel, "olmadı: hangi işin eşyasını kastettiğin belli değil", "narrator"),
             ("which_item_to_give", which_item_to_give, "olmadı: hangi eşyayı verdiğin belli değil", "speech"),
+            ("which_enemy", which_enemy, "olmadı: Hangisine yaklaşıyorsun: Haydut mu, Okçu mu?", "engine"),
+            ("approach_short", approach_short, "olmadı: 25 feet daha var; bu tur bu kadar yaklaşabildin.", "engine"),
         ]
 
     async def test_every_refusal_path_reaches_the_narrator(self):
         # J-014 #6: the wired paths (tasarım §3e). Whoever tells the played turn hears its "olmadı:" note: the narrator's
         # input, or the person's speech input; a turn the engine tells alone calls no model at all, its own text says the
-        # move did not happen and the note is on the turn. which_enemy and approach_short join this list in Task 16.
+        # move did not happen (or how far it fell short) and the note is on the turn.
         for name, play, expected, teller in self.refusal_paths():
             with self.subTest(path=name):
                 await play()

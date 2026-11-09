@@ -9649,7 +9649,9 @@ def normalize_intent(raw_intent, player_input):
         r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", unquoted_input
     ))
     reference_mentioned = bool(reference and _entity_reference_in_text(reference, player_input))
-    if intent_type in {"query", "explore"}:
+    # in a fight a walk toward a person is combat movement (combat_lifecycle.approach), whatever verb says it
+    fight_walk = intent_type == "travel" and target_type == "npc" and world_state.get("combat", {}).get("active")
+    if intent_type in {"query", "explore"} or fight_walk:
         pass
     elif intent_type == "travel" and not travel_language:
         intent_type = "unknown"
@@ -9766,7 +9768,8 @@ def validate_intent(intent, player_input):
         valid.update(intent="explore", explore_type=subtype if subtype in {"observe", "inspect", "search"} else "observe", completion="unclear")
         valid.pop("query_type", None)
         return valid
-    if valid["intent"] == "travel":
+    if valid["intent"] == "travel" and not (target_type == "npc" and world_state.get("combat", {}).get("active")):
+        # (in a fight a walk toward a person is combat movement: combat_lifecycle.approach checks who and how far)
         text = str(player_input).casefold()
         pending = world_state.get("flags", {}).get("pending_destination")
         pending_followup = bool(pending and re.search(r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", _normalize_turkish_typos(text)))
@@ -15493,6 +15496,13 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     intent = intent if isinstance(intent, dict) else {"intent": "unknown"}
     intent_type = intent.get("intent", "unknown")
     if intent_type == "travel" and ensure_combat_state()["active"]:
+        target = intent.get("target") if isinstance(intent.get("target"), dict) else {}
+        approached = None
+        if not combat_lifecycle.is_attack_decision(_session(), player_input) and target.get("type") == "npc":
+            npc_id = target.get("npc_id") if isinstance(target.get("npc_id"), str) and target["npc_id"].strip() else None
+            approached = _approach_turn(npc_id or getattr(_session(), "_front_approach", None))
+        if approached is not None:
+            return approached
         if combat_lifecycle.is_attack_decision(_session(), player_input):
             intent_type = "attack"
             intent = {**intent, "intent": "attack"}
@@ -18406,6 +18416,28 @@ def combat_refusal_turn(error):
     }
 
 
+def _approach_turn(target_id):
+    """A walk toward someone named in a fight: combat movement Python measures, told in the engine's own words.
+    None when the one named is not in the fight (the old travel rule answers)."""
+    r = combat_lifecycle.approach(_session(), target_id, named=True)
+    if r.status == "not_a_participant":
+        return None
+    _session()._walk_off = None  # the walk the words said is this one: toward someone in the fight
+    if r.status == "which":
+        narration = refusals.text_for("which_enemy", names=combat_lifecycle.asked_names(r.names))
+        refusals.note(_session(), "which_enemy", names=combat_lifecycle.asked_names(r.names))
+    elif r.status == "short":
+        narration = refusals.text_for("approach_short", left=r.left_ft)
+        refusals.note(_session(), "approach_short", left=r.left_ft)
+    else:
+        narration = f"{r.moved_ft} feet ilerlersin; {r.names[0]} artık yanında." if r.moved_ft else f"{r.names[0]} zaten yanında."
+    return {
+        "action": "combat_move", "status": {"which": "clarification", "short": "partial"}.get(r.status, "resolved"),
+        "success": r.status == "moved", "target_id": r.target_id, "moved_ft": r.moved_ft,
+        "state_changes": ["combat"] if r.moved_ft else [], "direct_response": narration,
+    }
+
+
 def player_cannot_act_turn():
     """A dead player's line is answered in the world, never as a server error."""
     state = ensure_death_state()
@@ -18563,6 +18595,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     route = front_proposal.validate(reply, listed)
     if route == {"kind": "unclear"} and isinstance(raw_front, dict) and raw_front.get("kind") in {"take", "hand_over"}:
         route = {"kind": "unclear", "dropped": True}  # a take or hand-over that named nobody listed: no old word reader
+    if (fighting and route is None and isinstance(raw_front, dict) and raw_front.get("kind") == "go_to"
+            and raw_front.get("person_id") in world.get("combat", {}).get("participants", [])
+            and raw_front.get("person_id") != "player"):
+        # going to someone in the fight is a walk toward them: the reply's other half carries it as combat movement
+        session._front_approach = raw_front["person_id"]
+        held.update(intent="travel", action="approach", target={"type": "npc", "reference": ""})
     if fighting and (route is None or route["kind"] != "strike"):
         return None  # in a fight the reading is only asked for a blow the fight's own words did not hear
     word = front_proposal.person_word_in(reply)
@@ -19527,7 +19565,29 @@ def _dispatch_player_turn(
                 )
             if grounded is not None:
                 return _spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
-    combat_lifecycle.validate_request(_session(), player_input, target_id)
+    _session()._walk_off = None
+    try:
+        combat_lifecycle.validate_request(_session(), player_input, target_id)
+    except combat_lifecycle.CombatRequestError as error:
+        if error.code != "combat_travel":
+            raise
+        # held for the turn's reading: a walk toward someone in the fight is combat movement (_approach_turn takes it);
+        # any other reading of the line is refused as walking off, as before
+        _session()._walk_off = error
+    try:
+        result = _dispatch_turn_body(player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                                     session_id, check_feature, check_evidence)
+        walk, _session()._walk_off = _session()._walk_off, None
+    except BaseException:
+        _session()._walk_off = None
+        raise
+    if walk is not None:
+        raise walk
+    return result
+
+
+def _dispatch_turn_body(player_input, messages, target_id, scene_plan, interaction_mode, action_id, session_id,
+                        check_feature, check_evidence):
     if action_id is None:
         try:
             return _run_player_turn_internal(
@@ -22521,6 +22581,8 @@ def _run_player_turn_internal(
                     and not _grounded_item_request_proposal(
                         raw_intent, npc_target, player_input
                     )
+                    # in a fight, a walk toward someone is combat movement, not words to them
+                    and not (combat["active"] and isinstance(raw_intent, dict) and raw_intent.get("intent") == "travel")
                 ),
             )
         )
@@ -22549,6 +22611,10 @@ def _run_player_turn_internal(
                 return conversation_outcome
         normalized_intent = normalize_intent(raw_intent, player_input)
         validated_intent = validate_intent(normalized_intent, player_input)
+    walk = getattr(_session(), "_walk_off", None)
+    if walk is not None and not (validated_intent.get("intent") == "travel"
+                                 and (validated_intent.get("target") or {}).get("type") == "npc"):
+        raise walk  # the line walks off and the reading names nobody in the fight: refused before anything is told
     if DEBUG_MODE:
         print("[INTENT]")
         print(json.dumps(validated_intent, ensure_ascii=False, indent=2))
@@ -22581,6 +22647,9 @@ def _run_player_turn_internal(
             is_final=True,
             safety_handling="python_scene_response",
         )
+
+    if action_result.get("action") == "combat_move":
+        return finish_turn(action_result, action_result["direct_response"], is_final=True)  # the engine tells it
 
     if action_result.get("action") in {"attack", "death_save"}:
         # Reuse the existing mechanical renderer. Do not send a not-yet-saved

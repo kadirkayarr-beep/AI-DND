@@ -85,16 +85,25 @@
     {
       "say": "okçuya yaklaşıyorum",
       "independent": true,
-      "expect": {"savas": true, "hareket": 25},
-      "known_broken": [40],
-      "broken_because": ["hareket: beklenen 25, gözlenen 0"]
+      "script": {
+        "intent": {
+          "intent": "travel",
+          "action": "approach",
+          "target": {"type": "npc", "reference": "okçu", "npc_id": "archer", "evidence_quote": "okçuya"}
+        }
+      },
+      "expect": {"savas": true, "hareket": 25}
     },
     {
       "say": "rakibin yanına gidiyorum",
       "independent": true,
-      "expect": {"savas": true, "yasak_metin": "yürüyüp gidemezsin"},
-      "known_broken": [40],
-      "broken_because": ["yasak metin bulundu: yürüyüp gidemezsin"]
+      "script": {
+        "intent": {
+          "intent": "travel",
+          "target": {"type": "npc", "reference": "rakip", "npc_id": null, "evidence_quote": "rakibin"}
+        }
+      },
+      "expect": {"savas": true, "gerekli_metin": "Hangisine", "yasak_metin": "yürüyüp gidemezsin"}
     }
   ]
 }

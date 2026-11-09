@@ -1,6 +1,8 @@
 """Read-only request guards for the existing Python combat scheduler."""
 
 import re
+from dataclasses import dataclass
+from typing import Literal
 
 import living_world
 
@@ -370,6 +372,59 @@ def walks_on_own_feet(session, message):
                 and grounded_action._FIRST_PERSON_ACT.fullmatch(word)):
             return True
     return False
+
+
+@dataclass(frozen=True)
+class ApproachResult:
+    status: Literal["moved", "short", "which", "not_a_participant"]
+    moved_ft: int
+    left_ft: int            # moved: the movement still left this turn; short: the feet still to go to reach the target
+    target_id: str | None
+    names: tuple[str, ...]
+
+
+def asked_names(names):
+    """'Haydut mu, Okçu mu': each name with the question word that follows its last vowel."""
+    def asked(name):
+        vowel = next((c for c in reversed(name.lower()) if c in "aıoueiöü"), "a")
+        return f"{name} {'mı' if vowel in 'aı' else 'mi' if vowel in 'ei' else 'mu' if vowel in 'ou' else 'mü'}"
+    return ", ".join(asked(name) for name in names)
+
+
+def approach(session, target_id, *, named):
+    """Walking toward someone in the fight is combat movement: the distance less 5 feet, held to the movement left.
+    With no id but a person named, the one enemy is the target; with several the player is asked which (no move)."""
+    import action_economy
+    import spatial_rules
+    combat = session.world_state["combat"]
+    fighting = [n for n in session.active_npcs() if n.get("id") in combat["participants"] and n.get("id") != "player"]
+    enemies = [n for n in fighting if n.get("combat_status", "active") == "active"]
+    if target_id is None and named and len(enemies) > 1:
+        names = tuple(living_world.public_npc_name(n) for n in enemies)
+        return ApproachResult("which", 0, 0, None, names)
+    if target_id is None and named and len(enemies) == 1:
+        target_id = enemies[0]["id"]
+    target = next((n for n in fighting if n.get("id") == target_id
+                   and n.get("combat_status", "active") in {"active", "unconscious"}), None)
+    if target is None:
+        return ApproachResult("not_a_participant", 0, 0, target_id, ())
+    distance = target.get("distance_ft", 5)
+    need = max(0, distance - 5)
+    r = action_economy.ensure(session)["player"]
+    left = action_economy.movement_limit(session, "player") - r["movement_used"]
+    crawling = bool(action_economy.actor_data(session, "player").get("prone")
+                    or "prone" in action_economy.conditions(session, "player"))
+    step_cost = spatial_rules.movement_cost(1, crawling=crawling)
+    can = max(0, left) // step_cost if action_economy.speed(session, "player") > 0 else 0
+    moved = min(need, can)
+    if moved:
+        action_economy.move(session, "player", moved)   # the fight's own movement owner checks and spends it
+        if "distance_ft" in target:                      # an encounter's own map may have taken the feet over
+            target["distance_ft"] = distance - moved
+    name = (living_world.public_npc_name(target),)
+    if moved == need:
+        return ApproachResult("moved", moved, max(0, left - moved * step_cost), target_id, name)
+    return ApproachResult("short", moved, need - moved, target_id, name)
 
 
 def validate_request(session, message, target_id=None, *, combat_id=None,

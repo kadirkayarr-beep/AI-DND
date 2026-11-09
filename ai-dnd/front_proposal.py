@@ -475,6 +475,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._coin_claimed = False
     session._turn_notes = []
     session._named_word = None  # the plain word a reading gave for a person nobody listed, this turn only
+    session._front_approach = None  # a fight participant the reading's go_to named, this turn only
     combat = (getattr(session, "world_state", None) or {}).get("combat") or {}
     session._front_route = ("skipped:combat" if combat.get("active")
                             else "skipped:typed" if typed else "owner_first")
