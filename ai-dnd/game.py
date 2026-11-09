@@ -5768,6 +5768,12 @@ def _combat_narration(result):
         text = "Turunu bitirirsin."
     elif outcome == "react":
         text = "Hazırladığın tepkiyi uygularsın."
+        response = result.get("response")
+        if isinstance(response, dict) and response.get("kind") == "move":
+            text += f" {response.get('distance_ft')} feet ilerlersin."
+        elif isinstance(response, dict) and response.get("outcome"):  # the readied attack's own roll and result
+            text += " " + _combat_narration({k: v for k, v in response.items()
+                                             if k not in {"enemy_action", "enemy_actions", "combat"}})
     elif outcome == "decline_reaction":
         text = "Bu tepki fırsatını kullanmazsın."
     else:

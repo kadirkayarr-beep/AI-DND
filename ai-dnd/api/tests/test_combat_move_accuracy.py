@@ -147,5 +147,19 @@ class TheFightsOwnMoves(unittest.TestCase):
         session, _ = self.fight()
         self.assertEqual(action_economy.natural_command(session, "bekliyorum")["steps"], [{"kind": "end_turn"}])
 
+    def test_a_readied_reaction_tells_what_it_did(self):
+        # H131: 'Hazırladığım tepkiyi kullanıyorum' said only 'Hazırladığın tepkiyi uygularsın.'
+        session, npc = self.fight()
+        action_economy.prepare_ready(session, "player", trigger={"event": "actor_moves", "actor_id": npc["id"]},
+                                     response={"kind": "attack", "target_id": npc["id"]})
+        session.advance_combat_turn()
+        npc["speed_ft"] = 30
+        action_economy.move(session, npc["id"], 5)
+        identity = action_economy.ensure(session)["player"]["opportunity"]["id"]
+        with patch("game.roll_attack", return_value=1):
+            result = action_economy.execute(session, {"steps": [{"kind": "react", "opportunity_id": identity}]})
+        self.assertIn("ıskalar", result["narration"])
+
+
 if __name__ == "__main__":
     unittest.main()

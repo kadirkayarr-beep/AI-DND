@@ -1110,6 +1110,7 @@ def resolved_narration(session, results):
                 narration_parts.append("Bu tur Eylemini harcadın; Dodge için eylemin kalmadı.")
             narration_parts.append(session._combat_narration({
                 "outcome": step["kind"],
+                "response": step.get("response"),  # what a readied reaction did is told with it
                 "enemy_actions": step["enemy_actions"],
                 "combat": {
                     "player_combat_status": session.world_state["player_combat_status"],
