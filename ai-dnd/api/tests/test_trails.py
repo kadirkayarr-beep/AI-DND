@@ -36,7 +36,10 @@ class TrailCase(JourneyCase):
         await self.fresh_campaign()
 
     async def fresh_campaign(self):
-        campaign = await self._journey_campaign(self.setup)
+        # The scenario's campaign seed is its campaign id; a second campaign on the same store needs another one.
+        self.campaigns_made = getattr(self, "campaigns_made", 0) + 1
+        setup = {**self.setup, "campaign_seed": self.setup["campaign_seed"] + 1000 * (self.campaigns_made - 1)}
+        campaign = await self._journey_campaign(setup)
         apply_setup(self, campaign, self.setup)
         self.campaign_id = campaign["campaign_id"]
         self.session_id = campaign["session_id"]

@@ -11,7 +11,8 @@
       "region_id": "fr:region:the_north",
       "starting_location_id": "fr:city:neverwinter"
     },
-    "seed": 1
+    "seed": 1,
+    "campaign_seed": 36
   },
   "steps": [
     {

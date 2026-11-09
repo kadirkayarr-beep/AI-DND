@@ -33,6 +33,12 @@ def loose_causes(step, failures) -> list[str]:
 
 
 class JourneysTest(JourneyCase):
+    def test_no_two_scenarios_share_a_campaign_seed(self):
+        """A campaign seed is the campaign's id, and all scenarios run on one campaign store."""
+        seeds = [load_scenario(path).setup["campaign_seed"] for path in sorted(SCENARIO_DIR.glob("*.json"))
+                 if "campaign_seed" in load_scenario(path).setup]
+        self.assertEqual(len(seeds), len(set(seeds)), seeds)
+
     async def test_every_scenario_file(self):
         results = {}
         for path in sorted(SCENARIO_DIR.glob("*.json")):

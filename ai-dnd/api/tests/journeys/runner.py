@@ -29,6 +29,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Literal, Protocol
 from uuid import uuid4
 from unittest.mock import patch
@@ -83,10 +84,12 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 #
 # ``ambient_event`` puts one catalog event into the scene the player stands in, written the way the product's own
 # scene writers write it: ``event_id`` a catalog id, ``turns_ago`` (0 or more) how long ago it was shown (13 or more:
-# its referent has run out, as the click route counts a referent's twelve turns).
+# its referent has run out, as the click route counts a referent's twelve turns). ``campaign_seed`` (a positive whole
+# number) fixes the new campaign's id, and so the campaign seed its town is drawn from (its jobs, places and their
+# papers); ``seed`` seeds only the dice.
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
                         "current_hp", "seed", "front_proposal", "death_mode", "job", "letter", "room",
-                        "ambient_event"})
+                        "ambient_event", "campaign_seed"})
 AMBIENT_EVENT_KEYS = frozenset({"event_id", "turns_ago"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
@@ -890,6 +893,10 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         return results
 
     async def _journey_campaign(self, setup: Mapping[str, Any]) -> dict:
+        with _campaign_seeded(setup):
+            return await self._new_journey_campaign(setup)
+
+    async def _new_journey_campaign(self, setup: Mapping[str, Any]) -> dict:
         if not {"character", "campaign_start", "death_mode"} & set(setup):
             return await self.create_campaign()
         mode = setup.get("death_mode", "NORMAL")
@@ -1045,6 +1052,19 @@ class _Reader:
 
 def _show(value: Any) -> str:
     return "yok" if value is None else str(value)
+
+
+def _campaign_seeded(setup: Mapping[str, Any]) -> AbstractContextManager[Any]:
+    """The setup's ``campaign_seed`` as the new campaign's id (every other id stays random); untouched without it."""
+    if "campaign_seed" not in setup:
+        return nullcontext()
+    number = setup["campaign_seed"]
+    if type(number) is not int or not 0 < number < 10 ** 12:
+        raise ScenarioError("setup 'campaign_seed' pozitif bir tam sayı olmalı")
+    import uuid
+    from api import session_manager
+    ids = iter([uuid.UUID(f"00000000-0000-4000-8000-{number:012d}")])
+    return patch.object(session_manager, "uuid", SimpleNamespace(uuid4=lambda: next(ids, None) or uuid4()))
 
 
 def _front_setting(setup: Mapping[str, Any]) -> AbstractContextManager[Any]:

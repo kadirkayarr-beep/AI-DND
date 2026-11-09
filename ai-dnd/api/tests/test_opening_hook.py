@@ -13,6 +13,8 @@ import unittest
 import ambient_actions
 import api.session_manager as session_manager
 import quest_log
+import town_knowledge
+import world_happenings
 import world_threads
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
@@ -95,6 +97,27 @@ class TheOpening(unittest.TestCase):
         thread = world_threads.by_id(world, self.trail_record_id(world, quest_log.trails(world)[0]))
         self.assertTrue(world_threads.transition(thread, "filled_by_other"))
         self.assertEqual(quest_log.trails(world), [])
+
+    def test_a_heard_job_another_trail_points_at_is_listed_once(self):
+        world = self.new_campaign(seed=1)
+        heard = world_threads.by_id(world, self.trail_record_id(world, quest_log.trails(world)[0]))
+        state = world_threads.view(world)
+        source = next(t for t in state["threads"] if t is not heard)
+        world_happenings.write(state, source, "delivered", heard["opened_at"], "Teslim edildi; duyanlar var.",
+                               known=True, next_thread_id=heard["thread_id"])
+        self.assertEqual([t["source"] for t in quest_log.trails(world)], ["teslim"])
+
+    def test_a_job_read_off_a_door_is_a_trail_of_its_own(self):
+        # Journey 29's seed-dependent third trail: walking up to a place reads the paper of another job there.
+        world = self.new_campaign(seed=1)
+        [first] = quest_log.trails(world)
+        other = next(t for t in world_threads.view(world)["threads"]
+                     if t["status"] == "open" and t["type"] != "trouble")
+        self.assertTrue(town_knowledge.notice_at(world, other["place_id"]))
+        rows = quest_log._trail_rows(world)
+        self.assertEqual([row["source"] for row in rows], ["duyulan", "duyulan"])
+        self.assertEqual(len({row["_to_thread_id"] for row in rows}), 2)
+        self.assertIn(first["id"], [row["id"] for row in rows])
 
     def test_the_opening_event_is_clickable_when_the_catalog_has_one(self):
         world = self.new_campaign(seed=1)

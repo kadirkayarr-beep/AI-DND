@@ -30,6 +30,7 @@
     },
     "inventory": [],
     "seed": 7,
+    "campaign_seed": 1,
     "front_proposal": true,
     "job": {
       "type": "errand",
