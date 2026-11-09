@@ -1240,8 +1240,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
             world, state, quote, npc,
             routes=grounded_goal_routes(world, quote, data["routes"]),
         )
-        result = _result(operation, "recorded", "Bu sorunun peşini bırakmamaya karar veriyorsun.",
-                         thread_id=thread["thread_id"])
+        result = _result(operation, "recorded", None, thread_id=thread["thread_id"])  # the narrator tells it
     elif operation in {"promise", "conditional"}:
         if not npc or len(state["commitments"]) >= 64:
             return _result(operation, "no_effect", "Sözünü kime yönelttiğin henüz belli değil.")

@@ -805,7 +805,7 @@ class IntentLanguageBoundaryTests(unittest.TestCase):
         payload = {"spoken_text": "Burada yaşamayı seviyorum.", "stage_direction": "Kael, çevresine bakıp gülümser."}
         before = copy.deepcopy(payload)
         rendered = game._render_experimental_npc_speech(payload, npc)
-        self.assertEqual(rendered, "Kael (çevresine bakıp gülümser): “Burada yaşamayı seviyorum.”")
+        self.assertEqual(rendered, "Kael çevresine bakıp gülümser. “Burada yaşamayı seviyorum.”")
         self.assertEqual(payload, before)
         payload["stage_direction"] = "Rashid kapıya bakar."
         self.assertIn("Rashid kapıya bakar", game._render_experimental_npc_speech(payload, npc))

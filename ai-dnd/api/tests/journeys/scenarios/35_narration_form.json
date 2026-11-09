@@ -1,0 +1,152 @@
+{
+  "id": "35_narration_form",
+  "title": "Anlatı biçimi: yönergeli konuşma 'Ad yönerge. “söz”' diye okunur (parantez yok); açık hava yerine ilk varışta içeri adım atılmaz, 'karşına çıkıyor' denir; kaydedilen hedef sabit bir cümle söylemez, anlatıyı anlatıcı yazar",
+  "source_items": [
+    43,
+    44,
+    45
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Nuri",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "C",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "marek",
+        "name": "Marek",
+        "role": "Liman işçisi",
+        "current_hp": 10
+      }
+    ],
+    "inventory": [
+      "Macera Çantası"
+    ],
+    "seed": 3,
+    "front_proposal": true,
+    "place": {
+      "kind": "harbor",
+      "name": "Gri Liman İskelesi"
+    }
+  },
+  "steps": [
+    {
+      "say": "Marek'e selam veriyorum",
+      "script": {
+        "spoken": "Selam, yabancı.",
+        "speech": {
+          "stage_direction": "Marek, kollarını göğsünde kavuşturup"
+        },
+        "front": {
+          "person_id": "marek",
+          "kind": "speak_to"
+        }
+      },
+      "expect": {
+        "yasak_metin": [
+          "Marek ("
+        ],
+        "gerekli_metin": [
+          "Marek "
+        ]
+      }
+    },
+    {
+      "say": "dışarı çıkıyorum",
+      "expect": {
+        "konum": "fr:city:neverwinter"
+      }
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "expect": {
+        "yasak_metin": [
+          "içeri adım atıyorsun"
+        ],
+        "gerekli_metin": [
+          "karşına çıkıyor"
+        ]
+      }
+    },
+    {
+      "say": "Hedefim limandaki kayıp yükün hesabını öğrenmek",
+      "script": {
+        "intent": {
+          "intent": "dialogue",
+          "action": "dialogue",
+          "interaction": {
+            "operation": "goal",
+            "quote": "Hedefim limandaki kayıp yükün hesabını öğrenmek",
+            "thread_id": null,
+            "evidence_id": null,
+            "requested_item": null,
+            "rejected_consideration": null,
+            "side_id": null,
+            "privacy": "addressed",
+            "steps": [],
+            "routes": [],
+            "candidates": [],
+            "conversation": null
+          }
+        },
+        "narration": "Oda sessizleşiyor; gizemin ağırlığı havada asılı kalıyor."
+      },
+      "expect": {
+        "yasak_metin": [
+          "peşini bırakmamaya"
+        ],
+        "gerekli_metin": [
+          "Oda sessizleşiyor"
+        ]
+      }
+    }
+  ]
+}

@@ -96,7 +96,8 @@ JOB_TARGET = "$is_hedefi"
 SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration", "speech"})
 # ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
 # too, so a scenario can try a missing or broken answer). ``spoken`` stays the spoken line.
-SPEECH_SCRIPT_KEYS = frozenset({"coin_answer", "coin_answer_for", "remember_player_line", "asks_for"})
+SPEECH_SCRIPT_KEYS = frozenset({"coin_answer", "coin_answer_for", "remember_player_line", "asks_for",
+                                 "stage_direction"})
 
 _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
 _DEFAULT_SPOKEN = "Ne istiyorsun?"

@@ -66,6 +66,7 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
                     "Her sabah kapının önüne kuru çiçek bırakılıyor; kimin bıraktığını merak ediyorum.")),
     },
     "harbor": {
+        "open_air": True,
         "stems": ("liman", "iskele", "rihtim"), "suffix": "İskelesi", "noun": "iskele", "role": "Liman işçisi",
         "descriptions": ("Tuzlu rüzgârın estiği, tahtaları yosun tutmuş bir iskele.",
                          "Sandıkların ve halatların arasında martıların bağrıştığı bir rıhtım."),
@@ -79,6 +80,7 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
                     "Birinin teknesinin halatını kesmişler; sahibi küplere bindi.")),
     },
     "market": {
+        "open_air": True,
         "stems": ("pazar", "carsi"), "suffix": "Pazarı", "noun": "pazar", "role": "Seyyar satıcı",
         "descriptions": ("Tezgâhların arasında bağrışmaların yükseldiği kalabalık bir alan.",
                          "Bez gölgeliklerin altında sebze ve kumaş satılan küçük bir meydan."),
@@ -126,6 +128,7 @@ PLACE_KINDS: dict[str, dict[str, Any]] = {
                     "Gece nöbetçilerimden biri vaktinde gelmedi."),),
     },
     "graveyard": {
+        "open_air": True,
         "stems": ("mezarli", "kabristan"), "suffix": "Mezarlığı", "noun": "mezarlık", "role": "Mezarcı",
         "descriptions": ("Eğri taşların ve yabani otların arasında sessiz bir mezarlık.",),
         "feature": ("Eğri mezar taşı", "Yazısı yarı silinmiş, bir yana yatmış eski bir mezar taşı.",
@@ -564,21 +567,25 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
     clock = campaign_time.public_time(world) if world.get("campaign_time") else None
     marks = bold_acts.place_marks(world, record["id"])
     burning = bold_acts.is_burnt_or_burning(world, record["id"])
+    back = (f"Yeniden buradasın: {record['name']}." if spec.get("open_air")
+            else f"Yeniden {record['name']} içindesin.")
     if first_visit and spec.get("outdoors"):
         parts.append(spec.get("first_line", "Kent kapısı geride kalıyor; yol seni surların dışına çıkarıyor: {name}.")
                      .format(name=record["name"]))
         parts.append(str(record.get("description") or ""))
     elif first_visit:
-        parts.append(f"{record['name']} karşına çıkıyor ve içeri adım atıyorsun.")
+        parts.append(f"{record['name']} karşına çıkıyor." if spec.get("open_air")
+                     else f"{record['name']} karşına çıkıyor ve içeri adım atıyorsun.")
         parts.append(str(record.get("description") or ""))
     elif spec.get("outdoors"):
         parts.append(f"Yeniden surların dışındasın: {record['name']}.")
     elif burning:
-        parts.append(f"Yeniden {record['name']} içindesin. {record.get('description') or ''}")
+        parts.append(f"{back} {record.get('description') or ''}")
     elif away < AWAY_SECONDS and not marks:
-        parts.append(f"Yeniden {record['name']} içindesin; her şey bıraktığın gibi.")
+        parts.append(f"{back} Her şey bıraktığın gibi." if spec.get("open_air")
+                     else f"Yeniden {record['name']} içindesin; her şey bıraktığın gibi.")
     else:
-        parts.append(f"Yeniden {record['name']} içindesin.")
+        parts.append(back)
         if clock and away >= AWAY_SECONDS:
             parts.append(_TIME_OF_DAY_LINES[clock["time_of_day"]])
     if isinstance(feature, dict) and not burning:

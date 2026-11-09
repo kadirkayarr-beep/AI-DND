@@ -419,7 +419,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(
             response.json()["narration"],
-            f'Marek (omuz silker): “Bildiğim ve şu anda gidebileceğin '
+            f'Marek omuz silker. “Bildiğim ve şu anda gidebileceğin '
             f'yerlerden {tavern_name} iyi bir seçenek olabilir.”',
         )
 
@@ -440,7 +440,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         visible = response.json()["narration"]
-        self.assertIn("Marek (gülümser):", visible)
+        self.assertIn("Marek gülümser. “", visible)
         self.assertNotIn("Oyuncu", visible)
         self.assertNotIn("girer", visible)
         self.assertIn(tavern_name, visible)

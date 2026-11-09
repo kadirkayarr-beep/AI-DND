@@ -8267,9 +8267,29 @@ def _render_experimental_npc_speech(payload, npc):
     # Identity and safety checks already saw the original stage. Avoid printing
     # the same server-selected subject twice; do not remove another actor.
     stage = re.sub(r"^" + re.escape(name) + r"(?:\s*[:,]\s*|\s+)", "", stage, count=1, flags=re.IGNORECASE)
+    stage = _without_label_variant(stage, name)
     spoken = payload.get("spoken_text", "").strip()
-    stage_clause = f" ({stage})" if stage else ""
-    return f"{name}{stage_clause}: “{spoken}”"
+    if stage:
+        return f"{name} {stage}. “{spoken}”"
+    return f"{name}: “{spoken}”"
+
+
+def _without_label_variant(stage, name):
+    """An unnamed person's stage often opens with the label again in other words ('Bir muhafız' / 'Muhafız ...').
+
+    Only the label's own words are compared: the stage's leading words that repeat them go, and one stand-in
+    word for the label's last word ('Mavi kuşaklı kişi,') goes with them when a comma closes it.
+    """
+    core = [w for w in living_world.normalize_text(name).split() if w != "bir"]
+    words = stage.split()
+    kept = 0
+    while kept < len(words) and kept < len(core) and living_world.normalize_text(words[kept]) == core[kept]:
+        kept += 1
+    if kept == 0:
+        return stage
+    if kept < len(core) and kept < len(words) and words[kept].endswith(","):
+        kept += 1
+    return " ".join(words[kept:]).lstrip(",:; ")
 
 
 def _npc_speech_rejects_claim(text):
@@ -8344,7 +8364,8 @@ _SPEECH_ANSWER_RULES = (
     "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
     "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir, "
     "aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
-    "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan.\n"
+    "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan. "
+    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz.\n"
 )
 
 
@@ -15191,7 +15212,8 @@ NARRATOR_VOICE = (
     "Oyuncuya tekil sen de. Anlatımın tamamı şimdiki zaman: fiiller -iyor, -iyorsun ile biter "
     "(Kapıyı itiyorsun; menteşe gıcırdıyor). -dı, -mıştı, -yordu yazma; yalnız bu turdan önce "
     "olan biten için kullanılır. Anlatıya oyuncu kelimesini yazma, ağzından konuşma; adına söz, his, "
-    "karar, eylem uydurma. Atmosfer girişlerini tekrarlama. NPC hitabı serbesttir."
+    "karar, eylem uydurma. Atmosfer girişlerini tekrarlama. NPC hitabı serbesttir. "
+    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz."
 )
 
 system_prompt = """
@@ -20403,6 +20425,10 @@ def _run_player_turn_internal(
         is_final=False,
     ):
         interaction_adventure.get(world_state)
+        if narration is None and isinstance(action_result, dict):
+            # A recorded goal carries no sentence of its own: the narrator tells it, and this line stands only if it cannot.
+            narration = _natural_unresolved_action_response(player_input, action_result)
+            is_final = False
         if (
             isinstance(action_result, dict)
             and action_result.get("status") == "proposal_rejected"
