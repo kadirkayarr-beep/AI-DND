@@ -1,6 +1,6 @@
 {
   "id": "09c_escape_start_scene",
-  "title": "Kaçış, başlangıç sahnesi (9c): Neverwinter'in başlangıç/sokak sahnesinde bir çıkış tanımlıdır; Haydut'la dövüşürken 'kaçıyorum' 'çıkış göremiyorsun' demez ve (tohum 1, 9a ile aynı zarlar: Acrobatics başarılı) dövüş biter. Bugün sahnenin çıkış verisi yok (3c veri işi)",
+  "title": "Kaçış, başlangıç sahnesi (9c): Neverwinter'in başlangıç/sokak sahnesinde bir çıkış tanımlıdır; Haydut'la dövüşürken 'kaçıyorum' 'çıkış göremiyorsun' demez ve (tohum 1, 9a ile aynı zarlar: Acrobatics başarılı) dövüş biter. Çıkış, şehrin bir kez yazılan yan sokağıdır (Dilim 3 Görev 4)",
   "source_items": [21],
   "setup": {
     "character": {
@@ -40,9 +40,7 @@
     },
     {
       "say": "kaçıyorum",
-      "expect": {"savas": false, "yasak_metin": "çıkış göremiyorsun"},
-      "known_broken": [21],
-      "broken_because": ["savas: beklenen False, gözlenen True", "yasak metin bulundu: çıkış göremiyorsun"]
+      "expect": {"savas": false, "konum": "fr:city:neverwinter:side_street", "yasak_metin": "çıkış göremiyorsun"}
     }
   ]
 }

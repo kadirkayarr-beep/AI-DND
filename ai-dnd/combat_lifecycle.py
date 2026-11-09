@@ -222,13 +222,14 @@ def flee(session, action_id=None, session_id=None):
         return None
     if action_economy.speed(session, "player") <= 0:
         return _flight_refused(session, "speed_zero", "Kıpırdayamıyorsun; kaçmak şu an elinde değil.")
-    here_id = world.get("location")
-    locations = world.get("locations", {})
-    here = locations.get(here_id, {}) if isinstance(locations, dict) else {}
-    way_out = (here.get("exit_location_id") or here.get("parent_location_id")) if isinstance(here, dict) else None
-    if not isinstance(way_out, str) or way_out == here_id or way_out not in locations:
-        return _flight_cut_off(session, action_id, session_id, "no_exit",
-                               "Buradan sıyrılabileceğin bir çıkış göremiyorsun; kavga seni bırakmıyor.")
+    import exits
+    import refusals
+    import world_reactions
+    way_out = exits.way_out(world, world.get("location"), open_if_needed=True)
+    if way_out is None:
+        code = "no_exit_held" if world_reactions.arrester(world) is not None else "no_exit"
+        refusals.note(session, code)
+        return _flight_cut_off(session, action_id, session_id, "no_exit", refusals.text_for(code))
     character = session.character
     check = session.perform_skill_check(
         "Acrobatics", 12, character["modifiers"], character.get("proficient_skills") or [],

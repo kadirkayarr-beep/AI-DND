@@ -27,6 +27,9 @@ REFUSAL_TEXT: dict[str, str] = {
     "which_parcel": "olmadı: hangi işin eşyasını kastettiğin belli değil",
     "which_item_to_give": "olmadı: hangi eşyayı verdiğin belli değil",
     "approach_short": "{left} feet daha var; bu tur bu kadar yaklaşabildin.",
+    "no_exit": "Buradan çıkış yok; dövüşmeye devam edebilirsin.",
+    # The same, while a guard is arresting the player (a world_reactions hold with arrest).
+    "no_exit_held": "Buradan çıkış yok; dövüşmeye devam edebilir ya da teslim olabilirsin.",
     # The same refusal, reached through the line that says "ready" with nothing after it.
     "ready_needs_trigger": "Hazırlanmak için neyi bekleyeceğini ve o olunca ne yapacağını söyle (ör. 'Haydut yaklaşırsa vururum').",
     # Everything else a fight or an action can say no to.

@@ -39,7 +39,7 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Eşya, silah ve tüketim", ("04", "04b", "05", "05b", "28", "30")),
     ("Savaş eylemleri", ("06", "20", "21", "22", "22b")),
     ("Konuşma kipi", ("08", "08b")),
-    ("Kaçış, ölüm ve sonuçları", ("09a", "09b", "09c", "09d", "10", "15")),
+    ("Kaçış, ölüm ve sonuçları", ("09a", "09b", "09c", "09d", "10", "15", "32")),
     ("Kişisel hafıza", ("24", "24r")),
     ("Geri al ve yenileme", ("11",)),
 )

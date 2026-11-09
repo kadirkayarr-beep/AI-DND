@@ -149,9 +149,14 @@ _FIRE_STAGES = (
 
 
 def _way_out(world: dict[str, Any], location: Any) -> str | None:
-    here = world.get("locations", {}).get(location)
-    out = (here.get("exit_location_id") or here.get("parent_location_id")) if isinstance(here, dict) else None
-    return out if isinstance(out, str) and out in world.get("locations", {}) else None
+    import exits
+    return exits.way_out(world, location, open_if_needed=True)
+
+
+def _door_out(world: dict[str, Any], location: Any) -> str | None:
+    """The door of a place with walls (a fire's way to spread, a till's room); a street is open ground and has none."""
+    import exits
+    return None if living_world.scene_kind(world, location) == "city" else exits.way_out(world, location)
 
 
 def _fires(world: dict[str, Any]) -> list[dict[str, Any]]:
@@ -170,7 +175,7 @@ def _tend_fires(world: dict[str, Any], now: int) -> None:
             continue
         fire["stage"] = stage
         feature = _fire_feature(world, fire)
-        out = _way_out(world, fire["location"])
+        out = _door_out(world, fire["location"])
         if out is None:  # in the open a fire has nothing to take: it burns down and stops
             if feature is not None and stage == len(_FIRE_STAGES) - 1:
                 feature.update(name="Sönmüş ateş", description="Kararmış bir leke ve soğuyan kül.")
@@ -194,7 +199,7 @@ def fire_line(world: dict[str, Any]) -> str:
     here = world.get("location")
     lines = []
     for fire in _fires(world):
-        out = _way_out(world, fire["location"])
+        out = _door_out(world, fire["location"])
         if out is None or here not in (fire["location"], out):
             continue
         name = _place_name(world, fire["location"])
@@ -208,7 +213,7 @@ def fire_line(world: dict[str, Any]) -> str:
 
 
 def is_burnt_or_burning(world: dict[str, Any], location: Any) -> bool:
-    return any(fire["location"] == location and fire["stage"] >= 1 and _way_out(world, location) for fire in _fires(world))
+    return any(fire["location"] == location and fire["stage"] >= 1 and _door_out(world, location) for fire in _fires(world))
 
 
 def place_marks(world: dict[str, Any], location: Any) -> list[str]:
@@ -235,7 +240,7 @@ def _fire_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
     import local_places
     notes = []
     for fire in _fires(world):
-        out = _way_out(world, fire["location"])
+        out = _door_out(world, fire["location"])
         name = _place_name(world, fire["location"])
         if out is None or not name:
             continue
@@ -484,7 +489,7 @@ def _coin_to_take(world: dict[str, Any], person: dict[str, Any] | None) -> bool:
         return True
     import local_places
     here, now = world.get("location"), _now(world)
-    indoors = _way_out(world, here) is not None and local_places.settlement_of(world, here) != here
+    indoors = _door_out(world, here) is not None and local_places.settlement_of(world, here) != here
     return indoors and not any(
         deed.get("till") and deed.get("location") == here and now - deed.get("at", now) < TILL_REFILLS_SECONDS
         for deed in deeds(world))

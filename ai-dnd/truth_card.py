@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 
 import bold_acts
 import economic_actions
+import exits
 import gear
 import living_world
 import item_use
@@ -245,9 +246,8 @@ def narrator_view(world: dict, *, npc: dict | None = None, this_turn=(), max_byt
     prices = _prices(world, seller, scoped=False)
     if prices:
         lines.append(prices)
-    place = (world.get("locations") or {}).get(world.get("location")) or {}
-    exits = list(dict.fromkeys(place[k] for k in ("exit_location_id", "parent_location_id") if place.get(k)))
-    lines.append(_Line("çıkışlar", "çıkışlar: " + ", ".join(_place(world, key) for key in exits) if exits else "kayıtlı çıkış yok"))
+    way_out = exits.way_out_name(world, world.get("location"))
+    lines.append(_Line("çıkışlar", f"çıkışlar: {way_out}" if way_out else "kayıtlı çıkış yok"))
     return _fit(lines, max_bytes)
 
 

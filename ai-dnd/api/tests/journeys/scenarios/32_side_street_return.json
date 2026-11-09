@@ -1,0 +1,168 @@
+{
+  "id": "32_side_street_return",
+  "title": "Yan sokaktan dönüş: Neverwinter sokağında Haydut'la dövüşürken kaçış şehrin yan sokağına çıkarır; 'ana caddeye dönüyorum' sokağa geri getirir; ikinci kavgada ilk deneme zarda tutmaz (yer değişmez), ikinci deneme aynı yan sokak kaydına çıkar (yeni yer açılmaz); yenileme aynı yeri verir ve oradan sokağa dönülür",
+  "source_items": [
+    21,
+    105
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 3,
+      "level_choices": {
+        "2": {},
+        "3": {
+          "subclass_id": "champion"
+        }
+      },
+      "name": "Carius",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "A",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Baldur's Gate",
+      "appearance": "Sırım gibi.",
+      "personality": "Kurnaz.",
+      "backstory": "Ordudan ayrıldı."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "bandit",
+        "name": "Haydut",
+        "role": "Bandit",
+        "current_hp": 40,
+        "max_hp": 40,
+        "armor_class": 12,
+        "hostile": true,
+        "distance_ft": 5
+      }
+    ],
+    "seed": 1
+  },
+  "steps": [
+    {
+      "say": "Haydut'a saldırıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Haydut",
+            "npc_id": "bandit",
+            "evidence_quote": "Haydut"
+          },
+          "completion": "complete"
+        }
+      },
+      "expect": {
+        "savas": true,
+        "konum": "fr:city:neverwinter"
+      }
+    },
+    {
+      "say": "kaçıyorum",
+      "expect": {
+        "savas": false,
+        "konum": "fr:city:neverwinter:side_street",
+        "gerekli_metin": "sıyrılıyorsun"
+      }
+    },
+    {
+      "say": "ana caddeye dönüyorum",
+      "expect": {
+        "savas": false,
+        "konum": "fr:city:neverwinter"
+      }
+    },
+    {
+      "say": "Haydut'a saldırıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Haydut",
+            "npc_id": "bandit",
+            "evidence_quote": "Haydut"
+          },
+          "completion": "complete"
+        }
+      },
+      "expect": {
+        "savas": true,
+        "konum": "fr:city:neverwinter"
+      }
+    },
+    {
+      "say": "kaçıyorum",
+      "expect": {
+        "savas": true,
+        "konum": "fr:city:neverwinter",
+        "gerekli_metin": "Kaçacak bir açık bulamıyorsun"
+      }
+    },
+    {
+      "say": "kaçıyorum",
+      "expect": {
+        "savas": false,
+        "konum": "fr:city:neverwinter:side_street",
+        "gerekli_metin": "sıyrılıyorsun"
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "konum": "fr:city:neverwinter:side_street",
+        "savas": false
+      }
+    },
+    {
+      "say": "ana caddeye dönüyorum",
+      "expect": {
+        "savas": false,
+        "konum": "fr:city:neverwinter"
+      }
+    }
+  ]
+}

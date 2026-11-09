@@ -31,6 +31,7 @@ import re
 import time
 from typing import Any
 
+import exits
 import living_world
 import tr_case
 import name_catalog
@@ -471,9 +472,8 @@ def candidates(session) -> list[dict[str, Any]]:
         found.append({"id": here, "kind": "here", "names": [fold(record.get("name", ""))],
                       "nouns": here_nouns, "label": record.get("name", here), "record": record})
     if isinstance(here, str) and isinstance(locations.get(here), dict):
-        record = locations[here]
-        parent = record.get("parent_location_id") or record.get("exit_location_id")
-        if parent in locations and here != settlement:
+        parent = exits.outside(world, here)
+        if parent is not None and here != settlement:
             found.append({"id": parent, "kind": "outside", "names": [fold(locations[parent].get("name", ""))],
                           "nouns": list(_OUTSIDE_NOUNS), "label": locations[parent].get("name", parent),
                           "record": locations[parent]})
@@ -3173,7 +3173,7 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
                       and not s.get("condition") and not _climbs_somewhere(s)), None)
     here = world.get("locations", {}).get(world.get("location"))
     if (going_out is not None and living_world.classify_scene_action(player_input) != "exit"
-            and isinstance(here, dict) and (here.get("exit_location_id") or here.get("parent_location_id"))):
+            and isinstance(here, dict) and exits.outside(world, world.get("location")) is not None):
         # Whatever else the line says, the player walks out; narration must not do that alone.
         return "execute", (run, [going_out], {**p, "steps": [going_out]})
     # "Marek, ..." - an NPC addressed by name first is speech for the conversation owner.

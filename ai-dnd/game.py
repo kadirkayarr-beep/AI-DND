@@ -16166,8 +16166,8 @@ def _names_current_local_exit(player_input):
         or current.get("reality_layer") != "PROCEDURAL_LOCAL_FICTION"
     ):
         return False
-    parent_id = current.get("exit_location_id") or current.get("parent_location_id")
-    parent = world_state.get("locations", {}).get(parent_id)
+    import exits
+    parent = world_state.get("locations", {}).get(exits.way_out(world_state, world_state.get("location")))
     if not isinstance(parent, dict):
         return False
     normalized = living_world.normalize_text(player_input)
