@@ -256,6 +256,24 @@ class FighterHttp(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post(f"/api/game/sessions/{campaign['session_id']}/turn", json=body)
         self.assertEqual((response.status_code, response.json()["detail"]["code"]), (400, "tactical_mind_immediate_check_only"))
 
+    async def test_a_champion_forcing_a_locked_door_gets_the_athletics_roll_with_both_dice(self):
+        # Dilim 3 Task 37: Remarkable Athlete gives this check Advantage; the two dice must reach the answer, not an HTTP 500.
+        from api.tests.test_campaign_api import ControlledVenueOllamaClient
+        campaign, record = await self.create(3)
+        session = record.game_session
+        session.commit_location_change("tavern")
+        session.world_state["doors"].append({"id": "door_t37", "name": "Konak İç Kapısı", "location": "tavern",
+                                             "locked": True, "open": False, "broken": False})
+        self.manager.save_campaign(campaign["campaign_id"])
+        narrator = ControlledVenueOllamaClient("narrative")
+        body = {"message": "Kapının kilidini menteşelerinden iterek zorluyorum", "interaction_mode": "do", "action_id": str(uuid4())}
+        with patch("api.tests.test_campaign_api.FakeOllamaClient.chat", side_effect=narrator.chat), \
+                patch("game.roll_d20", side_effect=[5, 16]):
+            response = await self.http.post(f"/api/game/sessions/{campaign['session_id']}/turn", json=body)
+        self.assertEqual(response.status_code, 200, response.text)
+        check = response.json()["skill_check_result"]
+        self.assertEqual((check["skill"], check["advantage"], check["d20_rolls"], check["d20"]), ("Athletics", True, [5, 16], 16))
+
     def test_turn_request_keeps_the_do_only_rule(self):
         from api.schemas import TurnRequest
         TurnRequest.model_validate({"message": "x", "interaction_mode": "do", "check_feature": "tactical_mind"})

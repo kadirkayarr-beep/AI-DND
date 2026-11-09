@@ -1286,7 +1286,7 @@ def create_app(
                 lock; otherwise the same refusal is returned without that claim.
                 """
                 detail = {"code": code, "message": message, "not_applied": True}
-                public_message = refusals.REFUSAL_TEXT.get(code) if status_code == 400 else None
+                public_message = refusals.REFUSAL_TEXT.get(code) if status_code == 400 or code == "engine_error" else None
                 if public_message:
                     detail["public_message"] = refusals.text_for(code)  # the player's Turkish line; `message` stays
                 try:

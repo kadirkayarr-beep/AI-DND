@@ -34,6 +34,7 @@ import timed_gameplay
 import world_threads
 import local_dialogue
 import quest_catalog
+import refusals
 import api.main as main_module
 from api.auth import FixedAuthenticator
 from api.campaign_journal import create_initial_campaign_journal
@@ -7865,6 +7866,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             "code": "engine_error",
                             "message": "The game turn could not be completed.",
                             "not_applied": True,
+                            "public_message": refusals.text_for("engine_error"),  # Dilim 3 Task 37: the player's Turkish line
                         })
                         # Positive HP rejects during real death-state validation,
                         # before the zero-HP dead-action gate or any lore answer.

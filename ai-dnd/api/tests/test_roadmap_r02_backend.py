@@ -202,6 +202,32 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
             await self.assert_refused_for_good(body, "journal_error")
         await self.assert_stays_refused_and_new_id_works(body, "journal_error", calls_before=1)
 
+    async def test_an_unverifiable_check_says_why_in_turkish_and_leaves_the_world_byte_for_byte(self):
+        # Dilim 3 Task 37: the engine moved the world, then its check could not be verified: the player hears why, nothing stays.
+        import json
+        import refusals
+        from api.serializers import SkillCheckResultSerializationError
+
+        def moving_turn(_message, **_kwargs):
+            self.calls.append(True)
+            self.session.world_state["flags"]["turn_index"] = self.session.world_state["flags"].get("turn_index", 0) + 1
+            self.session.character["current_hp"] -= 1
+            return {"narration": "Menteşeleri zorluyorsun.",
+                    "action_result": {"action": "world_interaction", "status": "resolved", "success": True, "state_changes": []}}
+
+        self.session.run_player_turn = moving_turn
+        before = json.dumps(self.session.serialize_game_state(), sort_keys=True, ensure_ascii=False)
+        saved_before = self.store.get_campaign(self.created["campaign_id"])
+        body = self.fresh_body()
+        with patch.object(main_module, "serialize_skill_check_result", side_effect=SkillCheckResultSerializationError("x")):
+            first = await self.assert_refused_for_good(body, "engine_error")
+        self.assertEqual(first.json()["detail"]["public_message"], refusals.text_for("engine_error"))
+        self.assertNotEqual(refusals.text_for("engine_error"), refusals.FALLBACK_TEXT)
+        self.assertEqual(json.dumps(self.session.serialize_game_state(), sort_keys=True, ensure_ascii=False), before)
+        self.assertEqual(self.store.get_campaign(self.created["campaign_id"]), saved_before)
+        replay = await self.turn(body)
+        self.assertEqual(replay.json()["detail"], first.json()["detail"])
+
     async def test_failed_restore_is_never_called_not_applied(self):
         def boom(_message, **_kwargs):
             raise RuntimeError("engine blew up")

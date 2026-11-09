@@ -15867,7 +15867,9 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             "skill": check_result["skill"],
             "ability": check_result["ability"],
             "dice": check_result["dice"],
-            **({"dice_rolls": check_result["dice_rolls"]} if check_feature is not None else {}),
+            # Advantage from the character itself (Remarkable Athlete) rolls two dice too: the answer must carry both.
+            **({"dice_rolls": check_result["dice_rolls"]}
+               if check_feature is not None or check_result["advantage"] != check_result["disadvantage"] else {}),
             **({"tactical_mind_roll": check_result["tactical_mind_roll"]} if check_feature == "tactical_mind" else {}),
             "modifier": check_result["modifier"],
             "proficiency_bonus": check_result["proficiency_bonus"],

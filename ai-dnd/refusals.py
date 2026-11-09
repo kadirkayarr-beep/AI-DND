@@ -126,6 +126,8 @@ REFUSAL_TEXT: dict[str, str] = {
     "weapon_not_held": "İstediğin silah elinde değil; önce onu eline almalısın.",
     "tactical_mind_immediate_check_only": "Taktik Zihin yalnız hemen yapılan bir sınamada kullanılır.",
     "primal_knowledge_immediate_check_only": "İlkel Bilgi yalnız hemen yapılan bir sınamada kullanılır.",
+    # A turn the engine could not finish safely (HTTP 500, Dilim 3 Task 37): it was taken back whole.
+    "engine_error": "Bu hamlenin sonucu oyunda doğrulanamadı; hiçbir şey değişmedi. Aynı şeyi yeniden ya da başka sözlerle dene.",
 }
 
 
