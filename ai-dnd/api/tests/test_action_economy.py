@@ -174,8 +174,9 @@ class ActionEconomyTests(unittest.TestCase):
 
     def test_unavailable_natural_action_does_not_ask_model_or_spend(self):
         before = copy.deepcopy(self.s.world_state)
+        # Task 38: Dodge is now a real Action (H124), so the still-unconnected Disengage pins this.
         with self.assertRaises(CombatRequestError):
-            self.s.run_player_turn("Dodge kullanıyorum.")
+            self.s.run_player_turn("Disengage kullanıyorum.")
         self.assertEqual(self.s.world_state, before)
 
     def test_session_resources_and_triggers_are_isolated(self):

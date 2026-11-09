@@ -104,5 +104,48 @@ class TheFightsOwnMoves(unittest.TestCase):
         self.addCleanup(game._ACTIVE_SESSION.reset, token)
         return session, npc
 
+    def test_going_on_the_defensive_is_dodge(self):
+        # H124: 'Savunmaya geçiyorum' only ended the turn; Dodge was never applied.
+        session, npc = self.fight()
+        # Dodge's Disadvantage needs the attacker seen (K07 leaf): the sight fact is written here, not guessed.
+        session.world_state.setdefault("attack_environment", {}).setdefault("pairs", {})[f"{npc['id']}|player"] = {
+            "distance_ft": 5, "attacker_sees_target": True, "target_sees_attacker": True}
+        command = action_economy.natural_command(session, "Savunmaya geçiyorum.")
+        self.assertEqual(command["steps"][0]["kind"], "dodge")
+        result = action_economy.execute(session, command)
+        steps = result["action_result"]["economy_steps"]
+        blows = [enemy for step in steps for enemy in step.get("enemy_actions") or []
+                 if enemy.get("action") == "enemy_attack"]
+        self.assertTrue(blows, result["narration"])
+        self.assertIn("target_dodging", blows[0]["disadvantage_sources"])
+        self.assertIn("Dodge", result["narration"])
+
+    def test_no_action_left_is_no_dodge_and_says_so(self):
+        session, npc = self.fight()
+        action_economy.consume_action(session, "player", "dash")  # the Action went on something else
+        command = action_economy.natural_command(session, "Savunmaya geçiyorum.")
+        self.assertEqual([step["kind"] for step in command["steps"]], ["end_turn"])
+        result = action_economy.execute(session, command)
+        self.assertIn("Dodge için eylemin kalmadı", result["narration"])
+
+    def test_the_word_dodge_is_the_dodge_action_and_a_save_keeps_it(self):
+        session, _ = self.fight()
+        command = action_economy.natural_command(session, "Dodge kullanıyorum.")
+        self.assertEqual(command["steps"], [{"kind": "dodge"}])
+        action_economy.execute(session, command)
+        self.assertTrue(action_economy.ensure(session)["player"]["dodging"])
+        payload = session.serialize_game_state()
+        game._validate_save_payload(payload)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dodge.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            session.load_game(path)
+        player = action_economy.ensure(session)["player"]
+        self.assertEqual((player["dodging"], player["base_action_spent"]), (True, True))
+
+    def test_waiting_is_still_only_the_end_of_the_turn(self):
+        session, _ = self.fight()
+        self.assertEqual(action_economy.natural_command(session, "bekliyorum")["steps"], [{"kind": "end_turn"}])
+
 if __name__ == "__main__":
     unittest.main()

@@ -545,6 +545,14 @@ def dash(session, actor="player", resource="action"):
     return {"kind": "dash", "movement_added_ft": added, "resource": resource}
 
 
+def dodge(session, actor="player"):
+    """PHB 2024 Dodge, the Action: until the start of your next turn attacks against you have Disadvantage and your
+    Dexterity saves Advantage (both read by weapon_attack from `dodging`; begin_turn clears it)."""
+    consume_action(session, actor, "dodge")
+    ensure(session)[actor]["dodging"] = True
+    return {"kind": "dodge"}
+
+
 def prepare_ready(session, actor, trigger, response):
     action_slot(session, actor, "ready")
     if (not isinstance(trigger, dict) or set(trigger) != {"event", "actor_id"}
@@ -784,7 +792,9 @@ def attack_step(session, identity, continuation=False, *, weapon_id=None, choice
 
 
 _RAGE_WORDS = re.compile(r"\b(?:rage|ofkeye\s+(?:gir|kapil)\w*|kudur(?:uyorum|dum)|ofke\s+nobet\w*)")
-_WAITING = re.compile(r"\b(?:bekliyorum|bekle|nefes aliyorum|duruyorum|savunmada\w*|savunmaya gec\w*|kolluyorum)\b")
+_WAITING = re.compile(r"\b(?:bekliyorum|bekle|nefes aliyorum|duruyorum|kolluyorum)\b")
+# The defensive words _WAITING used to end the turn with are the Dodge action, then the end of the turn.
+_DEFENDING = re.compile(r"\b(?:savunmada\w*|savunmaya gec\w*)\b")
 
 
 def wants_rage(session, text):
@@ -802,8 +812,14 @@ def natural_command(session, message, selected_target=None):
     if wants_rage(session, text):
         return {"steps": [{"kind": "activate_rage", "resource": "bonus"}]}
     combat = session.world_state["combat"]
-    if (_WAITING.search(text) and "?" not in message and session.character.get("current_hp", 0) > 0
-            and combat.get("current_actor_id") == "player"):
+    if ((_DEFENDING.search(text) or _WAITING.search(text)) and "?" not in message
+            and session.character.get("current_hp", 0) > 0 and combat.get("current_actor_id") == "player"):
+        if _DEFENDING.search(text):
+            try:
+                action_slot(session, "player", "dodge")
+            except CombatRequestError:  # the Action is gone: the turn ends, and the line says why there is no Dodge
+                return {"steps": [{"kind": "end_turn", "dodge_unavailable": True}]}
+            return {"steps": [{"kind": "dodge"}, {"kind": "end_turn"}]}
         return {"steps": [{"kind": "end_turn"}]}
     opportunity = ensure(session)["player"]["opportunity"]
     if opportunity and re.search(r"reaksiyon.*(?:kullan|ver)|use.*reaction", text):
@@ -945,6 +961,8 @@ def _execute(session, command, action_id=None, session_id=None):
                 results.append(move(session, "player", step.get("distance_ft")))
             elif kind == "dash":
                 results.append(dash(session, resource=step.get("resource", "action")))
+            elif kind == "dodge":
+                results.append(dodge(session))
             elif kind == "ready":
                 results.append(prepare_ready(session, "player", step.get("trigger"), step.get("response")))
             elif kind in {"attack", "continue_attack"}:
@@ -1009,7 +1027,8 @@ def _execute(session, command, action_id=None, session_id=None):
                 effects = session._finish_species_player_turn()
                 session.advance_combat_turn()
                 enemies = session._resolve_enemy_turns_until_player()
-                results.append({"kind": kind, "species_effects": effects, "enemy_actions": enemies})
+                results.append({"kind": kind, "species_effects": effects, "enemy_actions": enemies,
+                                **({"dodge_unavailable": True} if step.get("dodge_unavailable") is True else {})})
             else:
                 fail("unsupported_action", "Action-specific mechanic is not configured.")
     if session.world_state["combat"]["active"]:
@@ -1079,12 +1098,16 @@ def resolved_narration(session, results):
             )
         elif step["kind"] == "ready":
             narration_parts.append("Belirlediğin an için hazır bekliyorsun.")
+        elif step["kind"] == "dodge":
+            narration_parts.append("Eylemini Dodge'a harcayıp savunmaya geçersin; sıradaki turuna dek savunmadasın.")
         elif step["kind"] == "attack":
             narration_parts.append(session._combat_narration(step["result"]))
             narration_parts.append(rogue_features.narration(step["result"]))
         elif step["kind"] == "species":
             narration_parts.append(step["result"].get("message", ""))
         elif step["kind"] in {"end_turn", "react", "decline_reaction"}:
+            if step.get("dodge_unavailable"):
+                narration_parts.append("Bu tur Eylemini harcadın; Dodge için eylemin kalmadı.")
             narration_parts.append(session._combat_narration({
                 "outcome": step["kind"],
                 "enemy_actions": step["enemy_actions"],
