@@ -19014,6 +19014,8 @@ def _front_economic_offer(route, player_input):
     if purpose == "purchase":
         import shop_trade
         session._front_economic_none = True  # purchase stays with its counter, never room/gift guessing
+        if not shop_trade.is_vendor(session.world_state, person):
+            return None  # someone who sells nothing answers the line in their own words; no card, no coin moves
         counter = shop_trade.counter(session.world_state)
         if (counter.get("vendor") or {}).get("npc_id") != person["id"] or counter["status"] != "ready":
             reason = "npc_refuses" if counter["reason"] == "vendor_refuses" else "shop_not_now" if counter["reason"] == "not_now" else "shop_unavailable"
@@ -19025,13 +19027,14 @@ def _front_economic_offer(route, player_input):
         if getattr(session, "_bribe_held_out", 0):
             return None  # the existing law owner has priority even for a serving guard
         decision = money_owner.current(session)
+        if decision is not None and decision.kind == "room":
+            purpose = "room"  # the money owner checked the room's price and purse: the room card owns this line
+    if purpose == "purchase":
         if decision is not None and decision.kind != "goods":
             # The model's own `deal` disagrees with the purchase it also read: nothing opens (a card of another kind
-            # is never the fallback), and the coin stays in the purse.
+            # is never the fallback), the coin stays in the purse, and the line says why.
             session._coin_paid = None
-            result = bold_acts._reply(session, economic_actions._CLARIFY["no_stock_or_service"], "narrative", "clarification", None, [], reason_code="no_stock_or_service")
-            result["action_result"]["success"] = False
-            return result
+            return _purchase_refused(session, person, amount)
         wanted = shop_trade.priced_in(bold_acts.fold(session, player_input))
         if wanted is not None:
             offered = bold_acts.shop_offer(session, player_input, person, requested=True)
@@ -19039,7 +19042,7 @@ def _front_economic_offer(route, player_input):
             offered = bold_acts.standing_offer(session, person) if amount is not None else None
         session._coin_paid = None
         if offered is not None:
-            if route.get("keep_change"):
+            if route.get("keep_change") and offered["action_result"]["status"] == "offer_open":
                 opened = (session.world_state.get("flags") or {}).get("counter_offer_v1") or {}
                 prepared = shop_trade.prepare_keep_change(session, person["id"], str(opened.get("key")), amount)
                 result = bold_acts._reply(session, prepared.public_message, "narrative", prepared.status, None, [],
@@ -19047,9 +19050,7 @@ def _front_economic_offer(route, player_input):
                 result["action_result"]["success"] = prepared.status == "prepared"
                 return result
             return offered
-        result = bold_acts._reply(session, economic_actions._CLARIFY["no_stock_or_service"], "narrative", "clarification", None, [], reason_code="no_stock_or_service")
-        result["action_result"]["success"] = False
-        return result
+        return _purchase_refused(session, person, amount)
     import world_reactions
     guard = world_reactions.arrester(session.world_state)
     if amount is not None and purpose in {"gift", "tip"} and guard is not None and guard.get("id") == person.get("id"):
@@ -19085,6 +19086,24 @@ def _front_economic_offer(route, player_input):
         purpose, person["id"], amount_cp=amount))
     result = bold_acts._reply(session, prepared.public_message, "narrative", prepared.status, None, [], reason_code=prepared.reason_code)
     result["action_result"]["success"] = prepared.status == "prepared"
+    return result
+
+
+def _purchase_refused(session, person, amount):
+    """Why a purchase reading opens nothing: coin held out beyond the purse, else what this counter does sell."""
+    import bold_acts
+    import economic_actions
+    import refusals
+    import shop_trade
+    if amount is not None and amount > shop_trade.purse_cp(session.world_state):
+        reason, line = "purse_below_base", economic_actions._CLARIFY["purse_below_base"]
+    else:
+        reason = "no_stock_or_service"
+        have = bold_acts.on_the_counter(session.world_state, person)
+        line = refusals.text_for("goods_not_sold", have=have)
+        refusals.note(session, "goods_not_sold", npc_id=person.get("id"), have=have)
+    result = bold_acts._reply(session, line, "narrative", "clarification", None, [], reason_code=reason)
+    result["action_result"]["success"] = False
     return result
 
 
