@@ -96,6 +96,34 @@ class NamedPersonWayTests(ThreePlaysTests):
         self.assertNotEqual((step["target"] or {}).get("id"), estate["id"])
         self.assertFalse(step["named"])
 
+    async def test_a_resident_name_is_not_the_start_of_another_word(self):
+        await self.town()
+        for resident, line in (("Yara", "yaralı adama yaklaşıyorum"), ("Pip", "pipolu adama yaklaşıyorum")):
+            with self.subTest(resident=resident):
+                estate = local_places.create_local_place(self.world, self.settlement, "estate")
+                estate["resident_name"] = resident
+                step = grounded_action.plan(self.session, line)["steps"][0]
+                self.assertNotEqual((step["target"] or {}).get("id"), estate["id"])
+                self.assertFalse(step["named"])
+                estate["resident_name"] = None
+
+    async def test_someone_standing_here_unintroduced_is_not_elsewhere(self):
+        await self.town_with_errand()
+        person = self.add_person("Özpil", "Kâhya", name_known_to_player=False)
+        with patch.object(game, "active_npcs", return_value=[person]):
+            self.assertIsNone(game._named_elsewhere_line(self.world, "Özpil nerede?"))
+
+    async def test_inside_their_place_the_person_is_not_sent_there(self):
+        await self.town_with_errand()
+        with patch.object(game, "active_npcs", return_value=[]):
+            self.assertIsNotNone(game._named_elsewhere_line(self.world, "Özpil nerede?"))
+            self.world["location"] = self.estate["id"]
+            self.assertIsNone(game._named_elsewhere_line(self.world, "Özpil nerede?"))
+            self.world["locations"]["test_hall"] = {"id": "test_hall", "name": "Salon",
+                                                    "parent_location_id": self.estate["id"]}
+            self.world["location"] = "test_hall"
+            self.assertIsNone(game._named_elsewhere_line(self.world, "Özpil nerede?"))
+
     async def test_where_is_a_named_person_reads_the_town(self):
         await self.town_with_errand()
         self.world["npcs"] = [npc for npc in self.world["npcs"] if npc["id"] != "npc_vobarin"]

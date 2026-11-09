@@ -8620,8 +8620,16 @@ def _named_elsewhere_line(world, player_input):
     import town_knowledge
     name = town_knowledge.person_named_in(world, player_input)
     if not name or living_world.normalize_text(name) in {
-            living_world.normalize_text(living_world.public_npc_name(npc)) for npc in active_npcs()}:
-        return None
+            living_world.normalize_text(npc.get("name")) for npc in active_npcs()}:
+        return None  # standing here, introduced or not
+    place = town_knowledge.place_of_person(world, name)
+    locations = world.get("locations", {})
+    current, seen = world.get("location"), set()
+    while isinstance(current, str) and current not in seen:  # here, or a room inside their place
+        if place is not None and current == place.get("id"):
+            return None
+        seen.add(current)
+        current = (locations.get(current) or {}).get("parent_location_id")
     return _elsewhere_line(world, name)
 
 

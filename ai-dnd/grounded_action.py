@@ -404,6 +404,14 @@ def _phrase_at(name_words: list[str], tokens: list[str]) -> int | None:
     return None
 
 
+def _said_as_name(name_words: list[str], tokens: list[str]) -> bool:
+    """The name's words in a row, each as it is or with only a case ending after it ("Özpil'in", "özpile")."""
+    def said(word: str, token: str) -> bool:
+        return token.startswith(word) and bool(npc_statements._CASE_TAIL.match(token[len(word):]))
+    return any(all(said(word, tokens[start + i]) for i, word in enumerate(name_words))
+               for start in range(len(tokens) - len(name_words) + 1))
+
+
 def _settlement(world: dict[str, Any]) -> str | None:
     return npc_statements._settlement(world)
 
@@ -576,8 +584,8 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
         for name in cand["names"]:
             words = name.split()
             quality = _phrase_match_quality(words, clause_tokens)
-            if quality == 1 and name == cand.get("resident"):
-                continue  # a person's name is said as it is, not guessed from a near word ("tamam" is not Tamar)
+            if quality and name == cand.get("resident") and not _said_as_name(words, clause_tokens):
+                continue  # a person's name is said as it is or with a case ending ("yaralı" is not Yara)
             if quality:
                 explicit_name_ids.add(cand["id"])
                 if quality == 2:
