@@ -304,10 +304,15 @@ def stand_down(session, action_id=None, session_id=None):
 
 
 def _says_yes(session, message):
+    """A short yes, or a yes that leads a longer line still standing behind the blow ('Evet, adamı itiyorum')."""
     import game
     text = session._normalize_turkish_typos(str(message))
-    return (len(text.split()) <= 4 and game._CLAIM_ACCEPTANCE_RE.search(text) is not None
-            and game._CLAIM_REJECTION_RE.search(text) is None)
+    if game._CLAIM_ACCEPTANCE_RE.search(text) is None or game._CLAIM_REJECTION_RE.search(text) is not None:
+        return False
+    if len(text.split()) <= 4:
+        return True
+    leads = game._CLAIM_ACCEPTANCE_RE.match(text.split()[0]) is not None
+    return leads and game._blow_stands(message)
 
 
 def answered_attack_question(session, message):
