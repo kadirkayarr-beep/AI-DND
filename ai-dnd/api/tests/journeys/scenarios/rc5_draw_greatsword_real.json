@@ -1,0 +1,143 @@
+{
+  "id": "rc5_draw_greatsword_real",
+  "title": "Gerçek zincir, silah çekme (39): Fighter paket C, Greatsword elde değil, sokakta Haydut; 'büyük kılıcımı çekiyorum' gerçek ön okumayla Greatsword'u ele alır ve anlatıcı 'elin boş' demez; ardından saldırı dövüşü açar ve 'silah yok' çıkmaz. Çekmek ve saldırmak eşya yaratmaz, yok etmez, para oynatmaz (sıfır tolerans)",
+  "source_items": [
+    39
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Kadir",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "C",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "bandit",
+        "name": "Haydut",
+        "role": "Bandit",
+        "current_hp": 30,
+        "max_hp": 30,
+        "armor_class": 12,
+        "hostile": true,
+        "distance_ft": 5
+      }
+    ],
+    "seed": 5,
+    "front_proposal": true,
+    "inventory": [
+      "Greatsword",
+      "Ağır Tatar Yayı & 20 Ok",
+      "Macera Çantası",
+      "Birlik Sancağı Parçası",
+      "Zar Seti",
+      "Askeri Pelerin"
+    ]
+  },
+  "steps": [
+    {
+      "say": "büyük kılıcımı çekiyorum",
+      "real_chain": true,
+      "expect": {
+        "elinde": "Greatsword",
+        "yasak_metin": [
+          "elin boş"
+        ]
+      },
+      "sifir_tolerans": [
+        {
+          "envanter": {
+            "Greatsword": 1,
+            "Ağır Tatar Yayı & 20 Ok": 1,
+            "Macera Çantası": 1,
+            "Birlik Sancağı Parçası": 1,
+            "Zar Seti": 1,
+            "Askeri Pelerin": 1
+          },
+          "kese": 2400
+        }
+      ]
+    },
+    {
+      "say": "Haydut'a saldırıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Haydut",
+            "npc_id": "bandit",
+            "evidence_quote": "Haydut"
+          },
+          "completion": "complete"
+        }
+      },
+      "expect": {
+        "savas": true,
+        "yasak_metin": [
+          "silah yok"
+        ]
+      },
+      "sifir_tolerans": [
+        {
+          "envanter": {
+            "Greatsword": 1,
+            "Ağır Tatar Yayı & 20 Ok": 1,
+            "Macera Çantası": 1,
+            "Birlik Sancağı Parçası": 1,
+            "Zar Seti": 1,
+            "Askeri Pelerin": 1
+          },
+          "kese": 2400
+        }
+      ]
+    }
+  ]
+}

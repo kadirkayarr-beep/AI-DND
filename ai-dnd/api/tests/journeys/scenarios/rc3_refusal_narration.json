@@ -88,7 +88,15 @@
           "kılıcını kınından",
           "kılıcınla"
         ]
-      }
+      },
+      "sifir_tolerans": [
+        {
+          "envanter": {
+            "Macera Çantası": 1
+          },
+          "kese": 2400
+        }
+      ]
     },
     {
       "say": "Haydut'a kılıcımla saldırıyorum",
@@ -110,7 +118,15 @@
         "envanter": {
           "Macera Çantası": 1
         }
-      }
+      },
+      "sifir_tolerans": [
+        {
+          "envanter": {
+            "Macera Çantası": 1
+          },
+          "kese": 2400
+        }
+      ]
     },
     {
       "say": "kılıcımı savurup Haydut'a bir daha vuruyorum",
@@ -125,7 +141,15 @@
           "kılıcını savur",
           "kılıcını indir"
         ]
-      }
+      },
+      "sifir_tolerans": [
+        {
+          "envanter": {
+            "Macera Çantası": 1
+          },
+          "kese": 2400
+        }
+      ]
     }
   ]
 }

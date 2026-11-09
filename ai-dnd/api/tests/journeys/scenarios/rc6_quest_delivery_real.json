@@ -1,0 +1,137 @@
+{
+  "id": "rc6_quest_delivery_real",
+  "title": "Gerçek zincir, görev eşyası ve teslim (115): 19'un kurulumu; iş kabul edilince tek iade takımı ele geçer, gerçek ön okumayla 'İade takımını alıyorum' ikinci eşya üretmez; iskelede Tuna'ya gerçek teslim 12 bakırı bir kez öder ve günlükte süren iş kalmaz; Geri Al ve yeniden yükleme keseyi, eşyayı ve görevi birlikte geri getirir. Para, eşya ve görev durumu sıfır toleranslıdır: teslim ya olur ya olmaz, başka her durum ihlaldir",
+  "source_items": [
+    115
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "esya_sayisi": 1
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "esya_sayisi": 1
+        }
+      ]
+    },
+    {
+      "say": "İade takımını alıyorum",
+      "real_chain": true,
+      "expect": {
+        "esya_sayisi": 1
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "esya_sayisi": 1,
+          "envanter": {
+            "İade takımı": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "expect": {
+        "kese": 100
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "esya_sayisi": 1
+        }
+      ]
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "real_chain": true,
+      "expect": {
+        "kese": 112,
+        "gunluk": {
+          "sayac": 0
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    }
+  ]
+}
