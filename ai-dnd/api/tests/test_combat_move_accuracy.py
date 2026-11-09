@@ -52,6 +52,23 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertIn("kavga", reply["narration"])
         return reply
 
+    async def test_a_trip_said_yes_to_is_never_the_crossbow_in_hand(self):
+        # H241: 'çelme takıp düşürmeye çalışıyorum' - 'Evet.' was a crossbow shot at Disadvantage.
+        await self.begin()
+        await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
+        reply = await self.line("Evet.")
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
+        self.assertNotIn("ranged_in_close_combat", reply["combat_result"].get("disadvantage_sources") or [])
+
+    async def test_the_yes_carries_the_asked_words(self):
+        # The asked line said a shove; 'Evet.' alone must not lose it to the weapon in hand.
+        await self.begin()
+        await self.ask("Marek'i duvara doğru itiyorum")
+        reply = await self.line("Evet.")
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(self.players_last_attack()["unarmed_option"], "shove")
+
     async def test_a_long_yes_still_answers_the_question(self):
         # H239: 'Evet, iri yarı adamı itiyorum.' (five words) was lost and became talk.
         await self.begin()

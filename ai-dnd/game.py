@@ -18907,7 +18907,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             elif npc_speech_boundary.player_supplied_quote(player_input):
                 route = {"kind": "speak_to", "id": route["id"]}  # the blow is only in what they said
             else:  # the reading alone cannot start a fight: the player says whether this is one
-                route = {"kind": "blow_asked", "id": route["id"]}
+                route = {"kind": "blow_asked", "id": route["id"], "with": route.get("with") or ""}
         else:  # a threat or a question about a blow: words, and they are for that person
             route = {"kind": "speak_to", "id": route["id"]}
     hearer = listed["speaking_with"] or (listed["people"][0]["id"] if len(listed["people"]) == 1 else None)
@@ -19204,12 +19204,13 @@ def _blow_in_the_words(player_input, target_id):
                 or _BLOW_WORDS.search(_normalize_turkish_typos(spoken)))
 
 
-def _ask_about_the_blow(person_id):
-    """Asked in the world, for this sitting only; the next line is the answer."""
+def _ask_about_the_blow(person_id, player_input="", with_word=""):
+    """Asked in the world, for this sitting only; the next line is the answer. A yes makes the asked line's blow."""
     session = _session()
     who = next((npc for npc in active_npcs() if npc.get("id") == person_id), None)
     session._attack_asked = True
     session._blow_asked = person_id
+    session._blow_asked_line = {"said": str(player_input or ""), "with": with_word or ""}
     line = f"{living_world.public_npc_name(who)} ile kavga mı başlatıyorsun?"
     return {"messages": session.messages, "narration": line, "model_calls": 0,
             "action_result": {"action": "narrative", "status": "clarification", "success": False,
@@ -19651,7 +19652,7 @@ def _dispatch_player_turn(
     front = read if getattr(_session(), "_front_ahead", False) else _front_step(
         player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "blow_asked":
-        return _ask_about_the_blow(front["id"])
+        return _ask_about_the_blow(front["id"], player_input, front.get("with"))
     held_for = getattr(_session(), "_counter_held", None)
     _session()._counter_held = None
     if held_for is not None:

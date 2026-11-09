@@ -320,8 +320,11 @@ def answered_attack_question(session, message):
     asked = getattr(session, "_attack_asked", False)
     session._attack_asked = False
     blow, session._blow_asked = getattr(session, "_blow_asked", None), None
+    asked_line, session._blow_asked_line = getattr(session, "_blow_asked_line", None) or {}, None
     if blow and _says_yes(session, message) and any(npc.get("id") == blow for npc in session.active_npcs()):
-        session._front_strike = {"kind": "strike", "id": blow, "with": ""}  # "kavga mı başlatıyorsun?" - "evet"
+        # "kavga mı başlatıyorsun?" - "evet": the blow is the one the asked line said, never the bare yes alone
+        session._front_strike = {"kind": "strike", "id": blow, "with": asked_line.get("with") or "",
+                                 "said": asked_line.get("said") or ""}
         return message
     if not asked or len(str(message).split()) > 4:
         return message

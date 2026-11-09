@@ -1172,6 +1172,10 @@ _KILL = re.compile(r"\boldur(?:uyorum|ecegim|ecem|ucem|cem|eyim|ucu\w*)\b")
 def natural_choice(session, text):
     """Choices only; no model-derived stats, grants, distance or hand state."""
     normalized = session._normalize_turkish_typos(text)
+    strike = getattr(session, "_front_strike", None)
+    said = strike.get("said") if isinstance(strike, dict) else None
+    if said:  # a yes to "kavga mı başlatıyorsun?": the asked line's words choose the blow, with the yes's own words
+        normalized = f"{session._normalize_turkish_typos(said)} {normalized}"
     selected = []
     for identity, weapon in __import__("weapon_catalog").WEAPONS.items():
         terms = {identity, weapon["weapon_id"], *weapon["aliases"]}
@@ -1185,8 +1189,8 @@ def natural_choice(session, text):
     selected = [identity for identity in selected if identity in owned] or _owned_named(normalized, owned, held)
     unarmed = bool(re.search(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum", normalized))
     # A mug, a bottle, a stool: the reading named a thing that is no weapon of theirs, so the sword stays out of it.
-    strike = getattr(session, "_front_strike", None)
-    unarmed = unarmed or bool(isinstance(strike, dict) and strike.get("with") and not selected)
+    # A blow asked about and said yes to names no weapon of theirs either: the weapon in hand was never in the words.
+    unarmed = unarmed or bool(isinstance(strike, dict) and (strike.get("with") or said) and not selected)
     # Only what the player owns can strike. A weapon they do not have, or no
     # word for one, is the weapon in hand, then one drawn, then bare hands.
     monk = monk_features.monk_level(getattr(session, "character", {})) is not None
