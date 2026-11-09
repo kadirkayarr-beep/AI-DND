@@ -159,7 +159,10 @@ class PlaceTests(unittest.TestCase):
         world = marked_world("tohum7", locations={"kent": {"id": "kent", "scene_kind": "city", "type": "city"}})
         with patch.object(grounded_action, "public_door_state", lambda *a, **k: {"open": True, "locked": False}):
             record = grounded_action._create_venue(
-                SimpleNamespace(world=world), "kent", name=None, kind="generic", provenance={}, noun="dukkan")
+                # Task 25: a shop is made with its owner, so the run carries a person maker (none made here).
+                SimpleNamespace(world=world, session=None,
+                                game=SimpleNamespace(create_npc_from_ai=lambda proposal, **_: None)),
+                "kent", name=None, kind="generic", provenance={}, noun="dukkan")
         self.assertNotIn(record["name"].split()[0], name_catalog.people())
         self.assertIn(record["name"], [door["name"].rsplit(" ", 1)[0] for door in world["doors"]])
 

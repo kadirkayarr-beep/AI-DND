@@ -212,8 +212,8 @@ def _reserve_resident(world: dict[str, Any], record: dict[str, Any]) -> str:
     if npc is not None:
         return living_world.public_npc_name(npc)
     if not record.get("resident_name"):
-        spec = local_places.PLACE_KINDS[record["place_kind"]]
-        record["resident_name"] = living_world.stable_local_name(world, record["id"], spec["role"])
+        role = record.get("resident_role") or local_places.PLACE_KINDS[record["place_kind"]]["role"]
+        record["resident_name"] = living_world.stable_local_name(world, record["id"], role)
         aliases = record.setdefault("aliases", [])
         if record["resident_name"] not in aliases:
             aliases.append(record["resident_name"])

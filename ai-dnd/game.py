@@ -10713,6 +10713,82 @@ def _experimental_private_npc_disclosure(
     return False
 
 
+# A capitalised word in a person's place: acting, standing, described, or the speaker before a quote.
+_NARRATED_NAME_PATTERNS = (
+    r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})(?:,)?\s+(?=(?:içeri|dışarı|düşünür|korkar|yaklaşır|girer|konuşur|yanıt verir|şöyle der|"
+    r"sana|senden|yakınında|yanında|ortaya çıkar|belirir|vardır|durur|gözleri|başını|adlı|isimli|"
+    r"barmen|gezgin|tüccar|muhafız|komutan|sakin|yaşlı|genç|sessiz|eski|yorgun|orta yaşlı|"
+    r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı)\b)",
+    r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}),\s*[\"“]",
+)
+
+
+def _unseen_registered_names(world_state):
+    """Saved people and the people places have named who are not in this scene: each name word -> full name.
+
+    A word shared with someone standing here is theirs and left out.
+    """
+    here = world_state.get("location")
+    present, names = set(), {}
+    for npc in world_state.get("npcs", []):
+        name = str(npc.get("name") or "").strip() if isinstance(npc, dict) else ""
+        if name and npc.get("location") == here:
+            present.update(name.casefold().split())
+        elif name:
+            names.setdefault(name, None)
+    for place in world_state.get("locations", {}).values():
+        name = str(place.get("resident_name") or "").strip() if isinstance(place, dict) else ""
+        if name:
+            names.setdefault(name, None)
+    return {word: name for name in names for word in name.casefold().split() if word not in present}
+
+
+def _inside_speech(text, position):
+    return any(span.start() < position < span.end() for span in _SPEECH_SPAN_RE.finditer(text))
+
+
+def _unseen_speaker_repaired(narration, world_state, npc_target):
+    """A saved person who is not here does not speak here: the one who is here does, by what can be seen of them.
+
+    Their name in a person's place outside speech becomes the public label of the person in the scene (the target,
+    or the only one here); a self-introduction by that name inside speech is dropped. Other names inside speech are
+    mentions. With nobody here nothing is rewritten (the check decides).
+    """
+    if not isinstance(narration, str) or not isinstance(world_state, dict):
+        return narration
+    here = world_state.get("location")
+    people = [npc for npc in world_state.get("npcs", []) if isinstance(npc, dict) and npc.get("location") == here
+              and npc.get("name") and npc.get("combat_status") != "dead"]
+    speaker = (npc_target if isinstance(npc_target, dict) and npc_target.get("location") == here
+               else people[0] if len(people) == 1 else None)
+    unseen = _unseen_registered_names(world_state)
+    if speaker is None or not unseen:
+        return narration
+    label = living_world.public_npc_name(speaker)
+    edits = set()
+    for pattern in _NARRATED_NAME_PATTERNS:
+        for match in re.finditer(pattern, narration):
+            full = unseen.get(match.group(1).casefold())
+            if not full or _inside_speech(narration, match.start(1)):
+                continue
+            start = match.start(1)
+            said_whole = narration[start:start + len(full)].casefold() == full.casefold()
+            edits.add((start, start + len(full) if said_whole else match.end(1)))
+    for start, end in sorted(edits, reverse=True):
+        opens = not narration[:start].rstrip() or narration[:start].rstrip()[-1] in ".!?…\n\"”'’"
+        shown = label if living_world.npc_name_known_to_player(speaker) else (
+            living_world.turkish_initial_upper(label) if opens else living_world.turkish_initial_lower(label))
+        narration = narration[:start] + shown + narration[end:]
+    for span in reversed(list(_SPEECH_SPAN_RE.finditer(narration))):
+        quote = span.group(0)
+        parts = _split_sentences_keep_speech(quote[1:-1])
+        kept = [part for part in parts
+                if (local_dialogue.explicit_player_name_disclosure(part) or "").casefold() not in unseen]
+        if kept and len(kept) < len(parts):
+            narration = narration[:span.start()] + quote[0] + " ".join(kept) + quote[-1] + narration[span.end():]
+    return narration
+
+
 def _narration_safety_decision(
     narration, player_input, npc_target=None, action_result=None, *, attributed_speech=None
 ):
@@ -11471,13 +11547,8 @@ def _narration_safety_decision(
                 "la", "le", "yla", "yle",
             )
         )
-    name_patterns = (
-        r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})(?:,)?\s+(?=(?:içeri|dışarı|düşünür|korkar|yaklaşır|girer|konuşur|yanıt verir|şöyle der|"
-        r"sana|senden|yakınında|yanında|ortaya çıkar|belirir|vardır|durur|gözleri|başını|adlı|isimli|"
-        r"barmen|gezgin|tüccar|muhafız|komutan|sakin|yaşlı|genç|sessiz|eski|yorgun|orta yaşlı|"
-        r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı)\b)",
-        r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}),\s*[\"“]",
-    )
+    name_patterns = _NARRATED_NAME_PATTERNS
+    unseen_people = _unseen_registered_names(world_state)
     import npc_speech_boundary
     entity_narration = npc_speech_boundary.narrated_entity_text(
         narration, attributed_speech, npc_target, action_result
@@ -11498,6 +11569,10 @@ def _narration_safety_decision(
             candidate = match.group(1).casefold()
             if candidate in _COMMON_SENTENCE_OPENERS:
                 continue
+            # A saved person who is not here is not here: their name cannot speak or stand in this scene.
+            # Inside someone's speech it is only a mention.
+            if candidate in unseen_people and not _inside_speech(entity_narration, match.start(1)):
+                return reject_entity(match.group(1))
             normalized_candidate = _normalize_turkish_typos(candidate)
             if candidate not in (
                 registered_names | registered_name_tokens | known_places
@@ -14444,7 +14519,8 @@ def _trim_dangling_quote(text):
     """Drop a leading fragment that ends in a closing quote nobody opened.
 
     Removing the sentence that carried the opening quote leaves "...alırız.' Fırın
-    kokusu..."; keep only what follows. Untouched when balanced or nothing remains.
+    kokusu..."; keep only what follows. Untouched when balanced; empty when nothing follows
+    (a line nobody opened is no line, and the caller falls back).
     """
     closer = _QUOTE_CLOSER_RE.search(text)
     if closer is None:
@@ -14452,8 +14528,7 @@ def _trim_dangling_quote(text):
     opener = _QUOTE_OPENER_RE.search(text)
     if opener is not None and opener.start() < closer.start():
         return text
-    rest = text[closer.end():].strip()
-    return rest if rest else text
+    return text[closer.end():].strip()
 
 
 def _remove_trigger_sentence(narration, decision, action_result=None):
@@ -14475,7 +14550,7 @@ def _remove_trigger_sentence(narration, decision, action_result=None):
     paragraphs = []
     removed = False
     for paragraph in str(narration).split("\n\n"):
-        sentences = re.split(r"(?<=[.!?])\s+", paragraph.strip())
+        sentences = _split_sentences_keep_speech(paragraph.strip())
         kept = []
         for sentence in sentences:
             # Some checks report folded text.
@@ -14804,6 +14879,8 @@ def finalize_narration(
         if not decision["reason_code"]:
             decision["reason_code"] = "EMPTY_NARRATION"
             handling = "python_fallback"
+    if attributed_speech is None and not is_live_town_response(narration):
+        narration = _unseen_speaker_repaired(narration, session.world_state, npc_target)
 
     safety = (
         {"unsafe": False, "reason_code": None, "trigger_span": None,

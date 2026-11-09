@@ -581,10 +581,11 @@ class NarrationGuardUnitTests(unittest.TestCase):
         trim = self.game._trim_dangling_quote
         for text in ("Nissa: 'Merhaba. Nasılsın?' diye sorar.",
                      "Nissa, “Merhaba.” der. Fırın sıcak.",
-                     "Nissa'nın fırını sıcak. Kimse yok.",
-                     "Yalnızca bir cümle.'"):
+                     "Nissa'nın fırını sıcak. Kimse yok."):
             with self.subTest(text=text):
                 self.assertEqual(trim(text), text)
+        # Task 25: a closing quote with nothing after it is a line nobody opened; nothing is left.
+        self.assertEqual(trim("Yalnızca bir cümle.'"), "")
 
 
 class LoreGuardRepairUnitTests(unittest.TestCase):

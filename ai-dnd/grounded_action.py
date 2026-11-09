@@ -1192,7 +1192,7 @@ def _place_target(run: _Run, target: dict[str, Any] | None) -> dict[str, Any] | 
 
 
 _GENERIC_BUILDINGS: dict[str, dict[str, Any]] = {
-    "dukkan": {"suffix": "Dükkânı", "noun": "dükkân", "door": "shop", "descriptions": (
+    "dukkan": {"suffix": "Dükkânı", "noun": "dükkân", "door": "shop", "role": "Dükkâncı", "descriptions": (
         "Vitrin camı buğulu, tabelası rüzgârda sallanan küçük bir dükkân.",
         "Önüne birkaç sandık dizilmiş, dar cepheli bir dükkân.")},
     "depo": {"suffix": "Deposu", "noun": "depo", "door": "locked", "descriptions": (
@@ -1295,6 +1295,19 @@ def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
             "generic_noun": noun, "tags": ["campaign_local"], "provenance": provenance,
         }
         locations[location_id] = record
+        if spec.get("role"):
+            # A shop has someone behind its counter: the engine names them and puts them there (every way in finds them).
+            import world_threads
+            record["resident_role"] = spec["role"]
+            owner = run.game.create_npc_from_ai({
+                "name": world_threads._reserve_resident(world, record), "role": spec["role"], "location": location_id,
+                "appearance": local_places._pick(world, location_id, local_places._APPEARANCES, "appearance"),
+                "personality": local_places._pick(world, location_id, local_places._PERSONALITIES, "personality"),
+                "relationship": "neutral",
+            }, allow_other_location=True, session=run.session)
+            if isinstance(owner, dict):
+                owner["place_role_of"] = location_id
+                owner["role_known_to_player"] = True
         if spec["door"]:
             door_id = f"venue-door:{location_id}"
             state = (public_door_state(world, door_id, "shop") if spec["door"] == "shop"
