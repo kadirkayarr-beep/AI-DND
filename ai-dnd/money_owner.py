@@ -181,6 +181,7 @@ def forget_turn(session: Any) -> None:
     session._coin_answer_for = None
     session._coin_answer_npc = None
     session._coin_claimed = False
+    session._purchase_said = False
     session._turn_notes = []
 
 
@@ -412,7 +413,7 @@ def price_negotiation_offers(world: dict) -> list[dict]:
                 result.append({"offer_id": f"room:{offer.offer_id}:{day}", "npc_id": npc["id"],
                                "kind": "room", "item": "room"})
         counter = bold_acts.offer_still_open(world, npc)
-        if counter is not None and any(row[0] == counter.get("key") for row in shop_trade.PRICES):
+        if counter is not None and any(row[0] == counter.get("key") for row in shop_trade.menu(world, npc)):
             result.append({"offer_id": f"counter:{npc['id']}:{counter['key']}:{counter['seq']}:{counter['turn']}:{day}",
                            "npc_id": npc["id"], "kind": "goods", "item": counter["key"]})
     return result
@@ -465,7 +466,9 @@ def haggle(session: Any, npc: dict | None, check_result: Mapping, *,
         if entry is None:
             return None
         key, label, base = entry
-        price = next(row["unit_cp"] for row in shop_trade.goods(world, npc) if row["key"] == key)
+        price = next((row["unit_cp"] for row in shop_trade.goods(world, npc) if row["key"] == key), None)
+        if price is None:
+            return None  # an offer saved for goods this counter does not sell (an older save) has no price here
     else:
         return None
     if ea.declined(world, npc["id"], "room" if key == "room" else "goods:" + key, day=ea.game_day(world)):

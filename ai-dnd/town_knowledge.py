@@ -603,11 +603,12 @@ def _settle_offer(world, npc, proposal, spoken, *, allowed):
 
 
 def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, raw: Any, spoken: str,
-                 *, accept_job: Any, moved: int = 0, threat: Any = None) -> dict[str, Any]:
+                 *, accept_job: Any, moved: int = 0, threat: Any = None, purchase: bool = False) -> dict[str, Any]:
     """Python's half of 'the model proposes': commit what checks out.
 
     moved: copper a gate already paid this turn. The result says what money stands behind
     the line, so whatever else it claims can be taken off it. Nothing here can stop the reply.
+    purchase: the player's line was read as buying; a figure in the reply is a price then, never coin for the player.
     """
     proposal = read_proposal(raw)
     kind = proposal["kind"] if proposal else None
@@ -638,7 +639,7 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
     elif kind == "give" and proposal["amount_cp"]:
         import shop_trade
         sale = shop_trade.is_vendor(world, npc) and (proposal["item"] or shop_trade.sells(world, npc, player_text))
-        if not moved and not sale and world_threads.speaks_of_pay(player_text):
+        if not moved and not sale and not purchase and world_threads.speaks_of_pay(player_text):
             # C5: the NPC pays from their own purse, so no card: the one owner moves it once, or nothing moves
             # (not here, or the purse is short). The note is built only from what was really applied.
             import economic_actions

@@ -474,6 +474,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._coin_answer = None
     session._coin_answer_for = None
     session._coin_claimed = False
+    session._purchase_said = False  # a purchase reading this turn: a reply never pays the player for it
     session._turn_notes = []
     session._named_word = None  # the plain word a reading gave for a person nobody listed, this turn only
     session._front_approach = None  # a fight participant the reading's go_to named, this turn only

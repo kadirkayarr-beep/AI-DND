@@ -18,11 +18,12 @@ import living_world
 import tr_case
 
 # What a counter sells, by the kind of place it stands in (Kadir karar E, revised): a row is
-# key (as typed and folded), label (as told and as the item's name), unit price in copper. A place kind with no
-# row of its own (an inn, or any other counter) sells the inn's list. Every label is also a row of
-# content/items/item_use.json, so what is bought here is eaten or drunk through the one consume path.
+# key (as typed and folded), label (as told and as the item's name), unit price in copper. Every label is also a row
+# of content/items/item_use.json, so what is bought here is eaten or drunk through the one consume path.
+# Ruling (Task 27 fix 1): a counter whose place has no row of its own (no place kind, or a kind such as a smithy)
+# keeps the tavern list it sold before Karar E; giving those counters their own goods is the owner's call (Dilim 4).
 MENUS = {
-    "inn": (("bira", "bira", 4), ("sarap", "şarap", 20), ("yemek", "tabak yemek", 30)),
+    "tavern": (("bira", "bira", 4), ("sarap", "şarap", 20), ("yemek", "tabak yemek", 30)),
     "market": (("elma", "elma", 1), ("ekmek", "ekmek", 2), ("peynir", "peynir", 10)),
 }
 PRICES = tuple(row for rows in MENUS.values() for row in rows)  # every row: the words and keys read against one list
@@ -49,18 +50,36 @@ def _words(entry: tuple[str, str, int]) -> set[str]:
 _SOFTENED = {"p": "b", "k": "g", "t": "d"}  # Turkish voices a final stop before a vowel: şarap -> şarabı
 
 
-def _named(word: str) -> str:
-    """The word as said, with its last stop softened before a suffix vowel: 'yemek' also hears 'yemeği'."""
+def _says(word: str, token: str) -> bool:
+    """The token is this word, whole or with a case ending, as a place or person name is matched
+    (`game._reference_token_matches`), its last stop softened before a vowel ending: 'yemeği', 'şarabı'.
+    'biraz', 'elmas', 'Elmasaz', 'ekmekçi' are other words."""
+    import game
+    if game._reference_token_matches(word, token):
+        return True
     soft = _SOFTENED.get(word[-1])
-    tail = f"(?:{re.escape(word[-1])}|{soft}(?=[aeiou]))" if soft else re.escape(word[-1])
-    return rf"\b{re.escape(word[:-1])}{tail}(?![zd])"
+    stem = word[:-1] + soft if soft else ""
+    return bool(stem) and token[len(stem):][:1] in tuple("aeiou") and game._reference_token_matches(stem, token)
+
+
+def _said_words(text: Any) -> list[str]:
+    """The line's words without the names in it: a capitalised word inside a sentence, or one before another
+    capitalised word ('Peynir Evi'), is a name, as a capitalised span is read as a name elsewhere (referent_span)."""
+    raw = text.split() if isinstance(text, str) else []
+    kept = []
+    for at, word in enumerate(raw):
+        starts = at == 0 or raw[at - 1][-1:] in ".!?:\"“"
+        named = word[:1].isupper() and (not starts or (at + 1 < len(raw) and raw[at + 1][:1].isupper()))
+        if not named:
+            kept.append(word)
+    return living_world.normalize_text(" ".join(kept)).split()
 
 
 def priced_in(text: Any) -> tuple[str, str, int] | None:
     """The thing on the list the words name, by its key or a word of the label the speaker says: 'biraz' is no beer."""
-    folded = living_world.normalize_text(text)
+    tokens = _said_words(text)
     return next((entry for entry in PRICES
-                 if any(re.search(_named(word), folded) for word in _words(entry))), None)
+                 if any(_says(word, token) for word in _words(entry) for token in tokens)), None)
 
 
 def is_priced(text: Any) -> bool:
@@ -94,10 +113,10 @@ def _stock(npc: dict[str, Any], key: str) -> int:
 
 
 def menu(world: dict[str, Any] | None, npc: Any) -> tuple[tuple[str, str, int], ...]:
-    """The rows this person's counter sells: their place kind's own list, else the inn's."""
+    """The rows this person's counter sells: their place kind's own list, else the tavern's."""
     place = ((world or {}).get("locations") or {}).get(npc.get("location")) if isinstance(npc, dict) else None
     kind = place.get("place_kind") if isinstance(place, dict) else None
-    return MENUS.get(kind, MENUS["inn"]) if isinstance(kind, str) else MENUS["inn"]
+    return MENUS.get(kind, MENUS["tavern"]) if isinstance(kind, str) else MENUS["tavern"]
 
 
 def sells(world: dict[str, Any], npc: Any, text: Any) -> bool:

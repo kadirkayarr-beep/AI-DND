@@ -148,7 +148,7 @@ class TalkAsksFor(JourneyCase):
     # --- tests (plan Task 11 Step 1) ---
 
     async def test_the_askable_list_comes_from_the_records(self):
-        # order: room, goods by key, none; Marek's counter lists every good of the inn list (shop_trade.MENUS["inn"])
+        # order: room, goods by key, none; Marek's counter lists every good of the tavern list (shop_trade.MENUS["tavern"])
         self.assertEqual(money_owner.askable(self.world, self.marek()),
                          ["room", "goods:bira", "goods:sarap", "goods:yemek", "none"])
         self.assertEqual(money_owner.askable(self.world, self.stranger()), ["none"])
