@@ -37,7 +37,7 @@
           "completion": "complete"
         }
       },
-      "expect": {"savas": true, "konum": "location_001"}
+      "expect": {"savas": true, "konum": "$kurulum_yeri"}
     },
     {
       "say": "kaçıyorum",

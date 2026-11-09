@@ -435,7 +435,9 @@ class ControlledSceneDetailOllamaClient(FakeOllamaClient):
 class RecordedStoneworkOllamaClient(FakeOllamaClient):
     """Replays the captured Qwen investigation response for the stonework case."""
 
-    def __init__(self):
+    def __init__(self, venue_id="location_001"):
+        # The capture named the inn as location_001; a new campaign's town work now opens places first (Task 18).
+        self.venue_id = venue_id
         self.calls = 0
         self.intent_schema_has_scene_proposals = False
         self.intent_response = None
@@ -463,8 +465,8 @@ class RecordedStoneworkOllamaClient(FakeOllamaClient):
                 "interaction": {"operation": "none"},
                 "scene_detail_proposals": [{
                     "proposal_key": "stone_carving_details",
-                    "location": "location_001",
-                    "parent_id": "location_001",
+                    "location": self.venue_id,
+                    "parent_id": self.venue_id,
                     "name": "Gizli taş işçiliği detayı",
                     "description": (
                         "Gizli bir taş işçiliği detayı, muhtemelen bir gizli "
@@ -14492,7 +14494,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         city_id, session_id, session, turn_url, venue_id, _ = (
             await create_city_with_locked_tavern(self)
         )
-        model = RecordedStoneworkOllamaClient()
+        model = RecordedStoneworkOllamaClient(venue_id)
         outcomes = []
         original_turn = session.run_player_turn
 
@@ -14554,7 +14556,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         city_id, _, _, turn_url, venue_id, _ = (
             await create_city_with_locked_tavern(self)
         )
-        model = RecordedStoneworkOllamaClient()
+        model = RecordedStoneworkOllamaClient(venue_id)
         response = await self.post_scene_turn(
             turn_url,
             model,
@@ -14944,9 +14946,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )):
             with self.subTest(message=message):
                 name = f"Denied detail {index}"
-                proposal = [{
+                proposal = lambda session, city, venue, name=name: [{
                     "proposal_key": "f1", "location": "fr:city:neverwinter",
-                    "parent_id": "location_001", "name": name,
+                    "parent_id": venue, "name": name,
                     "description": "A newly proposed detail.", "kind": "detail",
                 }]
                 response, session, _, _, _, outcomes, *_ = await self.run_review_scene_turn(
@@ -14966,9 +14968,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         name = "Wrong-parent detail"
         response, session, _, _, first_id, *_ = await self.run_review_scene_turn(
             "I inspect Second Inn building.",
-            [{
+            lambda session, city, venue: [{
                 "proposal_key": "f1", "location": "fr:city:neverwinter",
-                "parent_id": "location_001", "name": name,
+                "parent_id": venue, "name": name,
                 "description": "A visible detail.", "kind": "detail",
             }],
             narration=f"{name} is in Second Inn.",
@@ -14983,9 +14985,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(name, response.json()["narration"])
 
     async def test_review_acceptance_enforces_one_detail_limit_and_rejects_unsupported_mechanics(self):
-        proposals = [{
+        proposals = lambda session, city, venue: [{
             "proposal_key": f"f{i}", "location": "fr:city:neverwinter",
-            "parent_id": "location_001", "name": f"Detail {i}",
+            "parent_id": venue, "name": f"Detail {i}",
             "description": "A small visible carving.", "kind": "detail",
         } for i in range(4)]
         response, session, *_ = await self.run_review_scene_turn(
@@ -15005,9 +15007,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(name=name):
                 response, session, *_ = await self.run_review_scene_turn(
                     f"I inspect the {name.lower()}.",
-                    [{
+                    lambda session, city, venue, name=name: [{
                         "proposal_key": "f1", "location": "fr:city:neverwinter",
-                        "parent_id": "location_001", "name": name,
+                        "parent_id": venue, "name": name,
                         "description": description, "kind": "detail",
                     }],
                     narration=description,
@@ -15027,9 +15029,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             })
         response, session, *_ = await self.run_review_scene_turn(
             "Hanın bulunduğu binayı inceliyorum.",
-            [{
+            lambda session, city, venue: [{
                 "proposal_key": "f1", "location": "fr:city:neverwinter",
-                "parent_id": "location_001", "name": hidden_name,
+                "parent_id": venue, "name": hidden_name,
                 "description": "A harmless new detail.", "kind": "detail",
             }],
             narration="A new sliding bolt is visible.", prepare=prepare,
@@ -15092,6 +15094,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             narration="A new detail is visible.",
             prepare=prepare,
         )
+        second_id = session._review_second_id  # a new campaign: its town work may number the inn differently
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(any(
             row.get("name") == name and row.get("parent_id") == second_id
@@ -15148,9 +15151,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 open=False, locked=not unlocked)
                 response, session, *_ = await self.run_review_scene_turn(
                     "I inspect First Inn building.",
-                    [{
+                    lambda session, city, venue: [{
                         "proposal_key": "f1", "location": "fr:city:neverwinter",
-                        "parent_id": "location_001", "name": f"First Inn Door {name}",
+                        "parent_id": venue, "name": f"First Inn Door {name}",
                         "description": message, "kind": "detail",
                     }],
                     narration=message, prepare=prepare,
@@ -15177,10 +15180,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(name=name):
                 response, session, *_ = await self.run_review_scene_turn(
                     "I inspect the inn building.",
-                    [{
+                    lambda session, city, venue: [{
                         "proposal_key": "seat-1",
                         "location": "fr:city:neverwinter",
-                        "parent_id": "location_001",
+                        "parent_id": venue,
                         "name": name,
                         "description": description,
                         "kind": "seat",

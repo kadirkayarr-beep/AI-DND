@@ -11,8 +11,10 @@ from typing import Any
 
 import campaign_time
 import living_world
+import local_places
 import tr_case
 import name_catalog
+import world_threads
 from api.world_metadata import world_metadata_for_state
 
 _LOG = logging.getLogger(__name__)
@@ -112,6 +114,20 @@ def _home_elsewhere(origin: Any, location_name: str) -> str | None:
     return None if key == re.sub(r"[^a-z]", "", location_name.casefold()) else home
 
 
+def opening_hook(world: dict[str, Any], settlement_id: str) -> list[str]:
+    """The town's first word for a new campaign: one piece of street talk about real work, kept as heard (the journal
+    shows it as a trail), and the one later nudge an idle player gets (world_reactions). Never calls the model."""
+    world.setdefault("flags", {})["opening_nudge"] = {"due_turn": 8, "done": False}
+    world_threads.ensure(world)
+    talk = world_threads.street_talk(world, settlement_id)
+    place = (world.get("locations") or {}).get(talk["place_id"]) if talk else None
+    if not isinstance(place, dict):
+        return []  # nothing going on: nothing is made up
+    world_threads.mark_heard(talk, 0)
+    world_threads.note_heard_names(world, talk["public_line"])
+    return [f"Kalabalıktan bir söz kulağına çalınıyor: {talk['public_line']}"]
+
+
 def initialize_campaign_opening(
     session: Any,
     campaign_id: str,
@@ -142,7 +158,13 @@ def initialize_campaign_opening(
         # a location name or ambient scene.
         return None
 
+    # A happening the player can join when this place has one; the old quiet kind otherwise.
     event = living_world.select_and_record_ambient_event(
+        world_state,
+        location_id,
+        0,
+        allowed_types={"BLUE"},
+    ) or living_world.select_and_record_ambient_event(
         world_state,
         location_id,
         0,
@@ -150,6 +172,8 @@ def initialize_campaign_opening(
     )
     if event is None:
         raise ValueError("No context-compatible ambient opening event exists.")
+    if event["event_type"] == "BLUE":
+        living_world.place_scene_event(world_state, location_id, 0, event)
 
     tone = _tone(character, metadata)
     time_opener = _TIME_OPENERS[metadata["time_of_day"]]
@@ -164,6 +188,9 @@ def initialize_campaign_opening(
     home = _home_elsewhere(character.get("origin"), location["name"])
     if home:
         parts.append(f"{home} uzakta kaldı.")
+    settlement_id = local_places.settlement_of(world_state, location_id)
+    if settlement_id:
+        parts += opening_hook(world_state, settlement_id)
     text = " ".join(part for part in parts if part)
     return living_world.set_scene_opening(
         world_state,

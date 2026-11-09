@@ -150,7 +150,7 @@
         "oda": true,
         "envanter": {},
         "kese": 55,
-        "konum": "location_001",
+        "konum": "$kurulum_yeri",
         "yasak_metin": [
           "eline geçen bir şey yok"
         ]
@@ -163,7 +163,7 @@
         "hp": 28,
         "oda": true,
         "kese": 55,
-        "konum": "location_001"
+        "konum": "$kurulum_yeri"
       }
     }
   ]

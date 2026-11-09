@@ -36,7 +36,7 @@
     },
     {
       "say": "yukarı çıkıp odama geçiyorum",
-      "expect": {"konum": "location_001", "oda": true}
+      "expect": {"konum": "$kurulum_yeri", "oda": true}
     },
     {
       "say": "dışarı çıkıyorum",

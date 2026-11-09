@@ -76,7 +76,7 @@ def walk_back_to_sleep():
         {"economic_action": {"kind": "confirm"}, "expect": {"oda": True, "kese": 50, "kart": None}},
         {"say": "dışarı çıkıyorum", "expect": {"konum": "fr:city:neverwinter", "oda": True}},
         {"say": "hana gidip odamda sabaha kadar uyuyorum",
-         "expect": {"hp": 28, "oda": True, "kese": 50, "konum": "location_001"}},
+         "expect": {"hp": 28, "oda": True, "kese": 50, "konum": "$kurulum_yeri"}},
     ]
     folder = Path(tempfile.mkdtemp())
     path = folder / f"{data['id']}.json"  # the loader holds the id and the file name equal

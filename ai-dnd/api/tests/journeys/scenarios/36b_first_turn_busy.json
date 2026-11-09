@@ -1,0 +1,119 @@
+{
+  "id": "36b_first_turn_busy",
+  "title": "İlk turda açılıştaki olaya katılan oyuncu boşta değildir: sonraki sekiz turda kasabanın ikinci sözü gelmez, ısrar yok",
+  "source_items": [
+    49
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "seed": 1
+  },
+  "steps": [
+    {
+      "ambient": {
+        "action": "interact"
+      },
+      "expect": {
+        "olay": {
+          "neden": "event_already_resolved"
+        },
+        "kip": {
+          "active": true
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      }
+    }
+  ]
+}

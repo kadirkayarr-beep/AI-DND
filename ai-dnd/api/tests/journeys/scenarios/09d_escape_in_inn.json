@@ -101,14 +101,14 @@
       },
       "expect": {
         "savas": true,
-        "konum": "location_001"
+        "konum": "$kurulum_yeri"
       }
     },
     {
       "say": "kaçıyorum",
       "expect": {
         "savas": true,
-        "konum": "location_001",
+        "konum": "$kurulum_yeri",
         "gerekli_metin": "Kaçacak bir açık bulamıyorsun",
         "yasak_metin": "çıkış göremiyorsun"
       }

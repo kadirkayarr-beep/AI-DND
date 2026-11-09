@@ -245,10 +245,10 @@ class ThroughTheRealTurn(unittest.IsolatedAsyncioTestCase):
     def prompt_text(self):
         return json.dumps(self.client.message_batches[-1], ensure_ascii=False, default=str)
 
-    async def test_the_first_speech_seeds_the_town_and_the_model_gets_what_this_person_knows(self):
+    async def test_the_opening_seeds_the_town_and_the_model_gets_what_this_person_knows(self):
         await self.start()
         world = self.session.world_state
-        self.assertNotIn(world_threads.KEY, world)
+        self.assertIn(world_threads.KEY, world)  # a new campaign's opening already hears of its work (Task 18)
         await self.say("Burada nerede iş bulabilirim?", "Bir bakayım.")
         self.assertIn(world_threads.KEY, world)
         self.assertIn("Kentte", self.prompt_text())
@@ -289,7 +289,8 @@ class ThroughTheRealTurn(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_save_from_before_threads_resumes_and_gains_them_on_its_first_talk(self):
         await self.start()
-        self.assertNotIn(world_threads.KEY, self.session.world_state)
+        self.session.world_state.pop(world_threads.KEY)  # a save from before threads (a new opening seeds them)
+        self.manager.save_campaign(self.manager.get(self.session_id).campaign_id)
         world = await self.resume_in_a_new_process()
         self.assertNotIn(world_threads.KEY, world)
         world_threads.ensure(world)

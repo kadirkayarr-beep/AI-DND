@@ -1599,6 +1599,31 @@ def create_scene_referent(
     return referent
 
 
+def place_scene_event(world_state: dict[str, Any], location_id: str, turn_index: int, event: dict[str, Any]) -> None:
+    """Make a selected event the scene's ambient event; a BLUE one gets the referent a click joins."""
+    scene = ensure_scene_record(world_state, location_id, turn_index)
+    ambient_event = {
+        "event_id": event["event_id"],
+        "instance_id": event["instance_id"],
+        "variation_id": event["variation_id"],
+        "event_type": event["event_type"],
+        "repeat_group": event["repeat_group"],
+        "count": event["count"],
+    }
+    scene["last_beat"] = event["text"][:MAX_BEAT_TEXT]
+    if event["event_type"] == "BLUE":
+        referent = create_scene_referent(
+            world_state,
+            location_id,
+            turn_index,
+            description=event["text"],
+            aliases=list(event["aliases"]),
+            event_instance_id=event["instance_id"],
+        )
+        ambient_event["referent_id"] = referent["id"]
+    scene["ambient_event"] = ambient_event
+
+
 def materialize_scene(
     world_state: dict[str, Any],
     location_id: str,
@@ -1640,32 +1665,14 @@ def materialize_scene(
             "kind": "furnishing",
             "aliases": ["masa", "ahşap masa", "bardak", "kil bardak"],
         })
-    event = select_and_record_ambient_event(
+    # A campaign's opening may already have put its happening here (opening_narrative); it stays the scene's event.
+    event = None if scene.get("ambient_event") else select_and_record_ambient_event(
         world_state,
         location_id,
         turn_index,
     )
     if event is not None:
-        ambient_event = {
-            "event_id": event["event_id"],
-            "instance_id": event["instance_id"],
-            "variation_id": event["variation_id"],
-            "event_type": event["event_type"],
-            "repeat_group": event["repeat_group"],
-            "count": event["count"],
-        }
-        scene["last_beat"] = event["text"][:MAX_BEAT_TEXT]
-        if event["event_type"] == "BLUE":
-            referent = create_scene_referent(
-                world_state,
-                location_id,
-                turn_index,
-                description=event["text"],
-                aliases=list(event["aliases"]),
-                event_instance_id=event["instance_id"],
-            )
-            ambient_event["referent_id"] = referent["id"]
-        scene["ambient_event"] = ambient_event
+        place_scene_event(world_state, location_id, turn_index, event)
 
     scene["materialized"] = True
     scene["last_activity_turn"] = max(0, turn_index)

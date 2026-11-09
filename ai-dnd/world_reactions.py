@@ -686,6 +686,49 @@ def _board_hint(world: dict[str, Any], result: dict[str, Any]) -> list[str]:
     return [hint] if hint else []
 
 
+def _idle_since_opening(world: dict[str, Any]) -> bool:
+    """Read from the record, never from words: still on the opening's own spot, no job put to them or taken, never
+    spoken with anyone, no happening joined, no fight. Checked every turn, so a player who was busy once stays so."""
+    import world_threads
+    scenes = (world.get("scene_state") or {}).get("scenes") or {}
+    here = scenes.get(world.get("location"))
+    threads = (world_threads.view(world) or {}).get("threads", [])
+    return (isinstance(here, dict) and isinstance(here.get("opening"), dict)
+            and not any(thread.get("status") in {"offered", "accepted"} for thread in threads)
+            and not (world.get("flags") or {}).get("last_npc_id")
+            and not any(isinstance(referent, dict) and referent.get("lifecycle") == "promoted"
+                        for scene in scenes.values() if isinstance(scene, dict)
+                        for referent in scene.get("referents") or ())
+            and not (world.get("combat") or {}).get("active"))
+
+
+def _opening_nudge(world: dict[str, Any], *, may_speak: bool) -> list[str]:
+    """Once, on a turn with nothing else to tell from the eighth on, a player still idle since the opening catches
+    one more piece of town talk (else the board's line). Busy at any check, it is over: nobody insists. A campaign
+    without the flag (a save from before it) never hears it."""
+    nudge = (world.get("flags") or {}).get("opening_nudge")
+    if not isinstance(nudge, dict) or nudge.get("done") is not False:
+        return []
+    if not _idle_since_opening(world):
+        nudge["done"] = True
+        return []
+    if not may_speak or type(nudge.get("due_turn")) is not int or _turn(world) < nudge["due_turn"]:
+        return []
+    nudge["done"] = True
+    import local_places
+    import town_knowledge
+    import world_threads
+    settlement_id = local_places.settlement_of(world, world.get("location"))
+    talk = world_threads.street_talk(world, settlement_id) if settlement_id else None
+    place = (world.get("locations") or {}).get(talk["place_id"]) if talk else None
+    if isinstance(place, dict):
+        world_threads.mark_heard(talk, _turn(world))
+        world_threads.note_heard_names(world, talk["public_line"])
+        return [f"Yanından geçen iki kişinin konuşmasından bir söz yakalıyorsun: {talk['public_line']}"]
+    hint = town_knowledge.board_hint(world)
+    return [hint] if hint else []
+
+
 def _gives_in(session) -> bool:
     """The reading says it is surrender; the fine, the night and the walk to the post need the player to have said so."""
     said = str(getattr(session, "_adventure_player_text", ""))
@@ -731,6 +774,7 @@ def _settle_the_law(session, result: Any = None) -> tuple[list[str], bool]:
 def answer(session, result: Any) -> None:
     """The end of a turn: what the player can perceive of all this joins the narration, a line or two at most."""
     world = session.world_state
+    _opening_nudge(world, may_speak=False)  # a fight, a talk, a step away: the player is in something now
     if (not isinstance(result, dict) or world.get("combat", {}).get("active")
             or session.character.get("current_hp", 0) <= 0):
         return
@@ -755,6 +799,7 @@ def answer(session, result: Any) -> None:
     law = law_lines if law_done else law_lines + (_press(session, result) or _challenge(session))
     if world.get("combat", {}).get("active"):
         lines = []  # the fight is what the turn is about now
-    lines = [*lines, *law][-MAX_LINES_PER_TURN:] or _board_hint(world, result)
+    lines = ([*lines, *law][-MAX_LINES_PER_TURN:] or _opening_nudge(world, may_speak=True)
+             or _board_hint(world, result))
     if lines:
         result["narration"] = " ".join([str(result.get("narration") or ""), *lines]).strip()

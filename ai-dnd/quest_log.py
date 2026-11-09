@@ -203,6 +203,14 @@ def _trail_rows(world: dict[str, Any]) -> list[dict[str, Any]]:
                                 what=(caller or {}).get("message") or world_happenings._link_matter(world, link),
                                 record=link, source="haber", from_id=about["thread_id"]))
     found = [trail for trail in found if trail is not None]
+    pointed = {trail["_to_thread_id"] for trail in found}
+    for thread in state["threads"]:  # (4) work the player heard of that is still going begging; it falls once taken
+        if (thread.get("status") == "heard" and type(thread.get("heard_turn")) is int
+                and thread["thread_id"] not in pointed):  # a record another trail already points at is not twice
+            found.append(_trail(world, key=f"duyulan:{thread.get('place_id')}:{thread.get('opened_at')}",
+                                at=thread.get("opened_at") or 0, what=thread.get("public_line"), record=thread,
+                                source="duyulan", from_id=None))
+    found = [trail for trail in found if trail is not None]
     found.sort(key=lambda trail: trail["_at"], reverse=True)
     return found[:MAX_TRAILS]
 

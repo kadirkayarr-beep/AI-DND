@@ -1,0 +1,139 @@
+{
+  "id": "36a_first_ten_turns",
+  "title": "İlk on tur (yeni kampanya, Neverwinter sokağı): açılış kasabadan gerçek bir iş sözü duyurur ve günlükte bir 'duyulan' iz olur, açılıştaki olaya katılınabilir; yedi tur boyunca boşta kalan oyuncu sekizinci turda yanından geçenlerden bir söz daha yakalar (ikinci iz), yalnız bir kez; yenileme aynısını okur",
+  "source_items": [
+    49
+  ],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "seed": 1
+  },
+  "steps": [
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 1
+        },
+        "olay": {
+          "tiklanabilir": true
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 1
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 1
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 1
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 1
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 1
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 1
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gerekli_metin": [
+          "konuşmasından bir söz"
+        ],
+        "gunluk": {
+          "iz_sayisi": 2
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 2
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 2
+        },
+        "yasak_metin": [
+          "konuşmasından bir söz"
+        ]
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 2
+        }
+      }
+    }
+  ]
+}

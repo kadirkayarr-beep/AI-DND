@@ -37,11 +37,11 @@
           "completion": "complete"
         }
       },
-      "expect": {"savas": true, "konum": "location_001"}
+      "expect": {"savas": true, "konum": "$kurulum_yeri"}
     },
     {
       "say": "kaçıyorum",
-      "expect": {"savas": true, "konum": "location_001", "gerekli_metin": "Turunu bitirirsin"}
+      "expect": {"savas": true, "konum": "$kurulum_yeri", "gerekli_metin": "Turunu bitirirsin"}
     }
   ]
 }

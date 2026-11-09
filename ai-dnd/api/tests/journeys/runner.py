@@ -93,6 +93,9 @@ JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "no
 LETTER_KEYS = frozenset({"owner", "pay", "line", "noun", "recipient", "target_kind"})
 # An expected ``konum`` naming the setup errand's target place (see ``_with_job_target``).
 JOB_TARGET = "$is_hedefi"
+# An expected ``konum`` of ``$kurulum_yeri`` is the place the setup stood the player in: a new campaign's town work
+# opens places first (Task 18), so the place's number is the engine's, never the scenario's.
+SETUP_PLACE = "$kurulum_yeri"
 SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration", "speech"})
 # ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
 # too, so a scenario can try a missing or broken answer). ``spoken`` stays the spoken line.
@@ -315,6 +318,10 @@ def _with_bag_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, A
 def _with_job_target(case: Any, expect: Mapping[str, Any], session_id: str) -> Mapping[str, Any]:
     """An expected ``konum`` of ``$is_hedefi`` is the target place of the setup's errand, read from the live world (a
     town's places are numbered as the campaign's seed made them, so the id is the engine's, never the scenario's)."""
+    if expect.get("konum") == SETUP_PLACE:
+        if getattr(case, "setup_place_id", None) is None:
+            raise ScenarioError(f"'{SETUP_PLACE}': kurulumda bir yer (setup 'place') yok")
+        return {**expect, "konum": case.setup_place_id}
     if expect.get("konum") != JOB_TARGET:
         return expect
     world = case.manager.get(session_id).game_session.world_state
@@ -372,8 +379,10 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         raise ScenarioError("setup 'campaign_start' bir nesne olmalı")
     session = case.manager.get(campaign["session_id"]).game_session
     world = session.world_state
+    case.setup_place_id = None
     if "place" in setup:
         _stand_in_place(world, setup["place"])
+        case.setup_place_id = world["location"]
     if "npcs" in setup:
         world["npcs"] = [{"location": world["location"], **copy.deepcopy(npc)} for npc in setup["npcs"]]
     for key in ("currency", "inventory", "ammunition"):
@@ -417,6 +426,7 @@ def _place_ambient_event(world: dict[str, Any], spec: Any) -> None:
     scene = living_world.ensure_scene_record(world, location, turn)
     scene["materialized"] = True
     scene["referents"].clear()
+    scene.pop("ambient_event", None)  # the opening's own happening (Task 18) gives way to the scenario's
     state = living_world.ensure_scene_state(world)
     count = state["ambient_event_counts"].get(event["event_id"], 0) + 1
     state["ambient_event_counts"][event["event_id"]] = count

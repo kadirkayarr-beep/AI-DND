@@ -107,7 +107,7 @@
     {
       "say": "yukarı çıkıp odama geçiyorum",
       "expect": {
-        "konum": "location_001",
+        "konum": "$kurulum_yeri",
         "oda": true
       }
     },

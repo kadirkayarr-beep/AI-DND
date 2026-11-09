@@ -116,7 +116,7 @@
       },
       "expect": {
         "savas": true,
-        "konum": "location_001",
+        "konum": "$kurulum_yeri",
         "yasak_metin": "Orsik"
       }
     },
@@ -137,7 +137,7 @@
       },
       "expect": {
         "savas": false,
-        "konum": "location_001",
+        "konum": "$kurulum_yeri",
         "gerekli_metin": "Orsik bağırarak kapıya koşuyor."
       }
     },
@@ -145,14 +145,14 @@
       "reload": true,
       "expect": {
         "savas": false,
-        "konum": "location_001"
+        "konum": "$kurulum_yeri"
       }
     },
     {
       "say": "etrafıma bakıyorum",
       "expect": {
         "savas": false,
-        "konum": "location_001",
+        "konum": "$kurulum_yeri",
         "yasak_metin": "Orsik"
       }
     }
