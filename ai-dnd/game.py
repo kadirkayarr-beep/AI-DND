@@ -19093,7 +19093,8 @@ def _front_economic_offer(route, player_input):
 def _purchase_refused(session, person, amount, player_input):
     """Why a purchase reading opens nothing, from the engine's own facts, in order: coin held out beyond the purse; a
     room asked for while one is held here; coin short of the price of what was asked for (the room, or goods this
-    counter sells, by the reading's deal or the line's words); and only then that this counter does not sell it."""
+    counter sells, by the reading's deal or the line's words); goods the line names off this counter's list; and
+    otherwise only that what was wanted was not understood, with what this counter does sell."""
     import bold_acts
     import economic_actions
     import money_owner
@@ -19117,10 +19118,12 @@ def _purchase_refused(session, person, amount, player_input):
         line = refusals.text_for(reason, **facts)
         refusals.note(session, reason, npc_id=person.get("id"), **facts)
     else:
-        reason = "no_stock_or_service"
-        have = bold_acts.on_the_counter(world, person)
-        line = refusals.text_for("goods_not_sold", have=have)
-        refusals.note(session, "goods_not_sold", npc_id=person.get("id"), have=have)
+        off_list = shop_trade.priced_in(player_input) if named is None else None
+        code = "not_sold_here" if off_list is not None else "goods_unclear"
+        facts = {"have": bold_acts.on_the_counter(world, person), "item": off_list[1] if off_list else ""}
+        reason = "not_sold_here" if off_list is not None else "no_stock_or_service"
+        line = refusals.text_for(code, **facts)
+        refusals.note(session, code, npc_id=person.get("id"), **facts)
     result = bold_acts._reply(session, line, "narrative", "clarification", None, [], reason_code=reason)
     result["action_result"]["success"] = False
     return result

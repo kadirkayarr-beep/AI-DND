@@ -102,13 +102,38 @@ class MoneyPathRepair(Counter):
         self.assertEqual(self.prepared(), [])
         self.assertEqual(self.money(), before)
 
-    def test_goods_not_on_the_counter_are_told_with_what_is_sold(self):
+    def test_goods_the_engine_cannot_read_are_not_denied(self):
         before = self.money()
         result = self.purchase("Bir kılıç almak istiyorum")
-        self.assertEqual(result["narration"], "Burada bu satılık değil; bu tezgâhta bira, şarap, tabak yemek var.")
+        self.assertEqual(result["narration"], "Ne almak istediğini anlayamadım; bu tezgâhta bira, şarap, tabak yemek var.")
         self.assertEqual(result["action_result"]["reason_code"], "no_stock_or_service")
         self.assertFalse(result["action_result"]["success"])
         self.assertNotIn("counter_offer_v1", self.w["flags"])
+        self.assertEqual(self.money(), before)
+
+    # fix round 2, (1): "not sold" only when the engine knows the thing asked for is off this counter's list
+    def test_an_unclear_goods_reading_does_not_deny_beer(self):
+        before = self.money()
+        result = self.purchase("5 bakıra bir bira alıyorum", coin=5, deal="goods", deal_goods="none")
+        self.assertEqual(result["narration"], "Ne almak istediğini anlayamadım; bu tezgâhta bira, şarap, tabak yemek var.")
+        self.assertNotIn("satılık değil", result["narration"])
+        self.assertEqual(self.prepared(), [])
+        self.assertEqual(self.money(), before)
+
+    def test_a_gift_reading_of_a_purchase_line_does_not_deny_beer(self):
+        before = self.money()
+        result = self.purchase("Marek'e 5 bakır verip bir bira alıyorum", coin=5, deal="gift")
+        self.assertNotIn("satılık", result["narration"])
+        self.assertIn("bira, şarap, tabak yemek", result["narration"])
+        self.assertEqual(self.prepared(), [])
+        self.assertEqual(self.money(), before)
+
+    def test_goods_named_off_this_list_are_said_not_sold(self):
+        before = self.money()
+        result = self.purchase("Marek'e 5 bakır verip bir peynir alıyorum", coin=5, deal="gift")
+        self.assertEqual(result["narration"], "Burada satılık peynir yok; bu tezgâhta bira, şarap, tabak yemek var.")
+        self.assertEqual(result["action_result"]["reason_code"], "not_sold_here")
+        self.assertEqual(self.prepared(), [])
         self.assertEqual(self.money(), before)
 
     # (c) said to someone here who sells nothing: the line is theirs to answer, no card refusal
@@ -194,6 +219,22 @@ class MenuWordsAreNotNames(MenuByPlaceKind):
                           ("biradan bir tane", "bira")):
             with self.subTest(line=line):
                 self.assertEqual(shop_trade.priced_in(line)[0], key)
+
+    def test_possessive_endings_still_read(self):
+        # fix round 2, (2): my beer, its beer, its cheese, my bread
+        for line, key in (("biramı ver", "bira"), ("birası soğuk mu", "bira"), ("birasını içiyorum", "bira"),
+                          ("peynirini istiyorum", "peynir"), ("ekmeğimi ver", "ekmek"), ("elması var mı", "elma")):
+            with self.subTest(line=line):
+                self.assertEqual(shop_trade.priced_in(line)[0], key)
+
+    def test_a_possessive_order_opens_the_offer_and_moves_no_coin(self):
+        self.w["locations"][self.here].pop("place_kind")
+        self.npc("barman").update(name="Marek", role="Barmen")
+        before = self.money()
+        result = bold_acts.shop_offer(self.s, "Biramı ver bakalım", self.npc("barman"), requested=True)
+        self.assertEqual(result["action_result"]["status"], "offer_open")
+        self.assertEqual(self.w["flags"]["counter_offer_v1"]["key"], "bira")
+        self.assertEqual(self.money(), before)
 
     def test_p5_a_surname_at_the_market_opens_no_apple_offer(self):
         before = self.money()

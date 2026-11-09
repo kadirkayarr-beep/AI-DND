@@ -128,7 +128,7 @@ REFUSAL_TEXT: dict[str, str] = {
     "primal_knowledge_immediate_check_only": "İlkel Bilgi yalnız hemen yapılan bir sınamada kullanılır.",
     # A counter asked for what its own list does not hold (Dilim 3, Task 27): `{have}` is that list.
     "not_sold_here": "Burada satılık {item} yok; bu tezgâhta {have} var.",
-    "goods_not_sold": "Burada bu satılık değil; bu tezgâhta {have} var.",
+    "goods_unclear": "Ne almak istediğini anlayamadım; bu tezgâhta {have} var.",
     "coin_below_price": "{item} {price} bakır; uzattığın {coin} bakır bunu karşılamıyor.",
     # A turn the engine could not finish safely (HTTP 500, Dilim 3 Task 37): it was taken back whole.
     "engine_error": "Bu hamlenin sonucu oyunda doğrulanamadı; hiçbir şey değişmedi. Aynı şeyi yeniden ya da başka sözlerle dene.",

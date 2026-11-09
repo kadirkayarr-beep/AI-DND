@@ -59,7 +59,22 @@ def _says(word: str, token: str) -> bool:
         return True
     soft = _SOFTENED.get(word[-1])
     stem = word[:-1] + soft if soft else ""
-    return bool(stem) and token[len(stem):][:1] in tuple("aeiou") and game._reference_token_matches(stem, token)
+    if stem and token[len(stem):][:1] in tuple("aeiou") and game._reference_token_matches(stem, token):
+        return True
+    return _owned(word, token) or bool(stem and _owned(stem, token))
+
+
+def _owned(word: str, token: str) -> bool:
+    """The word with a possessive after it, whatever follows: 'biramı', 'birasını', 'peynirini', 'ekmeğimi'. After a
+    vowel the ending opens with m, n or s and a narrow vowel (-sı, -si, -su, -sü); after a consonant with a narrow
+    vowel (-ım, -ı, -in …; folded to i/u). 'biraz', 'birader' (the old z/d exclusions), 'elmas', 'Elmasaz', 'ekmekçi'
+    stay other words."""
+    rest = token[len(word):] if token.startswith(word) else ""
+    if not rest or rest[0] in "zd":
+        return False
+    if word[-1] in "aeiou":
+        return rest[0] in "mn" or (rest[0] == "s" and rest[1:2] in ("i", "u"))
+    return rest[0] in "iu"
 
 
 def _said_words(text: Any) -> list[str]:
