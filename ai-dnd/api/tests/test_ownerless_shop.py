@@ -35,6 +35,14 @@ class ShopOwnerTests(ThreePlaysTests):
         owners = [npc for npc in self.world["npcs"] if npc.get("place_role_of") == record["id"]]
         self.assertEqual([(npc["name"], npc["location"]) for npc in owners], [(record["resident_name"], record["id"])])
 
+    async def test_an_unknown_place_noun_gets_no_shopkeeper(self):
+        await self.town()
+        run = grounded_action._Run(self.session, "")
+        record = grounded_action._create_venue(run, self.settlement, name="Yıldız Rasathanesi", kind="generic",
+                                               noun="rasathane", provenance={"source": "test"})
+        self.assertFalse(record.get("resident_name"))
+        self.assertEqual([npc for npc in self.world["npcs"] if npc.get("location") == record["id"]], [])
+
     async def test_a_store_room_reserves_no_one(self):
         await self.town()
         run = grounded_action._Run(self.session, "")
@@ -93,6 +101,7 @@ class UnseenSpeakerTests(unittest.TestCase):
                 {"id": "npc_berk", "name": "Berk", "role": "Dükkâncı", "location": "shop",
                  "role_known_to_player": True, "name_known_to_player": False, "status": "active"},
                 {"id": "npc_marek", "name": "Marek", "role": "Barmen", "location": "inn", "status": "active"},
+                {"id": "npc_veyra", "name": "Veyra Taşkın", "role": "Kâtip", "location": "inn", "status": "active"},
             ],
         }
 
@@ -116,6 +125,19 @@ class UnseenSpeakerTests(unittest.TestCase):
     def test_introducing_oneself_by_someone_elses_name_is_dropped(self):
         repaired = self.repair("Bir dükkâncı gülümser: “Ben Özpil. Ne lazım?”")
         self.assertEqual(repaired, "Bir dükkâncı gülümser: “Ne lazım?”")
+
+    def test_an_absent_person_merely_mentioned_is_left_alone(self):
+        for text in ("Özpil sana bir paket gönderecekti; vakti geçti.",
+                     "Özpil adlı tüccar konakta yaşar.",
+                     "Marek sana bu işi vermişti, hatırlıyorsun."):
+            with self.subTest(text=text):
+                self.assertEqual(self.repair(text), text)
+
+    def test_a_whole_line_of_self_introduction_is_dropped_with_its_lead(self):
+        self.assertEqual(self.repair("Kapı gıcırdar. Bir dükkâncı gülümser: “Ben Özpil.”"), "Kapı gıcırdar.")
+
+    def test_a_name_of_two_words_is_replaced_whole(self):
+        self.assertEqual(self.repair("Veyra Taşkın yaklaşır."), "Bir dükkâncı yaklaşır.")
 
     def test_with_no_one_here_nothing_is_rewritten(self):
         world = self.world()
@@ -152,6 +174,18 @@ class UnseenNameCheckTests(unittest.TestCase):
 
     def test_the_check_does_not_take_a_reserved_name_as_a_speaker(self):
         decision = self.decide("Özpil, “Hoş geldin, yolcu.”")
+        self.assertTrue(decision["unsafe"], decision)
+        self.assertEqual(decision["trigger_span"], "Özpil", decision)
+
+    def test_an_absent_person_merely_mentioned_is_not_rejected(self):
+        for name, text in (("Marek", "Marek sana bu işi vermişti, hatırlıyorsun."),
+                           ("Özpil", "Özpil sana bir paket gönderecekti; vakti geçti."),
+                           ("Özpil", "Özpil adlı tüccar konakta yaşar.")):
+            with self.subTest(text=text):
+                self.assertNotEqual(self.decide(text).get("trigger_span"), name)
+
+    def test_a_whole_line_self_introduction_by_an_absent_name_is_rejected(self):
+        decision = self.decide("Bir satıcı: “Ben Özpil.”")
         self.assertTrue(decision["unsafe"], decision)
         self.assertEqual(decision["trigger_span"], "Özpil", decision)
 

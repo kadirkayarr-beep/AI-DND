@@ -1295,7 +1295,7 @@ def _create_venue(run: _Run, settlement: str, *, name: str | None, kind: str,
             "generic_noun": noun, "tags": ["campaign_local"], "provenance": provenance,
         }
         locations[location_id] = record
-        if spec.get("role"):
+        if spec.get("role") and (not noun or noun in _GENERIC_BUILDINGS):  # an unknown noun is not a shop
             # A shop has someone behind its counter: the engine names them and puts them there (every way in finds them).
             import world_threads
             record["resident_role"] = spec["role"]

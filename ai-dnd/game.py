@@ -10743,16 +10743,56 @@ def _unseen_registered_names(world_state):
     return {word: name for name in names for word in name.casefold().split() if word not in present}
 
 
+# The speaking shape among them: arriving, acting in the scene, or the speaker before a quote (a mention, such as
+# "X sana ... gönderecekti" or "X adlı tüccar", is not one).
+_SPEAKING_NAME_PATTERNS = (
+    r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})(?:,)?\s+(?=(?:içeri|yaklaşır|girer|konuşur|yanıt verir|şöyle der|"
+    r"ortaya çıkar|belirir|durur)\b)",
+    r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})\s*[,:]\s*[\"“]",
+)
+
+
 def _inside_speech(text, position):
     return any(span.start() < position < span.end() for span in _SPEECH_SPAN_RE.finditer(text))
+
+
+def _unseen_speakers(text, unseen):
+    """(start, end) of each unseen registered name in the speaking shape outside speech, the whole name when said."""
+    found = set()
+    for pattern in _SPEAKING_NAME_PATTERNS:
+        for match in re.finditer(pattern, text):
+            full = unseen.get(match.group(1).casefold())
+            if not full or _inside_speech(text, match.start(1)):
+                continue
+            start, end = match.span(1)
+            low = max(0, start - len(full))
+            for said in re.finditer(re.escape(full), text[low:end + len(full)], re.IGNORECASE):
+                if low + said.start() <= start < low + said.end():
+                    start, end = low + said.start(), low + said.end()
+                    break
+            found.add((start, end))
+    return sorted(found)
+
+
+def _unseen_self_introductions(text, unseen):
+    """Each speech span with the sentences in it that introduce the speaker by an unseen registered name."""
+    found = []
+    for span in _SPEECH_SPAN_RE.finditer(text):
+        parts = _split_sentences_keep_speech(span.group(0)[1:-1])
+        intros = [part for part in parts
+                  if (local_dialogue.explicit_player_name_disclosure(part) or "").casefold() in unseen]
+        if intros:
+            found.append((span, parts, intros))
+    return found
 
 
 def _unseen_speaker_repaired(narration, world_state, npc_target):
     """A saved person who is not here does not speak here: the one who is here does, by what can be seen of them.
 
-    Their name in a person's place outside speech becomes the public label of the person in the scene (the target,
-    or the only one here); a self-introduction by that name inside speech is dropped. Other names inside speech are
-    mentions. With nobody here nothing is rewritten (the check decides).
+    Their name in the speaking shape outside speech becomes the public label of the person in the scene (the target,
+    or the only one here); a self-introduction by that name inside speech is dropped (a line that is only that goes
+    with the words that lead into it). Mentions of absent people are left alone. With nobody here nothing is
+    rewritten (the check decides).
     """
     if not isinstance(narration, str) or not isinstance(world_state, dict):
         return narration
@@ -10765,27 +10805,22 @@ def _unseen_speaker_repaired(narration, world_state, npc_target):
     if speaker is None or not unseen:
         return narration
     label = living_world.public_npc_name(speaker)
-    edits = set()
-    for pattern in _NARRATED_NAME_PATTERNS:
-        for match in re.finditer(pattern, narration):
-            full = unseen.get(match.group(1).casefold())
-            if not full or _inside_speech(narration, match.start(1)):
-                continue
-            start = match.start(1)
-            said_whole = narration[start:start + len(full)].casefold() == full.casefold()
-            edits.add((start, start + len(full) if said_whole else match.end(1)))
-    for start, end in sorted(edits, reverse=True):
+    for start, end in reversed(_unseen_speakers(narration, unseen)):
         opens = not narration[:start].rstrip() or narration[:start].rstrip()[-1] in ".!?…\n\"”'’"
         shown = label if living_world.npc_name_known_to_player(speaker) else (
             living_world.turkish_initial_upper(label) if opens else living_world.turkish_initial_lower(label))
         narration = narration[:start] + shown + narration[end:]
-    for span in reversed(list(_SPEECH_SPAN_RE.finditer(narration))):
+    for span, parts, intros in reversed(_unseen_self_introductions(narration, unseen)):
+        kept = [part for part in parts if part not in intros]
         quote = span.group(0)
-        parts = _split_sentences_keep_speech(quote[1:-1])
-        kept = [part for part in parts
-                if (local_dialogue.explicit_player_name_disclosure(part) or "").casefold() not in unseen]
-        if kept and len(kept) < len(parts):
+        if kept:
             narration = narration[:span.start()] + quote[0] + " ".join(kept) + quote[-1] + narration[span.end():]
+            continue
+        # Nothing of the line is left: its lead-in ("X gülümser:") goes with it.
+        before = narration[:span.start()]
+        lead = re.search(r"(?:^|(?<=[.!?…]))[^.!?…]*$", before)
+        cut = lead.start() if lead and lead.group(0).rstrip().endswith((":", ",")) else span.start()
+        narration = (narration[:cut].rstrip() + " " + narration[span.end():].lstrip()).strip()
     return narration
 
 
@@ -11569,10 +11604,6 @@ def _narration_safety_decision(
             candidate = match.group(1).casefold()
             if candidate in _COMMON_SENTENCE_OPENERS:
                 continue
-            # A saved person who is not here is not here: their name cannot speak or stand in this scene.
-            # Inside someone's speech it is only a mention.
-            if candidate in unseen_people and not _inside_speech(entity_narration, match.start(1)):
-                return reject_entity(match.group(1))
             normalized_candidate = _normalize_turkish_typos(candidate)
             if candidate not in (
                 registered_names | registered_name_tokens | known_places
@@ -11591,6 +11622,15 @@ def _narration_safety_decision(
                 return reject_entity(match.group(1))
     if _has_unregistered_person_name(entity_scan):
         return reject_entity()
+    # A saved person who is not here cannot speak or arrive in this scene, nor introduce themselves in a line.
+    # Inside someone's speech, any other use of the name is a mention.
+    unseen_speakers = _unseen_speakers(entity_scan, unseen_people)
+    if unseen_speakers:
+        start, end = unseen_speakers[0]
+        return reject_entity(entity_narration[start:end])
+    introductions = _unseen_self_introductions(entity_narration, unseen_people)
+    if introductions:
+        return reject_entity(local_dialogue.explicit_player_name_disclosure(introductions[0][2][0]))
 
     unregistered_object = _unregistered_persistent_object_claim(
         world_state, narration
