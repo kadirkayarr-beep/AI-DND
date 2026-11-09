@@ -8592,6 +8592,10 @@ def _with_only_backed_money(speech, settled):
     return bool(speech["spoken_text"].strip())
 
 
+# Right under the narrator's truth card, in one place (Dilim 2, Task 15; rc3): an instruction, not an output filter.
+_REFUSED_MOVE_RULE = "MOTOR GERÇEĞİ 'olmadı' diyen bir hamleyi olmuş gibi anlatma; denemeyi ve neden olmadığını anlat."
+
+
 def _bag_note(names):
     listed = ", ".join(names) if names else "hiçbir şey"
     return f"Oyuncunun üstünde gerçekten olanlar: {listed}. Başka bir şey onun elinde değildir."
@@ -13764,7 +13768,8 @@ def ask_dungeon_master(
            if getattr(_session(), "_nothing_taken", None) else "")
         + f"{_bag_note(pocket.bag_names(world_state))} Anlatında oyuncunun eline yeni bir şey geçiyorsa ya da bir şeyini "
         "birine veriyorsa item_claims alanında yalın adıyla bildir (to: player veya person); oyun onaylamazsa o cümle düşer.\n\n"
-        + truth_card.narrator_view(world_state, npc=npc_target, this_turn=getattr(_session(), "_turn_notes", ())) + "\n\n"
+        + truth_card.narrator_view(world_state, npc=npc_target, this_turn=getattr(_session(), "_turn_notes", ())) + "\n"
+        + _REFUSED_MOVE_RULE + "\n\n"
         + f"NARRATION FACTS (anlatılabilir olgular; boş alan gerçekleşmiş değildir):\n"
         f"{json.dumps(_narrator_fact_view(_narration_fact_packet(action_result), action_result), ensure_ascii=False, separators=(',', ':'))}\n\n"
         f"CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n{living_scene_context}\n\n"
@@ -18601,8 +18606,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if route["kind"] in {"speak_to", "talk_around", "look", "attempt", "unclear"} and grounded_action.offered_walk(
             session, player_input) is not None:
         route = {"kind": "go_to", "id": None, "inside": False}  # "tamam geçiyorum": a yes to the way just shown
-    if route["kind"] == "talk_around":
-        # the same reply's other half may not walk it after all
+    if route["kind"] in {"talk_around", "wield"}:
+        # the same reply's other half may not walk it after all (a drawn weapon is narrated, never classified again)
         held.update(intent="narrative", action="narrative", target={"type": "none", "reference": ""})
     elif (route["kind"] in {"attempt", "look", "unclear"} and held.get("intent") == "inventory"
           and (_model_query_type_is_plausible(player_input) or equipment_economy._natural_inventory_query(player_input))):
@@ -18625,7 +18630,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
 _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
-                      "blow_asked", "wait", "consume"}
+                      "blow_asked", "wait", "consume", "wield"}
 
 
 def _defer_spoken_coin_offer(route):
@@ -18956,6 +18961,24 @@ def _front_consume(route, player_input):
     return {"reply": {"messages": session.messages, "narration": shown, "model_calls": 0,
                       "action_result": {"action": "consume", "status": "consumed", "success": True,
                                         "state_changes": ["inventory"], "direct_response": shown}}}
+
+
+def _front_wield(route):
+    """A bag weapon the reading named goes into the hand through `gear`; anything else changes nothing and the narrator
+    hears that it did not happen. No weapon is looked for by the word (tasarım karar 33, 52)."""
+    import gear
+    session = _session()
+    session.require_player_can_act()
+    world = session.world_state
+    result = gear.draw(world, route["item"]) if route.get("item") else None
+    if result is not None and result.status in {"drawn", "already_held"}:
+        if getattr(session, "_turn_notes", None) is None:
+            session._turn_notes = []
+        done = "eline alındı" if result.status == "drawn" else "zaten elinde"
+        session._turn_notes.append((None, f"bu tur: {result.item['name']} {done}"))
+        return
+    have = ", ".join(str(item.get("name")) for item in gear.weapons_in_bag(world)) or "yok"
+    refusals.note(session, "nothing_to_draw", have=have)
 
 
 def _front_hand_over(route, player_input):
@@ -19292,7 +19315,8 @@ def _dispatch_player_turn(
     if (combat_action is None and not getattr(_session(), "_thread_gate_done", False)
             and not getattr(_session(), "_front_strike", None)):  # a blow stood behind is no answer to an offer
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            gate = (None if front is not None and (front.get("dropped") or _take_names_a_job(front))
+            gate = (None if front is not None and (front.get("dropped") or front["kind"] == "wield"
+                                                   or _take_names_a_job(front))
                     else _front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
                     else _front_consume(front, player_input) if front is not None and front["kind"] == "consume"
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
@@ -19325,6 +19349,9 @@ def _dispatch_player_turn(
             return walked
         if gate is not None:
             interaction_mode, target_id = "say", gate["npc_id"]
+    if front is not None and front["kind"] == "wield" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            _front_wield(front)  # the turn goes on to the narrator, who reads the hand and the note on the card
     if front is not None and front["kind"] == "take" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             taken = _front_take(front, player_input)
@@ -21252,8 +21279,11 @@ def _run_player_turn_internal(
         interaction_mode not in {"say", "ask_dm"}
         and combat_lifecycle.is_attack_decision(_session(), player_input)
     ):
+        # The turn's own reading may name the weapon (Task 14's `weapon_word`): it goes only to the catalog (gear).
+        read = getattr(_session(), "_front_reply", None)
+        word = read.get("weapon_word") if isinstance(read, dict) else None
         action_result = resolve_intent(
-            {"intent": "attack"},
+            {"intent": "attack", **({"weapon_word": word.strip()[:40]} if isinstance(word, str) and word.strip() else {})},
             player_input,
             npc_target=npc_target,
             target_id=target_id,

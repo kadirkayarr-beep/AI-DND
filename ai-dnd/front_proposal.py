@@ -20,7 +20,7 @@ from typing import Any, Mapping, MutableMapping
 FLAG = "AI_DND_FRONT_PROPOSAL"
 ROUTE_LOG = "AI_DND_ROUTE_LOG"
 KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit",
-         "grab", "wait", "consume", "unclear")
+         "grab", "wait", "consume", "wield", "unclear")
 DEEDS = ("steal", "burn", "yield")
 DEALS = ("goods", "room", "tip", "gift", "paid_before")  # what the line's money is for; money_owner checks it
 NONE = "none"
@@ -202,6 +202,7 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "Niyeti cümlenin bütününden anla, belirli bir söz arama. Fiyatı, bahşiş tutarını veya toplamı "
         "hesaplama ve ödeme kararı verme: bunlar Python'a aittir. "
         "consume = oyuncu şimdi çantasındaki bir yiyeceği yiyor veya içeceği içiyor; item_id bag listesindeki eşya. Soru, koşul veya ileride yapma sözü tüketim değildir. "
+        "wield: oyuncu bir silahı eline alıyor/çekiyor; item_id çantadaki silah ya da none. "
         "kind: speak_to = biriyle konuşuyor veya birine soruyor (kendi yaptığı işi '...yorum' diye anlatıyor ve kimseye söylemiyorsa speak_to değil attempt olur); go_to = listedeki bir yere gidiyor (içeri giriyorsa "
         f"inside=true; şehrin dışına, surlardan öteye, şehirden çıkan bir yola ya da başka bir şehre gidiyorsa place_id {WAY_OUT}; "
         "bir binanın kapısı, avlu, sokak, mahalle, tepe ya da han şehrin içidir, onlar için way_out yazma); offer_answer = listedeki teklifi kabul (accept) veya reddediyor (decline), kabul edip yanında bir de soru soruyorsa da böyledir; take = kendisine uzatılan veya teklif edilen şeyi eline alıyor (teklifin kendi eşyasıysa offer_id, parcels listesindeyse item_id ile söyle; başka bir şeyse thing_word alanına o şeyin yalın adını yaz, ör. defter); hand_over = elindeki bir şeyi birine veriyor, teslim ediyor, uzatıyor, nasıl söylerse söylesin (person_id kime, item_id çantadaki hangi şey; bag listesinde yoksa item_id none); work = jobs listesindeki işi şimdi yapıyor, işe koyuluyor, çalışıyor, ne kelimeyle söylerse söylesin (job_id hangisi); look = çevreye "
@@ -406,6 +407,9 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
     if kind == "consume":
         item = front.get("item_id")
         return {"kind": "consume", "item": item} if item in [row["id"] for row in listed["bag"]] else None
+    if kind == "wield":  # the id is checked against the real bag by gear.draw; anything else changes nothing
+        item = front.get("item_id")
+        return {"kind": "wield", "item": item if isinstance(item, str) and item.strip() not in ("", NONE) else None}
     if kind == "go_to":
         place = front.get("place_id")
         if place not in [row["id"] for row in listed["places"]]:

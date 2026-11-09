@@ -36,7 +36,7 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     # The owner's 19-item test: money paid or earned by the wrong move, and the quest record that goes with it.
     ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b", "19c", "19d", "19e", "29")),
     ("Oda, uyku ve çıkış", ("03", "07")),
-    ("Eşya, silah ve tüketim", ("04", "04b", "05", "28")),
+    ("Eşya, silah ve tüketim", ("04", "04b", "05", "05b", "28", "30")),
     ("Savaş eylemleri", ("06", "20", "21", "22", "22b")),
     ("Konuşma kipi", ("08", "08b")),
     ("Kaçış, ölüm ve sonuçları", ("09a", "09b", "09c", "09d", "10", "15")),

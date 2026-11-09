@@ -2,6 +2,7 @@
 import copy
 import unittest
 
+import equipment_economy
 import truth_card
 
 
@@ -201,3 +202,154 @@ class ScopedSpeechJourney(JourneyCase):
         self.assertNotIn("12 bakır", self.last_speech_input)
         self.assertNotIn("Osman'e", self.last_speech_input)
         self.assertNotIn("Osman'a", self.last_speech_input)
+
+
+# --- Dilim 2, Task 15: the card's hand line, the quests and trails that fit, and the budget's one contract ---------
+import economic_actions
+import quest_log
+import refusals
+import world_happenings
+import world_threads
+from api.tests.test_trails import TrailCase
+
+_LONG = "uzun ğüşıöç adlı "
+
+
+def crowd(world, character, *, trails, jobs, items, long_names, open_room_card=False, counterparty_label=None):
+    """Load a played world the way a long game does: known trails to live jobs, running quest rows, a full bag, and
+    (``open_room_card``) Dilim 1's room card open to the barman here (its active line says the money has not moved).
+    Only the product's own records are written; nothing here reads the card."""
+    state = world_threads.view(world) or world_threads.ensure(world)
+    base = state["threads"][0]
+    live = list(state["threads"])                     # the town's live jobs first: the save caps how many may be open
+    for i in range(1, trails - len(live) + 1):
+        job = copy.deepcopy(base)
+        for key in ("offered_at", "offered_turn", "offer_line", "offer_line_turn", "owner_npc_id", "quest_id",
+                    "accepted_at", "accepted_turn", "recipient_npc_id"):
+            job.pop(key, None)
+        job.update(thread_id=f"thread_{900 + i:03d}", status="open")
+        state["threads"].append(job)
+        live.append(job)
+    for i in range(1, trails + 1):
+        target = live[i - 1]
+        if long_names:
+            world["locations"][target["place_id"]]["name"] = ("Rıhtım ardındaki " + _LONG * 6).strip()
+        line = (f"İz {i}: " + ("liman yolunda " + _LONG * 4 if long_names else "yol"))
+        line = line.encode("utf-8")[:world_happenings.MAX_LINE_BYTES].decode("utf-8", errors="ignore").strip()
+        world_happenings.write(state, base, "delivered", i, line, known=True, next_thread_id=target["thread_id"])
+    for i in range(1, jobs + 1):
+        title = f"Görev {i}" + (" " + _LONG * 5 if long_names else "")
+        world.setdefault("quests", []).append({   # an older (legacy) quest record, as the save accepts one
+            "quest_id": f"crowd_{i}", "title": title.strip(), "description": "Kalabalık bir günün işi.",
+            "giver_npc_id": None, "status": "accepted", "created_turn": 0, "accepted_turn": 0, "updated_turn": 0,
+            "objectives": [{"objective_id": f"crowd_{i}_go", "description": "Oraya git.", "type": "visit_location",
+                            "target": "Liman", "status": "active", "required_count": 1, "progress": 0}]})
+    world["inventory"] = [f"Eşya {i}" + (" " + _LONG * 3 if long_names else "") for i in range(items)]
+    world["equipment"] = {"main_hand": None, "off_hand": None}
+    if open_room_card:
+        here = world["location"]
+        world["npcs"] = [n for n in world.get("npcs", []) if n.get("id") != "barman"] + [
+            {"id": "barman", "name": counterparty_label or "Marek", "role": "Barmen", "location": here,
+             "current_hp": 10}]
+        world.setdefault("currency", {})["player"] = max(world.get("currency", {}).get("player", 0), 100)
+        proposal = economic_actions.EconomicProposal(
+            purpose="room", recipient_id="barman", source_id=None, item_id=None, count=1, amount_cp=None, tip_cp=0,
+            tender_cp=None, dependency="base_required", source_action_id="crowd-room", text_span=None)
+        result = economic_actions.prepare_from_panel(
+            economic_actions.EconomicState(world=world, character=character), proposal, campaign_id="crowd",
+            actor_id="player", turn_index=(world.get("flags") or {}).get("turn_index", 0))
+        assert result.status == "prepared", (result.status, result.reason_code)
+    return world
+
+
+class CardRows(TrailCase):
+    """Task 15: narrator and NPC cards on a real campaign's world (scenario 19d's setup)."""
+
+    def crowded_world(self, **load):
+        return crowd(copy.deepcopy(self.world), self.session.character, **load)
+
+    def test_card_budget_drops_trails_before_the_refusal(self):
+        world = self.crowded_world(trails=6, jobs=4, items=30, long_names=True)   # quest_log rows + bag, no hand
+        note = (None, refusals.text_for("nothing_to_draw", have="yok"))
+        card = truth_card.narrator_view(world, this_turn=[note], max_bytes=600)
+        self.assertLessEqual(len(card.encode("utf-8")), 600)
+        self.assertIn("olmadı:", card)
+        self.assertIn("elin boş", card)                                   # required line survives
+        self.assertNotIn("izler:", card)                                  # first to go
+        roomy = truth_card.narrator_view(self.crowded_world(trails=1, jobs=1, items=2, long_names=False), this_turn=[note])
+        self.assertIn("izler:", roomy); self.assertIn("görevlerin:", roomy)
+
+    def test_a_long_active_offer_and_several_refusals_follow_d33(self):
+        # J-014 #6 (tasarım karar 59): Dilim 1 D33 priority is active deal > this turn's result > person group
+        world = self.crowded_world(trails=6, jobs=4, items=30, long_names=True, open_room_card=True)   # a room card is open (active deal)
+        first = (None, refusals.text_for("nothing_to_draw", have="yok"))
+        second = (None, "olmadı: " + refusals.text_for("which_enemy", names="Haydut mu, Okçu mu"))
+        plain = (None, "bu tur: Bira içildi")
+        card = truth_card.narrator_view(world, this_turn=[first, plain, second], max_bytes=600)
+        lines = card.splitlines()
+        self.assertLessEqual(len(card.encode("utf-8")), 600)
+        self.assertTrue(any("para henüz el değiştirmedi" in line for line in lines))          # the active deal stays
+        self.assertIn(first[1], card)                                                         # the first refusal stays, whole
+        self.assertEqual([l for l in lines if l.startswith("izler:")], [])                     # optional lines go before any required one
+        self.assertLess(card.index(first[1]), card.index(plain[1]) if plain[1] in card else len(card))   # refusals lead the group
+        self.assertEqual(truth_card.narrator_view(world, this_turn=[first, plain, second], max_bytes=600), card)   # deterministic
+        # extreme: eight refusal notes (~60 bytes each) next to the open card cannot all fit; the newest drop first, named, never silent
+        many = [(None, "olmadı: " + refusals.text_for("which_enemy", names=f"Haydut {i} mu, Okçu {i} mu")) for i in range(8)]
+        with self.assertLogs(level="WARNING") as logged:
+            cut = truth_card.narrator_view(world, this_turn=many, max_bytes=600)
+        lines = cut.splitlines()
+        self.assertLessEqual(len(cut.encode("utf-8")), 600)
+        self.assertTrue(any("para henüz el değiştirmedi" in line for line in lines))          # the active deal still stays
+        self.assertIn(many[0][1], cut)                                                        # the first refusal is the last to go
+        self.assertNotIn(many[-1][1], cut)                                                    # the newest went first
+        self.assertTrue(lines[-1].startswith("(kısaltıldı: ") and "olmadı notu" in lines[-1], lines[-1])
+        self.assertTrue(any("olmadı notu" in entry for entry in logged.output))
+
+    def test_a_long_counterparty_name_keeps_the_money_has_not_moved_words(self):
+        # tasarım §3e (2): a long value is shortened, the active deal's own words are not
+        world = self.crowded_world(trails=0, jobs=0, items=0, long_names=False, open_room_card=True,
+                                   counterparty_label="Han Sahibi " + _LONG * 12)
+        card = truth_card.narrator_view(world, this_turn=[(None, refusals.text_for("nothing_to_draw", have="yok"))],
+                                        max_bytes=300)
+        self.assertLessEqual(len(card.encode("utf-8")), 300)
+        self.assertTrue(any(line.startswith("açık teklif: ") and line.endswith("para henüz el değiştirmedi")
+                            for line in card.splitlines()), card)
+
+    def test_a_held_weapon_is_named_on_the_narrators_card(self):
+        world = self.crowded_world(trails=0, jobs=0, items=0, long_names=False)
+        world["inventory"] = ["Greatsword"]
+        equipment_economy.materialize(world)
+        world["equipment"]["main_hand"] = world["inventory"][0]["item_id"]
+        self.assertIn("elinde: Greatsword", truth_card.narrator_view(world))
+        self.assertNotIn("elin boş", truth_card.narrator_view(world))
+
+    async def world_with_town_errand_and_sword_in_hand(self):
+        await self.accept()
+        self.world["inventory"].append("Longsword")
+        equipment_economy.materialize(self.world)
+        self.world["equipment"]["main_hand"] = next(i["item_id"] for i in self.world["inventory"]
+                                                    if i.get("name") == "Longsword")
+        self.save()
+        return self.world
+
+    async def test_npc_view_carries_only_that_npcs_job_and_no_hand(self):
+        world = await self.world_with_town_errand_and_sword_in_hand()
+        tuna = self.npc(self.tuna)
+        stranger = self.add_npc_at(world["location"], "stranger")
+        seen = truth_card.npc_view(world, npc=tuna)
+        self.assertIn("görevlerin:", seen); self.assertNotIn("elinde:", seen); self.assertNotIn("elin boş", seen)
+        self.assertNotIn("görevlerin:", truth_card.npc_view(world, npc=stranger))
+        self.assertNotIn("görevlerin:", truth_card.npc_view(world, npc={"role": "Yolcu"}))   # nameless: nobody's job
+        # J-014 #8 (tasarım karar 61): a bystander where the trail points and a private letter's trail
+        await self.fresh_campaign()
+        await self.deliver()
+        await self.accept_sealed_letter(); await self.read_the_letter()
+        follow = self.follow_on_thread()
+        bystander = self.add_npc_at(follow.get("target_place_id") or follow["place_id"], npc_id="bystander")
+        self.assertEqual([l for l in truth_card.npc_view(self.world, npc=bystander).splitlines()
+                          if l.startswith(("izler:", "görevlerin:"))], [])
+        giver = self.npc(self.delivered_thread()["owner_npc_id"])
+        mektup = f"izler: {self.trail('mektup')['what']} → {self.trail('mektup')['where']}"
+        self.assertNotIn(mektup, truth_card.npc_view(self.world, npc=giver, max_bytes=4000))
+        sender = self.npc(self.letter_thread()["owner_npc_id"])
+        self.assertIn(mektup, truth_card.npc_view(self.world, npc=sender, max_bytes=4000))

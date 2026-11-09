@@ -6,9 +6,11 @@ from dataclasses import dataclass, replace
 
 import bold_acts
 import economic_actions
+import gear
 import living_world
 import item_use
 import pocket
+import quest_log
 import shop_trade
 
 logger = logging.getLogger(__name__)
@@ -20,6 +22,12 @@ class _Line:
     text: str
     priority: int = 0
     shorter: str | None = None
+    keep: str = ""  # the line's own closing words, kept whole when its values are shortened
+
+
+REFUSAL_NOTE = "olmadı notu"  # the name a dropped refusal note has in the "(kısaltıldı: …)" mark (tasarım §3e)
+# Optional facts go in this order (tasarım karar 59); "son görev" is the last running-quest line, after the prices.
+_OPTIONAL_ORDER = ("çıkışlar", "izler", "görevler", "ödemeler", "çanta", "fiyatlar", "son görev")
 
 
 def _clip(text, size, *, words=False):
@@ -31,6 +39,37 @@ def _clip(text, size, *, words=False):
     if words and " " in head:
         head = head.rsplit(" ", 1)[0]
     return head + "…"
+
+
+def _shorten(row, size):
+    """The line at most `size` bytes: its values are cut at a word, its own closing words stay whole."""
+    if row.keep and row.text.endswith(row.keep):
+        head = row.text[:-len(row.keep)]
+        return _clip(head, max(0, size - len(row.keep.encode("utf-8"))), words=True) + row.keep
+    return _clip(row.text, size, words=True)
+
+
+def _note_rows(notes):
+    """This turn's notes as the card's "bu tur" group: refusal notes first, each on its own line in the order they came,
+    then the other notes on one line (tasarım §3e)."""
+    refused = [note for note in notes if note.startswith("olmadı:")]
+    plain = [note.removeprefix("bu tur: ") for note in notes if not note.startswith("olmadı:")]
+    rows = [_Line(REFUSAL_NOTE, note, 2) for note in refused]
+    if plain:
+        rows.append(_Line("bu tur", "bu tur: " + "; ".join(plain), 2))
+    return rows
+
+
+def _quest_rows(card_lines):
+    """The running quests and the trails (quest_log), both optional: of the quests one is left until the prices go."""
+    quests = [line for line in card_lines if line.startswith("görevlerin:")]
+    trails = [line for line in card_lines if line.startswith("izler:")]
+    rows = []
+    if quests:
+        rows.append(_Line("görevler", "\n".join(quests), shorter=quests[0]))
+    if trails:
+        rows.append(_Line("izler", "\n".join(trails)))
+    return rows
 
 
 def _fit(lines, max_bytes):
@@ -45,29 +84,35 @@ def _fit(lines, max_bytes):
         return body + ("\n(kısaltıldı: " + ", ".join(changed) + ")" if changed else "")
 
     # Optional facts shed detail in the design's fixed order.
-    for name in ("çıkışlar", "ödemeler", "çanta", "fiyatlar"):
+    for name in _OPTIONAL_ORDER:
         if len(text().encode("utf-8")) <= max_bytes:
             return text()
         for i, row in enumerate(lines):
-            if row.name == name and row.priority == 0:
+            if name == "son görev" and row.name == "görevler" and row.priority == 0:
+                lines[i] = replace(row, text="")
+            elif row.name == name and row.priority == 0:
                 lines[i] = replace(row, text=row.shorter or "")
     for i, row in enumerate(lines):
-        if row.priority and row.priority < 4 and len(row.text.encode("utf-8")) > 100:
+        size = 140 if row.name in ("bu tur", REFUSAL_NOTE) else 100  # a note keeps more of its words
+        if row.priority and row.priority < 4 and len(row.text.encode("utf-8")) > size:
             if len(text().encode("utf-8")) <= max_bytes:
                 break
-            lines[i] = replace(row, text=_clip(row.text, 100, words=True))
-            changed.append(row.name)
+            lines[i] = replace(row, text=_shorten(row, size))
+            if row.name not in changed:
+                changed.append(row.name)
     # Remaining optional details cannot displace mandatory facts.
     if len(text().encode("utf-8")) > max_bytes:
         lines = [row for row in lines if row.priority]
-    for priority in (1, 2):
-        for row in list(lines):
-            if len(text().encode("utf-8")) <= max_bytes:
-                break
-            if row.priority == priority:
-                lines.remove(row)
-                if row.name not in changed:
-                    changed.append(row.name)
+    # The person group goes first; of this turn's result the other notes, then the newest refusal, the first one last.
+    group = [row for row in lines if row.priority == 2]
+    order = ([row for row in lines if row.priority == 1] + [row for row in group if row.name != REFUSAL_NOTE]
+             + [row for row in reversed(group) if row.name == REFUSAL_NOTE])
+    for row in order:
+        if len(text().encode("utf-8")) <= max_bytes:
+            break
+        lines.remove(row)
+        if row.name not in changed:
+            changed.append(row.name)
     if len(text().encode("utf-8")) > max_bytes:
         active = [row for row in lines if row.priority == 3]
         for row in active:
@@ -134,6 +179,14 @@ def _offers(world, npc=None):
     return "açık teklif: " + "; ".join(parts) + "; para henüz el değiştirmedi"
 
 
+_NOT_MOVED = "; para henüz el değiştirmedi"
+
+
+def _offer_line(text):
+    """The active deal: a long name or label is shortened, its closing words that the money has not moved stay."""
+    return _Line("açık teklif", text, 3, keep=_NOT_MOVED if text.endswith(_NOT_MOVED) else "")
+
+
 def _payments(world, npc=None):
     records = ([] if npc is not None and not npc.get("id") else
                economic_actions.recent_payments(world, 3, payee_id=npc.get("id") if npc is not None else None))
@@ -178,10 +231,13 @@ def narrator_view(world: dict, *, npc: dict | None = None, this_turn=(), max_byt
     bag = "çanta: " + (", ".join(names[:8]) or "boş") + (f" ve {remaining} eşya daha" if remaining else "")
     ammo = item_use.ammo_note(world)
     suffix = " " + ammo if ammo else ""
+    held = gear.wielded(world)
     lines.extend([_Line("çanta", bag + suffix, shorter="çanta: " + (names[0] if names else "boş") + suffix),
-                  _Line("oda", _room(world), 1), _Line("açık teklif", _offers(world), 3), _payments(world)])
-    if this_turn:
-        lines.append(_Line("bu tur", "bu tur: " + "; ".join(note for _, note in this_turn), 2))
+                  _Line("oda", _room(world), 1),
+                  _Line("elinde", f"elinde: {held.get('name')}" if held else "elin boş", 1),
+                  _offer_line(_offers(world)), _payments(world)])
+    lines.extend(_note_rows([note for _, note in this_turn]))
+    lines.extend(_quest_rows(quest_log.card_lines(world)))
     seller = npc if shop_trade.is_vendor(world, npc) else None
     if seller is None:
         sellers = [n for n in world.get("npcs", []) if n.get("location") == world.get("location") and shop_trade.is_vendor(world, n)]
@@ -199,12 +255,12 @@ def npc_view(world: dict, *, npc: dict, held_out_cp: int = 0, this_turn=(), max_
     lines = [_Line("başlık", "SENİNLE OYUNCU ARASINDAKİ İŞLER (motor; salt okunur):", 4)]
     if held_out_cp > 0:
         lines.append(_Line("uzatılan para", f"oyuncunun sana uzattığı: {held_out_cp} bakır; para henüz el değiştirmedi", 3))
-    lines.extend([_Line("açık teklif", _offers(world, npc), 3), _payments(world, npc)])
+    lines.extend([_offer_line(_offers(world, npc)), _payments(world, npc)])
     if shop_trade.is_vendor(world, npc) and npc.get("location") == world.get("location") and economic_actions._room_right(world):
         lines.append(_Line("oda", _room(world), 1))
-    notes = [note for npc_id, note in this_turn if npc_id is not None and npc_id == npc.get("id")]
-    if notes:
-        lines.append(_Line("bu tur", "bu tur: " + "; ".join(notes), 2))
+    lines.extend(_note_rows([note for npc_id, note in this_turn if npc_id is not None and npc_id == npc.get("id")]))
+    if npc.get("id"):  # only that person's jobs and trails (tasarım karar 61); never the player's hand or bag (D28)
+        lines.extend(_quest_rows(quest_log.card_lines(world, npc=npc)))
     prices = _prices(world, npc, scoped=True)
     if prices:
         lines.append(prices)

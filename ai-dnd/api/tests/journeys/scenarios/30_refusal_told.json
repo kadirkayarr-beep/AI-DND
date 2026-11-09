@@ -1,0 +1,122 @@
+{
+  "id": "30_refusal_told",
+  "title": "Reddedilen hamle anlatıcıya söylenir (rc3'ün sahte model ikizi): kılıçsız Fighter 'kılıcımı çekiyorum' der, ön okuma wield önerir ama çantada silah yoktur; hiçbir şey değişmez ve anlatıcıya 'olmadı' notu ile 'elin boş' gider; 'Haydut'a kılıcımla saldırıyorum' yumrukla vurur ve kılıcın olmadığını söyler",
+  "source_items": [
+    39
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Kadir",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "C",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "bandit",
+        "name": "Haydut",
+        "role": "Bandit",
+        "current_hp": 30,
+        "max_hp": 30,
+        "armor_class": 12,
+        "hostile": true,
+        "distance_ft": 5
+      }
+    ],
+    "inventory": [
+      "Macera Çantası"
+    ],
+    "seed": 5,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "kılıcımı çekiyorum",
+      "script": {
+        "front": {
+          "kind": "wield",
+          "item_id": "none",
+          "thing_word": "kılıcımı"
+        }
+      },
+      "expect": {
+        "envanter": {
+          "Macera Çantası": 1
+        },
+        "elinde": null,
+        "savas": false,
+        "anlaticiya_giden": [
+          "olmadı",
+          "elin boş"
+        ]
+      }
+    },
+    {
+      "say": "Haydut'a kılıcımla saldırıyorum",
+      "script": {
+        "intent": {
+          "intent": "attack",
+          "action": "attack",
+          "target": {
+            "type": "npc",
+            "reference": "Haydut",
+            "npc_id": "bandit",
+            "evidence_quote": "Haydut"
+          },
+          "completion": "complete",
+          "weapon_word": "kılıç"
+        }
+      },
+      "expect": {
+        "savas": true,
+        "gerekli_metin": "yok; yumrukla vuruyorsun"
+      }
+    }
+  ]
+}
