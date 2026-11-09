@@ -25,17 +25,22 @@ from api.tests import test_campaign_api
 from api.tests.auth_fixture import TEST_PLAYER
 from api.auth import FixedAuthenticator
 from api.tests.test_campaign_api import FakeOllamaClient
+from api.tests.town_seed import fixed_town
+
+# A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
+TOWN_SEED = 100
 
 
 class LocalPlacePilotTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
-        created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
-            "setting_id": "forgotten_realms",
-            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-            "region_id": "fr:region:the_north",
-            "starting_location_id": "fr:city:neverwinter",
-        }})
+        with fixed_town(self, TOWN_SEED):  # a new campaign's town (its places too) comes from its id
+            created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": "fr:city:neverwinter",
+            }})
         self.assertEqual(created.status_code, 200, created.text)
         self.campaign_id = created.json()["campaign_id"]
         self.session_id = created.json()["session_id"]
@@ -60,9 +65,18 @@ class LocalPlacePilotTests(unittest.IsolatedAsyncioTestCase):
         return [r for r in self.world()["locations"].values()
                 if isinstance(r, dict) and r.get("place_kind")]
 
+    def place_of_kind(self, kind):
+        """The town's one place of this kind (the opening makes places of its own, so it is found by kind)."""
+        found = [place for place in self.places() if place["place_kind"] == kind]
+        self.assertEqual(len(found), 1, found)
+        return found[0]
+
     async def test_going_to_an_archive_creates_one_place_person_detail_and_matter(self):
+        before = {place["id"] for place in self.places()}
+        self.assertNotIn("archive", [place["place_kind"] for place in self.places()])
+        quests = copy.deepcopy(self.world().get("quests", []))
         body = await self.turn("Marek'in bahsettiği arşive gidiyorum.")
-        places = self.places()
+        places = [place for place in self.places() if place["id"] not in before]
         self.assertEqual(len(places), 1)
         place = places[0]
         self.assertEqual(place["place_kind"], "archive")
@@ -77,13 +91,14 @@ class LocalPlacePilotTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(detail)
         self.assertTrue(place["local_issue"])
         # The local matter is not a quest, reward or commitment.
-        self.assertEqual(self.world().get("quests", []), [])
+        self.assertEqual(self.world().get("quests", []), quests)
         self.assertIn(place["name"], body["narration"])
         self.assertNotIn("iz göremiyorsun", body["narration"])
 
     async def test_leaving_and_returning_reuses_the_same_records(self):
         await self.turn("Arşive gidiyorum.")
-        place = self.places()[0]
+        place = self.place_of_kind("archive")
+        count = len(self.places())
         person = copy.deepcopy(local_places.resident_of(self.world(), place["id"]))
         def people_here():
             return [n["id"] for n in self.world()["npcs"] if n.get("location") == place["id"]]
@@ -93,7 +108,7 @@ class LocalPlacePilotTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.world()["location"], self.city)
         again = await self.turn("Arşive geri gidiyorum.")
         self.assertEqual(self.world()["location"], place["id"])
-        self.assertEqual(len(self.places()), 1)
+        self.assertEqual(len(self.places()), count)
         self.assertEqual(people_here(), npcs_at_place)
         self.assertEqual(local_places.resident_of(self.world(), place["id"])["id"], person["id"])
         self.assertIn("Yeniden", again["narration"])
@@ -111,7 +126,7 @@ class LocalPlacePilotTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_place_survives_a_fresh_manager_resume(self):
         await self.turn("Demirciye uğruyorum.")
-        place = self.places()[0]
+        place = self.place_of_kind("smithy")
         person_id = local_places.resident_of(self.world(), place["id"])["id"]
         reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)

@@ -10,11 +10,16 @@ import json
 import uuid
 from unittest.mock import patch
 import game
+import grounded_action
 import local_dialogue
 import living_world
 import resolved_presentation
 import world_threads
 from api.tests import test_campaign_api
+from api.tests.town_seed import fixed_town
+
+# A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
+TOWN_SEED = 100
 
 
 class NoNarrationClient(test_campaign_api.FakeOllamaClient):
@@ -37,12 +42,13 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
         self.client = NoNarrationClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
-        created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
-            "setting_id": "forgotten_realms",
-            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-            "region_id": "fr:region:the_north",
-            "starting_location_id": "fr:city:neverwinter",
-        }})
+        with fixed_town(self, TOWN_SEED):  # a new campaign's town (its places too) comes from its id
+            created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": "fr:city:neverwinter",
+            }})
         self.assertEqual(created.status_code, 200, created.text)
         self.campaign_id = created.json()["campaign_id"]
         self.session_id = created.json()["session_id"]
@@ -66,9 +72,13 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
     async def arrive(self):
         await self.first_look()
         await self.turn("dükkana yaklaşıyorum")
-        door = self.world["doors"][0]
+        # The shop the player walked up to, read live: the town's opening already holds places of its own (Task 18),
+        # so the first door or building in the save need not be this one.
+        near = self.world[grounded_action.KEY]["near_target_id"]
+        place_id = near.split(":", 1)[1] if near.startswith("venue-door:") else near
+        place = self.world["locations"][place_id]
+        door = next(d for d in self.world["doors"] if d["id"] == f"venue-door:{place_id}")
         door["open"], door["locked"] = False, False
-        place = next(v for v in self.world["locations"].values() if v.get("scene_kind") == "building")
         return door, place
 
     async def test_implicit_enter_commits_destination(self):

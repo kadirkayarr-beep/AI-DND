@@ -14,7 +14,7 @@ import grounded_action
 import local_places
 import thread_catalog
 import world_threads
-from api.tests.journeys.runner import _campaign_seeded, _give_job
+from api.tests.journeys.runner import _give_job
 from api.tests.test_three_plays import PlayClient, ThreePlaysTests
 
 
@@ -51,8 +51,7 @@ class PlaceHintTests(unittest.TestCase):
 
 class NamedPersonWayTests(ThreePlaysTests):
     async def town(self):
-        with _campaign_seeded({"campaign_seed": 2400}):
-            await self.begin()
+        await self.begin()  # ThreePlaysTests.begin fixes the town (test_three_plays.TOWN_SEED)
         self.settlement = self.world["location"]
         here = self.settlement
         self.world["npcs"] = [npc for npc in self.world.get("npcs", []) if npc.get("location") != here]
@@ -69,11 +68,14 @@ class NamedPersonWayTests(ThreePlaysTests):
 
     async def test_going_to_a_named_persons_shop_goes_where_they_live(self):
         await self.town()
+        # One person of this name in town: the fixed town's own workshop already has an Özpil, and two places of one
+        # resident name are rightly asked about, so this estate's resident has a name nobody else in town has.
+        self.assertNotIn("Orsela", [place.get("resident_name") for place in self.world["locations"].values()])
         estate = local_places.create_local_place(self.world, self.settlement, "estate", name="Kelmaren Konağı")
-        estate["resident_name"] = "Özpil"
-        estate.setdefault("aliases", []).append("Özpil")
+        estate["resident_name"] = "Orsela"
+        estate.setdefault("aliases", []).append("Orsela")
         before = set(self.world["locations"])
-        out = await self.say("özpilin dükkanına gidiyorum")
+        out = await self.say("orselanın dükkanına gidiyorum")
         self.assertEqual(self.world["location"], estate["id"], out["narration"])
         # The estate's own inner hall opens on the first visit; nothing else (no shop) is made.
         new = [self.world["locations"][key] for key in set(self.world["locations"]) - before]
