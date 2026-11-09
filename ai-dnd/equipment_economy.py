@@ -955,8 +955,6 @@ def execute(session, text, *, advance_turn=True):
         original = dict(world)  # the untouched saved values: _apply only ever wrote to the candidate copy
         world.clear()
         world.update(candidate)
-        import gear
-        gear.settle_shield(world, session.character)  # a two-handed weapon taken in hand put the shield down
         if card_request is not None:
             # The valued or held item stays put: the card is prepared on the live world, and only a prepared card
             # counts as this turn. A refusal or a question leaves the turn where it was.
@@ -970,6 +968,9 @@ def execute(session, text, *, advance_turn=True):
                 world.update(original)
                 raise _CardNotPrepared(reason)
             offered = True
+        import gear
+        # After the card's restore: a two-handed weapon taken in hand put the shield down (a refused card wrote nothing).
+        gear.settle_shield(world, session.character)
         if advance_turn and tokens[1] != "list":
             world["flags"]["turn_index"] = world["flags"].get("turn_index", 0) + 1
         success = True

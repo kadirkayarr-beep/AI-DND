@@ -102,6 +102,16 @@ class TwoHandedShieldAc(JourneyCase):
         self.assertEqual(result.status, "refused")
         self.assertEqual((session.world_state, session.character["armor_class"]), before)
 
+    async def test_a_refused_item_equip_leaves_no_record_and_the_same_ac(self):
+        # The longsword is still in the main hand: the owner writes the shield record on its copy, then refuses.
+        session = await self.fighter_with_shield_and_greatsword()
+        before = (copy.deepcopy(session.world_state), copy.deepcopy(session.character))
+        result = equipment_economy.execute(session, f"/item equip {self.greatsword_id(session)} main_hand")
+        self.assertEqual((result["action_result"]["success"], result["action_result"]["reason"]),
+                         (False, "hand_occupied"))
+        self.assertNotIn("shield_down", session.world_state)
+        self.assertEqual((session.world_state, session.character), before)
+
     async def test_every_two_handed_path_lowers_ac(self):
         # The item command (equipment_economy.execute): the hand is freed first, then the greatsword taken.
         session = await self.fighter_with_shield_and_greatsword()
