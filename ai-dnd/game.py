@@ -21277,6 +21277,7 @@ def _run_player_turn_internal(
         if npc_resolution["status"] == "ambiguous" and not character_reply:
             if (
                 interaction_mode not in {"say", "ask_dm"}
+                and held_plan is None  # a blow inside clauses held for the reading is still part of the plan
                 and _has_explicit_attack_verb(player_input)
             ):
                 action_result = resolve_intent(

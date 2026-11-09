@@ -224,6 +224,18 @@ class SpokenPlan(JourneyCase):
         self.assertIsNotNone(self.plan())
         self.assertEqual(self.world()["npcs"][0].get("current_hp"), 10)
 
+    async def test_a_blow_chain_at_an_ambiguous_name_while_talking_stays_a_plan(self):
+        # re-review: the ambiguous-target attack branch must not take a held plan either
+        # "tehdit" keeps the dispatch from reading a decided blow (no "Kime saldırıyorsun?"), so the branch is reached
+        await self.talk_to_marek()
+        self.world()["npcs"][0]["armor_class"] = 10
+        self.world()["npcs"].append({"id": "marek2", "name": "Marek", "role": "Yolcu",
+                                     "location": self.world()["location"], "current_hp": 10, "armor_class": 10})
+        await self.say("Marek'e vuruyorum, sonra onu tehdit ediyorum", intent={"intent": "attack"})
+        self.assertFalse((self.world().get("combat") or {}).get("active"))
+        self.assertIsNotNone(self.plan())
+        self.assertEqual([npc.get("current_hp") for npc in self.world()["npcs"]], [10, 10])
+
     async def test_asks_for_is_ignored_when_money_was_decided_on_a_two_part_line(self):
         # Dilim 2's rule on the two-clause line: the front reading's money decision (a tip with the coin held out)
         # owns the turn; the answer's asks_for room opens no second card
