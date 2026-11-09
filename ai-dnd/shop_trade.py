@@ -17,8 +17,15 @@ import equipment_economy
 import living_world
 import tr_case
 
-# key (as typed and folded), label (as told and as the item's name), unit price in copper
-PRICES = (("bira", "bira", 4), ("sarap", "şarap", 20), ("yemek", "tabak yemek", 30))
+# What a counter sells, by the kind of place it stands in (Kadir karar E, revised): a row is
+# key (as typed and folded), label (as told and as the item's name), unit price in copper. A place kind with no
+# row of its own (an inn, or any other counter) sells the inn's list. Every label is also a row of
+# content/items/item_use.json, so what is bought here is eaten or drunk through the one consume path.
+MENUS = {
+    "inn": (("bira", "bira", 4), ("sarap", "şarap", 20), ("yemek", "tabak yemek", 30)),
+    "market": (("elma", "elma", 1), ("ekmek", "ekmek", 2), ("peynir", "peynir", 10)),
+}
+PRICES = tuple(row for rows in MENUS.values() for row in rows)  # every row: the words and keys read against one list
 SERVER = re.compile(r"\b(?:barmen|hanci|meyhaneci|garson|satici|asci)")
 DEFAULT_STOCK = 12  # read when the vendor's own count was never written; written only by a trade
 LEDGER_CAP = 20
@@ -86,6 +93,19 @@ def _stock(npc: dict[str, Any], key: str) -> int:
     return value if type(value) is int and value >= 0 else DEFAULT_STOCK
 
 
+def menu(world: dict[str, Any] | None, npc: Any) -> tuple[tuple[str, str, int], ...]:
+    """The rows this person's counter sells: their place kind's own list, else the inn's."""
+    place = ((world or {}).get("locations") or {}).get(npc.get("location")) if isinstance(npc, dict) else None
+    kind = place.get("place_kind") if isinstance(place, dict) else None
+    return MENUS.get(kind, MENUS["inn"]) if isinstance(kind, str) else MENUS["inn"]
+
+
+def sells(world: dict[str, Any], npc: Any, text: Any) -> bool:
+    """The words name a thing this person's own counter sells (another counter's list is not theirs to sell)."""
+    named = priced_in(text)
+    return is_vendor(world, npc) and named is not None and named in menu(world, npc)
+
+
 def goods(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     if not is_vendor(world, npc):
         return []
@@ -93,7 +113,7 @@ def goods(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     day = economic_actions.game_day(world)
     return [{"key": key, "label": label, "unit_cp": max(0, price - _cut(npc, key, day)), "stock": _stock(npc, key),
              "discount_cp": min(price, _cut(npc, key, day))}
-            for key, label, price in PRICES]
+            for key, label, price in menu(world, npc)]
 
 
 def purse_cp(world: dict[str, Any]) -> int:

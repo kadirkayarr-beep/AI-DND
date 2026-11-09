@@ -380,12 +380,13 @@ class TheChannel(ErrandBase):
 
     async def test_a_person_handing_over_a_plain_thing_really_hands_it(self):
         await self.errand()
-        self.owner.setdefault("inventory", []).append({"item_id": "item_elma", "name": "Elma"})  # A5: their own
+        # A plain thing with no price anywhere (Task 27: elma is now on the market's list, so it goes with a card)
+        self.owner.setdefault("inventory", []).append({"item_id": "item_mendil", "name": "Mendil"})  # A5: their own
         self.client.front = {"kind": "speak_to", "person_id": self.owner["id"]}
-        self.client.speech_extra = {"commitment": {"kind": "give", "item": "elma"}}
-        reply = await self.line("acim usta bi sey var mi", "Al şu elmayı, ye.")
-        self.assertIn("Elma", self.bag())
-        self.assertIn("elmayı", reply["narration"])
+        self.client.speech_extra = {"commitment": {"kind": "give", "item": "mendil"}}
+        reply = await self.line("acim usta bi sey var mi", "Al şu mendili, sil yüzünü.")
+        self.assertIn("Mendil", self.bag())
+        self.assertIn("mendili", reply["narration"])
 
     async def test_a_purse_nobody_moved_leaves_the_speech(self):
         await self.errand()

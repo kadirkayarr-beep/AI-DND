@@ -174,7 +174,7 @@ def _pick_up(session, name: str) -> str | None:
     """
     import item_transfers
     world = session.world_state
-    if shop_trade.is_priced(name) and any(shop_trade.is_vendor(world, npc) for npc in session.active_npcs()):
+    if any(shop_trade.sells(world, npc, name) for npc in session.active_npcs()):
         return None
     found = item_transfers.real_thing_here(world, _stem(name))
     if found is None:
@@ -318,7 +318,7 @@ def _a_sale(world: dict[str, Any], person: Any, claim: dict[str, Any], item: str
     """Goods on the list, or goods with a price, from whoever serves: a sale, which only the counter trade makes.
     What the counter already sold is in the bag, and saying so is true."""
     return (not item.startswith("parcel:") and not _named_in_bag(world, stem) and shop_trade.is_vendor(world, person)
-            and (shop_trade.is_priced(item) or bool(claim.get("amount_cp"))))
+            and (shop_trade.sells(world, person, item) or bool(claim.get("amount_cp"))))
 
 
 def settle_claim(session, claim: Any, text: Any, person: Any = None, *, line: Any = None) -> tuple[Any, str]:

@@ -637,7 +637,7 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
             note = world_threads.paid_line(moved, finished)
     elif kind == "give" and proposal["amount_cp"]:
         import shop_trade
-        sale = shop_trade.is_vendor(world, npc) and (proposal["item"] or shop_trade.is_priced(player_text))
+        sale = shop_trade.is_vendor(world, npc) and (proposal["item"] or shop_trade.sells(world, npc, player_text))
         if not moved and not sale and world_threads.speaks_of_pay(player_text):
             # C5: the NPC pays from their own purse, so no card: the one owner moves it once, or nothing moves
             # (not here, or the purse is short). The note is built only from what was really applied.

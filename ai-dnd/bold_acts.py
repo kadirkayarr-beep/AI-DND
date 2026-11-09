@@ -981,7 +981,23 @@ def _counter_offer(session, server: dict[str, Any], key: str) -> dict[str, Any]:
     if world_reactions.refuses(world, server):
         return _coin_seen(_reply(session, world_reactions.refusal_line(server), "shop_offer", "refused", None, [],
                                  npc_id=server.get("id")), coin)
+    if shop_trade.quote(world, server["id"], key, 1) is None:
+        # Words of another counter's list: this counter says what it does sell, and nothing opens.
+        import refusals
+        label = next(label for row_key, label, _ in shop_trade.PRICES if row_key == key)
+        facts = {"item": label, "have": on_the_counter(world, server)}
+        line = refusals.text_for("not_sold_here", **facts)
+        refusals.note(session, "not_sold_here", npc_id=server.get("id"), **facts)
+        reply = _reply(session, line, "shop_offer", "clarification", None, [], npc_id=server.get("id"),
+                       reason_code="not_sold_here")
+        reply["action_result"]["success"] = False
+        return _coin_seen(reply, coin)
     return _with_tender(session, server, key, coin)
+
+
+def on_the_counter(world: dict[str, Any], server: Any) -> str:
+    """What this counter's list holds, as said: 'bira, şarap, tabak yemek'."""
+    return ", ".join(line["label"] for line in shop_trade.goods(world, server))
 
 
 def decided(session) -> dict[str, Any] | None:
