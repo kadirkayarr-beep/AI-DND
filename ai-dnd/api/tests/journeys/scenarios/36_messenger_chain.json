@@ -1,0 +1,383 @@
+{
+  "id": "36_messenger_chain",
+  "title": "Haberci zinciri (3a, SIFIR TOLERANS): 29'un kurulumunda Halil'e iş sorulur, iş alınır ve iskeledeki Tuna'ya teslim edilir (12 bakır bir kez, defterde 'teslim' izi); Selin'in mühürlü mektubu alınıp mührü kırılır; 6 saat beklenince kayıttaki bağdan bir ulak gelir ve mesajını kayıttan söyler; yenilemede ulak, bağ ve iz aynıdır; ulağa cevap verilir, sonra Selin ulağı kendisinin gönderdiğini ve mektupta ne yazdığını bilir; Geri Al Selin'le konuşmayı geri alır ve ulak geri gelir; yenileme aynısını okur. Para, eşya, görev ve iz sayısı her adımda tek izinli durumdur",
+  "zero_tolerance": true,
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      },
+      {
+        "id": "clerk",
+        "name": "Selin",
+        "role": "Kâtip",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 10,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    },
+    "letter": {
+      "owner": "clerk",
+      "pay": 10,
+      "noun": "mühürlü mektup",
+      "recipient": "Ozan",
+      "target_kind": "graveyard",
+      "line": "Mühürlü mektubu mezarlıktaki Ozan'a götür, mührü sakın bozma. On bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "Halil, iş var mı?",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "potter"
+        },
+        "spoken": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+      },
+      "expect": {
+        "kip": {
+          "active": true
+        },
+        "konusmaya_giden": "İşlerin: thread_001 (offered, 12 bakır)"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          },
+          "gunluk": {
+            "iz_sayisi": 0
+          }
+        }
+      ]
+    },
+    {
+      "say": "olur, götürürüm",
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 0
+          }
+        }
+      ]
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "expect": {
+        "konum": "$is_hedefi"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 0
+          }
+        }
+      ]
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "script": {
+        "front": {
+          "kind": "hand_over"
+        }
+      },
+      "expect": {
+        "gunluk": {
+          "biten": [
+            "12 bakır ödendi"
+          ],
+          "iz": [
+            {
+              "kaynak": "teslim",
+              "izlendi": false
+            }
+          ]
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          },
+          "gunluk": {
+            "iz_sayisi": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "Selin, olur, mektubu götürürüm",
+      "script": {
+        "front": {
+          "kind": "offer_answer",
+          "person_id": "clerk",
+          "offer_id": "$is:clerk",
+          "answer": "accept"
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "mührü kırıp mektubu okuyorum",
+      "expect": {
+        "gerekli_metin": "Mührü kırıyorsun",
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "teslim"
+            },
+            {
+              "kaynak": "mektup"
+            }
+          ]
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 2
+          }
+        }
+      ]
+    },
+    {
+      "say": "6 saat bekliyorum",
+      "expect": {
+        "saat": 6,
+        "kip": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_003",
+            "name": "Kızıl saçlı biri",
+            "role": null
+          }
+        },
+        "gerekli_metin": [
+          "Selin adına geldim",
+          "Mührü kırdığını biliyor; mühürlü mektup için kendi ağzından hesap istiyor"
+        ],
+        "yasak_metin": "görmek istiyor",
+        "gunluk": {
+          "iz": [
+            {
+              "ne": "Mührü kırdığını biliyor",
+              "kaynak": "haber"
+            }
+          ]
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 4
+          }
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kip": {
+          "interlocutor": {
+            "id": "npc_003",
+            "name": "Kızıl saçlı biri",
+            "role": null
+          }
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 4
+          }
+        }
+      ]
+    },
+    {
+      "say": "geliyorum",
+      "konus": "npc_003",
+      "expect": {
+        "konusmaya_giden": "Getirdiğin söz şuydu: Mührü kırdığını biliyor; mühürlü mektup için kendi ağzından hesap istiyor"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 4
+          }
+        }
+      ]
+    },
+    {
+      "say": "Selin, gönderdiğin ulak beni buldu, ne istiyorsun?",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "clerk"
+        }
+      },
+      "expect": {
+        "kip": {
+          "interlocutor": {
+            "id": "clerk",
+            "name": "Selin",
+            "role": "Kâtip"
+          }
+        },
+        "konusmaya_giden": [
+          "Karşındakine adamını sen gönderdin ve onu buldu; mesele: mühürlü mektup",
+          "Mektupta şu yazıyordu: "
+        ]
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 4
+          }
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kip": {
+          "interlocutor": {
+            "id": "npc_003",
+            "name": "Kızıl saçlı biri",
+            "role": null
+          }
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 4
+          }
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kip": {
+          "interlocutor": {
+            "id": "npc_003",
+            "name": "Kızıl saçlı biri",
+            "role": null
+          }
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 4
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -125,7 +125,8 @@ class ReportCountsTest(unittest.TestCase):
         self.assertEqual({report_kind(name) for name in ("17_refused_gift_not_charged", "18_room_phrase_not_job",
                                                          "19_quest_item_no_duplicate", "19b_quest_item_name_dotted_i",
                                                          "19c_quest_log_one_source", "19d_delivery_undo",
-                                                         "19e_take_quest_item_variants", "29_trail_follow_on")},
+                                                         "19e_take_quest_item_variants", "29_trail_follow_on",
+                                                         "36_messenger_chain")},
                          {"Para ve kayıt"})
         self.assertEqual(report_kind("23_no_shop_in_combat"), "Para ve alışveriş")
         self.assertEqual(report_kind("08b_talk_mode_front"), "Konuşma kipi")

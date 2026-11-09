@@ -1,0 +1,561 @@
+{
+  "id": "rc10_messenger_chain_real",
+  "title": "Gerçek zincir, haberci zinciri (3a): 36'nın zinciri gerçek modelle. Halil'e iş sorulur, iş alınır, iskelede Tuna'ya teslim edilir; Selin'in mühürlü mektubu alınıp mührü kırılır; 6 saat beklenir, kayıttaki bağdan gelen ulağa cevap verilir, Selin'le konuşulur; Geri Al ve yenileme. Para, eşya ve görev sıfır toleranslıdır: her adımda yalnız gerçekten olabilecek durumlar (hiç iş yok, iade takımı elde, teslim edildi, mektup elde) izinlidir; iki iş birden, çift eşya, kaybolan ya da iki kez ödenen para ihlaldir. Zincir halkaları (ulak geldi ve mesajı kayıttan, çağıran bildi) gerçek adımların beklentisidir; sahte modelde yalnız bekleme, yenileme ve Geri Al koşar",
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      },
+      {
+        "id": "clerk",
+        "name": "Selin",
+        "role": "Kâtip",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 74,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    },
+    "letter": {
+      "owner": "clerk",
+      "pay": 10,
+      "noun": "mühürlü mektup",
+      "recipient": "Ozan",
+      "target_kind": "graveyard",
+      "line": "Mühürlü mektubu mezarlıktaki Ozan'a götür, mührü sakın bozma. On bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "Halil, iş var mı?",
+      "real_chain": true,
+      "expect": {
+        "kip": {
+          "active": true
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        }
+      ]
+    },
+    {
+      "say": "olur, götürürüm",
+      "real_chain": true,
+      "expect": {
+        "envanter": {
+          "İade takımı": 1
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "real_chain": true,
+      "expect": {
+        "konum": "$is_hedefi"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "real_chain": true,
+      "expect": {
+        "kese": 112,
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "teslim"
+            }
+          ]
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        }
+      ]
+    },
+    {
+      "say": "Selin, olur, mektubu götürürüm",
+      "real_chain": true,
+      "expect": {
+        "envanter": {
+          "Mühürlü mektup": 1
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "mührü kırıp mektubu okuyorum",
+      "real_chain": true,
+      "expect": {
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "mektup"
+            }
+          ]
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "6 saat bekliyorum",
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "Ulağa dönüyorum: “Geliyorum.”",
+      "real_chain": true,
+      "expect": {
+        "kip": {
+          "active": true
+        },
+        "konusmaya_giden": "Getirdiğin söz şuydu: "
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "Selin, gönderdiğin ulak beni buldu, ne istiyorsun?",
+      "real_chain": true,
+      "expect": {
+        "kip": {
+          "active": true
+        },
+        "konusmaya_giden": "Karşındakine adamını sen gönderdin ve onu buldu"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "real_chain": true,
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        },
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        },
+        {
+          "kese": 100,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "id": "rc11_free_play_real",
+  "title": "Gerçek zincir, serbest oyun (3a okuması): 29'un kurulumunda bir oyuncunun yazacağı gibi 30 söz; dolaşma, konuşma, iş sorma ve bir alışveriş, zinciri yönlendiren söz yok. Beklenti ve sıfır tolerans yoktur: yalnız raporlanır, anlatısı Görev 22'de okunur (anlatıcı yalnız olandan mı yazıyor, sahne kurulmuş gibi mi okunuyor); kapıya girmez. Sahte modelde hiçbir adım koşmaz",
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      },
+      {
+        "id": "clerk",
+        "name": "Selin",
+        "role": "Kâtip",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 111,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    },
+    "letter": {
+      "owner": "clerk",
+      "pay": 10,
+      "noun": "mühürlü mektup",
+      "recipient": "Ozan",
+      "target_kind": "graveyard",
+      "line": "Mühürlü mektubu mezarlıktaki Ozan'a götür, mührü sakın bozma. On bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "Etrafıma bakınıyorum, burası neresi?",
+      "real_chain": true
+    },
+    {
+      "say": "Halil, selam. Çömlekleri sen mi yapıyorsun?",
+      "real_chain": true
+    },
+    {
+      "say": "Bu kasabada en çok ne iş var?",
+      "real_chain": true
+    },
+    {
+      "say": "Teşekkür ederim, kolay gelsin.",
+      "real_chain": true
+    },
+    {
+      "say": "Pazar tarafına doğru yürüyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Tezgâhlarda ne satılıyor, bir bakayım.",
+      "real_chain": true
+    },
+    {
+      "say": "Bir somun ekmek almak istiyorum, kaç bakır?",
+      "real_chain": true
+    },
+    {
+      "say": "Tamam, bir somun alayım.",
+      "real_chain": true
+    },
+    {
+      "say": "Ekmeği yiyerek yürüyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Yanımdan geçen birine buralarda kalınacak bir han var mı diye soruyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Muhafıza selam veriyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Muhafız, son günlerde kasabada bir sorun var mı?",
+      "real_chain": true
+    },
+    {
+      "say": "Liman tarafına iniyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "İskelede gemilere bakıyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Ağ kurutan adama yardıma ihtiyacı var mı diye soruyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Bu iskelede kim çalışır, kim sözünü geçirir?",
+      "real_chain": true
+    },
+    {
+      "say": "Denize taş atıp biraz oturuyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Selin, sen kâtip misin? Ne yazıyorsun?",
+      "real_chain": true
+    },
+    {
+      "say": "Kasabada okuma yazma bilen çok kişi var mı?",
+      "real_chain": true
+    },
+    {
+      "say": "Buralarda iş arayan birine ihtiyacı olan var mı, biliyor musun?",
+      "real_chain": true
+    },
+    {
+      "say": "Peki, düşüneceğim.",
+      "real_chain": true
+    },
+    {
+      "say": "Kasabanın ortasına geri dönüyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Tapınak nerede? Oraya bir göz atmak istiyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Tapınağın kapısında durup içeriyi dinliyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Yoldan geçen birine bu tapınağın kime adandığını soruyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Akşam olunca burada insanlar nereye gider?",
+      "real_chain": true
+    },
+    {
+      "say": "Biraz dinlenmek için bir kenara oturuyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Keseme bakıyorum, kaç bakırım kaldı?",
+      "real_chain": true
+    },
+    {
+      "say": "Halil'in olduğu yere geri dönüyorum.",
+      "real_chain": true
+    },
+    {
+      "say": "Halil, bugün kasabada neler gördüğümü anlatayım mı?",
+      "real_chain": true
+    }
+  ]
+}
