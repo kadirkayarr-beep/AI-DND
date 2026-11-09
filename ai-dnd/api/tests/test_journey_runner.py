@@ -963,9 +963,11 @@ class TheDilim3Additions(JourneyCase):
         world = self.world(campaign)
         return world["scene_state"]["scenes"][world["location"]]
 
-    async def campaign_with_setup(self, ambient_event):
-        setup = {**beer_scenario().setup, "campaign_start": NEVERWINTER, "ambient_event": ambient_event}
+    async def campaign_with_setup(self, ambient_event, **extra):
+        setup = {**beer_scenario().setup, "campaign_start": NEVERWINTER, "ambient_event": ambient_event, **extra}
         campaign = await self._journey_campaign(setup)
+        # What the campaign's own opening already showed (Task 18 may open on this very event), before the setup.
+        self.counts_before = copy.deepcopy(self.world(campaign)["scene_state"]["ambient_event_counts"])
         apply_setup(self, campaign, setup)
         return campaign
 
@@ -1031,12 +1033,30 @@ class TheDilim3Additions(JourneyCase):
             referent = next(item for item in scene["referents"] if item["id"] == scene["ambient_event"]["referent_id"])
             turn = self.world(campaign)["flags"].get("turn_index", 0)
             self.assertEqual(turn <= referent["expires_after_turn"], live)
-        self.assertEqual(self.world(fresh)["scene_state"]["ambient_event_counts"]["city_lost_ring"], 1)
+        fresh = await self.campaign_with_setup({"event_id": "city_lost_ring", "turns_ago": 0})
+        self.assertEqual(self.world(fresh)["scene_state"]["ambient_event_counts"]["city_lost_ring"],
+                         self.counts_before.get("city_lost_ring", 0) + 1)  # the setup records it once
         for wrong in ({"event_id": "no_such_event", "turns_ago": 0}, {"event_id": "city_lost_ring", "turns_ago": -1},
                       {"event_id": "city_lost_ring", "turns_ago": True}, {"event_id": "city_lost_ring"},
                       {"turns_ago": 0}, "city_lost_ring"):
             with self.subTest(wrong=wrong), self.assertRaises(ScenarioError):
                 await self.campaign_with_setup(wrong)
+
+    async def test_the_setup_event_is_the_scene_event_and_counted_once_whatever_the_opening_showed(self):
+        # Seeds 1-8 include openings that already showed city_lost_ring (the case that made the count 2 by chance).
+        opened_on_it = []
+        for seed in range(1, 9):
+            with self.subTest(seed=seed):
+                campaign = await self.campaign_with_setup({"event_id": "city_lost_ring", "turns_ago": 0},
+                                                          campaign_seed=seed)
+                if self.counts_before.get("city_lost_ring"):
+                    opened_on_it.append(seed)
+                scene = self.scene(campaign)
+                self.assertEqual(scene["ambient_event"]["event_id"], "city_lost_ring")
+                self.assertEqual([r["id"] for r in scene["referents"]], [scene["ambient_event"]["referent_id"]])
+                self.assertEqual(self.world(campaign)["scene_state"]["ambient_event_counts"]["city_lost_ring"],
+                                 self.counts_before.get("city_lost_ring", 0) + 1)
+        self.assertTrue(opened_on_it, "no seed in 1-8 opened on city_lost_ring: the colliding case went untested")
 
     async def test_the_scene_event_is_observed_and_survives_a_reload(self):
         results = await self.run_scenario(self.ambient_scenario(

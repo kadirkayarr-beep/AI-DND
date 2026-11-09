@@ -23,13 +23,17 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.journeys.runner import _campaign_seeded
 from api.tests.test_campaign_api import FakeOllamaClient, create_city_with_locked_tavern
 
 
 class UndoLastTurnTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
-        _, self.session_id, _, self.turn_url, _, _ = await create_city_with_locked_tavern(self)
+        # A fixed town (Task 18 seeds its work and places at the opening): seed 1 has no temple yet, so the
+        # turn below makes one, as these tests need.
+        with _campaign_seeded({"campaign_seed": 1}):
+            _, self.session_id, _, self.turn_url, _, _ = await create_city_with_locked_tavern(self)
         self.undo_url = f"/api/game/sessions/{self.session_id}/undo"
 
     async def asyncTearDown(self):
@@ -57,8 +61,11 @@ class UndoLastTurnTests(unittest.IsolatedAsyncioTestCase):
         rng_before = self.session().rng.getstate()
         memory_before = copy.deepcopy(self.record().narrative_memory)
         history_before = len(self.store.get_campaign(self.record().campaign_id).history)
+        places_before = set(self.session().world_state["locations"])
         turn_id, played = await self.turn("Tapınağa gidiyorum.")
         self.assertTrue(played["turn_outcome"]["place_created"])
+        created = set(self.session().world_state["locations"]) - places_before
+        self.assertTrue(created)
         undone = await self.undo(turn_id)
         self.assertEqual(undone.status_code, 200, undone.text)
         self.assertEqual(undone.json()["undone_action_id"], turn_id)
@@ -70,7 +77,10 @@ class UndoLastTurnTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(history), history_before + 2)
         self.assertEqual(history[-1]["player_message"], "↶ Son turu geri al")
         saved = self.store.get_campaign(self.record().campaign_id)
-        self.assertNotIn("place_kind", str(saved.payload))
+        # The place the undone turn made is not saved. A new campaign's town work already holds places of its
+        # own kinds from the opening (Task 18), so the save is compared place by place, not by the word.
+        self.assertEqual(set(saved.payload["engine_save"]["world_state"]["locations"]), places_before)
+        self.assertFalse(created & set(saved.payload["engine_save"]["world_state"]["locations"]))
 
     async def test_only_one_step_and_only_the_named_last_turn(self):
         first_id, _ = await self.turn("Tapınağa gidiyorum.")
