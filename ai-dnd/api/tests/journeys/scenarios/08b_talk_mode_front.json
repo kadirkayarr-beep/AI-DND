@@ -1,7 +1,8 @@
 {
   "id": "08b_talk_mode_front",
-  "title": "Konuşma kipi, ön okumayla: uyku kipi kapatır (madde 41); 'konuşmayı bitiriyorum' kipi kapatır; 'satıcıya yaklaşıp ne sattığını soruyorum' (burada satıcı yok) Marek'e kilitlenmez, anlatıcı kimin burada olduğunu duyar (madde 15). Oda isteme adımı Görev 11'de eklenir",
+  "title": "Konuşma kipi, ön okumayla: uyku kipi kapatır (madde 41); 'konuşmayı bitiriyorum' kipi kapatır; 'satıcıya yaklaşıp ne sattığını soruyorum' (burada satıcı yok) Marek'e kilitlenmez, anlatıcı kimin burada olduğunu duyar (madde 15). 'bir oda tutmak istiyorum' konuşma cevabının asks_for önerisiyle oda kartını açar (madde 4), kart onaylanır",
   "source_items": [
+    4,
     15,
     41
   ],
@@ -85,8 +86,7 @@
     "inventory": [],
     "current_hp": 5,
     "seed": 7,
-    "front_proposal": true,
-    "room": true
+    "front_proposal": true
   },
   "steps": [
     {
@@ -101,6 +101,33 @@
             "role": "Barmen"
           }
         }
+      }
+    },
+    {
+      "say": "bir oda tutmak istiyorum",
+      "konus": "barman",
+      "script": {
+        "speech": {
+          "asks_for": "room"
+        }
+      },
+      "expect": {
+        "kart": {
+          "max_total_cp": 50,
+          "counterparty_label": "Marek"
+        },
+        "kese": 100,
+        "oda": false
+      }
+    },
+    {
+      "economic_action": {
+        "kind": "confirm"
+      },
+      "expect": {
+        "oda": true,
+        "kese": 50,
+        "kart": null
       }
     },
     {

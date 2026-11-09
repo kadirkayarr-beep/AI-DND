@@ -120,7 +120,7 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             set(client.schemas[0]["properties"]),
             {"spoken_text", "stage_direction", "commitment", "threat",
-             "coin_answer", "coin_answer_for", "remember_player_line"},
+             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line"},
         )
         self.assertEqual(
             set(client.schemas[0]["required"]),
@@ -759,7 +759,7 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         schema = client.schemas[0]
         self.assertEqual(
             set(schema["properties"]), {"spoken_text", "stage_direction", "commitment", "threat",
-             "coin_answer", "coin_answer_for", "remember_player_line"}
+             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line"}
         )
         self.assertEqual(
             set(schema["required"]), {"spoken_text", "stage_direction", "threat"}
@@ -790,7 +790,7 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             set(schema.get("properties", {})),
             {"spoken_text", "stage_direction", "commitment", "threat",
-             "coin_answer", "coin_answer_for", "remember_player_line"},
+             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line"},
         )
         self.assertEqual(
             set(schema.get("required", [])),

@@ -255,6 +255,62 @@ def parts_for(world: dict, session: Any, npc_id: str) -> list[str]:
     return sorted(parts)
 
 
+def askable(world: dict, npc: Any) -> list[str]:
+    """What this person may be asked for while talking (the speech answer's `asks_for`), from the records alone.
+
+    "room" when they can give a room here now (the same server rule a room decision is checked by), then
+    "goods:<key>" for each good on their counter by key, and "none" last. No word is read.
+    """
+    import shop_trade
+    asked = ["room"] if _can_host(world, npc) else []
+    asked += sorted("goods:" + line["key"] for line in shop_trade.goods(world, npc))
+    return asked + ["none"]
+
+
+def ask_after_reply(session: Any, result: dict[str, Any], asked: Any) -> None:
+    """The room card or the counter's offer the person was asked for in conversation, opened after the reply.
+
+    `asked` is (npc_id, part) as the speech answer named it, or None. It opens only when this turn decided no money
+    (one consumer, D5), no coin was held out or put to anyone this turn, no fight is on, the part is still on the
+    person's `askable` list, they are here and answered this turn, the part was not declined today and no card or
+    offer of that part is open to them. The opening is the decision's own (`bold_acts.decided`), with no coin: an
+    offer asked for is no coin held out (D29). Nothing else is written; the decision does not outlive the opening.
+    """
+    import bold_acts
+    import economic_actions
+    world = session.world_state
+    if (not isinstance(asked, tuple) or len(asked) != 2 or current(session) is not None
+            or getattr(session, "_coin_paid", None) or getattr(session, "_spoken_coin_result", None) is not None
+            or economic_actions._combat(world)):
+        return
+    npc_id, part = asked
+    action = result.get("action_result") if isinstance(result, dict) else None
+    npc = economic_actions._npc(world, npc_id) if isinstance(npc_id, str) else None
+    if (not isinstance(action, dict) or action.get("npc_id") != npc_id or npc is None
+            or not economic_actions._is_here(world, npc) or not isinstance(part, str) or part == "none"
+            or part not in askable(world, npc)
+            or economic_actions.declined(world, npc_id, part, day=economic_actions.game_day(world))
+            or part in parts_for(world, session, npc_id)):
+        return
+    goods_key = part[len("goods:"):] if part.startswith("goods:") else None
+    deal = Deal(kind="goods" if goods_key else "room", goods_key=goods_key, keep_change=False)
+    decision = decide(world, person=npc, amount_cp=0, deal=deal, arrester=None)
+    if decision is None or decision.kind != deal.kind:
+        return
+    flags = world.setdefault("flags", {})
+    turn, claimed = flags.get("turn_index", 0), getattr(session, "_coin_claimed", False)
+    session._coin_decision = decision
+    try:
+        opened = bold_acts.decided(session)
+    finally:
+        session._coin_decision = None
+        session._coin_claimed = claimed
+        flags["turn_index"] = turn  # the opener's reply counts a turn of its own; this turn was already counted
+    line = opened.get("narration") if isinstance(opened, dict) else None
+    if isinstance(line, str) and line:
+        _tell(result, line)
+
+
 def read_answer(session: Any, packet: Any, npc_id: str, parts: list[str]) -> None:
     packet = packet if isinstance(packet, dict) else {}
     answer = packet.get("coin_answer")

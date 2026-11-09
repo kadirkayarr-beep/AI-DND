@@ -1,6 +1,6 @@
 {
   "id": "08_talk_mode",
-  "title": "Konuşma kipi (handa, Fighter, barmen Marek): Marek'le konuşurken 'bir oda tutmak istiyorum, geceyi burada geçireyim' oda kartını açar (madde 4); odama gidip uyuyunca konuşma kipi kapanır (madde 41); 'konuşmayı bitiriyorum' kipi kapatır; sonra 'satıcıya yaklaşıp ne sattığını soruyorum' (burada satıcı yok) eski kişiyle, Marek'le, cevaplanmaz ve kip ona kilitlenmez (madde 15); hanın dışına çıkınca kip kapanır. Ölüm sonrası kip 10_death senaryosunda",
+  "title": "Konuşma kipi (handa, Fighter, barmen Marek): Marek'le konuşurken 'bir oda tutmak istiyorum' (konuşma cevabının asks_for önerisiyle) oda kartını açar (madde 4); odama gidip uyuyunca konuşma kipi kapanır (madde 41); 'konuşmayı bitiriyorum' kipi kapatır; sonra 'satıcıya yaklaşıp ne sattığını soruyorum' (burada satıcı yok) eski kişiyle, Marek'le, cevaplanmaz ve kip ona kilitlenmez (madde 15); hanın dışına çıkınca kip kapanır. Ölüm sonrası kip 10_death senaryosunda",
   "source_items": [4, 15, 41],
   "setup": {
     "character": {
@@ -35,13 +35,12 @@
       "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
     },
     {
-      "say": "bir oda tutmak istiyorum, geceyi burada geçireyim",
+      "say": "bir oda tutmak istiyorum",
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": ""},
-                            "completion": "complete"}},
-      "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false},
-      "known_broken": [4],
-      "broken_because": ["kart: beklenen {'max_total_cp': 50, 'counterparty_label': 'Marek'}, gözlenen yok"]
+                            "completion": "complete"},
+                 "speech": {"asks_for": "room"}},
+      "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false}
     },
     {
       "say": "bi oda tutayım usta",

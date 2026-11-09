@@ -7939,6 +7939,8 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
         "stage_direction": {"type": "string", "maxLength": 600},
         "coin_answer": {"type": "string", "enum": ["takes", "declines", "none"]},
         "coin_answer_for": {"type": "string", "enum": ["unclear"]},
+        # Early on purpose: a small model leaves late optional fields out. The engine lists the values per person.
+        "asks_for": {"type": "string", "enum": ["none"]},
         "remember_player_line": {"type": "boolean"},
         "commitment": {
             "type": "object",
@@ -9262,6 +9264,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + "\n"
             + "\n`coin_answer`: parayı alıyor musun (takes), reddediyor musun (declines), yoksa konu değil mi (none)?"
             + "\n`coin_answer_for`: parayı hangi kalem için alıyor ya da reddediyorsun; emin değilsen `unclear`."
+            + "\n`asks_for`: oyuncu senden şimdi oda ya da listedeki bir malı istiyorsa onu seç; istemiyorsa `none`."
             + "\n`remember_player_line`: oyuncunun bu sözünü kişisel hafızaya seçmek istiyorsan true."
             + _experimental_speech_recap(interaction_context)
             + _local_place_recommendation_guidance(
@@ -9444,6 +9447,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         speech_npc_id = (interaction_context or {}).get("npc_id")
         schema["properties"]["coin_answer_for"]["enum"] = money_owner.parts_for(
             world_state, _session(), speech_npc_id) + ["unclear"]
+        speech_npc = next((n for n in world_state.get("npcs", [])
+                           if isinstance(n, dict) and n.get("id") == speech_npc_id), None)
+        schema["properties"]["asks_for"]["enum"] = money_owner.askable(world_state, speech_npc)
     if front_list is not None:
         import front_proposal
         schema = copy.deepcopy(schema)
@@ -17995,10 +18001,15 @@ def _tell_the_coin(result):
                 result["narration"] = f"{result.get('narration') or ''} {spoken.public_message}".strip()
             result.setdefault("action_result", {}).update(status=spoken.status, success=spoken.status == "prepared",
                                                           reason_code=spoken.reason_code)
+        if pending is None and spoken is None:
+            # Asked for a room or goods while talking: after the answer's own money fields, and only with no money
+            # moved or decided this turn (one consumer); the card or offer still waits for the player's confirmation.
+            money_owner.ask_after_reply(session, result, getattr(session, "_asks_for", None))
         note = (result.get("action_result") or {}).get("haggle_note")
         if isinstance(note, str) and note:
             result["narration"] = f"{result.get('narration') or ''} {note}".strip()
     finally:
+        session._asks_for = None
         session._coin_paid = None
         session._counter_held = None
         session._coin_answer = None
@@ -18049,6 +18060,7 @@ def _run_player_turn_keyed(
     check_evidence=None,
 ):
     _session()._adventure_player_text = player_input if isinstance(player_input, str) else ""
+    _session()._asks_for = None  # what the person was asked for in this turn's conversation, set by the speech answer
     import fallen
     fallen.wake(_session())
     before = copy.deepcopy(_session().world_state)
@@ -22101,6 +22113,7 @@ def _run_player_turn_internal(
                         "stage_direction",
                         "coin_answer",
                         "coin_answer_for",
+                        "asks_for",
                         "remember_player_line",
                         "witness_recall",
                         "price_negotiation",
@@ -22128,6 +22141,9 @@ def _run_player_turn_internal(
                 if valid_speech_packet:
                     money_owner.read_answer(_session(), raw_intent, npc_target["id"],
                         money_owner.parts_for(world_state, _session(), npc_target["id"]))
+                    asked = raw_intent.get("asks_for")
+                    if isinstance(asked, str) and asked in money_owner.askable(world_state, npc_target):
+                        _session()._asks_for = (npc_target["id"], asked)  # opened after the reply, if at all
                     import npc_speech_boundary
                     cleaned_spoken = _clean_npc_speech(
                         npc_speech_boundary.normalize_bound_speech_label(
