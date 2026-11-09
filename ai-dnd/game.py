@@ -2451,7 +2451,8 @@ def _validate_save_payload(payload):
         adventure_arcs.validate(saved_world["adventure_arcs"])
     if "world_threads_v1" in saved_world:
         import world_threads
-        world_threads.validate(saved_world["world_threads_v1"])
+        # a happening row of unknown kind is not a reason to refuse: loading drops it (_repair_dilim2_fields)
+        world_threads.validate(_known_happenings(saved_world["world_threads_v1"])[0])
     if version >= 2 and (
         "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
     ):
@@ -2745,6 +2746,70 @@ def _repair_dilim1_fields(world: dict) -> list[str]:
         logging.getLogger(__name__).warning("dilim1 load repaired: %s", name)
     return dropped
 
+
+def _known_happenings(state):
+    """The thread state with its ledger rows of unknown kind left out (a copy when any is), and those rows."""
+    import world_happenings
+    rows = state.get(world_happenings.KEY) if isinstance(state, dict) else None
+    if not isinstance(rows, list):
+        return state, []
+    unknown = [row for row in rows if not isinstance(row, dict) or row.get("kind") not in world_happenings.KINDS]
+    if not unknown:
+        return state, []
+    return {**state, world_happenings.KEY: [row for row in rows if row not in unknown]}, unknown
+
+
+def _hand_names_something(inventory, held):
+    """Whether a hand's value is sound: an item id or old name in the bag, or a catalog weapon (the new world's own
+    default hand is "longsword" whatever the bag holds)."""
+    from weapon_catalog import lookup
+    if lookup(held) is not None:
+        return True
+    return any(item == held if isinstance(item, str)
+               else isinstance(item, dict) and held in (item.get("item_id"), item.get("name"))
+               for item in inventory)
+
+
+def _repair_dilim2_fields(world: dict) -> list[str]:
+    """Repair slice-two fields a save can carry broken; never refuse the save. A sound save is left as it is.
+
+    A happening row of unknown kind is dropped, a hand that names nothing (not in the bag, not a catalog weapon) is
+    emptied and a talk with
+    someone dead, elsewhere or not in the save is closed. Each repair is named and logged."""
+    import logging
+    import world_happenings
+    import world_threads
+    fixed = []
+    if not isinstance(world, dict):
+        return fixed
+    state = world.get(world_threads.KEY)
+    kept, unknown = _known_happenings(state)
+    if unknown:
+        state[world_happenings.KEY] = kept[world_happenings.KEY]
+        fixed += [f"happening:{row.get('kind') if isinstance(row, dict) else None}" for row in unknown]
+    hands, inventory = world.get("equipment"), world.get("inventory")
+    if isinstance(hands, dict) and isinstance(inventory, list):
+        for hand in ("main_hand", "off_hand"):
+            held = hands.get(hand)
+            if isinstance(held, str) and not _hand_names_something(inventory, held):
+                hands[hand] = None
+                fixed.append(f"equipment:{hand}")
+    flags = world.get("flags")
+    active = flags.get("active_npc_id") if isinstance(flags, dict) else None
+    if isinstance(active, str) and active:
+        npcs = world.get("npcs") if isinstance(world.get("npcs"), list) else []
+        person = next((n for n in npcs if isinstance(n, dict) and n.get("id") == active), None)
+        if person is None:
+            talk_mode.close(world, "repair")
+            fixed.append("talk:nobody")
+        elif person.get("combat_status") == "dead" or person.get("location") != world.get("location"):
+            talk_mode.close(world, "repair")
+            fixed.append(f"talk:{active}")
+    for name in fixed:
+        logging.getLogger(__name__).warning("dilim2 load repaired: %s", name)
+    return fixed
+
+
 def load_game(path):
     """Validate and restore a JSON snapshot without executing arbitrary code."""
     previous_format = getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION)
@@ -2776,6 +2841,7 @@ def load_game(path):
         world_state.clear()
         world_state.update(saved_world)
         _repair_dilim1_fields(world_state)
+        _repair_dilim2_fields(world_state)
         living_world.ensure_scene_state(world_state)
         for field in ("name", "race", "class"):
             character[field] = str(player[field])
