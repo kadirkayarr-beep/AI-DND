@@ -328,6 +328,8 @@ def answered_attack_question(session, message):
         # "itip yere mi düşürüyorsun, yumruk mu?": only an answer naming a move the engine reads makes the blow
         if weapon_attack.names_a_move(session, message) and game._blow_stands(message):
             session._front_strike = {"kind": "strike", "id": blow, "with": "", "said": ""}
+        elif _says_yes(session, message):
+            session._which_move = blow  # a second bare yes is no answer: the same question again
         return message
     if here and _says_yes(session, message):
         said = asked_line.get("said") or ""

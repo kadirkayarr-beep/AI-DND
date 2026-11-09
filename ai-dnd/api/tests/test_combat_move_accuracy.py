@@ -137,6 +137,50 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reply["combat_result"]["weapon"], "Heavy Crossbow")
         self.assertIsNotNone(reply["combat_result"]["attack_roll"])
 
+    async def fight_marek(self):
+        await self.begin()
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"], "thing_word": "yumruk"}
+        first = await self.line("Marek'e bir yumruk atıyorum", "Ne yapıyorsun sen?")
+        self.assertTrue(self.world["combat"]["active"], first["narration"])
+        self.npc.update(max_hp=4, current_hp=4)
+        self.attacks_before = len([row for row in self.world["attack_results"] if row["actor"] == "player"])
+
+    async def in_fight_trip(self):
+        # Re-review I-R1: H241 in a fight already on, Marek chosen, the crossbow in hand.
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+        reply = await self.line("Marek'e çelme takıp yere düşürmeye çalışıyorum", target=True)
+        self.assertEqual(reply["turn_outcome"]["status"], "clarification", reply["narration"])
+        self.assertIn("itiyorum", reply["narration"])
+        self.assertEqual(self.npc["current_hp"], 4)
+        self.assertEqual(len([row for row in self.world["attack_results"] if row["actor"] == "player"]),
+                         self.attacks_before)
+        return reply
+
+    async def test_a_trip_in_a_fight_rolls_nothing_and_itiyorum_is_the_shove(self):
+        await self.fight_marek()
+        await self.in_fight_trip()
+        reply = await self.line("itiyorum", target=True)
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(self.players_last_attack()["unarmed_option"], "shove")
+        self.assertEqual(self.players_last_attack()["target_id"], self.npc["id"])
+        self.assertEqual(self.npc["current_hp"], 4)
+
+    async def test_a_trip_in_a_fight_then_a_punch_is_bare_hands(self):
+        await self.fight_marek()
+        await self.in_fight_trip()
+        reply = await self.line("yumruk atıyorum", target=True)
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
+
+    async def test_a_second_yes_to_the_which_move_question_asks_it_again(self):
+        await self.begin()
+        await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
+        await self.line("Evet.")
+        reply = await self.line("Evet.")
+        self.assertIn("itiyorum", reply["narration"])
+        self.assertNotIn("kavga mı", reply["narration"])
+        self.assertFalse(self.world["combat"]["active"])
+
     async def test_a_blow_on_the_chosen_opponent_stays_on_them_whoever_else_the_words_name(self):
         # Review M3: with the opponent chosen in the UI, the strike keeps that id even when the words name someone else.
         await self.begin()

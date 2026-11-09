@@ -18941,7 +18941,14 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                 route["id"] = route["id"] if route["id"] in named else named[0]
             elif at_hand:
                 route["id"] = at_hand
-            if _blow_in_the_words(player_input, route["id"]):
+            spoken = living_world._text_outside_quotes(str(player_input))
+            if (fighting and not route.get("with") and not _has_explicit_attack_verb(spoken)
+                    and not _BLOW_WORDS.search(_normalize_turkish_typos(spoken))
+                    and not weapon_attack.names_a_move(session, spoken)):
+                # In a fight the reading found a blow, but the words name no blow, no weapon of theirs and no move
+                # the engine reads (a trip): the real moves are asked for and nothing rolls (as for an asked blow).
+                route = {"kind": "which_move", "id": route["id"]}
+            elif _blow_in_the_words(player_input, route["id"]):
                 session._front_strike = route
             elif npc_speech_boundary.player_supplied_quote(player_input):
                 route = {"kind": "speak_to", "id": route["id"]}  # the blow is only in what they said
@@ -18982,7 +18989,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
 _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
-                      "blow_asked", "wait", "consume", "wield"}
+                      "blow_asked", "which_move", "wait", "consume", "wield"}
 
 
 def _defer_spoken_coin_offer(route):
@@ -19185,7 +19192,7 @@ def _hand_over_coin(route, listed, front=None, *, owner_routed=False):
     session._counter_held = None
     amount = getattr(session, "_front_coin", 0)
     deal = money_owner.read_deal(front, listed)
-    if (not amount and deal is None) or route["kind"] in {"strike", "blow_asked"}:
+    if (not amount and deal is None) or route["kind"] in {"strike", "blow_asked", "which_move"}:
         return
     import world_reactions
     taker = route.get("id") if route["kind"] == "speak_to" else route.get("person_id")
@@ -19711,6 +19718,8 @@ def _dispatch_player_turn(
         player_input, target_id, interaction_mode, combat_action, check_feature)
     if front is not None and front["kind"] == "blow_asked":
         return _ask_about_the_blow(front["id"], player_input, front.get("with"))
+    if front is not None and front["kind"] == "which_move":
+        return _ask_which_move(front["id"])
     held_for = getattr(_session(), "_counter_held", None)
     _session()._counter_held = None
     if held_for is not None:
