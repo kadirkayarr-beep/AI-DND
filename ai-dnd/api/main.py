@@ -12,6 +12,7 @@ import os
 
 import front_proposal
 import game
+import refusals
 from dataclasses import replace
 from typing import Any
 from uuid import UUID, uuid4
@@ -1285,6 +1286,9 @@ def create_app(
                 lock; otherwise the same refusal is returned without that claim.
                 """
                 detail = {"code": code, "message": message, "not_applied": True}
+                public_message = refusals.REFUSAL_TEXT.get(code) if status_code == 400 else None
+                if public_message:
+                    detail["public_message"] = refusals.text_for(code)  # the player's Turkish line; `message` stays
                 try:
                     durable = manager.record_refused_action(record, action_id, request_hash, status_code, detail)
                 except Exception:
@@ -1292,6 +1296,8 @@ def create_app(
                     durable = False
                 if not durable:
                     detail = {"code": code, "message": message}
+                    if public_message:
+                        detail["public_message"] = refusals.text_for(code)
                 return HTTPException(status_code=status_code, detail=detail)
 
             def refuse_model_failure(code: str, message: str = MODEL_FAILURE_MESSAGE) -> HTTPException:

@@ -6,6 +6,7 @@ import unicodedata
 import collections
 import copy
 import equipment_economy
+import refusals
 import tr_case
 from pathlib import Path
 import hashlib
@@ -18366,20 +18367,10 @@ def _last_call():
             "gözlerini açıyorsun. Yerdesin ama nefes alıyorsun."), "player_rescued"
 
 
-_FIGHT_REFUSALS = {
-    "combat_travel": "Karşında biri silahını kaldırmışken öylece yürüyüp gidemezsin.",
-    "out_of_turn": "Rakibin hamlesi sürüyor; önce onun ne yaptığını görüyorsun.",
-    "reaction_pending": "Rakibin açık veriyor; önce bu ana ne yapacağına karar vermelisin.",
-    "invalid_combat_target": "Burada öyle vurabileceğin biri yok.",
-    "no_weapon": "Elinde bunu yapacak bir silah yok.",
-}
-
-
 def combat_refusal_turn(error):
     """A plain line that a fight will not allow is answered in the fight, never in English."""
-    said = str(error)
-    narration = _FIGHT_REFUSALS.get(error.code) or (
-        said if re.search(r"[çğıöşüÇĞİÖŞÜ]", said) else "Dövüşün ortasında bu olmuyor.")
+    narration = refusals.text_for(error.code)
+    refusals.note(_session(), error.code)
     return {
         "messages": _session().messages,
         "narration": narration,
@@ -18965,9 +18956,7 @@ def _front_hand_over(route, player_input):
     if item_id is None and not asked and due is None and any(
             dialogue_jobs.holds_parcel(world, job) for job in world_threads.deliveries_to(world, person)):
         # Two parcels for this person and the line names neither: nothing is handed, and the narrator hears why.
-        if getattr(session, "_turn_notes", None) is None:
-            session._turn_notes = []
-        session._turn_notes.append((person["id"], "olmadı: hangi eşyayı verdiğin belli değil"))
+        refusals.note(session, "which_item_to_give", npc_id=person["id"])
         return heard
     if (item_id is None and due is None) or asked:
         session._empty_handed = item_id is None and not getattr(session, "_coin_paid", None)
@@ -19053,11 +19042,6 @@ def _front_take(route, player_input):
     thread = world_threads.by_id(world, route["thread_id"]) if route.get("thread_id") else None
     person = next((npc for npc in active_npcs() if npc.get("id") == route.get("person_id")), None)
 
-    def note(text):
-        if getattr(session, "_turn_notes", None) is None:
-            session._turn_notes = []
-        session._turn_notes.append((None, text))
-
     def held(thread):
         """The parcel is in the bag: nothing is made and the job's own line says so."""
         return dialogue_jobs.already_reply(session, thread, player_input)
@@ -19083,10 +19067,10 @@ def _front_take(route, player_input):
             if giver is not None:
                 action = dialogue_jobs.hand_over(session, job, giver)
                 return dialogue_jobs.take_reply(session, job, player_input, action) if action else None
-            note(f"olmadı: {tr_case.upper_first(job.get('item_noun') or 'paket')} burada değil")
+            refusals.note(session, "parcel_not_here", item=tr_case.upper_first(job.get("item_noun") or "paket"))
             taken = None
         elif match is not None and match.status == "many":
-            note("olmadı: hangi işin eşyasını kastettiğin belli değil")
+            refusals.note(session, "which_parcel")
             taken = None
         else:
             taken = pocket.take_named(session, player_input, route.get("word") or "")

@@ -80,9 +80,7 @@
     },
     {
       "say": "ready",
-      "expect": {"savas": true, "yasak_metin": ["Dövüşün ortasında bu olmuyor", "Ready needs"]},
-      "known_broken": [40],
-      "broken_because": ["yasak metin bulundu: Dövüşün ortasında bu olmuyor"]
+      "expect": {"savas": true, "gerekli_metin": "neyi bekleyeceğini", "yasak_metin": ["Dövüşün ortasında bu olmuyor", "Ready needs"]}
     },
     {
       "say": "okçuya yaklaşıyorum",

@@ -51,6 +51,8 @@ export function combatErrorMessage(error: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
   const detail = (data as { detail?: unknown }).detail;
   if (!detail || typeof detail !== 'object') return null;
+  const publicMessage = (detail as { public_message?: unknown }).public_message;
+  if (typeof publicMessage === 'string' && publicMessage.trim()) return publicMessage;
   const code = (detail as { code?: unknown }).code;
   return typeof code === 'string' ? COMBAT_ERRORS[code] ?? null : null;
 }
