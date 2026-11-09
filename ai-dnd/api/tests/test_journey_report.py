@@ -123,9 +123,12 @@ class ReportCountsTest(unittest.TestCase):
         self.assertTrue(numbered)
         self.assertEqual([name for name in numbered if report_kind(name) == "Diğer"], [])
         self.assertEqual({report_kind(name) for name in ("17_refused_gift_not_charged", "18_room_phrase_not_job",
-                                                         "19_quest_item_no_duplicate", "19b_quest_item_name_dotted_i")},
+                                                         "19_quest_item_no_duplicate", "19b_quest_item_name_dotted_i",
+                                                         "19c_quest_log_one_source", "19d_delivery_undo",
+                                                         "19e_take_quest_item_variants", "29_trail_follow_on")},
                          {"Para ve kayıt"})
         self.assertEqual(report_kind("23_no_shop_in_combat"), "Para ve alışveriş")
+        self.assertEqual(report_kind("08b_talk_mode_front"), "Konuşma kipi")
         self.assertEqual(report_kind("09d_escape_in_inn"), "Kaçış, ölüm ve sonuçları")
         self.assertEqual({report_kind(name) for name in ("20_xp_after_win", "21_spell_target_in_melee",
                                                          "22_one_counter_per_move", "22b_counter_told_in_order")},

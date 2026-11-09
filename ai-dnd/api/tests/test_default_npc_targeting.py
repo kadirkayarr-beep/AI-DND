@@ -1297,7 +1297,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             any(
                 set(schema.get("properties", {}))
                 == {"spoken_text", "stage_direction", "commitment", "threat",
-                    "coin_answer", "coin_answer_for", "remember_player_line"}
+                    "coin_answer", "coin_answer_for", "asks_for", "remember_player_line"}
                 and schema.get("required") == ["spoken_text", "stage_direction", "threat"]
                 for schema in recommendation_client.schemas
             ),

@@ -34,11 +34,11 @@ if TYPE_CHECKING:
 _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Para ve alışveriş", ("01", "01b", "02", "12", "13", "13b", "14", "14b", "14c", "16", "23", "25", "26", "27")),
     # The owner's 19-item test: money paid or earned by the wrong move, and the quest record that goes with it.
-    ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b")),
+    ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b", "19c", "19d", "19e", "29")),
     ("Oda, uyku ve çıkış", ("03", "07")),
     ("Eşya, silah ve tüketim", ("04", "04b", "05", "28")),
     ("Savaş eylemleri", ("06", "20", "21", "22", "22b")),
-    ("Konuşma kipi", ("08",)),
+    ("Konuşma kipi", ("08", "08b")),
     ("Kaçış, ölüm ve sonuçları", ("09a", "09b", "09c", "09d", "10", "15")),
     ("Kişisel hafıza", ("24", "24r")),
     ("Geri al ve yenileme", ("11",)),

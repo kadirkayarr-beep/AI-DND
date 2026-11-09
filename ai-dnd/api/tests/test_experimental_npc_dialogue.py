@@ -1256,7 +1256,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             set(client.schemas[0]["properties"]),
             {"spoken_text", "stage_direction", "commitment", "threat",
-             "coin_answer", "coin_answer_for", "remember_player_line"},
+             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line"},
         )
 
     async def test_experimental_answer_field_success_path_isolates_objective_and_commitment(self):
