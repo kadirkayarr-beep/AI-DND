@@ -354,7 +354,19 @@ def killed(session, npc: dict[str, Any]) -> None:
     """Remember a death; who saw it answers when the turn is over."""
     world = session.world_state
     remember(session, "killing", f"{living_world.public_npc_name(npc)} öldürüldü", victim_id=npc.get("id"))
-    world.setdefault("flags", {})["fresh_killing"] = True
+    flags = world.setdefault("flags", {})
+    earlier = flags.get("fresh_killing")
+    # Where it happened, and whether it was a fight's own killing: the fight already on when the turn began, or an
+    # enemy who was hostile before the first blow (defending oneself is no crime, so no guard goes for the player
+    # over it; it is still remembered).
+    fights_own = bool(getattr(session, "_fight_before_turn", False)) or npc.get("hostile") is True
+    if fights_own:
+        for deed in reversed(deeds(world)):
+            if deed.get("kind") == "killing" and deed.get("victim_id") == npc.get("id"):
+                deed["in_fight"] = True
+                break
+    in_fight = fights_own and (not earlier or (isinstance(earlier, dict) and bool(earlier.get("in_fight"))))
+    flags["fresh_killing"] = {"place": world.get("location"), "in_fight": in_fight}
 
 
 def _open_air(world: dict[str, Any], place: Any) -> bool:
@@ -373,19 +385,21 @@ def answer_to_killing(session, result: Any) -> None:
     flags = world.setdefault("flags", {})
     if not flags.get("fresh_killing") or world.get("combat", {}).get("active"):
         return
-    flags.pop("fresh_killing")
+    pending = flags.pop("fresh_killing")
+    here = world.get("location")
+    if isinstance(pending, dict) and pending.get("place") != here:
+        return  # the fight ended somewhere else (a flight): those who saw it are not here
     if not isinstance(result, dict) or session.character.get("current_hp", 0) <= 0:
         return
     import game
     import talk_mode
     present = session.active_npcs()
     armed = [npc for npc in present if game._ARMED_ROLE.search(fold(session, str(npc.get("role", ""))))]
-    here = world.get("location")
     unarmed = [npc for npc in present if npc not in armed]
     way_out = _way_out(world, here) if unarmed else None  # the side street is written only for someone who runs
     turn = int(flags.get("turn_index", 0) or 0)
     lines = []
-    if armed:
+    if armed and not (isinstance(pending, dict) and pending.get("in_fight")):
         guard = armed[0]
         guard["hostile"] = True
         session.start_combat(guard)
@@ -427,7 +441,7 @@ def answer_to_known_doer(session, result: Any) -> None:
             npc["lost_sight_turn"] = turn
         return
     grave = [deed for deed in world.get("flags", {}).get("deeds", [])
-             if isinstance(deed, dict) and deed.get("kind") in {"killing", "arson"}]
+             if isinstance(deed, dict) and deed.get("kind") in {"killing", "arson"} and not deed.get("in_fight")]
     guard = next((npc for npc in session.active_npcs()
                   if _is_armed(npc) and turn - npc.get("lost_sight_turn", -LOST_SIGHT_TURNS) >= LOST_SIGHT_TURNS
                   and any(identifies(deed, npc.get("id")) for deed in grave)), None)

@@ -1,6 +1,6 @@
 {
   "id": "33_killing_in_a_fight",
-  "title": "Savaşın içindeki cinayet: handa iki Haydutla savaşta birinci Haydut öldürülür, savaş sürerken tanık tepkisi yazılmaz; ikinci Haydut düşüp savaş bittiği turda yolcu Orsik 'bağırarak kapıya koşuyor' ve handa kalmaz; kayıttan okununca aynı",
+  "title": "Savaşın içindeki cinayet: bir salonda (han) iki Haydutla savaşta birinci Haydut öldürülür, savaş sürerken tanık tepkisi yazılmaz; ikinci Haydut düşüp savaş bittiği turda yolcu Orsik 'bağırarak kapıya koşuyor' ve salonda kalmaz; kayıttan okununca aynı",
   "source_items": [
     47
   ],
@@ -64,10 +64,9 @@
       "starting_location_id": "fr:city:neverwinter"
     },
     "place": {
-      "kind": "smithy",
-      "name": "Göl Sofrası Hanı",
-      "scene_kind": "tavern",
-      "place_kind": "tavern"
+      "kind": "hall",
+      "name": "Göl Sofrası Salonu",
+      "scene_kind": "tavern"
     },
     "npcs": [
       {
@@ -147,6 +146,14 @@
       "expect": {
         "savas": false,
         "konum": "location_001"
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "expect": {
+        "savas": false,
+        "konum": "location_001",
+        "yasak_metin": "Orsik"
       }
     }
   ]

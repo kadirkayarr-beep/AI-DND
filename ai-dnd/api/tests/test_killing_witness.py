@@ -10,8 +10,12 @@ import copy
 import dataclasses
 import json
 
+from unittest.mock import patch
+
 import bold_acts
-from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase
+import combat_lifecycle
+import talk_mode
+from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, ScriptedModel
 from api.tests.journeys.schema import _load_step, load_scenario
 
 CITY = "fr:city:neverwinter"
@@ -22,7 +26,8 @@ GUARD = {"id": "guard", "name": "Brissa", "role": "Muhafız", "current_hp": 40, 
 BANDIT = {"role": "Bandit", "current_hp": 1, "max_hp": 8, "armor_class": 5, "hostile": True, "distance_ft": 5}
 BANDITS = ({"id": "bandit_1", "name": "Haydut", **BANDIT}, {"id": "bandit_2", "name": "Kuzgun", **BANDIT})
 CELLAR = {"kind": "smithy", "name": "Kilitli Mahzen", "no_exit": True}
-INN = {"kind": "smithy", "name": "Göl Sofrası Hanı", "scene_kind": "tavern", "place_kind": "tavern"}
+INN = {"kind": "hall", "name": "Göl Sofrası Salonu", "scene_kind": "tavern"}
+SUCCESS = {"result": "BAŞARILI", "roll": 20, "total": 25, "dc": 12}
 
 
 def attack(npc_id, name):
@@ -51,6 +56,13 @@ class KillingWitnessTests(JourneyCase):
         results = await self.run_scenario(dataclasses.replace(scenario, setup=setup, steps=loaded))
         self.assertEqual([failure for result in results for failure in result.failures], [])
         return [result.narration for result in results], self.manager.get(self.last_session_id).game_session
+
+    async def more(self, raw):
+        """One more turn on the live session; its narration."""
+        step = _load_step(raw, "görev 6, ek adım", False)
+        failures = await self._play(self.last_session_id, step, ScriptedModel())
+        self.assertEqual(failures, [])
+        return self.last_narration
 
     def npc(self, session, npc_id):
         return next(npc for npc in session.world_state["npcs"] if npc["id"] == npc_id)
@@ -93,7 +105,7 @@ class KillingWitnessTests(JourneyCase):
     async def test_the_flag_waits_while_the_fight_goes_on(self):
         _, session = await self.play([*BANDITS, ORSIK], [attack("bandit_1", "Haydut")], place=INN)
         self.assertIs(session.world_state["combat"]["active"], True)
-        self.assertIs(session.world_state["flags"].get("fresh_killing"), True)
+        self.assertTrue(session.world_state["flags"].get("fresh_killing"))
         self.assertEqual(self.npc(session, "orsik")["location"], session.world_state["location"])
 
     async def test_the_witness_still_knows_after_reload(self):
@@ -132,6 +144,80 @@ class KillingWitnessTests(JourneyCase):
         _, session = await self.play(
             [first, second, ORSIK], [attack("bandit_1", "Haydut"), attack("bandit_2", "Kuzgun"), {"undo": True}],
             place=INN)
-        self.assertIs(session.world_state["flags"].get("fresh_killing"), True)
+        self.assertTrue(session.world_state["flags"].get("fresh_killing"))
         self.assertEqual(self.npc(session, "orsik")["location"], session.world_state["location"])
         json.dumps(session.world_state)
+
+    async def test_a_fight_that_ends_without_a_killing_answers_the_earlier_one_once(self):
+        # the first Haydut died inside the fight; the second gives up (no new killing): the answer comes then, once
+        first, second = BANDITS
+        (one,), session = await self.play([first, second, ORSIK], [attack("bandit_1", "Haydut")], place=INN)
+        self.assertNotIn("Orsik", one)
+        self.assertTrue(session.world_state["flags"].get("fresh_killing"))
+        session.end_combat("enemy_fled")
+        look = {"say": "etrafıma bakıyorum"}
+        after = await self.more(look)
+        self.assertEqual(after.count("Orsik bağırarak kapıya koşuyor."), 1)
+        self.assertNotIn("fresh_killing", session.world_state["flags"])
+        self.assertNotIn("Orsik", await self.more(look))
+
+    async def test_a_witness_in_the_fight_never_opens_a_new_one(self):
+        # defending against the one who attacked is no crime: the guard in the room does not draw at the fight's end
+        first, second = BANDITS
+        (_, end), session = await self.play(
+            [first, second, GUARD, ORSIK], [attack("bandit_1", "Haydut"), attack("bandit_2", "Kuzgun")], place=INN)
+        self.assertNotIn("silahını çekip", end)
+        self.assertIs(session.world_state["combat"]["active"], False)
+        self.assertIn("Orsik bağırarak kapıya koşuyor.", end)
+
+    async def test_a_fight_that_ended_elsewhere_answers_nothing(self):
+        # the first Haydut dies in the inn; the player slips out to the street, where a guard stands
+        first, second = BANDITS
+        street_guard = {**GUARD, "location": CITY}
+        _, session = await self.play([first, second, ORSIK, street_guard], [attack("bandit_1", "Haydut")],
+                                     place=INN)
+        self.assertEqual(session.world_state["combat"]["current_actor_id"], "player")
+        with patch.object(session, "perform_skill_check", create=True, return_value=dict(SUCCESS)):
+            result = combat_lifecycle.flee(session)
+        bold_acts.answer_to_killing(session, result)
+        self.assertEqual(session.world_state["location"], CITY)
+        self.assertNotIn("katil", result["narration"])
+        self.assertNotIn("bağırarak", result["narration"])
+        self.assertIs(session.world_state["combat"]["active"], False)
+        self.assertNotIn(SIDE, session.world_state["locations"])
+        self.assertNotIn("fresh_killing", session.world_state["flags"])
+        self.assertNotEqual(self.npc(session, "orsik")["location"], CITY)
+
+    async def test_a_witness_who_flees_ends_the_talk_with_the_reason(self):
+        _, session = await self.play([FERUMEL, ORSIK], [talk("orsik", "Orsik")])
+        world = session.world_state
+        self.assertEqual(world["flags"].get("active_npc_id"), "orsik")
+        victim = self.npc(session, "ferumel")
+        victim.update(current_hp=0, combat_status="dead")
+        bold_acts.killed(session, victim)  # a killing outside any fight
+        with patch.object(talk_mode, "close", wraps=talk_mode.close) as close:
+            bold_acts.answer_to_killing(session, {"narration": ""})
+        close.assert_called_once_with(world, "witness_fled")
+        self.assertIsNone(world["flags"].get("active_npc_id"))
+
+    async def test_the_answer_comes_once_when_the_fight_end_is_played_again_after_undo(self):
+        first, second = BANDITS
+        results, _ = await self.play(
+            [first, second, ORSIK],
+            [attack("bandit_1", "Haydut"), attack("bandit_2", "Kuzgun"), {"undo": True}, attack("bandit_2", "Kuzgun")],
+            place=INN)
+        self.assertEqual(results[1].count("Orsik bağırarak kapıya koşuyor."), 1)
+        self.assertEqual(results[3].count("Orsik bağırarak kapıya koşuyor."), 1)
+
+    async def test_the_flag_survives_a_save_in_the_middle_of_the_fight(self):
+        first, second = BANDITS
+        results, session = await self.play(
+            [first, second, ORSIK], [attack("bandit_1", "Haydut"), {"reload": True}, attack("bandit_2", "Kuzgun")],
+            place=INN)
+        self.assertEqual(results[2].count("Orsik bağırarak kapıya koşuyor."), 1)
+        self.assertNotIn("Orsik", results[0])
+
+    async def test_a_person_in_the_room_is_named_by_a_look(self):
+        # the control for scenario 33's last step: a look names whoever is there
+        _, session = await self.play([ORSIK], [], place=INN)
+        self.assertIn("Orsik", await self.more({"say": "etrafıma bakıyorum"}))
