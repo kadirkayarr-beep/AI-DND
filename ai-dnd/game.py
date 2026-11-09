@@ -10206,7 +10206,8 @@ def _quiet_place_line():
     session = _session()
     world = session.world_state
     meta = world_metadata_for_state(world, getattr(session, "world_metadata", None))
-    return opening_narrative.catalog_line(world, world.get("location"), meta["weather"], meta["time_of_day"])
+    return opening_narrative.catalog_line(world, world.get("location"), meta["weather"], meta["time_of_day"],
+                                          salt=world.get("flags", {}).get("turn_index", 0))
 
 
 def _generic_no_change_response():

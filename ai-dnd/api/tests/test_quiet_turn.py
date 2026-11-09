@@ -36,6 +36,16 @@ class QuietLines(unittest.TestCase):
         for line in (morning, evening):
             self.assertNotIn("belirgin bir değişiklik olmuyor", line)
 
+    def test_consecutive_quiet_turns_do_not_all_repeat_one_line(self):
+        def at(hour, turn):
+            world = world_at(hour)
+            world["flags"]["turn_index"] = turn
+            return self.line(world)
+        for hour in (13, 18):  # the catalog holds one city line for early morning and night, two for these
+            lines = [at(hour, turn) for turn in range(1, 4)]
+            self.assertGreater(len(set(lines)), 1, (hour, lines))
+            self.assertEqual(lines, [at(hour, turn) for turn in range(1, 4)])
+
     def test_the_stock_line_stays_when_no_model_answers(self):
         ollama_adapter.begin_turn_usage()
         ollama_adapter.note_usage("model", failed=True)

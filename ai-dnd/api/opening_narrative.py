@@ -65,8 +65,8 @@ def _line_fits(item: dict[str, Any], tag: str, hour: int, weather: Any, rules: d
     )
 
 
-def catalog_line(world: dict[str, Any], location_id: str, weather: Any, time_of_day: str = "day") -> str | None:
-    """One first line for this place and hour, drawn by the campaign seed, or None when none fits."""
+def catalog_line(world: dict[str, Any], location_id: str, weather: Any, time_of_day: str = "day", salt: Any = None) -> str | None:
+    """One first line for this place and hour, drawn by the campaign seed (and the salt, when given), or None when none fits."""
     data = _catalog()
     place = world.get("locations", {}).get(location_id)
     if not data or not isinstance(place, dict):
@@ -78,7 +78,7 @@ def catalog_line(world: dict[str, Any], location_id: str, weather: Any, time_of_
     items = [item for item in data["items"] if tag and _line_fits(item, tag, hour, weather, data["rules"])]
     if not items:
         return None
-    digest = hashlib.sha256(f"{living_world._campaign_seed(world)}\x00{location_id}\x00opening".encode("utf-8")).digest()
+    digest = hashlib.sha256(f"{living_world._campaign_seed(world)}\x00{location_id}\x00opening{'' if salt is None else chr(0) + str(salt)}".encode("utf-8")).digest()
     text = items[int.from_bytes(digest[:4], "big") % len(items)]["opening_template"]
     for slot in data["rules"]["bound_slots"]:
         text = text.replace("{" + slot + "}", place["name"])
