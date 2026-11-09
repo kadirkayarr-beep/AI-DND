@@ -85,6 +85,18 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
         self.assertFalse(self.world["combat"]["active"])
 
+    async def test_a_shove_tells_its_save_not_zero_damage(self):
+        # H123: the shove was a Strength save the narration never showed: 'bir darbe alır: 0 hasar'.
+        await self.begin()
+        await self.ask("Marek'i itip yere devirmeye çalışıyorum")
+        reply = await self.line("Evet, şu adamı sertçe itiyorum.")
+        shove = self.players_last_attack()
+        self.assertEqual(shove["unarmed_option"], "shove")
+        self.assertNotIn("0 hasar", reply["narration"])
+        save = shove["resolution"]
+        self.assertIn(f"DC {save['dc']}", reply["narration"])
+        self.assertIn(str(save["total"]), reply["narration"])
+
 class TheFightsOwnMoves(unittest.TestCase):
     def fight(self):
         session, npc = lifecycle.ready()

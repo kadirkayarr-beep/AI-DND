@@ -5756,7 +5756,10 @@ def _combat_narration(result):
         return result["direct_response"]
     target = _public_combatant_label(result.get("target_id") or result.get("target"), fallback=result.get("target_name"))
     outcome = result.get("outcome")
-    if outcome == "miss":
+    save = result.get("resolution") if result.get("unarmed_option") in ("shove", "grapple") else None
+    if isinstance(save, dict) and outcome in ("hit", "miss"):
+        text = _unarmed_save_text(target, result, save)
+    elif outcome == "miss":
         text = "Saldırın hedefi ıskalar."
     elif outcome in ("hit", "critical_hit"):
         kind = "kritik bir darbe" if outcome == "critical_hit" else "bir darbe"
@@ -5795,6 +5798,30 @@ def _combat_narration(result):
         combat = result["combat"]
         text += f" Bilincin açık; {combat['player_current_hp']}/{combat['player_max_hp']} canın kaldı."
     return text
+
+
+_SAVE_ABILITY_TR = {"strength": "Güç", "dexterity": "Çeviklik"}
+
+
+def _unarmed_save_text(target, result, save):
+    """A Shove or a Grapple is the target's saving throw, told with its roll and DC; it deals no damage."""
+    shove = result["unarmed_option"] == "shove"
+    ability = _SAVE_ABILITY_TR.get(save.get("ability"), save.get("ability"))
+    told = (f"{ability} kurtarma zarı kendiliğinden başarısız, DC {save.get('dc')}" if save.get("automatic_failure")
+            else f"{ability} kurtarma zarı {save.get('total')}, DC {save.get('dc')}")
+    move = "itişine" if shove else "kavrayışına"
+    if result.get("outcome") == "miss":
+        return f"{target} {move} direnir ({told})."
+    effects = result.get("additional_effects") or []
+    if not shove:
+        effect = "kavranır (Grappled)"
+    elif any(isinstance(e, dict) and e.get("kind") == "shove_prone" for e in effects):
+        effect = "yere düşer (Prone)"
+    elif any(isinstance(e, dict) and e.get("kind") == "push" and e.get("applied") for e in effects):
+        effect = "5 feet geri itilir"
+    else:
+        effect = "yerinden kımıldamaz; itecek yer yok"
+    return f"{target} {move} karşı koyamaz ({told}); {effect}."
 
 
 _FALL_LINE = ("Dizlerin boşalıyor, yere yığılıyorsun; sesler uzaklaşıyor. Bilincini kaybedersin. "
