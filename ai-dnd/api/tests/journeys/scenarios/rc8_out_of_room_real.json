@@ -121,6 +121,10 @@
         {
           "kese": 50,
           "oda": true
+        },
+        {
+          "kese": 100,
+          "oda": false
         }
       ]
     }
