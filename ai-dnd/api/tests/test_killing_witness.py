@@ -221,3 +221,14 @@ class KillingWitnessTests(JourneyCase):
         # the control for scenario 33's last step: a look names whoever is there
         _, session = await self.play([ORSIK], [], place=INN)
         self.assertIn("Orsik", await self.more({"say": "etrafıma bakıyorum"}))
+
+    async def test_an_innocent_killed_on_the_second_turn_of_a_fight_is_still_a_crime(self):
+        # the fight began on an earlier turn, but the victim never was an enemy: the guard draws
+        sturdy = {**FERUMEL, "current_hp": 9}
+        (one, two), session = await self.play(
+            [sturdy, GUARD, ORSIK], [attack("ferumel", "Ferumel"), attack("ferumel", "Ferumel")])
+        self.assertNotIn("Ferumel ölür", one)
+        self.assertIn("Ferumel ölür", two)
+        self.assertIn("silahını çekip üstüne yürüyor", two)
+        self.assertNotIn(True, [deed.get("in_fight") for deed in session.world_state["flags"]["deeds"]
+                                if deed.get("kind") == "killing"])

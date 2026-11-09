@@ -18203,7 +18203,6 @@ def _run_player_turn_keyed(
         runtime_snapshot = None
     turn_index_before = _session().world_state.get("flags", {}).get("turn_index", 0)
     place_before = _session().world_state.get("location")
-    _session()._fight_before_turn = bool(_session().world_state.get("combat", {}).get("active"))
     try:
         result = _dispatch_player_turn(
             player_input,

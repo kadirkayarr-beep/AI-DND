@@ -356,10 +356,10 @@ def killed(session, npc: dict[str, Any]) -> None:
     remember(session, "killing", f"{living_world.public_npc_name(npc)} öldürüldü", victim_id=npc.get("id"))
     flags = world.setdefault("flags", {})
     earlier = flags.get("fresh_killing")
-    # Where it happened, and whether it was a fight's own killing: the fight already on when the turn began, or an
-    # enemy who was hostile before the first blow (defending oneself is no crime, so no guard goes for the player
-    # over it; it is still remembered).
-    fights_own = bool(getattr(session, "_fight_before_turn", False)) or npc.get("hostile") is True
+    # Where it happened, and whether the victim was an enemy: hostile when they fell (defending oneself is no crime,
+    # so no guard goes for the player over it; it is still remembered). A fight going on does not make the victim
+    # an enemy. Knowingly accepted: a hostile who had already yielded or fallen and is finished off gets the same pass.
+    fights_own = npc.get("hostile") is True
     if fights_own:
         for deed in reversed(deeds(world)):
             if deed.get("kind") == "killing" and deed.get("victim_id") == npc.get("id"):
