@@ -36,12 +36,15 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     # The owner's 19-item test: money paid or earned by the wrong move, and the quest record that goes with it.
     ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b", "19c", "19d", "19e", "29")),
     ("Oda, uyku ve çıkış", ("03", "07")),
-    ("Eşya, silah ve tüketim", ("04", "04b", "05", "05b", "28", "30")),
+    ("Eşya, silah ve tüketim", ("04", "04b", "05", "05b", "05c", "28", "30")),
     ("Savaş eylemleri", ("06", "20", "21", "22", "22b")),
     ("Konuşma kipi", ("08", "08b")),
-    ("Kaçış, ölüm ve sonuçları", ("09a", "09b", "09c", "09d", "10", "15", "32")),
+    ("Kaçış, ölüm ve sonuçları", ("09a", "09b", "09c", "09d", "10", "15", "32", "33")),
     ("Kişisel hafıza", ("24", "24r")),
     ("Geri al ve yenileme", ("11",)),
+    # The scene's own happening (joined, undone, run out) and what a new campaign's first minutes show.
+    ("Sahne olayları ve açılış", ("31", "31b", "36a", "36b")),
+    ("Anlatı biçimi", ("35",)),
 )
 _OTHER_KIND = "Diğer"
 _NUMBER = re.compile(r"^(\d+[a-z]?)_")
