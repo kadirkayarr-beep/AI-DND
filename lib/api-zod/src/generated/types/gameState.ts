@@ -25,6 +25,7 @@ import type { GameShop } from './gameShop';
 import type { GameSpellcasting } from './gameSpellcasting';
 import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
+import type { GameWayOut } from './gameWayOut';
 import type { GameWorldMetadata } from './gameWorldMetadata';
 import type { KnownFactionStanding } from './knownFactionStanding';
 import type { KnownLoreFact } from './knownLoreFact';
@@ -61,6 +62,7 @@ export interface GameState {
   shops: GameShop[];
   features: GameFeature[];
   doors: GameDoor[];
+  way_out: GameWayOut | null;
   combat: GameCombat;
   death_state: DeathStateProjection;
   player_combat_status: GameStatePlayerCombatStatus;

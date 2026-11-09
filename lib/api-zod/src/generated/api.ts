@@ -1494,6 +1494,10 @@ export const CreateGameSessionResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -2573,6 +2577,10 @@ export const GetGameSessionStateResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -3669,6 +3677,10 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -4772,6 +4784,10 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -6138,6 +6154,10 @@ export const PlayGameTurnResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -7909,6 +7929,10 @@ export const GetGameActionStatusResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -9605,6 +9629,10 @@ export const AbandonGameActionResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -11150,6 +11178,10 @@ export const UndoGameTurnResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -12262,6 +12294,10 @@ export const AcceptGameQuestResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -13396,6 +13432,10 @@ export const CancelGameQuestResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -14519,6 +14559,10 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -15640,6 +15684,10 @@ export const AcceptLegacyQuestResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -16775,6 +16823,10 @@ export const CancelLegacyQuestResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -17899,6 +17951,10 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -21216,6 +21272,10 @@ export const CreateCampaignResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -22619,6 +22679,10 @@ export const GetCampaignResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -23999,6 +24063,10 @@ export const ResumeCampaignResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -26475,6 +26543,10 @@ export const CreateLegacySessionResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -27555,6 +27627,10 @@ export const GetLegacySessionStateResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -28916,6 +28992,10 @@ export const PlayLegacyTurnResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -30458,6 +30538,10 @@ export const UndoLegacyTurnResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -33315,6 +33399,10 @@ export const CreateLegacyCampaignResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -34720,6 +34808,10 @@ export const GetLegacyCampaignResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),
@@ -36101,6 +36193,10 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "locked": zod.boolean(),
   "broken": zod.boolean()
 })),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
   "combat": zod.object({
   "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
   "combat_id": zod.string().nullish(),

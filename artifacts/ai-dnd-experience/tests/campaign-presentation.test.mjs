@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 process.env.PORT ||= '4180';
 process.env.BASE_PATH ||= '/';
 delete process.env.REPL_ID;
-let vite, helpers, renderContext, renderDate, renderLibrary, renderAdventure, renderTranscript;
+let vite, helpers, renderDetails, renderContext, renderDate, renderLibrary, renderAdventure, renderTranscript;
 before(async () => {
   const { createServer } = await import('vite');
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'),
@@ -19,6 +19,8 @@ before(async () => {
   const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
   const React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
+  const { DetailsPanel } = await vite.ssrLoadModule('/src/pages/game-browser.tsx');
+  renderDetails = (state) => renderToStaticMarkup(React.createElement(DetailsPanel, { state }));
   renderContext = (state) => renderToStaticMarkup(React.createElement(CampaignContextPanel, { state }));
   renderDate = (state) => renderToStaticMarkup(React.createElement(CampaignDate, { state }));
   renderAdventure = (adventure) => renderToStaticMarkup(React.createElement(AdventureJournalSection, { adventure }));
@@ -168,4 +170,10 @@ test('presentation sources contain no fixed date, client clock, gameplay command
   assert.doesNotMatch(page, /\b(?:1492|1501)\s*DR/);
   const panel = await readFile('src/components/campaign-context-panel.tsx', 'utf8');
   assert.doesNotMatch(panel, /mutate|fetch\(|useState|localStorage|spellcasting_v1/);
+});
+test('details panel names the way out only when there is no door, otherwise the empty sentence', () => {
+  const none = { ...state(), location: 'remote', doors: [] };
+  assert.match(renderDetails({ ...none, way_out: { id: 'fr:city:neverwinter', name: 'Neverwinter Ara Sokağı' } }), /Çıkış: Neverwinter Ara Sokağı/);
+  assert.match(renderDetails({ ...none, way_out: null }), /Bu bölgede kapı veya geçit görünmüyor\./);
+  assert.doesNotMatch(renderDetails({ ...state(), way_out: { id: 'x', name: 'Başka Yer' } }), /Çıkış: Başka Yer/);
 });

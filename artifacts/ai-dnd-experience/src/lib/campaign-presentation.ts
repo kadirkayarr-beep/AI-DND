@@ -39,6 +39,7 @@ export function currentSceneContext(state: GameState) {
     people: scene?.npcs ?? state.npcs.filter((person) => person.location === state.location),
     features: scene?.features ?? state.features.filter((feature) => feature.location === state.location),
     doors: state.doors.filter((door) => door.location === state.location),
+    wayOut: state.way_out ?? null,
   };
 }
 

@@ -1776,6 +1776,11 @@ export interface GameDoor {
   broken: boolean;
 }
 
+export interface GameWayOut {
+  id: string;
+  name: string;
+}
+
 export type GameCombatStatus = typeof GameCombatStatus[keyof typeof GameCombatStatus];
 
 
@@ -2387,6 +2392,7 @@ export interface GameState {
   shops: GameShop[];
   features: GameFeature[];
   doors: GameDoor[];
+  way_out: GameWayOut | null;
   combat: GameCombat;
   death_state: DeathStateProjection;
   player_combat_status: GameStatePlayerCombatStatus;

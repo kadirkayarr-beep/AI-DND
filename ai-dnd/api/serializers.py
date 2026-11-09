@@ -22,6 +22,7 @@ import campaign_time
 import scheduled_events
 import timed_gameplay
 import exploration
+import exits
 import interaction_adventure
 import adventure.projection as adventure_projection
 import quest_log
@@ -588,6 +589,16 @@ def serialize_skill_check_result(
     return projected.model_dump(exclude_none=True)
 
 
+def _way_out_projection(world: dict[str, Any]) -> dict[str, str] | None:
+    """The way out a flight would take from here, named for the panel; reading writes nothing."""
+    location = world.get("location")
+    name = exits.way_out_name(world, location)
+    if name is None:
+        return None
+    out = exits.way_out(world, location)
+    return {"id": out if out is not None else f"{location}:side_street", "name": name}
+
+
 def serialize_session_state(
     session: Any,
     journal: dict[str, Any] | None = None,
@@ -788,6 +799,7 @@ def serialize_session_state(
         "shops": _project_list([living_world.public_shop_projection(world, shop) for shop in exploration.player_entities(world, world.get("shops", []))], _SHOP_FIELDS),
         "features": _project_list(exploration.player_entities(world, world.get("features", [])), _FEATURE_FIELDS),
         "doors": _project_list(exploration.visible_doors(world), _DOOR_FIELDS),
+        "way_out": _way_out_projection(world),
         "combat": {
             **serialize_combat_state(world.get("combat", {}), world),
             "action_economy": game.action_economy.projection(session)

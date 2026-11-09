@@ -188,6 +188,7 @@ export * from './gameTurnInputInteractionMode';
 export * from './gameTurnResult';
 export * from './gameTurnUndoInput';
 export * from './gameTurnUndoResult';
+export * from './gameWayOut';
 export * from './gameWorldMetadata';
 export * from './gameWorldMetadataEnvironment';
 export * from './gameWorldMetadataTimeOfDay';

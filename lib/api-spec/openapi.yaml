@@ -4434,6 +4434,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GameDoor'
+        way_out:
+          anyOf:
+          - $ref: '#/components/schemas/GameWayOut'
+          - type: 'null'
         combat:
           $ref: '#/components/schemas/GameCombat'
         death_state:
@@ -4505,6 +4509,7 @@ components:
       - shops
       - features
       - doors
+      - way_out
       - combat
       - death_state
       - player_combat_status
@@ -6387,6 +6392,17 @@ components:
       - location
       - tags
       - shopkeeper_id
+    GameWayOut:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+      - id
+      - name
     GameDoor:
       type: object
       additionalProperties: false
