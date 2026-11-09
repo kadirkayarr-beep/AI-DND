@@ -321,10 +321,21 @@ def answered_attack_question(session, message):
     session._attack_asked = False
     blow, session._blow_asked = getattr(session, "_blow_asked", None), None
     asked_line, session._blow_asked_line = getattr(session, "_blow_asked_line", None) or {}, None
-    if blow and _says_yes(session, message) and any(npc.get("id") == blow for npc in session.active_npcs()):
+    here = bool(blow) and any(npc.get("id") == blow for npc in session.active_npcs())
+    import game
+    import weapon_attack
+    if here and asked_line.get("choose"):
+        # "itip yere mi düşürüyorsun, yumruk mu?": only an answer naming a move the engine reads makes the blow
+        if weapon_attack.names_a_move(session, message) and game._blow_stands(message):
+            session._front_strike = {"kind": "strike", "id": blow, "with": "", "said": ""}
+        return message
+    if here and _says_yes(session, message):
+        said = asked_line.get("said") or ""
+        if not asked_line.get("with") and not weapon_attack.names_a_move(session, f"{said} {message}"):
+            session._which_move = blow  # a yes to words naming no move the engine has (a trip): asked, nothing rolls
+            return message
         # "kavga mı başlatıyorsun?" - "evet": the blow is the one the asked line said, never the bare yes alone
-        session._front_strike = {"kind": "strike", "id": blow, "with": asked_line.get("with") or "",
-                                 "said": asked_line.get("said") or ""}
+        session._front_strike = {"kind": "strike", "id": blow, "with": asked_line.get("with") or "", "said": said}
         return message
     if not asked or len(str(message).split()) > 4:
         return message

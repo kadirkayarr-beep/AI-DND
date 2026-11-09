@@ -1169,6 +1169,26 @@ _KNOCK_OUT = re.compile(
 _KILL = re.compile(r"\boldur(?:uyorum|ecegim|ecem|ucem|cem|eyim|ucu\w*)\b")
 
 
+_BARE_HAND_MOVE = re.compile(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum")
+
+
+def _named_owned_weapons(session, normalized, owned, held):
+    """Catalog weapons the words name that the player owns, else their everyday word for one ("hançerimi")."""
+    selected = []
+    for identity, weapon in __import__("weapon_catalog").WEAPONS.items():
+        terms = {identity, weapon["weapon_id"], *weapon["aliases"]}
+        if any(re.search(r"(?<!\w)" + re.escape(session._normalize_turkish_typos(term)) + r"(?!\w)", normalized) for term in terms):
+            if weapon["weapon_id"] not in selected:
+                selected.append(weapon["weapon_id"])
+    return [identity for identity in selected if identity in owned] or _owned_named(normalized, owned, held)
+
+
+def names_a_move(session, text):
+    """The words name a move natural_choice reads: a weapon the player owns, or a bare-hand move (punch, grapple, shove)."""
+    normalized = session._normalize_turkish_typos(text)
+    return bool(_BARE_HAND_MOVE.search(normalized) or _named_owned_weapons(session, normalized, _owned_weapon_ids(session), []))
+
+
 def natural_choice(session, text):
     """Choices only; no model-derived stats, grants, distance or hand state."""
     normalized = session._normalize_turkish_typos(text)
@@ -1176,18 +1196,12 @@ def natural_choice(session, text):
     said = strike.get("said") if isinstance(strike, dict) else None
     if said:  # a yes to "kavga mı başlatıyorsun?": the asked line's words choose the blow, with the yes's own words
         normalized = f"{session._normalize_turkish_typos(said)} {normalized}"
-    selected = []
-    for identity, weapon in __import__("weapon_catalog").WEAPONS.items():
-        terms = {identity, weapon["weapon_id"], *weapon["aliases"]}
-        if any(re.search(r"(?<!\w)" + re.escape(session._normalize_turkish_typos(term)) + r"(?!\w)", normalized) for term in terms):
-            if weapon["weapon_id"] not in selected:
-                selected.append(weapon["weapon_id"])
     owned = _owned_weapon_ids(session)
     held = [weapon["weapon_id"] for weapon in
             _held_weapon_profiles(session, "player", getattr(session, "character", {}))
             if weapon["weapon_id"] in owned]
-    selected = [identity for identity in selected if identity in owned] or _owned_named(normalized, owned, held)
-    unarmed = bool(re.search(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum", normalized))
+    selected = _named_owned_weapons(session, normalized, owned, held)
+    unarmed = bool(_BARE_HAND_MOVE.search(normalized))
     # A mug, a bottle, a stool: the reading named a thing that is no weapon of theirs, so the sword stays out of it.
     # A blow asked about and said yes to names no weapon of theirs either: the weapon in hand was never in the words.
     unarmed = unarmed or bool(isinstance(strike, dict) and (strike.get("with") or said) and not selected)

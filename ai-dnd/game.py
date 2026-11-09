@@ -5825,8 +5825,8 @@ def _unarmed_save_text(target, result, save):
         effect = "yere düşer (Prone)"
     elif any(isinstance(e, dict) and e.get("kind") == "push" and e.get("applied") for e in effects):
         effect = "5 feet geri itilir"
-    else:
-        effect = "yerinden kımıldamaz; itecek yer yok"
+    else:  # the push rule did not apply (target too large, or no known position to push to): no invented reason
+        effect = "itme uygulanamadı, yerinde kalır"
     return f"{target} {move} karşı koyamaz ({told}); {effect}."
 
 
@@ -18935,7 +18935,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             # Hurting the wrong person cannot be taken back: the words pick who, and with no name the one at hand.
             named = [npc["id"] for npc in combat_lifecycle.pointed_targets(session, player_input)]
             at_hand = listed["speaking_with"] if listed["speaking_with"] in [row["id"] for row in listed["people"]] else None
-            if named:
+            if fought:
+                route["id"] = target_id  # the opponent chosen in the fight stays the one struck (checked above)
+            elif named:
                 route["id"] = route["id"] if route["id"] in named else named[0]
             elif at_hand:
                 route["id"] = at_hand
@@ -19256,6 +19258,21 @@ def _ask_about_the_blow(person_id, player_input="", with_word=""):
                               "outcome": "unconfirmed_blow", "state_changes": [], "direct_response": line}}
 
 
+def _ask_which_move(person_id):
+    """A yes to a blow whose words name no move the engine has (a trip): the real moves are offered, nothing rolls."""
+    session = _session()
+    session._which_move = None
+    who = next((npc for npc in active_npcs() if npc.get("id") == person_id), None)
+    session._attack_asked = True  # the answer is read before any reading runs ahead (front_read_ahead)
+    session._blow_asked = person_id
+    session._blow_asked_line = {"said": "", "with": "", "choose": True}
+    line = (f"Bu hamlenin oyunda bir karşılığı yok. {living_world.public_npc_name(who)} ile ne yapıyorsun: "
+            "itip yere mi düşürüyorsun ('itiyorum', Shove), yoksa yumruk mu atıyorsun?")
+    return {"messages": session.messages, "narration": line, "model_calls": 0,
+            "action_result": {"action": "narrative", "status": "clarification", "success": False,
+                              "outcome": "unmapped_move", "state_changes": [], "direct_response": line}}
+
+
 def _narrated_person(word, player_input, listed):
     """Someone the last narration described is there to be spoken to: Python makes them real, once."""
     import pocket
@@ -19538,6 +19555,8 @@ def _dispatch_player_turn(
                                              "do", action_id)
     _reopen_public_doors()
     player_input = combat_lifecycle.answered_attack_question(_session(), player_input)
+    if getattr(_session(), "_which_move", None):
+        return _ask_which_move(_session()._which_move)
     owner_reply = _owner_module_reply(player_input, interaction_mode)
     if owner_reply is not None:
         return {

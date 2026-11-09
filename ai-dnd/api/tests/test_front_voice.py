@@ -134,8 +134,13 @@ class AnyBlowIsAnAttack(FrontTable):
         self.assertFalse(self.world["flags"].get("deeds"))
 
     async def test_a_blow_in_words_no_list_holds_is_asked_about_and_a_yes_lands_it(self):
+        # Task 38 (review B1): the words name no move the engine has, so the yes is asked which real move it is
+        # (nothing rolls), and the chosen move lands on the same person.
         self.assert_no_blow(await self.blow("üstüne atlayıp gırtlağına sarılıyorum"))
         reply = await self.line("evet")
+        self.assert_no_blow(reply)
+        self.assertEqual(self.npc["current_hp"], 12)
+        reply = await self.line("yumruk atıyorum")
         self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
         self.assertEqual(reply["turn_outcome"]["target_name"], self.npc["name"])
 

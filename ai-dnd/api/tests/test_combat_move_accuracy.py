@@ -52,14 +52,41 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertIn("kavga", reply["narration"])
         return reply
 
-    async def test_a_trip_said_yes_to_is_never_the_crossbow_in_hand(self):
-        # H241: 'çelme takıp düşürmeye çalışıyorum' - 'Evet.' was a crossbow shot at Disadvantage.
+    async def test_a_trip_said_yes_to_rolls_nothing_until_the_real_move_is_chosen(self):
+        # H241 (review B1): 'çelme takıp düşürmeye çalışıyorum' - 'Evet.' was a crossbow shot, then a damaging punch.
+        # The engine has no trip: a yes to a line naming no move it reads asks Shove or punch, and nothing rolls.
         await self.begin()
+        self.npc.update(max_hp=4, current_hp=4)
         await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
         reply = await self.line("Evet.")
+        self.assertEqual(reply["turn_outcome"]["status"], "clarification", reply["narration"])
+        self.assertIn("yumruk", reply["narration"])
+        self.assertIn("itiyorum", reply["narration"])
+        self.assertEqual(self.npc["current_hp"], 4)
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertFalse([row for row in self.world.get("attack_results", []) if row["actor"] == "player"])
+        reply = await self.line("itiyorum")
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(self.players_last_attack()["unarmed_option"], "shove")
+        self.assertEqual(self.npc["current_hp"], 4)
+
+    async def test_a_punch_chosen_after_the_trip_question_is_bare_hands_not_the_crossbow(self):
+        await self.begin()
+        await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
+        await self.line("Evet.")
+        reply = await self.line("yumruk atıyorum")
         self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
         self.assertEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
         self.assertNotIn("ranged_in_close_combat", reply["combat_result"].get("disadvantage_sources") or [])
+
+    async def test_an_answer_to_the_trip_question_naming_no_move_starts_nothing(self):
+        await self.begin()
+        await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
+        await self.line("Evet.")
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        reply = await self.line("boşver, konuşalım", "Peki.")
+        self.assertNotEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertFalse(self.world["combat"]["active"])
 
     async def test_the_yes_carries_the_asked_words(self):
         # The asked line said a shove; 'Evet.' alone must not lose it to the weapon in hand.
@@ -110,6 +137,20 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reply["combat_result"]["weapon"], "Heavy Crossbow")
         self.assertIsNotNone(reply["combat_result"]["attack_roll"])
 
+    async def test_a_blow_on_the_chosen_opponent_stays_on_them_whoever_else_the_words_name(self):
+        # Review M3: with the opponent chosen in the UI, the strike keeps that id even when the words name someone else.
+        await self.begin()
+        sera = next(npc for npc in self.world["npcs"] if npc["id"] == "npc_private_sera")
+        sera.update(name_known_to_player=True, armor_class=10, max_hp=40, current_hp=40, combat_status="active")
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"], "thing_word": "yumruk"}
+        await self.line("Marek'e bir yumruk atıyorum", "Ne yapıyorsun sen?")
+        self.assertTrue(self.world["combat"]["active"])
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+        reply = await self.line("Sera bakarken tatar yayımı doğrultup ateş ediyorum", target=True)
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(self.players_last_attack()["target_id"], self.npc["id"])
+        self.assertEqual(sera["current_hp"], 40)
+
 
 class TheFightsOwnMoves(unittest.TestCase):
     def fight(self):
@@ -118,10 +159,11 @@ class TheFightsOwnMoves(unittest.TestCase):
         self.addCleanup(game._ACTIVE_SESSION.reset, token)
         return session, npc
 
-    def test_going_on_the_defensive_is_dodge(self):
+    def test_going_on_the_defensive_is_dodge_where_the_attacker_is_known_seen(self):
         # H124: 'Savunmaya geçiyorum' only ended the turn; Dodge was never applied.
         session, npc = self.fight()
-        # Dodge's Disadvantage needs the attacker seen (K07 leaf): the sight fact is written here, not guessed.
+        # NOT the town-fight setup: this test writes the sight fact itself, because Dodge's attack Disadvantage needs
+        # the attacker seen (K07 leaf). Town fights never write it (review I1, parked); see the test below.
         session.world_state.setdefault("attack_environment", {}).setdefault("pairs", {})[f"{npc['id']}|player"] = {
             "distance_ft": 5, "attacker_sees_target": True, "target_sees_attacker": True}
         command = action_economy.natural_command(session, "Savunmaya geçiyorum.")
@@ -132,6 +174,31 @@ class TheFightsOwnMoves(unittest.TestCase):
                  if enemy.get("action") == "enemy_attack"]
         self.assertTrue(blows, result["narration"])
         self.assertIn("target_dodging", blows[0]["disadvantage_sources"])
+        self.assertIn("Dodge", result["narration"])
+
+    def test_in_a_town_fight_dodge_gives_only_the_dexterity_save_advantage(self):
+        # Review I1 (parked, K07 Dodge owner): no sight fact is written in a plain fight, so attacks roll normally;
+        # the Dexterity-save Advantage is what Dodge gives here, and the narration claims nothing more.
+        import weapon_attack
+        session, npc = self.fight()
+        action_economy.execute(session, {"steps": [{"kind": "dodge"}]})
+        with patch.object(session, "roll_d20", side_effect=[1, 20]) as roll:
+            saved = weapon_attack.save(session, "player", ("dexterity",), 12)
+        self.assertEqual((roll.call_count, saved["outcome"]), (2, "SUCCESS"))
+        result = action_economy.execute(session, {"steps": [{"kind": "end_turn"}]})
+        blows = [enemy for step in result["action_result"]["economy_steps"] for enemy in step.get("enemy_actions") or []
+                 if enemy.get("action") == "enemy_attack"]
+        self.assertTrue(blows, result["narration"])
+        self.assertNotIn("target_dodging", blows[0]["disadvantage_sources"])
+
+    def test_the_typed_dodge_step_is_the_dodge_action(self):
+        # Review M5: the API's own step, through the schema and the turn owner.
+        from api.schemas import CombatActionInput
+        session, _ = self.fight()
+        command = CombatActionInput.model_validate({"steps": [{"kind": "dodge"}]}).model_dump(exclude_none=True)
+        result = session.run_player_turn("Hamle.", combat_action=command)
+        self.assertEqual(result["action_result"]["economy_steps"][0]["kind"], "dodge")
+        self.assertTrue(action_economy.ensure(session)["player"]["dodging"])
         self.assertIn("Dodge", result["narration"])
 
     def test_no_action_left_is_no_dodge_and_says_so(self):
@@ -173,6 +240,27 @@ class TheFightsOwnMoves(unittest.TestCase):
         with patch("game.roll_attack", return_value=1):
             result = action_economy.execute(session, {"steps": [{"kind": "react", "opportunity_id": identity}]})
         self.assertIn("ıskalar", result["narration"])
+
+    def test_a_readied_move_is_told_too(self):
+        # Review M5: a readied move response is narrated with its distance.
+        session, npc = self.fight()
+        action_economy.prepare_ready(session, "player", trigger={"event": "actor_moves", "actor_id": npc["id"]},
+                                     response={"kind": "move", "distance_ft": 10})
+        session.advance_combat_turn()
+        npc["speed_ft"] = 30
+        action_economy.move(session, npc["id"], 5)
+        identity = action_economy.ensure(session)["player"]["opportunity"]["id"]
+        result = action_economy.execute(session, {"steps": [{"kind": "react", "opportunity_id": identity}]})
+        self.assertIn("Hazırladığın tepkiyi uygularsın. 10 feet ilerlersin.", result["narration"])
+
+    def test_a_push_that_did_not_apply_gives_no_reason_the_engine_does_not_know(self):
+        # Review M2: the engine knew no position, not that there was no room.
+        result = {"unarmed_option": "shove", "outcome": "hit", "target_name": "Marek",
+                  "resolution": {"ability": "strength", "total": 5, "dc": 13, "outcome": "FAILURE"},
+                  "additional_effects": [{"kind": "push", "applied": False, "reason": "position_unresolved_or_blocked"}]}
+        text = game._combat_narration(result)
+        self.assertNotIn("itecek yer yok", text)
+        self.assertIn("itme uygulanamadı", text)
 
 
 if __name__ == "__main__":
