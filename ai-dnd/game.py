@@ -8615,6 +8615,16 @@ def _elsewhere_line(world, name):
         return None
 
 
+def _named_elsewhere_line(world, player_input):
+    """'Özpil nerede?' with nobody to ask: where the town says a person it named is (None when it names no one)."""
+    import town_knowledge
+    name = town_knowledge.person_named_in(world, player_input)
+    if not name or living_world.normalize_text(name) in {
+            living_world.normalize_text(living_world.public_npc_name(npc)) for npc in active_npcs()}:
+        return None
+    return _elsewhere_line(world, name)
+
+
 def _overheard_work(world):
     """Nobody here to ask: what a stranger picks up in the street, tied to a real place."""
     import grounded_action
@@ -21419,12 +21429,21 @@ def _run_player_turn_internal(
             is_final=True,
         )
 
+    # "Özpil nerede?", or Konuş with no one to say it to: a person the town named is somewhere real.
+    asks_for_someone = interaction_mode == "say" or re.search(r"\bner(?:e)?de\b", _normalize_turkish_typos(player_input))
+    elsewhere = (_named_elsewhere_line(world_state, player_input)
+                 if npc_target is None and asks_for_someone and not combat["active"] else None)
+    if elsewhere:
+        result = {"action": "dialogue", "status": "invalid_target", "success": False, "state_changes": []}
+        return finish_turn(result, elsewhere, is_final=True)
+
     if interaction_mode == "say" and npc_target is None:
         result = {
             "action": "dialogue", "status": "clarification", "success": False,
             "state_changes": [],
         }
-        return finish_turn(result, "Kiminle konuşmak istiyorsun?", is_final=True)
+        nobody = "Burada konuşabileceğin kimse yok." if not active_npcs() else None
+        return finish_turn(result, nobody or "Kiminle konuşmak istiyorsun?", is_final=True)
 
     if not local_dialogue.is_local_dialogue_input(player_input):
         live_focus = interaction_adventure.current_conversation_focus(world_state)

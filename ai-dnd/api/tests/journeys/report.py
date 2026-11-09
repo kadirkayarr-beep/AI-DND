@@ -46,6 +46,8 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     # The scene's own happening (joined, undone, run out) and what a new campaign's first minutes show.
     ("Sahne olayları ve açılış", ("31", "31b", "36a", "36b")),
     ("Anlatı biçimi", ("35",)),
+    # The way to a person someone named: their place, and where the town says they are.
+    ("Yol ve hedef", ("37",)),
 )
 _OTHER_KIND = "Diğer"
 _NUMBER = re.compile(r"^(\d+[a-z]?)_")

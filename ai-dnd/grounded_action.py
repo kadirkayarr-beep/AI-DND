@@ -443,6 +443,7 @@ def candidates(session) -> list[dict[str, Any]]:
         found.append({"id": entry["id"], "kind": "door", "names": [fold(entry.get("name", ""))],
                       "nouns": list(_DOOR_NOUNS), "label": entry.get("name", "Kapı"),
                       "record": entry, "place_id": None, "inside": True})
+    people_here = {name for cand in found if cand["kind"] == "npc" for name in cand["names"]}
     for location_id, location in locations.items():
         if not isinstance(location, dict) or location_id == here:
             continue
@@ -450,10 +451,13 @@ def candidates(session) -> list[dict[str, Any]]:
         if parent not in {here, settlement} or location.get("hidden"):
             continue
         names = [fold(location.get("name", ""))]
+        resident = fold(location.get("resident_name") or "")
+        if resident and resident not in people_here:
+            names.append(resident)  # "Özpil'in dükkanına": the place of the person named, whatever its kind
         nouns = []
         for alias in location.get("aliases", []) or []:
             folded = fold(alias)
-            if not folded or folded == names[0]:
+            if not folded or folded in names:
                 continue
             (nouns if " " not in folded else names).append(folded)
         kind = location.get("place_kind") or location.get("scene_kind")
@@ -463,6 +467,7 @@ def candidates(session) -> list[dict[str, Any]]:
         door = next((d for d in world.get("doors", [])
                      if isinstance(d, dict) and d.get("id") == f"venue-door:{location_id}"), None)
         found.append({"id": location_id, "kind": "place", "names": names, "nouns": nouns,
+                      "resident": resident or None,
                       "label": location.get("name", location_id), "record": location,
                       "place_kind": kind, "door_id": door["id"] if door else None,
                       "door_locked": bool(door and door.get("locked"))})
@@ -571,6 +576,8 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
         for name in cand["names"]:
             words = name.split()
             quality = _phrase_match_quality(words, clause_tokens)
+            if quality == 1 and name == cand.get("resident"):
+                continue  # a person's name is said as it is, not guessed from a near word ("tamam" is not Tamar)
             if quality:
                 explicit_name_ids.add(cand["id"])
                 if quality == 2:
@@ -2669,7 +2676,8 @@ def place_hint(session, location_id: str) -> str | None:
     current = world.get("locations", {}).get(here, {}).get("name", here)
     where = "bu sokakta" if record.get("parent_location_id") == here else "yakınlarda"
     state = f" {_door_state_text(door)}" if door else ""
-    return (f"Şu an {current} sokaklarındasın; {record.get('name')} {where}.{state} "
+    standing = "sokaklarındasın" if here == _settlement(world) else "içindesin"
+    return (f"Şu an {current} {standing}; {record.get('name')} {where}.{state} "
             "Yanına gitmek, kapısını çalmak ya da çevresine bakmak istersen söyle.")
 
 

@@ -1,0 +1,119 @@
+"""Dilim 3 Task 24: the way to a person someone named.
+
+A job line that names a contact says where they are; "Özpil'in dükkanına gidiyorum" goes to the place Özpil
+lives in (no new shop is made); "Özpil nerede?" and a Konuş line with nobody to talk to read where the town
+says that person is; a hint given inside a building says the player is inside it, not in its streets.
+"""
+
+import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import game
+import grounded_action
+import local_places
+import thread_catalog
+import world_threads
+from api.tests.journeys.runner import _campaign_seeded, _give_job
+from api.tests.test_three_plays import PlayClient, ThreePlaysTests
+
+
+class ContactLineTests(unittest.TestCase):
+    def test_a_job_line_that_names_a_contact_says_where_they_are(self):
+        lines = [line for template in thread_catalog.load() for line in template["owner_lines"]
+                 if "{recipient} ile konuş" in line]
+        self.assertTrue(lines, "the catalog has no contact line: the case went untested")
+        for line in lines:
+            self.assertIn("{target}", line)
+
+
+class PlaceHintTests(unittest.TestCase):
+    def world(self, here):
+        return {
+            "location": here,
+            "locations": {
+                "city": {"name": "Neverwinter", "type": "city"},
+                "inn": {"name": "Kızıl Han", "parent_location_id": "city", "scene_kind": "tavern"},
+                "estate": {"name": "Kelmaren Konağı", "parent_location_id": "city", "place_kind": "estate"},
+            },
+            "doors": [],
+        }
+
+    def test_inside_a_building_the_hint_says_inside(self):
+        text = grounded_action.place_hint(SimpleNamespace(world_state=self.world("inn")), "estate")
+        self.assertIn("Kızıl Han içindesin", text)
+        self.assertNotIn("sokaklarında", text)
+
+    def test_in_the_street_the_hint_still_says_streets(self):
+        text = grounded_action.place_hint(SimpleNamespace(world_state=self.world("city")), "estate")
+        self.assertIn("Neverwinter sokaklarındasın", text)
+
+
+class NamedPersonWayTests(ThreePlaysTests):
+    async def town(self):
+        with _campaign_seeded({"campaign_seed": 2400}):
+            await self.begin()
+        self.settlement = self.world["location"]
+        here = self.settlement
+        self.world["npcs"] = [npc for npc in self.world.get("npcs", []) if npc.get("location") != here]
+
+    async def town_with_errand(self):
+        """Vobarin's errand names Özpil, who lives in an estate of the town."""
+        await self.town()
+        self.add_person("Vobarin", "Çömlekçi")
+        _give_job(self.world, {"type": "errand", "owner": "npc_vobarin", "status": "offered", "pay": 12,
+                               "noun": "iade takımı", "recipient": "Özpil", "target_kind": "estate",
+                               "line": "İade takımını Özpil'e götür. On iki bakır."})
+        thread = world_threads.view(self.world)["threads"][0]
+        self.estate = self.world["locations"][thread["target_place_id"]]
+
+    async def test_going_to_a_named_persons_shop_goes_where_they_live(self):
+        await self.town()
+        estate = local_places.create_local_place(self.world, self.settlement, "estate", name="Kelmaren Konağı")
+        estate["resident_name"] = "Özpil"
+        estate.setdefault("aliases", []).append("Özpil")
+        before = set(self.world["locations"])
+        out = await self.say("özpilin dükkanına gidiyorum")
+        self.assertEqual(self.world["location"], estate["id"], out["narration"])
+        # The estate's own inner hall opens on the first visit; nothing else (no shop) is made.
+        new = [self.world["locations"][key] for key in set(self.world["locations"]) - before]
+        self.assertEqual([place for place in new if place.get("inner_of") != estate["id"]], [])
+
+    async def test_a_resident_standing_here_is_the_person_not_their_place(self):
+        await self.town()
+        estate = local_places.create_local_place(self.world, self.settlement, "estate", name="Kelmaren Konağı")
+        estate["resident_name"] = "Özpil"
+        person = self.add_person("Özpil", "Kâhya")
+        with patch.object(game, "active_npcs", return_value=[person]):
+            step = grounded_action.plan(self.session, "Özpil'e yaklaşıyorum")["steps"][0]
+        self.assertEqual((step["target"] or {}).get("id"), person["id"], step["ambiguous"])
+
+    async def test_a_resident_name_is_not_guessed_from_a_near_word(self):
+        await self.town()
+        estate = local_places.create_local_place(self.world, self.settlement, "estate", name="Kelmaren Konağı")
+        estate["resident_name"] = "Tamar"
+        step = grounded_action.plan(self.session, "tamam, oraya gidiyorum")["steps"][0]
+        self.assertNotEqual((step["target"] or {}).get("id"), estate["id"])
+        self.assertFalse(step["named"])
+
+    async def test_where_is_a_named_person_reads_the_town(self):
+        await self.town_with_errand()
+        self.world["npcs"] = [npc for npc in self.world["npcs"] if npc["id"] != "npc_vobarin"]
+        out = await self.say("Özpil nerede?")
+        self.assertIn(f"Özpil burada değil; {self.estate['name']} tarafında", out["narration"])
+
+    async def test_talk_with_nobody_here_reads_where_the_named_person_is(self):
+        await self.town_with_errand()
+        self.world["npcs"] = [npc for npc in self.world["npcs"] if npc["id"] != "npc_vobarin"]
+        out = await self.say("Özpil'i arıyorum, onunla konuşmam lazım", mode="say")
+        self.assertIn(f"Özpil burada değil; {self.estate['name']} tarafında", out["narration"])
+
+    async def test_talk_with_nobody_here_says_nobody_is_here(self):
+        await self.town()
+        out = await self.say("merhaba, kimse var mı?", mode="say")
+        self.assertNotIn("Kiminle konuşmak istiyorsun?", out["narration"])
+        self.assertIn("kimse", out["narration"])
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,51 @@
+{
+  "id": "37_named_person_way",
+  "title": "Adı geçen kişiye giden yol: Vobarin'in işi Özpil'i anar; 'özpilin dükkanına gidiyorum' Özpil'in yaşadığı konağa götürür (dükkân aranmaz, yaratılmaz); yenileme aynı yeri verir",
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Vobarin",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 2400,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Özpil",
+      "target_kind": "estate",
+      "line": "İade takımını Özpil'e götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "özpilin dükkanına gidiyorum",
+      "expect": {
+        "konum": "$is_hedefi",
+        "kese": 100
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "konum": "$is_hedefi"
+      }
+    }
+  ]
+}

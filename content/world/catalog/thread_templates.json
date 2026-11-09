@@ -423,7 +423,7 @@
       "id": "THR008",
       "requester_role_id": "ROLE004",
       "public_line_template": "{place_name} yakınında kullanım sınırı konusunda anlaşmazlık var.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "boundary_marker": "Yer kaydında bulunan veya motorca oluşturulup doğrulanan görünür kullanım sınırı işareti; mülkiyet kararı değildir.",
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
@@ -470,7 +470,7 @@
       "id": "THR009",
       "requester_role_id": "ROLE003",
       "public_line_template": "{place_name} tören eşyalarında boya izi sorunu var.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "item_name": "Sahibi, izinli kullanım veya teslim kapsamı ve taşınabilirliği motorca belirlenmiş nesnenin açık adı.",
@@ -517,7 +517,7 @@
       "id": "THR010",
       "requester_role_id": "ROLE004",
       "public_line_template": "{place_name} iş çizelgesinde iki ekibin saati çakışmış.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "first_team": "Kurgusal dünya kaydında tanımlanmış ilk çalışma ekibinin açık adı; özel üyelik bilgisi ifşa edilmez.",
@@ -905,7 +905,7 @@
       "id": "THR018",
       "requester_role_id": "ROLE007",
       "public_line_template": "{place_name} geçidinde yükler yüzünden yer tartışması var.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "cargo_batch": "Sahibi, izinli işlem kapsamı ve miktarı belirlenmiş yük partisi; kapalı içeriği görünmeden bilinmez.",
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
@@ -951,7 +951,7 @@
       "id": "THR019",
       "requester_role_id": "ROLE009",
       "public_line_template": "{place_name} teslim paketlerinin işaretleri karışmış.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "item_name": "Sahibi, izinli kullanım veya teslim kapsamı ve taşınabilirliği motorca belirlenmiş nesnenin açık adı.",
@@ -999,7 +999,7 @@
       "id": "THR020",
       "requester_role_id": "ROLE006",
       "public_line_template": "{place_name} fiyat ilanlarının iki sürümü çelişiyor.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -1335,7 +1335,7 @@
       "id": "THR027",
       "requester_role_id": "ROLE011",
       "public_line_template": "{place_name} yakınında çalışma sesi ile okuma saati çakışıyor.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -1381,7 +1381,7 @@
       "id": "THR028",
       "requester_role_id": "ROLE012",
       "public_line_template": "{place_name} malzeme paketlerinin etiketleri belirsiz.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -1427,7 +1427,7 @@
       "id": "THR029",
       "requester_role_id": "ROLE015",
       "public_line_template": "{place_name} su noktasında sıra tartışması var.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -1472,7 +1472,7 @@
       "id": "THR030",
       "requester_role_id": "ROLE013",
       "public_line_template": "{place_name} salonu için iki kullanım talebi çakışmış.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "first_team": "Kurgusal dünya kaydında tanımlanmış ilk çalışma ekibinin açık adı; özel üyelik bilgisi ifşa edilmez.",
@@ -1861,7 +1861,7 @@
       "id": "THR038",
       "requester_role_id": "ROLE017",
       "public_line_template": "{place_name} geçidindeki daralma geçişi güçleştiriyor.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "damaged_fixture": "Hasarı görünür veya yetkili kayıtta doğrulanmış yer donanımı; hasarın nedeni otomatik bilinmez.",
@@ -1908,7 +1908,7 @@
       "id": "THR039",
       "requester_role_id": "ROLE020",
       "public_line_template": "{place_name} yakınındaki yön levhaları çelişiyor.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -1955,7 +1955,7 @@
       "id": "THR040",
       "requester_role_id": "ROLE017",
       "public_line_template": "{place_name} bakım uyarı işareti yerinden kaymış.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -2339,7 +2339,7 @@
       "id": "THR048",
       "requester_role_id": "ROLE023",
       "public_line_template": "{place_name} yükleme saatlerinde iki ekibin talebi çakışıyor.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "first_team": "Kurgusal dünya kaydında tanımlanmış ilk çalışma ekibinin açık adı; özel üyelik bilgisi ifşa edilmez.",
@@ -2387,7 +2387,7 @@
       "id": "THR049",
       "requester_role_id": "ROLE022",
       "public_line_template": "{place_name} yük bekleme alanında örtü kaymış.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "cargo_batch": "Sahibi, izinli işlem kapsamı ve miktarı belirlenmiş yük partisi; kapalı içeriği görünmeden bilinmez.",
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
@@ -2433,7 +2433,7 @@
       "id": "THR050",
       "requester_role_id": "ROLE025",
       "public_line_template": "{place_name} ortak su noktasında sızıntı var.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -2767,7 +2767,7 @@
       "id": "THR057",
       "requester_role_id": "ROLE026",
       "public_line_template": "{place_name} ortak tesisinin kullanım saatleri çakışıyor.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -2814,7 +2814,7 @@
       "id": "THR058",
       "requester_role_id": "ROLE027",
       "public_line_template": "{place_name} iş parçalarının etiketleri karışmış.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "first_part": "Sahipliği ve iş kaydı belirlenmiş ilk fiziksel iş parçası; görünmeyen niteliği varsayılmaz.",
@@ -2861,7 +2861,7 @@
       "id": "THR059",
       "requester_role_id": "ROLE028",
       "public_line_template": "{place_name} taşıma yolu kuruyan malzeme yüzünden daralmış.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",
@@ -2907,7 +2907,7 @@
       "id": "THR060",
       "requester_role_id": "ROLE030",
       "public_line_template": "{place_name} açık eğitimi bir araç arızası nedeniyle değişebilir.",
-      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş.",
+      "owner_terms_template": "{local_issue_summary}. İstersen {contact_name} ile konuş; {target_place} tarafında.",
       "required_bindings": {
         "contact_name": "Yerel dert hakkında konuşmaya uygun, varlığı ve erişilebilir kamu adı motorca doğrulanmış kişi; görüşme veya yardım garantisi yoktur.",
         "local_issue_summary": "Bu kalıba ait doğrulanmış yerel derdin kısa, açık ve gözlenebilir özeti; gizli neden veya fail bilgisi içermez.",

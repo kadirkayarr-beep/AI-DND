@@ -233,6 +233,18 @@ def place_of_person(world: dict[str, Any], name: Any) -> dict[str, Any] | None:
     return None
 
 
+def person_named_in(world: dict[str, Any], text: Any) -> str | None:
+    """A person the threads name, said in these words ("Özpil nerede?", "Özpil'i arıyorum"), by their reserved name."""
+    said = npc_statements.fold(text)
+    for thread in world_threads.owned(world):
+        for who in (thread.get("owner_name"), thread.get("recipient_name")):
+            name = npc_statements.fold(who)
+            for found in re.finditer(rf"\b{re.escape(name)}(\w*)", said) if name else ():
+                if npc_statements._CASE_TAIL.match(found.group(1)):
+                    return who
+    return None
+
+
 def _name_of(world: dict[str, Any], place_id: Any) -> str:
     place = world.get("locations", {}).get(place_id)
     return place.get("name", "") if isinstance(place, dict) else ""

@@ -65,6 +65,7 @@ def _owner_line(item: dict[str, Any]) -> str | None:
         "{recipient_name}": "{recipient}",
         "{contact_name}": "{recipient}",
         "{delivery_location}": "{target}",
+        "{target_place}": "{target}",  # where the named contact is found
         "{work_days}": "{days}",
         "{eligibility_condition}": "",  # no real requirement exists yet, so none is spoken
     }
