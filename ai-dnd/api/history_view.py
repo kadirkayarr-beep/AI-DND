@@ -13,6 +13,9 @@ from typing import Any
 # The player line the undo route writes into the history (main.py imports this; it is the only spelling).
 UNDO_HISTORY_MARKER = "↶ Son turu geri al"
 
+# The player line a joined ambient event writes into the history (ambient_actions.JOIN_LINE; a test keeps them equal).
+AMBIENT_JOIN_LINE = "Yanlarına gidiyorum."
+
 _UNDO_TAIL = "Dünya o turdan önceki hâline döndü; sıradaki hamle senin."
 
 
@@ -60,7 +63,15 @@ def undo_links(rows: list[dict[str, Any]], receipts: list[dict[str, Any]]) -> di
         target = targets[0] if len(targets) == 1 else None
         target_response = target.get("response") if target is not None else None
         turn = None
-        if isinstance(target_response, dict):
+        if isinstance(target_response, dict) and "ambient_event_response" in target_response:
+            # A click's receipt keeps no narration (its format is kept byte for byte): its row is the one the click
+            # wrote in the same transaction, the join line at the receipt's own time.
+            turn = _single([
+                index for index, row in enumerate(rows[:marker])
+                if row.get("player_message") == AMBIENT_JOIN_LINE
+                and row.get("created_at") == target.get("created_at")
+            ])
+        elif isinstance(target_response, dict):
             turn = _single([
                 index for index, row in enumerate(rows[:marker])
                 if row.get("player_message") != UNDO_HISTORY_MARKER

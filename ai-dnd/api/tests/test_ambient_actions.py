@@ -113,6 +113,8 @@ class AmbientActionsTests(OwnerPlayBase):
                           for ref in scene.get("referents", [])],
             "talk": {key: world["flags"].get(key) for key in ("active_npc_id", "active_npc_until_turn", "last_npc_id")},
             "journal": copy.deepcopy(record.journal),
+            "narrative_memory": copy.deepcopy(record.narrative_memory),
+            "world_metadata": copy.deepcopy(getattr(session, "world_metadata", None)),
             # What the narrator reads of the story; it lives in the runtime only, a reload starts it anew.
             **({"history": [(item.get("role"), item.get("content")) for item in session.messages]} if live else {}),
         }
@@ -124,7 +126,13 @@ class AmbientActionsTests(OwnerPlayBase):
         store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=store)
         reloaded_id, *_ = fresh.resume_campaign(self.record.campaign_id)
-        return self.observed_in(fresh.get(reloaded_id), live=False)
+        return {**self.observed_in(fresh.get(reloaded_id), live=False), "story": self.story(store)}
+
+    def story(self, store=None):
+        """The campaign history as the player reads it: each row's line and its read-time undo flags."""
+        rows = (store or self.store).get_campaign(self.record.campaign_id).history
+        return [(row["player_message"], bool(row.get("undone")), bool(row.get("undo_note")),
+                 bool(row.get("undo_target_unknown"))) for row in rows]
 
     def count_promoted(self):
         return sum(1 for ref in self.scene()["referents"] if ref.get("lifecycle") == "promoted")
@@ -239,7 +247,32 @@ class AmbientActionsTests(OwnerPlayBase):
         self.assertEqual(self.observed(), before)
         self.assertEqual((await self.undo(target_action_id=click["result"]["action_id"])).json()["detail"]["code"],
                          "undo_unavailable")
-        self.assertEqual(self.reloaded_observed()["referents"], before["referents"])
+        reloaded = self.reloaded_observed()
+        self.assertEqual(reloaded["referents"], before["referents"])
+        self.assertEqual(reloaded["story"], self.story())
+
+    async def test_the_story_marks_an_undone_click_like_an_undone_turn(self):
+        await self.state_with_event()
+        click = await self.click("interact")
+        self.assertEqual((await self.undo(target_action_id=click["result"]["action_id"])).status_code, 200)
+        story = self.story()
+        self.assertEqual(story[-2], ("Yanlarına gidiyorum.", True, False, False))   # the click: undone
+        self.assertEqual(story[-1][1:], (False, True, False))                      # the undo: proven, target known
+
+    def test_the_story_and_the_click_spell_the_join_line_alike(self):
+        from api import history_view
+        import ambient_actions
+        self.assertEqual(history_view.AMBIENT_JOIN_LINE, ambient_actions.JOIN_LINE)
+
+    async def test_a_resolved_event_whose_person_is_gone_reads_one_reason(self):
+        await self.state_with_event()
+        referent = next(ref for ref in self.scene()["referents"] if ref.get("event_instance_id") == self.instance)
+        referent.update(lifecycle="promoted", promoted_npc_id="npc_gone")
+        view = (await self.state())["scene"]["ambient_event"]["actionable"]
+        click = await self.click("interact")
+        self.assertEqual(view, {"can_interact": False, "reason": "event_already_resolved"})
+        self.assertEqual((click["result"]["status"], click["result"]["reason_code"], click["result"]["message"]),
+                         ("REJECTED", "event_already_resolved", "Bu karşılaşma zaten gelişti."))
 
     async def test_a_refused_click_keeps_the_last_turns_undo(self):
         turn = await self.say("etrafıma bakıyorum")
@@ -266,7 +299,7 @@ class AmbientActionsTests(OwnerPlayBase):
     async def test_reload_after_a_click_matches_live(self):
         await self.state_with_event()
         await self.click("interact")
-        self.assertEqual(self.reloaded_observed(), self.observed_in(self.record, live=False))
+        self.assertEqual(self.reloaded_observed(), {**self.observed_in(self.record, live=False), "story": self.story()})
 
     async def test_typing_and_clicking_end_alike(self):          # K3
         typed = await self.fresh_with_event_then_say("Esnaf ile konuşmak istiyorum.")

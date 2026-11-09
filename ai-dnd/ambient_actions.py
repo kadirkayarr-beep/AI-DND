@@ -10,6 +10,9 @@ from typing import Any
 
 import living_world
 
+# The player's line for a joined event; the story history finds the click's row by it (api.history_view).
+JOIN_LINE = "Yanlarına gidiyorum."
+
 
 def _scene_event(world: dict[str, Any]) -> tuple[dict | None, dict | None, dict | None]:
     """The scene the player stands in, its ambient event and the event's referent (None where missing)."""
@@ -92,7 +95,7 @@ def resolve(session: Any, event_instance_id: str, action_id: str, action: str) -
             result.update(status="ALREADY_APPLIED", reason_code="event_already_resolved",
                           transition_id=promoted_npc_id)
         else:
-            result["reason_code"] = "promoted_npc_missing"
+            result["reason_code"] = "event_already_resolved"   # the view's reason, even when that person is gone
         return result
     if not rule["can_interact"]:
         result["reason_code"] = rule["reason"]
@@ -120,7 +123,7 @@ def resolve(session: Any, event_instance_id: str, action_id: str, action: str) -
     result.update(status="APPLIED", reason_code="referent_promoted", transition_id=npc["id"])
     # The click is a move in the story: it is told and kept like any turn.
     event_text = str(referent.get("description") or "").strip()
-    result["player_message"] = "Yanlarına gidiyorum."
+    result["player_message"] = JOIN_LINE
     result["narration"] = (
         f"{event_text} Yanlarına gidiyorsun; karşında {living_world.public_npc_name(npc)} var."
     ).strip()
