@@ -52,14 +52,13 @@
       },
       "expect": {
         "savas": true,
+        "gerekli_metin": [
+          "senden önce davranıp"
+        ],
         "yasak_metin": [
           "Saldırın hedefi ıskalar. Marek adlı rakibinin karşı saldırısı seni ıskalar. Marek adlı rakibinin karşı saldırısı"
         ]
-      },
-      "known_broken": [
-        121
-      ],
-      "broken_because": ["yasak metin bulundu: Saldırın hedefi ıskalar."]
+      }
     }
   ]
 }

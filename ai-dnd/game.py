@@ -5711,7 +5711,13 @@ def _combat_narration(result):
     enemies = result.get("enemy_actions")
     if enemies is None:
         enemies = [result.get("enemy_action") or {}]
-    text += _enemy_exchange_text(enemies)
+    first = [enemy for enemy in enemies if enemy.get("before_player")]
+    if first:  # an enemy who won initiative acted before the player's move: told before it
+        named = len(enemies) > 1
+        text = f"{_enemy_exchange_text(first, named=named).strip()} {text}"
+        text += _enemy_exchange_text([enemy for enemy in enemies if not enemy.get("before_player")], named=named)
+    else:
+        text += _enemy_exchange_text(enemies)
     resolution = _death_resolution_from_actions(enemies)
     if resolution and resolution.get("rolled_back"):
         text += f" {_REWOUND_LINE}"
@@ -5731,8 +5737,11 @@ _REWOUND_LINE = ("Karanlık seni yutuyor, ama bu kampanyanın eski kuralı seni 
                  "gözlerini çatışmadan önceki anda açıyorsun.")
 
 
-def _enemy_exchange_text(enemies):
-    """What the other side did; player-visible labels come from the canonical knowledge projection."""
+def _enemy_exchange_text(enemies, named=None):
+    """What the other side did; player-visible labels come from the canonical knowledge projection. An attack marked
+    ``before_player`` came before the player's move and is not called a counter-attack."""
+    if named is None:
+        named = len(enemies) > 1
     monster_text = {
         "dodge": " Rakibin savunmaya geçer.",
         "parley_proposed": " Rakibin konuşmayı önerir; yanıtını bekler.",
@@ -5743,10 +5752,17 @@ def _enemy_exchange_text(enemies):
     announced = set()
     for enemy in enemies:
         subject = "Rakibinin"
-        if len(enemies) > 1 and (enemy.get("actor_id") or enemy.get("actor")):
+        first = "Rakibin"
+        if named and (enemy.get("actor_id") or enemy.get("actor")):
             public_actor = _public_combatant_label(enemy.get("actor_id") or enemy.get("actor"))
             subject = f"{public_actor} adlı rakibinin"
-        if enemy.get("outcome") == "miss":
+            first = public_actor
+        if enemy.get("before_player") and enemy.get("outcome") == "miss":
+            text += f" {first} senden önce davranıp saldırır; seni ıskalar."
+        elif enemy.get("before_player") and enemy.get("outcome") in ("hit", "critical_hit"):
+            kind = "kritik bir vuruşla " if enemy["outcome"] == "critical_hit" else ""
+            text += f" {first} senden önce davranıp saldırır; {kind}sana isabet eder; {enemy['damage']} hasar alırsın."
+        elif enemy.get("outcome") == "miss":
             text += f" {subject} karşı saldırısı seni ıskalar."
         elif enemy.get("outcome") in ("hit", "critical_hit"):
             kind = "kritik " if enemy["outcome"] == "critical_hit" else ""
@@ -15919,7 +15935,9 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             start_result = start_combat(target_npc)
             result["combat_id"] = start_result["combat_id"]
             if start_result["current_actor_id"] != "player":
-                enemy_actions.extend(_resolve_enemy_turns_until_player())
+                # Won initiative: these come before the player's move (told first, not as counter-attacks).
+                enemy_actions.extend({**action, "before_player": True}
+                                     for action in _resolve_enemy_turns_until_player())
                 if (
                     _session().character["current_hp"] <= 0
                     or world_state["player_combat_status"] == "unconscious"
