@@ -283,7 +283,7 @@ def _action(scenario: Scenario, index: int) -> str:
     if not 0 < index <= len(scenario.steps):
         return "(adım senaryoda yok)"
     step = scenario.steps[index - 1]
-    for label in ("say", "command", "economic_action", "combat_action"):
+    for label in ("say", "command", "economic_action", "combat_action", "ambient"):
         value = getattr(step, label)
         if value:
             return f"{label}: {_oneline(str(value))}"

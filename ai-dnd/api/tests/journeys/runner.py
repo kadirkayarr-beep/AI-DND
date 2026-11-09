@@ -33,11 +33,13 @@ from typing import Any, Literal, Protocol
 from uuid import uuid4
 from unittest.mock import patch
 
+import ambient_event_catalog
 import bold_acts
 import equipment_economy
 import front_proposal
 import game
 import interaction_adventure
+import living_world
 import local_places
 import shop_trade
 import world_threads
@@ -78,8 +80,14 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 # offers there, for ``recipient`` in a
 # ``target_kind`` place of the town; a trouble of the town is opened at that place by the product's own opener, so the
 # letter, once read, points at something real. It is taken by a step (one town job at a time: after the first is done).
+#
+# ``ambient_event`` puts one catalog event into the scene the player stands in, written the way the product's own
+# scene writers write it: ``event_id`` a catalog id, ``turns_ago`` (0 or more) how long ago it was shown (13 or more:
+# its referent has run out, as the click route counts a referent's twelve turns).
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
-                        "current_hp", "seed", "front_proposal", "death_mode", "job", "letter", "room"})
+                        "current_hp", "seed", "front_proposal", "death_mode", "job", "letter", "room",
+                        "ambient_event"})
+AMBIENT_EVENT_KEYS = frozenset({"event_id", "turns_ago"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
 LETTER_KEYS = frozenset({"owner", "pay", "line", "noun", "recipient", "target_kind"})
@@ -96,7 +104,7 @@ _ECONOMIC_MESSAGES = {"prepare": "Teklif hazırla", "confirm": "Teklifi onayla",
 _COMBAT_MESSAGE = "Savaş eylemi"
 # Step-bound, not state: what the step said, what the narrator and the speech call were sent, whether a stock denial
 # was said and the step's counter-attacks. A reload compares everything else.
-_NOT_STATE = frozenset({"narration", "anlaticiya_giden", "karsi_saldiri", "konusmaya_giden", "inkar"})
+_NOT_STATE = frozenset({"narration", "anlaticiya_giden", "karsi_saldiri", "konusmaya_giden", "inkar", "ambient"})
 # An enemy's counter-attack in a turn's combat result: a swing that hit or missed (the engine's own exchange text
 # says "karşı saldırısı" for exactly these).
 _SWINGS = frozenset({"hit", "miss", "critical_hit"})
@@ -384,9 +392,48 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         import bold_acts
         now = world.get("campaign_time", {}).get("elapsed_seconds", 0)
         world["flags"]["inn_room"] = {"place": world["location"], "until": now + bold_acts._ROOM_DAY}
+    if "ambient_event" in setup:
+        _place_ambient_event(world, setup["ambient_event"])
     if "seed" in setup:
         session.rng.seed(setup["seed"])
     case.manager.save_campaign(campaign["campaign_id"])
+
+
+def _place_ambient_event(world: dict[str, Any], spec: Any) -> None:
+    """Put one catalog event into the scene the player stands in: the scene's ``ambient_event``, the repetition
+    history and count, and (for a BLUE event) the referent, as ``living_world`` writes them. ``turns_ago`` moves
+    the referent's last turn to ``turn_index - turns_ago + 12``."""
+    if not (isinstance(spec, Mapping) and set(spec) == AMBIENT_EVENT_KEYS):
+        raise ScenarioError("setup 'ambient_event' {event_id, turns_ago} nesnesi olmalı")
+    turns_ago = spec["turns_ago"]
+    if type(turns_ago) is not int or turns_ago < 0:
+        raise ScenarioError("setup 'ambient_event' 'turns_ago' 0 ya da daha büyük tam sayı olmalı")
+    event = next((item for item in ambient_event_catalog.EVENT_CATALOG if item["event_id"] == spec["event_id"]), None)
+    if event is None:
+        raise ScenarioError(f"setup 'ambient_event' katalogda olmayan bir olay: {spec['event_id']!r}")
+    location = world["location"]
+    turn = world.setdefault("flags", {}).setdefault("turn_index", 0)
+    scene = living_world.ensure_scene_record(world, location, turn)
+    scene["materialized"] = True
+    scene["referents"].clear()
+    state = living_world.ensure_scene_state(world)
+    count = state["ambient_event_counts"].get(event["event_id"], 0) + 1
+    state["ambient_event_counts"][event["event_id"]] = count
+    instance = str(uuid4())
+    state["ambient_event_history"].append({
+        "event_id": event["event_id"], "instance_id": instance, "variation_id": event["variation_id"],
+        "repeat_group": event["repeat_group"], "location_id": location, "turn_index": turn,
+        "last_seen_turn": turn, "count": count,
+    })
+    record = {"event_id": event["event_id"], "instance_id": instance, "variation_id": event["variation_id"],
+              "event_type": event["event_type"], "repeat_group": event["repeat_group"], "count": count}
+    scene["last_beat"] = event["text"]
+    if event["event_type"] == "BLUE":
+        referent = living_world.create_scene_referent(world, location, turn, description=event["text"],
+                                                      aliases=list(event["aliases"]), event_instance_id=instance)
+        referent["expires_after_turn"] = turn - turns_ago + 12
+        record["referent_id"] = referent["id"]
+    scene["ambient_event"] = record
 
 
 def _hands_hold_only_the_bag(world: dict[str, Any]) -> None:
@@ -596,6 +643,8 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "olu": (state.get("death_state") or {}).get("status"),
         "elinde": _held_name(world),
         "gunluk": _journal(state.get("quest_log")),
+        "olay": _scene_event(state.get("scene")),
+        "zirh": session.character.get("armor_class"),
         "xp": session.character.get("xp", 0),
         "saat": (world.get("campaign_time") or {}).get("elapsed_seconds", 0) // _HOUR,
         "gorev": _open_quests(world.get("quests") or []),
@@ -606,7 +655,18 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "anlaticiya_giden": getattr(case, "last_narrator_input", None),
         "konusmaya_giden": getattr(case, "last_speech_input", None),
         "inkar": getattr(case, "last_denial", False),
+        "ambient": getattr(case, "last_ambient_result", None),
     }
+
+
+def _scene_event(scene: Any) -> dict[str, Any]:
+    """The API's scene event as the journey reads it: is there one, and what the API says about clicking it
+    (``actionable``: None while the API carries no such field)."""
+    event = scene.get("ambient_event") if isinstance(scene, Mapping) else None
+    if not isinstance(event, Mapping):
+        return {"var": False, "tiklanabilir": None, "neden": None}
+    actionable = event.get("actionable") if isinstance(event.get("actionable"), Mapping) else {}
+    return {"var": True, "tiklanabilir": actionable.get("can_interact"), "neden": actionable.get("reason")}
 
 
 def _held_name(world: Mapping[str, Any]) -> str | None:
@@ -757,6 +817,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
     last_session_id: str | None = None
     # The action id of the last turn sent, which an ``undo`` step names as the turn to take back.
     last_turn_action_id: str | None = None
+    # The last step's ambient click result ({status, reason_code}); None for any other step.
+    last_ambient_result: dict[str, Any] | None = None
 
     async def run_scenario(self, scenario: Scenario, *, model: ModelDriver | None = None) -> list[StepResult]:
         model = model if model is not None else ScriptedModel()
@@ -792,8 +854,13 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                 if not failures:
                     session_id = self.last_session_id
             else:
-                failures = await (self._undo(session_id, step, model) if step.undo
-                                  else self._play(session_id, step, model))
+                self.last_ambient_result = None
+                if step.ambient is not None:
+                    failures = await self._ambient(session_id, step, model)
+                elif step.undo:
+                    failures = await self._undo(session_id, step, model)
+                else:
+                    failures = await self._play(session_id, step, model)
                 observed = read_observed(self, session_id)
             self.last_observations.append(observed)
             failures.extend(check_expect(_with_job_target(self, step.expect, session_id), observed))
@@ -808,7 +875,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                 blocked_by = index
             results.append(StepResult(index, status, tuple(failures), step.known_broken,
                                       self.last_narration, time.monotonic() - started,
-                                      "" if step.undo or step.reload else self.last_reading))
+                                      "" if step.undo or step.reload or step.ambient else self.last_reading))
         return results
 
     async def _journey_campaign(self, setup: Mapping[str, Any]) -> dict:
@@ -849,6 +916,32 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
             self.last_narration = str(response.json().get("narration") or "")
             self.last_combat_result = response.json().get("combat_result")
         self.last_denial = denial_said(self.last_narration)
+        return failures
+
+    async def _ambient(self, session_id: str, step: Step, model: ModelDriver) -> list[str]:
+        """Click the scene's current ambient event through the product's route (a new action id, which an ``undo``
+        step after it names); return the failures the click itself produced. No model call is made."""
+        self.last_narrator_input = None
+        self.last_speech_input = None
+        self.last_denial = False
+        self.last_narration = ""
+        self.last_combat_result = None
+        body = {"action_id": str(uuid4()), "action": step.ambient["action"]}
+        with model.bind(self, step) as client:
+            world = self.manager.get(session_id).game_session.world_state
+            scenes = (world.get("scene_state") or {}).get("scenes") or {}
+            event = (scenes.get(world.get("location")) or {}).get("ambient_event")
+            if not (isinstance(event, Mapping) and isinstance(event.get("instance_id"), str)):
+                return ["ambient: sahnede olay yok"]
+            self.last_turn_action_id = body["action_id"]
+            response = await self.http.post(
+                f"/api/game/sessions/{session_id}/ambient-events/{event['instance_id']}/actions", json=body)
+        failures = [f"beklenmeyen model çağrısı: {keys}" for keys in getattr(client, "unexpected", None) or []]
+        if response.status_code != 200:
+            failures.append(f"HTTP {response.status_code}: {response.text[:300]}")
+        else:
+            result = response.json().get("result") or {}
+            self.last_ambient_result = {"status": result.get("status"), "reason_code": result.get("reason_code")}
         return failures
 
     async def _undo(self, session_id: str, step: Step, model: ModelDriver) -> list[str]:

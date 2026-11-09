@@ -44,12 +44,15 @@ EXPECT_KEYS = frozenset(
         "inkar",
         "gunluk",
         "elinde",
+        "olay",
+        "zirh",
     }
 )
 
 # ``undo`` takes back the last turn through the product's undo route; ``reload`` reads the campaign back from
-# its save in a fresh session manager (a restart). Both take only ``true``.
-ACTION_KEYS = ("say", "command", "economic_action", "combat_action", "undo", "reload")
+# its save in a fresh session manager (a restart). Both take only ``true``. ``ambient`` clicks the scene's current
+# ambient event through the product's route: ``{"action": "interact" | "observe"}``.
+ACTION_KEYS = ("say", "command", "economic_action", "combat_action", "undo", "reload", "ambient")
 _SCENARIO_KEYS = frozenset(
     {"id", "title", "source_items", "zero_tolerance", "real_chain_core", "setup", "steps"}
 )
@@ -58,13 +61,14 @@ _STEP_KEYS = frozenset(
     {*ACTION_KEYS, "konus", "script", "expect", "sifir_tolerans", "known_broken", "broken_because", "real_chain", "independent"}
 )
 _TEXT_ACTIONS = ("say", "command")
-_DICT_ACTIONS = ("economic_action", "combat_action")
+_DICT_ACTIONS = ("economic_action", "combat_action", "ambient")
+_AMBIENT_ACTIONS = ("interact", "observe")
 _TRUE_ACTIONS = ("undo", "reload")
 
 # Expectations compared as a subset when both sides are mappings: the step names
 # only the fields it cares about (the observed card, counter offer, mode or purse
 # list carries more; ``gorev`` may name only ``aktif`` when a row's title is drawn at random).
-_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese", "gorev"})
+_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese", "gorev", "olay"})
 _TEXT_CHECKS = frozenset({"yasak_metin", "gerekli_metin"})
 
 
@@ -128,10 +132,25 @@ EXPECT_VALUE_RULES = {
     "gunluk": (lambda value: _journal_rule(value),
                "sayac/suren/biten/iz/iz_sayisi alanlarından yalnız bilinenleri taşıyan, boş olmayan nesne"),
     "elinde": (_or_none(lambda value: isinstance(value, str) and bool(value)), "boş olmayan metin ya da null"),
+    "olay": (lambda value: _event_rule(value),
+             "var/tiklanabilir (true ya da false) ve neden (boş olmayan metin) alanlarından yalnız bilinenleri taşıyan, boş olmayan nesne"),
+    "zirh": (_integer, "tam sayı"),
     "anlatilan": (lambda value: _filled_mapping(value) and all(isinstance(npc, str) and npc and _needles(needles)
                                                                for npc, needles in value.items()),
                   "boş olmayan kişi -> boş olmayan metin (listesi) nesnesi"),
 }
+
+
+_EVENT_KEYS = frozenset({"var", "tiklanabilir", "neden"})
+
+
+def _event_rule(value: Any) -> bool:
+    """``olay``: the scene's ambient event as the API shows it: is there one, may it be clicked, and why not."""
+    if not _filled_mapping(value) or set(value) - _EVENT_KEYS:
+        return False
+    if not all(isinstance(value[key], bool) for key in ("var", "tiklanabilir") if key in value):
+        return False
+    return not ("neden" in value and not (isinstance(value["neden"], str) and value["neden"]))
 
 
 _JOURNAL_KEYS = frozenset({"sayac", "suren", "biten", "iz", "iz_sayisi"})
@@ -177,6 +196,8 @@ class Step:
     independent: bool
     undo: bool = False
     reload: bool = False
+    # The ambient click: ``{"action": "interact" | "observe"}`` against the scene's current event.
+    ambient: dict | None = None
     # Ruling R19: substrings, one of which every failure of a marked step must hold; empty means not named.
     broken_because: tuple[str, ...] = ()
     # The person a ``say`` line is spoken to in say mode (the turn's ``interaction_mode: say`` and ``target_id``).
@@ -406,6 +427,8 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
     for key in _TRUE_ACTIONS:
         if key in raw and raw[key] is not True:
             raise ScenarioError(f"{where}: '{key}' yalnız true olabilir")
+    if "ambient" in raw and not (set(raw["ambient"]) == {"action"} and raw["ambient"]["action"] in _AMBIENT_ACTIONS):
+        raise ScenarioError(f"{where}: 'ambient' yalnız {{\"action\": {' | '.join(_AMBIENT_ACTIONS)}}} olabilir")
     if "konus" in raw:
         if "say" not in raw:
             raise ScenarioError(f"{where}: 'konus' yalnız 'say' ile birlikte kullanılır")
@@ -450,6 +473,7 @@ def _load_step(raw: Any, where: str, zero_tolerance: bool) -> Step:
         independent=_boolean(raw, "independent", where),
         undo="undo" in raw,
         reload="reload" in raw,
+        ambient=copy.deepcopy(raw.get("ambient")),
         broken_because=tuple(broken_because or ()),
         konus=raw.get("konus"),
         sifir_tolerans=copy.deepcopy(allowed),

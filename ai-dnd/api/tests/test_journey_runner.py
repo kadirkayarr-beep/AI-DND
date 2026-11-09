@@ -944,5 +944,118 @@ class TheNarratorInput(unittest.TestCase):
         self.assertEqual(listen.reading(), '{"front": {"kind": "speak_to"}} | {"intent": "talk"}')
 
 
+class StageNoEventModel(ScriptedModel):
+    """The default driver, but just before the step it takes the scene's ambient event away."""
+
+    @contextmanager
+    def bind(self, case, step):
+        with super().bind(case, step) as client:
+            world = case.manager.get(case.last_session_id).game_session.world_state
+            world["scene_state"]["scenes"][world["location"]].pop("ambient_event", None)
+            yield client
+
+
+class TheDilim3Additions(JourneyCase):
+    def world(self, campaign):
+        return self.manager.get(campaign["session_id"]).game_session.world_state
+
+    def scene(self, campaign):
+        world = self.world(campaign)
+        return world["scene_state"]["scenes"][world["location"]]
+
+    async def campaign_with_setup(self, ambient_event):
+        setup = {**beer_scenario().setup, "campaign_start": NEVERWINTER, "ambient_event": ambient_event}
+        campaign = await self._journey_campaign(setup)
+        apply_setup(self, campaign, setup)
+        return campaign
+
+    def ambient_scenario(self, *steps, event=None):
+        setup = {**beer_scenario().setup, "campaign_start": NEVERWINTER,
+                 "ambient_event": event or {"event_id": "city_lost_ring", "turns_ago": 0}}
+        return beer_scenario(*steps, setup=setup)
+
+    async def test_an_ambient_step_clicks_the_scene_event_through_the_product_route(self):
+        results = await self.run_scenario(self.ambient_scenario({"ambient": {"action": "interact"}}))
+        self.assertEqual([result.status for result in results], ["pass"], results)
+        self.assertEqual(self.last_observations[0]["ambient"],
+                         {"status": "APPLIED", "reason_code": "referent_promoted"})
+
+    async def test_an_observe_click_has_no_effect_and_an_expired_event_is_refused(self):
+        results = await self.run_scenario(self.ambient_scenario({"ambient": {"action": "observe"}}))
+        self.assertEqual(results[0].status, "pass", results)
+        self.assertEqual(self.last_observations[0]["ambient"]["status"], "NO_EFFECT")
+        await self.run_scenario(self.ambient_scenario({"ambient": {"action": "interact"}},
+                                                      event={"event_id": "city_lost_ring", "turns_ago": 13}))
+        self.assertEqual(self.last_observations[0]["ambient"],
+                         {"status": "REJECTED", "reason_code": "event_expired"})
+
+    async def test_an_ambient_step_with_no_event_in_the_scene_fails_plainly(self):
+        results = await self.run_scenario(self.ambient_scenario({"ambient": {"action": "interact"}}),
+                                          model=StageNoEventModel())
+        self.assertEqual(results[0].status, "new_break")
+        self.assertEqual(results[0].failures[0], "ambient: sahnede olay yok")
+
+    async def test_an_undo_step_after_an_ambient_step_names_the_click_as_the_turn_to_take_back(self):
+        # Whether the product can take the click back is the product's answer (it is checked by its own journey);
+        # the harness's part is to ask for the click's own action id.
+        sent = []
+        post = self.http_post_recorder(sent)
+        with patch.object(JourneyCase, "_journey_campaign", post):
+            await self.run_scenario(self.ambient_scenario({"ambient": {"action": "interact"}}, {"undo": True}))
+        click = next(body for url, body in sent if "/ambient-events/" in url)
+        undo = next(body for url, body in sent if url.endswith("/undo"))
+        self.assertEqual(undo["target_action_id"], click["action_id"])
+
+    def http_post_recorder(self, sent):
+        original = JourneyCase._journey_campaign
+
+        async def campaign(case, setup):
+            made = await original(case, setup)
+            real = case.http.post
+
+            async def post(url, **kwargs):
+                sent.append((url, kwargs.get("json")))
+                return await real(url, **kwargs)
+
+            case.http.post = post
+            return made
+
+        return campaign
+
+    async def test_the_ambient_event_setup_places_a_live_or_expired_event(self):
+        fresh = await self.campaign_with_setup({"event_id": "city_lost_ring", "turns_ago": 0})
+        stale = await self.campaign_with_setup({"event_id": "city_lost_ring", "turns_ago": 13})
+        self.assertEqual(self.scene(fresh)["ambient_event"]["event_id"], "city_lost_ring")
+        for campaign, live in ((fresh, True), (stale, False)):
+            scene = self.scene(campaign)
+            referent = next(item for item in scene["referents"] if item["id"] == scene["ambient_event"]["referent_id"])
+            turn = self.world(campaign)["flags"].get("turn_index", 0)
+            self.assertEqual(turn <= referent["expires_after_turn"], live)
+        self.assertEqual(self.world(fresh)["scene_state"]["ambient_event_counts"]["city_lost_ring"], 1)
+        for wrong in ({"event_id": "no_such_event", "turns_ago": 0}, {"event_id": "city_lost_ring", "turns_ago": -1},
+                      {"event_id": "city_lost_ring", "turns_ago": True}, {"event_id": "city_lost_ring"},
+                      {"turns_ago": 0}, "city_lost_ring"):
+            with self.subTest(wrong=wrong), self.assertRaises(ScenarioError):
+                await self.campaign_with_setup(wrong)
+
+    async def test_the_scene_event_is_observed_and_survives_a_reload(self):
+        results = await self.run_scenario(self.ambient_scenario(
+            {"say": "etrafa bakıyorum", "expect": {"olay": {"var": True}}},
+            {"reload": True, "expect": {"olay": {"var": True}}}))
+        self.assertEqual([result.status for result in results], ["pass", "pass"], results)
+        self.assertEqual(self.last_observations[0]["olay"], {"var": True, "tiklanabilir": None, "neden": None})
+
+    async def test_a_scene_without_an_event_reads_as_no_event(self):
+        campaign = await self.create_campaign()
+        self.assertEqual(read_observed(self, campaign["session_id"])["olay"],
+                         {"var": False, "tiklanabilir": None, "neden": None})
+
+    async def test_zirh_reads_the_armor_class(self):
+        campaign = await self.create_campaign()
+        sid = campaign["session_id"]
+        self.manager.get(sid).game_session.character["armor_class"] = 17
+        self.assertEqual(read_observed(self, sid)["zirh"], 17)
+
+
 if __name__ == "__main__":
     unittest.main()

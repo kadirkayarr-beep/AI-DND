@@ -128,6 +128,7 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
                 "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
+                "olay", "zirh",
             },
         )
 
@@ -310,6 +311,40 @@ class TheLoaderIsStrict(unittest.TestCase):
 
     def test_every_expect_key_has_a_value_rule(self):
         self.assertEqual(set(schema.EXPECT_VALUE_RULES), set(EXPECT_KEYS))
+
+
+class TheDilim3Keys(unittest.TestCase):
+    def test_the_dilim3_keys_exist(self):
+        self.assertIn("ambient", schema.ACTION_KEYS)
+        self.assertTrue({"olay", "zirh"} <= set(EXPECT_KEYS))
+
+    def test_ambient_olay_zirh_values_are_checked(self):
+        for bad_step in ({"ambient": {"action": "poke"}}, {"ambient": "interact"}, {"ambient": {}},
+                         {"ambient": {"action": "observe", "ekstra": 1}},
+                         {"say": "x", "expect": {"olay": {"tiklanabilir": "evet"}}},
+                         {"say": "x", "expect": {"olay": {"bilinmeyen": 1}}},
+                         {"say": "x", "expect": {"olay": {}}},
+                         {"say": "x", "expect": {"zirh": "18"}}):
+            with self.subTest(step=bad_step), self.assertRaises(ScenarioError):
+                load_scenario(write_scenario(small_scenario(steps=[bad_step])))
+        loaded = load_scenario(write_scenario(small_scenario(steps=[{
+            "ambient": {"action": "interact"},
+            "expect": {"olay": {"var": True, "tiklanabilir": False, "neden": "event_expired"}, "zirh": 18}}])))
+        self.assertEqual(loaded.steps[0].ambient, {"action": "interact"})
+
+    def test_an_ambient_step_takes_no_other_action(self):
+        with self.assertRaises(ScenarioError):
+            load_scenario(write_scenario(small_scenario(steps=[{"ambient": {"action": "observe"}, "say": "x"}])))
+
+    def test_olay_compares_fields_exactly(self):
+        seen = {"olay": {"var": True, "tiklanabilir": False, "neden": "event_expired"}}
+        self.assertEqual(check_expect({"olay": {"tiklanabilir": False}}, seen), [])
+        self.assertEqual(len(check_expect({"olay": {"tiklanabilir": True}}, seen)), 1)
+        self.assertEqual(len(check_expect({"olay": {"neden": "combat"}}, seen)), 1)
+
+    def test_an_unreadable_clickability_never_matches_a_wanted_value(self):
+        seen = {"olay": {"var": True, "tiklanabilir": None, "neden": None}}
+        self.assertEqual(len(check_expect({"olay": {"tiklanabilir": False}}, seen)), 1)
 
 
 class TheCheckerReportsInTurkish(unittest.TestCase):

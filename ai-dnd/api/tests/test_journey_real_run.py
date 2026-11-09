@@ -12,6 +12,7 @@ import io
 import json
 import os
 import re
+import shutil
 import socket
 import tempfile
 import unittest
@@ -430,6 +431,22 @@ class TheRealRun(Offline):
 def _step(index, *failures):
     return StepResult(index=index, status="new_break" if failures else "pass", failures=tuple(failures),
                       items=(), narration="", seconds=0.0)
+
+
+def write_ambient_scenario() -> Path:
+    folder = Path(tempfile.mkdtemp())
+    unittest.addModuleCleanup(shutil.rmtree, folder, ignore_errors=True)
+    data = {"id": "01_ambient", "title": "Ortam", "steps": [{"ambient": {"action": "interact"}}]}
+    path = folder / "01_ambient.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+class TheCallEstimate(unittest.TestCase):
+    def test_an_ambient_step_costs_no_model_call(self):
+        step = load_scenario(write_ambient_scenario()).steps[0]
+        self.assertEqual(step.ambient, {"action": "interact"})
+        self.assertEqual(real_run._step_calls(step), 0)
 
 
 class TheZeroToleranceList(Offline):
