@@ -245,6 +245,28 @@ class TalkModeThroughTheGame(JourneyCase):
         found = game.resolve_npc_reference(line, force_dialogue=True, allow_active_fallback=True)
         self.assertEqual(found["npc"]["id"], "barman")                     # no word from the model: today's one-person fallback
 
+    async def test_a_word_for_the_one_person_here_is_not_nobody(self):
+        # the model names the innkeeper who is here, but its evidence is not in the line: today's one-person greeting
+        session = await self.session_talking_to_marek()
+        self.npc(session, "barman")["role"] = "innkeeper"                  # shown to the player as "hancı"
+        await self.play(session, "konuşmayı bitiriyorum")
+        found = game.resolve_npc_reference("selam veriyorum", force_dialogue=True, allow_active_fallback=True,
+                                           named_word="hancı")
+        self.assertEqual(found["npc"]["id"], "barman")
+        session._named_word = "hancı"
+        self.assertEqual(game._thread_person("selam veriyorum", None)["id"], "barman")
+        session._named_word = None
+        await self.play(session, "merhaba, selam veriyorum",
+                        intent={"intent": "talk", "action": "greet",
+                                "target": {"type": "npc", "reference": "hancı", "npc_id": "barman",
+                                           "evidence_quote": "hancıya selam veriyorum"}})
+        self.assertEqual([n for n in self.notes(session) if "görünmüyor" in n[1]], [])
+        self.assertEqual(game._active_interlocutor()["id"], "barman")
+        # a word nobody here answers to is still nobody
+        found = game.resolve_npc_reference("selam veriyorum", force_dialogue=True, allow_active_fallback=True,
+                                           named_word="satıcı")
+        self.assertEqual(found, {"status": "none", "npc": None, "nobody_here": "satıcı"})
+
     async def test_the_job_path_gives_nobody_too(self):
         session = await self.session_talking_to_marek()
         session._named_word = "satıcı"

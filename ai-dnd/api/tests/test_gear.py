@@ -84,6 +84,36 @@ class GearRules(JourneyCase):
                                      response={"kind": "attack", "target_id": self._npc["id"]})
         self.assertEqual(self.ready_record(session)["response"]["kind"], "attack")
 
+    def test_a_readied_blow_that_draws_spends_the_reaction_and_closes_the_opportunity(self):
+        session = self.fight_session(bag=["Greatsword"])                  # empty hand, greatsword in the bag
+        action_economy.prepare_ready(session, "player", trigger=self.enemy_moves_trigger(session),
+                                     response={"kind": "attack", "target_id": self._npc["id"]})
+        session.advance_combat_turn()
+        self._npc["speed_ft"] = 30
+        action_economy.move(session, self._npc["id"], 5)                  # the bandit comes closer
+        identity = action_economy.ensure(session)["player"]["opportunity"]["id"]
+        with patch("game.roll_attack", return_value=1):
+            action_economy.react(session, identity)
+        self.assertIsNotNone(gear.wielded(session.world_state))           # the greatsword was drawn
+        r = action_economy.ensure(session)["player"]                      # read again: the live record, not a copy
+        self.assertEqual((r["reaction_spent"], r["ready"], r["opportunity"]), (True, None, None))
+        with patch("game.roll_attack", return_value=1), self.assertRaises(action_economy.CombatRequestError):
+            action_economy.react(session, identity)                       # the same opportunity cannot strike twice
+
+    def test_a_level_five_fighter_who_draws_on_the_first_attack_keeps_the_second(self):
+        from api.tests.test_roadmap_c10_extra_attack import attack, follow
+        from api.tests.test_roadmap_c14_fighter_features import fight, run
+        session, npc = fight(5)
+        session.world_state["inventory"][:] = ["Greatsword"]
+        session.world_state["equipment"] = {"main_hand": None, "off_hand": None}
+        equipment_economy.materialize(session.world_state)
+        with patch("game.roll_attack", return_value=1):
+            steps = run(session, attack(npc), follow(npc))                # the first draws, the second is Extra Attack
+            self.assertEqual([step["action_resource_cost"] for step in steps], [1, 0])
+            self.assertEqual(action_economy.ensure(session)["player"]["attack_action"]["remaining_attacks"], 0)
+            with self.assertRaises(action_economy.CombatRequestError):
+                run(session, follow(npc))
+
     def test_a_weapon_not_owned_is_a_punch_that_says_so(self):
         choice = gear.attack_weapon(w_no_weapons, requested_name="kılıç")
         self.assertEqual((choice.kind, choice.missing, choice.item), ("unarmed", "Kılıç", None))  # the player-facing label
@@ -96,6 +126,13 @@ class GearRules(JourneyCase):
         self.assertEqual((result.status, result.item["name"]), ("drawn", "Greatsword"))
         self.assertEqual(w["equipment"], {"main_hand": self.item_id(w, "Greatsword"), "off_hand": None})
         self.assertEqual(gear.draw(w, self.item_id(w, "Greatsword")).status, "already_held")
+
+    def test_a_hand_the_owner_will_not_change_is_refused_without_an_error(self):
+        w = self.world(bag=["Hançer"], main=None, off=None)
+        w["equipment"]["main_hand"] = "longsword"                        # a new world's catalog hand, no longsword owned
+        before = copy.deepcopy(w)
+        self.assertEqual(gear.draw(w, self.item_id(w, "Hançer")).status, "refused")
+        self.assertEqual(w, before)                                       # the bag and the hands are untouched
 
     def test_draw_refuses_what_is_not_a_weapon_or_not_in_the_bag(self):
         w = self.world(bag=["Greatsword", "Macera Çantası"], main=None, off=None)

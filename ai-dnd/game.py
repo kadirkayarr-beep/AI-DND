@@ -6446,6 +6446,42 @@ def _settle_address(resolution, player_input):
     return {"status": "found", "npc": npc}
 
 
+def _npc_answers_to(npc, text):
+    """Does the text name this person the way the player knows them: name, shown role or shown label?"""
+    name_match = (
+        living_world.npc_name_known_to_player(npc)
+        and _entity_reference_in_text(npc.get("name", ""), text)
+    )
+    # The player reads the public role ("dükkâncı"), not the internal one
+    # ("shopkeeper"): both name the same NPC, only when the role is shown.
+    role_match = (
+        living_world.npc_role_known_to_player(npc)
+        and (
+            _entity_reference_in_text(npc.get("role", ""), text)
+            or _entity_reference_in_text(
+                living_world.public_npc_role(npc) or "", text
+            )
+        )
+    )
+    # The label the player is shown ("Yakındaki kişi", "Bir köylü") is public
+    # by construction, so typing it back must address that person.
+    descriptor_match = (
+        not living_world.npc_name_known_to_player(npc)
+        and (
+            _entity_reference_in_text(living_world.public_npc_descriptor(npc), text)
+            or named_by_sight(npc, text)
+        )
+    )
+    return bool(name_match or role_match or descriptor_match)
+
+
+def _word_for_nobody_here(word, people):
+    """The model's word for a person, kept only when nobody among ``people`` answers to it (else None: today's path)."""
+    if not isinstance(word, str) or not word.strip():
+        return None
+    return None if any(_npc_answers_to(npc, _normalize_turkish_typos(word)) for npc in people) else word
+
+
 def resolve_npc_reference(
     player_input, force_dialogue=False, allow_active_fallback=True, *, named_word=None
 ):
@@ -6454,34 +6490,8 @@ def resolve_npc_reference(
         named_word = getattr(_session(), "_named_word", None)  # this turn's reading, whoever asks
     text = _normalize_turkish_typos(player_input)
     available = _conversation_npcs() if force_dialogue else active_npcs()
-    matches = []
-    for npc in available:
-        name_match = (
-            living_world.npc_name_known_to_player(npc)
-            and _entity_reference_in_text(npc.get("name", ""), text)
-        )
-        # The player reads the public role ("dükkâncı"), not the internal one
-        # ("shopkeeper"): both name the same NPC, only when the role is shown.
-        role_match = (
-            living_world.npc_role_known_to_player(npc)
-            and (
-                _entity_reference_in_text(npc.get("role", ""), text)
-                or _entity_reference_in_text(
-                    living_world.public_npc_role(npc) or "", text
-                )
-            )
-        )
-        # The label the player is shown ("Yakındaki kişi", "Bir köylü") is public
-        # by construction, so typing it back must address that person.
-        descriptor_match = (
-            not living_world.npc_name_known_to_player(npc)
-            and (
-                _entity_reference_in_text(living_world.public_npc_descriptor(npc), text)
-                or named_by_sight(npc, text)
-            )
-        )
-        if name_match or role_match or descriptor_match:
-            matches.append(npc)
+    named_word = _word_for_nobody_here(named_word, available)  # a word someone here answers to: today's path
+    matches = [npc for npc in available if _npc_answers_to(npc, text)]
     # Hidden canonical identity must never become target authority just because
     # the player guessed an internal name/role string. Generic pronouns may still
     # use the active conversation below. A person the player does know, or a
@@ -7896,12 +7906,14 @@ def _validated_scene_npc_id(raw_intent, player_input):
 
 
 def _named_word_of(raw_intent):
-    """The plain word the old reading gave for a person ("satıcı") when it validated none; None when it named no one."""
+    """The plain word the old reading gave for a person ("satıcı") when it validated none; None when it named no one
+    or named someone who is here."""
     target = raw_intent.get("target") if isinstance(raw_intent, dict) else None
     if not isinstance(target, dict) or target.get("type") != "npc" or _validated_local_person_proposal(raw_intent):
         return None
     reference = target.get("reference")
-    return reference.strip()[:80] or None if isinstance(reference, str) else None
+    word = reference.strip()[:80] or None if isinstance(reference, str) else None
+    return _word_for_nobody_here(word, _conversation_npcs())  # someone here answers to it: today's path
 
 
 def _validated_local_person_proposal(raw_intent):
@@ -8417,7 +8429,7 @@ def _thread_person(player_input, target_id):
     named = _explicit_addressee(player_input, people)
     if isinstance(named, dict):
         return named
-    word = getattr(_session(), "_named_word", None)
+    word = _word_for_nobody_here(getattr(_session(), "_named_word", None), people)
     if talk_mode.addressee(_session().world_state, people, named_word=word).status == "nobody_here":
         _nobody_here(word)
         return None
@@ -19098,6 +19110,9 @@ def _front_wield(route):
             session._turn_notes = []
         done = "eline alındı" if result.status == "drawn" else "zaten elinde"
         session._turn_notes.append((None, f"bu tur: {result.item['name']} {done}"))
+        return
+    if result is not None and result.status == "refused":  # in the bag, but the hand would not change: nothing did
+        refusals.note(session, "invalid_hands")
         return
     have = ", ".join(str(item.get("name")) for item in gear.weapons_in_bag(world)) or "yok"
     refusals.note(session, "nothing_to_draw", have=have)

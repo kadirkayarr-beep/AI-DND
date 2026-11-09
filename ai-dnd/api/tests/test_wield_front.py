@@ -9,6 +9,7 @@ import os
 from dataclasses import replace
 from unittest.mock import patch
 
+import equipment_economy
 import front_proposal
 import game
 import gear
@@ -142,6 +143,16 @@ class WieldFront(JourneyCase):
         self.assertEqual((self.world["inventory"], self.world.get("equipment")), before)
         self.assertIn((None, "olmadı: istediğin silah çantanda yok; hiçbir şey çekilmedi (çantadaki silahlar: yok)."),
                       self.notes())
+
+    async def test_a_dagger_the_hand_will_not_take_is_an_olmadi_note_not_a_turn_error(self):
+        self.world["inventory"].append("Hançer")                         # a dagger, and no longsword in the bag
+        equipment_economy.materialize(self.world)                         # given an item id, so the reading lists it
+        self.world["equipment"] = {"main_hand": "longsword", "off_hand": None}   # a new world's catalog hand
+        self.manager.save_campaign(self.campaign_id)
+        before = copy.deepcopy((self.bag(), self.world["equipment"]))
+        await self.say("hançerimi çekiyorum", front={"kind": "wield", "item_name": "Hançer"})
+        self.assertEqual((self.bag(), self.world["equipment"]), before)  # nothing moved
+        self.assertIn((None, "olmadı: Bunun için ellerin yetmiyor; önce bir elini boşalt."), self.notes())
 
     async def test_wield_draws_the_greatsword(self):
         await self.use_package_c()                                        # scenario 05 setup, no fight

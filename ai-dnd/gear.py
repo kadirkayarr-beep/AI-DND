@@ -17,7 +17,7 @@ from weapon_catalog import lookup
 
 @dataclass(frozen=True)
 class GearResult:
-    status: Literal["drawn", "already_held", "not_a_weapon", "not_in_bag"]
+    status: Literal["drawn", "already_held", "not_a_weapon", "not_in_bag", "refused"]
     item: dict | None
 
 
@@ -85,12 +85,19 @@ def draw(world, item_id) -> GearResult:
     candidate = copy.deepcopy(world)
     main = (candidate.get("equipment") or {}).get("main_hand")
     if main is not None:  # what was in hand goes back to the bag
-        equipment_rules.resolve_item_use(candidate, main, {"use": "unequip", "hand": "main_hand"})
+        delta = equipment_rules.resolve_item_use(candidate, main, {"use": "unequip", "hand": "main_hand"})
+        if delta["status"] != "applied":
+            return GearResult("refused", item)  # the owner will not free the hand: nothing changes
     delta = equipment_rules.resolve_item_use(candidate, item_id, {"use": "equip", "hand": "main_hand"})
     if delta["status"] != "applied":
-        raise ValueError(delta["reason"])  # a bag weapon the owner will not put in hand: no state gear can repair
-    world.clear()
-    world.update(candidate)
+        return GearResult("refused", item)  # a bag weapon the owner will not put in hand: nothing changes
+    # Only what changed is written back, so a caller holding a live record of the world (the turn resources in
+    # `world["combat"]`) keeps writing to the world itself.
+    for key in [key for key in world if key not in candidate]:
+        del world[key]
+    for key, value in candidate.items():
+        if key not in world or world[key] != value:
+            world[key] = value
     return GearResult("drawn", next(i for i in _bag(world) if i.get("item_id") == item_id))
 
 
@@ -128,4 +135,6 @@ def attack_weapon(world, requested_item_id=None, *, requested_name=None, melee=T
         equipment_economy.materialize(world)
         item = world["inventory"][index]
     result = draw(world, item["item_id"])
+    if result.status != "drawn":  # the owner would not change the hand: a punch, the hands as they were
+        return GearChoice("unarmed", None, None, None)
     return GearChoice("drawn", result.item, _data(result.item), None)

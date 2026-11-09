@@ -35,7 +35,18 @@
       "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
     },
     {
+      "say": "bir oda tutmak istiyorum, geceyi burada geçireyim",
+      "script": {"intent": {"intent": "talk", "action": "talk",
+                            "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": ""},
+                            "completion": "complete"},
+                 "speech": {"asks_for": "room"}},
+      "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false},
+      "known_broken": [4],
+      "broken_because": ["kart: beklenen {'max_total_cp': 50, 'counterparty_label': 'Marek'}, gözlenen yok"]
+    },
+    {
       "say": "bir oda tutmak istiyorum",
+      "independent": true,
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": ""},
                             "completion": "complete"},

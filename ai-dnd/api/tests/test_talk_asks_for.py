@@ -73,7 +73,7 @@ class TalkAsksFor(JourneyCase):
         """One `konus: barman` line; the person's answer carries `speech`; `front` switches the front reading on.
 
         `refused` is the one HTTP refusal code the turn must end with (nothing applied); otherwise no failure.
-        The classifier reads a talk to Marek, as scenario 08's step 2 scripts it. Once a campaign has had a front
+        The classifier reads a talk to Marek, as scenario 08's step 3 scripts it. Once a campaign has had a front
         reading, its later lines keep the reading on (with the scripted default reading), as real play does: the flag
         never turns off mid-game, and a turn without the flag would not start (`front_proposal.begin`) a fresh turn
         of Dilim 1's money fields."""
