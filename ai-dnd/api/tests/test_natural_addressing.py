@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import living_world
 from api.tests import test_campaign_api
+from api.tests.town_seed import fixed_town
 
 START = {"campaign_start": {
     "setting_id": "forgotten_realms",
@@ -21,6 +22,8 @@ START = {"campaign_start": {
     "region_id": "fr:region:the_north",
     "starting_location_id": "fr:city:neverwinter",
 }}
+# A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
+TOWN_SEED = 100
 WALL = ("birden fazla kişi", "Hangisini", "seçemedim", "Kiminle konuşmak")
 
 
@@ -74,7 +77,8 @@ class TownCase(unittest.IsolatedAsyncioTestCase):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
         self.client = TownClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
-        created = await self.http.post("/api/game/campaigns", json=START)
+        with fixed_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json=START)
         self.assertEqual(created.status_code, 200, created.text)
         self.session_id = created.json()["session_id"]
         self.world["campaign_time"]["elapsed_seconds"] = 4 * 3600  # 13:00, an ordinary afternoon
