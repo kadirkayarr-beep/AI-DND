@@ -78,7 +78,7 @@ class TwoHandedShieldAc(JourneyCase):
         session = await self.fighter_with_shield_and_greatsword()
         before = session.character["armor_class"]
         gear.draw(session.world_state, self.greatsword_id(session), character=session.character)
-        gear.draw(session.world_state, self.item_id(session, "Uzun Kılıç"), character=session.character)
+        gear.draw(session.world_state, self.item_id(session, "Hançer"), character=session.character)
         gear.draw(session.world_state, self.greatsword_id(session), character=session.character)
         self.assertEqual(session.character["armor_class"], before - self.shield_share(session.character))
 
@@ -96,15 +96,16 @@ class TwoHandedShieldAc(JourneyCase):
 
     async def test_a_refused_draw_changes_nothing(self):
         session = await self.fighter_with_shield_and_greatsword()
-        session.world_state["equipment"]["main_hand"] = "Hançer"         # a hand alias no owned item answers to
+        session.world_state["equipment"]["main_hand"] = "Uzun Kılıç"     # a hand alias no owned item answers to
         before = (copy.deepcopy(session.world_state), session.character["armor_class"])
         result = gear.draw(session.world_state, self.greatsword_id(session), character=session.character)
         self.assertEqual(result.status, "refused")
         self.assertEqual((session.world_state, session.character["armor_class"]), before)
 
     async def test_a_refused_item_equip_leaves_no_record_and_the_same_ac(self):
-        # The longsword is still in the main hand: the owner writes the shield record on its copy, then refuses.
+        # The dagger is still in the main hand: the owner writes the shield record on its copy, then refuses.
         session = await self.fighter_with_shield_and_greatsword()
+        self.assertEqual(gear.draw(session.world_state, self.item_id(session, "Hançer")).status, "drawn")
         before = (copy.deepcopy(session.world_state), copy.deepcopy(session.character))
         result = equipment_economy.execute(session, f"/item equip {self.greatsword_id(session)} main_hand")
         self.assertEqual((result["action_result"]["success"], result["action_result"]["reason"]),
@@ -125,8 +126,8 @@ class TwoHandedShieldAc(JourneyCase):
         # An attack with an empty hand draws the first bag weapon (action_economy -> gear.attack_weapon).
         session = await self.fighter_with_shield_and_greatsword()
         world = session.world_state
-        world["inventory"] = [item for item in world["inventory"] if item.get("name") != "Uzun Kılıç"]
-        world["equipment"]["main_hand"] = None
+        world["inventory"] = [item for item in world["inventory"] if item.get("name") != "Hançer"]
+        self.assertEqual(world["equipment"]["main_hand"], None)
         name, _, instance, _ = action_economy._gear_weapon(session)
         self.assertEqual((name, instance), ("Greatsword", self.greatsword_id(session)))
         self.assertEqual(session.character["armor_class"], before - share)

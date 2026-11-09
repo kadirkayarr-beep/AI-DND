@@ -64,7 +64,7 @@
     },
     "inventory": [
       "Zincir Zırh",
-      "Uzun Kılıç",
+      "Hançer",
       "Kalkan",
       "Greatsword",
       "Zindan Çantası"
@@ -88,7 +88,7 @@
           "kese": 1000,
           "envanter": {
             "Zincir Zırh": 1,
-            "Uzun Kılıç": 1,
+            "Hançer": 1,
             "Kalkan": 1,
             "Greatsword": 1,
             "Zindan Çantası": 1
@@ -99,7 +99,7 @@
     {
       "undo": true,
       "expect": {
-        "elinde": "Uzun Kılıç",
+        "elinde": null,
         "zirh": 19
       },
       "sifir_tolerans": [
@@ -107,7 +107,7 @@
           "kese": 1000,
           "envanter": {
             "Zincir Zırh": 1,
-            "Uzun Kılıç": 1,
+            "Hançer": 1,
             "Kalkan": 1,
             "Greatsword": 1,
             "Zindan Çantası": 1
@@ -118,7 +118,7 @@
     {
       "reload": true,
       "expect": {
-        "elinde": "Uzun Kılıç",
+        "elinde": null,
         "zirh": 19
       },
       "sifir_tolerans": [
@@ -126,7 +126,7 @@
           "kese": 1000,
           "envanter": {
             "Zincir Zırh": 1,
-            "Uzun Kılıç": 1,
+            "Hançer": 1,
             "Kalkan": 1,
             "Greatsword": 1,
             "Zindan Çantası": 1
@@ -151,7 +151,7 @@
           "kese": 1000,
           "envanter": {
             "Zincir Zırh": 1,
-            "Uzun Kılıç": 1,
+            "Hançer": 1,
             "Kalkan": 1,
             "Greatsword": 1,
             "Zindan Çantası": 1
@@ -170,7 +170,7 @@
           "kese": 1000,
           "envanter": {
             "Zincir Zırh": 1,
-            "Uzun Kılıç": 1,
+            "Hançer": 1,
             "Kalkan": 1,
             "Greatsword": 1,
             "Zindan Çantası": 1
