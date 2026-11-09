@@ -357,28 +357,49 @@ def killed(session, npc: dict[str, Any]) -> None:
     world.setdefault("flags", {})["fresh_killing"] = True
 
 
+def _open_air(world: dict[str, Any], place: Any) -> bool:
+    """A street, a side street or open ground: nobody runs to a door there."""
+    import local_places
+    record = (world.get("locations") or {}).get(place)
+    kind = record.get("place_kind") if isinstance(record, dict) else None
+    return (living_world.scene_kind(world, place) in ("city", "wilderness")
+            or bool(local_places.PLACE_KINDS.get(kind, {}).get("outdoors")))
+
+
 def answer_to_killing(session, result: Any) -> None:
-    """Those who saw it run or draw; the room does not go on pouring beer."""
+    """Those who saw it run, cry out or draw; the room does not go on pouring beer. A killing inside a fight waits
+    (the flag stays) and is answered the turn the fight ends."""
     world = session.world_state
     flags = world.setdefault("flags", {})
-    if not flags.pop("fresh_killing", None) or not isinstance(result, dict) or world.get("combat", {}).get("active"):
+    if not flags.get("fresh_killing") or world.get("combat", {}).get("active"):
         return
-    if session.character.get("current_hp", 0) <= 0:
+    flags.pop("fresh_killing")
+    if not isinstance(result, dict) or session.character.get("current_hp", 0) <= 0:
         return
     import game
+    import talk_mode
     present = session.active_npcs()
     armed = [npc for npc in present if game._ARMED_ROLE.search(fold(session, str(npc.get("role", ""))))]
-    way_out = _way_out(world, world.get("location"))
+    here = world.get("location")
+    unarmed = [npc for npc in present if npc not in armed]
+    way_out = _way_out(world, here) if unarmed else None  # the side street is written only for someone who runs
+    turn = int(flags.get("turn_index", 0) or 0)
     lines = []
     if armed:
         guard = armed[0]
         guard["hostile"] = True
         session.start_combat(guard)
         lines.append(f"{living_world.public_npc_name(guard)} silahını çekip üstüne yürüyor: “Dur orada, katil!”")
-    for npc in present:
-        if npc not in armed and way_out is not None:
-            npc["location"] = way_out
-            lines.append(f"{living_world.public_npc_name(npc)} bağırarak kapıya koşuyor.")
+    for npc in unarmed:
+        name = living_world.public_npc_name(npc)
+        if way_out is None:
+            npc["frightened_by_player"] = turn
+            lines.append(f"{name} geri çekilip bağırıyor; gözünü senden ayırmıyor.")
+            continue
+        npc["location"] = way_out
+        if flags.get("active_npc_id") == npc.get("id"):
+            talk_mode.close(world, "witness_fled")
+        lines.append(f"{name} bağırarak {'kalabalığın içine' if _open_air(world, here) else 'kapıya'} koşuyor.")
     if lines:
         result["narration"] = " ".join([str(result.get("narration") or ""), *lines]).strip()
 

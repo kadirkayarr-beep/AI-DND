@@ -12,7 +12,7 @@ from typing import Literal
 
 FIELDS = ("active_npc_id", "active_npc_until_turn", "last_npc_id")
 WINDOW_TURNS = 6
-REASONS = ("ended", "combat", "walking", "rest", "moved", "death", "repair", "target_gone", "addressed_absent")
+REASONS = ("ended", "combat", "walking", "rest", "moved", "death", "repair", "target_gone", "addressed_absent", "witness_fled")
 # Closing for these reasons also forgets the last person spoken to.
 _FORGETS_LAST = frozenset({"rest", "moved", "death", "addressed_absent"})
 

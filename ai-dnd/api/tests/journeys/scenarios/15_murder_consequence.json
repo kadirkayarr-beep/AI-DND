@@ -1,6 +1,6 @@
 {
   "id": "15_murder_consequence",
-  "title": "Cinayetin sonucu: Neverwinter sokağında, yolcu Orsik'in gözü önünde seyyar satıcı Ferumel öldürülür; tanık o an karşılık verir (bağırır, kaçar, muhafız çağırır; anlatıda adıyla). Bugün o turda hiçbir tepki yazılmıyor: tanık ancak bir çıkışa kaçabiliyor ve sokak sahnesinin çıkış verisi yok (9c ile aynı veri eksiği, 3c); hanın içinde aynı cinayette tanık 'bağırarak kapıya koşuyor'. Sonradan gelen karşılık bugün çalışır (korunur): ceset yerde yatar, 8 saat sonra kaldırılır, bir muhafız gelip sorguya çeker",
+  "title": "Cinayetin sonucu: Neverwinter sokağında, yolcu Orsik'in gözü önünde seyyar satıcı Ferumel öldürülür; tanık o turda adıyla karşılık verir (silahsız tanık kalabalığın içine koşar ve yan sokağa taşınır; muhafız silahını çeker). Sonradan gelen karşılık da çalışır: ceset yerde yatar, 8 saat sonra kaldırılır, bir muhafız gelip sorguya çeker",
   "source_items": [47],
   "setup": {
     "character": {
