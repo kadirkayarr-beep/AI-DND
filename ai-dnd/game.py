@@ -18331,6 +18331,9 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
     result["narration"] = f"{result.get('narration') or ''} {line}".strip()
     # Both parts are one turn: what each proved is handed on together, under that one turn's index.
     first, last = result.get("_engine_event_evidence"), said.get("_engine_event_evidence")
+    if last and not first and action_result.get("quest_outcomes"):
+        # a first part with no evidence of its own (a delivery) still proved its outcomes in the action result
+        first = {"quest_outcomes": copy.deepcopy(action_result["quest_outcomes"]), "procedural_entity_ids": []}
     if first and last:
         last["quest_outcomes"] = [*first["quest_outcomes"], *last["quest_outcomes"]]
         last["procedural_entity_ids"] = sorted({*first["procedural_entity_ids"], *last["procedural_entity_ids"]})

@@ -238,6 +238,35 @@ class QuestDelivery(JourneyCase):
         self.assertEqual(self.reloaded_observed(), self.observed())       # new SessionManager over the same store
         self.assertNotEqual(live_after, self.observed())
 
+    async def test_a_delivery_with_a_second_word_keeps_the_delivery_evidence(self):
+        # rc6 real chain: the reading splits "Tuna, iade takımını getirdim, buyur" into the hand-over and also_says
+        # "buyur"; the second part is its own talk call, and the turn's evidence must still carry the delivery
+        await self.accept(); await self.at_recipient()
+        import api.main as api_main
+        seen = []
+        real_stage = api_main._stage_engine_lore_state
+
+        def stage(state, evidence, action_result, before_world, after_world):
+            seen.append((copy.deepcopy(evidence), copy.deepcopy(action_result)))
+            return real_stage(state, evidence, action_result, before_world, after_world)
+
+        front = {"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "also_says": "buyur"}
+        with patch.object(api_main, "_stage_engine_lore_state", side_effect=stage):
+            response = await self.post_turn("Tuna, iade takımını getirdim, buyur", front=front)
+        self.assertEqual(response.status_code, 200, response.text)
+        [(evidence, action_result)] = seen
+        self.assertTrue(action_result.get("quest_outcomes"))
+        self.assertEqual(evidence["quest_outcomes"], action_result["quest_outcomes"])
+        self.assertEqual((self.purse(), self.bag(), self.open_quests()), (112, {}, []))
+        self.assertEqual((self.thread()["status"], self.thread()["paid_cp"], len(self.paid_rows())), ("done", 12, 1))
+        live = self.observed()
+        self.assertEqual(live["gunluk"]["sayac"], 0)
+        self.assertEqual(self.reloaded_observed(), live)                    # the saved record says the same
+        await self.undo()
+        self.assertEqual((self.purse(), self.bag(), self.open_quests()), (100, {"İade takımı": 1}, [self.quest_id]))
+        self.assertEqual((self.thread()["status"], len(self.paid_rows())), ("accepted", 0))
+        self.assertEqual(self.reloaded_observed(), self.observed())
+
     async def test_handing_it_to_the_wrong_person_pays_nothing(self):
         await self.accept()
         for person in ("potter", "stranger"):                             # the giver; a person with no part in the job
