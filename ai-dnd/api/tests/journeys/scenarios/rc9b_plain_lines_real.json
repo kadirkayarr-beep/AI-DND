@@ -1,0 +1,62 @@
+{
+  "id": "rc9b_plain_lines_real",
+  "title": "Gerçek zincir, sade günlük cümleler (43 ölçümü): 01'in kurulumu (handa barmen Marek, kese 100); 'bir bira alayım', 'etrafıma bakıyorum', 'biraz oturup dinleniyorum' gerçek zincirde; sessiz tur kalıplarının oranı ölçülür; kese yalnız 96 ya da 100 olur (sıfır tolerans)",
+  "source_items": [
+    43
+  ],
+  "setup": {
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "inventory": [],
+    "seed": 7,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "bir bira alayım",
+      "real_chain": true,
+      "sifir_tolerans": [
+        {
+          "kese": 96
+        },
+        {
+          "kese": 100
+        }
+      ]
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "real_chain": true,
+      "sifir_tolerans": [
+        {
+          "kese": 96
+        },
+        {
+          "kese": 100
+        }
+      ]
+    },
+    {
+      "say": "biraz oturup dinleniyorum",
+      "real_chain": true,
+      "sifir_tolerans": [
+        {
+          "kese": 96
+        },
+        {
+          "kese": 100
+        }
+      ]
+    }
+  ]
+}
