@@ -94,7 +94,8 @@ def listing(session) -> dict[str, Any]:
         **({"sheet": sheet} if sheet and early and not world_threads.wants_of(world) else {}),
         "people": [{"id": c["id"], "name": c["label"]} for c in people],
         "places": [*({"id": WAY_OUT, "name": way_out} for _ in (way_out,) if way_out),
-                   *({"id": c["id"], "name": c["label"]} for c in found if c["kind"] in _PLACE_KINDS)][:MAX_PLACES],
+                   *({"id": c["id"], "name": f"dışarı: {c['label']}" if c["kind"] == "outside" else c["label"]}
+                     for c in found if c["kind"] in _PLACE_KINDS)][:MAX_PLACES],
         "things": [{"id": c["id"], "name": c["label"]} for c in found if c["kind"] in _THING_KINDS][:MAX_THINGS],
         "offers": offers,
         "bag": _bag(world),
