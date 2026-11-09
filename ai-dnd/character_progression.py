@@ -221,14 +221,31 @@ def validate_armor_origin(player: dict[str, Any]) -> None:
         raise ValueError("Invalid armor origin.")
 
 
-def _armor_class_explained_by(character: dict[str, Any], origin: dict[str, Any]) -> bool:
+def _origin_total(character: dict[str, Any], armor: str | None, shield: bool) -> int | None:
+    """The one creation formula on this character's scores; None when they cannot be read."""
     import feat_rules
     scores = {ability: character.get(ability) for ability in feat_rules.ABILITIES}
     if any(type(score) is not int for score in scores.values()) or character.get("class") not in CLASS_DEFINITIONS:
-        return False
+        return None
     modifiers = {ability: (score - 10) // 2 for ability, score in scores.items()}
-    return armor_class_total(character["class"], modifiers, origin["armor"], origin["shield"],
-                             character.get("fighting_style")) == character.get("armor_class")
+    return armor_class_total(character["class"], modifiers, armor, shield, character.get("fighting_style"))
+
+
+def _armor_class_explained_by(character: dict[str, Any], origin: dict[str, Any]) -> bool:
+    """The stored total is the origin's; a creation shield put down by a two-handed weapon (Dilim 3, Task 16) leaves
+    the same origin's total without the shield."""
+    totals = {_origin_total(character, origin["armor"], origin["shield"]), _origin_total(character, origin["armor"], False)}
+    return None not in totals and character.get("armor_class") in totals
+
+
+def shield_share(character: dict[str, Any]) -> int:
+    """What the creation shield adds to the stored total: the formula with and without it. 0 without a creation
+    shield, untrained, or with unreadable scores."""
+    origin = character.get("armor_origin")
+    if type(origin) is not dict or origin.get("shield") is not True:
+        return 0
+    worn, down = _origin_total(character, origin["armor"], True), _origin_total(character, origin["armor"], False)
+    return 0 if worn is None or down is None else worn - down
 
 
 def _verified_armor_origin(character: dict[str, Any]) -> dict[str, Any] | None:

@@ -726,7 +726,7 @@ def attacks_per_action(session, actor):
 def _gear_weapon(session):
     """An empty hand: gear draws the first bag weapon (the line says which), or it is a punch."""
     import gear
-    pick = gear.attack_weapon(session.world_state)
+    pick = gear.attack_weapon(session.world_state, character=session.character)
     if pick.item is None:
         return "unarmed", None, None, None
     line = f"Çantandan çektiğin {gear.label(pick.data)} ile vuruyorsun." if pick.kind == "drawn" else None

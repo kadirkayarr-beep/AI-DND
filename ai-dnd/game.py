@@ -19146,7 +19146,7 @@ def _front_wield(route):
     session = _session()
     session.require_player_can_act()
     world = session.world_state
-    result = gear.draw(world, route["item"]) if route.get("item") else None
+    result = gear.draw(world, route["item"], character=session.character) if route.get("item") else None
     if result is not None and result.status in {"drawn", "already_held"}:
         if getattr(session, "_turn_notes", None) is None:
             session._turn_notes = []

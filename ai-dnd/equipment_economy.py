@@ -482,6 +482,18 @@ def is_armor_or_shield(item):
                 or any(word in name for word in ("armor", "zırh", "zirh", "shield", "kalkan")))
 
 
+def _shield_in_hand(world, hands):
+    """The player's shield still in use: the off-hand one, else the bag's (a creation shield has no hand entry).
+    None once it was put down (`shield_down`) or when the bag holds none."""
+    from api.dnd_2024_rules import SHIELD_ITEM_TOKENS
+    if "shield_down" in world:
+        return None
+    bag = [item for item in world.get("inventory", []) if isinstance(item, dict)
+           and any(token in label(item).casefold() for token in SHIELD_ITEM_TOKENS)]
+    held = [item for item in bag if item["item_id"] == hands.get("off_hand")]
+    return (held or bag or [None])[0]
+
+
 def clear_equipment(world, actor, item):
     if actor == "ground":
         return
@@ -784,6 +796,11 @@ def _apply(world, operation, args):
         hands = world.setdefault("equipment", {"main_hand": None, "off_hand": None})
         canonical_hands(world, "player", world)
         if two_handed:
+            # The shield goes away with the off hand; it stays in the bag. Its Armor Class share is settled against
+            # the character by `gear.settle_shield` (Dilim 3, Task 16).
+            shield = _shield_in_hand(world, hands)
+            if shield is not None:
+                world["shield_down"] = {"item_id": shield["item_id"], "ac_bonus": None}
             hands["off_hand"] = None  # a two-handed weapon is held in both hands (Dilim 2, Task 14)
         if hands[hand] is not None or item["item_id"] in hands.values():
             fail("hand_occupied")
@@ -938,6 +955,8 @@ def execute(session, text, *, advance_turn=True):
         original = dict(world)  # the untouched saved values: _apply only ever wrote to the candidate copy
         world.clear()
         world.update(candidate)
+        import gear
+        gear.settle_shield(world, session.character)  # a two-handed weapon taken in hand put the shield down
         if card_request is not None:
             # The valued or held item stays put: the card is prepared on the live world, and only a prepared card
             # counts as this turn. A refusal or a question leaves the turn where it was.

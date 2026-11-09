@@ -10,6 +10,7 @@ import copy
 from dataclasses import dataclass
 from typing import Literal
 
+import character_progression
 import equipment_economy
 import equipment_rules
 from weapon_catalog import lookup
@@ -72,8 +73,21 @@ def weapons_in_bag(world) -> list[dict]:
     return [item for item in _bag(world) if _data(item) and item not in in_hand]
 
 
-def draw(world, item_id) -> GearResult:
-    """Take a bag weapon into the main hand through `equipment_rules` (a two-handed one frees the off hand)."""
+def settle_shield(world, character) -> int:
+    """A shield put down by a two-handed weapon (`world["shield_down"]`, written by `equipment_economy`) takes its
+    Armor Class share off the character once; the share is recorded and returned. Anything else returns 0."""
+    down = world.get("shield_down")
+    if not isinstance(down, dict) or down.get("ac_bonus") is not None:
+        return 0
+    share = character_progression.shield_share(character)
+    character["armor_class"] -= share
+    down["ac_bonus"] = share
+    return share
+
+
+def draw(world, item_id, *, character=None) -> GearResult:
+    """Take a bag weapon into the main hand through `equipment_rules` (a two-handed one frees the off hand and puts
+    the shield down: with `character` given, its Armor Class falls by the shield's share)."""
     item = next((item for item in _bag(world) if item_id is not None and item.get("item_id") == item_id), None)
     if item is None:
         return GearResult("not_in_bag", None)
@@ -98,6 +112,8 @@ def draw(world, item_id) -> GearResult:
     for key, value in candidate.items():
         if key not in world or world[key] != value:
             world[key] = value
+    if character is not None:
+        settle_shield(world, character)
     return GearResult("drawn", next(i for i in _bag(world) if i.get("item_id") == item_id))
 
 
@@ -114,7 +130,7 @@ def not_owned(world, requested_item_id=None, *, requested_name=None) -> str | No
     return label(wanted)
 
 
-def attack_weapon(world, requested_item_id=None, *, requested_name=None, melee=True) -> GearChoice:
+def attack_weapon(world, requested_item_id=None, *, requested_name=None, melee=True, character=None) -> GearChoice:
     """The asked-for weapon (drawn if needed), else the one in hand, else the first bag weapon drawn, else a punch."""
     missing = not_owned(world, requested_item_id, requested_name=requested_name)
     if missing is not None:
@@ -134,7 +150,7 @@ def attack_weapon(world, requested_item_id=None, *, requested_name=None, melee=T
         index = next(i for i, entry in enumerate(world["inventory"]) if entry == item["name"])
         equipment_economy.materialize(world)
         item = world["inventory"][index]
-    result = draw(world, item["item_id"])
+    result = draw(world, item["item_id"], character=character)
     if result.status != "drawn":  # the owner would not change the hand: a punch, the hands as they were
         return GearChoice("unarmed", None, None, None)
     return GearChoice("drawn", result.item, _data(result.item), None)
