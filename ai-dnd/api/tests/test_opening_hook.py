@@ -125,11 +125,11 @@ class TheOpening(unittest.TestCase):
         self.assertFalse([key for key in ids if "thread_" in key])  # nothing of a thread reaches the client
         self.assertEqual(ids, [trail["id"] for trail in quest_log.trails(world)])  # the same on every read
 
-    def test_the_place_heard_at_the_opening_is_the_one_there_points_at(self):
+    def test_the_opening_binds_no_place_the_player_never_raised(self):
+        # Fix round 5: binding it took a bare "gidiyorum" and a later "oraya" from places the player found themselves.
         world = self.new_campaign(seed=1)
-        heard = world_threads.by_id(world, self.trail_record_id(world, quest_log.trails(world)[0]))
-        self.assertEqual(grounded_action.last_target_id(world), heard["place_id"])
-        self.assertEqual(npc_statements.last_said_place(world)["location_id"], heard["place_id"])
+        self.assertIsNone(grounded_action.last_target_id(world))
+        self.assertIsNone(npc_statements.last_said_place(world))
 
     def at_turn_eight(self, seed=1):
         world = self.new_campaign(seed=seed)
@@ -232,11 +232,11 @@ class TheFirstTurns(JourneyCase):
         for _ in range(3):
             self.assertNotIn(NUDGE, (await self.say(LOOK))["narration"])
 
-    async def test_going_there_on_the_first_turn_reaches_the_place_just_heard_of(self):
+    async def test_a_bare_walk_on_the_first_turn_stays_where_the_opening_left_the_player(self):
         await self.new_http_campaign(seed=1)
-        heard = next(t for t in world_threads.view(self.world())["threads"] if t["status"] == "heard")
-        await self.say("oraya gidiyorum")
-        self.assertEqual(self.world()["location"], heard["place_id"])
+        here = self.world()["location"]
+        await self.say("Ben gidiyorum.")
+        self.assertEqual(self.world()["location"], here)
 
     async def test_a_busy_player_gets_no_nudge(self):
         await self.new_http_campaign(seed=1)

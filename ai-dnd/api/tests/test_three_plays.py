@@ -564,8 +564,12 @@ class GoingPlacesTests(ThreePlaysTests):
     async def city(self, character=FIGHTER):
         await self.begin(character)
         self.settlement = self.world["location"]
-        self.estate = local_places.create_local_place(self.world, self.settlement, "estate", name="Hadrik Konağı")
-        self.harbor = local_places.create_local_place(self.world, self.settlement, "harbor", name="Aelar İskelesi")
+        # A new campaign's town may already hold its own mansion or harbour from its work (Task 18): "konağa" then
+        # means that one, so the test uses it instead of building a second of the same kind.
+        self.estate = (local_places.find_local_place(self.world, self.settlement, "estate")
+                       or local_places.create_local_place(self.world, self.settlement, "estate", name="Hadrik Konağı"))
+        self.harbor = (local_places.find_local_place(self.world, self.settlement, "harbor")
+                       or local_places.create_local_place(self.world, self.settlement, "harbor", name="Aelar İskelesi"))
 
     async def test_a_place_named_in_the_past_is_not_the_destination(self):
         line = ("kâhyanın yanına gidip selam veriyorum. ben carius, eski askerim. "
