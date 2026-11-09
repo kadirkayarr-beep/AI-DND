@@ -12,9 +12,12 @@ import unittest
 
 import ambient_actions
 import api.session_manager as session_manager
+import grounded_action
+import npc_statements
 import quest_log
 import town_knowledge
 import world_happenings
+import world_reactions
 import world_threads
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
@@ -58,13 +61,15 @@ class TheOpening(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.manager = SessionManager(campaign_store=CampaignStore(Path(self.directory.name) / "c.sqlite3",
-                                                                   bound_principal=TEST_PLAYER))
+        self.stores = 0
 
     def new_session(self, seed, character=None):
+        self.stores += 1  # a seed is the campaign's id: each campaign gets its own store
+        manager = SessionManager(campaign_store=CampaignStore(Path(self.directory.name) / f"c{self.stores}.sqlite3",
+                                                              bound_principal=TEST_PLAYER))
         with seeded_ids(seed):
-            return self.manager.create_campaign(character=character, campaign_start=START,
-                                                death_mode="NORMAL")[2].game_session
+            return manager.create_campaign(character=character, campaign_start=START,
+                                           death_mode="NORMAL")[2].game_session
 
     def new_campaign(self, seed):
         return self.new_session(seed).world_state
@@ -106,6 +111,62 @@ class TheOpening(unittest.TestCase):
         world_happenings.write(state, source, "delivered", heard["opened_at"], "Teslim edildi; duyanlar var.",
                                known=True, next_thread_id=heard["thread_id"])
         self.assertEqual([t["source"] for t in quest_log.trails(world)], ["teslim"])
+
+    def test_two_heard_jobs_at_one_place_are_two_trails_with_their_own_ids(self):
+        world = self.new_campaign(seed=11)  # this town has two jobs at the opening thread's place
+        [first] = quest_log.trails(world)
+        heard = world_threads.by_id(world, self.trail_record_id(world, first))
+        second = world_threads.street_talk(world, world["location"])
+        self.assertEqual(second["place_id"], heard["place_id"])
+        world_threads.mark_heard(second, 8)
+        ids = [trail["id"] for trail in quest_log.trails(world)]
+        self.assertEqual(len(ids), 2)
+        self.assertEqual(len(set(ids)), 2)
+        self.assertFalse([key for key in ids if "thread_" in key])  # nothing of a thread reaches the client
+        self.assertEqual(ids, [trail["id"] for trail in quest_log.trails(world)])  # the same on every read
+
+    def test_the_place_heard_at_the_opening_is_the_one_there_points_at(self):
+        world = self.new_campaign(seed=1)
+        heard = world_threads.by_id(world, self.trail_record_id(world, quest_log.trails(world)[0]))
+        self.assertEqual(grounded_action.last_target_id(world), heard["place_id"])
+        self.assertEqual(npc_statements.last_said_place(world)["location_id"], heard["place_id"])
+
+    def at_turn_eight(self, seed=1):
+        world = self.new_campaign(seed=seed)
+        world["flags"]["turn_index"] = 8
+        return world
+
+    def test_an_idle_player_at_turn_eight_hears_one_more_and_it_is_pointed_at(self):
+        world = self.at_turn_eight()
+        [line] = world_reactions._opening_nudge(world, may_speak=True)
+        self.assertIn(NUDGE, line)
+        self.assertTrue(world["flags"]["opening_nudge"]["done"])
+        second = next(t for t in world_threads.view(world)["threads"] if t.get("heard_turn") == 8)
+        self.assertEqual(grounded_action.last_target_id(world), second["place_id"])
+        self.assertEqual(npc_statements.last_said_place(world)["location_id"], second["place_id"])
+
+    def test_a_player_busy_in_any_way_hears_nothing_more(self):
+        def moved(world):
+            world["location"] = next(t["place_id"] for t in world_threads.view(world)["threads"])
+
+        def offered(world):
+            world_threads.view(world)["threads"][0]["status"] = "offered"
+
+        def accepted(world):
+            world_threads.view(world)["threads"][0]["status"] = "accepted"
+
+        def talked(world):
+            world["flags"]["last_npc_id"] = "npc_001"
+
+        def fought(world):
+            world["combat"] = {"active": True}
+
+        for busy in (moved, offered, accepted, talked, fought):
+            with self.subTest(busy.__name__):
+                world = self.at_turn_eight()
+                busy(world)
+                self.assertEqual(world_reactions._opening_nudge(world, may_speak=True), [])
+                self.assertTrue(world["flags"]["opening_nudge"]["done"])
 
     def test_a_job_read_off_a_door_is_a_trail_of_its_own(self):
         # Journey 29's seed-dependent third trail: walking up to a place reads the paper of another job there.
@@ -170,6 +231,12 @@ class TheFirstTurns(JourneyCase):
         self.assertEqual(len(heard), 2)
         for _ in range(3):
             self.assertNotIn(NUDGE, (await self.say(LOOK))["narration"])
+
+    async def test_going_there_on_the_first_turn_reaches_the_place_just_heard_of(self):
+        await self.new_http_campaign(seed=1)
+        heard = next(t for t in world_threads.view(self.world())["threads"] if t["status"] == "heard")
+        await self.say("oraya gidiyorum")
+        self.assertEqual(self.world()["location"], heard["place_id"])
 
     async def test_a_busy_player_gets_no_nudge(self):
         await self.new_http_campaign(seed=1)

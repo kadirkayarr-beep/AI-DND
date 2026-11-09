@@ -245,10 +245,11 @@ class ThroughTheRealTurn(unittest.IsolatedAsyncioTestCase):
     def prompt_text(self):
         return json.dumps(self.client.message_batches[-1], ensure_ascii=False, default=str)
 
-    async def test_the_opening_seeds_the_town_and_the_model_gets_what_this_person_knows(self):
+    async def test_the_first_speech_seeds_the_town_and_the_model_gets_what_this_person_knows(self):
         await self.start()
         world = self.session.world_state
         self.assertIn(world_threads.KEY, world)  # a new campaign's opening already hears of its work (Task 18)
+        world.pop(world_threads.KEY)  # a world without threads (an old save) gains them on its first talk
         await self.say("Burada nerede iş bulabilirim?", "Bir bakayım.")
         self.assertIn(world_threads.KEY, world)
         self.assertIn("Kentte", self.prompt_text())

@@ -722,8 +722,9 @@ def _opening_nudge(world: dict[str, Any], *, may_speak: bool) -> list[str]:
     talk = world_threads.street_talk(world, settlement_id) if settlement_id else None
     place = (world.get("locations") or {}).get(talk["place_id"]) if talk else None
     if isinstance(place, dict):
-        world_threads.mark_heard(talk, _turn(world))
-        world_threads.note_heard_names(world, talk["public_line"])
+        import grounded_action
+        town_knowledge.hear_of(world, talk)  # heard, its names given, and the place bound as just said ("oraya")
+        grounded_action.note_last(world, talk["place_id"])
         return [f"Yanından geçen iki kişinin konuşmasından bir söz yakalıyorsun: {talk['public_line']}"]
     hint = town_knowledge.board_hint(world)
     return [hint] if hint else []

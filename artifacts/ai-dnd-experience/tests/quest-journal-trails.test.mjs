@@ -32,6 +32,13 @@ test('the journal shows trails with where, source and followed', () => {
   assert.equal((html.match(/izlendi/g) || []).length, 1);          // only the followed trail is marked
   assert.doesNotMatch(html, /Henüz bir iz yok\./);
 });
+test('a job heard of in the street shows as heard by ear, not the raw source word', () => {
+  const html = render(React.createElement(ui.QuestJournalSection, { ...base, questLog: log([
+    { id: 'duyulan:a1b2c3d4e5f6', what: 'İskelede yardımcı aranıyor', where: 'Revomar İskelesi', who: null,
+      source: 'duyulan', followed: false }]) }));
+  assert.match(html, /kulaktan/);
+  assert.doesNotMatch(html, /· duyulan</);
+});
 test('no trails shows the empty state under the heading', () => {
   const html = render(React.createElement(ui.QuestJournalSection, { ...base, questLog: log([]) }));
   assert.match(html, /İzler/);

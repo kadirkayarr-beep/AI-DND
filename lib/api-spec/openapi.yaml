@@ -4265,6 +4265,7 @@ components:
           - teslim
           - mektup
           - haber
+          - duyulan
         followed:
           type: boolean
       required:

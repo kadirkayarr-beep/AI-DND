@@ -7,6 +7,7 @@ names only. Nothing here writes."""
 from __future__ import annotations
 
 import copy
+import hashlib
 from typing import Any, NamedTuple
 
 import living_world
@@ -173,6 +174,12 @@ def _trail(world: dict[str, Any], *, key: str, at: int, what: Any, record: dict[
             "_at": at, "_from_thread_id": from_id, "_to_thread_id": record["thread_id"]}
 
 
+def _opaque(world: dict[str, Any], record_id: str) -> str:
+    """A trail id that is stable and one per record, but names nothing of the record to the client."""
+    seed = living_world._campaign_seed(world)
+    return hashlib.sha256(f"{seed}\x00{record_id}".encode("utf-8")).hexdigest()[:12]
+
+
 def _players_job(thread: Any) -> bool:
     return isinstance(thread, dict) and thread.get("offered_at") is not None
 
@@ -186,20 +193,21 @@ def _trail_rows(world: dict[str, Any]) -> list[dict[str, Any]]:
     for row in state.get(world_happenings.KEY) or []:  # (1) a known happening that opened a job still open
         target = _live(world, row["next_thread_id"]) if row["known_to_player"] else None
         if target is not None:
-            found.append(_trail(world, key=f"{row['kind']}:{row['thread_id']}:{row['at']}", at=row["at"],
+            key = f"{row['kind']}:{_opaque(world, str(row['thread_id']) + ':' + str(row['at']))}"
+            found.append(_trail(world, key=key, at=row["at"],
                                 what=row["line"], record=target, source="teslim" if row["kind"] == "delivered" else "haber",
                                 from_id=row["thread_id"]))
     for letter in (*state["threads"], *state["history"]):  # (2) a letter read: the trouble at its far end
         trouble = world_happenings._trouble_at_end_of(world, letter) if letter.get("letter_line") else None
         if trouble is not None:
-            found.append(_trail(world, key=f"letter:{letter['thread_id']}", at=trouble["opened_at"],
+            found.append(_trail(world, key=f"letter:{_opaque(world, letter['thread_id'])}", at=trouble["opened_at"],
                                 what=trouble["public_line"], record=trouble, source="mektup",
                                 from_id=letter["thread_id"]))
     for link in world_happenings.links(state):  # (3) word sent about the player's own job, that the player knows of
         about = world_threads.by_id(world, link.get("about_thread_id"))
         caller = _npc(world, link.get("caller_id"))
         if _players_job(about) and (caller is not None or link.get("tone") == "warned"):
-            found.append(_trail(world, key=f"link:{link['thread_id']}", at=link["opened_at"],
+            found.append(_trail(world, key=f"link:{_opaque(world, link['thread_id'])}", at=link["opened_at"],
                                 what=(caller or {}).get("message") or world_happenings._link_matter(world, link),
                                 record=link, source="haber", from_id=about["thread_id"]))
     found = [trail for trail in found if trail is not None]
@@ -207,7 +215,7 @@ def _trail_rows(world: dict[str, Any]) -> list[dict[str, Any]]:
     for thread in state["threads"]:  # (4) work the player heard of that is still going begging; it falls once taken
         if (thread.get("status") == "heard" and type(thread.get("heard_turn")) is int
                 and thread["thread_id"] not in pointed):  # a record another trail already points at is not twice
-            found.append(_trail(world, key=f"duyulan:{thread.get('place_id')}:{thread.get('opened_at')}",
+            found.append(_trail(world, key=f"duyulan:{_opaque(world, thread['thread_id'])}",
                                 at=thread.get("opened_at") or 0, what=thread.get("public_line"), record=thread,
                                 source="duyulan", from_id=None))
     found = [trail for trail in found if trail is not None]

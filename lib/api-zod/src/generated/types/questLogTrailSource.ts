@@ -13,4 +13,5 @@ export const QuestLogTrailSource = {
   teslim: 'teslim',
   mektup: 'mektup',
   haber: 'haber',
+  duyulan: 'duyulan',
 } as const;

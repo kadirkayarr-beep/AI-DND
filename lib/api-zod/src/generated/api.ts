@@ -1623,7 +1623,7 @@ export const CreateGameSessionResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -2710,7 +2710,7 @@ export const GetGameSessionStateResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -3814,7 +3814,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -4925,7 +4925,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -6299,7 +6299,7 @@ export const PlayGameTurnResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -8078,7 +8078,7 @@ export const GetGameActionStatusResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -9782,7 +9782,7 @@ export const AbandonGameActionResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -11335,7 +11335,7 @@ export const UndoGameTurnResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -12455,7 +12455,7 @@ export const AcceptGameQuestResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -13597,7 +13597,7 @@ export const CancelGameQuestResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -14730,7 +14730,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -15860,7 +15860,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -17003,7 +17003,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -18137,7 +18137,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -21463,7 +21463,7 @@ export const CreateCampaignResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -22874,7 +22874,7 @@ export const GetCampaignResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -24262,7 +24262,7 @@ export const ResumeCampaignResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -26746,7 +26746,7 @@ export const CreateLegacySessionResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -27834,7 +27834,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -29203,7 +29203,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -30753,7 +30753,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -33618,7 +33618,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -35031,7 +35031,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({
@@ -36420,7 +36420,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "what": zod.string(),
   "where": zod.string(),
   "who": zod.union([zod.string(),zod.null()]),
-  "source": zod.enum(['teslim', 'mektup', 'haber']),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
   "followed": zod.boolean()
 }).describe('A trail the engine really opened, pointing at a live record.')),
   "rumors": zod.array(zod.object({

@@ -5,6 +5,7 @@ const TRAIL_SOURCE_LABELS: Record<string, string> = {
   teslim: 'teslimden',
   mektup: 'mektuptan',
   haber: 'haberden',
+  duyulan: 'kulaktan',
 };
 
 const QUEST_STATUS_LABELS: Record<string, string> = {

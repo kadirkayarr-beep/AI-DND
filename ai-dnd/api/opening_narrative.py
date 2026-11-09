@@ -123,8 +123,10 @@ def opening_hook(world: dict[str, Any], settlement_id: str) -> list[str]:
     place = (world.get("locations") or {}).get(talk["place_id"]) if talk else None
     if not isinstance(place, dict):
         return []  # nothing going on: nothing is made up
-    world_threads.mark_heard(talk, 0)
-    world_threads.note_heard_names(world, talk["public_line"])
+    import grounded_action
+    import town_knowledge
+    town_knowledge.hear_of(world, talk)  # heard, its names given, and the place bound as just said ("oraya")
+    grounded_action.note_last(world, talk["place_id"])
     return [f"Kalabalıktan bir söz kulağına çalınıyor: {talk['public_line']}"]
 
 
