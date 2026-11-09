@@ -245,6 +245,28 @@ class FrontLines(FrontScene):
         self.assertEqual(self.world["last_long_rest_completed_at"], rested_at)
         self.assertEqual(self.session.character["current_hp"], hurt)
 
+    async def test_a_rest_said_no_to_read_as_a_wait_is_only_the_wait(self):
+        await self.rest_scene()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        hurt = self.session.character["current_hp"]
+        self.client.front = {"kind": "wait"}
+        out = await self.line("dinlenmek istemiyorum, iki saat bekliyorum")
+        self.assertEqual(self.routes()[-1]["route"], "front:wait")
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 7200, out["narration"])
+        self.assertIsNone((self.session.character.get("hit_dice") or {}).get("window_second"), out["narration"])
+        self.assertNotIn("last_long_rest_completed_at", self.world)
+        self.assertEqual(self.session.character["current_hp"], hurt)
+
+    async def test_a_rest_with_no_length_read_as_a_wait_asks_for_an_hour_and_passes_nothing(self):
+        await self.rest_scene()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        self.client.front = {"kind": "wait"}
+        out = await self.line("biraz dinleniyorum")
+        self.assertEqual(self.routes()[-1]["route"], "front:wait")
+        self.assertIn("Kısa dinlenme için en az bir saat gerekir.", out["narration"])
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock)
+        self.assertIsNone((self.session.character.get("hit_dice") or {}).get("window_second"), out["narration"])
+
     async def test_hanging_about_with_no_length_is_a_while(self):
         await self.begin()
         clock = self.world["campaign_time"]["elapsed_seconds"]

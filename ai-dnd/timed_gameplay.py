@@ -801,6 +801,7 @@ def input_route_markers(world, normalized):
     return movement, wait, task, passive_observation
 
 
+_SAID_NO = re.compile(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir)\b")
 _UNNAMED_WAIT = 600  # "bekliyorum" with no length: a short while, not a form to fill in
 
 
@@ -858,6 +859,8 @@ def pass_time(session, text):
 
 def _rest_if_said(session, normalized, duration):
     """The rest a waiting line names (sleep of 8 hours or more, or 'dinlen'), or None: one branch for every wait owner."""
+    if _SAID_NO.search(normalized):
+        return None  # "dinlenmek istemiyorum, iki saat bekliyorum": the wait is all that happens
     if ("uyu" in normalized or _SLEEPING.search(normalized)) and duration >= 8 * 3600:
         return _take_rest(session, "long_rest", duration)
     if "dinlen" in normalized:
@@ -899,7 +902,7 @@ def resolve_input(session, text):
             return decision
     if "kararim:" in normalized:
         normalized = normalized.split("kararim:", 1)[1]
-    if re.search(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir)\b", normalized):
+    if _SAID_NO.search(normalized):
         return None
     journey = world.get("journey")
     movement, wait, task, passive_observation = input_route_markers(world, normalized)
