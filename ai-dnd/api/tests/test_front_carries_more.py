@@ -13,6 +13,7 @@ import fallen
 import front_proposal
 import grounded_action
 from api.tests.test_front_proposal import FrontClient, FrontTable
+from api.tests.town_seed import fixed_town
 
 
 class ReadsBeforeThePlanner(FrontTable):
@@ -262,8 +263,9 @@ class SomeoneLiesOutCold(FrontTable):
         self.assertNotIn("sesini duyacak durumda", reply["narration"])
 
     async def test_a_walk_runs(self):
-        await self.lay_out()
-        place = self.a_place()
+        with fixed_town(self, 2711):
+            await self.lay_out()
+        place = self.the_inn()
         self.client.front = {"kind": "go_to", "place_id": place}
         name = self.world["locations"][place]["name"]
         reply = await self.line("su tarafa dogru yuruyorum, buradan cikalim")

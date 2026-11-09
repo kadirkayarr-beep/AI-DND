@@ -10,6 +10,7 @@ import town_knowledge
 import world_threads
 from api.tests import test_town_knowledge as cases
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.town_seed import fixed_town
 
 
 class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
@@ -23,10 +24,13 @@ class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
         return copy.deepcopy((world.get("currency"), world.get("inventory"),
                               world.get("flags", {}).get("economic_ledger")))
 
-    async def armorer(self, seed="lead-probe-274"):
-        await self.start()
+    async def armorer(self, seed="lead-probe-220"):
+        with fixed_town(self, 2718):  # towns 2718 and 2719 have the armorer, under probe seeds 220 and 302
+            await self.start()
         world = self.session.world_state
         world["scene_state"]["campaign_seed"] = seed
+        # The opening already made the town's threads (Task 18); the probe seed makes them again, as before.
+        world.pop(world_threads.KEY, None)
         world_threads.ensure(world)
         target = next(t for t in world[world_threads.KEY]["threads"]
                       if "Zırhçısı açık işlik gösterimine" in t["public_line"])
@@ -40,7 +44,7 @@ class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
         return world, target, expected
 
     async def test_a_live_armorer_workshop_lead_survives_the_empty_speech_reply(self):
-        for seed in ("lead-probe-274", "lead-probe-302"):
+        for seed in ("lead-probe-220", "lead-probe-302"):
             with self.subTest(seed=seed):
                 world, target, expected = await self.armorer(seed)
                 before = self.finances(world)

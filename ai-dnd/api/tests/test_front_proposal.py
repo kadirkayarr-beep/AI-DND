@@ -21,6 +21,7 @@ import world_threads
 from api import local_play
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests import test_thread_gate as gate_tests
+from api.tests.town_seed import fixed_town
 
 
 class FrontClient(speech.ScriptedNpcSpeechClient):
@@ -79,6 +80,14 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
     def a_place(self):
         return next(key for key, value in self.world["locations"].items()
                     if isinstance(value, dict) and value.get("parent_location_id") == self.world["location"])
+
+    def the_inn(self):
+        """The town's inn by its live id: the opening now makes other places first (Task 18), so the first one made
+        is no longer the inn these lines name."""
+        import living_world
+        return next(key for key, value in self.world["locations"].items()
+                    if isinstance(value, dict) and value.get("parent_location_id") == self.world["location"]
+                    and living_world.scene_kind(self.world, key) == "tavern")
 
     async def test_a_person_the_model_picked_from_the_list_answers(self):
         await self.begin()
@@ -161,10 +170,11 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.routes()[-1]["route"], "fallback:invalid")
 
     async def test_a_line_that_says_no_to_the_walk_does_not_walk(self):
-        await self.begin()
+        with fixed_town(self, 2701):
+            await self.begin()
         here = self.world["location"]
         near_before = self.world.get("grounded_action")
-        self.client.front = {"kind": "go_to", "place_id": self.a_place()}
+        self.client.front = {"kind": "go_to", "place_id": self.the_inn()}
         await self.line("hana gitmiyorum")
         self.assertEqual(self.world["location"], here)
         self.assertEqual(self.world.get("grounded_action"), near_before)
