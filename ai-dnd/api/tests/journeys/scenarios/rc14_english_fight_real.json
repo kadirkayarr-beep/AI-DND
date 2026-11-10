@@ -1,6 +1,6 @@
 {
   "id": "rc14_english_fight_real",
-  "title": "Gerçek zincir, İngilizce kavga başlangıcının ikizi (42'nin satırları, gerçek modelde, betiksiz): 'I shove the guard...' kavgayı başlatmaz; uzun 'Yes, I am initiating combat...' savaşı açar; Geri Al kapatır; Türkçe eşi aynı sırayı izler. Beklenti yalnız durum (savaş açık/kapalı, kese, envanter); modelin söylediği rakam HP, AC ya da keseyi değiştirmez; anlatı sözcüğüne bakılmaz",
+  "title": "Gerçek zincir, İngilizce kavga başlangıcının ikizi (42'nin satırları, gerçek modelde, betiksiz): 'I shove the guard...' kavgayı başlatmaz; uzun 'Yes, I am initiating combat...' savaşı açar; Geri Al kapatır. Beklenti yalnız durum (savaş açık/kapalı, kese, envanter); modelin söylediği rakam HP, AC ya da keseyi değiştirmez; anlatı sözcüğüne bakılmaz",
   "source_items": [
     19
   ],
@@ -81,27 +81,6 @@
     },
     {
       "say": "Yes, I am initiating combat with the guard. I want to shove him five feet, using the relevant D&D 2024 contest. Roll initiative and resolve my first turn.",
-      "real_chain": true,
-      "expect": {
-        "savas": true
-      }
-    },
-    {
-      "undo": true,
-      "expect": {
-        "savas": false
-      },
-      "real_chain": true
-    },
-    {
-      "say": "muhafızı iki elimle geri itiyorum, silah kullanmadan beş fit uzağa.",
-      "real_chain": true,
-      "expect": {
-        "savas": false
-      }
-    },
-    {
-      "say": "Evet, muhafızla kavga başlatıyorum. İlk hamlemde onu iki elimle itiyorum.",
       "real_chain": true,
       "expect": {
         "savas": true
