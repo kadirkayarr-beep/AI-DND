@@ -415,6 +415,31 @@ class TheRealRun(Offline):
         self.assertEqual(made[0], made[1])
         self.assertTrue(made[0].endswith("000000000074"), made[0])
 
+    def test_a_run_that_breaks_after_an_earlier_one_finished_still_leaves_the_raw_record_and_the_failing_frame(self):
+        write_scenarios(self.scenarios, probe("01_a", 2))
+        original = JourneyCase.run_scenario
+        calls = []
+
+        async def second_breaks(case, scenario, *, model=None):
+            calls.append(scenario.id)
+            if len(calls) == 2:
+                raise RuntimeError("gizli ileti SECRET-MESSAGE")
+            return await original(case, scenario, model=model)
+
+        with patch.object(JourneyCase, "run_scenario", second_breaks):
+            code, printed = self.run_command("--yap", "--out", str(self.out), "--runs", "2",
+                                             chain=FakeChain(self.folder))
+        self.assertEqual(code, 1, printed)
+        self.assertIn("Koşu bozuldu: RuntimeError", printed)
+        self.assertNotIn("SECRET-MESSAGE", printed)
+        self.assertRegex(printed, r"test_journey_real_run\.py:\d+")
+        (backup,) = self.out.iterdir()
+        self.assertEqual(backup.name, "ADIM2_HAM_20261104.txt")
+        self.assertIn(str(backup), printed)
+        text = backup.read_text(encoding="utf-8")
+        self.assertIn("01_a, 1. koşu", text)
+        self.assertNotIn("SECRET-MESSAGE", text)
+
     def test_a_skipped_run_is_a_broken_run_not_an_empty_report(self):
         write_scenarios(self.scenarios, probe("01_a", 1))
 

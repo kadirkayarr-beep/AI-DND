@@ -183,7 +183,11 @@ def main(
         return 1
     played = play(selection, args.runs, driver)
     if played.error:
-        say(f"Koşu bozuldu: {played.error}")
+        say(f"Koşu bozuldu: {played.error}" + (f" ({played.frame})" if played.frame else ""))
+        if played.complete or played.partial:
+            # An earlier run was paid for: its record survives the break.
+            backup = _raw_backup(played, driver, args, today or datetime.now().astimezone().date())
+            say(f"Ham kayıt: {backup}" if backup is not None else "Ham kayıt da yazılamadı.")
         return 1
     day = today or datetime.now().astimezone().date()
     say(f"Model çağrısı: {driver.calls} (sınır {args.max_calls})")
@@ -358,6 +362,7 @@ class Played:
         self.partial: dict[str, list[StepResult]] = {}
         self.cut: str | None = None
         self.error: str | None = None
+        self.frame: str | None = None  # file:line of the failing frame, never the message
 
 
 def play(selection: Mapping[str, Scenario], runs: int, driver: RealChain) -> Played:
@@ -393,6 +398,8 @@ def play(selection: Mapping[str, Scenario], runs: int, driver: RealChain) -> Pla
         if problems:
             # The error's type only: its message could carry anything the failing call held.
             played.error = problems[0][1].strip().splitlines()[-1].split(":", 1)[0]
+            frames = re.findall(r'File "([^"]+)", line (\d+)', problems[0][1])
+            played.frame = f"{Path(frames[-1][0]).name}:{frames[-1][1]}" if frames else None
             break
         if result.skipped or result.testsRun != 1:
             played.error = "koşu atlandı"
