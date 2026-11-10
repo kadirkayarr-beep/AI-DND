@@ -105,6 +105,15 @@ def _death_saves_core(case):
     session.ensure_death_state()["mode"] = "PERMADEATH"
     session.character["max_hp"] = given.get("max_hp", 20)
     session.character["current_hp"] = session.character["max_hp"]
+    if given["op"] == "instant":
+        session.character["current_hp"] = given["hp"]
+        session._apply_player_damage(given["damage"], took_damage=True)
+        death = session.ensure_death_state()
+        result = {"dead": death["dead"], "status": session.world_state["player_combat_status"],
+                  "hp": session.character["current_hp"]}
+        if not death["dead"]:
+            result["failures"] = death["failures"]
+        return result
     if given["op"] in ("death_save", "stable_no_save"):
         start_test_combat(session)
     session._apply_player_damage(session.character["current_hp"], took_damage=True)
@@ -177,9 +186,38 @@ def _death_saves_core(case):
         session.commit_location_change("tavern")
         with patch.object(session.rng, "randint", return_value=given["hours"]):
             session.stabilize_player()
-        session.advance_campaign_time(given["hours"] * 3600, "wait")
+        session.advance_campaign_time(given.get("wait_seconds", given["hours"] * 3600), "wait")
         return {"hp": session.character["current_hp"], "stable": death["stable"],
                 "status": session.world_state["player_combat_status"]}
+    raise KeyError(given["op"])
+
+
+def _death_saves_unconscious_condition(case):
+    from unittest.mock import patch
+    from api.tests.test_death_system import make_session
+    given = case["input"]
+    session = make_session()
+    session.ensure_death_state()["mode"] = "PERMADEATH"
+    session.character.update(max_hp=20, current_hp=20)
+    session._apply_player_damage(20, took_damage=True)
+    death = session.ensure_death_state()
+    if given["op"] == "heal":
+        session.heal_player(given["amount"])
+        return {"hp": session.character["current_hp"], "status": session.world_state["player_combat_status"],
+                "prone": death["prone"]}
+    if given["op"] == "ranged_hit":
+        enemy = {
+            "id": "oracle-archer", "name": "Oracle Archer", "location": session.world_state["location"],
+            "combat_status": "active", "current_hp": 10, "max_hp": 10, "armor_class": 10, "attack_bonus": 0,
+            "distance_ft": given["distance_ft"], "weapon_id": "shortbow", "inventory": ["Shortbow"],
+            "equipment": {"main_hand": "shortbow", "off_hand": None}, "dexterity": 14, "dexterity_mod": 2,
+            "proficiency_bonus": 2, "weapon_proficiencies": ["simple"], "weapon_masteries": [],
+            "ammunition": {"arrow": 20},
+        }
+        session.world_state["npcs"].append(enemy)
+        with patch("game.roll_d20", side_effect=[10, 14]), patch("game.roll_damage", return_value=2):
+            result = session.resolve_enemy_attack(enemy)
+        return {"critical": result["critical"], "failures": death["failures"], "dead": death["dead"]}
     raise KeyError(given["op"])
 
 
@@ -480,6 +518,7 @@ DISPATCH = {
     "K07.temp_hp_lost_first": _temp_hp_lost_first,
     "K07.death_saves_and_stable.temp_hp_at_zero": _death_saves_temp_hp_at_zero,
     "K07.death_saves_and_stable.core": _death_saves_core,
+    "K07.death_saves_and_stable.unconscious_condition": _death_saves_unconscious_condition,
 }
 
 

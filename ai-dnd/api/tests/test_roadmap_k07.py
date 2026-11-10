@@ -75,7 +75,7 @@ class NumericRuleOracleTests(unittest.TestCase):
         self.assertEqual(result["source_ref"]["pdf_page"], 28)
 
     def test_supported_death_saves_and_stable_oracles_match_source(self):
-        for case_number in range(1, 15):
+        for case_number in range(1, 21):
             case_id = f"K07.death_saves_and_stable.core#{case_number:02d}"
             with self.subTest(case_id=case_id):
                 result = rule_oracles.evaluate_rule_case(case_id, ORACLES)

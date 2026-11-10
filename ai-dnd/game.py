@@ -18848,6 +18848,7 @@ def _last_call():
     session = _session()
     state = ensure_death_state()
     roll = roll_d20()
+    # masa kuralı (SRD'de yok): Kadir kararı 2 — the 5% answer (only a natural 20) is a table rule, not a published one
     answered = roll == 20
     state["last_call"] = {"roll": roll, "answered": answered}
     if not answered:
