@@ -9,6 +9,9 @@ import interaction_adventure as adventure
 import local_places
 from api.tests import test_campaign_api as fixtures
 from api.tests.test_interaction_adventure import envelope, npc as adventure_npc, session as adventure_session
+from api.tests.town_seed import fixed_town
+
+TOWN_SEED = 4201  # a new campaign's town comes from its id; pinned so the goal turn always meets the same town
 
 WORLD_LINE = ("Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; "
               "gerçek dünyanın dinlerine ait sözler kullanılmaz.")
@@ -93,7 +96,8 @@ class GoalTurnStillTells(unittest.IsolatedAsyncioTestCase):
     create_campaign = fixtures.CampaignApiTests.create_campaign
 
     async def goal_turn(self, narration):
-        campaign = await self.create_campaign()
+        with fixed_town(self, TOWN_SEED):
+            campaign = await self.create_campaign()
         record = self.manager.get(campaign["session_id"])
         s = record.game_session
         s.world_state["locations"]["here"] = {"id": "here", "name": "Yerel oda", "type": "building",
