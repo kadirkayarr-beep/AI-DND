@@ -784,14 +784,20 @@ def explicit_wait_request(text):
                    ("question", "reported", "conditional", "negated", "not_now"))
 
 
-# English twins (Dilim 3D Task 2): a negated sleep is no sleep, as "uyumadan" never matches the Turkish forms.
-_EN_NEGATED = r"(?<!without )(?<!not )(?<!n't )(?<!n’t )(?<!never )"
+# English twins (Dilim 3D Task 2, fix round 1): only the player's own sleep, as the Turkish forms are first person
+# ("uyuyorum", never "uyuyan muhafız"). A subject, then only words of tense or intent, then "sleep" or "to bed":
+# "I sleep", "I'm going to sleep", "let me sleep", "I lie down to sleep", "I go to bed". Any other word between
+# ("don't", "not", "can't", "watch him") breaks it, so a sleep said no to or someone else's sleep is none.
+_EN_SUBJECT = r"\b(?:i|we|let me|let['’]?s)"
+_EN_LEAD = (r"(?:['’](?:m|ll|d|re)|\s+(?:am|are|will|shall|go|going|gonna|to|want|wanna|try|lie|down|back|now|then"
+            r"|just|finally|need|should|would|can|could|must|get|some))*")
 _SLEEPING = re.compile(
     r"\buyu(?:yorum|rum|yacag\w*|yacam|ycam|cam|yayim|yalim|yup|ya)\b|\buykuya dal\w*|\bkiril\w*\s+uyu"
     r"|\byat(?:iyorum|acagim|acam|icam|ayim|alim)\b"
-    rf"|{_EN_NEGATED}\bsleep(?:s|ing)?\b")
-# "dinlen" in English: "I rest", "a long rest"; "the rest of the night" is no rest.
-_RESTING = re.compile(r"\brest(?:s|ing)?\b(?!\s+of\b)")
+    rf"|{_EN_SUBJECT}{_EN_LEAD}\s+(?:sleep|to bed)\b|{_EN_SUBJECT}(?:['’](?:m|re)|\s+am|\s+are)\s+sleeping\b")
+# "dinlen" in English: "I rest", "a long rest", "I rest on the bench". The noun ("the rest", "the rest of the night")
+# and a hand rested somewhere ("I rest my hand on the hilt") are no rest.
+_RESTING = re.compile(r"(?<!the )\brest(?:ing)?\b(?!\s+(?:of|my|his|her|their|our|your)\b)")
 
 
 def _says_rest(normalized):
@@ -817,7 +823,7 @@ def input_route_markers(world, normalized):
 _NO_REST_ONLY = ("dinlenmeden", "uyumadan", "dinlenmeksizin", "uyumaksizin")
 # English twins (Dilim 3D Task 2): "without sleeping", "I don't want to rest" say no to the rest only (as "uyumadan");
 # "I don't wait" says no to the wait (as "beklemiyorum"). Up to two words may sit between the no and the verb.
-_EN_NO_TO = r"(?:\b(?:without|not|never)|n['’]t)\s+(?:\w+\s+){0,2}"
+_EN_NO_TO = r"(?:\b(?:without|not|never|no)|n['’]t)\s+(?:\w+\s+){0,2}"
 _EN_NO_REST = re.compile(rf"{_EN_NO_TO}(?:sleep|rest)(?:s|ing)?\b")
 _SAID_NO = re.compile(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir"
                       rf"|(?:{'|'.join(_NO_REST_ONLY)})(?!\s+once\b))\b"

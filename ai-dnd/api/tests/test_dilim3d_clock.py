@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 import campaign_time
 import front_proposal
+import timed_gameplay
 from api.tests import test_campaign_api as fixtures
 from api.tests.journeys.runner import ScriptedClient
 from api.tests.test_campaign_time import Q027, Q028, Q084, Q104, Q105, Q167
@@ -280,6 +281,30 @@ class EnglishClockParity(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((outcome.delta, outcome.action, outcome.long_rest_at), (7200, "wait", None))
                 self.assertNotIn("dinlenme", outcome.narration)
 
+    # Fix round 1 (review Critical 1, Important 2): a sleeping someone else, or a sleep said no to a few words away,
+    # is no sleep of the player's; the Turkish twins go to the model and move no time.
+    NOT_THE_PLAYERS_SLEEP = (
+        ("I sneak past the sleeping guard", "uyuyan muhafızın yanından sinsice geçiyorum"),
+        ("The guard sleeps at his post", "muhafız nöbet yerinde uyuyor"),
+        ("I look at a sleeping dragon", "uyuyan bir ejderhaya bakıyorum"),
+        ("I don't want to sleep yet, I look around", "henüz uyumak istemiyorum, etrafıma bakıyorum"),
+        ("I'm not going to sleep, I keep watch all night", "uyumuyorum, bütün gece nöbet tutuyorum"))
+
+    async def test_someone_elses_sleep_or_a_sleep_said_no_moves_no_time(self):
+        for english, turkish in self.NOT_THE_PLAYERS_SLEEP:
+            for front in (None, {"kind": "attempt"}):
+                with self.subTest(english=english, front=front):
+                    en = await self.outcome(english, front=front)
+                    tr = await self.outcome(turkish, front=front)
+                    self.assertEqual((en.delta, en.long_rest_at), (0, None))
+                    self.assertEqual((tr.delta, tr.long_rest_at), (0, None))
+                    self.assertNotIn(en.action, {"wait", "rest"})  # no timed owner took it: it is the model's line
+                    self.assertNotIn(timed_gameplay._ASK_HOW_LONG, en.narration)
+                    if ", " not in turkish:
+                        # A Turkish comma line goes to the Turkish-only clause recorder ("interaction"/"recorded"),
+                        # which English lines never reach (D-1 b); the clock and the rest above stay equal.
+                        self.assertEqual((en.action, en.status), (tr.action, tr.status))
+
 
 class EnglishTimedOwners(unittest.TestCase):
     """The timed owners read English sleep, wait, rest and their no as they read the Turkish words."""
@@ -298,9 +323,48 @@ class EnglishTimedOwners(unittest.TestCase):
         for line in ("i wait without sleeping", "i do not sleep", "i don't sleep", "i never sleep", "uyumadan bekliyorum"):
             with self.subTest(line=line):
                 self.assertFalse(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
-        for line in ("i wait", "i am waiting", "i rest", "i take a long rest"):
+        for line in ("i wait", "i am waiting", "i rest", "i take a long rest", "i rest on the bench"):
             with self.subTest(line=line):
                 self.assertTrue(timed_gameplay.input_route_markers(self.session.world_state, campaign_time.normalize(line))[1])
+
+    def test_only_the_players_own_sleep_is_a_sleep(self):
+        # Fix round 1 (review Critical 1, Important 2): first person and intent, as the Turkish "uyuyorum" forms
+        import timed_gameplay
+        for line in ("I sleep", "I'm going to sleep", "I want to sleep", "Let me sleep", "I'll sleep", "We sleep here",
+                     "I go to bed", "I'm going to bed", "I lie down to sleep", "I am sleeping", "Let's sleep"):
+            with self.subTest(line=line):
+                self.assertTrue(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
+        for line in ("I sneak past the sleeping guard", "the guard sleeps", "a sleeping dragon", "I watch him sleep",
+                     "I search the sleeping man's pockets", "two hours ago I was sleeping", "I can't sleep",
+                     "I don't want to sleep yet, I look around", "I'm not going to sleep, I keep watch all night",
+                     "I won't sleep", "I sit on the bed", "uyuyan muhafız"):
+            with self.subTest(line=line):
+                self.assertFalse(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
+
+    def test_a_sleep_said_no_a_few_words_away_is_left_to_the_model(self):
+        import timed_gameplay
+        for line in ("I don't want to sleep yet, I look around", "I'm not going to sleep, I keep watch all night",
+                     "I have no intention to rest, I look around", "I won't wait, I look around"):
+            with self.subTest(line=line):
+                self.assertIsNone(timed_gameplay.resolve_input(self.session, line))
+                self.assertEqual(self.session.world_state, self.before)
+
+    def test_a_noun_rest_under_a_wait_reading_is_a_while_not_a_rest(self):
+        # Fix round 1 (review Minor 3): "the rest" and "rest my hand" are no rest; a real short rest asks as Turkish does
+        import timed_gameplay
+        def fresh():
+            from api.tests import test_death_system as death_fixtures
+            session = death_fixtures.make_session()
+            campaign_time.initialize(session.world_state)
+            return session
+        for line in ("I give him the rest", "I leave the rest to you", "I rest my hand on the hilt"):
+            with self.subTest(line=line):
+                result = timed_gameplay.pass_time(fresh(), line)
+                self.assertEqual((result["action"], result["time_result"]["elapsed_seconds"]), ("wait", 1800))
+        english = timed_gameplay.pass_time(fresh(), "I take a short rest")
+        turkish = timed_gameplay.pass_time(fresh(), "biraz dinleniyorum")
+        self.assertEqual((english["action"], english["status"], english["direct_response"]),
+                         (turkish["action"], turkish["status"], turkish["direct_response"]))
 
     def test_a_no_to_waiting_is_a_no_to_the_line(self):
         import timed_gameplay
