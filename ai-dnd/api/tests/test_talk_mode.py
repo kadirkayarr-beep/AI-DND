@@ -429,6 +429,18 @@ class SayModeNamesAnother(JourneyCase):
         await self.say("Selin, kuzey kapısı ne tarafta?")
         self.assertEqual(self.talk_target(), "traveller")
 
+    async def test_a_question_about_the_guard_stays_with_the_one_spoken_to(self):
+        # Review 11 finding 2: a mention is not an address.
+        for line in ("Orhan'ı tanıyor musun?", "Orhan nerede?", "Orhan'a güvenebilir miyim?",
+                     "Muhafız sana ne dedi?", "Sen Orhan’ı tanıyor musun?", "Orhan hakkında ne düşünüyorsun?"):
+            with self.subTest(line=line):
+                await self.say(line, spoken="Bilmem.")
+                self.assertEqual(self.talk_target(), "traveller")
+
+    async def test_a_dative_and_a_say_verb_is_still_an_address(self):
+        await self.say("Orhan'a kuzey kapısını soruyorum.")
+        self.assertEqual(self.talk_target(), "guard")
+
     async def test_still_one_turn_and_two_calls_at_most(self):
         turn = self.turn_index()
         await self.say("Muhafız, kuzey kapısı ne tarafta?")

@@ -1229,31 +1229,39 @@ def _affirmative_door_verb(normalized_text, prefix, stems):
     return False
 
 
-_SKILL_CHECK_WORD = re.compile(r"\b(?:check|roll|zar\w*|yoklama\w*|kontrol\w*)\b")
+_SKILL_CHECK_WORD = r"(?:check|roll|zar\w*|yoklama\w*|kontrol\w*)"
+# a real case ending after a Turkish skill word ("Tarihi", "Atletizmi"); "gösterişli" is no "Gösteri"
+_SKILL_ENDING = r"(?:(?:ler|lar)?(?:y?[iuea]|n?in|n?un|d[ae]n?|t[ae]n?|l[ae]|s[iu]|n[ie]|n[ae]|nd[ae]n?))?"
+_ABILITY_WORD = (r"(?:strength|dexterity|constitution|intelligence|wisdom|charisma|"
+                 r"guc|ceviklik|dayaniklilik|zeka|bilgelik|karizma)")
 
 
 def named_skill(player_input):
-    """The one skill the line names as the check to roll ("Atletizm zarı", "Strength (Athletics) check"), else None."""
+    """The one skill the line names as the check to roll ("Atletizm zarı", "Strength (Athletics) check"), else None.
+
+    The skill word and the check word stand side by side, or the skill stands in brackets after an ability word
+    ("Güç (Atletizm)"): "tip", "tarih", "doğa" and "kontrol" far apart in a line are everyday words."""
     from api.dnd_2024_rules import SKILL_DEFINITIONS
     if not isinstance(player_input, str) or "?" in player_input:
         return None
     text = _normalize_turkish_typos(player_input)
+    marked = _normalize_turkish_typos(player_input.replace("(", " xopenx ").replace(")", " xclosex "))
     named = {}
     for key, definition in SKILL_DEFINITIONS.items():
         english = re.escape(_normalize_turkish_typos(key))
         turkish = _normalize_turkish_typos(definition["name_tr"].split(" (")[0])
-        suffix = r"\w{0,3}" if len(turkish) >= 5 else ""
-        if re.search(rf"\b{english}\b|\b{re.escape(turkish)}{suffix}\b", text):
-            named[key] = True
+        suffix = _SKILL_ENDING if len(turkish) >= 5 else ""
+        pattern = rf"(?:\b{english}\b|\b{re.escape(turkish)}{suffix}\b)"
+        if re.search(pattern, text):
+            named[key] = pattern
     if len(named) != 1:
         return None
-    skill = next(iter(named))
+    skill, pattern = next(iter(named.items()))
+    side_by_side = re.search(
+        rf"{pattern}(?:\s+xclosex)?\s+{_SKILL_CHECK_WORD}\b|\b{_SKILL_CHECK_WORD}\s+{pattern}", marked)
     # "Yetenek (Beceri)" is the form the sheet prints a skill in: an ability word, then the skill in brackets.
-    in_brackets = any(
-        re.search(r"\w\s+\(\s*" + re.escape(name.casefold()) + r"\s*\)", player_input.casefold())
-        for name in (skill, SKILL_DEFINITIONS[skill]["name_tr"].split(" (")[0])
-    )
-    return skill if _SKILL_CHECK_WORD.search(text) or in_brackets else None
+    in_brackets = re.search(rf"\b{_ABILITY_WORD}\s+xopenx\s+{pattern}\s+xclosex", marked)
+    return skill if side_by_side or in_brackets else None
 
 
 def deterministic_check_for_action(player_input):
@@ -18926,6 +18934,40 @@ def _reads_as_address(player_input):
     return "?" in player_input or is_npc_dialogue_input(player_input) or "," in player_input[:40]
 
 
+_SAY_VERBS = re.compile(r"^(?:soyl|sor|anlat|ver|diyorum|dedim|ilet|seslen|danis|rica|teklif|uzat|goster|tesekkur)")
+_SAY_ENGLISH = r"\b(?:tell|ask|give|hand|pay|show|thank|say to|speak to|talk to|offer)\s+(?:the\s+)?"
+_HAIL_FILLERS = {"ey", "hey", "pardon", "selam", "merhaba", "sayin", "affedersiniz", "bakin", "bak"}
+
+
+def _line_addresses(player_input, npc):
+    """Whether the line is said TO this person: their name or role at the head with a comma after it ("Orhan, kapı
+    nerede?"), or their name in the dative with a say verb ("Orhan'a soruyorum"). A mention is no address
+    ("Orhan'ı tanıyor musun?", "Orhan nerede?", "Muhafız sana ne dedi?")."""
+    if not isinstance(player_input, str) or not isinstance(npc, dict):
+        return False
+    ascii_line = unicodedata.normalize("NFKD", player_input.casefold().replace("İ", "i").replace("ı", "i"))
+    tokens = re.findall(r"[^\W_]+|,", ascii_line.encode("ascii", "ignore").decode())  # words and commas, folded
+    words = {w for w in living_world.normalize_text(f"{living_world.public_npc_name(npc)} {npc.get('role') or ''}").split()
+             if len(w) >= 3}
+    if not words:
+        return False
+    head = tokens[:6]
+    first = next((i for i, t in enumerate(head) if t in words), None)
+    if first is not None and all(t in _HAIL_FILLERS for t in head[:first]):
+        j = first
+        while j < len(tokens) and (tokens[j] in words or (j > first and len(tokens[j]) <= 3 and tokens[j] != ",")):
+            j += 1
+        if j < len(tokens) and tokens[j] == ",":
+            return True
+    for i, token in enumerate(tokens):
+        dative = (token in words and i + 1 < len(tokens) and tokens[i + 1] in {"a", "e", "ya", "ye"}) or any(
+            token in {w + "a", w + "e", w + "ya", w + "ye"} for w in words)
+        if dative and any(_SAY_VERBS.match(t) for t in tokens):
+            return True
+    folded_text = " ".join(tokens)
+    return any(re.search(_SAY_ENGLISH + re.escape(w) + r"\b", folded_text) for w in words)
+
+
 def _addressed_in(player_input, *, or_the_talk=True):
     """Who the line names, or else (or_the_talk) who the talk is with. Finding them here starts no conversation."""
     world_state = _session().world_state
@@ -19761,7 +19803,8 @@ def _dispatch_player_turn(
             # Said to someone, a line that names another person standing here is said to them; the talk turns to them.
             named = _addressed_in(player_input, or_the_talk=False)
             if (isinstance(named, dict) and named.get("id") not in {None, target_id}
-                    and named.get("id") in {npc.get("id") for npc in _conversation_npcs()}):
+                    and named.get("id") in {npc.get("id") for npc in _conversation_npcs()}
+                    and _line_addresses(player_input, named)):
                 target_id = named["id"]
     if (
         combat_action is None
@@ -22188,6 +22231,7 @@ def _run_player_turn_internal(
             if (shop := living_world.public_shop_projection(world_state, raw_shop)) is not None
             and shop.get("location") == current_location
         ]
+        import shop_trade
         local_shopkeepers = []
         for npc in world_state.get("npcs", []):
             if not isinstance(npc, dict) or npc.get("location") != current_location:
@@ -22196,6 +22240,7 @@ def _run_player_turn_internal(
             if (
                 npc.get("shop_id")
                 or _is_shopkeeper_role(npc.get("role"))
+                or shop_trade.is_vendor(world_state, npc)  # a Barmen who runs the ready counter
                 or (
                     isinstance(tags, list)
                     and any(
@@ -22217,7 +22262,6 @@ def _run_player_turn_internal(
                 living_world.public_npc_name(npc)
                 for npc in local_shopkeepers
             )
-            import shop_trade
             counter = shop_trade.counter(world_state)
             if counter["status"] == "ready" and counter["vendor"]:
                 message = f"{counter['vendor']['name']} burada; tezgâhı açık."

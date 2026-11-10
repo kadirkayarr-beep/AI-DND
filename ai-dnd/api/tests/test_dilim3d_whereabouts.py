@@ -82,6 +82,38 @@ class FalseCutsStay(Whereabouts):
         self.assertEqual(npc_speech_boundary.without_false_presence(self.world, Q155_SPEECH, None), Q155_SPEECH)
 
 
+class FalsePresenceFixRound(Whereabouts):
+    """Review 11 / Jarvis A8-A10, A12: the speaker's own presence, a comma between name and place, a place named
+    in another clause, and two quoted sentences."""
+    SEED = 4645
+
+    def cut(self, line):
+        return npc_speech_boundary.without_false_presence(self.world, line, self.here)
+
+    async def test_waiting_for_the_person_here_is_the_speakers_own_presence(self):
+        for line in ("“Tuna'yı burada bekliyorum.”", "“Tuna’yı burada bekliyorum.”", "Tuna'yı burada bekliyorum."):
+            with self.subTest(line=line):
+                self.assertEqual(self.cut(line), line)
+
+    async def test_a_comma_between_the_name_and_the_here_word_still_cuts(self):
+        self.assertEqual(self.cut("“Tuna, şurada oturuyor.”"), "")
+        self.assertEqual(self.cut("“Tuna şurada oturuyor.”"), "")
+
+    async def test_an_unrelated_place_name_later_does_not_exempt_the_claim(self):
+        self.world["locations"][self.tuna_npc["location"]]["name"] = "Kırlangıç Hanı"
+        out = self.cut("“Tuna burada bekliyor, Kırlangıç Hanı kapalı.”")
+        self.assertNotIn("Tuna burada bekliyor", out)
+        # the same place named in the person's own clause is still another place
+        line = "“Tuna Kırlangıç Hanı yakınında bekliyor, oraya git.”"
+        self.assertEqual(self.cut(line), line)
+
+    async def test_two_quote_spans_cut_only_the_offending_sentence(self):
+        self.assertIn("Ben işime bakıyorum", self.cut("“Tuna şurada oturuyor.” “Ben işime bakıyorum.”"))
+        self.assertNotIn("Tuna", self.cut("“Tuna şurada oturuyor.” “Ben işime bakıyorum.”"))
+        self.assertIn("Ben işime bakıyorum", self.cut("“Tuna şurada oturuyor.” Ben işime bakıyorum."))
+        self.assertNotIn("Tuna", self.cut("“Tuna şurada oturuyor.” Ben işime bakıyorum."))
+
+
 class WhereaboutsTurn(Whereabouts):      # seed 4571
     async def test_the_giver_does_not_seat_the_contact_here(self):
         reply = await self.say("Halil, bu iş için kime gideyim?", front={"kind": "speak_to", "person_id": "potter"},

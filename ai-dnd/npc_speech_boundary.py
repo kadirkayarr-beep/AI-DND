@@ -513,9 +513,14 @@ _OPEN_QUOTES = "“\"«‘'"
 _CLOSE_QUOTES = "”\"»’'"
 
 
+def _split_sentences(text, ends):
+    """Split after a sentence end, a closing quote after it staying with its sentence ("Bir. ” “İki.” stays two)."""
+    return re.split("(?:(?<=[" + ends + "])|(?<=[" + ends + "][" + re.escape(_CLOSE_QUOTES) + r"]))\s+", text)
+
+
 def _cut_sentences(text, doomed, ends=".!?…"):
     """The sentences ``doomed`` picks go, the rest stays, and an outer quote the cut took away is put back."""
-    sentences = re.split("(?<=[" + ends + r"])\s+", text.strip())
+    sentences = _split_sentences(text.strip(), ends)
     if not any(doomed(sentence) for sentence in sentences):
         return text
     kept = [s for s in sentences if not doomed(s)]
@@ -544,6 +549,11 @@ _HERE_WORDS = ("burada", "surada", "orada", "oturuyor", "duruyor", "bekliyor", "
 
 _ABSENCE_WORDS = frozenset({"degil", "degildir", "yok", "gelmedi", "bulunmuyor", "ayrildi", "gitti"})
 _GENITIVE = frozenset({"nin", "nun", "in", "un"})
+
+
+def _first_person(word):
+    """A finite verb of the speaker ("bekliyorum", "bekleyeceğim"): what it says is about the speaker's own place."""
+    return word.endswith(("yorum", "yoruz", "ecegim", "acagim", "ecegiz", "acagiz"))
 
 
 def _is_absence(word):
@@ -583,14 +593,20 @@ def without_false_presence(world, text, here_id):
     places = [place for place in places if place]
 
     def doomed(sentence):
-        folded = fold(sentence)
-        if any(_text_names_label(folded, place) for place in places):
-            return False
-        for clause in re.split(r"[,:]", sentence):
-            words = fold(clause).split()
-            if (any(word in _HERE_WORDS for word in words) and not any(_is_absence(word) for word in words)
-                    and any(_names_subject(words, name) for name in names)):
-                return True
+        clauses = [fold(clause).split() for clause in re.split(r"[,:]", sentence)]
+        for at, words in enumerate(clauses):
+            if not any(word in _HERE_WORDS for word in words) or any(_is_absence(word) for word in words):
+                continue
+            if any(_first_person(word) for word in words):
+                continue  # "Tuna'yı burada bekliyorum": the speaker's own presence, whoever else the clause names
+            # the person's own clause, or the name alone before a comma ("Tuna, şurada oturuyor")
+            before = clauses[at - 1] if at else []
+            joined = [before + words] if before and any(
+                len(before) <= len(name.split()) + 1 and _names_subject(before, name) for name in names) else []
+            for group in [words, *joined]:
+                if (any(_names_subject(group, name) for name in names)
+                        and not any(_text_names_label(" ".join(group), place) for place in places)):
+                    return True    # another place named in the person's own clause is where they are
         return False
 
     return _cut_sentences(text, doomed, ends=".!?…;")      # a semicolon ends a clause: the rest of the line stays

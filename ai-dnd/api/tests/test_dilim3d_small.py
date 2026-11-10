@@ -95,6 +95,27 @@ class NamedSkill(unittest.TestCase):  # (c)
         self.assertIsNone(game.named_skill("Athletics check mi gerekir?"))
 
 
+class NamedSkillIsNoEverydayWord(unittest.TestCase):
+    """Review 11 finding 4 and A6/A7: a skill word and a check word make a check only side by side (or in the
+    "Strength (Athletics)" bracket form); everyday words and a die put down are no check."""
+
+    def test_everyday_words_far_from_a_check_word_are_no_check(self):
+        for line in ("Bu tip kapıları kontrol etmeyi bilirim", "Kapıyı kontrol ediyorum, doğa güzel",
+                     "I check the history of the town", "Kitap (History) hakkında konuşuyorum",
+                     "Gösterişli zarı masaya bırakıyorum", "Tarihi eserlere bakıp kontrol listesini yazıyorum"):
+            with self.subTest(line=line):
+                self.assertIsNone(game.named_skill(line))
+                self.assertNotEqual((game.deterministic_check_for_action(line) or {}).get("action_type"), "check")
+
+    def test_the_accepted_forms_stay(self):
+        for line, skill in (("Atletizm zarı atıyorum", "Athletics"), ("Algı zarı atıyorum", "Perception"),
+                            ("Strength (Athletics) check", "Athletics"), ("I make an Athletics check", "Athletics"),
+                            ("Atletizm yoklaması yapıyorum", "Athletics"), ("Güç (Atletizm) ile kaldırıyorum", "Athletics"),
+                            ("Tarihi kontrol ediyorum", "History")):
+            with self.subTest(line=line):
+                self.assertEqual(game.named_skill(line), skill)
+
+
 class NoNameClaim(Table):  # (d)
     SEED = 4563
 
@@ -138,6 +159,17 @@ class SmallBundleTurns(AtTheCounter):  # (c)(e)(f)
         self.assertEqual(shop_trade.counter(self.world)["status"], "ready")
         narration = (await self.line(Q134))["narration"]
         self.assertNotIn("açık bir tezgâhı yok", narration)
+        # Review 11 A5: the right answer is a counter answer, not a closed counter and not idle chatter.
+        self.assertIn("tezgâhı açık", (await self.line("Burada bir dükkân var mı?"))["narration"])
+
+    async def test_the_barmen_at_a_ready_counter_is_a_shopkeeper(self):
+        # Review 11 A4 (seed 4564 town): a Barmen who runs the ready counter is the shopkeeper here.
+        await self.at_the_bar()
+        for line in ("Burada bir dükkân var mı?", "Is there a shop here?", "Burada bir tezgâh var mı?"):
+            with self.subTest(line=line):
+                narration = (await self.line(line))["narration"]
+                self.assertIn("tezgâhı açık", narration)
+                self.assertNotIn("dükkâncı yok", narration)
 
     async def test_journal_lists_the_inn_counter_after_a_visit(self):
         await self.at_the_bar()
