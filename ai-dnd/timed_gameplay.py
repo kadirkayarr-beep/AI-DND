@@ -815,6 +815,7 @@ def says_no(text):
 
 
 _UNNAMED_WAIT = 600  # "bekliyorum" with no length: a short while, not a form to fill in
+_ASK_HOW_LONG = "Kaç dakika veya saat beklemek istediğini belirt."  # a wait whose end the engine cannot know
 
 
 def _time_passed_line(advancement):
@@ -968,13 +969,16 @@ def resolve_input(session, text):
             return already
         duration = clock.until_named_hour(world, normalized) or duration
         if duration is None and _SLEEPING.search(normalized):
+            if _SAID_NO.search(normalized):
+                # Task 43 (owner #18 b): "uyumadan yatıyorum" is no sleep and names no length: ask, move nothing.
+                return _result("wait", _ASK_HOW_LONG, status="clarification", success=False)
             duration = 8 * 3600  # Lying down anywhere is sleeping; where is the player's business.
         if duration is None:
             if (wait and not any(mark in text for mark in ('?', '"', '“', '”', '«', '»'))
                     and re.search(r"\b(?:han\w*|dukkan\w*|magaza\w*|kapi\w*)\b.{0,80}\bacilana kadar\b", normalized)):
                 # There is no venue-opening schedule to turn this condition
                 # into a duration. Do not advance time or invent an unlock.
-                return _result("wait", "Ne zaman açılacağı bilinmiyor. Kaç dakika veya saat beklemek istediğini belirt.",
+                return _result("wait", f"Ne zaman açılacağı bilinmiyor. {_ASK_HOW_LONG}",
                                status="clarification", success=False)
             if not explicit_wait_request(text):
                 return None  # Non-action atmosphere remains with its existing owner.

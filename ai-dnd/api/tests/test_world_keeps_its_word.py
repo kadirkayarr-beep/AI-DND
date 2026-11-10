@@ -293,6 +293,35 @@ class FrontLines(FrontScene):
     async def test_eight_hours_waited_with_no_sleep_at_all_is_no_long_rest(self):
         await self.wait_without_sleep("uyumaksızın sekiz saat bekliyorum")
 
+    async def lie_down_without_sleep(self, line):
+        # Task 43 (owner decision #18, option b): lying down with the rest said no to and no length is asked
+        # how long, like a wait whose end is unknown: the clock does not move, nothing is rested or recorded.
+        import copy
+        await self.rest_scene()
+        before_time = copy.deepcopy(self.world["campaign_time"])
+        before_character = copy.deepcopy(self.session.character)
+        self.client.front = {"kind": "wait"}
+        out = await self.line(line)
+        self.assertIn("Kaç dakika veya saat beklemek istediğini belirt.", out["narration"])
+        self.assertEqual(self.world["campaign_time"], before_time, out["narration"])
+        self.assertNotIn("last_long_rest_completed_at", self.world)
+        self.assertEqual(self.session.character, before_character)
+        import timed_gameplay  # the owner itself: a question, no model and no state
+        asked = timed_gameplay.resolve_input(self.session, line)
+        self.assertEqual((asked["status"], asked["success"]), ("clarification", False))
+        self.assertEqual(self.world["campaign_time"], before_time)
+        self.assertEqual(self.session.character, before_character)
+
+    async def test_lying_down_without_sleeping_and_no_length_asks_how_long(self):
+        await self.lie_down_without_sleep("uyumadan yatıyorum")
+
+    async def test_lying_down_without_resting_and_no_length_asks_how_long(self):
+        await self.lie_down_without_sleep("dinlenmeden yatıyorum")
+
+    async def test_lying_down_without_sleeping_for_a_length_is_that_wait(self):
+        # The guard beside Task 43: a length said is still the wait it names, and no Long Rest.
+        await self.wait_without_sleep("uyumadan sekiz saat yatıyorum")
+
     async def test_sleeping_after_something_done_before_sleep_is_a_long_rest(self):
         # Task 41 review I1: '-madan önce' is 'before doing', no 'no': the sleep said is a Long Rest.
         await self.rest_scene()
