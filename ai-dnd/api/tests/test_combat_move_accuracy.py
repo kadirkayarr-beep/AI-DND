@@ -66,7 +66,7 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         shove = self.players_last_attack()
         self.assertEqual(shove["unarmed_option"], "shove")
         self.assertIn("dc", shove["resolution"])
-        self.assertNotEqual(reply["combat_result"]["weapon"], "Heavy Crossbow")
+        self.assertEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
         self.assertEqual(self.npc["current_hp"], 4)
 
     async def test_a_trip_is_the_shove_only_when_no_weapon_and_no_other_move_is_named(self):
@@ -198,7 +198,7 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
         self.assertEqual(self.players_last_attack()["unarmed_option"], "shove")
         self.assertEqual(self.players_last_attack()["target_id"], self.npc["id"])
-        self.assertNotEqual(reply["combat_result"]["weapon"], "Heavy Crossbow")
+        self.assertEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
         self.assertEqual(self.npc["current_hp"], 4)
 
     async def test_a_blow_naming_no_move_in_a_fight_rolls_nothing_and_itiyorum_is_the_shove(self):
