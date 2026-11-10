@@ -654,8 +654,8 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
                                      if said[0] in nouns)} if said else set()
         fits = [c for c in (best, *tied) if said and c["kind"] == "place" and kinds & {
             c["record"].get("scene_kind"), c["record"].get("place_kind"), c["record"].get("generic_noun")}]
-        if len(fits) == 1:
-            best, tied = fits[0], []
+        if fits:  # one fit is the place; more are the only ones asked about
+            best, tied = fits[0], fits[1:]
     if tied and (best_score < 100 or same_explicit_name):
         return {"target": None, "part": part, "score": best_score, "ambiguous": [best, *tied]}
     best = _prefer_side(best, scored, verb, part, cands)

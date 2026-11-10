@@ -107,7 +107,8 @@ class NamedPersonWayTests(ThreePlaysTests):
         stall["resident_name"] = "Orsela"
         step = grounded_action.plan(self.session, "orselanın dükkanına gidiyorum")["steps"][0]
         self.assertIsNone(step["target"])
-        self.assertLessEqual({workshop["id"], stall["id"]}, {cand["id"] for cand in step["ambiguous"]})
+        # Task 41 review M1: "dükkân" is never an estate, so only the two shops are offered.
+        self.assertEqual({cand["id"] for cand in step["ambiguous"]}, {workshop["id"], stall["id"]})
 
     async def test_asked_of_someone_here_where_a_named_person_is_the_town_tells_them(self):
         """Task 29: the person asked hears, as engine data, where the town says the named person is."""
