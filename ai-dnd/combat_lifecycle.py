@@ -319,12 +319,28 @@ _ENGLISH_YES_LEADS = re.compile(r"\W*(?:yes|yeah|yep|sure|ok|okay|do it)\b")
 _ENGLISH_NO = re.compile(r"\b(?:no|not|never|without|dont)\b|n['’]t\b")
 
 
-def _says_yes(session, message):
+_ENGLISH_WORDS = re.compile(r"\b(?:the|me|my|about|tell|he|she|him|her|them|you)\b")
+_THEM = re.compile(r"\b(?:him|her|them)\b")
+
+
+def _move_at_the_person(session, message, blow):
+    """The words name a move the engine reads and aim it at the one asked about (named, or him/her/them)."""
+    import weapon_attack
+    if not weapon_attack.names_a_move(session, message):
+        return False
+    named = [npc["id"] for npc in pointed_targets(session, message)]
+    if named:
+        return blow is None or blow in named
+    return _THEM.search(str(message).lower()) is not None
+
+
+def _says_yes(session, message, blow=None):
     """A short yes, or a yes that leads a longer line still standing behind the blow ('Evet, adamı itiyorum')."""
     import game
     text = session._normalize_turkish_typos(str(message))
     english = str(message).lower()
-    if _ENGLISH_YES.search(english) is not None:
+    english_yes = _ENGLISH_YES.search(english) is not None
+    if english_yes:
         if (_ENGLISH_NO.search(english) or "?" in english or game._CLAIM_REJECTION_RE.search(text) is not None):
             return False
         leads = _ENGLISH_YES_LEADS.match(english) is not None
@@ -334,7 +350,13 @@ def _says_yes(session, message):
         leads = game._CLAIM_ACCEPTANCE_RE.match(text.split()[0]) is not None
     if len(text.split()) <= 4:
         return True
-    return leads and game._blow_stands(message)
+    if not (leads and game._blow_stands(message)):
+        return False
+    # A long yes in English needs the move in its own words, aimed at the person asked about: "Yes, tell me about
+    # the guard", "Yes, I punch the wall" start nothing. A line in Turkish keeps the Turkish rule as it was.
+    if english_yes or _ENGLISH_WORDS.search(english):
+        return _move_at_the_person(session, message, blow)
+    return True
 
 
 def answered_attack_question(session, message):
@@ -350,10 +372,10 @@ def answered_attack_question(session, message):
         # "itip yere mi düşürüyorsun, yumruk mu?": only an answer naming a move the engine reads makes the blow
         if weapon_attack.names_a_move(session, message) and game._blow_stands(message):
             session._front_strike = {"kind": "strike", "id": blow, "with": "", "said": ""}
-        elif _says_yes(session, message):
+        elif _says_yes(session, message, blow):
             session._which_move = blow  # a second bare yes is no answer: the same question again
         return message
-    if here and _says_yes(session, message):
+    if here and _says_yes(session, message, blow):
         said = asked_line.get("said") or ""
         if not asked_line.get("with") and not weapon_attack.names_a_move(session, f"{said} {message}"):
             session._which_move = blow  # a yes to words naming no move the engine has (a trip): asked, nothing rolls

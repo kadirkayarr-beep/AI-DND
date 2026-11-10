@@ -18,7 +18,8 @@ Q015 = "I attack the guard with my quarterstaff. I swing at his shoulder to knoc
 Q016 = "Evet, muhafızla kavgayı başlatıyorum. İnisiyatif atıyorum, onunla savaşıyorum."                      # #016 (Türkçe)
 
 
-class EnglishFightStart(unittest.IsolatedAsyncioTestCase):
+class _Table(unittest.IsolatedAsyncioTestCase):
+    first_seed = 4711
     # FrontTable's table without its own tests (each inherited test would run again here).
     asyncSetUp = proposal.FrontTable.asyncSetUp
     asyncTearDown = proposal.FrontTable.asyncTearDown
@@ -30,7 +31,7 @@ class EnglishFightStart(unittest.IsolatedAsyncioTestCase):
     routes = proposal.FrontTable.routes
 
     async def begin(self):
-        with fixed_town(self, 4711):
+        with fixed_town(self, self.first_seed):
             await proposal.FrontTable.begin(self)
         # the line says "guard": whoever of the town it reads as is what a person of the town really carries
         for person in self.world["npcs"]:
@@ -46,6 +47,9 @@ class EnglishFightStart(unittest.IsolatedAsyncioTestCase):
     def assert_no_blow(self, reply):
         self.assertNotEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
         self.assertFalse(self.world["combat"]["active"])
+
+
+class EnglishFightStart(_Table):
 
     async def test_013_then_a_long_yes_starts_the_fight(self):
         self.assert_no_blow(await self.ask(Q013))
@@ -80,6 +84,50 @@ class EnglishFightStart(unittest.IsolatedAsyncioTestCase):
     async def test_a_yes_with_no_question_asked_starts_nothing(self):
         await self.begin()
         self.assert_no_blow(await self.line("yes", "Evet mi?"))
+
+
+class EnglishYesNeedsAMoveAtTheTarget(_Table):
+    """Fix round 1: a long yes starts a fight only if the rest of the line names a move aimed at the proposed person."""
+    first_seed = 4731
+
+    async def test_long_yes_lines_that_name_no_move_at_him_start_nothing(self):
+        self.assert_no_blow(await self.ask(Q013))
+        for answer in ("Yes. I punch the wall in anger", "Yes, tell me about the guard",
+                       "Sure, I'll kick the door open", "Yes, I trip on the stairs", "Yes, he hit me yesterday",
+                       "Evet, tell me about the guard"):
+            with self.subTest(answer=answer):
+                self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+                self.assert_no_blow(await self.line(Q013, "Ne yapıyorsun sen?"))
+                self.assert_no_blow(await self.line(answer))
+
+    async def _starts(self, answer):
+        self.assert_no_blow(await self.ask(Q013))
+        reply = await self.line(answer)
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+
+    async def test_a_punch_at_him_starts(self):
+        await self._starts("Yes. I punch him.")
+
+    async def test_a_kick_at_the_guard_starts(self):
+        await self._starts("Sure, I kick the guard")
+
+    async def test_a_mixed_yes_with_a_punch_at_him_starts(self):
+        await self._starts("Evet, I punch him")
+
+    async def test_yes_sir_starts(self):
+        await self._starts("yes sir")
+
+    async def test_english_move_words_keep_a_named_weapon_armed(self):
+        import weapon_attack
+        await self.begin()
+        self.world["inventory"].append("Greatsword")
+        for line in ("I swing my greatsword in a triple strike", "I swing my greatsword and strip his belt",
+                     "I swing my greatsword, kicking up dust", "I swing my greatsword on a day trip",
+                     "I swing my greatsword as he slaps it away"):
+            with self.subTest(line=line):
+                self.assertEqual(weapon_attack.natural_choice(self.session, line)[0], "greatsword")
+        self.assertEqual(weapon_attack.natural_choice(self.session, "I kick the guard")[0], "unarmed")
+        self.assertEqual(weapon_attack.natural_choice(self.session, "I punch the guard")[0], "unarmed")
 
 
 if __name__ == "__main__":

@@ -1169,14 +1169,16 @@ _KNOCK_OUT = re.compile(
 _KILL = re.compile(r"\boldur(?:uyorum|ecegim|ecem|ucem|cem|eyim|ucu\w*)\b")
 
 
-_BARE_HAND_MOVE = re.compile(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum|punch|kick|slap|trip")
+_BARE_HAND_MOVE = re.compile(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum")
+# English bare-hand moves (4A): whole words only, and a weapon the words name keeps the blow armed ("kicking up dust").
+_BARE_HAND_ENGLISH = re.compile(r"\b(?:punch(?:es|ed|ing)?|kick(?:s|ed|ing)?|slap(?:s|ped|ping)?)\b")
 # Owner-approved vocabulary (Task 41, 2026-11-10), a named exception to the no-word-list rule: a trip is the 2024
 # Shove (knocked Prone), read only when the words name no weapon of theirs and no other move.
-_TRIP_WORDS = re.compile(r"\b(?:celme|devir|dusur)\w*")
+_TRIP_WORDS = re.compile(r"\b(?:celme|devir|dusur)\w*|\btrip(?:s|ped|ping)?\b")
 
 
 def _trip(normalized, selected):
-    return not selected and not _BARE_HAND_MOVE.search(normalized) and bool(_TRIP_WORDS.search(normalized))
+    return not selected and not _BARE_HAND_MOVE.search(normalized) and not _BARE_HAND_ENGLISH.search(normalized) and bool(_TRIP_WORDS.search(normalized))
 
 
 def _named_owned_weapons(session, normalized, owned, held):
@@ -1205,7 +1207,7 @@ def weapons_named(session, text):
 def names_a_move(session, text):
     """The words name a move natural_choice reads: a weapon the player owns, or a bare-hand move (punch, grapple, shove, trip)."""
     normalized = session._normalize_turkish_typos(text)
-    return bool(_BARE_HAND_MOVE.search(normalized) or _TRIP_WORDS.search(normalized)
+    return bool(_BARE_HAND_MOVE.search(normalized) or _BARE_HAND_ENGLISH.search(normalized) or _TRIP_WORDS.search(normalized)
                 or _named_owned_weapons(session, normalized, _owned_weapon_ids(session), []))
 
 
@@ -1222,7 +1224,7 @@ def natural_choice(session, text):
             if weapon["weapon_id"] in owned]
     selected = _named_owned_weapons(session, normalized, owned, held)
     trip = _trip(normalized, selected)
-    unarmed = bool(_BARE_HAND_MOVE.search(normalized)) or trip
+    unarmed = bool(_BARE_HAND_MOVE.search(normalized)) or trip or (bool(_BARE_HAND_ENGLISH.search(normalized)) and not selected)
     # A mug, a bottle, a stool: the reading named a thing that is no weapon of theirs, so the sword stays out of it.
     # A blow asked about and said yes to names no weapon of theirs either: the weapon in hand was never in the words.
     unarmed = unarmed or bool(isinstance(strike, dict) and (strike.get("with") or said) and not selected)
