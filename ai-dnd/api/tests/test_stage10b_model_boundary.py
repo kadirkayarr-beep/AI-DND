@@ -8,9 +8,16 @@ import game
 from api.model_phase import ModelFailure, only_resolved_narration_failures, resolved_narration_scope
 from api.persistence.campaign_models import CampaignStorageError
 from api.tests.test_explicit_shop_creation import ShopTransactionTests, REQUEST
+from api.tests.town_seed import fixed_town
+
+TOWN_SEED = 4301  # a new campaign's town (its posted work too) comes from its id; pinned so every run meets the same town
 
 
 class ModelBoundaryTests(ShopTransactionTests):
+    async def asyncSetUp(self):
+        with fixed_town(self, TOWN_SEED):
+            await super().asyncSetUp()
+
     async def test_resolved_transport_failure_persists_and_replays_without_retry(self):
         self.model.chat.side_effect = RuntimeError("private-sentinel")
         await self.test_creation_replay_duplicate_resume_and_session_isolation()
@@ -46,7 +53,10 @@ class ModelBoundaryTests(ShopTransactionTests):
         body = {"message": REQUEST, "action_id": str(uuid.uuid4())}
         reply = await self.http.post(self.url, json=body)
         self.assertEqual(reply.status_code, 200, reply.text)
-        self.assertEqual(reply.json()["narration"], "Burada küçük bir yerel dükkân var; başında bir dükkâncı duruyor.")
+        # The malformed reply is dropped for the resolved shop line; the town's once-a-day board line (posted work is
+        # there from the opening on) follows it as the turn's world reaction, which is not narration.
+        self.assertEqual(reply.json()["narration"], "Burada küçük bir yerel dükkân var; başında bir dükkâncı duruyor. "
+                                                    "Köşedeki ilan panosuna yeni kâğıtlar çivilenmiş.")
         self.assertEqual(len(self.record.game_session.world_state["shops"]), 1)
         self.assertEqual(self.model.chat.call_count, 1)
 
