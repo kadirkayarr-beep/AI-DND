@@ -792,14 +792,19 @@ _EN_SUBJECT = r"\b(?:i|we|let me|let['’]?s)"
 _EN_LEAD = (r"(?:['’](?:m|ll|d|re)|\s+(?:am|are|will|shall|go|going|gonna|to|want|wanna|try|lie|down|back|now|then"
             r"|just|finally|need|should|would|can|could|must|get|some|like|decide|decided|plan|ready|have))*")
 # Fix round 2: "I lie down and sleep", "I make camp, then sleep": a short clause of the player's own (at most five
-# words, none a no, another person or an order to someone), then "and"/"then", then the sleep.
-_EN_NOT_MINE = r"(?:not|never|no|without|he|she|they|him|her|them|tell|ask|order|let)"
+# words, none a no, another person, an order to someone, someone seen, heard or waited for, or a spell cast), then
+# "and"/"then", then the sleep, not "again" (fix round 3: "I watch the dragon wake and sleep again" is the dragon's).
+# A miss goes to the model and moves no time; a false sleep is an 8-hour Long Rest, so an unclear line is no sleep.
+_EN_NOT_MINE = (r"(?:not|never|no|without|he|she|they|him|her|them|tell|ask|order|let"
+                r"|watch|watching|see|seeing|hear|wait|cast|again)")
 _EN_OWN_CLAUSE = rf"(?:\s+(?!{_EN_NOT_MINE}\b)[\w'’]+(?<!n't)(?<!n’t),?){{1,5}}\s+(?:and\s+then|and|then)"
+_EN_SLEEP_WORD = r"\s+(?:sleep|to bed)(?![\w-])"  # "sleep-dart" is a dart, not a sleep
 _SLEEPING = re.compile(
     r"\buyu(?:yorum|rum|yacag\w*|yacam|ycam|cam|yayim|yalim|yup|ya)\b|\buykuya dal\w*|\bkiril\w*\s+uyu"
     r"|\byat(?:iyorum|acagim|acam|icam|ayim|alim)\b"
-    rf"|{_EN_SUBJECT}(?:{_EN_OWN_CLAUSE})?{_EN_LEAD}\s+(?:sleep|to bed)\b"
-    rf"|{_EN_SUBJECT}(?:['’](?:m|re)|\s+am|\s+are)\s+sleeping\b")
+    rf"|{_EN_SUBJECT}{_EN_LEAD}{_EN_SLEEP_WORD}"
+    rf"|{_EN_SUBJECT}{_EN_OWN_CLAUSE}{_EN_LEAD}{_EN_SLEEP_WORD}(?!\s+again\b)"
+    rf"|{_EN_SUBJECT}(?:['’](?:m|re)|\s+am|\s+are)\s+sleeping(?![\w-])")
 # "dinlen" in English: "I rest", "a long rest", "I rest on the bench". The noun ("the rest", "the rest of the night")
 # and a hand rested somewhere ("I rest my hand on the hilt") are no rest.
 _RESTING = re.compile(r"(?<!the )\brest(?:ing)?\b(?!\s+(?:of|my|his|her|their|our|your)\b)")

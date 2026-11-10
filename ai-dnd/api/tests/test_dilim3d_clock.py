@@ -328,6 +328,16 @@ class EnglishClockParity(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual((en.delta, en.action, en.long_rest_at), (8 * 3600, "rest", 8 * 3600))
                     self.assertEqual(tuple(en), tuple(tr))
 
+    async def test_a_sleep_word_that_is_no_sleep_of_the_players_moves_no_time(self):
+        # Fix round 3 (re-review 2): these took an 8-hour Long Rest; now no timed owner takes them
+        for line in ("I sneak in and sleep-dart the guard", "We fight and sleep-dart them",
+                     "I watch the dragon wake and sleep again"):
+            for front in (None, {"kind": "attempt"}):
+                with self.subTest(line=line, front=front):
+                    outcome = await self.outcome(line, front=front)
+                    self.assertEqual((outcome.delta, outcome.long_rest_at), (0, None))
+                    self.assertNotIn(outcome.action, {"wait", "rest"})
+
 
 class EnglishTimedOwners(unittest.TestCase):
     """The timed owners read English sleep, wait, rest and their no as they read the Turkish words."""
@@ -364,7 +374,14 @@ class EnglishTimedOwners(unittest.TestCase):
                      # fix round 2: the "... and sleep" form keeps someone else's sleep and a no out
                      "I tell the guard to go and sleep", "I watch him eat and sleep", "I don't eat and sleep",
                      "I never camp and sleep here", "the guard eats and sleeps", "they camp and sleep",
-                     "I search the room and the sleeping man"):
+                     "I search the room and the sleeping man",
+                     # fix round 3: a sleep-word compound, someone seen or waited for, a spell, a sleep "again" after
+                     # another clause: ambiguous lines are left to the model (a miss moves no time; a false sleep is 8 h)
+                     "I sneak in and sleep-dart the guard", "We fight and sleep-dart them", "I sleep-dart him",
+                     "I watch the dragon wake and sleep again", "I see the guard fall and sleep",
+                     "I wait for the dragon to wake and sleep", "I cast Sleep and sleep", "I cast sleep, then sleep",
+                     "I hear him yawn and sleep", "I lie down and sleep again", "I cast Sleep on the guard",
+                     "I cast Sleep and watch them fall", "Sleep spell on the goblins", "I am sleeping-walking"):
             with self.subTest(line=line):
                 self.assertFalse(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
 
@@ -375,7 +392,8 @@ class EnglishTimedOwners(unittest.TestCase):
                      "We camp and sleep through the night", "I settle in and sleep until dawn", "I would like to sleep",
                      "I'd like to sleep", "I decide to sleep", "I decided to sleep", "I plan to sleep", "I need to sleep",
                      "I have to sleep", "I'm ready to sleep", "I eat, then sleep", "I eat and then sleep",
-                     "I lie down and go to sleep"):
+                     "I lie down and go to sleep", "I eat dinner and sleep", "I wash up, then sleep",
+                     "I sleep again"):  # "again" is refused only after another clause (fix round 3)
             with self.subTest(line=line):
                 self.assertTrue(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
 
