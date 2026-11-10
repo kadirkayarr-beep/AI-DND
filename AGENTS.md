@@ -48,3 +48,7 @@ Read these first:
 ## Yeni izole serbest diyalog adayı
 
 Güncel kapsam, temiz kampanya, doğrulama ve arşiv durumu: [Oynanabilir diyalog rehberi](ai-dnd/docs/PLAYABLE_DIALOGUE.md). `free_v1` yalnız yeni kampanyada seçilir. Bu adayın hazırlanması canlı kabul, push veya merge anlamına gelmez.
+
+## Çalışma ve test kuralları
+
+Çalışma, test ve ajan disiplini için `CLAUDE.md` ("Çalışma ve test disiplini") ve `docs/agents/implementer-preamble.md` geçerlidir.

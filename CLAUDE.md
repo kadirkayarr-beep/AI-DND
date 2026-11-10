@@ -6,7 +6,7 @@ Rules:
 - When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- Run `graphify update .` (AST-only, no API cost) once at the end of a task and before handing a diff to review, not after every edit; keep `graphify-out` ready in every long-lived worktree. The graph is a navigation aid, not a substitute for reading: most bugs live in JSON content (templates, catalogs, menu tables) and dynamic paths, which the AST graph cannot see.
 - graphify-out/ is local-only and gitignored on this shared branch (it is rewritten whole on every build); do not commit it.
 
 # CLAUDE.md
@@ -88,3 +88,30 @@ Varsayılan beş etiket: needs-triage, needs-info, ready-for-agent, ready-for-hu
 ### Domain docs
 
 Tek bağlam (single-context): kökte `GLOSSARY.md` ve `docs/adr/`. Bkz. `docs/agents/domain.md`.
+
+## Çalışma ve test disiplini (Dilim 3 dersleri)
+
+**Ana ilke:** kalite ve güvenlik kaybına müsamaha göstermeden işi hızlandırmak. Bir kural hız için kaliteyi ya da güvenliği zayıflatıyorsa uygulanmaz ve kullanıcıya bildirilir; kaliteye ya da güvenliğe katkısı olmayan bir adım hızı yavaşlatıyorsa budanır. Çelişkide kalite ve güvenlik kazanır.
+
+- **[Güvenlik] İzolasyon:** her iş kendi worktree'sinde yapılır, aynı worktree'de tek yazıcı çalışır. main/dev'e push veya merge yalnızca kullanıcının onayıyla yapılır.
+- **[Kalite] Sabit kasaba:** (`town_seed.py` ve `campaign_seed` yalnız Dilim 3 dalında var; dal birleşince bu not silinir) yeni kampanya başlatan her test kampanya tohumunu sabitler (`api/tests/town_seed.py` → `fixed_town`; yolculuk senaryolarında `campaign_seed`). Kasaba kampanya kimliğinden üretilir; rastgele kimlik rastgele kırıklara yol açar.
+- **[Kalite] Sabit komşu seti (atlanamaz; hızlı katman da bunu içerir):** her görevin hedefli testlerine ayrıca şunlar girer: `api.tests.test_journey_runner`, `test_journey_report`, `test_journey_schema`, `test_journeys`. Yeni numaralı senaryo eklenirse rapor tablosuna türü de eklenir.
+- **[Hız] Tam paket:** yalnız dilim sonunda ve planda ara kapı olarak işaretlenen kilometre taşlarında; her görevde değil.
+- **[Güvenlik] İnceleme seviyesi:** para, kayıt ve Geri Al'a dokunan iş için bağımsız inceleme ve en güçlü model; yalnız test düzeltmesi ya da küçük kırmızı-yeşil düzeltme için ucuz kapsamlı yeniden inceleme. Önce kırmızı test, sonra düzeltme. Para/kayıt/Geri Al'a dokunmayan, tek satırlık ya da yalnız metin/ek düzeltmede ve kırmızı-yeşil testi olduğunda yeniden inceleme atlanabilir; bu ledger'a "Ruling" olarak yazılır ve dilim sonu bütün dal incelemesi kapsar.
+- **[Kalite] Bilinen kırıklar:** bir görevin hedefli koşusu başka yerde kırık gösterirse kökeni commit'e kadar izlenir (hangi Dilim commit'i getirdi); "zaten kırıktı" kabul edilmez. Gerçekten eskiyse deftere yazılır. Kırık rastgele (flake) ise bisect yapılmaz, tohum sabitlenir; aynı kodda yinelenen koşuda sonuç değişiyorsa flake sayılır. Köken bulunamazsa deftere "kökeni bilinmiyor" yazılır ve kapıya etkisi değerlendirilir.
+- **[Hız] Belirsizlik ve karar:** çalışan bir plan insan beklemez. Dur ve sor yalnız dört durumda: geri alınamaz/yıkıcı işlem; güvenlik açısından hassas işlem (anahtar, harcama dahil); worktree dışı yan etki (main/dev'e push veya merge, yayın); her yolu tahmine bırakan bozuk plan. Diğer her belirsizlikte karar ver ve ledger'a `Ruling: <karar> — <neden> — <yanlışsa maliyeti>` yaz; yanlış karar geri alınabilir, bekleyen oturum geri alınamaz.
+- **[Hız] Park etme:** küçük bulgular deftere "park" olarak yazılır, çekirdek işi durdurmaz; kapıyı (ara kapı, dilim sonu) etkileyen kırık durdurur. Parklar dilim sonu karar/devir listesinde toplanır; sahipsiz park bırakılmaz.
+- **[Kalite] Test yeniden yazımı:** eski davranışı sabitleyen testler ancak eşit sıkılıkla yeniden yazılır ve onay listesine girer (sınırı yeniden tanımlayan her değişiklik açıkça "gevşetme olabilir" diye işaretlenir); işaretli değişiklik işi durdurmaz ama onay listesine girer; işaretsiz gevşetme, atlama ya da silme işi durdurur.
+
+### Hız kuralları (güvenlik ve kaliteden ödün vermeden)
+
+*Ledger = çalışmakta olan planın `.superpowers/sdd/<plan>/progress.md` dosyası. 1. ve 2. maddeler pilottur: dilim sonunda (devir görevinde) ledger'daki ölçümle tutulur, budanır ya da değiştirilir.*
+
+1. **[Hız] Çakışan inceleme:** görev N'nin bağımsız incelemesi sürerken görev N+1'in implementer'ı başlayabilir. İnceleme, incelenen commit'in `git archive <sha>` kopyasını ayrı slotta (slot 3) koşar; slot.sh varsayılanı çalışma ağacını yığar, NOSTAGE=1 ise yalnız o anki HEAD'i arşivler, ikisi de çakışan incelemede başka commit'i ya da yarım işi test eder, bu yüzden kullanılmaz. Implementer kendi slotunda (slot 2) çalışır. Düzeltme turu, N+1'in implementer'ı rapor verip durduktan sonra (N+1'in incelemesinden önce) N'nin implementer'ına yaptırılır ve N+1'in üstüne biner; iki implementer asla aynı anda yazmaz. Yalnız N+1, N'nin çıktısını (arayüz, veri, test yardımcısı) tüketmiyorsa ve brifteki dosya listeleri çakışmıyorsa uygulanır; aksi hâlde sırayla yapılır. **Pilot:** kazanç ölçülmedi; ledger'a görev başına süre ve düzeltme turu sayısı yazılır.
+2. **[Kalite] İmplementer kontrol listesi:** her implementer istemine `docs/agents/implementer-preamble.md` konur (kontrol listesi a–g ve graphify/brif kuralları orada; inceleme bulgularından süzülmüştür); her madde cevaplanır, uygulanmıyorsa "uygulanmaz" ve nedeni yazılır. **Ölçüm:** ledger'a görev başına düzeltme turu sayısı yazılır; liste turları azaltmıyorsa budanır.
+3. **[Hız] Brifler:** graphify kuralları yukarıdaki graphify bölümündedir ve implementer önsözüne girer; görev brifleri satır numarası değil işlev/dosya adı verir (satır numaraları bayatlar).
+4. **[Hız] Hızlı katman:** görev içi döngüde önce hızlı set (yeni testler + komşu geçit seti, hedef birkaç dakika), uzun set görev sonunda bir kez. Yavaş modüller ölçülür (kampanyayı her testte yeniden yaratan sınıflarda yalnız değişmeyen kurulum `setUpClass`'ta paylaşılır, her test derin kopya alır; paylaşılan değişebilir dünya yasak) ve ölçüm ledger'a yazılır; sayı tahmin edilmez.
+5. **[Hız] Paketleme:** küçük, aynı şekilli ve bağımsız görevler (cila, ufak metin/etiket düzeltmeleri, 3b maddeleri) tek implementer'a tek brifle verilir ve tek diff olarak incelenir. Kendi karar, test ya da inceleme yüzeyi gerektiren iş paketlenmez.
+6. **[Hız] Bekleme döngüleri:** bir testi ya da çıktı dosyasını bekleyen döngünün her zaman üst süresi olur (testin planlanan süresi + pay); süre dolunca döngü kendiliğinden biter ve log'a bakılır. Test bitince ya da iş iptal edilince bekleyen döngü kapatılır. Bir ajan beklediği testin sonucunu zaten gördüyse artık beklemez; açık kalan döngü ajanın raporunu saatlerce geciktirir (Dilim 3'te 9-11 saat). Oturum sonunda ve her dilim sonunda açık `bash`/`sleep` süreçleri kontrol edilir.
+
+**[Güvenlik] Dokunulmaz:** para/kayıt/Geri Al için bağımsız inceleme, sıfır tolerans yolculukları, dilim sonu tam paket ve bütün dal incelemesi (en güçlü model), main/dev'e yalnız kullanıcı onayıyla merge.
