@@ -160,6 +160,22 @@ class ClockTests(unittest.TestCase):
         session.advance_campaign_time(1000, "explicit_wait")
         self.assertEqual(events.public_events(session.world_state)[0]["summary"], "Toplantı sürüyor.")
 
+    def test_a_rest_said_no_to_does_not_stop_the_journey_going_on(self):
+        # Task 41 review I2: 'dinlenmeden' says no to a rest only; the journey still goes on by the line.
+        session = scene()
+        with patch.object(session.rng, "randint", side_effect=[1, 2, 6, 6]):
+            timed_gameplay.start_travel(session, "forest")
+            turn(session, "Yolculuğu durduruyorum.")
+            continuation = turn(session, "dinlenmeden yola devam ediyorum")
+        self.assertEqual(continuation["action_result"]["status"], "stage_completed")
+        # The line's own wait is still the deterministic owner's: eight hours, told as a wait, no Long Rest.
+        session = scene()
+        clock_before = session.world_state["campaign_time"]["elapsed_seconds"]
+        waited = timed_gameplay.resolve_input(session, "uyumadan sekiz saat bekliyorum")
+        self.assertEqual((waited["action"], waited["time_result"]["reason"]), ("wait", "explicit_wait"))
+        self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"] - clock_before, 8 * 3600)
+        self.assertNotIn("last_long_rest_completed_at", session.world_state)
+
     def test_travel_dice_no_event_and_decisions(self):
         session = scene()
         with patch.object(session.rng, "randint", side_effect=[1, 2, 6, 6]):

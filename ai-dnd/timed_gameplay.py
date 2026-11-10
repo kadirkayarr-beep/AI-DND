@@ -802,9 +802,11 @@ def input_route_markers(world, normalized):
 
 
 # Task 41 (owner-approved vocabulary, 2026-11-10): the negated rest forms ("dinlenmeden iki saat nöbet tutuyorum");
-# followed by "önce" they are "before resting/sleeping", no "no".
+# followed by "önce" they are "before resting/sleeping", no "no". They say no to the rest only, not to the line
+# (a named subset: "dinlenmeden yola devam ediyorum" still goes on).
+_NO_REST_ONLY = ("dinlenmeden", "uyumadan", "dinlenmeksizin", "uyumaksizin")
 _SAID_NO = re.compile(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir"
-                      r"|(?:dinlenmeden|uyumadan|dinlenmeksizin|uyumaksizin)(?!\s+once\b))\b")
+                      rf"|(?:{'|'.join(_NO_REST_ONLY)})(?!\s+once\b))\b")
 _UNNAMED_WAIT = 600  # "bekliyorum" with no length: a short while, not a form to fill in
 
 
@@ -905,7 +907,7 @@ def resolve_input(session, text):
             return decision
     if "kararim:" in normalized:
         normalized = normalized.split("kararim:", 1)[1]
-    if _SAID_NO.search(normalized):
+    if any(word not in _NO_REST_ONLY for word in _SAID_NO.findall(normalized)):
         return None
     journey = world.get("journey")
     movement, wait, task, passive_observation = input_route_markers(world, normalized)
@@ -961,7 +963,8 @@ def resolve_input(session, text):
         observation = {"kind": "observe", "location_id": world["location"]} if passive_observation and not (
             journey and journey["status"] != "ARRIVED"
         ) else None
-        advancement = _advance(session, duration, "sleep" if "uyu" in normalized else "explicit_wait", observation)
+        slept = "uyu" in normalized and not _SAID_NO.search(normalized)  # "uyumadan sekiz saat": a wait, no sleep
+        advancement = _advance(session, duration, "sleep" if slept else "explicit_wait", observation)
         import bold_acts
         seen = bold_acts.fire_line(world)
         return _result("wait", f"{_time_passed_line(advancement)} {seen}".strip(), advancement)
