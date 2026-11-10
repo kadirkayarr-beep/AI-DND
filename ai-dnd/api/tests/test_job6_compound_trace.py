@@ -1,5 +1,5 @@
 """Task-only fixed-seed diagnostic executing the original compound oracle unchanged."""
-import copy,functools,hashlib,json,unittest
+import contextlib,copy,functools,hashlib,json,unittest
 from unittest.mock import patch
 import game, living_world, name_catalog, uuid, types, itertools
 from api import session_manager
@@ -27,6 +27,8 @@ class CompoundTrace(unittest.IsolatedAsyncioTestCase):
         self.enterContext(patch.object(name_catalog, 'adopt', lambda world: None))
         sequence = itertools.chain([uuid.UUID(cid)], (uuid.UUID(int=10000+i, version=4) for i in itertools.count()))
         self.enterContext(patch.object(session_manager, 'uuid', types.SimpleNamespace(uuid4=lambda: next(sequence))))
+        # The reused setUp pins its own town (fixed_town) inside this patch and would replace the frozen campaign above.
+        self.enterContext(patch.object(original, 'fixed_town', lambda test, seed: contextlib.nullcontext()))
         factory=game.create_session
         self.enterContext(patch.object(game,'create_session',side_effect=lambda:factory(seed=2108)))
         self.trace=[]
