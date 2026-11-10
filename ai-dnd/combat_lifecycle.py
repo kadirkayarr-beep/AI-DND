@@ -312,14 +312,12 @@ def stand_down(session, action_id=None, session_id=None):
     return result
 
 
-# An English yes (Dilim 4A): its own small pattern, so the claim-acceptance words of game.py stay as they are. An English
-# no, not, never, without, n't or any question mark voids it: a wrong blow at the wrong person cannot be taken back.
-_ENGLISH_YES = re.compile(r"\b(?:yes|yeah|yep|sure|ok|okay|do it)\b")
-_ENGLISH_YES_LEADS = re.compile(r"\W*(?:yes|yeah|yep|sure|ok|okay|do it)\b")
-_ENGLISH_NO = re.compile(r"\b(?:no|not|never|without|dont)\b|n['’]t\b")
-
-
-_ENGLISH_WORDS = re.compile(r"\b(?:the|me|my|about|tell|he|she|him|her|them|you)\b")
+# An English yes (Dilim 4A): decided only for a line that LEADS with an English yes-word, so no Turkish word is ever read
+# as English (Turkish "ok" is an arrow). An English no, not, never, n't or any question mark voids it, and so do the English
+# twins of the Turkish guards (a condition, a threat, a hold word): a wrong blow at the wrong person cannot be taken back.
+_ENGLISH_YES_LEADS = re.compile(r"\W*(?:yes|yeah|yep|sure|okay|ok|do it)\b")
+_ENGLISH_NO = re.compile(r"\b(?:no|not|never|dont)\b|n['’]t\b")
+_ENGLISH_NOT_NOW = re.compile(r"\b(?:if|when|unless|until|once|threaten\w*|wait|later|hold|stop|hang)\b")
 _THEM = re.compile(r"\b(?:him|her|them)\b")
 
 
@@ -338,25 +336,22 @@ def _says_yes(session, message, blow=None):
     """A short yes, or a yes that leads a longer line still standing behind the blow ('Evet, adamı itiyorum')."""
     import game
     text = session._normalize_turkish_typos(str(message))
-    english = str(message).lower()
-    english_yes = _ENGLISH_YES.search(english) is not None
-    if english_yes:
-        if (_ENGLISH_NO.search(english) or "?" in english or game._CLAIM_REJECTION_RE.search(text) is not None):
+    spoken = living_world._text_outside_quotes(str(message)).lower()  # a yes or a blow only quoted is nobody's act
+    if _ENGLISH_YES_LEADS.match(spoken) is not None:
+        if (_ENGLISH_NO.search(spoken) or "?" in spoken or _ENGLISH_NOT_NOW.search(spoken)
+                or game._CLAIM_REJECTION_RE.search(text) is not None):
             return False
-        leads = _ENGLISH_YES_LEADS.match(english) is not None
-    else:
-        if game._CLAIM_ACCEPTANCE_RE.search(text) is None or game._CLAIM_REJECTION_RE.search(text) is not None:
-            return False
-        leads = game._CLAIM_ACCEPTANCE_RE.match(text.split()[0]) is not None
+        if len(spoken.split()) <= 4:
+            return True
+        # A long yes in English needs the move in its own words, aimed at the person asked about: "Yes, tell me about
+        # the guard", "Yes, I punch the wall" start nothing.
+        return game._blow_stands(spoken) and _move_at_the_person(session, spoken, blow)
+    if game._CLAIM_ACCEPTANCE_RE.search(text) is None or game._CLAIM_REJECTION_RE.search(text) is not None:
+        return False
     if len(text.split()) <= 4:
         return True
-    if not (leads and game._blow_stands(message)):
-        return False
-    # A long yes in English needs the move in its own words, aimed at the person asked about: "Yes, tell me about
-    # the guard", "Yes, I punch the wall" start nothing. A line in Turkish keeps the Turkish rule as it was.
-    if english_yes or _ENGLISH_WORDS.search(english):
-        return _move_at_the_person(session, message, blow)
-    return True
+    leads = game._CLAIM_ACCEPTANCE_RE.match(text.split()[0]) is not None
+    return leads and game._blow_stands(message)
 
 
 def answered_attack_question(session, message):
