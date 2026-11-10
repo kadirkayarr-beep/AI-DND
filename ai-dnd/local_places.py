@@ -551,6 +551,12 @@ _TIME_OF_DAY_LINES = {
     "evening": "Akşamın loşluğu çökmeye başlamış.",
     "night": "Gece olmuş; içerisi loş ve sessiz.",
 }
+_OPEN_AIR_TIME_LINES = {
+    "dawn": "Şafağın soluk ışığı çevreye yayılıyor.",
+    "day": "Gün ışığı her yeri aydınlatıyor.",
+    "evening": "Akşamın loşluğu çökmeye başlamış.",
+    "night": "Gece olmuş; çevre karanlık ve sessiz.",
+}
 
 
 def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *, first_visit: bool) -> str:
@@ -569,14 +575,19 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
     burning = bold_acts.is_burnt_or_burning(world, record["id"])
     back = (f"Yeniden buradasın: {record['name']}." if spec.get("open_air")
             else f"Yeniden {record['name']} içindesin.")
+    time_lines = _OPEN_AIR_TIME_LINES if spec.get("open_air") or spec.get("outdoors") else _TIME_OF_DAY_LINES
     if first_visit and spec.get("outdoors"):
         parts.append(spec.get("first_line", "Kent kapısı geride kalıyor; yol seni surların dışına çıkarıyor: {name}.")
                      .format(name=record["name"]))
         parts.append(str(record.get("description") or ""))
+        if clock:
+            parts.append(time_lines[clock["time_of_day"]])
     elif first_visit:
         parts.append(f"{record['name']} karşına çıkıyor." if spec.get("open_air")
                      else f"{record['name']} karşına çıkıyor ve içeri adım atıyorsun.")
         parts.append(str(record.get("description") or ""))
+        if clock:
+            parts.append(time_lines[clock["time_of_day"]])
     elif spec.get("outdoors"):
         parts.append(f"Yeniden surların dışındasın: {record['name']}.")
     elif burning:
@@ -587,7 +598,7 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
     else:
         parts.append(back)
         if clock and away >= AWAY_SECONDS:
-            parts.append(_TIME_OF_DAY_LINES[clock["time_of_day"]])
+            parts.append(time_lines[clock["time_of_day"]])
     if isinstance(feature, dict) and not burning:
         parts.append(str(feature.get("description") or ""))
     if isinstance(npc, dict) and npc.get("combat_status") != "dead" and npc.get("location") == record["id"]:

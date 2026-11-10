@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import game
 import interaction_adventure as adventure
+import campaign_time
 import local_places
 from api.tests import test_campaign_api as fixtures
 from api.tests.test_interaction_adventure import envelope, npc as adventure_npc, session as adventure_session
@@ -51,6 +52,61 @@ class SpeechForm(unittest.TestCase):
 def harbor_world():
     record = {"id": "p", "name": "Liman İskelesi", "place_kind": "harbor", "description": "Tuzlu rüzgâr."}
     return {"locations": {"p": record}, "npcs": [], "flags": {}}, record
+
+
+def clocked(kind, name, hour):
+    record = {"id": "p", "name": name, "place_kind": kind, "description": "Tarif."}
+    world = {"locations": {"p": record}, "npcs": [], "flags": {}}
+    campaign_time.initialize(world)
+    world["campaign_time"]["start_second"] = hour * 3600
+    return world, record
+
+
+def back_after(world, record, seconds):
+    local_places.arrival_text(world, record, None, None, first_visit=True)
+    world["campaign_time"]["elapsed_seconds"] += seconds
+    return local_places.arrival_text(world, record, None, None, first_visit=False)
+
+
+class OpenAirClock(unittest.TestCase):
+    def test_open_air_return_never_says_inside(self):
+        for kind in ("harbor", "market", "graveyard"):
+            for hour in (6, 12, 18, 22):
+                with self.subTest(kind=kind, hour=hour):
+                    world, record = clocked(kind, "Yer", hour)
+                    text = back_after(world, record, 1800)
+                    self.assertNotIn("içeri", text)
+                    self.assertNotIn("içerisi", text)
+                    self.assertTrue(text.startswith("Yeniden buradasın: Yer."), text)
+
+    def test_open_air_return_line_is_the_period_line(self):
+        world, record = clocked("harbor", "Yer", 22)
+        self.assertIn("Gece olmuş; çevre karanlık ve sessiz.", back_after(world, record, 1800))
+
+    def test_a_building_keeps_its_inside_period_line(self):
+        world, record = clocked("smithy", "Demirhane", 22)
+        self.assertIn("Gece olmuş; içerisi loş ve sessiz.", back_after(world, record, 1800))
+
+    def test_first_visit_tells_the_period_after_the_description(self):
+        world, record = clocked("graveyard", "Mezarlık", 18)
+        text = local_places.arrival_text(world, record, None, None, first_visit=True)
+        self.assertTrue(text.startswith("Mezarlık karşına çıkıyor. Tarif. Akşamın loşluğu çökmeye başlamış."), text)
+
+    def test_first_visit_inside_a_building_uses_the_inside_line(self):
+        world, record = clocked("smithy", "Demirhane", 6)
+        self.assertIn("Tarif. Şafağın soluk ışığı içeri süzülüyor.",
+                      local_places.arrival_text(world, record, None, None, first_visit=True))
+
+    def test_short_return_and_outdoors_return_have_no_period_line(self):
+        world, record = clocked("harbor", "Yer", 12)
+        self.assertNotIn("Gün ışığı", back_after(world, record, 600))
+        world, record = clocked("waystation", "Han Yolu", 12)
+        self.assertNotIn("Gün ışığı", back_after(world, record, 7200))
+
+    def test_no_clock_no_period_line(self):
+        world, record = harbor_world()
+        text = local_places.arrival_text(world, record, None, None, first_visit=True)
+        self.assertEqual(text, "Liman İskelesi karşına çıkıyor. Tuzlu rüzgâr.")
 
 
 class OpenAirArrival(unittest.TestCase):
