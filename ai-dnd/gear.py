@@ -18,7 +18,8 @@ from weapon_catalog import lookup
 
 @dataclass(frozen=True)
 class GearResult:
-    status: Literal["drawn", "already_held", "not_a_weapon", "not_in_bag", "refused"]
+    status: Literal["drawn", "already_held", "not_a_weapon", "not_in_bag", "refused",
+                    "donned", "not_down", "no_shield", "hands_full", "no_action"]
     item: dict | None
 
 
@@ -83,6 +84,42 @@ def settle_shield(world, character) -> int:
     character["armor_class"] -= share
     down["ac_bonus"] = share
     return share
+
+
+def don_shield(world, character, *, session=None) -> GearResult:
+    """Put the shield a two-handed weapon made `settle_shield` put down back on the arm, in one step (Dilim 4A, Task 5):
+    the Armor Class share returns to the character and the record `world["shield_down"]` is cleared together. A creation
+    shield has no hand entry, so `equipment` does not change. Anything but a clean "donned" changes nothing: the whole
+    result is checked on a copy first and the live world and character are written last. In a fight (`session` given,
+    combat active) it is the Utilize action, spent once; none left is "no_action" and nothing changes."""
+    down = world.get("shield_down")
+    bonus = down.get("ac_bonus") if isinstance(down, dict) else None
+    if type(bonus) is not int or bonus < 0:
+        return GearResult("not_down", None)  # no shield put down, or its share was never taken off
+    shield = next((item for item in _bag(world) if item.get("item_id") == down.get("item_id")), None)
+    if shield is None:
+        return GearResult("no_shield", None)  # the recorded shield is not in the bag any more
+    hands = world.get("equipment") or {}
+    main = hands.get("main_hand")
+    weapon = wielded(world)
+    if hands.get("off_hand") is not None or (main is not None and (weapon is None or any(
+            word in _data(weapon).get("properties", []) for word in ("two_handed", "two-handed")))):
+        return GearResult("hands_full", shield)  # a two-handed weapon (or a hand not read) leaves no arm for it
+    candidate_world, candidate = copy.deepcopy(world), copy.deepcopy(character)
+    del candidate_world["shield_down"]
+    candidate["armor_class"] += bonus
+    if (candidate.get("armor_origin") is not None
+            and character_progression._verified_armor_origin(candidate, candidate_world) is None):
+        return GearResult("not_down", None)  # the total would not follow its origin: the save would not load
+    if session is not None and world.get("combat", {}).get("active"):
+        import action_economy
+        try:
+            action_economy.consume_action(session, "player", "utilize")  # validates first; raises before any change
+        except action_economy.CombatRequestError:
+            return GearResult("no_action", shield)
+    del world["shield_down"]
+    character["armor_class"] += bonus  # the character last
+    return GearResult("donned", shield)
 
 
 def draw(world, item_id, *, character=None) -> GearResult:

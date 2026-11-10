@@ -19582,8 +19582,10 @@ def _front_wield(route, player_input):
     hand, another one is taken only when the words name it: 'silahımı kaldırıp' is the one in hand (Dilim 3, Task 30).
     In a fight the draw is the turn's one free object interaction (Task 35)."""
     import action_economy
+    import equipment_economy
     import gear
     import weapon_attack
+    from api.dnd_2024_rules import SHIELD_ITEM_TOKENS
     from weapon_catalog import lookup
     session = _session()
     session.require_player_can_act()
@@ -19598,6 +19600,28 @@ def _front_wield(route, player_input):
     fighting = world.get("combat", {}).get("active")
     if fighting and world["combat"].get("current_actor_id") != "player":
         refusals.note(session, "out_of_turn")
+        return
+    down = world.get("shield_down")
+    if route.get("item") and isinstance(down, dict) and down.get("item_id") == route["item"]:
+        # The shield a two-handed weapon put down goes back on the arm in one step; in a fight it is a Utilize action,
+        # not the free object interaction (Dilim 4A, Task 5).
+        result = gear.don_shield(world, session.character, session=session)
+        if getattr(session, "_turn_notes", None) is None:
+            session._turn_notes = []
+        if result.status == "donned":
+            session._turn_notes.append((None, f"bu tur: {result.item['name']} koluna takıldı"))
+        elif result.status == "hands_full":
+            refusals.note(session, "invalid_hands")
+        elif result.status == "no_action":
+            refusals.note(session, "action_unavailable")
+        else:  # not_down, no_shield: the record does not describe a shield that can go back on; nothing changed
+            session._turn_notes.append((None, "olmadı: kalkan koluna takılamadı; hiçbir şey değişmedi"))
+        return
+    if item is not None and data is None and any(
+            token in equipment_economy.label(item).casefold() for token in SHIELD_ITEM_TOKENS):
+        if getattr(session, "_turn_notes", None) is None:
+            session._turn_notes = []
+        session._turn_notes.append((None, f"bu tur: {item['name']} için bir şey değişmedi"))  # not put down: no weapon lie
         return
     resources = action_economy.ensure(session).get("player", {}) if fighting else {}
     if resources.get("object_interaction"):

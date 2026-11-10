@@ -1,0 +1,219 @@
+{
+  "id": "43_kalkan_geri_tak",
+  "title": "Kalkanı geri takmak (Fighter, paket A: Zincir Zırh + Kalkan + Defense, AC 19; çantada Greatsword ve Hançer): büyük kılıç kalkanı bıraktırır (AC 17); iki elde kalkan takılmaz (AC aynı, anlatıcıya 'olmadı' gider); tek elli kılıç çekilince 'kalkanımı takıyorum' kalkanı koluna takar ve AC 19'a döner; Geri Al AC'yi 17'ye ve kalkan kaydını geri getirir, yenileme aynısını okur. Eşya ve para oynamaz",
+  "source_items": [
+    39
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Kadir",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "A",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "seed": 5,
+    "front_proposal": true,
+    "currency": {
+      "player": 1000
+    },
+    "inventory": [
+      "Zincir Zırh",
+      "Hançer",
+      "Kalkan",
+      "Greatsword",
+      "Zindan Çantası"
+    ],
+    "campaign_seed": 44
+  },
+  "steps": [
+    {
+      "say": "büyük kılıcımı çekiyorum",
+      "script": {
+        "front": {
+          "kind": "wield",
+          "item_name": "Greatsword"
+        }
+      },
+      "expect": {
+        "elinde": "Greatsword",
+        "zirh": 17
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "envanter": {
+            "Zincir Zırh": 1,
+            "Hançer": 1,
+            "Kalkan": 1,
+            "Greatsword": 1,
+                        "Zindan Çantası": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "kalkanımı takıyorum",
+      "script": {
+        "front": {
+          "kind": "wield",
+          "item_name": "Kalkan"
+        }
+      },
+      "expect": {
+        "elinde": "Greatsword",
+        "zirh": 17,
+        "anlaticiya_giden": [
+          "olmadı",
+          "ellerin yetmiyor"
+        ]
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "envanter": {
+            "Zincir Zırh": 1,
+            "Hançer": 1,
+            "Kalkan": 1,
+            "Greatsword": 1,
+                        "Zindan Çantası": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "hançerimi çekiyorum",
+      "script": {
+        "front": {
+          "kind": "wield",
+          "item_name": "Hançer"
+        }
+      },
+      "expect": {
+        "elinde": "Hançer",
+        "zirh": 17
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "envanter": {
+            "Zincir Zırh": 1,
+            "Hançer": 1,
+            "Kalkan": 1,
+            "Greatsword": 1,
+                        "Zindan Çantası": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "kalkanımı takıyorum",
+      "script": {
+        "front": {
+          "kind": "wield",
+          "item_name": "Kalkan"
+        }
+      },
+      "expect": {
+        "elinde": "Hançer",
+        "zirh": 19,
+        "anlaticiya_giden": "Kalkan koluna takıldı"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "envanter": {
+            "Zincir Zırh": 1,
+            "Hançer": 1,
+            "Kalkan": 1,
+            "Greatsword": 1,
+                        "Zindan Çantası": 1
+          }
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "expect": {
+        "elinde": "Hançer",
+        "zirh": 17
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "envanter": {
+            "Zincir Zırh": 1,
+            "Hançer": 1,
+            "Kalkan": 1,
+            "Greatsword": 1,
+                        "Zindan Çantası": 1
+          }
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "expect": {
+        "elinde": "Hançer",
+        "zirh": 17
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "envanter": {
+            "Zincir Zırh": 1,
+            "Hançer": 1,
+            "Kalkan": 1,
+            "Greatsword": 1,
+                        "Zindan Çantası": 1
+          }
+        }
+      ]
+    }
+  ]
+}

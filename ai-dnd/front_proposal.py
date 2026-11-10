@@ -203,7 +203,7 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "Niyeti cümlenin bütününden anla, belirli bir söz arama. Fiyatı, bahşiş tutarını veya toplamı "
         "hesaplama ve ödeme kararı verme: bunlar Python'a aittir. "
         "consume = oyuncu şimdi çantasındaki bir yiyeceği yiyor veya içeceği içiyor; item_id bag listesindeki eşya. Soru, koşul veya ileride yapma sözü tüketim değildir. "
-        "wield: oyuncu bir silahı eline alıyor/çekiyor; item_id çantadaki silah ya da none. "
+        "wield: oyuncu bir silahı eline alıyor/çekiyor; item_id çantadaki silah ya da none. Kalkanını koluna takıyorsa da wield, item_id çantadaki kalkan. "
         "kind: speak_to = biriyle konuşuyor veya birine soruyor (kendi yaptığı işi '...yorum' diye anlatıyor ve kimseye söylemiyorsa speak_to değil attempt olur); go_to = listedeki bir yere gidiyor (içeri giriyorsa "
         f"inside=true; şehrin dışına, surlardan öteye, şehirden çıkan bir yola ya da başka bir şehre gidiyorsa place_id {WAY_OUT}; "
         "bir binanın kapısı, avlu, sokak, mahalle, tepe ya da han şehrin içidir, onlar için way_out yazma); offer_answer = listedeki teklifi kabul (accept) veya reddediyor (decline), kabul edip yanında bir de soru soruyorsa da böyledir; take = kendisine uzatılan veya teklif edilen şeyi eline alıyor (teklifin kendi eşyasıysa offer_id, parcels listesindeyse item_id ile söyle; başka bir şeyse thing_word alanına o şeyin yalın adını yaz, ör. defter); hand_over = elindeki bir şeyi birine veriyor, teslim ediyor, uzatıyor, nasıl söylerse söylesin (person_id kime, item_id çantadaki hangi şey; bag listesinde yoksa item_id none); work = jobs listesindeki işi şimdi yapıyor, işe koyuluyor, çalışıyor, ne kelimeyle söylerse söylesin (job_id hangisi); look = çevreye "
