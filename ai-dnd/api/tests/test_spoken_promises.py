@@ -552,6 +552,19 @@ class CheckIsNotSpeech(Table):
         with patch.object(game, "_session", return_value=self.session):
             own = game._person_fallback(self.world, self.npc, said)  # only the person's own fallback speaks for them
         self.assertIn(own, person)
+        self.assertTrue(person.endswith("”") and "“" in person, person)  # the person's part is their quoted speech
+
+    async def test_a_stock_check_line_swapped_for_their_words_is_not_said_twice(self):
+        """Re-review R2: a generic check line is swapped by the stock rule; their fallback is shown once."""
+        await self.job()
+        world_threads.view(self.world)["threads"].clear()
+        self.npc.pop("place_role_of")
+        plain = "Yirmi beş bakır, üç gün; söz söz."  # a fallback that does not start with their name
+        with patch.object(game, "_job_fallback", return_value=plain):
+            reply = await self.line("Marek, seni ikna etmeye çalışıyorum, bana biraz yardım et",
+                                    "Elbette, dün buraya iş sormaya gelmiştin.", mode="say")
+        self.assertEqual(reply["narration"].count(plain), 1, reply["narration"])
+        self.assertNotIn("gelmiştin", reply["narration"])
 
 
 if __name__ == "__main__":

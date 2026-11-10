@@ -22870,7 +22870,8 @@ def _run_player_turn_internal(
                 and final_safety_handling == "python_fallback"
             ):
                 narration_source = "deterministic_fallback"
-            if experimental_npc_dialogue and _is_stock(text):
+            stock_swapped = experimental_npc_dialogue and _is_stock(text)
+            if stock_swapped:
                 # A clear line never earns "say it again": the person answers from what Python has for them.
                 text = _person_fallback(world_state, npc_target, player_input)
             if experimental_npc_dialogue:
@@ -22927,7 +22928,7 @@ def _run_player_turn_internal(
                 else:
                     name = living_world.public_npc_name(npc_target)
                     if (action_result.get("action") == "skill_check" and final_safety_handling == "python_fallback"
-                            and text != text_before_finalize and not text.casefold().startswith(name.casefold())):
+                            and not stock_swapped and text != text_before_finalize and not text.casefold().startswith(name.casefold())):
                         # The safety put the check's own narration in place of the reply ("İncelemen sonuç
                         # vermedi"): that is the narrator's, not theirs. It stays as narration, outside any quote,
                         # and the person answers in their own words (Task 34, review M3).
