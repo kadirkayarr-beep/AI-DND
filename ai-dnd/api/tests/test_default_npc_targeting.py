@@ -15,6 +15,7 @@ import npc_statements
 import local_dialogue
 from api.tests import test_campaign_api
 from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
+from api.tests.town_seed import fixed_town
 from api.tests.test_campaign_api import (
     create_city_with_locked_tavern,
     unlock_venue_door,
@@ -1013,7 +1014,9 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_default_greeting_binds_visible_scene_description_to_one_npc(self):
-        _, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
+        # Task 41: the town is fixed; on some random towns the greeting found a town-seeded person (npc_001).
+        with fixed_town(self, 4101):
+            _, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
         city_id = session.world_state["location"]
         guard = {
             "id": "npc_scene_guard",
@@ -1469,9 +1472,11 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn(quote, response.json()["narration"])
 
     async def test_default_npc_place_statement_keeps_attribution_after_resume_and_respects_locked_target(self):
-        city_id, session_id, session, turn_url, tavern_id, door = (
-            await create_city_with_locked_tavern(self)
-        )
+        # Task 41: the town is fixed; on some random towns the greeting found a town-seeded person (npc_001).
+        with fixed_town(self, 4101):
+            city_id, session_id, session, turn_url, tavern_id, door = (
+                await create_city_with_locked_tavern(self)
+            )
         tavern_name = session.world_state["locations"][tavern_id]["name"]
         npc = {
             "id": "npc_default_local",
