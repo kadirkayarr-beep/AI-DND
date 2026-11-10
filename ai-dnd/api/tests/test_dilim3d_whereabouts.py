@@ -53,6 +53,35 @@ class FalsePresence(Whereabouts):
         self.assertEqual(self.cut("“Tuna şurada oturuyor.”"), "")
 
 
+class FalseCutsStay(Whereabouts):
+    """Fix round 1: truthful or unrelated sentences are not cut."""
+
+    def stays(self, line):
+        self.assertEqual(npc_speech_boundary.without_false_presence(self.world, line, self.here), line, line)
+
+    async def test_buradan_is_not_burada(self):
+        self.stays("“Tuna buradan ayrıldı.”")
+
+    async def test_truthful_absence_stays(self):
+        for line in ("“Tuna burada değil, değirmende oturuyor.”", "“Tuna'yı burada göremezsin.”",
+                     "“Tuna gelmedi, burada kimse yok.”"):
+            with self.subTest(line=line):
+                self.stays(line)
+
+    async def test_another_place_stays(self):
+        place = self.world["locations"][self.tuna_npc["location"]]["name"]
+        self.stays(f"“Tuna {place} yakınında bekliyor, oraya git.”")
+
+    async def test_the_speakers_own_presence_stays(self):
+        self.stays("“Tuna'ya söyle, burada bekliyorum.”")
+
+    async def test_an_object_stays(self):
+        self.stays("“Tuna'nın mektubu şurada duruyor.”")
+
+    async def test_no_here_place_cuts_nothing(self):
+        self.assertEqual(npc_speech_boundary.without_false_presence(self.world, Q155_SPEECH, None), Q155_SPEECH)
+
+
 class WhereaboutsTurn(Whereabouts):      # seed 4571
     async def test_the_giver_does_not_seat_the_contact_here(self):
         reply = await self.say("Halil, bu iş için kime gideyim?", front={"kind": "speak_to", "person_id": "potter"},

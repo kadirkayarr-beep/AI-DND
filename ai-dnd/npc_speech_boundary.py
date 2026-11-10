@@ -542,22 +542,55 @@ def without_no_name_claim(text):
 _HERE_WORDS = ("burada", "surada", "orada", "oturuyor", "duruyor", "bekliyor", "kosedeki")   # Ruling R6
 
 
-def without_false_presence(world, text, here_id):
-    """A sentence that names a registered person who is not at ``here_id`` and says someone is here goes.
+_ABSENCE_WORDS = frozenset({"degil", "degildir", "yok", "gelmedi", "bulunmuyor", "ayrildi", "gitti"})
+_GENITIVE = frozenset({"nin", "nun", "in", "un"})
 
-    A line with no name, and a person who is here, stay as they are. The narrator's text never comes through here."""
-    if not isinstance(text, str) or not text.strip():
+
+def _is_absence(word):
+    return word in _ABSENCE_WORDS or word.startswith("gorem") or word.startswith("gormez")
+
+
+def _names_subject(words, name):
+    """The name stands in the clause as a person, not as the owner of a thing (Tuna'nin mektubu)."""
+    parts = name.split()
+    for start in range(len(words) - len(parts) + 1):
+        if all(_word_is_label(words[start + k], parts[k]) for k in range(len(parts))):
+            end = start + len(parts) - 1
+            rest = words[end][len(parts[-1]):]
+            following = words[end + 1] if end + 1 < len(words) else ""
+            if rest not in _GENITIVE and following not in _GENITIVE:
+                return True
+    return False
+
+
+def without_false_presence(world, text, here_id):
+    """A clause that puts a registered person who is not at ``here_id`` here goes (the whole sentence with it).
+
+    Stays: a line with no name, a person who is here, a clause that denies it (değil, yok, göremezsin), a sentence that
+    names another place, the speaker's own presence in a clause that does not name the person, a thing that
+    belongs to the person. The narrator's text never comes through here."""
+    if not isinstance(text, str) or not text.strip() or not here_id:
         return text
     import living_world
+    locations = (world or {}).get("locations") or {}
     names = [fold(living_world.public_npc_name(npc)) for npc in (world or {}).get("npcs", [])
              if isinstance(npc, dict) and npc.get("location") and npc.get("location") != here_id]
     names = [name for name in names if name]
     if not names:
         return text
+    places = [fold(place.get("name") or "") for place_id, place in locations.items()
+              if place_id != here_id and isinstance(place, dict)]
+    places = [place for place in places if place]
 
     def doomed(sentence):
         folded = fold(sentence)
-        return (any(word.startswith(here) for word in folded.split() for here in _HERE_WORDS)
-                and any(_text_names_label(folded, name) for name in names))
+        if any(_text_names_label(folded, place) for place in places):
+            return False
+        for clause in re.split(r"[,:]", sentence):
+            words = fold(clause).split()
+            if (any(word in _HERE_WORDS for word in words) and not any(_is_absence(word) for word in words)
+                    and any(_names_subject(words, name) for name in names)):
+                return True
+        return False
 
     return _cut_sentences(text, doomed, ends=".!?…;")      # a semicolon ends a clause: the rest of the line stays
