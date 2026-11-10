@@ -5,6 +5,9 @@ from unittest.mock import patch
 from api.tests import test_campaign_api as api
 from api.tests.test_local_person_persistence import LocalPersonModel
 import local_dialogue
+from api.tests.town_seed import fixed_town
+
+TOWN_SEED=2801  # a new campaign's town (its people too) comes from its id; unpinned, a seeded person could join the people list
 
 
 class SchemaClient:
@@ -28,7 +31,7 @@ class RouteFocusRegressionTests(unittest.IsolatedAsyncioTestCase):
  asyncSetUp=api.CampaignApiTests.asyncSetUp
  asyncTearDown=api.CampaignApiTests.asyncTearDown
  async def prepare(self):
-  city,sid,s,url,venue,door=await api.create_city_with_locked_tavern(self)
+  with fixed_town(self,TOWN_SEED):city,sid,s,url,venue,door=await api.create_city_with_locked_tavern(self)
   npc={'id':'npc_diag_marek','name':'Marek','role':'resident','location':city,'reality_layer':'PROCEDURAL_LOCAL_FICTION','personal_profile':{'schema_version':local_dialogue.PERSONAL_PROFILE_SCHEMA_VERSION,'occupation':'Arşivde kâtiplik yapıyorum.','current_activity':'Eski kayıtları tasnif ediyorum.','origin':'Kuzeydeki küçük bir yerleşimden geldim.','reason_for_being_here':'Kayıp kayıtları bulmaya geldim.'},'knowledge':[],'memory':[],'status':'active','combat_status':'active','current_hp':12,'relationship':'neutral','appearance':'','personality':''}
   s.world_state.setdefault('npcs',[]).append(npc);s._experimental_npc_dialogue_enabled=False
   self.session=s;self.url=url;self.npc=npc;self.client=SchemaClient(npc);self.rows=[]
