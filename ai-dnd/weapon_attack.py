@@ -1183,6 +1183,18 @@ def _named_owned_weapons(session, normalized, owned, held):
     return [identity for identity in selected if identity in owned] or _owned_named(normalized, owned, held)
 
 
+def weapons_named(session, text):
+    """Every catalog weapon the player owns that the words name: by catalog name, or by each everyday word for one."""
+    import weapon_catalog
+    normalized = session._normalize_turkish_typos(text)
+    owned = _owned_weapon_ids(session)
+    named = set(_named_owned_weapons(session, normalized, owned, []))
+    for stem in weapon_catalog.OWNED_STEMS:
+        if re.search(rf"(?<!\w){stem}", normalized):
+            named.update(_owned_named(stem, owned, []))
+    return named
+
+
 def names_a_move(session, text):
     """The words name a move natural_choice reads: a weapon the player owns, or a bare-hand move (punch, grapple, shove)."""
     normalized = session._normalize_turkish_typos(text)

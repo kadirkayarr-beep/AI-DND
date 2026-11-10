@@ -19381,13 +19381,23 @@ def _front_consume(route, player_input):
                                         "state_changes": ["inventory"], "direct_response": shown}}}
 
 
-def _front_wield(route):
+def _front_wield(route, player_input):
     """A bag weapon the reading named goes into the hand through `gear`; anything else changes nothing and the narrator
-    hears that it did not happen. No weapon is looked for by the word (tasarım karar 33, 52)."""
+    hears that it did not happen. No weapon is looked for by the word (tasarım karar 33, 52). With a weapon already in
+    hand, another one is taken only when the words name it: 'silahımı kaldırıp' is the one in hand (Dilim 3, Task 30)."""
     import gear
+    import weapon_attack
+    from weapon_catalog import lookup
     session = _session()
     session.require_player_can_act()
     world = session.world_state
+    held = gear.wielded(world)
+    item = next((i for i in world.get("inventory") or [] if isinstance(i, dict) and route.get("item")
+                 and i.get("item_id") == route["item"]), None)
+    data = lookup(item.get("weapon_id") or item.get("name")) if item is not None else None
+    if (held is not None and data is not None and held.get("item_id") != item.get("item_id")
+            and data["weapon_id"] not in weapon_attack.weapons_named(session, player_input)):
+        return  # the words name no other weapon: the one in hand is the one meant, and nothing is drawn
     result = gear.draw(world, route["item"], character=session.character) if route.get("item") else None
     if result is not None and result.status in {"drawn", "already_held"}:
         if getattr(session, "_turn_notes", None) is None:
@@ -19776,7 +19786,7 @@ def _dispatch_player_turn(
             interaction_mode, target_id = "say", gate["npc_id"]
     if front is not None and front["kind"] == "wield" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            _front_wield(front)  # the turn goes on to the narrator, who reads the hand and the note on the card
+            _front_wield(front, player_input)  # the turn goes on to the narrator, who reads the hand and the note on the card
     if front is not None and front["kind"] == "take" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             taken = _front_take(front, player_input)

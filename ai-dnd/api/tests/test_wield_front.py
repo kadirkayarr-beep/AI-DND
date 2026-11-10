@@ -24,6 +24,7 @@ _RULE = "MOTOR GERÇEĞİ 'olmadı' diyen bir hamleyi olmuş gibi anlatma; denem
 _TALK_TO_BARMAN = {"intent": "talk", "action": "talk",
                    "target": {"type": "npc", "reference": "Han Sahibi", "npc_id": "barman", "evidence_quote": ""},
                    "completion": "complete"}
+CROSSBOW = "Ağır Tatar Yayı & 20 Ok"
 
 
 # Package C's starting bag, written out so the setup gives each thing an item id (as scenario 04b does): a fresh
@@ -222,6 +223,26 @@ class WieldFront(JourneyCase):
         await self.say("kılıcımı çekiyorum", front={"kind": "attempt"})
         self.assertEqual((self.world["inventory"], self.world.get("equipment")), (before["inventory"], before.get("equipment")))
         self.assertIn("elin boş", "\n".join(self.narrator_input()))
+
+    # --- Dilim 3, Task 30 --------------------------------------------------------------------------------------
+    async def test_putting_the_weapon_away_draws_no_other_weapon(self):
+        # Turn 98 of the 185-turn play: 'Silahımı kaldırıp ... dönüyorum' was read as a wield of the crossbow and the
+        # Heavy Crossbow replaced the Greatsword in hand. 'Silahım' with a weapon in hand is that weapon.
+        await self.use_package_c()
+        await self.say("büyük kılıcımı çekiyorum", front={"kind": "wield", "item_name": "Greatsword"})
+        before = copy.deepcopy((self.world["inventory"], self.world["equipment"]))
+        await self.say("Silahımı kaldırıp Güney Bıçağı Dükkânı'na dönüyorum",
+                       front={"kind": "wield", "item_name": CROSSBOW})
+        self.assertEqual((self.world["inventory"], self.world["equipment"]), before)
+        self.assertEqual(self.held()["name"], "Greatsword")
+        self.assertEqual([note for _, note in self.notes() if CROSSBOW in note], [])
+
+    async def test_a_swap_the_words_name_still_draws_that_weapon(self):
+        await self.use_package_c()
+        await self.say("büyük kılıcımı çekiyorum", front={"kind": "wield", "item_name": "Greatsword"})
+        await self.say("Büyük kılıcımı sırtıma asıp tatar yayımı çekiyorum", front={"kind": "wield", "item_name": CROSSBOW})
+        self.assertEqual(self.held()["name"], CROSSBOW)
+        self.assertIn((None, f"bu tur: {CROSSBOW} eline alındı"), self.notes())
 
     def test_the_front_reading_lists_wield_after_consume(self):
         self.assertEqual(front_proposal.KINDS[front_proposal.KINDS.index("consume") + 1], "wield")
