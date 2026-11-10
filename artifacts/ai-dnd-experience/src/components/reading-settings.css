@@ -115,3 +115,11 @@
     direction: ltr;
   }
 }
+
+/* Tablet widths: same rule, so the open panel never leaves the right edge of the viewport. */
+@media (min-width: 561px) and (max-width: 900px) {
+  .reading-settings[open] { width: 4.25rem; direction: rtl; }
+  .reading-settings[open] > summary { width: 4.25rem; box-sizing: border-box; }
+  /* the side column is only ~240px wide here: the panel must fit it, not spill over the transcript */
+  .reading-settings__panel { direction: ltr; width: 14.5rem; }
+}

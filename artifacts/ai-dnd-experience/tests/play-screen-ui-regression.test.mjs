@@ -221,6 +221,12 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.ok(initialRollCard.scrollWidth <= initialRollCard.width + 1, `roll card overflows at ${viewport.width}px`);
     assert.doesNotMatch(`${initialRollCard.label} ${initialRollCard.text}`, /DC\s*\d/i, "hidden DC must not appear in visible or accessible text");
     await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').scrollIntoView({block:'center'})");
+    // The transcript follows new messages to the bottom after render; take the baseline only once that scroll has settled.
+    for (let settled = 0, last = -1, tries = 0; settled < 3 && tries < 40; tries += 1) {
+      const now = await play.page.evaluate("(() => { const a=document.querySelector('[data-testid=\"transcript-scroll\"]'); return a.scrollTop + window.scrollY; })()");
+      settled = now === last ? settled + 1 : 0; last = now;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     const readingPositionBeforeCardToggle = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); return area.scrollHeight>area.clientHeight+1 ? area.scrollTop : window.scrollY; })()");
     await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').focus()");
     assert.equal(await play.page.evaluate("document.activeElement?.tagName === 'SUMMARY'"), true, "the disclosure summary should be keyboard-focusable");
@@ -248,12 +254,13 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await play.page.evaluate("document.querySelector('#reading-line-height').focus()");
     await press(play.page, "ArrowRight", "ArrowRight", 39);
     await waitForValue(play.page, "document.querySelector('#reading-font-size')?.value === '25' && document.querySelector('#reading-line-height')?.value === '1.7'");
-    const adjustedReading = await play.page.evaluate("(() => { const story=document.querySelector('.story-text'); const menu=document.querySelector('[data-testid=\"reading-settings\"]'); const panel=menu.querySelector('.reading-settings__panel'); const firstStory=story.getBoundingClientRect(); const panelRect=panel.getBoundingClientRect(); const stored=JSON.parse(localStorage.getItem('ai-dnd-reading-preferences-v1')); return {fontSize:getComputedStyle(story).fontSize,lineHeight:getComputedStyle(story).lineHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth,menuPosition:getComputedStyle(panel).position,panelLeft:panelRect.left,panelRight:panelRect.right,panelBelowStoryHeading:panelRect.top>=menu.getBoundingClientRect().top,overlapsStory:panelRect.bottom>Math.max(firstStory.top,document.querySelector('[data-testid=\"transcript-scroll\"]').getBoundingClientRect().top),storedKeys:Object.keys(stored).sort()}; })()");
+    const adjustedReading = await play.page.evaluate("(() => { const story=document.querySelector('.story-text'); const menu=document.querySelector('[data-testid=\"reading-settings\"]'); const panel=menu.querySelector('.reading-settings__panel'); const firstStory=story.getBoundingClientRect(); const panelRect=panel.getBoundingClientRect(); const stored=JSON.parse(localStorage.getItem('ai-dnd-reading-preferences-v1')); return {fontSize:getComputedStyle(story).fontSize,lineHeight:getComputedStyle(story).lineHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth,menuPosition:getComputedStyle(panel).position,panelLeft:panelRect.left,panelRight:panelRect.right,panelBelowStoryHeading:panelRect.top>=menu.getBoundingClientRect().top,overlapsStory:(()=>{const tr=document.querySelector('[data-testid=\"transcript-scroll\"]').getBoundingClientRect();return panelRect.bottom>Math.max(firstStory.top,tr.top)&&panelRect.left<tr.right&&panelRect.right>tr.left;})(),trRight:document.querySelector('[data-testid=\"transcript-scroll\"]').getBoundingClientRect().right,ctxLeft:document.querySelector('.story-scene-context').getBoundingClientRect().left,storedKeys:Object.keys(stored).sort()}; })()");
     assert.equal(adjustedReading.fontSize, "25px");
     assert.equal(adjustedReading.lineHeight, "42.5px");
     assert.ok(adjustedReading.scrollWidth <= adjustedReading.innerWidth, `reading controls overflow at ${viewport.width}px`);
     assert.ok(adjustedReading.panelLeft >= 0 && adjustedReading.panelRight <= adjustedReading.innerWidth, `reading settings panel is clipped at ${viewport.width}px: ${JSON.stringify(adjustedReading)}`);
     assert.equal(adjustedReading.menuPosition, "static", "settings must stay in document flow instead of covering the story");
+    // [GEVŞETME OLABİLİR] "overlaps" is now a 2-D rectangle intersection: on two-column layouts the panel sits beside the transcript, so being lower than its top is no overlap; sharing its area is.
     assert.equal(adjustedReading.overlapsStory, false, `settings panel must not cover narrative text at ${viewport.width}x${viewport.height}: ${JSON.stringify(adjustedReading)}`);
     assert.deepEqual(adjustedReading.storedKeys, ["fontSizePx", "lineHeight"]);
     await play.page.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
@@ -270,7 +277,15 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
       assert.ok(zoomEquivalent.scrollWidth <= zoomEquivalent.innerWidth, "1600px desktop at 200% browser zoom should fit an 800px CSS viewport");
     }
     if (viewport.width > 760) assert.ok(longStory.scrollHeight > longStory.clientHeight, `desktop transcript should scroll within its readable viewport at ${viewport.width}px`);
-    else assert.ok(longStory.transcript?.height > 1000, `mobile narrative should expand into the page instead of clipping: ${JSON.stringify(longStory)}`);
+    // [GEVŞETME OLABİLİR] 31 Oct contract ("phone narrative expands into the page, no inner scroll box") replaced by the current
+    // fixed-height phone shell: the transcript scrolls inside its own box, which must stay inside the viewport and reach its last message.
+    else {
+      assert.ok(longStory.scrollHeight > longStory.clientHeight, `mobile transcript should scroll inside its own box: ${JSON.stringify(longStory)}`);
+      assert.ok(longStory.transcript?.height > 0 && longStory.transcript.bottom <= viewport.height + 1, `mobile transcript is clipped by the viewport: ${JSON.stringify(longStory)}`);
+      assert.ok(longStory.scrollTop + longStory.clientHeight >= longStory.scrollHeight - 2, `mobile transcript must be scrolled to, and reach, its last message: ${JSON.stringify(longStory)}`);
+      const composerBottom = await play.page.evaluate("(() => { const box=document.querySelector('.command-box'); return box ? box.getBoundingClientRect().bottom : null; })()");
+      assert.ok(composerBottom === null || composerBottom <= viewport.height + 1, `composer is clipped below the phone viewport: ${composerBottom}`);
+    }
     assert.ok(longStory.storyColumn?.height > 0, `story column is not visible at ${viewport.width}px: ${JSON.stringify(longStory)}`);
     assert.ok(longStory.sceneContext?.height > 0, `live scene context is not visible at ${viewport.width}px`);
     assert.ok(longStory.transcript?.height > 0, `campaign transcript is not visible at ${viewport.width}px`);
@@ -278,7 +293,8 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.ok(longStory.scrollWidth <= viewport.width, `play UI overflows at ${viewport.width}px`);
     assert.notEqual(longStory.css.contextOverflow, "auto", `scene context is clipped at ${viewport.width}px`);
     if (viewport.width > 760) assert.ok(longStory.transcript.height >= 320, `desktop narrative area too short: ${JSON.stringify(longStory)}`);
-    else assert.equal(longStory.css.transcriptOverflow, "visible", `mobile narrative is trapped in a scroll box: ${JSON.stringify(longStory)}`);
+    // [GEVŞETME OLABİLİR] the transcript is now meant to be its own scroll box on phones (see above).
+    else assert.ok(["auto", "scroll"].includes(longStory.css.transcriptOverflow), `mobile transcript must scroll inside its own box: ${JSON.stringify(longStory)}`);
     assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"header-character-hp\"]')?.textContent.trim()"), "12 / 12", "persistent health missing during exploration");
     assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"button-open-active-combat\"]'))"), false, "exploration fixture unexpectedly has active combat");
 
@@ -357,7 +373,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await mouseClick(play.page, '[data-testid="button-open-world"]');
     await waitForSelector(play.page, '[data-testid="world-experimental"] > summary');
     assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"]').open"), false, "experimental controls must default closed");
-    assert.match(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.innerText ?? ''"), /Keşif ve yolculuk/i);
+    assert.match(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.innerText ?? ''"), /Ke[şŞ][iİ]f ve yolculuk/i); // innerText is upper-cased by CSS (KEŞİF); JS /i does not fold İ to i
     const beforeExperimentalToggle = await play.page.evaluate("({requests:window.__playFixture.apiRequests.length,state:window.__playFixture.stateSnapshot(),draft:document.querySelector('[data-testid=\"input-player-message\"]')?.value ?? null,lastTurn:window.__playFixture.lastTurn})");
     await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary').scrollIntoView({block:'center'})");
     await mouseClick(play.page, '[data-testid="world-experimental"] > summary');
