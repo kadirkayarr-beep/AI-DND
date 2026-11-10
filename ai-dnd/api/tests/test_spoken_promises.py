@@ -16,6 +16,7 @@ import living_world
 import npc_statements
 import world_threads
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.town_seed import fixed_town
 
 HOUR = 3600
 DAY = 86400
@@ -476,6 +477,41 @@ class Denial(Table):
             world["npc_speech_log"] = {self.npc["id"]: [{"player": "x", "npc": first.split("“")[-1].rstrip("”")}]}
             second = game.historical_claim_denial(self.npc, "dün söz verdin")
         self.assertNotEqual(first, second)
+
+
+class Recognition(Table):
+    """'Beni hatırlıyor musun?' asks after the meeting itself: the person's own recorded words are the memory (Task 28)."""
+
+    RECOGNISE = "Beni hatırlıyor musun?"
+
+    async def job(self, **kwargs):
+        with fixed_town(self, 2811):
+            await super().job(**kwargs)
+
+    def never_met(self):
+        world_threads.view(self.world)["threads"].clear()
+        self.npc.pop("place_role_of")
+        self.world.pop("npc_speech_log", None)
+        self.world.pop(npc_statements.KEY, None)
+
+    async def test_someone_who_spoke_with_you_remembers(self):
+        for mode in (None, "say"):
+            await self.job()
+            self.never_met()  # no job to talk about: only the greeting they once said
+            npc_statements.record(self.world, self.npc, "selam", "Selam yolcu, hoş geldin.", turn=None)
+            found = npc_statements.claim_support(self.world, self.npc, self.RECOGNISE)
+            self.assertEqual(found["status"], "supported")
+            reply = await self.line(self.RECOGNISE, "Elbette, yüzünü unutmadım.", mode=mode)
+            self.assertIn("yüzünü unutmadım", reply["narration"], mode)
+            self.assertFalse(any(word in reply["narration"] for word in DENIALS), (mode, reply["narration"]))
+
+    async def test_someone_never_met_does_not_remember(self):
+        for mode in (None, "say"):
+            await self.job()
+            self.never_met()
+            self.assertNotEqual(npc_statements.claim_support(self.world, self.npc, self.RECOGNISE)["status"], "supported")
+            reply = await self.line(self.RECOGNISE, "Elbette, yüzünü unutmadım.", mode=mode)
+            self.assertNotIn("yüzünü unutmadım", reply["narration"], mode)
 
 
 if __name__ == "__main__":

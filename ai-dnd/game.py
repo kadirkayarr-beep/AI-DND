@@ -22261,10 +22261,11 @@ def _run_player_turn_internal(
         # Only recorded speech support may
         # bypass the unsupported-history check.
         spoken_reference = bool(
-            about == "npc_words" and isinstance(npc_target, dict) and claimed_npc is npc_target
+            isinstance(npc_target, dict) and claimed_npc is npc_target
             and npc_target.get("location") == world_state.get("location")
             and ledger["status"] == "supported" and ledger.get("claim_kind") in (None, "said")
-            and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input))
+            and (about == "memory"  # "beni hatırlıyor musun?" to someone whose own words are recorded (Task 28)
+                 or about == "npc_words" and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input)))
         )
         # Unattributed NPC knowledge cannot independently verify past dialogue.
         # Only the speaker-aware memory path may support this response.

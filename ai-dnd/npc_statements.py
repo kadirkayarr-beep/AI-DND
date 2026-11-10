@@ -714,6 +714,9 @@ def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str)
     ]
     names = {fold(npc.get("name", ""))} | {fold(living_world.public_npc_name(npc))}
     objects = [w for w in objects if not any(w.startswith(n) for n in names if n)]
+    if claim_kind is None and not objects and statements and not _SAID_CLAIM.search(folded):
+        # "Beni hatırlıyor musun?" asks after the meeting itself, not a content: their own recorded words are it.
+        return {"status": "supported", "quote": statements[-1]["text"], "statement": statements[-1]}
     if claim_kind is not None:
         for commitment in reversed(commitments):
             if commitment.get("kind") != claim_kind:
