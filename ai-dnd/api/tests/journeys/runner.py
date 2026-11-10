@@ -99,7 +99,9 @@ JOB_TARGET = "$is_hedefi"
 # An expected ``konum`` of ``$kurulum_yeri`` is the place the setup stood the player in: a new campaign's town work
 # opens places first (Task 18), so the place's number is the engine's, never the scenario's.
 SETUP_PLACE = "$kurulum_yeri"
-SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration", "speech"})
+SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration", "speech", "arrival"})
+# ``arrival``: the model's arrival text (a str), or a whole packet ({narration, world_updates, lore_claims}) returned as
+# written, so a scenario can try a broken one. A step that scripts none leaves the arrival call to fail (the Python line).
 # ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
 # too, so a scenario can try a missing or broken answer). ``spoken`` stays the spoken line.
 SPEECH_SCRIPT_KEYS = frozenset({"coin_answer", "coin_answer_for", "remember_player_line", "asks_for",
@@ -111,7 +113,7 @@ _ECONOMIC_MESSAGES = {"prepare": "Teklif hazırla", "confirm": "Teklifi onayla",
 _COMBAT_MESSAGE = "Savaş eylemi"
 # Step-bound, not state: what the step said, what the narrator and the speech call were sent, whether a stock denial
 # was said and the step's counter-attacks. A reload compares everything else.
-_NOT_STATE = frozenset({"narration", "anlaticiya_giden", "karsi_saldiri", "konusmaya_giden", "inkar", "ambient"})
+_NOT_STATE = frozenset({"narration", "anlaticiya_giden", "karsi_saldiri", "konusmaya_giden", "inkar", "ambient", "varis"})
 # An enemy's counter-attack in a turn's combat result: a swing that hit or missed (the engine's own exchange text
 # says "karşı saldırısı" for exactly these).
 _SWINGS = frozenset({"hit", "miss", "critical_hit"})
@@ -142,10 +144,11 @@ def _properties(schema: Any) -> Mapping[str, Any]:
 
 
 def call_kind(schema: Any) -> str | None:
-    """The model call's kind, told apart by its requested schema: ``front``, ``intent``, ``speech``,
-    ``steps``, ``narration``, or None for a call no scenario can script."""
+    """The model call's kind, told apart by its requested schema: ``arrival`` (looked at first: its schema carries
+    ``narration`` too), ``front``, ``intent``, ``speech``, ``steps``, ``narration``, or None for a call no scenario
+    can script."""
     properties = _properties(schema)
-    for key, kind in (("front", "front"), ("intent", "intent"), ("spoken_text", "speech"), ("steps", "steps"),
+    for key, kind in (("arrival", "arrival"), ("front", "front"), ("intent", "intent"), ("spoken_text", "speech"), ("steps", "steps"),
                       ("narration", "narration")):
         if key in properties:
             return kind
@@ -163,6 +166,7 @@ class NarratorInput:
         self._messages: list[str] | None = None
         self._speech: list[str] | None = None
         self._readings: list[str] = []
+        self._arrivals = 0
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         kind = call_kind(kwargs.get("format"))
@@ -171,6 +175,8 @@ class NarratorInput:
             self._messages.extend(_message_texts(kwargs.get("messages")))
         elif kind == "speech":
             self._speech = _message_texts(kwargs.get("messages"))
+        elif kind == "arrival":
+            self._arrivals += 1
         reply = self._chat(*args, **kwargs)
         if kind in ("front", "intent"):
             try:
@@ -182,6 +188,10 @@ class NarratorInput:
     def reading(self) -> str:
         """What the front reading and the classifier answered this step, in call order; "" when neither ran."""
         return " | ".join(self._readings)
+
+    def arrival_calls(self) -> int:
+        """How many arrival narration calls were made this step (their messages are not the narrator's input)."""
+        return self._arrivals
 
     def text(self) -> str | None:
         """Everything the narrator was sent, one message per line; None when no narrator call was made."""
@@ -239,6 +249,14 @@ class ScriptedClient(fixtures.FakeOllamaClient):
         elif kind == "narration":
             packet = {"narration": self.script.get("narration", _DEFAULT_NARRATION),
                       "world_updates": {}, "lore_claims": []}
+        elif kind == "arrival":
+            if "arrival" not in self.script:
+                # An unwritten arrival is a model failure (the engine's Python line stands), not an unexpected call.
+                self.kinds.append("arrival_unscripted")
+                raise RuntimeError("varış yazılmadı")
+            written = self.script["arrival"]
+            packet = (copy.deepcopy(dict(written)) if isinstance(written, Mapping)
+                      else {"narration": written, "world_updates": {}, "lore_claims": []})
         else:
             keys = sorted(str(key) for key in properties)
             self.unexpected.append(keys)
@@ -670,6 +688,8 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "konusmaya_giden": getattr(case, "last_speech_input", None),
         "inkar": getattr(case, "last_denial", False),
         "ambient": getattr(case, "last_ambient_result", None),
+        "varis": {"cagri": getattr(case, "last_arrival_calls", 0),
+                  "kaynak": (getattr(session, "last_arrival_narration", None) or {}).get("source")},
     }
 
 
@@ -825,6 +845,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
     last_narrator_input: str | None = None
     last_speech_input: str | None = None
     last_denial: bool = False
+    # How many arrival narration calls the last step made (``expect.varis.cagri``).
+    last_arrival_calls: int = 0
     # The last turn's combat result as the turn response carried it (None: no turn, or no combat result).
     last_combat_result: Mapping[str, Any] | None = None
     last_observations: list[dict[str, Any]]
@@ -863,6 +885,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                 results.append(StepResult(index, "unreached", (REAL_CHAIN_ONLY,), step.known_broken, "", 0.0))
                 continue
             started = time.monotonic()
+            self.last_arrival_calls = 0
+            _forget_arrival_source(self, session_id)
             if step.reload:
                 failures, observed = await self._reload(session_id, step, model)
                 if not failures:
@@ -922,6 +946,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                 response = await self.http.post(f"/api/game/sessions/{session_id}/turn", json=body)
         self.last_narrator_input = told.text()
         self.last_reading = told.reading()
+        self.last_arrival_calls = told.arrival_calls()
         spoken_to = told.speech_messages()
         self.last_speech_input = None if spoken_to is None else "\n".join(spoken_to)
         unexpected = getattr(client, "unexpected", None) or []
@@ -1048,6 +1073,12 @@ class _Reader:
     last_narrator_input: str | None = None
     last_speech_input: str | None = None
     last_denial: bool = False
+    last_arrival_calls: int = 0
+
+
+def _forget_arrival_source(case: Any, session_id: str) -> None:
+    """A step starts with no arrival diagnostic: ``expect.varis.kaynak`` reads only what this step's arrival wrote."""
+    case.manager.get(session_id).game_session.last_arrival_narration = None
 
 
 def _show(value: Any) -> str:

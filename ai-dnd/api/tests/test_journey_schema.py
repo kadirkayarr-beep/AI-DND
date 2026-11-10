@@ -128,9 +128,28 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
                 "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
-                "olay", "zirh",
+                "olay", "zirh", "varis",
             },
         )
+
+    def test_varis_is_an_expect_key_and_its_values_are_checked(self):
+        self.assertIn("varis", EXPECT_KEYS)
+        for bad in ({"varis": {"cagri": "1"}}, {"varis": {"kaynak": "gpt"}}, {"varis": {"bilinmeyen": 1}}, {"varis": 1}):
+            with self.subTest(bad=bad), self.assertRaises(ScenarioError):
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": bad}])))
+        for good in ({"cagri": 1}, {"kaynak": "python"}, {"kaynak": None}, {"cagri": 0, "kaynak": "model"}):
+            load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"varis": good}}])))
+
+    def test_varis_is_checked_as_a_subset_of_what_was_observed(self):
+        seen = {"varis": {"cagri": 1, "kaynak": "model"}}
+        self.assertEqual(schema.check_expect({"varis": {"cagri": 1}}, seen), [])
+        self.assertEqual(schema.check_expect({"varis": {"kaynak": "model"}}, seen), [])
+        self.assertTrue(schema.check_expect({"varis": {"kaynak": "python"}}, seen))
+        self.assertTrue(schema.check_expect({"varis": {"cagri": 2}}, seen))
+
+    def test_arrival_is_a_script_key(self):
+        loaded = load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "script": {"arrival": "Metin."}}])))
+        self.assertEqual(loaded.steps[0].script["arrival"], "Metin.")
 
     def step(self, raw: dict) -> Step:
         (loaded,) = load_scenario(write_scenario(small_scenario(steps=[raw]))).steps

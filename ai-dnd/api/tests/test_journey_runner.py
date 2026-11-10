@@ -27,6 +27,7 @@ from api.tests.journeys.runner import (
     ScriptedModel,
     StepResult,
     apply_setup,
+    call_kind,
     counter_attacks,
     describe_problems,
     read_observed,
@@ -34,9 +35,12 @@ from api.tests.journeys.runner import (
     summary_line,
 )
 from api.tests.journeys.schema import ScenarioError, load_scenario
+from api.tests.town_seed import fixed_town
 
 BUY_BEER = "/item shop_buy barman bira 1 0 4"
 BUY_SECOND_BEER = "/item shop_buy barman bira 1 1 4"  # the counter sequence moved on after one trade
+ARRIVAL_SCHEMA = {"type": "object", "properties": {"narration": {"type": "string"}, "world_updates": {"type": "object"},
+                                                   "lore_claims": {"type": "array"}, "arrival": {"type": "boolean"}}}
 SPEECH = {"type": "object", "properties": {"spoken_text": {}, "stage_direction": {}}}  # an NPC speech call's schema
 NEVERWINTER = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
                "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}
@@ -406,6 +410,14 @@ class TheRunnerSortsEveryStep(JourneyCase):
         self.assertEqual(read_observed(self, campaign["session_id"])["hareket"], 0)  # a fresh turn: nothing moved
         session.world_state["combat"]["turn_resources"]["player"]["movement_used"] = 15
         self.assertEqual(read_observed(self, campaign["session_id"])["hareket"], 15)
+
+    async def test_varis_reads_the_sessions_arrival_diagnostic(self):
+        with fixed_town(self, 4421):
+            campaign = await self.create_campaign()
+        sid = campaign["session_id"]
+        self.assertEqual(read_observed(self, sid)["varis"], {"cagri": 0, "kaynak": None})
+        self.manager.get(sid).game_session.last_arrival_narration = {"source": "model", "reason_code": None}
+        self.assertEqual(read_observed(self, sid)["varis"]["kaynak"], "model")
 
     async def test_experience_game_hours_and_open_quests_are_observed(self):
         campaign = await self._journey_campaign({"campaign_start": NEVERWINTER})  # a started campaign clock
@@ -853,6 +865,28 @@ class TheScriptedClient(unittest.TestCase):
         with self.assertRaises(ScenarioError):
             ScriptedClient({"narrasyon": "yazım hatası"})
 
+    def test_the_arrival_call_is_its_own_kind(self):
+        self.assertEqual(call_kind(ARRIVAL_SCHEMA), "arrival")
+        self.assertEqual(call_kind({"properties": {"narration": {}}}), "narration")
+
+    def test_a_scripted_arrival_answers_with_the_script(self):
+        client = ScriptedClient({"arrival": "Sis kalkmamış."})
+        packet = json.loads(client.chat(format=ARRIVAL_SCHEMA)["message"]["content"])
+        self.assertEqual(packet, {"narration": "Sis kalkmamış.", "world_updates": {}, "lore_claims": []})
+        self.assertEqual(client.kinds, ["arrival"])
+
+    def test_a_scripted_arrival_packet_is_returned_as_written(self):
+        broken = {"narration": 5, "world_updates": {"x": 1}, "lore_claims": "yok"}
+        client = ScriptedClient({"arrival": broken})
+        self.assertEqual(json.loads(client.chat(format=ARRIVAL_SCHEMA)["message"]["content"]), broken)
+
+    def test_an_unscripted_arrival_call_falls_back_quietly(self):
+        client = ScriptedClient({"narration": "Başka."})
+        with self.assertRaises(RuntimeError):
+            client.chat(format=ARRIVAL_SCHEMA)
+        self.assertEqual(client.unexpected, [])
+        self.assertEqual(client.kinds, ["arrival_unscripted"])
+
     def test_each_known_call_kind_answers_from_the_script(self):
         client = ScriptedClient({"intent": "attack", "front": {"kind": "look"}, "spoken": "Hoş geldin.",
                                  "narration": "Kapı gıcırdar."})
@@ -918,6 +952,13 @@ class TheNarratorInput(unittest.TestCase):
         listen(model="m", messages=[{"role": "user", "content": "İkinci anlatı."}], format={"properties": {"narration": {}}})
         self.assertEqual(listen.text(), "Anlat.\nOda tutuldu.\nİkinci anlatı.")
         self.assertEqual(len(answered), 4)
+
+    def test_arrival_calls_are_counted_and_kept_out_of_the_narrator_input(self):
+        told = NarratorInput(ScriptedClient({"arrival": "A."}).chat)
+        self.assertEqual(told.arrival_calls(), 0)
+        told(format=ARRIVAL_SCHEMA, messages=[{"role": "user", "content": "olgular"}])
+        self.assertEqual(told.arrival_calls(), 1)
+        self.assertIsNone(told.text())
 
     def test_the_last_speech_calls_messages_are_kept_apart(self):
         listen = NarratorInput(lambda *args, **kwargs: {"message": {"content": "{}"}})

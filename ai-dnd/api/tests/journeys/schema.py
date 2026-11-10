@@ -46,6 +46,7 @@ EXPECT_KEYS = frozenset(
         "elinde",
         "olay",
         "zirh",
+        "varis",
     }
 )
 
@@ -68,7 +69,7 @@ _TRUE_ACTIONS = ("undo", "reload")
 # Expectations compared as a subset when both sides are mappings: the step names
 # only the fields it cares about (the observed card, counter offer, mode or purse
 # list carries more; ``gorev`` may name only ``aktif`` when a row's title is drawn at random).
-_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese", "gorev", "olay"})
+_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese", "gorev", "olay", "varis"})
 _TEXT_CHECKS = frozenset({"yasak_metin", "gerekli_metin"})
 
 
@@ -135,10 +136,22 @@ EXPECT_VALUE_RULES = {
     "olay": (lambda value: _event_rule(value),
              "var/tiklanabilir (true ya da false) ve neden (boş olmayan metin) alanlarından yalnız bilinenleri taşıyan, boş olmayan nesne"),
     "zirh": (_integer, "tam sayı"),
+    "varis": (lambda value: _varis_rule(value),
+              "cagri (tam sayı) ve kaynak (model, python ya da null) alanlarından yalnız bilinenleri taşıyan, boş olmayan nesne"),
     "anlatilan": (lambda value: _filled_mapping(value) and all(isinstance(npc, str) and npc and _needles(needles)
                                                                for npc, needles in value.items()),
                   "boş olmayan kişi -> boş olmayan metin (listesi) nesnesi"),
 }
+
+
+_VARIS_KEYS = frozenset({"cagri", "kaynak"})
+
+
+def _varis_rule(value: Any) -> bool:
+    """``varis``: the step's arrival narration: how many model calls it made and whose text won (null: none was said)."""
+    return (_filled_mapping(value) and not set(value) - _VARIS_KEYS
+            and ("cagri" not in value or _integer(value["cagri"]))
+            and ("kaynak" not in value or value["kaynak"] in ("model", "python", None)))
 
 
 _EVENT_KEYS = frozenset({"var", "tiklanabilir", "neden"})
