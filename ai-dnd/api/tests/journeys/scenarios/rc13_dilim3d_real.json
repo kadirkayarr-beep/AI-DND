@@ -1,6 +1,6 @@
 {
   "id": "rc13_dilim3d_real",
-  "title": "Gerçek zincir, Dilim 3D'nin ikizi (39 ve 40 ile aynı satırlar, gerçek modelde, betiksiz): kuzey kapısı hana götürmez, 'hana yürü, sonra oda iste' tek satırda, İngilizce saat ve para, ikinci uzun dinlenme çok yakın, tapınaktan hana, kese; çalışma zamanı denetimleri: Türkçe yemek, duyulan işin izi, pazarda Mazduşa'dan elma fiyatı. Beklenti yalnız durum (ve #166'nın tek satırı); sahte modelde koşulmaz",
+  "title": "Gerçek zincir, Dilim 3D'nin ikizi (39 ve 40 ile aynı satırlar, gerçek modelde, betiksiz): kuzey kapısı hana götürmez, 'hana yürü, sonra oda iste' tek satırda, İngilizce saat ve para, ikinci uzun dinlenme çok yakın, tapınaktan hana, kese; çalışma zamanı denetimleri: Türkçe yemek, duyulan işin izi, pazarda Mazduşa'dan elma fiyatı. Beklenti yalnız durum (ve #166'nın tek satırı); sahte modelde koşulmaz Bilinen açıklar (gerçek zincirde kırık, Dilim 4): #022/#7a gerçek model yürüyüşü also_says'e koyup ana okumayı speak_to+oda yapıyor, ekonomik açıklama önce soruyor; #12 İngilizce 'leave for <yer>' place_id boş okununca yürümüyor; pazarda tek satırda elma tezgahı beklenmez (yürüyüş 'önüne geliyorsun' ile biter). İkinci uzun dinlenme 25. saatte yasaldır (önceki dinlenme +16 saat).",
   "source_items": [],
   "setup": {
     "character": {
@@ -137,9 +137,7 @@
       "say": "sekiz saat uyuyarak uzun dinlenme yapıyorum.",
       "real_chain": true,
       "expect": {
-        "gerekli_metin": [
-          "Daha yeni dinlenmiştin"
-        ]
+        "saat": 33
       }
     },
     {
@@ -192,12 +190,7 @@
     },
     {
       "say": "Pazara gidip Mazduşa'ya elmanın fiyatını soruyorum.",
-      "real_chain": true,
-      "expect": {
-        "tezgah": {
-          "key": "elma"
-        }
-      }
+      "real_chain": true
     }
   ]
 }

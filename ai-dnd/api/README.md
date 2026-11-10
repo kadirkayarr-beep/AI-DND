@@ -107,7 +107,8 @@ What the adapter does for it (`api/ollama_adapter.py`; Gemini and Claude Haiku a
   before it is tried again. A dead service or a timeout does not switch models. `gemma4-fast` stays installed.
 - The local narration's system prompt ends with the owner's local-only rules (`LOCAL_STYLE_RULES`: short plain
   sentences, Turkish NPC and place names, no English terms in brackets, rule and skill names only in Turkish,
-  "sen" to the player throughout, the player's attempt in one sentence, then ask for a roll and stop) and one
+  "sen" to the player throughout, narrate exactly the Python action result when there is one, otherwise a short
+  reply with no invented outcome; no roll is ever asked, the engine rolls) and one
   sample reply in that voice (`LOCAL_DM_EXAMPLE`, provisional until the owner picks the text). The intent and
   front readings, and the cloud models, do not get them.
 

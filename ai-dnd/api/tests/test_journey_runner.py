@@ -754,11 +754,11 @@ class TheRunnerSortsEveryStep(JourneyCase):
         sid = campaign["session_id"]
         real = serializers.serialize_session_state
         def with_log(log):
-            return patch.object(serializers, "serialize_session_state", lambda session: {**real(session), "quest_log": log})
+            return patch.object(serializers, "serialize_session_state", lambda session, *a, **k: {**real(session, *a, **k), "quest_log": log})
         log = {"active_count": 1, "active": [{"title": "Teslimat: Revomar İskelesi"}],
                "done": [{"title": "Kayıp mektup", "result": "12 bakır ödendi"}],
                "trails": [{"what": "Tuna bir sorundan söz etti", "where": "Revomar İskelesi", "source": "teslim", "followed": False}]}
-        with patch.object(serializers, "serialize_session_state", lambda session: {k: v for k, v in real(session).items() if k != "quest_log"}):
+        with patch.object(serializers, "serialize_session_state", lambda session, *a, **k: {k2: v for k2, v in real(session, *a, **k).items() if k2 != "quest_log"}):
             self.assertIsNone(read_observed(self, sid)["gunluk"])          # no quest_log field: None (before Görev 6)
         with with_log(log):
             self.assertEqual(read_observed(self, sid)["gunluk"], {

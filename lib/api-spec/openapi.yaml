@@ -2148,6 +2148,7 @@ components:
           - qwen3.5:4b-q4_K_M
           - qwen3.5:9b-q4_K_M
           - gemma4-fast
+          - gemma4-12b-dm
           default: qwen3:8b
         model_chain:
           type:

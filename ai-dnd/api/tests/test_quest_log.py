@@ -136,6 +136,9 @@ class OneView(QuestLogCase):
                 # Task 8: a line may follow that says where the job's other person is; the job lines stay exactly one
                 [line] = [l for l in quest_log.card_lines(world, npc=npc) if l.startswith("görevlerin: ")]
                 self.assertTrue(line.startswith("görevlerin: "))
+                # Review 11 finding 12: nothing else is on the card but the job line and, at most, the where-line
+                self.assertEqual([l for l in quest_log.card_lines(world, npc=npc)
+                                  if not l.startswith("görevlerin: ") and "şu an burada değil" not in l], [])
         self.assertEqual(quest_log.card_lines(world, npc=other), [])
         self.assertEqual(len(quest_log.card_lines(world)), 1)
 
