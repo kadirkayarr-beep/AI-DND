@@ -516,6 +516,49 @@ class Recognition(Table):
                 reply = await self.line(line, "Evet, o yüzüğü sana ben satmıştım.", mode="say")
                 self.assertNotIn("yüzüğü sana ben satmıştım", reply["narration"])
 
+    def greeted_only(self, saying="Hoş geldin yolcu, ekmek taze."):
+        self.never_met()
+        npc_statements.record(self.world, self.npc, "selam", saying, turn=None)
+
+    async def test_recognition_backs_i_remember_you_not_an_event_the_reply_adds(self):
+        """Re-review R1: recognition backs 'I remember you'; an unbacked sale in the reply is cut."""
+        ring = "o yüzüğü sana ben satmıştım"
+        for line in ("Beni hatırlıyor musun?", "Beni hatırladın mı?", "Hatırlıyor musun?"):
+            for mode in (None, "say"):
+                with self.subTest(line=line, mode=mode):
+                    await self.job()
+                    self.greeted_only()
+                    reply = await self.line(line, "Evet, o yüzüğü sana ben satmıştım.", mode=mode)
+                    self.assertNotIn(ring, reply["narration"])
+                    self.assertNotIn("satmıştım", reply["narration"])
+
+    async def test_a_plain_recognition_still_stands(self):
+        for answer in ("Evet, hatırlıyorum seni.", "Seni daha önce gördüm.", "Elbette, yüzünü unutmadım."):
+            for mode in (None, "say"):
+                with self.subTest(answer=answer, mode=mode):
+                    await self.job()
+                    self.greeted_only()
+                    reply = await self.line("Beni hatırlıyor musun?", answer, mode=mode)
+                    self.assertIn(answer.rstrip("."), reply["narration"])
+                    self.assertFalse(any(word in reply["narration"] for word in DENIALS), reply["narration"])
+
+    async def test_a_recorded_sale_may_still_be_said(self):
+        await self.job()
+        self.greeted_only("Bu yüzüğü sana geçen hafta otuz bakıra satmıştım.")
+        reply = await self.line("Beni hatırlıyor musun?", "Evet, o yüzüğü sana ben satmıştım.", mode="say")
+        self.assertIn("o yüzüğü sana ben satmıştım", reply["narration"])
+
+    async def test_a_mixed_reply_keeps_the_recognition_and_loses_the_unbacked_event(self):
+        for answer in ("Hatırlıyorum seni, sana yüzük satmıştım.", "Seni bana borç verirken gördüm."):
+            with self.subTest(answer=answer):
+                await self.job()
+                self.greeted_only()
+                reply = await self.line("Beni hatırlıyor musun?", answer, mode="say")
+                self.assertNotIn("satmıştım", reply["narration"])
+                self.assertNotIn("borç", reply["narration"])
+                if answer.startswith("Hatırlıyorum"):
+                    self.assertIn("Hatırlıyorum seni", reply["narration"])
+
     async def test_someone_never_met_does_not_remember(self):
         for mode in (None, "say"):
             await self.job()

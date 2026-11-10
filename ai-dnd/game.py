@@ -22228,6 +22228,7 @@ def _run_player_turn_internal(
     experimental_unverified_claim = False
     told_support = []
     spoken_reference = False
+    recognised = False  # a recognition question backed by their words alone: the reply may add no event
     if (
         interaction_mode != "ask_dm"
         and not thread_talk
@@ -22273,6 +22274,7 @@ def _run_player_turn_internal(
             and (about == "memory"  # "beni hatırlıyor musun?" to someone whose own words are recorded (Task 28)
                  or about == "npc_words" and _SECOND_PERSON_SAID.search(_normalize_turkish_typos(player_input)))
         )
+        recognised = spoken_reference and about == "memory"
         # Unattributed NPC knowledge cannot independently verify past dialogue.
         # Only the speaker-aware memory path may support this response.
         if told_support:
@@ -22753,6 +22755,10 @@ def _run_player_turn_internal(
                     cleaned_spoken = _without_lines_already_said(
                         cleaned_spoken, npc_target, world_state, player_input
                     )
+                    if recognised and cleaned_spoken.strip():  # re-review R1: recognition backs no added event
+                        cleaned_spoken = npc_statements.only_what_recognition_backs(
+                            world_state, npc_target, player_input, cleaned_spoken,
+                            plain=lambda word: bool(_CLAIM_ACCEPTANCE_RE.fullmatch(word)))
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
                         threat=raw_intent.get("threat"),

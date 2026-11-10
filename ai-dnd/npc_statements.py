@@ -23,6 +23,7 @@ import re
 from typing import Any
 
 import living_world
+import tr_case
 
 KEY = "npc_statements"
 SCHEMA_VERSION = 1
@@ -129,6 +130,11 @@ _STOP = frozenset({
     "soylemistin", "demistin", "dedin", "bahsetmistin", "anlatmistin", "unuttun",
     "hatirliyor", "musun", "misin", "hatirla", "sadece", "simdi", "hemen", "diye",
 })
+# Owner-approved vocabulary exception (re-review R1, option B): the verbs of knowing someone again, folded stems.
+# A recognition question backs only these; any other event a reply adds needs the person's own recorded words.
+RECOGNITION_VERBS = ("hatirl", "unut", "tani", "gord", "gorm", "goru")
+_YOURS = re.compile(r"[iu]n[iu]$")  # "yüzünü", "sesini": something of the player's, the one recognised
+_FROM_A_VERB = re.compile(r"(?:[dt][iu]g|[ae]c[ae]g|m[ae]|[iu]s)[iu]n[iu]$")  # "ödediğini", "geleceğini": an event
 
 
 def fold(text: Any) -> str:
@@ -744,6 +750,40 @@ def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str)
                 return {"status": "supported", "quote": statement["text"], "statement": statement}
         return {"status": "unsupported", "claim_kind": "said", "objects": objects}
     return {"status": "unsupported", "claim_kind": None, "objects": objects}
+
+
+def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], player_text: str, reply: str,
+                                *, plain: Any) -> str:
+    """A reply to a recognition question, less every clause that adds an event the person's words do not back.
+
+    A clause stands when its content words are all `plain` (yes, of course…), the player's own, backed by this
+    person's recorded words, or a recognition verb with nothing but something of the player's ("yüzünü
+    unutmadım"). "Evet, o yüzüğü sana ben satmıştım." keeps "Evet." when no saying of theirs backs the sale.
+    The reply comes back unchanged when nothing is cut, and empty when nothing is left.
+    """
+    said = [word for statement in view(world)["statements"].get(npc.get("id"), [])
+            for word in fold(statement.get("text", "")).split()]
+    own = set(fold(player_text).split()) | {fold(npc.get("name", ""))}
+    parts = re.split(r"([,.;!?…]+)", reply)
+    kept, cut = [], False
+    for clause, mark in zip(parts[0::2], [*parts[1::2], ""]):
+        if not clause.strip():
+            continue
+        content = _objects(fold(clause))
+        leftover = [word for word in content
+                    if not plain(word) and word not in own and not word.startswith(RECOGNITION_VERBS)
+                    and not any(_stem_match(word, other) for other in said)]
+        recognised = any(word.startswith(RECOGNITION_VERBS) for word in content)
+        if leftover and not (recognised and all(_YOURS.search(w) and not _FROM_A_VERB.search(w) for w in leftover)):
+            cut = True
+            continue
+        kept.append(clause.strip() + mark)
+    if not cut:
+        return reply
+    text = " ".join(kept).strip().rstrip(",;").strip()
+    if text and text[-1] not in ".!?…":
+        text += "."
+    return tr_case.upper_first(text) if text else ""
 
 
 def _said_clause(claim: str, drop: tuple[re.Pattern[str], ...], names: set[str]) -> list[str]:
