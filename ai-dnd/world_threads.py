@@ -888,13 +888,22 @@ _ENGLISH_MARKS = frozenset({"the", "who", "whom", "where", "what", "when", "how"
                             "there", "this", "that", "it", "i"})
 
 
-def _without_english_is(words: list[str]) -> list[str]:
-    return [word for word in words if word not in {"is", "ise"}] if _ENGLISH_MARKS & set(words) else words
+_TURKISH_LETTERS = re.compile("[çğıöşüÇĞİÖŞÜ]")
 
 
-def _asks_about_the_job(tokens, table, names, thread):
+def _english_question(text: str) -> bool:
+    """A line with no Turkish letter that asks ('Is he here?'): its 'is' is no 'iş'. Turkish typed without its
+    letters ('is ne zaman?') loses the job word too: a miss, never a yes."""
+    return "?" in text and not _TURKISH_LETTERS.search(text)
+
+
+def _without_english_is(words: list[str], english: bool = False) -> list[str]:
+    return [word for word in words if word not in {"is", "ise"}] if english or _ENGLISH_MARKS & set(words) else words
+
+
+def _asks_about_the_job(tokens, table, names, thread, english=False):
     """A question tied to this work: it names the work, or asks what the speaker is to do."""
-    words = [word for word in _without_english_is(tokens) if word not in table["fillers"] and word not in names]
+    words = [word for word in _without_english_is(tokens, english) if word not in table["fillers"] and word not in names]
     if not words or " ".join(tokens) in table["question_words"]:
         return True
     stems = _item_stems(thread or {})
@@ -924,7 +933,8 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     names = _names_of(npc)
     stems = _item_stems(thread or {})
     words = whole.split()
-    job_words = _without_english_is(words)
+    english = _english_question(text)
+    job_words = _without_english_is(words, english)
     reading["reference"] = any(word in table["reference"] or any(word.startswith(s) for s in stems) for word in job_words) or (
         _has_phrase(job_words, table["reference"]))
     reading["pointing"] = bool(set(words) & table["pointing"])
@@ -953,7 +963,8 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     reading["start"], reading["move"] = "start" in kinds, "move" in kinds
     if "terms" in kinds:
         return {**reading, "terms": True}
-    elsewhere = any(kind == "question" and not _asks_about_the_job(tokens, table, names, thread) for kind, tokens in said)
+    elsewhere = any(kind == "question" and not _asks_about_the_job(tokens, table, names, thread, english)
+                    for kind, tokens in said)
     bare = all(_bare_answer(tokens, table, names) for kind, tokens in said if kind in _DECISIONS)
     if "unclear" in kinds or "other" in kinds or len(decided) > 1 or (elsewhere and bare):
         # 'sabah oldu, hadi başlayalım': other words beside it do not undo a plain start, only a no or a doubt does.

@@ -642,6 +642,28 @@ class EnglishAnswers(unittest.TestCase):
         self.assertEqual(self.meaning("Yes."), "accept")
         self.assertTrue(world_threads.read_answer("Evet, bu işi yaparım.", self.priest())["reference"])
 
+    def test_an_english_is_question_is_no_job_word(self):
+        # Fix round 2: an English question starting with 'Is' carries no 'iş' even with no other English mark.
+        for english, turkish in (("Yes. Is Haskula nearby?", "Evet. Haskula yakında mı?"),
+                                 ("Yes. Is he here?", "Evet. O burada mı?")):
+            with self.subTest(line=english):
+                self.assertIsNone(self.meaning(turkish))
+                self.assertIsNone(self.meaning(english))
+                self.assertFalse(world_threads.read_answer(english, self.priest())["reference"])
+        self.assertEqual(self.meaning("Yes."), "accept")
+        self.assertTrue(world_threads.read_answer("Evet, bu işi yaparım.", self.priest())["reference"])
+        self.assertTrue(world_threads.read_answer("Evet. İş ne zaman başlıyor?", self.priest())["reference"])
+
+    def test_the_pay_asks_the_terms_as_ucret_does(self):
+        for english, turkish in (("Sure. Is the pay good?", "Tabii. Ücret iyi mi?"),
+                                 ("Yes, how much is the pay?", "Evet, ücret ne kadar?")):
+            with self.subTest(line=english):
+                turkish_reading = world_threads.read_answer(turkish, self.priest())
+                english_reading = world_threads.read_answer(english, self.priest())
+                self.assertTrue(turkish_reading["terms"])
+                self.assertEqual((english_reading["meaning"], english_reading["terms"]),
+                                 (turkish_reading["meaning"], turkish_reading["terms"]))
+
     def test_how_much_asks_the_terms_as_ne_kadar_does(self):
         for english, turkish in (("Yes, how much is the beer?", "Evet, bira ne kadar?"),
                                  ("Sure, how much?", "Tabii, ne kadar?")):
