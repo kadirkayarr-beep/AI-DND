@@ -599,3 +599,44 @@ class TheWorkOnOffer(unittest.TestCase):
                 for word in ("otomatik", "varsay", "sayılmaz", "oluşmaz", "kendiliğinden"):
                     self.assertNotIn(word, line.casefold(), template["id"])
                 self.assertTrue(line.endswith("."), line)
+
+
+Q032 = "Of course, Father. Who is Haskula, where can I find them, and what exactly are the two groups asking for?"
+
+
+class EnglishAnswers(unittest.TestCase):
+    """Dilim 3D Task 3 (#032): an English yes or no to a shown offer reads like its Turkish twin."""
+
+    def priest(self):
+        return {"id": "npc_priest", "name": "Aldric", "role": "Rahip"}
+
+    def meaning(self, line):
+        return world_threads.read_answer(line, self.priest())["meaning"]
+
+    def test_bare_english_answers(self):
+        for line, meaning in (("Yes.", "accept"), ("Of course, Father.", "accept"), ("No.", "decline"),
+                              ("Sure.", "accept"), ("I accept.", "accept"), ("I will do it.", "accept"),
+                              ("I'll do it, sir.", "accept"), ("Agreed, madam.", "accept"),
+                              ("No thanks.", "decline"), ("I decline.", "decline")):
+            with self.subTest(line=line):
+                self.assertEqual(self.meaning(line), meaning)
+
+    def test_032_reads_like_its_turkish_twin(self):
+        twin = "Tabii peder. Haskula kim, onu nerede bulurum, iki grup tam olarak ne istiyor?"
+        self.assertEqual(self.meaning(twin), "accept")
+        self.assertEqual(self.meaning(Q032), self.meaning(twin))
+
+    def test_a_bare_yes_before_another_question_is_no_answer_in_either_tongue(self):
+        self.assertIsNone(self.meaning("Evet. Haskula kim?"))
+        self.assertIsNone(self.meaning("Yes. Where do I find Haskula?"))
+
+    def test_not_sure_is_no_yes(self):
+        self.assertIsNone(self.meaning("I'm not sure."))
+
+    def test_address_words_leave_the_bare_turkish_answers_bare(self):
+        table = world_threads.answer_table()
+        for tokens in (["peki"], ["tamam"], ["evet"], ["peki", "father"], ["yes", "sir"]):
+            with self.subTest(tokens=tokens):
+                self.assertTrue(world_threads._bare_answer(tokens, table, frozenset()))
+        self.assertFalse(world_threads._bare_answer(["of", "course"], table, frozenset()))
+        self.assertFalse(world_threads._bare_answer(["tabii"], table, frozenset()))

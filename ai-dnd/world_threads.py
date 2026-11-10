@@ -806,7 +806,8 @@ def _read_clause(tokens, asked, table, names, item_stems):
         return "terms"
     if phrase in table["unclear"] or (set(body) & _REPORTED):
         return "unclear"
-    if any(word.endswith(_CONDITIONAL_ENDS) for word in body):
+    listed = any(phrase in table[meaning] for meaning in _DECISIONS)  # 'of course' is no 'olursa'
+    if not listed and any(word.endswith(_CONDITIONAL_ENDS) for word in body):
         return "unclear"
     said = [word for word in body if word not in table["discourse"]]
     for meaning in ("decline", "withdraw", "accept"):

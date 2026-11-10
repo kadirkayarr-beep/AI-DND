@@ -325,7 +325,14 @@
       "bu işi yaparım",
       "tabii",
       "elbette",
-      "tabii ki"
+      "tabii ki",
+      "yes",
+      "of course",
+      "sure",
+      "i accept",
+      "i will do it",
+      "i'll do it",
+      "agreed"
     ],
     "decline": [
       "yok",
@@ -340,7 +347,10 @@
       "gerek yok",
       "ilgilenmiyorum",
       "almayayım",
-      "kabul etmem"
+      "kabul etmem",
+      "no",
+      "no thanks",
+      "i decline"
     ],
     "withdraw": [
       "vazgeçtim",
@@ -452,7 +462,13 @@
       "kime",
       "nasıl",
       "hangi",
-      "nereye"
+      "nereye",
+      "who",
+      "whom",
+      "where",
+      "when",
+      "how",
+      "which"
     ],
     "hedges": [
       "düşüneyim",
@@ -539,7 +555,11 @@
       "ben",
       "bir",
       "şey",
-      "uzatmayalım"
+      "uzatmayalım",
+      "peder",
+      "father",
+      "sir",
+      "madam"
     ],
     "discourse": [
       "iyi",
@@ -564,7 +584,9 @@
       "olur",
       "hayır",
       "yok",
-      "olmaz"
+      "olmaz",
+      "yes",
+      "no"
     ],
     "first_person_ends": [
       "yorum",

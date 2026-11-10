@@ -263,32 +263,69 @@ _NUMBER_WORDS = {"bir": 1, "bi": 1, "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alt
                  "doksan": 90, "yarim": 0.5}
 _HANDED_NOW = re.compile(r"\w+[iu]yo(?:r|m)\w*|\w+[dt][iu]m")
 UNNAMED_COIN_CP = 10  # 'biraz para': the hand holds a little; the line gave no figure to hold the reading to
+# English: whole words only ('golden' is no coin). A metal is coin only with a figure before it or 'coin'/'piece'
+# after it: 'a silver dagger' and 'some silver' are a miss the model answers, never coin moved.
+_EN_COIN_WORDS = ("coin", "coins")
+_EN_COIN_UNITS = {"gold": 100, "silver": 10, "copper": 1}
+_EN_PIECES = {"coin", "coins", "piece", "pieces"}
+_EN_NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
+                    "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+                    "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20, "thirty": 30,
+                    "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+# 'not', 'never', 'n't' (folded to 'don t', or typed 'dont'), and a promise ('will', ''ll', 'tomorrow'): said, not
+# done, as 'vermiyorum' and 'veririm' are in Turkish.
+_EN_NOT_NOW = re.compile(r"\b(?:not|never|cannot|(?:do|does|did|wo|ca|could|would|should|is|are|was|were|have|has|"
+                         r"had|must|need)n\s?t|will|ll|shall|gonna|going to|tomorrow|later)\b")
 
 
-def _number_before(words: list[str], at: int) -> float | None:
-    """The number standing right before this word: digits or words, 'on beş', 'iki yüz', 'bin', 'yarım'."""
+def _number_before(words: list[str], at: int, numbers: dict[str, float] | None = None) -> float | None:
+    """The number standing right before this word: digits or words, 'on beş', 'iki yüz', 'bin', 'yarım'.
+
+    English units pass the English words: a run of one tongue's words only, so 'on two gold' is two gold."""
+    numbers = _NUMBER_WORDS if numbers is None else numbers
+    scales = {"yuz", "bin"} if numbers is _NUMBER_WORDS else set()
     start = at
-    while start and (words[start - 1].isdigit() or words[start - 1] in _NUMBER_WORDS
-                     or words[start - 1] in {"yuz", "bin"}):
+    while start and (words[start - 1].isdigit() or words[start - 1] in numbers or words[start - 1] in scales):
         start -= 1
     total, current = 0.0, 0.0
     for word in words[start:at]:
-        if word in {"yuz", "bin"}:
+        if word in scales:
             scale = 100 if word == "yuz" else 1000
             current = (current or 1) * scale
             if word == "bin":
                 total, current = total + current, 0.0
         else:
-            current += int(word) if word.isdigit() else _NUMBER_WORDS[word]
+            current += int(word) if word.isdigit() else numbers[word]
     return total + current if start < at else None
 
 
+def _english_coin_at(words: list[str], at: int) -> bool:
+    """'five silver', '5 gold', 'silver pieces', 'gold coin': the metal is coin, not a silver dagger."""
+    return words[at] in _EN_COIN_UNITS and (
+        words[at + 1:at + 2] != [] and words[at + 1] in _EN_PIECES
+        or _number_before(words, at, _EN_NUMBER_WORDS) is not None)
+
+
+def _english_count(words: list[str], at: int) -> float | None:
+    """The figure before an English unit; 'a'/'an' is one only right before 'gold coin', 'silver piece'."""
+    count = _number_before(words, at, _EN_NUMBER_WORDS)
+    if count is None and at and words[at - 1] in {"a", "an"} and words[at + 1:at + 2] and words[at + 1] in _EN_PIECES:
+        return 1
+    return count
+
+
 def _coin_said(words: list[str]) -> int | None:
-    """The sum the player's own words name in copper, or None when they name no figure."""
+    """The sum the player's own words name in copper, or None when they name no figure.
+
+    One figure of one unit said twice in the line is paid once ('5 silver… five silver pieces'); different figures
+    add up ('bir altın beş gümüş' is 150). Overpaying is the worse mistake: 'two silver, then two silver more' pays 20.
+    """
     amounts = [(_number_before(words, at), unit) for at, word in enumerate(words)
                for stem, unit in _COIN_UNITS.items() if word.startswith(stem)]
-    named = [count * unit for count, unit in amounts if count]
-    return int(sum(named)) if named else None
+    amounts += [(_english_count(words, at), _EN_COIN_UNITS[word]) for at, word in enumerate(words)
+                if _english_coin_at(words, at)]
+    named = {(count, unit) for count, unit in amounts if count}
+    return int(sum(count * unit for count, unit in named)) if named else None
 
 
 def _coin_clauses(line: str) -> list[str]:
@@ -305,9 +342,12 @@ def _coin_clauses(line: str) -> list[str]:
     found = []
     for clause, end in clauses:
         clause_words = living_world.normalize_text(clause).split()
-        if (any(word.startswith(_COIN_WORDS) for word in clause_words) and end != "?"
+        english = (any(word in _EN_COIN_WORDS for word in clause_words)
+                   or any(_english_coin_at(clause_words, at) for at in range(len(clause_words))))
+        if ((english or any(word.startswith(_COIN_WORDS) for word in clause_words)) and end != "?"
                 and (not asked or any(_HANDED_NOW.fullmatch(word) for word in clause_words))
                 and not world_threads.says_later(clause)
+                and not (english and _EN_NOT_NOW.search(" ".join(clause_words)))  # a Turkish 'not' is a note
                 and not game._NO_BLOW_NOW.search(game._normalize_turkish_typos(clause))):  # 'vermiyorum': said, not done
             found.append(clause)
     return found

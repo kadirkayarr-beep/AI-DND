@@ -318,5 +318,85 @@ class TheTurnStartsClean(unittest.TestCase):
         self.assertEqual(session._turn_notes, [])
 
 
+Q022 = ("I accept the room for 5 silver. I hand the bartender exactly five silver pieces from my purse, "
+        "ask for a key, and head upstairs.")  # QA #022
+
+
+def read(cp):
+    return {"front": {"coin_cp": cp}}
+
+
+class EnglishCoin(unittest.TestCase):
+    """Dilim 3D Task 3 (#022): English coin words read like the Turkish ones; one sum said twice is paid once."""
+
+    def test_022_names_coin(self):
+        self.assertTrue(front_proposal.names_coin(Q022))
+
+    def test_the_same_sum_named_twice_is_paid_once(self):
+        self.assertEqual(front_proposal.coin_in(read(50), Q022), 50)
+        self.assertEqual(front_proposal.coin_in(read(50), "5 gümüşe odayı alıyorum. Barmene beş gümüş veriyorum."), 50)
+
+    def test_english_equals_turkish(self):
+        self.assertEqual(front_proposal.coin_in(read(50), "I hand the bartender five silver pieces"), 50)
+        self.assertEqual(front_proposal.coin_in(read(50), "I hand the bartender five silver pieces"),
+                         front_proposal.coin_in(read(50), "Barmene beş gümüş veriyorum"))
+        self.assertEqual(front_proposal.coin_in(read(200), "I hand him two gold coins"), 200)
+        self.assertEqual(front_proposal.coin_in(read(3), "I give her 3 copper"), 3)
+        self.assertEqual(front_proposal.coin_in(read(125), "I pay twenty five copper and one gold"), 125)
+
+    def test_distinct_sums_still_add(self):
+        self.assertEqual(front_proposal.coin_in(read(150), "bir altın ve beş gümüş veriyorum"), 150)
+        self.assertEqual(front_proposal.coin_in(read(150), "I hand him one gold and five silver"), 150)
+        self.assertEqual(front_proposal.coin_in(read(150), "on beş gümüş veriyorum"), 150)
+
+    def test_english_no_hands_nothing(self):
+        for line in ("I will not hand over any silver", "I don't hand him 5 silver", "I never pay 2 gold",
+                     "I won't give him five silver pieces", "I cannot pay 5 silver", "I dont pay 5 silver"):
+            with self.subTest(line=line):
+                self.assertEqual(front_proposal.coin_in(read(50), line), 0)
+                self.assertFalse(front_proposal.names_coin(line))
+
+    def test_an_english_promise_hands_nothing(self):
+        # Ruling: the Turkish twins ('veririm', 'vereceğim', 'yarın') hand nothing; neither does the English.
+        for line in ("I'll pay you 5 silver", "I will give him two gold coins", "I shall pay 5 silver",
+                     "I'm going to pay 5 silver", "I pay you 5 silver tomorrow", "I pay you 5 silver later"):
+            with self.subTest(line=line):
+                self.assertEqual(front_proposal.coin_in(read(50), line), 0)
+
+    def test_want_is_no_negation(self):
+        self.assertEqual(front_proposal.coin_in(read(50), "I want to pay 5 silver"), 50)
+
+    def test_golden_is_no_coin(self):
+        self.assertFalse(front_proposal.names_coin("I hand him the golden key"))
+        self.assertFalse(front_proposal.names_coin("I hand the goldsmith my ring"))
+
+    def test_metal_with_no_figure_and_no_coin_after_it_is_no_coin(self):
+        # Ruling: 'a silver dagger', 'some silver' are a miss (the model answers, nothing moves), never coin.
+        for line in ("I hand him a silver dagger", "I give the bartender some silver", "I hand over the copper pot"):
+            with self.subTest(line=line):
+                self.assertFalse(front_proposal.names_coin(line))
+                self.assertEqual(front_proposal.coin_in(read(50), line), 0)
+
+    def test_a_coin_is_one(self):
+        self.assertEqual(front_proposal.coin_in(read(500), "I hand him a gold coin"), 100)
+        self.assertEqual(front_proposal.coin_in(read(500), "I slide her a silver piece"), 10)
+
+    def test_a_bare_coin_is_the_unnamed_little(self):
+        self.assertTrue(front_proposal.names_coin("I toss him a coin"))
+        self.assertEqual(front_proposal.coin_in(read(50), "I toss him a coin"), front_proposal.UNNAMED_COIN_CP)
+
+    def test_a_turkish_number_word_never_counts_for_an_english_unit(self):
+        # 'on' is Turkish ten: 'on two gold' is two gold, not twelve.
+        self.assertEqual(front_proposal.coin_in(read(200), "I slap on two gold coins"), 200)
+        self.assertEqual(front_proposal.coin_in(read(500), "I put on 5 gold"), 500)
+
+    def test_names_coin_agrees_with_coin_in_on_english_lines(self):
+        reading = {"front": {"coin_cp": 7}}
+        for line in (Q022, "I hand him two gold coins", "I will not hand over any silver", "I toss him a coin",
+                     "I hand him the golden key", "I hand him a silver dagger", "How much is it? 5 silver?",
+                     "I'll pay you 5 silver"):
+            self.assertEqual(front_proposal.names_coin(line), front_proposal.coin_in(reading, line) > 0, line)
+
+
 if __name__ == "__main__":
     unittest.main()
