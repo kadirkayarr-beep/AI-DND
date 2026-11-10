@@ -541,6 +541,53 @@ class TheZeroToleranceList(Offline):
         self.assertEqual(self.main_exit_code(clean), 0)
 
 
+def _arrival(index, kaynak, neden, cagri, narration):
+    return StepResult(index=index, status="pass", failures=(), items=(), narration=narration, seconds=0.0,
+                      varis={"cagri": cagri, "kaynak": kaynak, "neden": neden})
+
+
+class TheArrivalLog(Offline):
+    """Task 6b: every run's arrivals are written (source, reason, text), not only the worst run's narration."""
+
+    def played(self):
+        played = real_run.Played()
+        played.complete["rc12_arrival_real"] = [
+            [_arrival(1, "model", None, 1, "Akşam vaktinde mezarlığa varıyorsun."),
+             _arrival(2, "python", "speech_first", 0, "Yeniden buradasın: Mezarlık.")],
+            [_arrival(1, "python", "model_error", 1, "Mezarlığa varıyorsun."),
+             _arrival(2, None, None, 0, "Bir şey olmadı.")],
+            [_arrival(1, "model", None, 1, "Gece mezarlığa varıyorsun.")],
+        ]
+        return played
+
+    def test_every_run_s_arrivals_are_listed_with_the_acceptance_rate_and_the_reasons(self):
+        write_scenarios(self.scenarios, probe("rc12_arrival_real", 2))
+        selection = real_run.select_scenarios("all", self.scenarios)
+        report = real_run.assemble_report(selection, self.played(), real_run.RealChain(100), real_run.parse_args([]),
+                                          TODAY)
+        section = report[report.index("## Varış kaydı"):]
+        self.assertIn("- Modele soran varış: 3; model metni kabul: 2 (%67)", section)
+        self.assertIn("- Python metni kalan (modele sorulup): model_error 1", section)
+        self.assertIn("- Modele sorulmayan varış: speech_first 1", section)
+        for line in ("- rc12_arrival_real koşu 1 adım 1: çağrı 1, kaynak model, neden - | "
+                     "Akşam vaktinde mezarlığa varıyorsun.",
+                     "- rc12_arrival_real koşu 1 adım 2: çağrı 0, kaynak python, neden speech_first | "
+                     "Yeniden buradasın: Mezarlık.",
+                     "- rc12_arrival_real koşu 2 adım 1: çağrı 1, kaynak python, neden model_error | "
+                     "Mezarlığa varıyorsun.",
+                     "- rc12_arrival_real koşu 3 adım 1: çağrı 1, kaynak model, neden - | Gece mezarlığa varıyorsun."):
+            self.assertIn(line, section)
+        self.assertNotIn("Bir şey olmadı.", section)  # no arrival in that step: not an arrival line
+
+    def test_a_run_without_arrivals_says_so(self):
+        played = real_run.Played()
+        played.complete["rc12_arrival_real"] = [[_step(1)]]
+        write_scenarios(self.scenarios, probe("rc12_arrival_real", 1))
+        report = real_run.assemble_report(real_run.select_scenarios("all", self.scenarios), played,
+                                          real_run.RealChain(100), real_run.parse_args([]), TODAY)
+        self.assertIn("## Varış kaydı (her koşu, her adım)\n\nVarış yok.", report)
+
+
 class TheCoreSet(Offline):
     """The default real-chain set is the design's four (spec §5): price recall (36), consistency after payment
     (2), the narrator matching the engine when there is no weapon to strike with (39), a fight started by a

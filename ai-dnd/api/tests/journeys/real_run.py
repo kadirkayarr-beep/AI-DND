@@ -460,7 +460,38 @@ def assemble_report(selection: Mapping[str, Scenario], played: Played, driver: R
     # The notes name scenarios and the cut too, so the whole text is scrubbed, not the report part alone.
     breaks = zero_tolerance_breaks(played)
     section = "## Sıfır tolerans ihlalleri\n" + ("\n".join(f"- {line}" for line in breaks) if breaks else "yok")
-    return scrub(text + "\n" + section + "\n\n" + _run_notes(selection, played, driver, args) + "\n")
+    return scrub(text + "\n" + section + "\n\n" + _arrival_log(played) + "\n\n"
+                 + _run_notes(selection, played, driver, args) + "\n")
+
+
+def _arrival_log(played: Played) -> str:
+    """Every arrival of every run (the tables above show only the worst run): who asked the model, whose text won,
+    why the Python text stayed, and the text itself, so the acceptance rate can be counted on the real chain."""
+    lines = ["## Varış kaydı (her koşu, her adım)", ""]
+    runs = [(key, number, steps) for key, all_runs in played.complete.items()
+            for number, steps in enumerate(all_runs, start=1)]
+    runs += [(key, len(played.complete.get(key, ())) + 1, steps) for key, steps in played.partial.items()]
+    arrivals = [(key, number, step, step.varis) for key, number, steps in runs for step in steps
+                if step.varis and (step.varis.get("cagri") or step.varis.get("kaynak") is not None)]
+    if not arrivals:
+        return "\n".join(lines + ["Varış yok."])
+    asked = [varis for *_, varis in arrivals if varis.get("cagri")]
+    accepted = sum(varis.get("kaynak") == "model" for varis in asked)
+    kept = Counter(str(varis.get("neden") or "-") for varis in asked if varis.get("kaynak") != "model")
+    unasked = Counter(str(varis.get("neden") or "-") for *_, varis in arrivals if not varis.get("cagri"))
+    rate = f" (%{accepted * 100 / len(asked):.0f})" if asked else ""
+    lines += [f"- Modele soran varış: {len(asked)}; model metni kabul: {accepted}{rate}",
+              "- Python metni kalan (modele sorulup): " + _counted(kept),
+              "- Modele sorulmayan varış: " + _counted(unasked), ""]
+    for key, number, step, varis in arrivals:
+        lines.append(f"- {key} koşu {number} adım {step.index}: çağrı {varis.get('cagri') or 0}, "
+                     f"kaynak {varis.get('kaynak') or '-'}, neden {varis.get('neden') or '-'} | "
+                     + " ".join(step.narration.split()))
+    return "\n".join(lines)
+
+
+def _counted(counts: Counter[str]) -> str:
+    return ", ".join(f"{reason} {count}" for reason, count in sorted(counts.items())) or "yok"
 
 
 def _run_notes(selection: Mapping[str, Scenario], played: Played, driver: RealChain,

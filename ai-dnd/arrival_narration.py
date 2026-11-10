@@ -6,22 +6,26 @@ arrival text when the model is not asked, fails or is refused.
 """
 from __future__ import annotations
 
-import copy
 import json
 from typing import Any
 
-import game as _game
 import living_world
 import local_places
 
-SCHEMA = copy.deepcopy(_game._dm_response_schema_for_turn(narration_only=True))
-SCHEMA["properties"]["arrival"] = {"type": "boolean"}
+# The text and the marker only. The narrator's schema sits at Haiku's grammar limit: one more field and every
+# call came back HTTP 400 "The compiled grammar is too large" (Task 6b). A packet that still proposes is refused below.
+SCHEMA = {
+    "type": "object",
+    "properties": {"narration": {"type": "string"}, "arrival": {"type": "boolean"}},
+    "required": ["narration", "arrival"],
+    "additionalProperties": False,
+}
 
 RULES = ("Bir yere varışı anlat. Yalnız verilen yeri, verilen vakti ve oradakileri kullan. İlk ziyarette en çok 4, "
          "dönüşte en çok 3 cümle yaz. Verilen vakit dışında vakit söyleme; vakit verilmediyse vakitten söz etme. "
          "Havadan söz etme. Yeni kişi, eşya, çıkış, yol, ücret, para ya da görev ekleme. Tırnak içinde konuşma "
          "yazma. Oyuncu adına karar, söz ya da duygu yazma. Soru sorma, seçenek sunma. Model, veri, kayıt ya da "
-         "Python'dan söz etme. world_updates ve lore_claims boş kalsın; yalnız narration yaz.")
+         "Python'dan söz etme. Yalnız narration yaz; arrival true olsun.")
 
 ABSENCE = ((1800, "kısa bir süre"), (6 * 3600, "birkaç saat"), (24 * 3600, "yarım günü aşkın"),
            (48 * 3600, "bir gün kadar"))

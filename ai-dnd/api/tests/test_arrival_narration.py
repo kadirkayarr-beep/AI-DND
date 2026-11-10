@@ -270,6 +270,21 @@ class Narrate(Fixture):
         self.assertEqual(kwargs["format"], arrival_narration.SCHEMA)
         self.assertEqual(arrival_narration.SCHEMA["properties"]["arrival"], {"type": "boolean"})
 
+    def test_haiku_gets_a_grammar_it_can_compile(self):
+        # Task 6 real chain: the narrator's schema plus one "arrival" field made Haiku answer every arrival call
+        # with HTTP 400 "The compiled grammar is too large" (the narrator's schema alone sits at its limit).
+        # The arrival call proposes nothing, so its schema is the text and the marker only.
+        from api import model_chain
+        self.assertEqual(arrival_narration.SCHEMA, {
+            "type": "object",
+            "properties": {"narration": {"type": "string"}, "arrival": {"type": "boolean"}},
+            "required": ["narration", "arrival"],
+            "additionalProperties": False,
+        })
+        body = model_chain.haiku_body({"messages": [{"role": "user", "content": "x"}], "format": arrival_narration.SCHEMA})
+        self.assertEqual(body["output_config"]["format"]["schema"], arrival_narration.SCHEMA)
+        self.assertNotIn("world_updates", json.dumps(body))
+
     def test_a_return_tells_the_absence_in_words(self):
         scene = self.return_after(3 * 3600)
         facts = arrival_narration.facts(scene, [{"role": "assistant", "content": "x" * 600}])

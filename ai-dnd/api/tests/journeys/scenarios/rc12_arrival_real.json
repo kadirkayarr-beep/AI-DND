@@ -1,6 +1,6 @@
 {
   "id": "rc12_arrival_real",
-  "title": "Gerçek zincir, varış anlatımı (38'in ikizi): mezarlık, liman, 'gidip iste' satırı (söz önce, varışa çağrı kalmaz), ikinci liman varışı ve bir han girişi; yalnız konum ve çağrı sayısı ölçülür, anlatı metnine karışılmaz",
+  "title": "Gerçek zincir, varış anlatımı (38'in ikizi): bir han girişi, mezarlık, liman, 'gidip iste' satırı (söz önce, varışa çağrı kalmaz) ve ikinci liman varışı; yalnız çağrı sayısı ölçülür (konum kimlikleri sahte modelde ölçülmüştü, gerçek zincirde ön okuma başka yere götürebilir), anlatı metnine karışılmaz; varışların kaynağı ve metni rapordaki varış kaydında",
   "source_items": [],
   "setup": {
     "character": {
@@ -66,30 +66,20 @@
   "steps": [
     {
       "say": "hana giriyorum",
-      "real_chain": true,
-      "expect": {
-        "konum": "location_006"
-      }
+      "real_chain": true
     },
     {
       "say": "mezarlığa gidiyorum",
-      "real_chain": true,
-      "expect": {
-        "konum": "location_007"
-      }
+      "real_chain": true
     },
     {
       "say": "limana gidiyorum",
-      "real_chain": true,
-      "expect": {
-        "konum": "location_008"
-      }
+      "real_chain": true
     },
     {
       "say": "mezarlığa gidip mezarcıdan bir fener istiyorum",
       "real_chain": true,
       "expect": {
-        "konum": "location_007",
         "varis": {
           "cagri": 0
         }
@@ -97,10 +87,7 @@
     },
     {
       "say": "limana gidiyorum",
-      "real_chain": true,
-      "expect": {
-        "konum": "location_008"
-      }
+      "real_chain": true
     }
   ]
 }

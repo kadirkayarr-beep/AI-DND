@@ -137,6 +137,8 @@ class StepResult:
     narration: str
     seconds: float
     reading: str = ""  # what the model's front reading / classifier answered this step (the report's raw log)
+    # What ``varis`` observed after the step ({cagri, kaynak, neden}); the real-chain report lists it for every run.
+    varis: Mapping[str, Any] | None = None
 
 
 def _properties(schema: Any) -> Mapping[str, Any]:
@@ -694,7 +696,8 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "inkar": getattr(case, "last_denial", False),
         "ambient": getattr(case, "last_ambient_result", None),
         "varis": {"cagri": getattr(case, "last_arrival_calls", 0),
-                  "kaynak": (getattr(session, "last_arrival_narration", None) or {}).get("source")},
+                  "kaynak": (getattr(session, "last_arrival_narration", None) or {}).get("source"),
+                  "neden": (getattr(session, "last_arrival_narration", None) or {}).get("reason_code")},
     }
 
 
@@ -918,7 +921,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
                 blocked_by = index
             results.append(StepResult(index, status, tuple(failures), step.known_broken,
                                       self.last_narration, time.monotonic() - started,
-                                      "" if step.undo or step.reload or step.ambient else self.last_reading))
+                                      "" if step.undo or step.reload or step.ambient else self.last_reading,
+                                      observed.get("varis")))
         return results
 
     async def _journey_campaign(self, setup: Mapping[str, Any]) -> dict:

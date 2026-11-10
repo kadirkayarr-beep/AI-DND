@@ -416,9 +416,18 @@ class TheRunnerSortsEveryStep(JourneyCase):
         with fixed_town(self, 4421):
             campaign = await self.create_campaign()
         sid = campaign["session_id"]
-        self.assertEqual(read_observed(self, sid)["varis"], {"cagri": 0, "kaynak": None})
+        self.assertEqual(read_observed(self, sid)["varis"], {"cagri": 0, "kaynak": None, "neden": None})
         self.manager.get(sid).game_session.last_arrival_narration = {"source": "model", "reason_code": None}
         self.assertEqual(read_observed(self, sid)["varis"]["kaynak"], "model")
+        self.manager.get(sid).game_session.last_arrival_narration = {"source": "python", "reason_code": "model_error"}
+        self.assertEqual(read_observed(self, sid)["varis"], {"cagri": 0, "kaynak": "python", "neden": "model_error"})
+
+    async def test_every_step_result_carries_its_arrival_diagnostic(self):
+        # Task 6b: the real-chain report lists every run's arrivals, so each step keeps what ``varis`` observed.
+        with fixed_town(self, 4431):
+            (result,) = await self.run_scenario(beer_scenario())
+        self.assertEqual(result.varis, {"cagri": 0, "kaynak": None, "neden": None})
+        self.assertEqual(result.varis, self.last_observations[-1]["varis"])
 
     async def test_experience_game_hours_and_open_quests_are_observed(self):
         campaign = await self._journey_campaign({"campaign_start": NEVERWINTER})  # a started campaign clock
