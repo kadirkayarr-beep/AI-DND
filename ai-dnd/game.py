@@ -17463,6 +17463,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
 
     direct = None
     resolved_npc = None
+    deferred_referent_id = None
     if (
         not combat.get("active")
         and living_world.is_anchored_structure_inquiry(action_input)
@@ -17692,7 +17693,18 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                 action == "approach" or _has_explicit_attack_verb(action_input)
                 or re.search(r"\b(?:konus\w*|seslen\w*|selam\w*|sor\w*|talk|speak|greet)\b", _normalize_turkish_typos(str(action_input)))
             ):
-                resolved_npc = _promote_scene_referent(referent, current)
+                if (
+                    ref_resolution["status"] == "found"
+                    and action != "approach"
+                    and not _has_explicit_attack_verb(action_input)
+                    and active_npcs()
+                ):
+                    # Greeting with someone visible here: the model's checked pick of
+                    # that person wins over a word of the happening; the turn creates
+                    # the happening's person only if the model names nobody.
+                    deferred_referent_id = referent.get("id")
+                else:
+                    resolved_npc = _promote_scene_referent(referent, current)
                 if resolved_npc:
                     _set_scene_active_npc(resolved_npc, turn_index)
                 elif action == "approach" and not is_npc_dialogue_input(action_input):
@@ -17929,6 +17941,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         "action": action,
         "direct_result": direct,
         "npc_target_id": resolved_npc.get("id") if isinstance(resolved_npc, dict) else None,
+        "deferred_referent_id": deferred_referent_id if resolved_npc is None and not direct else None,
         "lore_location_id": lore_location_id,
         "state_changes": changes,
         "procedural_entity_ids_before": sorted(procedural_before),
@@ -21535,6 +21548,36 @@ def _run_player_turn_internal(
                     selected_npc = None
             if selected_npc is not None:
                 talk_mode.open(world_state, selected_npc["id"], turn=flags.get("turn_index", 0))
+        deferred_referent_id = (
+            scene_plan.get("deferred_referent_id") if isinstance(scene_plan, dict) else None
+        )
+        if (
+            deferred_referent_id
+            and npc_resolution.get("status") == "none"
+            and not world_subject_question
+            and not _validated_local_person_proposal(preparsed_scene_intent or {})
+        ):
+            # The planner matched the happening's person but left the pick to the
+            # model; it named nobody here, so that person is the one greeted.
+            current_location = world_state.get("location")
+            deferred_referent = next(
+                (
+                    ref for ref in (
+                        world_state.get("scene_state", {}).get("scenes", {})
+                        .get(current_location, {}).get("referents", [])
+                    )
+                    if isinstance(ref, dict) and ref.get("id") == deferred_referent_id
+                    and ref.get("lifecycle") == "presented"
+                ),
+                None,
+            )
+            promoted_npc = (
+                _promote_scene_referent(deferred_referent, current_location)
+                if deferred_referent is not None else None
+            )
+            if promoted_npc:
+                _set_scene_active_npc(promoted_npc, flags.get("turn_index", 0))
+                npc_resolution = {"status": "found", "npc": promoted_npc}
         if (
             dialogue_fallback_deferred
             and npc_resolution.get("status") == "none"

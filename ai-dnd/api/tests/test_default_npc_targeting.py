@@ -1062,6 +1062,97 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             response.json(),
         )
 
+    async def _cart_wheel_town_with_guard(self):
+        # Task 42: town 4141 opens with the cart-wheel happening (aliases araba/teker/sürücü).
+        with fixed_town(self, 4141):
+            _, session_id, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
+        world = session.world_state
+        city_id = world["location"]
+        scene = world["scene_state"]["scenes"][city_id]
+        self.assertEqual(scene["ambient_event"]["event_id"], "city_cart_wheel")  # the premise
+        guard = {
+            "id": "npc_scene_guard",
+            "name": "HiddenGuardName",
+            "name_known_to_player": False,
+            "role": "guard",
+            "role_known_to_player": True,
+            "appearance": "Aşınmış pazar üniforması giyiyor.",
+            "location": city_id,
+            "status": "active",
+            "current_hp": 12,
+            "combat_status": "active",
+            "memory": [],
+        }
+        other = {
+            **guard,
+            "id": "npc_scene_civilian",
+            "name": "HiddenCivilianName",
+            "role": "resident",
+            "appearance": "Yol kenarında bekliyor.",
+        }
+        world["npcs"].extend([guard, other])
+        session.messages.append({
+            "role": "assistant",
+            "content": "Bir muhafız pazar girişinde arabaları sırayla kontrol eder.",
+        })
+        return session_id, session, turn_url, city_id
+
+    def _cart_wheel_referent(self, session, city_id):
+        scene = session.world_state["scene_state"]["scenes"][city_id]
+        return next(
+            ref for ref in scene["referents"]
+            if ref["id"] == scene["ambient_event"]["referent_id"]
+        )
+
+    async def test_greeting_keeps_the_visible_person_the_model_named_over_the_opening_happening(self):
+        session_id, session, turn_url, city_id = await self._cart_wheel_town_with_guard()
+        ids_before = [npc["id"] for npc in session.world_state["npcs"]]
+        client = DescriptorTargetClient(
+            "npc_scene_guard", "Bir muhafız pazar girişinde arabaları sırayla kontrol eder."
+        )
+        action_id = str(uuid.uuid4())
+        response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self, turn_url, client,
+            {"message": "Pazar girişinde arabaları kontrol eden kişiye selam veriyorum.",
+             "action_id": action_id},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(
+            session.world_state["flags"].get("last_npc_id"), "npc_scene_guard", response.json()
+        )
+        self.assertEqual([npc["id"] for npc in session.world_state["npcs"]], ids_before)  # nobody invented
+        self.assertEqual(self._cart_wheel_referent(session, city_id)["lifecycle"], "presented")
+        undone = await self.http.post(
+            f"/api/game/sessions/{session_id}/undo",
+            json={"action_id": str(uuid.uuid4()), "target_action_id": action_id},
+        )
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.assertEqual([npc["id"] for npc in session.world_state["npcs"]], ids_before)
+        self.assertEqual(self._cart_wheel_referent(session, city_id)["lifecycle"], "presented")
+
+    async def test_greeting_the_happenings_person_with_others_visible_promotes_it_inside_the_turn(self):
+        session_id, session, turn_url, city_id = await self._cart_wheel_town_with_guard()
+        ids_before = [npc["id"] for npc in session.world_state["npcs"]]
+        client = DescriptorTargetClient("npc_scene_guard", "cue the model never sees")  # names nobody
+        action_id = str(uuid.uuid4())
+        response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self, turn_url, client,
+            {"message": "Arabası sıkışan sürücüye selam veriyorum.", "action_id": action_id},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        referent = self._cart_wheel_referent(session, city_id)
+        self.assertEqual(referent["lifecycle"], "promoted")
+        new_ids = [npc["id"] for npc in session.world_state["npcs"] if npc["id"] not in ids_before]
+        self.assertEqual(new_ids, [referent["promoted_npc_id"]])
+        self.assertEqual(session.world_state["flags"].get("last_npc_id"), referent["promoted_npc_id"])
+        undone = await self.http.post(
+            f"/api/game/sessions/{session_id}/undo",
+            json={"action_id": str(uuid.uuid4()), "target_action_id": action_id},
+        )
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.assertEqual([npc["id"] for npc in session.world_state["npcs"]], ids_before)
+        self.assertEqual(self._cart_wheel_referent(session, city_id)["lifecycle"], "presented")
+
     async def test_local_place_recommendations_reach_focused_npc_without_weakening_claim_vetoes(self):
         city_id, _, session, turn_url, tavern_id, _ = (
             await create_city_with_locked_tavern(self)
