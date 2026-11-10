@@ -35,7 +35,7 @@ from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_api import FakeOllamaClient
 
-_TRANSIENTS = ("_handed_note", "_coin_paid", "_front_coin", "_bribe_held_out", "_counter_held")
+_TRANSIENTS = ("_handed_note", "_given_now", "_coin_paid", "_front_coin", "_bribe_held_out", "_counter_held")
 _FRONT_ON = {front_proposal.FLAG: "1", front_proposal.ROUTE_LOG: ""}
 
 
@@ -338,6 +338,7 @@ class Step0CommitFailureTests(unittest.IsolatedAsyncioTestCase):
             self.session._front_coin = 5
             self.session._coin_paid = (5, barman)
             self.session._handed_note = "5 bakır"
+            self.session._given_now = "item_step0_ring"  # a thing handed over this turn (Task 33)
             self.session._counter_held = barman
             self.session._bribe_held_out = 5
             raise RuntimeError("synthetic front read failure")
