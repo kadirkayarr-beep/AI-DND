@@ -159,6 +159,26 @@ def pair(session, actor, target):
     return result
 
 
+def target_sees_attacker(session, attacker, target):
+    """Whether the target sees the attacker. An explicit pair fact (the bounded encounter's) wins; otherwise it is
+    derived for two creatures in this scene (target not blinded, attacker neither invisible nor hidden). Never written."""
+    pairs = session.world_state.get("attack_environment", {}).get("pairs", {})
+    explicit = pairs.get(f"{attacker}|{target}", {})
+    if isinstance(explicit, dict) and type(explicit.get("target_sees_attacker")) is bool:
+        return explicit["target_sees_attacker"]
+    if attacker == target:
+        return None
+    try:
+        attacker_data, target_data = actor_data(session, attacker), actor_data(session, target)
+    except ValueError:
+        return None
+    if "blinded" in conditions(session, target, target_data):
+        return False
+    if "invisible" in conditions(session, attacker, attacker_data) or attacker_data.get("hidden") is True:
+        return False
+    return True
+
+
 def modifiers(values, name):
     if not isinstance(values, list):
         fail("invalid_attack_state", f"{name} must be sourced modifiers.")
@@ -506,7 +526,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
     # Dodge is owned by #04; #06 only consumes its verified attack modifier.
     defending = combat.get("turn_resources", {}).get(target, {})
     if (defending.get("dodging") is True and economy.can_act(session, target)
-            and economy.speed(session, target) > 0 and spatial.get("target_sees_attacker") is True):
+            and economy.speed(session, target) > 0 and target_sees_attacker(session, actor, target) is True):
         disadvantage.append("target_dodging")
     if "heavy" in props:
         score = "strength" if weapon["kind"] == "melee" else "dexterity"

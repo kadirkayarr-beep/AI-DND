@@ -266,8 +266,8 @@ class TheFightsOwnMoves(unittest.TestCase):
         self.assertIn("Dodge", result["narration"])
 
     def test_in_a_town_fight_dodge_gives_only_the_dexterity_save_advantage(self):
-        # Review I1 (parked, K07 Dodge owner): no sight fact is written in a plain fight, so attacks roll normally;
-        # the Dexterity-save Advantage is what Dodge gives here, and the narration claims nothing more.
+        # 4A.3 [GEVSETME OLABILIR]: the sight fact is derived (never written) in a plain fight, so Dodge gives both the
+        # Dexterity-save Advantage and the attack Disadvantage against a seen attacker.
         import weapon_attack
         session, npc = self.fight()
         action_economy.execute(session, {"steps": [{"kind": "dodge"}]})
@@ -278,7 +278,7 @@ class TheFightsOwnMoves(unittest.TestCase):
         blows = [enemy for step in result["action_result"]["economy_steps"] for enemy in step.get("enemy_actions") or []
                  if enemy.get("action") == "enemy_attack"]
         self.assertTrue(blows, result["narration"])
-        self.assertNotIn("target_dodging", blows[0]["disadvantage_sources"])
+        self.assertIn("target_dodging", blows[0]["disadvantage_sources"])
 
     def test_the_typed_dodge_step_is_the_dodge_action(self):
         # Review M5: the API's own step, through the schema and the turn owner.
