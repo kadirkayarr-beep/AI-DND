@@ -293,6 +293,29 @@ class FrontLines(FrontScene):
     async def test_eight_hours_waited_with_no_sleep_at_all_is_no_long_rest(self):
         await self.wait_without_sleep("uyumaksızın sekiz saat bekliyorum")
 
+    async def test_sleeping_after_something_done_before_sleep_is_a_long_rest(self):
+        # Task 41 review I1: '-madan önce' is 'before doing', no 'no': the sleep said is a Long Rest.
+        await self.rest_scene()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        self.client.front = {"kind": "wait"}
+        out = await self.line("uyumadan önce dua edip sekiz saat uyuyorum")
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 8 * 3600, out["narration"])
+        self.assertEqual(self.world["last_long_rest_completed_at"], clock + 8 * 3600)
+        self.assertEqual(self.session.character["current_hp"], self.session.character["max_hp"])
+
+    async def test_resting_after_something_done_before_the_rest_is_a_short_rest(self):
+        # Task 41 review I1: 'dinlenmeden önce' is 'before resting': the rest decision gives the hour's Short Rest.
+        # (The whole line is an 'önce' sequence the wait owners leave to the plan, before Task 41 too.)
+        import timed_gameplay
+        await self.rest_scene()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        line = campaign_time.normalize("dinlenmeden önce yüzümü yıkayıp bir saat dinleniyorum")
+        out = timed_gameplay._rest_if_said(self.session, line, 3600)
+        self.assertIsNotNone(out)
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 3600)
+        self.assertEqual(self.session.character["hit_dice"]["window_second"], clock + 3600)
+        self.assertNotIn("last_long_rest_completed_at", self.world)
+
     async def test_a_rest_with_no_length_read_as_a_wait_asks_for_an_hour_and_passes_nothing(self):
         await self.rest_scene()
         clock = self.world["campaign_time"]["elapsed_seconds"]

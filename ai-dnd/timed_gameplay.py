@@ -801,9 +801,10 @@ def input_route_markers(world, normalized):
     return movement, wait, task, passive_observation
 
 
-# Task 41 (owner-approved vocabulary, 2026-11-10): the negated rest forms ("dinlenmeden iki saat nöbet tutuyorum").
+# Task 41 (owner-approved vocabulary, 2026-11-10): the negated rest forms ("dinlenmeden iki saat nöbet tutuyorum");
+# followed by "önce" they are "before resting/sleeping", no "no".
 _SAID_NO = re.compile(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir"
-                      r"|dinlenmeden|uyumadan|dinlenmeksizin|uyumaksizin)\b")
+                      r"|(?:dinlenmeden|uyumadan|dinlenmeksizin|uyumaksizin)(?!\s+once\b))\b")
 _UNNAMED_WAIT = 600  # "bekliyorum" with no length: a short while, not a form to fill in
 
 
