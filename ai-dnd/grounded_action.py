@@ -3121,9 +3121,11 @@ def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool,
     if target is None or (target["record"].get("inner_of") and any(s.get("outside") or (s.get("target") or {}).get("kind") == "outside" for s in steps)):
         return defer  # 'sokağa çıkıyorum' at a house: a small model can take the first room on the list for it
     verb = "enter" if inside and target["kind"] != "outside" else "go"
-    if verb == "go" and not steps and target["kind"] != "outside":
-        # "hanın kapısının dışında duruyorum": no walk in the words and the reading did not say in, so the player comes
-        # up to it and stays outside; going in is said (inside=true, or a verb Python reads), never assumed.
+    tokens = fold(player_input).split()
+    if (verb == "go" and not steps and target["kind"] != "outside"
+            and any(t.startswith(_DOOR_NOUNS) or t in _RELATIONAL for t in tokens)):
+        # "hanın kapısının dışında duruyorum", "önüne geliyorum": no walk in the words, the reading did not say in, and
+        # the words put the player at its door or in front of it, so the player comes up to it and stays outside.
         verb = "approach"
     step = {"verb": verb, "target": target, "negated": False}
     run = _Run(session, player_input)

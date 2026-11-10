@@ -115,7 +115,7 @@ class TheWalkIsWhatTheLineDid(unittest.IsolatedAsyncioTestCase):
 
     async def test_standing_outside_the_door_does_not_go_in(self):
         await self.town()
-        for line in ("hanın kapısının dışında duruyorum", "hanın kapısının önünde bekliyorum"):
+        for line in ("hanın kapısının dışında duruyorum", "hanın kapısının önünde bekliyorum", "hanın önüne geliyorum"):
             with self.subTest(line=line):
                 self.session.commit_location_change(self.city)
                 self.client.front = {"kind": "go_to", "place_id": self.inn, "inside": False}
@@ -124,7 +124,10 @@ class TheWalkIsWhatTheLineDid(unittest.IsolatedAsyncioTestCase):
 
     async def test_going_to_the_inn_still_goes_in_and_an_inside_reading_goes_in(self):
         await self.town()
-        for line, inside in (("hana gidiyorum", False), ("hanın kapısının dışında duruyorum", True)):
+        for line, inside in (("hana gidiyorum", False), ("hanın kapısının dışında duruyorum", True),
+                             # review I2: walk words Python does not read, or no verb at all, still walk in
+                             ("hana uğruyorum", False), ("hana yollanıyorum", False), ("hanı ziyaret ediyorum", False),
+                             ("Hana.", False)):
             with self.subTest(line=line, inside=inside):
                 self.session.commit_location_change(self.city)
                 self.client.front = {"kind": "go_to", "place_id": self.inn, "inside": inside}
