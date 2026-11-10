@@ -13,6 +13,7 @@ import grounded_action
 import living_world
 import npc_statements
 import local_dialogue
+import talk_mode
 from api.tests import test_campaign_api
 from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
 from api.tests.town_seed import fixed_town
@@ -1062,7 +1063,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             response.json(),
         )
 
-    async def _cart_wheel_town_with_guard(self):
+    async def _cart_wheel_town_with_guard(self, *, with_civilian=True):
         # Task 42: town 4141 opens with the cart-wheel happening (aliases araba/teker/sürücü).
         with fixed_town(self, 4141):
             _, session_id, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
@@ -1090,12 +1091,49 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             "role": "resident",
             "appearance": "Yol kenarında bekliyor.",
         }
-        world["npcs"].extend([guard, other])
+        world["npcs"].extend([guard, other] if with_civilian else [guard])
         session.messages.append({
             "role": "assistant",
             "content": "Bir muhafız pazar girişinde arabaları sırayla kontrol eder.",
         })
         return session_id, session, turn_url, city_id
+
+    async def _greet_driver_model_names_nobody(self, session, turn_url, city_id, message):
+        ids_before = [npc["id"] for npc in session.world_state["npcs"]]
+        client = DescriptorTargetClient("npc_scene_guard", "cue the model never sees")  # names nobody
+        response = await test_campaign_api.CampaignApiTests.post_scene_turn(
+            self, turn_url, client, {"message": message, "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        referent = self._cart_wheel_referent(session, city_id)
+        self.assertEqual(referent["lifecycle"], "promoted", response.json())
+        new_ids = [npc["id"] for npc in session.world_state["npcs"] if npc["id"] not in ids_before]
+        self.assertEqual(new_ids, [referent["promoted_npc_id"]])
+        self.assertEqual(
+            session.world_state["flags"].get("last_npc_id"), referent["promoted_npc_id"], response.json()
+        )
+        return response
+
+    async def test_asking_the_happenings_person_is_not_settled_on_another_visible_person(self):
+        # Review B1: the planner's fallback resolver must not pick the civilian while the driver is deferred.
+        _, session, turn_url, city_id = await self._cart_wheel_town_with_guard()
+        await self._greet_driver_model_names_nobody(
+            session, turn_url, city_id, "Arabası sıkışan sürücüye soruyorum, yardım lazım mı?"
+        )
+
+    async def test_calling_the_happenings_person_with_one_guard_visible_moves_the_talk_to_it(self):
+        # Review I1: the deferred promotion is part of the talk state a rejected proposal restores.
+        _, session, turn_url, city_id = await self._cart_wheel_town_with_guard(with_civilian=False)
+        await self._greet_driver_model_names_nobody(
+            session, turn_url, city_id, "Arabası sıkışan sürücüye sesleniyorum."
+        )
+
+    async def test_calling_the_happenings_person_while_talking_to_the_guard_moves_the_talk_to_it(self):
+        _, session, turn_url, city_id = await self._cart_wheel_town_with_guard()
+        world = session.world_state
+        talk_mode.open(world, "npc_scene_guard", turn=world["flags"].get("turn_index", 0))
+        self.assertEqual(world["flags"].get("last_npc_id"), "npc_scene_guard")
+        await self._greet_driver_model_names_nobody(session, turn_url, city_id, "Sürücüye sesleniyorum.")
 
     def _cart_wheel_referent(self, session, city_id):
         scene = session.world_state["scene_state"]["scenes"][city_id]

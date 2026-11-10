@@ -17753,7 +17753,8 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                 "state_changes": [],
                 "direct_response": "Kiminle konu\u015fmak istiyorsun?",
             }
-        if resolved_npc is None and not direct:
+        # A deferred happening's person is decided by the turn's own resolver and the model.
+        if resolved_npc is None and not direct and deferred_referent_id is None:
             npc_resolution = resolve_npc_reference(
                 action_input, **({"force_dialogue": True} if interaction_mode == "say" else {})
             )
@@ -21610,6 +21611,8 @@ def _run_player_turn_internal(
             if promoted_npc:
                 _set_scene_active_npc(promoted_npc, flags.get("turn_index", 0))
                 npc_resolution = {"status": "found", "npc": promoted_npc}
+                # As when the planner promoted: a rejected proposal keeps this person's talk.
+                active_conversation_before = talk_mode.snapshot(world_state)
         if (
             dialogue_fallback_deferred
             and npc_resolution.get("status") == "none"
