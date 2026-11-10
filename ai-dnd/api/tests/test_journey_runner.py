@@ -16,6 +16,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
+import campaign_time
 import equipment_economy
 import front_proposal
 from api import serializers
@@ -1116,6 +1117,26 @@ class TheDilim3Additions(JourneyCase):
         sid = campaign["session_id"]
         self.manager.get(sid).game_session.character["armor_class"] = 17
         self.assertEqual(read_observed(self, sid)["zirh"], 17)
+
+
+class TheStartHour(JourneyCase):
+    async def campaign_at(self, **extra):
+        setup = {**beer_scenario().setup, "campaign_start": NEVERWINTER, "campaign_seed": 38, **extra}
+        self.campaign = await self._journey_campaign(setup)
+        apply_setup(self, self.campaign, setup)
+        return self.manager.get(self.campaign["session_id"]).game_session.world_state
+
+    async def test_start_hour_sets_the_clock(self):
+        world = await self.campaign_at(start_hour=18)
+        public = campaign_time.public_time(world)
+        self.assertEqual((public["hour"], public["time_of_day"]), (18, "evening"))
+        self.assertEqual(world["campaign_time"]["start_second"], 18 * 3600)
+
+    async def test_a_start_hour_outside_the_day_is_refused(self):
+        await self.campaign_at()
+        for bad in (-1, 24, "18", 18.5, True):
+            with self.subTest(bad=bad), self.assertRaises(ScenarioError):
+                apply_setup(self, self.campaign, {"start_hour": bad})
 
 
 if __name__ == "__main__":

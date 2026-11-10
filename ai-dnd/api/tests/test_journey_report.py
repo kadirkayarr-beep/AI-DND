@@ -341,6 +341,9 @@ class RawLogAndSafetyTest(unittest.TestCase):
         row = next(line for line in report.splitlines() if line.startswith("| 02_beer_tip"))
         self.assertEqual(row.replace("\\|", "").count("|"), 6)
 
+    def test_the_arrival_scenario_is_told_under_narration_form(self):
+        self.assertEqual(report_kind("38_varis_anlatimi"), "Anlatı biçimi")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -629,5 +629,15 @@ class TheDilim2Keys(unittest.TestCase):
                 load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "sifir_tolerans": bad}])))
 
 
+class TheStartHourKey(unittest.TestCase):
+    def test_start_hour_is_a_whole_hour(self):
+        for bad in (-1, 24, "18", 18.5, True):
+            with self.subTest(bad=bad), self.assertRaises(ScenarioError):
+                load_scenario(write_scenario(small_scenario(setup={"start_hour": bad})))
+        for good in (0, 18, 23):
+            with self.subTest(good=good):
+                load_scenario(write_scenario(small_scenario(setup={"start_hour": good})))
+
+
 if __name__ == "__main__":
     unittest.main()

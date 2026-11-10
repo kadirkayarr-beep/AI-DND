@@ -1,0 +1,164 @@
+{
+  "id": "38_varis_anlatimi",
+  "title": "Varış anlatımı: akşamki mezarlığı model anlatır; yarım saat içinde dönüş kısa kalır; sabah dönüşünde 'içeri' denmez; 'gidip iste' satırında çağrı söze kalır; Geri Al ve yenileme aynı konumu verir",
+  "source_items": [],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Nuri",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "C",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "seed": 38,
+    "campaign_seed": 38,
+    "start_hour": 18,
+    "front_proposal": true,
+    "inventory": [
+      "Macera Çantası"
+    ]
+  },
+  "steps": [
+    {
+      "say": "mezarlığa gidiyorum",
+      "script": {
+        "arrival": "Mezarlığa vardığında son ışık taşların üstünde sönüyor. Otlar rüzgârda hışırdıyor."
+      },
+      "expect": {
+        "varis": {
+          "cagri": 1,
+          "kaynak": "model"
+        },
+        "gerekli_metin": [
+          "son ışık taşların üstünde sönüyor",
+          " burada. "
+        ],
+        "yasak_metin": [
+          "karşına çıkıyor"
+        ],
+        "konum": "location_004"
+      }
+    },
+    {
+      "say": "limana gidiyorum",
+      "script": {
+        "arrival": "İskelede halatlar gıcırdıyor; martılar susmuş."
+      },
+      "expect": {
+        "varis": {
+          "cagri": 1,
+          "kaynak": "model"
+        },
+        "konum": "location_001"
+      }
+    },
+    {
+      "say": "mezarlığa gidiyorum",
+      "expect": {
+        "varis": {
+          "cagri": 0,
+          "kaynak": "python"
+        },
+        "gerekli_metin": [
+          "Her şey bıraktığın gibi."
+        ],
+        "konum": "location_004"
+      }
+    },
+    {
+      "say": "12 saat bekliyorum",
+      "expect": {
+        "saat": 12
+      }
+    },
+    {
+      "say": "limana gidiyorum",
+      "expect": {
+        "varis": {
+          "cagri": 1,
+          "kaynak": "python"
+        },
+        "gerekli_metin": [
+          "Yeniden buradasın:",
+          "Şafağın soluk ışığı çevreye yayılıyor."
+        ],
+        "yasak_metin": [
+          "içeri süzülüyor",
+          "içeriyi",
+          "içerisi"
+        ],
+        "konum": "location_001"
+      }
+    },
+    {
+      "say": "mezarlığa gidip mezarcıdan bir fener istiyorum",
+      "script": {
+        "spoken": "Fener mi? Al şunu, karanlıkta işe yarar.",
+        "arrival": "Mezarlık kapısında bir gölge kıpırdıyor."
+      },
+      "expect": {
+        "varis": {
+          "cagri": 0
+        },
+        "konum": "location_004"
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "konum": "location_001"
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "konum": "location_001"
+      }
+    }
+  ]
+}

@@ -230,6 +230,12 @@ class Scenario:
     steps: tuple[Step, ...]
 
 
+def check_start_hour(value: Any, where: str = "setup") -> None:
+    """``start_hour`` is a whole hour of the day, 0-23 (a bool or a float is not one)."""
+    if type(value) is not int or not 0 <= value <= 23:
+        raise ScenarioError(f"{where}: 'start_hour' 0-23 arası bir tam sayı olmalı")
+
+
 def load_scenario(path: Path) -> Scenario:
     path = Path(path)
     where = path.name
@@ -260,6 +266,8 @@ def load_scenario(path: Path) -> Scenario:
     setup = data.get("setup", {})
     if not isinstance(setup, dict):
         raise ScenarioError(f"{where}: 'setup' bir nesne olmalı")
+    if "start_hour" in setup:
+        check_start_hour(setup["start_hour"], where)
     scenario_id = _text(data, "id", where)
     if scenario_id != path.stem:
         raise ScenarioError(f"{where}: 'id' dosya adıyla aynı olmalı: id {scenario_id}, dosya {path.stem}")

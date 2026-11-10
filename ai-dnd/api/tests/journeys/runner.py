@@ -51,7 +51,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests.auth_fixture import TEST_PLAYER
-from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect, check_invariant
+from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect, check_invariant, check_start_hour
 
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
 
@@ -86,10 +86,11 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 # scene writers write it: ``event_id`` a catalog id, ``turns_ago`` (0 or more) how long ago it was shown (13 or more:
 # its referent has run out, as the click route counts a referent's twelve turns). ``campaign_seed`` (a positive whole
 # number) fixes the new campaign's id, and so the campaign seed its town is drawn from (its jobs, places and their
-# papers); ``seed`` seeds only the dice.
+# papers); ``seed`` seeds only the dice. ``start_hour`` (0-23) sets the hour of the day the new campaign's clock
+# starts at (after the campaign is made, so the seeded start hour is overwritten).
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
                         "current_hp", "seed", "front_proposal", "death_mode", "job", "letter", "room",
-                        "ambient_event", "campaign_seed"})
+                        "ambient_event", "campaign_seed", "start_hour"})
 AMBIENT_EVENT_KEYS = frozenset({"event_id", "turns_ago"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
@@ -398,8 +399,12 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         raise ScenarioError("setup 'front_proposal' true ya da false olmalı")
     if "campaign_start" in setup and not isinstance(setup["campaign_start"], Mapping):
         raise ScenarioError("setup 'campaign_start' bir nesne olmalı")
+    if "start_hour" in setup:
+        check_start_hour(setup["start_hour"])
     session = case.manager.get(campaign["session_id"]).game_session
     world = session.world_state
+    if "start_hour" in setup:
+        world["campaign_time"]["start_second"] = setup["start_hour"] * 3600
     case.setup_place_id = None
     if "place" in setup:
         _stand_in_place(world, setup["place"])

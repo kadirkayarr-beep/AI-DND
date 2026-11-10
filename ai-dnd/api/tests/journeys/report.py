@@ -45,7 +45,7 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Geri al ve yenileme", ("11",)),
     # The scene's own happening (joined, undone, run out) and what a new campaign's first minutes show.
     ("Sahne olayları ve açılış", ("31", "31b", "36a", "36b")),
-    ("Anlatı biçimi", ("35",)),
+    ("Anlatı biçimi", ("35", "38")),
     # The way to a person someone named: their place, and where the town says they are.
     ("Yol ve hedef", ("37",)),
 )
