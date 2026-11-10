@@ -840,6 +840,19 @@ def _says_no_place(tokens: list[str], cands: list[dict[str, Any]], world: dict[s
     return not (_place_noun_in(tokens) or _detail_in(tokens) or bind(tokens, places, world=world, verb="go")["target"])
 
 
+def _gate_of_another_name(player_input: str, target: dict[str, Any]) -> bool:
+    """"Neverwinter Kuzey Kapısı'na": a door word with a capitalised name before it, a name that is not this door's, is
+    another gate, not the door at hand. The first word of the line is capitalised for being first, so it says nothing."""
+    words = re.findall(r"\w+", str(player_input))
+    mine = [w for name in target.get("names", []) for w in name.split()]
+    for index, word in enumerate(words):
+        before = words[index - 1] if index >= 2 else ""
+        if fold(word).startswith(_DOOR_NOUNS) and before[:1].isupper():
+            if not any(fold(before).startswith(w) or w.startswith(fold(before)) for w in mine if w):
+                return True
+    return False
+
+
 def plan(session, player_input: str) -> dict[str, Any]:
     world = session.world_state
     clauses, speech = split_clauses(player_input)
@@ -894,6 +907,9 @@ def plan(session, player_input: str) -> dict[str, Any]:
             binding_candidates = [candidate for candidate in cands
                                   if candidate["id"] not in companion_ids]
         binding = bind(goal_tokens, binding_candidates, world=world, verb=verb_for_bind)
+        if (binding["score"] < 100 and (binding["target"] or {}).get("kind") in {"door", "place"}
+                and _gate_of_another_name(player_input, binding["target"])):
+            binding = {**binding, "target": None, "score": 0}  # that gate is not the door of the place at hand
         condition_binding = _condition_target_binding(pending_condition, cands, world)
         effective_verb = "search" if purpose and purpose["verb"] == "search" else verb
         # "Javrek ile konuşmaya gidiyorum": the talk is what the walk is for; the one named is bound to their own place,
@@ -3100,6 +3116,63 @@ def _decide_way_out(session, player_input: str):
     return "execute", (run, [step], {"steps": [step]})
 
 
+def _trail_places(world: dict[str, Any]) -> set[str]:
+    import quest_log
+    import world_threads
+    found: set[str] = set()
+    for row in quest_log._trail_rows(world):
+        thread = world_threads.by_id(world, row.get("_to_thread_id"))
+        if isinstance(thread, dict) and thread.get("place_id"):
+            found.add(thread["place_id"])
+    return found
+
+
+def _line_names_place(world: dict[str, Any], player_input: str, record: dict[str, Any]) -> bool:
+    """Whether the line itself says the place: a word of its name, the word for its kind, or someone who is there.
+
+    A door word ('kapı') or a kind's word in the name ('Hanı') is not the name; endings after a word are fine."""
+    import local_places
+    tokens = fold(player_input).split()
+    if not tokens or not isinstance(record, dict):
+        return False
+    kind = record.get("place_kind") or record.get("scene_kind")
+    if not kind and isinstance(record.get("id"), str):
+        kind = living_world.scene_kind(world, record["id"])
+    generic = set(_DOOR_NOUNS)
+    for spec in local_places.PLACE_KINDS.values():
+        generic.update(fold(spec.get("noun", "")).split())
+    for noun, _ in npc_statements.PLACE_NOUNS:
+        generic.add(noun)
+
+    def named_by(label: Any) -> bool:
+        words = [w for w in fold(label).split() if len(w) >= 4 and not any(
+            w == g or (w.startswith(g) and npc_statements._CASE_TAIL.match(w[len(g):])) for g in generic)]
+        return any(token.startswith(word) for word in words for token in tokens)
+
+    if named_by(record.get("name")) or named_by(record.get("resident_name")):
+        return True
+    if named_by(local_places.PLACE_KINDS.get(kind, {}).get("role")):
+        return True  # the one who is there is not met yet, but the kind of place has its person
+    if any(named_by(alias) for alias in record.get("aliases") or []):
+        return True
+    if record.get("inner_of") and local_places.goes_further_in(world, record["inner_of"], player_input):
+        return True  # "içeri" at a house is the room behind its door
+    nouns = {fold(local_places.PLACE_KINDS.get(kind, {}).get("noun", ""))}
+    nouns.update(noun for noun, noun_kind in npc_statements.PLACE_NOUNS if noun_kind == kind)
+    nouns.update(npc_statements.KIND_NOUNS.get(kind, ()))
+    if any(_noun_hit(noun, tokens) for noun in nouns if noun):
+        return True
+    place_id = record.get("id")
+    if place_id and any(t in _THERE for t in tokens) and place_id in _trail_places(world):
+        return True  # "ilk izin peşinden oraya gidiyorum": the trail the player holds points there
+    npcs = world.get("npcs") if isinstance(world.get("npcs"), list) else []
+    return bool(place_id) and any(
+        isinstance(npc, dict) and npc.get("location") == place_id and (
+            named_by(living_world.public_npc_name(npc))
+            or (living_world.npc_role_known_to_player(npc) and named_by(npc.get("role"))))
+        for npc in npcs)
+
+
 def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool, *, whole_line: bool = False):
     """The front step chose a listed place; the walk itself is the one a named place gets."""
     import front_proposal
@@ -3124,6 +3197,10 @@ def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool,
                   None)
     if target is None or (target["record"].get("inner_of") and any(s.get("outside") or (s.get("target") or {}).get("kind") == "outside" for s in steps)):
         return defer  # 'sokağa çıkıyorum' at a house: a small model can take the first room on the list for it
+    here = (session.world_state.get("locations") or {}).get(session.world_state.get("location")) or {}
+    if (target["kind"] in {"place", "reference"} and here.get("exit_location_id") != target["id"]
+            and not _line_names_place(session.world_state, player_input, target["record"])):
+        return defer  # the reading picked a listed place the line never names ("hana giriyorum" went to a workshop)
     verb = "enter" if inside and target["kind"] != "outside" else "go"
     tokens = fold(player_input).split()
     if (verb == "go" and not steps and target["kind"] != "outside"

@@ -157,7 +157,8 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         await self.begin()
         place = self.a_place()
         self.client.front = {"kind": "go_to", "place_id": place}
-        reply = await self.line("şuraya bi uğrayayım")
+        # Dilim 3D Task 5 [GEVŞETME OLABİLİR değil, sıkılaştı]: the line must name the place it walks to
+        reply = await self.line(f"{self.world['locations'][place]['name']} yerine bi uğrayayım")
         self.assertEqual(self.routes()[-1]["route"], "front:go_to")
         self.assertIn(self.world["locations"][place]["name"], reply["narration"])
 

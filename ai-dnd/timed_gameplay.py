@@ -445,6 +445,9 @@ def _short_local_walk(world, journey):
     )
 
 
+NO_ROUTE_LINE = "Oraya giden bir yol bilmiyorsun."
+
+
 def start_travel(session, destination):
     world = session.world_state
     import exploration
@@ -459,7 +462,7 @@ def start_travel(session, destination):
     if stages is None:
         if world.get("blocked_travel_routes", {}).get(world.get("location"), {}).get(destination, False):
             return _result("travel", "Bu yol fiziksel olarak kapalı; başka bir kayıtlı rota seçebilirsin.", status="blocked", success=False)
-        return _result("travel", "Oraya giden yolu bilmiyorsun; kapıdaki kimseye de sormadan yola düşülmez.", status="unverified", success=False)
+        return _result("travel", NO_ROUTE_LINE, status="unverified", success=False)
     if not stages:
         journey = world.get("journey")
         if journey and journey["status"] != "ARRIVED":

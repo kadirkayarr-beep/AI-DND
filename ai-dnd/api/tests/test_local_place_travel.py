@@ -11,10 +11,14 @@ from unittest.mock import patch
 import game
 import local_places
 import timed_gameplay
+import grounded_action
+import living_world
 from api import world_metadata
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests import test_front_proposal as front_tests
 from api.tests.test_free_attempts import NarratingClient
+from api.tests.town_seed import fixed_town
 
 GO = "Şehrin en zengin mahallesine gidiyorum."
 REFERENCE = "Şehrin en zengin mahallesi"
@@ -262,3 +266,96 @@ class RealJourneyTests(unittest.TestCase):
         self.assertFalse(self.world["journey"].get("returning"))
         self.assertEqual(self.world["journey"]["destination"], "forest")
         self.assertLessEqual(self.world["campaign_time"]["elapsed_seconds"] - spent, 300, "only the rest of this stage")
+
+
+Q025 = ("I go to the room I just paid for at Yolcu Turna Hanı. I lock the door, put my spellbook safely beside the bed, "
+        "and take a full long rest: I sleep for eight hours.")  # QA #025
+Q112 = "Neverwinter Kuzey Kapısı'na gidiyorum."  # QA #112
+
+
+class WalkTargetMustBeNamed(unittest.IsolatedAsyncioTestCase):
+    """Dilim 3D Task 5: a walk the front reading picked goes ahead only when the line names the place, its kind or
+    someone there; and no road known is said plainly."""
+    asyncSetUp, asyncTearDown = front_tests.FrontTable.asyncSetUp, front_tests.FrontTable.asyncTearDown
+    campaign_with_npc, open_job = front_tests.FrontTable.campaign_with_npc, front_tests.FrontTable.open_job
+    line, routes = front_tests.FrontTable.line, front_tests.FrontTable.routes
+
+    async def town(self):
+        with fixed_town(self, 4541):
+            await front_tests.FrontTable.begin(self)
+        self.street = self.world["location"]
+        self.inn = next(key for key, value in self.world["locations"].items()
+                        if isinstance(value, dict) and value.get("parent_location_id") == self.street
+                        and living_world.scene_kind(self.world, key) == "tavern")
+        door = next(item for item in self.world["doors"] if item.get("id") == f"venue-door:{self.inn}")
+        door.update(locked=False, open=False)
+        self.smithy = local_places.create_local_place(self.world, self.street, "smithy")["id"]
+        self.workshop = local_places.create_local_place(self.world, self.street, "workshop")["id"]
+        self.world["npcs"].append({"id": "npc_t5_ozpil", "name": "Özpil", "role": "Demirci", "current_hp": 10,
+                                   "location": self.smithy, "place_role_of": self.smithy})
+        self.world["locations"][self.smithy]["resident_name"] = "Özpil"
+
+    def live(self):
+        return self.manager.get(self.session_id).game_session
+
+    def location(self):
+        return self.live().world_state["location"]
+
+    def name(self, place):
+        return self.world["locations"][place]["name"]
+
+    def resident_name(self, place):
+        return self.world["locations"][place]["resident_name"]
+
+    async def stand_in(self, place):
+        self.live().world_state["location"] = place
+
+    async def turn(self, line, *, front):
+        self.client.front = front
+        response = await self.http.post(self.turn_url, json={"message": line, "action_id": str(uuid.uuid4())})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response
+
+    async def test_025_does_not_walk_to_an_unnamed_workshop(self):
+        await self.town()
+        await self.stand_in(self.inn)
+        reply = await self.turn(Q025, front={"kind": "go_to", "place_id": self.workshop})
+        self.assertEqual(self.location(), self.inn)
+        self.assertNotIn(self.name(self.workshop), reply.json()["narration"])
+
+    async def test_112_does_not_enter_the_inn_on_a_shared_word(self):
+        await self.town()
+        await self.stand_in(self.street)
+        reply = await self.turn(Q112, front={"kind": "go_to", "place_id": self.inn, "inside": True})
+        self.assertEqual(self.location(), self.street, self.routes()[-1])
+        self.assertNotIn("Kapıdan içeri giriyorsun", reply.json()["narration"])
+
+    async def test_named_walks_still_walk(self):
+        await self.town()
+        cases = {
+            "name_tr": (f"{self.name(self.inn)}'na gidiyorum", self.inn),
+            "name_en": (f"I walk to {self.name(self.inn)}.", self.inn),
+            "kind_noun": ("demirhaneye gidiyorum", self.smithy),
+            "resident": (f"{self.resident_name(self.smithy)}'in yanına gidiyorum", self.smithy),
+        }
+        for case, (line, place) in cases.items():
+            with self.subTest(case=case):
+                await self.stand_in(self.street)
+                await self.turn(line, front={"kind": "go_to", "place_id": place, "inside": place == self.inn})
+                self.assertEqual(self.location(), place)
+
+    async def test_generic_words_do_not_name_a_place(self):
+        await self.town()
+        record = {"name": "Eski Han", "place_kind": "tavern"}
+        self.assertTrue(grounded_action._line_names_place(self.world, "eski hana gidiyorum", record))
+        self.assertFalse(grounded_action._line_names_place(self.world, "kapıya gidiyorum", record))
+        self.assertFalse(grounded_action._line_names_place(self.world, "Kuzey Kapısı'na gidiyorum", record))
+
+    async def test_no_route_says_so_honestly(self):
+        await self.town()
+        self.world["locations"]["far_place"] = {"id": "far_place", "name": "Uzak Diyar", "region_id": "elsewhere",
+                                                "type": "city"}
+        result = timed_gameplay.start_travel(self.live(), "far_place")
+        self.assertEqual(result["direct_response"].strip(), timed_gameplay.NO_ROUTE_LINE)
+        self.assertNotIn("kapıdaki", result["direct_response"])
+        self.assertEqual(self.location(), self.street)

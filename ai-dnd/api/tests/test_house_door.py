@@ -220,7 +220,8 @@ class AtTheTable(Table):
         reply = await self.line("etrafa bakayim")
         self.assertIn("kapı", reply["narration"].casefold())
         self.client.front = {"kind": "go_to", "place_id": self.room["id"], "inside": True}
-        reply = await self.line("efendinin yanina cikiyorum")
+        # Dilim 3D Task 5: the walk goes ahead only when the line names the person there; the role is public ("Konağın sahibi")
+        reply = await self.line("konagin sahibinin yanina cikiyorum")
         self.assertEqual(self.world["location"], self.room["id"])
         master = local_places.resident_of(self.world, self.room["id"])
         self.assertEqual(master["role"], local_places.PLACE_KINDS[self.room["place_kind"]]["role"])
