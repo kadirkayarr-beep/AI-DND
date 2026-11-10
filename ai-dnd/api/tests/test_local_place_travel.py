@@ -370,8 +370,8 @@ class WalkTargetFixRound1(WalkTargetMustBeNamed):
     test_generic_words_do_not_name_a_place = None
     test_no_route_says_so_honestly = None
 
-    async def town(self):
-        with fixed_town(self, 4581):
+    async def town(self, seed=4581):
+        with fixed_town(self, seed):
             await front_tests.FrontTable.begin(self)
         self.street = self.world["location"]
         self.inn = next(key for key, value in self.world["locations"].items()
@@ -457,3 +457,23 @@ class WalkTargetFixRound1(WalkTargetMustBeNamed):
             await self.stand_in(self.street)
             await self.turn("Kanyon Sığınağı Hanı'na gidiyorum", front={"kind": "go_to", "place_id": self.inn, "inside": True})
             self.assertEqual(self.location(), self.inn)
+
+    async def test_a_bare_at_does_not_name_a_stable(self):
+        # Review 11 A1: "at noon" is the English word, not the horse.
+        await self.town(4643)
+        stable = local_places.create_local_place(self.world, self.street, "stable")
+        self.assertFalse(grounded_action._line_names_place(self.world, "I go to the inn at noon", stable))
+        self.assertTrue(grounded_action._line_names_place(self.world, "atımı almaya gidiyorum", stable))
+        await self.stand_in(self.street)
+        await self.turn("I go to the inn at noon", front={"kind": "go_to", "place_id": stable["id"], "inside": True})
+        self.assertEqual(self.location(), self.street)
+
+    async def test_the_exactly_named_place_beats_a_longer_name(self):
+        # Review 11 A2: "Kanyon Hanı" is the short place; the long inn shares only "Kanyon" (and the kind word).
+        await self.town(4644)
+        self.world["locations"][self.inn]["name"] = "Kanyon Sığınağı Hanı"
+        short = local_places.create_local_place(self.world, self.street, "workshop")
+        self.world["locations"][short["id"]]["name"] = "Kanyon Hanı"
+        await self.stand_in(self.street)
+        await self.turn("Kanyon Hanı'na gidiyorum", front={"kind": "go_to", "place_id": self.inn, "inside": True})
+        self.assertNotEqual(self.location(), self.inn)

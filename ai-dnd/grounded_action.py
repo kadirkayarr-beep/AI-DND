@@ -3212,7 +3212,7 @@ _KIND_WORDS: dict[str, tuple[str, ...]] = {
     "barracks": ("barracks", "guardhouse"),
     "archive": ("archive", "archives"),
 }
-_STABLE_AT = re.compile(r"^at(?:i|a|im|imi|ima|lar|larim|larimi|in|ini)?$")
+_STABLE_AT = re.compile(r"^at(?:i|a|im|imi|ima|lar|larim|larimi|in|ini)$")   # a bare "at" is the English word
 
 
 def _place_kind_of(world: dict[str, Any], record: dict[str, Any]) -> Any:
@@ -3293,6 +3293,14 @@ def _line_names_place(world: dict[str, Any], player_input: str, record: dict[str
         for npc in npcs)
 
 
+def _unsaid_name_words(record: dict[str, Any], tokens: list[str]) -> bool:
+    """Whether the name has a word (4 letters or more, no kind or door word) the line does not say."""
+    generic = _generic_words()
+    words = {w for w in fold(record.get("name")).split() if len(w) >= 4 and not any(
+        w == g or (w.startswith(g) and npc_statements._CASE_TAIL.match(w[len(g):])) for g in generic)}
+    return any(not any(token.startswith(word) for token in tokens) for word in words)
+
+
 def _a_better_named_place(session, player_input: str, target: dict[str, Any]) -> bool:
     """Another place of the town takes more of the line's name words than the one picked (or as many, with no kind
     word to tell them apart): the picked one shares a word, it is not the place the player named."""
@@ -3305,6 +3313,9 @@ def _a_better_named_place(session, player_input: str, target: dict[str, Any]) ->
         theirs = _name_hits(other["record"], tokens)
         if theirs > mine or (theirs and theirs == mine and not _kind_said(world, target["record"], tokens)):
             return True
+        if theirs and theirs == mine and _unsaid_name_words(target["record"], tokens) and not _unsaid_name_words(
+                other["record"], tokens):
+            return True  # "Kanyon Hanı" is the place whose whole name is said, not the longer "Kanyon Sığınağı Hanı"
     return False
 
 
