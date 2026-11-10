@@ -313,23 +313,41 @@ def stand_down(session, action_id=None, session_id=None):
 
 
 # An English yes (Dilim 4A): decided only for a line that LEADS with an English yes-word, so no Turkish word is ever read
-# as English (Turkish "ok" is an arrow). An English no, not, never, n't or any question mark voids it, and so do the English
-# twins of the Turkish guards (a condition, a threat, a hold word): a wrong blow at the wrong person cannot be taken back.
-_ENGLISH_YES_LEADS = re.compile(r"\W*(?:yes|yeah|yep|sure|okay|ok|do it)\b")
+# as English (Turkish "ok" is an arrow, so a bare "ok" is no English yes). After the yes-word the line must be empty or
+# only a move of theirs aimed at the person asked about, plus a few fillers; any other word is no yes and the engine asks
+# again, because a wrong blow at the wrong person cannot be taken back. A list of hedge words cannot keep up, so the
+# allowed words are the list. No, not, never, n't, a question mark, a condition or a hold word still void it first.
+_ENGLISH_YES_LEADS = re.compile(r"\W*(?:yes|yeah|yep|sure|okay|do it)\b")
 _ENGLISH_NO = re.compile(r"\b(?:no|not|never|dont)\b|n['’]t\b")
 _ENGLISH_NOT_NOW = re.compile(r"\b(?:if|when|unless|until|once|threaten\w*|wait|later|hold|stop|hang)\b")
-_THEM = re.compile(r"\b(?:him|her|them)\b")
+_NO_WEAPON = re.compile(r"\bwithout (?:a |any |using (?:a )?)?weapons?\b")
+_THEM = frozenset({"him", "her", "them"})
+# Words that may stand alone after the yes ("Yes, let's go", "Yes, I am initiating combat") and words that only fill out a move.
+_ENGLISH_AFFIRM = frozenset({
+    "i", "i'll", "ill", "let's", "lets", "go", "ahead", "do", "it", "please", "now", "first", "sir", "am", "initiating",
+    "initiate", "start", "starting", "begin", "combat", "fight", "want", "to", "roll", "initiative", "and", "the"})
+_ENGLISH_MOVE_FILLER = frozenset({
+    "my", "back", "away", "with", "both", "hands", "five", "5", "feet", "ft", "hard", "using", "relevant", "d&d",
+    "2024", "contest", "resolve", "turn"})
 
 
-def _move_at_the_person(session, message, blow):
-    """The words name a move the engine reads and aim it at the one asked about (named, or him/her/them)."""
+def _only_a_move_at_the_person(session, rest, blow):
+    """The rest of an English yes is empty, or only a known move, its person (him/her/them or who is asked about) and
+    fillers; with no move it may be only the affirming words."""
     import weapon_attack
-    if not weapon_attack.names_a_move(session, message):
-        return False
-    named = [npc["id"] for npc in pointed_targets(session, message)]
-    if named:
-        return blow is None or blow in named
-    return _THEM.search(str(message).lower()) is not None
+    named = [npc["id"] for npc in pointed_targets(session, rest)]
+    if named and blow is not None and blow not in named:
+        return False  # the words point at somebody else than the one asked about
+    moved = False
+    for word in re.findall(r"[a-z0-9&']+", _NO_WEAPON.sub(" ", rest)):
+        if word in _ENGLISH_AFFIRM or word in _ENGLISH_MOVE_FILLER or word in _THEM or word == "guard":
+            continue
+        if weapon_attack.names_a_move(session, word):
+            moved = True
+        elif blow is None or blow not in [npc["id"] for npc in pointed_targets(session, word)]:
+            return False
+    return moved or not any(word in _ENGLISH_MOVE_FILLER or word in _THEM or word == "guard"
+                            for word in re.findall(r"[a-z0-9&']+", rest))
 
 
 def _says_yes(session, message, blow=None):
@@ -337,15 +355,12 @@ def _says_yes(session, message, blow=None):
     import game
     text = session._normalize_turkish_typos(str(message))
     spoken = living_world._text_outside_quotes(str(message)).lower()  # a yes or a blow only quoted is nobody's act
-    if _ENGLISH_YES_LEADS.match(spoken) is not None:
+    lead = _ENGLISH_YES_LEADS.match(spoken)
+    if lead is not None:
         if (_ENGLISH_NO.search(spoken) or "?" in spoken or _ENGLISH_NOT_NOW.search(spoken)
                 or game._CLAIM_REJECTION_RE.search(text) is not None):
             return False
-        if len(spoken.split()) <= 4:
-            return True
-        # A long yes in English needs the move in its own words, aimed at the person asked about: "Yes, tell me about
-        # the guard", "Yes, I punch the wall" start nothing.
-        return game._blow_stands(spoken) and _move_at_the_person(session, spoken, blow)
+        return _only_a_move_at_the_person(session, spoken[lead.end():], blow)
     if game._CLAIM_ACCEPTANCE_RE.search(text) is None or game._CLAIM_REJECTION_RE.search(text) is not None:
         return False
     if len(text.split()) <= 4:

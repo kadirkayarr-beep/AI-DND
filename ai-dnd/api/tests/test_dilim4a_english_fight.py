@@ -157,6 +157,50 @@ class EnglishYesGuards(_Table):
         self.assertTrue(self.says("Yes, I shove him back without a weapon"))
 
 
+class EnglishYesAllowlist(_Table):
+    """Fix round 3: an English-led yes starts a fight only if the rest of the line is empty or only a known move and its
+    person; any other word is no yes (the engine asks again). A Turkish line that begins with 'ok' is Turkish."""
+    first_seed = 4751
+    STARTS = ("Yes", "yes", "Do it", "Yep punch him", "Sure, I shove him", "Okay, I kick him", "Yes, I punch him",
+              "Yes. I punch him.", "Sure, I kick the guard", "yes sir", "Yes, I shove him back without a weapon", Q014)
+    NOT_YES = (
+        "Yes, I punch him after he talks", "Yes, I punch him before he moves", "Yes, I punch him as soon as he turns",
+        "Yes, I punch him whenever he looks away", "Yes, I will punch him in a moment",
+        "Yes, I punch him provided he agrees", "Yes, in case he resists I punch him",
+        "Yes, assuming he is armed I punch him", "Yes, supposing he draws I punch him",
+        "Yes, I would punch him", "Yes, I might punch him", "Yes, probably punch him",
+        "Yes, I want to maybe punch him", "Yes, I punch him, he said", "Yes, I punch him lol",
+        "Yes, I punch him - kidding", "Yes, I punch him nope", "Yes, say I punch him", "yes. I hug him",
+        "Yes, I hug him", "Yes, I leave", "Yes, I punch them all", "Yes, I punch everyone",
+        "Yes, I punch him and then I hug him", "Yes, I punch the wall in anger", "Yes, tell me about the guard",
+        "Yes, I trip on the stairs", "Yes, he hit me yesterday")
+    TURKISH_OK = ("Ok atmıyorum", "Ok atmam", "Ok atmayacağım", "Ok atsam mı", "Ok atarsam ne olur", "Ok, dur",
+                  "Ok, sonra bakarız", "Ok yok", "Ok bırakıyorum", "Ok atıyorum", "ok", "Ok")
+
+    def says(self, line):
+        import combat_lifecycle
+        return combat_lifecycle._says_yes(self.session, line, "npc_private_sera")  # the town guard, "the guard" of the lines
+
+    async def test_known_yes_lines_start(self):
+        await self.begin()
+        for line in self.STARTS:
+            with self.subTest(line=line):
+                self.assertTrue(self.says(line))
+
+    async def test_any_other_word_is_no_yes(self):
+        await self.begin()
+        for line in self.NOT_YES:
+            with self.subTest(line=line):
+                self.assertFalse(self.says(line))
+
+    async def test_a_turkish_line_that_begins_with_ok_is_read_as_on_base(self):
+        await self.begin()
+        for line in self.TURKISH_OK:
+            with self.subTest(line=line):
+                self.assertFalse(self.says(line))
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
