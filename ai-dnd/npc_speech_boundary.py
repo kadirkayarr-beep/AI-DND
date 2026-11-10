@@ -513,21 +513,51 @@ _OPEN_QUOTES = "“\"«‘'"
 _CLOSE_QUOTES = "”\"»’'"
 
 
-def without_no_name_claim(text):
-    """No one in this world says they have no name: that sentence goes, the rest stays, quotes stay paired."""
-    if not isinstance(text, str) or not _NO_NAME_CLAIM.search(text):
+def _cut_sentences(text, doomed, ends=".!?…"):
+    """The sentences ``doomed`` picks go, the rest stays, and an outer quote the cut took away is put back."""
+    sentences = re.split("(?<=[" + ends + r"])\s+", text.strip())
+    if not any(doomed(sentence) for sentence in sentences):
         return text
-    sentences = re.split(r"(?<=[.!?…])\s+", text.strip())
-    kept = [s for s in sentences if not _NO_NAME_CLAIM.search(s)]
+    kept = [s for s in sentences if not doomed(s)]
     if not kept:
         return ""
-    first_dropped, last_dropped = _NO_NAME_CLAIM.search(sentences[0]), _NO_NAME_CLAIM.search(sentences[-1])
-    if first_dropped:
+    if doomed(sentences[0]):
         lead = re.match("[" + re.escape(_OPEN_QUOTES) + "]+", sentences[0])
         if lead and not kept[0][:1] in _OPEN_QUOTES:
             kept[0] = lead.group(0) + kept[0]
-    if last_dropped:
+    if doomed(sentences[-1]):
         tail = re.search("[" + re.escape(_CLOSE_QUOTES) + "]+$", sentences[-1])
         if tail and not kept[-1][-1:] in _CLOSE_QUOTES:
             kept[-1] += tail.group(0)
     return " ".join(kept)
+
+
+def without_no_name_claim(text):
+    """No one in this world says they have no name: that sentence goes, the rest stays, quotes stay paired."""
+    if not isinstance(text, str) or not _NO_NAME_CLAIM.search(text):
+        return text
+    return _cut_sentences(text, _NO_NAME_CLAIM.search)
+
+
+_HERE_WORDS = ("burada", "surada", "orada", "oturuyor", "duruyor", "bekliyor", "kosedeki")   # Ruling R6
+
+
+def without_false_presence(world, text, here_id):
+    """A sentence that names a registered person who is not at ``here_id`` and says someone is here goes.
+
+    A line with no name, and a person who is here, stay as they are. The narrator's text never comes through here."""
+    if not isinstance(text, str) or not text.strip():
+        return text
+    import living_world
+    names = [fold(living_world.public_npc_name(npc)) for npc in (world or {}).get("npcs", [])
+             if isinstance(npc, dict) and npc.get("location") and npc.get("location") != here_id]
+    names = [name for name in names if name]
+    if not names:
+        return text
+
+    def doomed(sentence):
+        folded = fold(sentence)
+        return (any(word.startswith(here) for word in folded.split() for here in _HERE_WORDS)
+                and any(_text_names_label(folded, name) for name in names))
+
+    return _cut_sentences(text, doomed, ends=".!?…;")      # a semicolon ends a clause: the rest of the line stays

@@ -17,9 +17,13 @@ _LEGACY = {"quest_id": "q_legacy", "title": "Eski görev", "description": "d", "
 
 
 class QuestLogCase(JourneyCase):
+    SEED = None     # a class that reads the town pins the campaign id
+
     async def asyncSetUp(self):
         await super().asyncSetUp()
         self.setup = load_scenario(SCENARIO_DIR / "19_quest_item_no_duplicate.json").setup
+        if self.SEED:
+            self.setup = {**self.setup, "campaign_seed": self.SEED}
         campaign = await self._journey_campaign(self.setup)
         apply_setup(self, campaign, self.setup)
         self.campaign_id = campaign["campaign_id"]
@@ -34,14 +38,16 @@ class QuestLogCase(JourneyCase):
     def world(self):
         return self.session.world_state
 
-    async def say(self, line, front=None):
+    async def say(self, line, front=None, spoken=None):
+        script = {**({"front": front} if front else {}), **({"spoken": spoken} if spoken else {})}
         step = Step(say=line, command=None, economic_action=None, combat_action=None,
-                    script={"front": front} if front else None, expect={}, known_broken=(), real_chain=False,
+                    script=script or None, expect={}, known_broken=(), real_chain=False,
                     independent=True)
         with _front_setting(self.setup), ScriptedModel().bind(self, step):
             response = await self.http.post(f"/api/game/sessions/{self.session_id}/turn",
                                             json={"action_id": str(uuid4()), "message": line})
         self.assertEqual(response.status_code, 200, response.text)
+        return response
 
     async def world_with_town_errand(self):
         await self.say("olur, götürürüm")
@@ -127,7 +133,8 @@ class OneView(QuestLogCase):
         giver, recipient, other = self.giver(world), self.recipient(world), self.someone_else(world)
         for npc in (giver, recipient):
             with self.subTest(npc=npc["id"]):
-                [line] = quest_log.card_lines(world, npc=npc)
+                # Task 8: a line may follow that says where the job's other person is; the job lines stay exactly one
+                [line] = [l for l in quest_log.card_lines(world, npc=npc) if l.startswith("görevlerin: ")]
                 self.assertTrue(line.startswith("görevlerin: "))
         self.assertEqual(quest_log.card_lines(world, npc=other), [])
         self.assertEqual(len(quest_log.card_lines(world)), 1)
@@ -138,3 +145,38 @@ class OneView(QuestLogCase):
         self.assertEqual((rows["q_legacy"]["record_kind"], rows["q_legacy"]["raw_status"]), (None, "accepted"))
         self.assertEqual((rows[self.quest_id]["record_kind"], rows[self.quest_id]["raw_status"]), ("dynamic", "ACTIVE"))
         self.assertIsNone(rows[self.quest_id]["result"])
+
+
+class ContactWhereabouts(QuestLogCase):
+    SEED = 4571
+    """Dilim 3D Task 8: the speaker's card says where the job's other person is when they are not here."""
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        world = await self.world_with_town_errand()
+        self.potter, self.tuna_npc = self.giver(world), self.recipient(world)
+        self.here = self.potter.get("location") or world["location"]
+        self.potter["location"] = self.here
+
+    def move(self, npc, place):
+        npc["location"] = place
+
+    def other_place(self):
+        return next(p for p in self.world["locations"] if p != self.here)
+
+    def where_lines(self):
+        return [l for l in quest_log.card_lines(self.world, npc=self.potter) if "şu an burada değil" in l]
+
+    async def test_card_says_the_contact_is_elsewhere(self):
+        place = self.other_place()
+        self.move(self.tuna_npc, place)
+        name = living_world.public_npc_name(self.tuna_npc)
+        self.assertEqual(self.where_lines(), [f"{name} şu an burada değil; yeri: {self.world['locations'][place]['name']}."])
+
+    async def test_no_line_when_the_contact_is_here(self):
+        self.move(self.tuna_npc, self.here)
+        self.assertEqual(self.where_lines(), [])
+
+    async def test_no_line_for_a_card_without_a_speaker(self):
+        self.move(self.tuna_npc, self.other_place())
+        self.assertFalse([l for l in quest_log.card_lines(self.world) if "şu an burada değil" in l])

@@ -249,18 +249,35 @@ def _in_trail(world: dict[str, Any], trail: dict[str, Any], npc_id: Any) -> bool
     return False
 
 
+def _elsewhere_lines(world: dict[str, Any], speaker: dict[str, Any], records: list[_Record]) -> list[str]:
+    """Each open job's other person who is not where the speaker is: the engine says where, so no one seats them here."""
+    lines = []
+    for record in records:
+        contact = _npc(world, record.recipient_id if speaker.get("id") == record.giver_id else record.giver_id)
+        here, there = speaker.get("location"), (contact or {}).get("location")
+        place = (world.get("locations") or {}).get(there)
+        if contact is None or contact is speaker or not here or not there or here == there or not isinstance(place, dict):
+            continue
+        line = f"{living_world.public_npc_name(contact)} şu an burada değil; yeri: {place.get('name')}."
+        if line not in lines:
+            lines.append(line)
+    return lines
+
+
 def card_lines(world: dict[str, Any], *, npc: Any = None) -> list[str]:
     """For the narrator: the running jobs ("görevlerin: başlık (kime, nerede)") and the trails ("izler: ne → nerede");
     with ``npc``, only the jobs and trails that person is in."""
-    lines = []
+    lines, active = [], []
     for record in _records(world):
         if record.section != "active":
             continue
         if isinstance(npc, dict) and npc.get("id") not in (record.giver_id, record.recipient_id):
             continue
+        active.append(record)
         row = record.row
         where = ", ".join(part for part in (row["recipient"] or row["giver"], row["place"]) if part)
         lines.append(f"görevlerin: {row['title']}" + (f" ({where})" if where else ""))
+    elsewhere = _elsewhere_lines(world, npc, active) if isinstance(npc, dict) else []
     trail_lines = [f"izler: {trail['what']} → {trail['where']}" for trail in _trail_rows(world)
                    if not isinstance(npc, dict) or _in_trail(world, trail, npc.get("id"))]
-    return lines[:MAX_CARD_LINES] + trail_lines[:MAX_CARD_LINES]
+    return lines[:MAX_CARD_LINES] + elsewhere + trail_lines[:MAX_CARD_LINES]

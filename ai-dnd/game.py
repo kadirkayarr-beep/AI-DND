@@ -22921,6 +22921,9 @@ def _run_player_turn_internal(
                         ],
                     )
                     cleaned_spoken = npc_speech_boundary.without_no_name_claim(cleaned_spoken)
+                    cleaned_spoken = npc_speech_boundary.without_false_presence(
+                        world_state, cleaned_spoken, world_state.get("location")
+                    )
                     cleaned_stage = npc_speech_boundary.strip_player_quote(
                         cleaned_stage, player_input
                     )
