@@ -1169,7 +1169,7 @@ _KNOCK_OUT = re.compile(
 _KILL = re.compile(r"\boldur(?:uyorum|ecegim|ecem|ucem|cem|eyim|ucu\w*)\b")
 
 
-_BARE_HAND_MOVE = re.compile(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum")
+_BARE_HAND_MOVE = re.compile(r"yumruk|tekme|tokat|kafa at|unarmed|grapple|kavra|gures|shove|itiyorum|punch|kick|slap|trip")
 # Owner-approved vocabulary (Task 41, 2026-11-10), a named exception to the no-word-list rule: a trip is the 2024
 # Shove (knocked Prone), read only when the words name no weapon of theirs and no other move.
 _TRIP_WORDS = re.compile(r"\b(?:celme|devir|dusur)\w*")
@@ -1251,7 +1251,8 @@ def natural_choice(session, text):
     elif unarmed and (trip or re.search(r"shove|itiyorum", normalized)):
         choice.update(unarmed_option="shove", shove_option="push" if "geri" in normalized and not trip else "prone")
     for mastery in MASTERY:
-        if re.search(rf"\b{mastery}\b", normalized):
+        # Bare hands have no mastery: "push him five feet" is the Shove, never a Push mastery that would refuse the blow.
+        if not unarmed and re.search(rf"\b{mastery}\b", normalized):
             choice["mastery"] = mastery
     if re.search(r"cekiyorum|draw", normalized):
         choice["draw"] = True

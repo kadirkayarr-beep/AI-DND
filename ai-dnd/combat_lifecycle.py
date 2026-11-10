@@ -312,15 +312,28 @@ def stand_down(session, action_id=None, session_id=None):
     return result
 
 
+# An English yes (Dilim 4A): its own small pattern, so the claim-acceptance words of game.py stay as they are. An English
+# no, not, never, without, n't or any question mark voids it: a wrong blow at the wrong person cannot be taken back.
+_ENGLISH_YES = re.compile(r"\b(?:yes|yeah|yep|sure|ok|okay|do it)\b")
+_ENGLISH_YES_LEADS = re.compile(r"\W*(?:yes|yeah|yep|sure|ok|okay|do it)\b")
+_ENGLISH_NO = re.compile(r"\b(?:no|not|never|without|dont)\b|n['’]t\b")
+
+
 def _says_yes(session, message):
     """A short yes, or a yes that leads a longer line still standing behind the blow ('Evet, adamı itiyorum')."""
     import game
     text = session._normalize_turkish_typos(str(message))
-    if game._CLAIM_ACCEPTANCE_RE.search(text) is None or game._CLAIM_REJECTION_RE.search(text) is not None:
-        return False
+    english = str(message).lower()
+    if _ENGLISH_YES.search(english) is not None:
+        if (_ENGLISH_NO.search(english) or "?" in english or game._CLAIM_REJECTION_RE.search(text) is not None):
+            return False
+        leads = _ENGLISH_YES_LEADS.match(english) is not None
+    else:
+        if game._CLAIM_ACCEPTANCE_RE.search(text) is None or game._CLAIM_REJECTION_RE.search(text) is not None:
+            return False
+        leads = game._CLAIM_ACCEPTANCE_RE.match(text.split()[0]) is not None
     if len(text.split()) <= 4:
         return True
-    leads = game._CLAIM_ACCEPTANCE_RE.match(text.split()[0]) is not None
     return leads and game._blow_stands(message)
 
 
