@@ -5770,7 +5770,7 @@ def _combat_narration(result):
         text = "Hazırladığın tepkiyi uygularsın."
         response = result.get("response")
         if isinstance(response, dict) and response.get("kind") == "move":
-            text += f" {response.get('distance_ft')} feet ilerlersin."
+            text += f" {response.get('distance_ft')} fit ilerlersin."
         elif isinstance(response, dict) and response.get("outcome"):  # the readied attack's own roll and result
             text += " " + _combat_narration({k: v for k, v in response.items()
                                              if k not in {"enemy_action", "enemy_actions", "combat"}})
@@ -5853,8 +5853,13 @@ def _enemy_exchange_text(enemies, named=None):
         subject = "Rakibinin"
         first = "Rakibin"
         if named and (enemy.get("actor_id") or enemy.get("actor")):
-            public_actor = _public_combatant_label(enemy.get("actor_id") or enemy.get("actor"))
-            subject = f"{public_actor} adlı rakibinin"
+            actor = enemy.get("actor_id") or enemy.get("actor")
+            public_actor = _public_combatant_label(actor)
+            npc = next((item for item in _session().world_state.get("npcs", [])
+                        if isinstance(item, dict) and item.get("id") == actor), None)
+            # Only a known name is "X adlı"; an unknown rival is told by what is seen ("Bir kervancı").
+            subject = (f"{public_actor} adlı rakibinin"
+                       if npc is not None and living_world.npc_name_known_to_player(npc) else None)
             first = public_actor
         if enemy.get("before_player") and enemy.get("outcome") == "miss":
             text += f" {first} senden önce davranıp saldırır; seni ıskalar."
@@ -5862,10 +5867,13 @@ def _enemy_exchange_text(enemies, named=None):
             kind = "kritik bir vuruşla " if enemy["outcome"] == "critical_hit" else ""
             text += f" {first} senden önce davranıp saldırır; {kind}sana isabet eder; {enemy['damage']} hasar alırsın."
         elif enemy.get("outcome") == "miss":
-            text += f" {subject} karşı saldırısı seni ıskalar."
+            text += (f" {subject} karşı saldırısı seni ıskalar." if subject
+                     else f" {first} karşı saldırıya geçer; seni ıskalar.")
         elif enemy.get("outcome") in ("hit", "critical_hit"):
             kind = "kritik " if enemy["outcome"] == "critical_hit" else ""
-            text += f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın."
+            text += (f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın." if subject
+                     else f" {first} karşı saldırıya geçer; {kind and 'kritik bir vuruşla '}sana isabet eder; "
+                          f"{enemy['damage']} hasar alırsın.")
         said = (enemy.get("actor_id") or enemy.get("actor"), enemy.get("outcome"))
         if said not in announced:
             announced.add(said)
@@ -18759,7 +18767,7 @@ def _approach_turn(target_id):
         narration = refusals.text_for("approach_short", left=r.left_ft)
         refusals.note(_session(), "approach_short", left=r.left_ft)
     else:
-        narration = f"{r.moved_ft} feet ilerlersin; {r.names[0]} artık yanında." if r.moved_ft else f"{r.names[0]} zaten yanında."
+        narration = f"{r.moved_ft} fit ilerlersin; {r.names[0]} artık yanında." if r.moved_ft else f"{r.names[0]} zaten yanında."
     return {
         "action": "combat_move", "status": {"which": "clarification", "short": "partial"}.get(r.status, "resolved"),
         "success": r.status == "moved", "target_id": r.target_id, "moved_ft": r.moved_ft,

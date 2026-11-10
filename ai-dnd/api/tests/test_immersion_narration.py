@@ -24,7 +24,7 @@ class ResolvedNarrationTests(unittest.TestCase):
         before = copy.deepcopy((session.serialize_game_state(), session.rng.getstate(), session.messages, steps))
         with patch('game.ollama.chat', side_effect=AssertionError('no model')):
             text = ae.resolved_narration(session, steps)
-        expected = ['Bu tur 30 feet daha hareket edebilirsin.', '10 feet ilerlersin.',
+        expected = ['Bu tur 30 fit daha hareket edebilirsin.', '10 fit ilerlersin.',
                     'Belirlediğin an için hazır bekliyorsun.', 'Saldırın hedefi ıskalar.',
                     '3 hasar.', 'Fire Bolt hedefe 4 hasar verir.']
         self.assertEqual([text.index(part) for part in expected], sorted(text.index(part) for part in expected))

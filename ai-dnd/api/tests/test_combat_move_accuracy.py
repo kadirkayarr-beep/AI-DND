@@ -340,7 +340,7 @@ class TheFightsOwnMoves(unittest.TestCase):
         action_economy.move(session, npc["id"], 5)
         identity = action_economy.ensure(session)["player"]["opportunity"]["id"]
         result = action_economy.execute(session, {"steps": [{"kind": "react", "opportunity_id": identity}]})
-        self.assertIn("Hazırladığın tepkiyi uygularsın. 10 feet ilerlersin.", result["narration"])
+        self.assertIn("Hazırladığın tepkiyi uygularsın. 10 fit ilerlersin.", result["narration"])
 
     def test_a_push_that_did_not_apply_gives_no_reason_the_engine_does_not_know(self):
         # Review M2: the engine knew no position, not that there was no room.

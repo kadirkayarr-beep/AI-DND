@@ -525,8 +525,10 @@ def callers_leave(session: Any, now: int) -> list[str]:
     flags = world.setdefault("flags", {})
     turn = int(flags.get("turn_index", 0) or 0)
     lines = []
+    import equipment_economy
     for npc in _callers_here(world):
-        if npc.get("hostile") or "came_from" not in npc or (
+        # One knocked out or at 0 HP stays where they fell (the shared liveness rule).
+        if npc.get("hostile") or "came_from" not in npc or not equipment_economy.npc_can_act(npc) or (
                 turn < npc.get("leaves_turn", turn) and now < npc.get("back_at", now)):
             continue
         npc["location"] = npc.pop("came_from")

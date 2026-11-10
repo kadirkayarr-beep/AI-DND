@@ -578,9 +578,9 @@ def narration(session: Any, step: dict[str, Any]) -> str:
     if kind in STRIKE_STEPS:
         return session._combat_narration(result["attack"])
     if kind == "patient_defense":
-        return "Bonus Action ile Patient Defense: Disengage" + (" ve Dodge." if result["dodge"] else ".")
+        return "Bonus eylem ile Sabırlı Savunma: Disengage" + (" ve Dodge." if result["dodge"] else ".")
     if kind == "step_of_the_wind":
-        return f"Bonus Action ile Step of the Wind: bu tur {result['movement_added_ft']} feet daha hareket edebilirsin."
+        return f"Bonus eylem ile Rüzgâr Adımı: bu tur {result['movement_added_ft']} fit daha hareket edebilirsin."
     if kind == "uncanny_metabolism":
         return f"Uncanny Metabolism: Focus Points yenilenir, {result['healing']} can puanı kazanırsın."
     return f"Deflect Attacks ayarı: {result['deflect_mode']}."

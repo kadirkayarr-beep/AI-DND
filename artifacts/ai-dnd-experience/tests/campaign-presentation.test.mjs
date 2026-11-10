@@ -177,3 +177,17 @@ test('details panel names the way out only when there is no door, otherwise the 
   assert.match(renderDetails({ ...none, way_out: null }), /Bu bölgede kapı veya geçit görünmüyor\./);
   assert.doesNotMatch(renderDetails({ ...state(), way_out: { id: 'x', name: 'Başka Yer' } }), /Çıkış: Başka Yer/);
 });
+test('an earlier /explore or /travel button turn reads as the words it stands for, never the raw command', () => {
+  const html = renderTranscript([
+    { kind: 'player', text: '/travel continue' },
+    { kind: 'player', text: '/explore decision fight' },
+    { kind: 'player', text: '/explore door door-a open' },
+    { kind: 'player', text: 'Kapıyı açıyorum.' },
+  ]);
+  assert.match(html, /Önceki sözün/);
+  assert.match(html, /Yolculuğa devam ediyorum\./);
+  assert.match(html, /Karşılaşmada nasıl ilerleyeceğime karar veriyorum\./);
+  assert.match(html, /Seçtiğim kapıyı açıyorum\./);
+  assert.match(html, /Kapıyı açıyorum\./);
+  assert.doesNotMatch(html, /\/travel|\/explore/);
+});

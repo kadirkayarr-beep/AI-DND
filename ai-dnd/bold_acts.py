@@ -337,8 +337,15 @@ def hear_confession(session, text: Any) -> bool:
 def attacked(session, npc: dict[str, Any]) -> None:
     """Going for someone who meant no harm is a deed; a fight with an enemy is not."""
     if not npc.get("hostile"):
+        import game
         world = session.world_state
-        remember(session, "assault", f"{living_world.public_npc_name(npc)} üzerine yürüdü", victim_id=npc.get("id"))
+        # "Marek'in", "bakır tokalı birinin": a name takes the apostrophe, a description read mid-sentence does not.
+        whose = game._turkish_genitive_form(living_world.public_npc_name(npc))
+        if not living_world.npc_name_known_to_player(npc):
+            whose = living_world.turkish_initial_lower(whose.replace("'", ""))
+        deed = remember(session, "assault", f"{living_world.turkish_initial_upper(whose)} üzerine yürüdü",
+                        victim_id=npc.get("id"))
+        deed["rumour"] = f"{whose} üzerine yürümüş"  # told by someone who only heard of it
         relationships.note(world, npc["id"], -3, f"attacked:{world.get('flags', {}).get('turn_index', 0)}")
 
 

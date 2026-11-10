@@ -669,7 +669,8 @@ def _overheard(session) -> list[str]:
             continue
         deed["overheard"] = True
         text = deed.get("text", "")
-        talk = rule["talk"].format(text=_mid_sentence(text) if rule["talk"].startswith("“Biri") else text,
+        hearsay = deed.get("rumour") or text  # an older deed has no hearsay form
+        talk = rule["talk"].format(text=_mid_sentence(hearsay) if rule["talk"].startswith("“Biri") else text,
                                    place=bold_acts._place_name(world, deed.get("location")))
         line = _TALKING[_digest(world, "talk", deed["at"], deed.get("kind")) % len(_TALKING)]
         return [line.format(who=_who(speaker), talk=talk)]

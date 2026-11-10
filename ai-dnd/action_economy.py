@@ -1067,10 +1067,10 @@ def resolved_narration(session, results):
                 )
         elif step["kind"] == "second_wind":
             result = step["result"]
-            moved = f" ve {result['moved_ft']} feet ilerlersin" if result["moved_ft"] else ""
-            narration_parts.append(f"Bonus Action ile Second Wind kullanırsın: {result['healing']} can puanı kazanırsın{moved}; kalan kullanım: {result['uses_remaining']}.")
+            moved = f" ve {result['moved_ft']} fit ilerlersin" if result["moved_ft"] else ""
+            narration_parts.append(f"Bonus eylem ile İkinci Nefes kullanırsın: {result['healing']} can puanı kazanırsın{moved}; kalan kullanım: {result['uses_remaining']}.")
         elif step["kind"] == "action_surge":
-            narration_parts.append("Action Surge ile bu tur bir ek eylem kazanırsın (Magic eylemi hariç).")
+            narration_parts.append("Eylem Atılımı ile bu tur bir ek eylem kazanırsın (Büyü eylemi hariç).")
         elif step["kind"] == "lay_on_hands":
             result = step["result"]
             poison = " ve Poisoned durumunu kaldırırsın" if result["poisoned_removed"] else ""
@@ -1090,13 +1090,13 @@ def resolved_narration(session, results):
             narration_parts.append(monk_features.narration(session, step))
         elif step["kind"] == "convert_spell_slot":
             result = step["result"]
-            narration_parts.append(f"Bir {result['slot_level']}. seviye büyü yuvasını {result['points_gained']} Sorcery Points değerine dönüştürürsün; Action veya Bonus Action harcanmaz.")
+            narration_parts.append(f"Bir {result['slot_level']}. seviye büyü yuvasını {result['points_gained']} Büyücülük Puanı değerine dönüştürürsün; Eylem veya Bonus eylem harcanmaz.")
         elif step["kind"] == "move":
-            narration_parts.append(f"{step['distance_ft']} feet ilerlersin.")
+            narration_parts.append(f"{step['distance_ft']} fit ilerlersin.")
         elif step["kind"] == "dash":
             added = step["movement_added_ft"]
             narration_parts.append(
-                f"Bu tur {added} feet daha hareket edebilirsin." if added > 0
+                f"Bu tur {added} fit daha hareket edebilirsin." if added > 0
                 else "Bu hamle sana ek hareket sağlamaz."
             )
         elif step["kind"] == "ready":

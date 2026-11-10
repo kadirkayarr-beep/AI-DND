@@ -3,6 +3,7 @@ import { CircleHelp, MessageCircle, RotateCcw, Swords } from 'lucide-react';
 import type { SkillCheckResult } from '@workspace/api-client-react';
 import { SkillCheckResultCard } from '@/components/skill-check-result';
 import { DEFAULT_READING_PREFERENCES, type ReadingPreferences } from '@/lib/reading-preferences';
+import { explorationInputLabel } from '@/lib/exploration-input';
 
 export type TranscriptEntry = {
   kind: 'player' | 'narration';
@@ -17,6 +18,7 @@ export type TranscriptEntry = {
 
 /** Display only: the stored text stays the command; the player sees a sentence, not the raw slash line. */
 function playerDisplayText(text: string): string {
+  if (/^\/(?:explore|travel)\b/.test(text)) return explorationInputLabel(text);
   return /^\/item\s+shop_buy\s/.test(text) ? 'Tezgâhtan satın alıyorum.' : text;
 }
 

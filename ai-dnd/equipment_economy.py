@@ -18,6 +18,7 @@ _COUNTER_REFUSALS = {
     "price_changed": "Fiyat değişti, yeniden onayla.",
     "insufficient_funds": "Kesende bu kadar para yok.",
     "out_of_stock": "Tezgâhta o kadar kalmamış.",
+    "npc_declined": "Satıcı bugün bunu sana satmak istemiyor.",
 }
 
 

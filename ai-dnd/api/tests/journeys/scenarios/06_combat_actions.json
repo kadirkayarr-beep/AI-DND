@@ -60,11 +60,11 @@
     },
     {
       "combat_action": {"steps": [{"kind": "dash"}]},
-      "expect": {"savas": true, "hareket": 0, "gerekli_metin": "30 feet daha hareket"}
+      "expect": {"savas": true, "hareket": 0, "gerekli_metin": "30 fit daha hareket"}
     },
     {
       "combat_action": {"steps": [{"kind": "second_wind", "resource": "bonus"}]},
-      "expect": {"savas": true, "hp": 19, "gerekli_metin": "Second Wind"}
+      "expect": {"savas": true, "hp": 19, "gerekli_metin": "İkinci Nefes"}
     },
     {
       "combat_action": {"steps": [{"kind": "action_surge"}]},
