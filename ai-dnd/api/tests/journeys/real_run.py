@@ -361,17 +361,21 @@ class Played:
 
 
 def play(selection: Mapping[str, Scenario], runs: int, driver: RealChain) -> Played:
-    """All runs, in one journey case (its temporary store and app), stopping at the first scenario after the cap."""
+    """All runs, each in its own journey case (its own temporary store and app, so a seeded scenario's fixed campaign
+    id is free again), stopping at the first scenario after the cap."""
     from api.tests.journeys.runner import JourneyCase
 
     played = Played()
+    stopped = False
 
-    class RealJourney(JourneyCase):
-        async def test_real_chain(self) -> None:
-            for run in range(1, runs + 1):
+    for run in range(1, runs + 1):
+        class RealJourney(JourneyCase):
+            async def test_real_chain(self) -> None:
+                nonlocal stopped
                 for key, scenario in selection.items():
                     if driver.capped:
                         played.cut = played.cut or f"{run}. koşu, {key} başlamadan"
+                        stopped = True
                         return
                     driver.begin(scenario)
                     steps = await self.run_scenario(scenario, model=driver)
@@ -380,16 +384,21 @@ def play(selection: Mapping[str, Scenario], runs: int, driver: RealChain) -> Pla
                         continue
                     played.cut = f"{run}. koşu, {key}, adım {driver.cut_at}"
                     played.partial[key] = _cut(steps, driver.cut_at)
+                    stopped = True
                     return
 
-    result = unittest.TestResult()
-    RealJourney("test_real_chain").run(result)
-    problems = result.errors + result.failures
-    if problems:
-        # The error's type only: its message could carry anything the failing call held.
-        played.error = problems[0][1].strip().splitlines()[-1].split(":", 1)[0]
-    elif result.skipped or result.testsRun != 1:
-        played.error = "koşu atlandı"
+        result = unittest.TestResult()
+        RealJourney("test_real_chain").run(result)
+        problems = result.errors + result.failures
+        if problems:
+            # The error's type only: its message could carry anything the failing call held.
+            played.error = problems[0][1].strip().splitlines()[-1].split(":", 1)[0]
+            break
+        if result.skipped or result.testsRun != 1:
+            played.error = "koşu atlandı"
+            break
+        if stopped:
+            break
     return played
 
 

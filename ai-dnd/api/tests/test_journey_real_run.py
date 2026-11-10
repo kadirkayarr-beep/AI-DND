@@ -392,6 +392,29 @@ class TheRealRun(Offline):
         self.assertEqual((self.out / "ADIM2_RAPOR_20261104.md").read_text(encoding="utf-8"), "önceki")
         self.assertTrue((self.out / "ADIM2_RAPOR_20261104_2.md").exists())
 
+    def test_a_seeded_scenario_plays_every_run_in_its_own_store_on_the_same_campaign_id(self):
+        # A seeded scenario always creates the same campaign id; two runs in one store made the second one fail
+        # ("Koşu bozuldu: AssertionError") and lose the first, paid run. Each run gets a fresh store, same seed.
+        data = probe("01_a", 1)
+        data["setup"] = {"campaign_seed": 74}
+        write_scenarios(self.scenarios, data)
+        made: list[str] = []
+        original = JourneyCase._journey_campaign
+
+        async def recording(case, setup):
+            campaign = await original(case, setup)
+            made.append(campaign["campaign_id"])
+            return campaign
+
+        with patch.object(JourneyCase, "_journey_campaign", recording):
+            code, printed = self.run_command("--yap", "--out", str(self.out), "--runs", "2",
+                                             chain=FakeChain(self.folder))
+        self.assertEqual(code, 0, printed)
+        self.assertIn("- 01_a: 2 üzerinden 2", self.report())
+        self.assertEqual(len(made), 2, made)
+        self.assertEqual(made[0], made[1])
+        self.assertTrue(made[0].endswith("000000000074"), made[0])
+
     def test_a_skipped_run_is_a_broken_run_not_an_empty_report(self):
         write_scenarios(self.scenarios, probe("01_a", 1))
 
