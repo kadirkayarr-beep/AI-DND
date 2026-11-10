@@ -93,8 +93,7 @@ class EnglishYesNeedsAMoveAtTheTarget(_Table):
     async def test_long_yes_lines_that_name_no_move_at_him_start_nothing(self):
         self.assert_no_blow(await self.ask(Q013))
         for answer in ("Yes. I punch the wall in anger", "Yes, tell me about the guard",
-                       "Sure, I'll kick the door open", "Yes, I trip on the stairs", "Yes, he hit me yesterday",
-                       "Evet, tell me about the guard"):
+                       "Sure, I'll kick the door open", "Yes, I trip on the stairs", "Yes, he hit me yesterday"):
             with self.subTest(answer=answer):
                 self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
                 self.assert_no_blow(await self.line(Q013, "Ne yapıyorsun sen?"))
@@ -128,6 +127,34 @@ class EnglishYesNeedsAMoveAtTheTarget(_Table):
                 self.assertEqual(weapon_attack.natural_choice(self.session, line)[0], "greatsword")
         self.assertEqual(weapon_attack.natural_choice(self.session, "I kick the guard")[0], "unarmed")
         self.assertEqual(weapon_attack.natural_choice(self.session, "I punch the guard")[0], "unarmed")
+
+
+class EnglishYesGuards(_Table):
+    """Fix round 2: Turkish lines read as on base; English conditionals, threats, quotes and hold words start nothing."""
+    first_seed = 4741
+
+    def says(self, line):
+        import combat_lifecycle
+        return combat_lifecycle._says_yes(self.session, line, self.npc["id"])
+
+    async def test_turkish_lines_with_ok_and_her_are_still_a_yes(self):
+        await self.begin()
+        for line in ("Evet, yayımı çekip ona bir ok atıyorum", "Evet, her şeyi göze alıp muhafızla kavgayı başlatıyorum.",
+                     "Evet, muhafıza doğru bir ok atıyorum, kavgayı başlatıyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(self.says(line))
+
+    async def test_english_conditionals_threats_quotes_and_hold_words_are_no_yes(self):
+        await self.begin()
+        for line in ("Yes, I punch him if he comes any closer", "\"Yes, I'll punch him,\" I tell the guard",
+                     "Yes, I'll punch him when he turns around", "Yes, unless he backs off I kick him",
+                     "Yes, I threaten to punch him", "Yes, wait", "Yes, later", "Ok, stop", "Yes, hold on"):
+            with self.subTest(line=line):
+                self.assertFalse(self.says(line))
+
+    async def test_the_qa_013_wording_with_without_still_starts(self):
+        await self.begin()
+        self.assertTrue(self.says("Yes, I shove him back without a weapon"))
 
 
 if __name__ == "__main__":

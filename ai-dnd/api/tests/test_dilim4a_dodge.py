@@ -95,3 +95,16 @@ class DodgeNeedsASeenAttacker(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HiddenPlayerIsNotSeen(DodgeNeedsASeenAttacker):
+    test_a_town_fight_dodge_gives_disadvantage_to_the_seen_attacker = None
+    test_blinded_player_gets_no_dodge_disadvantage = test_invisible_attacker_not_seen_no_disadvantage = None
+    test_hidden_attacker_not_seen_no_disadvantage = test_incapacitated_dodger_gets_none = None
+    test_an_explicit_false_from_the_bounded_encounter_wins = test_the_derived_fact_is_never_written_to_the_pair = None
+
+    def test_a_hidden_player_is_not_seen_by_the_dodging_target(self):
+        session, npc = self.fight(4728)
+        self.assertTrue(weapon_attack.target_sees_attacker(session, "player", npc["id"]))
+        session.world_state.setdefault("flags", {})["player_hidden"] = True
+        self.assertFalse(weapon_attack.target_sees_attacker(session, "player", npc["id"]))

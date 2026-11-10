@@ -174,7 +174,9 @@ def target_sees_attacker(session, attacker, target):
         return None
     if "blinded" in conditions(session, target, target_data):
         return False
-    if "invisible" in conditions(session, attacker, attacker_data) or attacker_data.get("hidden") is True:
+    hidden = attacker_data.get("hidden") is True or (
+        attacker == "player" and session.world_state.get("flags", {}).get("player_hidden") is True)
+    if "invisible" in conditions(session, attacker, attacker_data) or hidden:
         return False
     return True
 
