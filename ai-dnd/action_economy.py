@@ -160,6 +160,8 @@ def validate_saved(combat):
         for name in ("base_action_spent", "bonus_action_spent", "reaction_spent"):
             if type(r.get(name)) is not bool:
                 raise ValueError("Invalid resource availability.")
+        if type(r.get("object_interaction", False)) is not bool:  # absent in older saves: still free this turn
+            raise ValueError("Invalid resource availability.")
         if r["base_action_spent"] != (actor in combat["actions_used"]):
             raise ValueError("Combat action marker and base action resource disagree.")
         for name in ("movement_available", "movement_used"):
@@ -231,6 +233,7 @@ def begin_turn(session, actor):
     r["attack_action"] = None
     r.pop("dodging", None)
     r.pop("disengaging", None)
+    r.pop("object_interaction", None)
     for name in ("additional_actions", "bonus_grants"):
         r[name] = [g for g in r[name] if g.get("refresh_each_turn")]
         for grant in r[name]:

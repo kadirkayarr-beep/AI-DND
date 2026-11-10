@@ -24,6 +24,9 @@ _RULE = "MOTOR GERÇEĞİ 'olmadı' diyen bir hamleyi olmuş gibi anlatma; denem
 _TALK_TO_BARMAN = {"intent": "talk", "action": "talk",
                    "target": {"type": "npc", "reference": "Han Sahibi", "npc_id": "barman", "evidence_quote": ""},
                    "completion": "complete"}
+_PUNCH_BANDIT = {"intent": "attack", "action": "attack",
+                 "target": {"type": "npc", "reference": "Haydut", "npc_id": "bandit", "evidence_quote": "Haydut"},
+                 "completion": "complete"}
 CROSSBOW = "Ağır Tatar Yayı & 20 Ok"
 
 
@@ -224,7 +227,7 @@ class WieldFront(JourneyCase):
         self.assertEqual((self.world["inventory"], self.world.get("equipment")), (before["inventory"], before.get("equipment")))
         self.assertIn("elin boş", "\n".join(self.narrator_input()))
 
-    # --- Dilim 3, Task 30 --------------------------------------------------------------------------------------
+    # --- Dilim 3, Tasks 30 + 35 ----------------------------------------------------------------------------------
     async def test_putting_the_weapon_away_draws_no_other_weapon(self):
         # Turn 98 of the 185-turn play: 'Silahımı kaldırıp ... dönüyorum' was read as a wield of the crossbow and the
         # Heavy Crossbow replaced the Greatsword in hand. 'Silahım' with a weapon in hand is that weapon.
@@ -243,6 +246,68 @@ class WieldFront(JourneyCase):
         await self.say("Büyük kılıcımı sırtıma asıp tatar yayımı çekiyorum", front={"kind": "wield", "item_name": CROSSBOW})
         self.assertEqual(self.held()["name"], CROSSBOW)
         self.assertIn((None, f"bu tur: {CROSSBOW} eline alındı"), self.notes())
+
+    async def fight_with_the_greatsword(self):
+        await self.use_package_c()
+        await self.say("büyük kılıcımı çekiyorum", front={"kind": "wield", "item_name": "Greatsword"})
+        await self.say("Haydut'a yumruk atıyorum", intent=_PUNCH_BANDIT)
+        self.assertTrue(self.world["combat"]["active"])
+        self.assertEqual(self.world["combat"]["current_actor_id"], "player")
+        self.assertEqual(self.held()["name"], "Greatsword")
+
+    async def test_in_a_fight_a_wield_is_the_turns_free_object_interaction(self):
+        # Turn 135: 'Tatar yayımı sırtıma asıp büyük kılıcımı iki elimle çekiyorum' in a fight was told
+        # 'Rakibin gözünü senden ayırmıyor; bunun için bir açık bulamıyorsun.' and nothing changed hands.
+        await self.fight_with_the_greatsword()
+        await self.say("Büyük kılıcımı sırtıma asıp tatar yayımı çekiyorum", front={"kind": "wield", "item_name": CROSSBOW})
+        self.assertTrue(self.world["combat"]["active"])
+        self.assertEqual(self.held()["name"], CROSSBOW)
+        self.assertIn((None, f"bu tur: {CROSSBOW} eline alındı"), self.notes())
+        self.assertNotIn("açık bulamıyorsun", self.last_narration)
+        # one free object interaction a turn: a second draw in the same turn changes nothing and says why
+        before = copy.deepcopy((self.world["inventory"], self.world["equipment"]))
+        await self.say("Tatar yayımı sırtıma asıp büyük kılıcımı çekiyorum", front={"kind": "wield", "item_name": "Greatsword"})
+        self.assertEqual((self.world["inventory"], self.world["equipment"]), before)
+        self.assertIn((None, "olmadı: " + refusals.REFUSAL_TEXT["object_interaction_spent"]), self.notes())
+
+    async def test_in_a_fight_no_draw_out_of_the_players_turn(self):
+        await self.fight_with_the_greatsword()
+        session, before = self.session, copy.deepcopy((self.world["inventory"], self.world["equipment"]))
+        self.world["combat"]["current_actor_id"] = "bandit"
+        token = game._ACTIVE_SESSION.set(session)
+        try:
+            session._turn_notes = []
+            game._front_wield({"kind": "wield", "item": before[0][1]["item_id"]}, "tatar yayımı çekiyorum")
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+        self.assertEqual((self.world["inventory"], self.world["equipment"]), before)
+        self.assertEqual(session._turn_notes, [(None, "olmadı: " + refusals.REFUSAL_TEXT["out_of_turn"])])
+
+    async def test_undo_and_reload_keep_the_free_object_interaction_with_the_hand(self):
+        await self.fight_with_the_greatsword()
+        before = copy.deepcopy((self.world["inventory"], self.world["equipment"],
+                                self.world["combat"]["turn_resources"]["player"]))
+        await self.say("Büyük kılıcımı sırtıma asıp tatar yayımı çekiyorum", front={"kind": "wield", "item_name": CROSSBOW})
+        self.assertEqual(self.held()["name"], CROSSBOW)
+        await self.undo()
+        self.assertEqual((self.world["inventory"], self.world["equipment"],
+                          self.world["combat"]["turn_resources"]["player"]), before)
+        await self.say("Büyük kılıcımı sırtıma asıp tatar yayımı çekiyorum", front={"kind": "wield", "item_name": CROSSBOW})
+        await self.reload()
+        self.assertEqual(self.held()["name"], CROSSBOW)
+        self.assertTrue(self.world["combat"]["turn_resources"]["player"]["object_interaction"])
+        await self.say("Tatar yayımı sırtıma asıp büyük kılıcımı çekiyorum", front={"kind": "wield", "item_name": "Greatsword"})
+        self.assertEqual(self.held()["name"], CROSSBOW)                   # still spent after the reload
+
+    def test_a_save_without_the_free_object_interaction_field_still_loads_and_may_draw(self):
+        import action_economy
+        resources = action_economy._initial_resources(self.session, "player", [])
+        self.assertNotIn("object_interaction", resources)                # old saves have no such field
+        combat = {"participants": ["player"], "actions_used": [], "turn_resources": {"player": resources}}
+        action_economy.validate_saved(combat)
+        resources["object_interaction"] = "yes"
+        with self.assertRaises(ValueError):
+            action_economy.validate_saved(combat)
 
     def test_the_front_reading_lists_wield_after_consume(self):
         self.assertEqual(front_proposal.KINDS[front_proposal.KINDS.index("consume") + 1], "wield")

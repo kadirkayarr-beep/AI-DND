@@ -15882,9 +15882,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             success=False,
             status="unsupported",
             outcome="unsupported_combat_action",
-            direct_response=(
-                "Rakibin gözünü senden ayırmıyor; bunun için bir açık bulamıyorsun."
-            ),
+            direct_response=refusals.text_for("unsupported_action"),
         )
         return _finish_combat_result(result, before)
 
@@ -18913,8 +18911,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         # going to someone in the fight is a walk toward them: the reply's other half carries it as combat movement
         session._front_approach = raw_front["person_id"]
         held.update(intent="travel", action="approach", target={"type": "npc", "reference": ""})
-    if fighting and (route is None or route["kind"] != "strike" or (fought and route["id"] != target_id)):
-        return None  # in a fight the reading is only asked for a blow the fight's own words did not hear
+    if fighting and (route is None or route["kind"] not in {"strike", "wield"}
+                     or (fought and route["kind"] == "strike" and route["id"] != target_id)):
+        return None  # in a fight the reading is only asked for a blow the fight's own words did not hear, or a draw
     word = front_proposal.person_word_in(reply)
     if word and (route is None or route["kind"] in {"speak_to", "talk_around"}):
         described = _narrated_person(word, player_input, listed)
@@ -19384,7 +19383,9 @@ def _front_consume(route, player_input):
 def _front_wield(route, player_input):
     """A bag weapon the reading named goes into the hand through `gear`; anything else changes nothing and the narrator
     hears that it did not happen. No weapon is looked for by the word (tasarım karar 33, 52). With a weapon already in
-    hand, another one is taken only when the words name it: 'silahımı kaldırıp' is the one in hand (Dilim 3, Task 30)."""
+    hand, another one is taken only when the words name it: 'silahımı kaldırıp' is the one in hand (Dilim 3, Task 30).
+    In a fight the draw is the turn's one free object interaction (Task 35)."""
+    import action_economy
     import gear
     import weapon_attack
     from weapon_catalog import lookup
@@ -19398,10 +19399,20 @@ def _front_wield(route, player_input):
     if (held is not None and data is not None and held.get("item_id") != item.get("item_id")
             and data["weapon_id"] not in weapon_attack.weapons_named(session, player_input)):
         return  # the words name no other weapon: the one in hand is the one meant, and nothing is drawn
+    fighting = world.get("combat", {}).get("active")
+    if fighting and world["combat"].get("current_actor_id") != "player":
+        refusals.note(session, "out_of_turn")
+        return
+    resources = action_economy.ensure(session).get("player", {}) if fighting else {}
+    if resources.get("object_interaction"):
+        refusals.note(session, "object_interaction_spent")
+        return
     result = gear.draw(world, route["item"], character=session.character) if route.get("item") else None
     if result is not None and result.status in {"drawn", "already_held"}:
         if getattr(session, "_turn_notes", None) is None:
             session._turn_notes = []
+        if fighting and result.status == "drawn":
+            resources["object_interaction"] = True
         done = "eline alındı" if result.status == "drawn" else "zaten elinde"
         session._turn_notes.append((None, f"bu tur: {result.item['name']} {done}"))
         return

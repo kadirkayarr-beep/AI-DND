@@ -124,6 +124,8 @@ REFUSAL_TEXT: dict[str, str] = {
     "unsupported_spell_save_mode": "Bu kurtarma zarı şekli şu an desteklenmiyor.",
     "unsupported_spell_target_mode": "Bu hedefe büyü yapmak şu an desteklenmiyor.",
     "weapon_not_held": "İstediğin silah elinde değil; önce onu eline almalısın.",
+    # A second draw in one fight turn (Dilim 3, Task 35): the turn's one free object interaction is used.
+    "object_interaction_spent": "Bu tur zaten bir silahı eline aldın; elindeki silah değişmedi. Başka bir silahı sıradaki turunda alabilirsin.",
     "tactical_mind_immediate_check_only": "Taktik Zihin yalnız hemen yapılan bir sınamada kullanılır.",
     "primal_knowledge_immediate_check_only": "İlkel Bilgi yalnız hemen yapılan bir sınamada kullanılır.",
     # A counter asked for what its own list does not hold (Dilim 3, Task 27): `{have}` is that list.

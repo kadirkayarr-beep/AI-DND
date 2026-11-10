@@ -758,6 +758,8 @@ class CombatV2(unittest.TestCase):
             {'intent': 'explore'}, 'Çatışma sırasında etrafı araştırıyorum'
         )
         self.assertEqual(result['outcome'], 'unsupported_combat_action')
+        # Dilim 3 Task 35: a neutral line that names the moves there are, not one that reads like a failed hide
+        self.assertEqual(result['direct_response'], __import__('refusals').text_for('unsupported_action'))
         self.assertEqual(self.session.serialize_game_state(), before)
         self.assertEqual(self.w['combat']['current_actor_id'], 'player')
 
