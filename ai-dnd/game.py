@@ -18543,20 +18543,49 @@ def _run_player_turn_keyed(
 _OWN_ACTS = frozenset({"consume", "wield", "sit", "bag", "look", "wait"})
 
 
+def _a_walk(read, action_result):
+    """The first part was a walk: the reading said go_to, or the receipt is a walk's own (grounded go/enter, travel)."""
+    if read.get("kind") == "go_to":
+        return True
+    steps = action_result.get("steps") if action_result.get("action") == "grounded_action" else None
+    return action_result.get("action") == "travel" or bool(
+        isinstance(steps, list) and steps and isinstance(steps[0], dict) and steps[0].get("verb") in {"go", "enter"})
+
+
+def _walked_there(read, action_result, place_before):
+    """The walk got there: the player stands in the place walked to, or in front of it (its receipt completed)."""
+    here = _session().world_state.get("location")
+    if action_result.get("action") == "travel":
+        return action_result.get("status") == "resolved" and here == action_result.get("target_id") != place_before
+    if action_result.get("action") != "grounded_action" or action_result.get("status") != "completed":
+        return False
+    target = read.get("id") if read.get("kind") == "go_to" else action_result.get("target_id")
+    steps = [step for step in action_result.get("steps") or [] if isinstance(step, dict)]
+    return here == target or (here == place_before and any(
+        step.get("target_id") == target and step.get("position") in {"at_door", "outside"} for step in steps))
+
+
 def _the_rest_of_the_line(result, messages, action_id, session_id, place_before):
-    """"Bira ver, soylu arayan var mı": the owner did the first part, so the person gets the second, as a paid word does."""
+    """"Bira ver, soylu arayan var mı": the owner did the first part, so the person gets the second, as a paid word does.
+
+    "Hana gidiyorum, odayı soruyorum": a walk that got there takes the rest along, read as a line of its own at the
+    place walked to; a walk that stopped short (a locked door) drops it."""
     session = _session()
     rest = getattr(session, "_front_rest", "")
     action_result = result.get("action_result") if isinstance(result, dict) else None
     from api import ollama_adapter
+    read = getattr(session, "_front_read", None) or {}
+    walk = isinstance(action_result, dict) and _a_walk(read, action_result)
+    walked = walk and _walked_there(read, action_result, place_before)
     if (not rest or not isinstance(action_result, dict) or session.world_state.get("combat", {}).get("active")
-            or session.world_state.get("location") != place_before  # the one who was asked is left behind
+            or (walk and not walked)  # stopped short: nobody the rest was for is here
+            or (session.world_state.get("location") != place_before and not walked)  # the one asked is left behind
+            or (walked and (getattr(session, "_front_coin", 0) or getattr(session, "_coin_paid", None)))  # coin read once
             or action_result.get("action") in {"dialogue", "query", "lodging"}  # a room taken has answered its own price
             or action_result.get("status") in {"experimental_attributed_speech", "clarification"}
             or not ollama_adapter.model_calls_left()):
         return result
-    read = getattr(session, "_front_read", None) or {}
-    own_act = read.get("kind") in _OWN_ACTS
+    own_act = walked or read.get("kind") in _OWN_ACTS
     hearer = None
     if own_act:
         named = _addressed_in(rest, or_the_talk=False)

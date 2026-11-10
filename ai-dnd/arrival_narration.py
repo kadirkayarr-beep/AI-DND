@@ -122,8 +122,9 @@ def narrate(game, scene: dict[str, Any], *, player_input, messages) -> tuple[str
     if left is None:
         return done(fallback, "python", "no_counted_turn", 0)
     speech = grounded_action.spoken_request(player_input)
-    if left < (2 if speech else 1):
-        return done(fallback, "python", "speech_first" if speech else "no_budget", 0)
+    rest = bool(getattr(session, "_front_rest", ""))  # the rest of the line is read at the place walked to (D3D T4)
+    if left < (2 if speech or rest else 1):
+        return done(fallback, "python", "speech_first" if speech else "rest_first" if rest else "no_budget", 0)
     system = "Narrate only the supplied arrival.\n" + game.NARRATOR_VOICE + "\n" + RULES
     try:
         with resolved_narration_scope(True):

@@ -1,11 +1,15 @@
 """Task 40: a line with two parts does both (H14, H185). The reading points at where the second part starts; the
 second part is the player's own words, read as a line of its own when the first part was the player's own doing, and
 said to the person when it was a word to them. No new word list; the two calls a turn has stay two."""
+import copy
 import json
 import unittest
+import uuid
 from unittest.mock import patch
 
+import game
 from api.tests import test_front_proposal as front_tests
+from api.tests.town_seed import fixed_town
 
 
 class OneFrontAfterAnother(front_tests.FrontClient):
@@ -114,6 +118,161 @@ class ALineWithTwoActsDoesBoth(unittest.IsolatedAsyncioTestCase):
         await self.line("yemeği yiyorum")
         prompt = json.dumps(self.client.message_batches[0], ensure_ascii=False)
         self.assertIn("ikinci bir iş", prompt)
+
+
+Q020 = "I leave the guard behind and walk to Yolcu Turna Hanı, then ask the innkeeper for a room for one night."  # QA #020
+Q020_REST = "ask the innkeeper for a room for one night"
+
+
+class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
+    """Dilim 3D Task 4 (#020): a walk with more said after it. When the walk got there, the rest of the line is read
+    as a line of its own at the place walked to, under the one turn index, with one Undo; a walk that did not get
+    there drops it."""
+    asyncSetUp, asyncTearDown = front_tests.FrontTable.asyncSetUp, front_tests.FrontTable.asyncTearDown
+    campaign_with_npc, open_job = front_tests.FrontTable.campaign_with_npc, front_tests.FrontTable.open_job
+    front_calls = front_tests.FrontTable.front_calls
+
+    async def town(self, *, locked=False):
+        with fixed_town(self, 4531):
+            await front_tests.FrontTable.begin(self)
+        import living_world
+        self.inn = next(key for key, value in self.world["locations"].items()
+                        if isinstance(value, dict) and value.get("parent_location_id") == self.world["location"]
+                        and living_world.scene_kind(self.world, key) == "tavern")
+        door = next(item for item in self.world["doors"] if item.get("id") == f"venue-door:{self.inn}")
+        door.update(locked=locked, open=False)
+        self.barmen = "npc_t4_barmen"
+        self.world["npcs"].append({"id": self.barmen, "name": "Osman", "role": "Barmen", "current_hp": 10,
+                                   "location": self.inn, "place_role_of": self.inn})
+        self.world["currency"] = {**self.world.get("currency", {}), "player": 500, self.barmen: 0}
+
+    def room_ask(self):
+        return [{"kind": "go_to", "place_id": self.inn, "inside": True, "also_says": Q020_REST},
+                {"kind": "speak_to", "person_id": self.barmen, "economic_intent": "room_quote"}]
+
+    async def turn(self, line, fronts, *, action_id=None, reply="Buyrun."):
+        if not hasattr(self, "client") or not isinstance(self.client, OneFrontAfterAnother):
+            self.client = OneFrontAfterAnother(fronts, reply)
+            self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        else:
+            self.client.fronts, self.client.front = list(fronts), fronts[0]
+        response = await self.http.post(self.turn_url, json={"message": line, "action_id": action_id or str(uuid.uuid4())})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response
+
+    def live(self):
+        return self.manager.get(self.session_id).game_session
+
+    def location(self):
+        return self.live().world_state["location"]
+
+    def purse_cp(self):
+        return self.live().world_state["currency"]["player"]
+
+    def room_price_text(self):
+        import bold_acts
+        world = self.live().world_state
+        barmen = next(npc for npc in world["npcs"] if npc.get("id") == self.barmen)
+        price = bold_acts.room_price(world, barmen)
+        return f"Gecelik {price // 10} gümüş" if price % 10 == 0 else f"Gecelik {price} bakır"
+
+    def snapshot(self):
+        session = self.live()
+        return copy.deepcopy({"world": session.world_state, "messages": session.messages,
+                              "purse": session.world_state["currency"]["player"]})
+
+    async def test_020_walk_then_room_ask_reaches_the_barmen(self):
+        await self.town()
+        before, turn = self.purse_cp(), self.world["flags"].get("turn_index", 0)
+        reply = await self.turn(Q020, self.room_ask())
+        self.assertEqual(self.location(), self.inn)
+        self.assertEqual(len(self.front_calls()), 2)  # the rest had its own reading, at the inn
+        self.assertIn(Q020_REST, str(self.client.message_batches[-1]))
+        self.assertEqual(self.purse_cp(), before)  # a price asked moves no coin
+        self.assertIn(self.room_price_text(), reply.json()["narration"])
+        self.assertEqual(self.live().world_state["flags"]["turn_index"], turn + 1)  # one line is one turn
+        self.assertLessEqual(self.client.chat_calls, 2)
+
+    async def test_a_locked_door_drops_the_rest(self):
+        await self.town(locked=True)
+        for npc in self.world["npcs"]:  # Marek alone stays in the street, the one a word there would go to
+            if npc.get("id") != self.npc["id"] and npc.get("location") == self.world["location"]:
+                npc["location"] = self.inn
+        reply = await self.turn(Q020, [{"kind": "go_to", "place_id": self.inn, "inside": True,
+                                        "also_says": Q020_REST}])
+        self.assertNotEqual(self.location(), self.inn)
+        self.assertEqual(len(self.front_calls()), 1)
+        self.assertEqual(self.client.chat_calls, 1)  # nobody left in the street is asked for the room
+        self.assertNotIn("Marek", reply.json()["narration"])
+        self.assertNotIn("Buyrun.", reply.json()["narration"])
+        self.assertNotIn(self.room_price_text(), reply.json()["narration"])
+
+    async def test_one_undo_takes_back_both_parts(self):
+        await self.town()
+        before = self.snapshot()
+        action_id = str(uuid.uuid4())
+        await self.turn(Q020, self.room_ask(), action_id=action_id)
+        self.assertEqual(self.location(), self.inn)
+        undone = await self.http.post(f"/api/game/sessions/{self.session_id}/undo",
+                                      json={"action_id": str(uuid.uuid4()), "target_action_id": action_id})
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.assertEqual(self.snapshot(), before)
+
+    async def test_walk_then_pay_opens_one_card_for_the_coin(self):
+        # Money moves only through a confirmed card: the tip said at the inn opens one card of 5 silver, once.
+        await self.town()
+        before = self.purse_cp()
+        reply = await self.turn("hana gidiyorum, barmene 5 gümüş veriyorum",
+                                [{"kind": "go_to", "place_id": self.inn, "inside": True,
+                                  "also_says": "barmene 5 gümüş veriyorum"},
+                                 {"kind": "speak_to", "person_id": self.barmen, "economic_intent": "tip",
+                                  "coin_cp": 50}])
+        self.assertEqual(self.location(), self.inn)
+        card = reply.json()["state"]["economic_offer"]
+        self.assertIsNotNone(card, reply.json()["narration"])
+        self.assertEqual(card["max_total_cp"], 50)
+        offers = self.live().world_state["flags"].get("economic_offers", {}).values()
+        self.assertEqual([row["status"] for row in offers].count("prepared"), 1)
+        self.assertEqual(self.purse_cp(), before)
+
+    async def test_coin_read_with_the_walk_is_not_read_again_in_the_rest(self):
+        # The walk's own reading already held the coin out (a room deal on arrival): the rest names the same coin, so
+        # it is not read a second time and at most one card is open.
+        await self.town()
+        before = self.purse_cp()
+        await self.turn("hana gidiyorum, barmene 5 gümüş veriyorum",
+                        [{"kind": "go_to", "place_id": self.inn, "inside": True, "person_id": self.barmen,
+                          "coin_cp": 50, "deal": "room", "also_says": "barmene 5 gümüş veriyorum"},
+                         {"kind": "speak_to", "person_id": self.barmen, "economic_intent": "tip", "coin_cp": 50}])
+        self.assertEqual(self.location(), self.inn)
+        self.assertEqual(len(self.front_calls()), 1)
+        offers = self.live().world_state["flags"].get("economic_offers", {}).values()
+        self.assertLessEqual([row["status"] for row in offers].count("prepared"), 1)
+        self.assertEqual(self.purse_cp(), before)
+
+    async def test_replayed_action_id_does_not_say_the_rest_again(self):
+        await self.town()
+        action_id = str(uuid.uuid4())
+        first = await self.turn(Q020, self.room_ask(), action_id=action_id)
+        calls, turn = self.client.chat_calls, self.live().world_state["flags"]["turn_index"]
+        again = await self.turn(Q020, self.room_ask(), action_id=action_id)
+        self.assertEqual(again.json()["narration"], first.json()["narration"])
+        self.assertEqual(self.client.chat_calls, calls)
+        self.assertEqual(self.live().world_state["flags"]["turn_index"], turn)
+
+    async def test_no_call_left_keeps_the_walk(self):
+        await self.town()
+        real = game._the_rest_of_the_line
+
+        def starved(*args, **kwargs):  # the budget is spent only at the moment the rest would be read
+            with patch("api.ollama_adapter.model_calls_left", return_value=0):
+                return real(*args, **kwargs)
+
+        with patch.object(game, "_the_rest_of_the_line", starved):
+            reply = await self.turn(Q020, self.room_ask())
+        self.assertEqual(self.location(), self.inn)
+        self.assertEqual(len(self.front_calls()), 1)
+        self.assertNotIn(self.room_price_text(), reply.json()["narration"])
 
 
 if __name__ == "__main__":

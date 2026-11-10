@@ -14,6 +14,7 @@ import living_world
 import npc_speech_boundary
 from api.tests.test_front_carries_more import ProposalClient
 from api.tests.test_front_proposal import FrontTable
+from api.tests.town_seed import fixed_town
 
 
 class AnyBlowIsAnAttack(FrontTable):
@@ -560,14 +561,22 @@ class ALineWithTwoPartsDoesBoth(FrontTable):
             await self.line("panoyu okuyorum")
         board.assert_called_once()
 
-    async def test_a_walk_leaves_the_question_with_the_one_left_behind(self):
-        await self.begin()
+    async def test_a_walk_takes_the_question_to_the_new_place(self):
+        # Dilim 3D Task 4 (#020) rewrites "a walk leaves the question with the one left behind": the question is
+        # read again as a line of its own where the player now stands, under the same turn index, in two calls.
+        with fixed_town(self, 4532):
+            await self.begin()
         place = self.a_place()
         name = self.world["locations"][place]["name"]
+        turn = self.world["flags"].get("turn_index", 0)
         self.client.front = {"kind": "go_to", "place_id": place, "also_says": "soylu arayan var mı"}
-        reply = await self.line(f"{name} gidiyorum. soylu arayan var mı")
+        reply = await self.line(f"{name} gidiyorum. soylu arayan var mı", "Burada öyle biri yok.")
         self.assertTrue(reply["narration"].strip())
+        self.assertEqual(self.world["location"], place)
+        self.assertIn("soylu arayan var mı", str(self.client.message_batches[-1]))
+        self.assertEqual(len(self.front_calls()), 2)  # the question had its own reading at the new place
         self.assertLessEqual(self.client.chat_calls, 2)
+        self.assertEqual(self.world["flags"]["turn_index"], turn + 1)
 
     async def test_the_reading_asks_for_the_second_part(self):
         await self.begin()
