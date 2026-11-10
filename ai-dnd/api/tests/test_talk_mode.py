@@ -3,6 +3,7 @@ and the engine and the API read the conversation through one rule, one list and 
 49, 62)."""
 from __future__ import annotations
 
+import contextlib
 import copy
 import os
 import unittest
@@ -353,6 +354,86 @@ class TalkModeThroughTheGame(JourneyCase):
         self.assertEqual((game._active_interlocutor()["id"],
                           serializers._conversation_projection(session.world_state)["active"]),
                          ("barman", True))
+
+
+class _CountingModel(ScriptedModel):
+    """The scripted model, keeping the client of the step so a test can count its calls."""
+
+    @contextlib.contextmanager
+    def bind(self, case, step):
+        with super().bind(case, step) as client:
+            self.client = client
+            yield client
+
+
+class SayModeNamesAnother(JourneyCase):
+    """Dilim 3D Task 9 (#17: #057, #179, #181): in say mode a line that names another person standing here is said to
+    them, and the talk turns to them. Town fixed by seed 4581; Selin (a traveller) is spoken to, Orhan (a guard)
+    stands beside her, Zeynep is somewhere else."""
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        scenario = load_scenario(SCENARIO_DIR / "08_talk_mode.json")
+        self.setup = {**scenario.setup, "campaign_seed": 4581, "currency": {"player": 100, "traveller": 0, "guard": 0},
+                      "npcs": [{"id": "traveller", "name": "Selin", "role": "Yolcu", "current_hp": 10},
+                               {"id": "guard", "name": "Orhan", "role": "Muhafız", "current_hp": 10}]}
+        campaign = await self._journey_campaign(self.setup)
+        apply_setup(self, campaign, self.setup)
+        self.session_id = self.last_session_id = campaign["session_id"]
+        self.session = self.manager.get(self.session_id).game_session
+        world = self.session.world_state
+        elsewhere = next(p for p in world["locations"] if p != world["location"])
+        world["npcs"].append({"id": "far", "name": "Zeynep", "role": "Çiftçi", "current_hp": 10,
+                              "location": elsewhere, "name_known_to_player": True})
+        for npc in world["npcs"]:
+            npc["name_known_to_player"] = True
+
+    async def say(self, line, spoken="Şu yoldan.", target="traveller"):
+        step = Step(say=line, command=None, economic_action=None, combat_action=None, script={"spoken": spoken},
+                    expect={}, known_broken=(), real_chain=False, independent=True, konus=target)
+        model = _CountingModel()
+        with _front_setting(self.setup):
+            failures = await self._play(self.session_id, step, model)
+        self.assertEqual(failures, [])
+        self.chat_calls = len(model.client.kinds)
+
+    def talk_target(self):
+        return self.session.world_state["flags"]["active_npc_id"]
+
+    def turn_index(self):
+        return self.session.world_state["flags"]["turn_index"]
+
+    async def test_naming_the_guard_speaks_to_the_guard(self):
+        await self.say("Muhafız, kuzey kapısı ne tarafta?")
+        self.assertIn('"npc_id":"guard"', self.last_speech_input)
+        self.assertEqual(self.talk_target(), "guard")
+
+    async def test_naming_the_guard_by_name_speaks_to_the_guard(self):
+        await self.say("Orhan, kuzey kapısı ne tarafta?")
+        self.assertEqual(self.talk_target(), "guard")
+
+    async def test_no_name_stays_with_the_open_talk(self):
+        await self.say("Kuzey kapısı ne tarafta?", spoken="Bilmem.")
+        self.assertIn("Selin", self.last_speech_input)
+        self.assertEqual(self.talk_target(), "traveller")
+
+    async def test_naming_someone_absent_stays(self):
+        await self.say("Zeynep, nerede?", spoken="Bilmem.")
+        self.assertEqual(self.talk_target(), "traveller")
+
+    async def test_a_line_to_the_one_spoken_to_that_also_names_another_stays(self):
+        await self.say("Selin, Orhan nerede?", spoken="Bilmem.")
+        self.assertEqual(self.talk_target(), "traveller")
+
+    async def test_naming_the_one_already_spoken_to_stays(self):
+        await self.say("Selin, kuzey kapısı ne tarafta?")
+        self.assertEqual(self.talk_target(), "traveller")
+
+    async def test_still_one_turn_and_two_calls_at_most(self):
+        turn = self.turn_index()
+        await self.say("Muhafız, kuzey kapısı ne tarafta?")
+        self.assertEqual(self.turn_index(), turn + 1)
+        self.assertLessEqual(self.chat_calls, 2)
 
 
 if __name__ == "__main__":

@@ -19750,6 +19750,12 @@ def _dispatch_player_turn(
         require_player_can_act()
         if interaction_mode == "ask_dm":
             target_id = None
+        elif target_id is not None and isinstance(player_input, str) and not player_input.lstrip().startswith("/"):
+            # Said to someone, a line that names another person standing here is said to them; the talk turns to them.
+            named = _addressed_in(player_input, or_the_talk=False)
+            if (isinstance(named, dict) and named.get("id") not in {None, target_id}
+                    and named.get("id") in {npc.get("id") for npc in _conversation_npcs()}):
+                target_id = named["id"]
     if (
         combat_action is None
         and interaction_mode not in {"say", "ask_dm"}
