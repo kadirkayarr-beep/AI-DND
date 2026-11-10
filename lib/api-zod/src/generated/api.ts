@@ -762,6 +762,8 @@ export const createGameSessionResponseStateSceneOneNpcsMax = 12;
 
 export const createGameSessionResponseStateSceneOneFeaturesMax = 24;
 
+export const createGameSessionResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const createGameSessionResponseStateSceneOneReferentsMax = 6;
 
 export const createGameSessionResponseStateWorldEnvironmentDefault = `unknown`;
@@ -1129,7 +1131,8 @@ export const CreateGameSessionResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(createGameSessionResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(createGameSessionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -1851,6 +1854,8 @@ export const getGameSessionStateResponseSceneOneNpcsMax = 12;
 
 export const getGameSessionStateResponseSceneOneFeaturesMax = 24;
 
+export const getGameSessionStateResponseSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const getGameSessionStateResponseSceneOneReferentsMax = 6;
 
 export const getGameSessionStateResponseWorldEnvironmentDefault = `unknown`;
@@ -2216,7 +2221,8 @@ export const GetGameSessionStateResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(getGameSessionStateResponseSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(getGameSessionStateResponseSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -2950,6 +2956,8 @@ export const resolveSpeciesTraitActionResponseStateSceneOneNpcsMax = 12;
 
 export const resolveSpeciesTraitActionResponseStateSceneOneFeaturesMax = 24;
 
+export const resolveSpeciesTraitActionResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const resolveSpeciesTraitActionResponseStateSceneOneReferentsMax = 6;
 
 export const resolveSpeciesTraitActionResponseStateWorldEnvironmentDefault = `unknown`;
@@ -3320,7 +3328,8 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(resolveSpeciesTraitActionResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(resolveSpeciesTraitActionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -4061,6 +4070,8 @@ export const resolveSpeciesTraitActionCompatResponseStateSceneOneNpcsMax = 12;
 
 export const resolveSpeciesTraitActionCompatResponseStateSceneOneFeaturesMax = 24;
 
+export const resolveSpeciesTraitActionCompatResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const resolveSpeciesTraitActionCompatResponseStateSceneOneReferentsMax = 6;
 
 export const resolveSpeciesTraitActionCompatResponseStateWorldEnvironmentDefault = `unknown`;
@@ -4431,7 +4442,8 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(resolveSpeciesTraitActionCompatResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(resolveSpeciesTraitActionCompatResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -5283,6 +5295,8 @@ export const playGameTurnResponseStateSceneOneNpcsMax = 12;
 
 export const playGameTurnResponseStateSceneOneFeaturesMax = 24;
 
+export const playGameTurnResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const playGameTurnResponseStateSceneOneReferentsMax = 6;
 
 export const playGameTurnResponseStateWorldEnvironmentDefault = `unknown`;
@@ -5805,7 +5819,8 @@ export const PlayGameTurnResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(playGameTurnResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(playGameTurnResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -7059,6 +7074,8 @@ export const getGameActionStatusResponseResponseTwoStateSceneOneNpcsMax = 12;
 
 export const getGameActionStatusResponseResponseTwoStateSceneOneFeaturesMax = 24;
 
+export const getGameActionStatusResponseResponseTwoStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const getGameActionStatusResponseResponseTwoStateSceneOneReferentsMax = 6;
 
 export const getGameActionStatusResponseResponseTwoStateWorldEnvironmentDefault = `unknown`;
@@ -7584,7 +7601,8 @@ export const GetGameActionStatusResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(getGameActionStatusResponseResponseTwoStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(getGameActionStatusResponseResponseTwoStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -8763,6 +8781,8 @@ export const abandonGameActionResponseResponseTwoStateSceneOneNpcsMax = 12;
 
 export const abandonGameActionResponseResponseTwoStateSceneOneFeaturesMax = 24;
 
+export const abandonGameActionResponseResponseTwoStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const abandonGameActionResponseResponseTwoStateSceneOneReferentsMax = 6;
 
 export const abandonGameActionResponseResponseTwoStateWorldEnvironmentDefault = `unknown`;
@@ -9288,7 +9308,8 @@ export const AbandonGameActionResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(abandonGameActionResponseResponseTwoStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(abandonGameActionResponseResponseTwoStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -10471,6 +10492,8 @@ export const undoGameTurnResponseStateSceneOneNpcsMax = 12;
 
 export const undoGameTurnResponseStateSceneOneFeaturesMax = 24;
 
+export const undoGameTurnResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const undoGameTurnResponseStateSceneOneReferentsMax = 6;
 
 export const undoGameTurnResponseStateWorldEnvironmentDefault = `unknown`;
@@ -10841,7 +10864,8 @@ export const UndoGameTurnResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(undoGameTurnResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(undoGameTurnResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -11568,6 +11592,8 @@ export const acceptGameQuestResponseStateSceneOneNpcsMax = 12;
 
 export const acceptGameQuestResponseStateSceneOneFeaturesMax = 24;
 
+export const acceptGameQuestResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const acceptGameQuestResponseStateSceneOneReferentsMax = 6;
 
 export const acceptGameQuestResponseStateWorldEnvironmentDefault = `unknown`;
@@ -11961,7 +11987,8 @@ export const AcceptGameQuestResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(acceptGameQuestResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(acceptGameQuestResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -12710,6 +12737,8 @@ export const cancelGameQuestResponseStateSceneOneNpcsMax = 12;
 
 export const cancelGameQuestResponseStateSceneOneFeaturesMax = 24;
 
+export const cancelGameQuestResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const cancelGameQuestResponseStateSceneOneReferentsMax = 6;
 
 export const cancelGameQuestResponseStateWorldEnvironmentDefault = `unknown`;
@@ -13103,7 +13132,8 @@ export const CancelGameQuestResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(cancelGameQuestResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(cancelGameQuestResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -13860,6 +13890,8 @@ export const resolveAmbientEventActionResponseStateSceneOneNpcsMax = 12;
 
 export const resolveAmbientEventActionResponseStateSceneOneFeaturesMax = 24;
 
+export const resolveAmbientEventActionResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const resolveAmbientEventActionResponseStateSceneOneReferentsMax = 6;
 
 export const resolveAmbientEventActionResponseStateWorldEnvironmentDefault = `unknown`;
@@ -14236,7 +14268,8 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(resolveAmbientEventActionResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(resolveAmbientEventActionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -14973,6 +15006,8 @@ export const acceptLegacyQuestResponseStateSceneOneNpcsMax = 12;
 
 export const acceptLegacyQuestResponseStateSceneOneFeaturesMax = 24;
 
+export const acceptLegacyQuestResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const acceptLegacyQuestResponseStateSceneOneReferentsMax = 6;
 
 export const acceptLegacyQuestResponseStateWorldEnvironmentDefault = `unknown`;
@@ -15366,7 +15401,8 @@ export const AcceptLegacyQuestResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(acceptLegacyQuestResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(acceptLegacyQuestResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -16116,6 +16152,8 @@ export const cancelLegacyQuestResponseStateSceneOneNpcsMax = 12;
 
 export const cancelLegacyQuestResponseStateSceneOneFeaturesMax = 24;
 
+export const cancelLegacyQuestResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const cancelLegacyQuestResponseStateSceneOneReferentsMax = 6;
 
 export const cancelLegacyQuestResponseStateWorldEnvironmentDefault = `unknown`;
@@ -16509,7 +16547,8 @@ export const CancelLegacyQuestResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(cancelLegacyQuestResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(cancelLegacyQuestResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -17267,6 +17306,8 @@ export const resolveAmbientEventActionCompatResponseStateSceneOneNpcsMax = 12;
 
 export const resolveAmbientEventActionCompatResponseStateSceneOneFeaturesMax = 24;
 
+export const resolveAmbientEventActionCompatResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const resolveAmbientEventActionCompatResponseStateSceneOneReferentsMax = 6;
 
 export const resolveAmbientEventActionCompatResponseStateWorldEnvironmentDefault = `unknown`;
@@ -17643,7 +17684,8 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(resolveAmbientEventActionCompatResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(resolveAmbientEventActionCompatResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -20528,6 +20570,8 @@ export const createCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const createCampaignResponseStateSceneOneFeaturesMax = 24;
 
+export const createCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const createCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const createCampaignResponseStateWorldEnvironmentDefault = `unknown`;
@@ -20969,7 +21013,8 @@ export const CreateCampaignResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(createCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(createCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -21929,6 +21974,8 @@ export const getCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const getCampaignResponseStateSceneOneFeaturesMax = 24;
 
+export const getCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const getCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const getCampaignResponseStateWorldEnvironmentDefault = `unknown`;
@@ -22380,7 +22427,8 @@ export const GetCampaignResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(getCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(getCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -23327,6 +23375,8 @@ export const resumeCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const resumeCampaignResponseStateSceneOneFeaturesMax = 24;
 
+export const resumeCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const resumeCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const resumeCampaignResponseStateWorldEnvironmentDefault = `unknown`;
@@ -23768,7 +23818,8 @@ export const ResumeCampaignResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(resumeCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(resumeCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -25885,6 +25936,8 @@ export const createLegacySessionResponseStateSceneOneNpcsMax = 12;
 
 export const createLegacySessionResponseStateSceneOneFeaturesMax = 24;
 
+export const createLegacySessionResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const createLegacySessionResponseStateSceneOneReferentsMax = 6;
 
 export const createLegacySessionResponseStateWorldEnvironmentDefault = `unknown`;
@@ -26252,7 +26305,8 @@ export const CreateLegacySessionResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(createLegacySessionResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(createLegacySessionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -26975,6 +27029,8 @@ export const getLegacySessionStateResponseSceneOneNpcsMax = 12;
 
 export const getLegacySessionStateResponseSceneOneFeaturesMax = 24;
 
+export const getLegacySessionStateResponseSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const getLegacySessionStateResponseSceneOneReferentsMax = 6;
 
 export const getLegacySessionStateResponseWorldEnvironmentDefault = `unknown`;
@@ -27340,7 +27396,8 @@ export const GetLegacySessionStateResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(getLegacySessionStateResponseSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(getLegacySessionStateResponseSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -28187,6 +28244,8 @@ export const playLegacyTurnResponseStateSceneOneNpcsMax = 12;
 
 export const playLegacyTurnResponseStateSceneOneFeaturesMax = 24;
 
+export const playLegacyTurnResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const playLegacyTurnResponseStateSceneOneReferentsMax = 6;
 
 export const playLegacyTurnResponseStateWorldEnvironmentDefault = `unknown`;
@@ -28709,7 +28768,8 @@ export const PlayLegacyTurnResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(playLegacyTurnResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(playLegacyTurnResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -29889,6 +29949,8 @@ export const undoLegacyTurnResponseStateSceneOneNpcsMax = 12;
 
 export const undoLegacyTurnResponseStateSceneOneFeaturesMax = 24;
 
+export const undoLegacyTurnResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const undoLegacyTurnResponseStateSceneOneReferentsMax = 6;
 
 export const undoLegacyTurnResponseStateWorldEnvironmentDefault = `unknown`;
@@ -30259,7 +30321,8 @@ export const UndoLegacyTurnResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(undoLegacyTurnResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(undoLegacyTurnResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -32683,6 +32746,8 @@ export const createLegacyCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const createLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
 
+export const createLegacyCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const createLegacyCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const createLegacyCampaignResponseStateWorldEnvironmentDefault = `unknown`;
@@ -33124,7 +33189,8 @@ export const CreateLegacyCampaignResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(createLegacyCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(createLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -34086,6 +34152,8 @@ export const getLegacyCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const getLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
 
+export const getLegacyCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const getLegacyCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const getLegacyCampaignResponseStateWorldEnvironmentDefault = `unknown`;
@@ -34537,7 +34605,8 @@ export const GetLegacyCampaignResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(getLegacyCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(getLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({
@@ -35485,6 +35554,8 @@ export const resumeLegacyCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const resumeLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
 
+export const resumeLegacyCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
 export const resumeLegacyCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const resumeLegacyCampaignResponseStateWorldEnvironmentDefault = `unknown`;
@@ -35926,7 +35997,8 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
   "lifecycle": zod.enum(['presented', 'promoted']),
-  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(resumeLegacyCampaignResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
 })).max(resumeLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
   "conversation": zod.object({

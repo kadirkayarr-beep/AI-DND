@@ -976,6 +976,7 @@ export interface GameSceneReferent {
   source_turn: number | null;
   lifecycle: GameSceneReferentLifecycle;
   promoted_npc_id: string | null;
+  addressable_alias: string | null;
 }
 
 export interface GameScene {

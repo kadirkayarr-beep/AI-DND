@@ -6378,6 +6378,12 @@ components:
           anyOf:
           - type: string
           - type: 'null'
+        addressable_alias:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 80
+          - type: 'null'
       required:
       - id
       - event_instance_id
@@ -6386,6 +6392,7 @@ components:
       - source_turn
       - lifecycle
       - promoted_npc_id
+      - addressable_alias
     GameShop:
       type: object
       additionalProperties: false
