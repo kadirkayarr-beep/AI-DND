@@ -583,3 +583,10 @@
  .design-preview.play-shell .last-turn-bar { max-height:44px; }
  .design-preview.play-shell .command-input { height:44px; }
 }
+
+/* Tablet widths: the composer column can be narrower than the mode picker; let the picker shrink inside it
+   so it cannot sit on top of the Kapat button. */
+@media (min-width: 761px) and (max-width: 1023px) {
+  .design-preview.play-shell .command-toolbar > * { min-width: 0; max-width: 100%; }
+  .design-preview.play-shell .interaction-mode-picker select { min-width: 0; flex: 1 1 0; max-width: 100%; }
+}

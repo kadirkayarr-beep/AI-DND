@@ -634,10 +634,11 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
   assert.deepEqual(touchDesktop.page.exceptions, []);
   touchDesktop.page.close();
 
+  // [GEVŞETME OLABİLİR] the phone shell is fixed-height now: the thing that scrolls under the drawer is the transcript box, not the page.
   const mobileScroll = await createPage(browserPort, `${baseUrl}${fixturePath}?screen=play`, 390, 844);
   await waitForSelector(mobileScroll.page, '[data-testid=\"app-session\"]');
-  const pageBeforeDrawer = await mobileScroll.page.evaluate("(() => { const sc=document.scrollingElement; const max=sc.scrollHeight-sc.clientHeight; if(max<120) return {max,top:sc.scrollTop}; sc.scrollTop=160; document.querySelector('[data-testid=\"button-open-character\"]').click(); return {max,top:sc.scrollTop}; })()");
-  assert.ok(pageBeforeDrawer.max > 0, `mobile narrative page must genuinely scroll: ${JSON.stringify(pageBeforeDrawer)}`);
+  const pageBeforeDrawer = await mobileScroll.page.evaluate("(() => { const sc=document.querySelector('[data-testid=\"transcript-scroll\"]'); const max=sc.scrollHeight-sc.clientHeight; if(max<120) return {max,top:sc.scrollTop}; sc.scrollTop=160; document.querySelector('[data-testid=\"button-open-character\"]').click(); return {max,top:sc.scrollTop}; })()");
+  assert.ok(pageBeforeDrawer.max > 0, `mobile narrative (its own scroll box) must genuinely scroll: ${JSON.stringify(pageBeforeDrawer)}`);
   assert.ok(pageBeforeDrawer.top > 0, `test must start from a nonzero page scroll: ${JSON.stringify(pageBeforeDrawer)}`);
   await waitForSelector(mobileScroll.page, '[role=\"dialog\"][aria-modal=\"true\"]');
   const modalCanScroll = await mobileScroll.page.evaluate("(() => { const d=document.querySelector('[role=\"dialog\"]'); return {max:d.scrollHeight-d.clientHeight, top:d.scrollTop}; })()");
@@ -645,16 +646,16 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
   await touchSwipeAt(mobileScroll.page, 190, 640, 190, 440);
   await delay(80);
   assert.ok(await mobileScroll.page.evaluate("document.querySelector('[role=\"dialog\"]').scrollTop > 0"), "touch scrolling remains available inside the drawer");
-  const pageDuringDrawer = await mobileScroll.page.evaluate("document.scrollingElement.scrollTop");
+  const pageDuringDrawer = await mobileScroll.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop");
   await mouseWheelAt(mobileScroll.page, 190, 20, 550);
   await touchSwipeAt(mobileScroll.page, 190, 30, 190, 5);
   await delay(100);
-  assert.equal(await mobileScroll.page.evaluate("document.scrollingElement.scrollTop"), pageDuringDrawer, "wheel and touch gestures outside the drawer must not move the long mobile page");
+  assert.equal(await mobileScroll.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop"), pageDuringDrawer, "wheel and touch gestures outside the drawer must not move the long mobile narrative");
   await press(mobileScroll.page, "Escape", "Escape", 27);
-  assert.equal(await mobileScroll.page.evaluate("document.scrollingElement.scrollTop"), pageBeforeDrawer.top, "closing restores the page's previous scroll position");
-  await mouseWheelAt(mobileScroll.page, 190, 700, 240);
+  assert.equal(await mobileScroll.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop"), pageBeforeDrawer.top, "closing restores the page's previous scroll position");
+  await mouseWheelAt(mobileScroll.page, 190, 400, 240);
   await delay(80);
-  assert.notEqual(await mobileScroll.page.evaluate("document.scrollingElement.scrollTop"), pageBeforeDrawer.top, "page scrolling works again after the drawer closes");
+  assert.notEqual(await mobileScroll.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop"), pageBeforeDrawer.top, "page scrolling works again after the drawer closes");
   mobileScroll.page.close();
 
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
