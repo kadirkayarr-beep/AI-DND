@@ -35,9 +35,11 @@ MAX_MODEL_CALLS_PER_TURN = 2
 # Ollama defaults to a 4096-token window and silently truncates (done_reason=length);
 # live 9b prompts reach ~4100 tokens before the reply.
 CONTEXT_WINDOW_TOKENS = 16384
-# The 12B needs about 7.2 GB of the 8 GB card at 8K and the driver's system-memory fallback is off, so a bigger
+# The 12B needs about 7.1 GB of the 8 GB card at 12K and the driver's system-memory fallback is off, so a bigger
 # window fails to load; any other value would also make Ollama load the model again. Callers cannot change it.
-_FIXED_CONTEXT_WINDOWS = {"gemma4-12b-dm": 8192}
+_FIXED_CONTEXT_WINDOWS = {"gemma4-12b-dm": 12288}
+# The owner's limit on a local narration reply (about 300 tokens); a caller asking for less keeps its own number.
+_REPLY_TOKEN_CAPS = {"gemma4-12b-dm": 300}
 # The local prompt is cut to leave the reply at least this much of the window (the call's num_predict when larger).
 LOCAL_REPLY_RESERVE_TOKENS = 600
 # After the 12B could not be loaded, its fallback answers for this long before the 12B is tried again,
@@ -46,10 +48,26 @@ LOCAL_FALLBACK_REST_SECONDS = 600
 # Owner's rules for the local model's prose (Nov 2026). Local path only: the cloud models' prompt stays as it is.
 LOCAL_STYLE_RULES = (
     "YEREL ANLATIM KURALLARI: Kısa ve yalın cümleler kur. NPC ve yer adları Türkçe olsun. "
-    "Parantez içinde İngilizce terim yazma; kural adlarını Türkçe yaz. "
-    'Oyuncuya baştan sona "sen" diye hitap et.'
+    "Parantez içinde İngilizce terim yazma; kural ve beceri adlarını yalnız Türkçe yaz "
+    "(örneğin El Çabukluğu, Gizlilik, İkna, Kandırma) ve yanlarına İngilizcelerini ekleme. "
+    'Oyuncuya baştan sona "sen" diye hitap et. '
+    "Oyuncunun eylemini onun yerine ayrıntılı anlatma: denemeyi tek cümleyle belirt, zar iste ve dur."
 )
-# The narration prompt's history block: its "- " lines, oldest first, are what the local budget cuts.
+# One sample reply in the wanted voice. PROVISIONAL: the owner chooses the final text (report, Nov 2026);
+# swap this constant alone to change it.
+LOCAL_DM_EXAMPLE = (
+    "ÜSLUP ÖRNEĞİ (yalnız üslup için; içeriğini bu sahnede kullanma): "
+    "\"Kilidin içine maymuncuğu sokuyorsun. Mekanizma bir kez tıkırdıyor, sonra direniyor. "
+    "El Çabukluğu zarını at.\""
+)
+# _attach_world_metadata appends this block to the system text. It changes with the hour and the weather, so the
+# local call moves it to the end, after the parts that stay the same and that Ollama can read from its cache.
+_METADATA_HEADER = "SERVER-VALIDATED CANONICAL WORLD METADATA"
+_METADATA_AT_END_MODELS = frozenset({"gemma4-12b-dm"})
+# A summary of the history lines cut for the window stays short.
+_HISTORY_SUMMARY_MAX_CHARS = 600
+_SENTENCE = re.compile(r"(.+?[.!?…])(?:\s|$)", re.DOTALL)
+# The narration prompt's history block: its "- " lines, oldest first, are what the local budget summarises.
 _HISTORY_HEADER = "RECENT NARRATION ("
 _HISTORY_HINT = "\nSon anlatım “"
 _NEXT_SECTION = re.compile(r"\n\n(?=[A-ZÇĞİÖŞÜ]{4,}[A-ZÇĞİÖŞÜ ]*[ (:])")
@@ -96,21 +114,54 @@ def _characters(messages: list[Any]) -> int:
     return sum(len(str(message.get("content", ""))) for message in messages if isinstance(message, Mapping))
 
 
-def _with_local_rules(messages: list[Any]) -> list[Any]:
-    """A copy whose first system text ends with the local style rules; no system text, no rules."""
+def _cache_friendly(messages: list[Any], *, style: bool, metadata_at_end: bool) -> list[Any]:
+    """A copy laid out for Ollama's prompt cache: what stays the same first, what changes last.
+
+    The first system text keeps the engine's words, then (for narration) the local style rules and the sample
+    reply, all identical on every call. For the 12B the world metadata block, which changes with the hour and the
+    weather, moves to the end of the last user message. No system text: nothing is added.
+    """
     result = list(messages)
-    for index, message in enumerate(result):
-        if isinstance(message, Mapping) and message.get("role") == "system" and isinstance(message.get("content"), str):
-            result[index] = {**message, "content": f"{message['content']}\n\n{LOCAL_STYLE_RULES}"}
-            break
+    system_at = next((index for index, message in enumerate(result) if isinstance(message, Mapping)
+                      and message.get("role") == "system" and isinstance(message.get("content"), str)), None)
+    if system_at is None:
+        return result
+    engine_text = result[system_at]["content"]
+    metadata = ""
+    cut = engine_text.find(f"\n\n{_METADATA_HEADER}")
+    user_at = next((index for index in range(len(result) - 1, -1, -1) if isinstance(result[index], Mapping)
+                    and result[index].get("role") == "user" and isinstance(result[index].get("content"), str)), None)
+    if metadata_at_end and cut > 0 and user_at is not None:
+        engine_text, metadata = engine_text[:cut], engine_text[cut + 2:]
+    if style:
+        engine_text = f"{engine_text}\n\n{LOCAL_STYLE_RULES}\n\n{LOCAL_DM_EXAMPLE}"
+    result[system_at] = {**result[system_at], "content": engine_text}
+    if metadata:
+        result[user_at] = {**result[user_at], "content": f"{result[user_at]['content']}\n\n{metadata}"}
     return result
 
 
-def _fit_history(messages: list[Any], window: int, reply_tokens: int) -> list[Any]:
-    """Drop the oldest history lines until prompt plus reply fit the window (about 3 characters a token).
+def _first_sentence(item: str) -> str:
+    text = " ".join(item.removeprefix("- ").split())
+    match = _SENTENCE.match(text)
+    return (match.group(1) if match else text)[:80]
 
-    Only the narration's RECENT NARRATION lines go, never its newest one: the rules, world state, Python result and
-    the player's message stay whole. A prompt still too big afterwards is left to the size warning.
+
+def _history_summary(items: list[str]) -> str:
+    """One deterministic line standing for the cut history lines: the first sentence of each, oldest first.
+
+    Plain Python from the saved lines, so it costs no model call (a turn has two at most) and is the same each time.
+    """
+    line = f"- (Daha eski {len(items)} anlatımın özeti: {' / '.join(_first_sentence(item) for item in items)})"
+    return line if len(line) <= _HISTORY_SUMMARY_MAX_CHARS else line[:_HISTORY_SUMMARY_MAX_CHARS - 2] + "…)"
+
+
+def _fit_history(messages: list[Any], window: int, reply_tokens: int) -> list[Any]:
+    """Summarise the oldest history lines until prompt plus reply fit the window (about 3 characters a token).
+
+    Only the narration's RECENT NARRATION lines are folded into one summary line, never the newest one: the system
+    text, rules, world state, Python result and the player's message stay whole. A prompt still too big afterwards
+    is left to the size warning.
     """
     over = _characters(messages) - (window - reply_tokens) * _CHARS_PER_TOKEN
     if over <= 0:
@@ -128,15 +179,18 @@ def _fit_history(messages: list[Any], window: int, reply_tokens: int) -> list[An
         hint_at = block.find(_HISTORY_HINT)
         items_text, hint = (block[:hint_at], block[hint_at:]) if hint_at >= 0 else (block, "")
         items = _HISTORY_ITEM.split(items_text)
-        dropped = 0
-        while over > 0 and len(items) > 1 and items[0].startswith("- "):
-            over -= len(items.pop(0)) + 1
-            dropped += 1
-        if not dropped:
+        if len(items) < 2 or not all(item.startswith("- ") for item in items):
             break
-        _logger.info("Local prompt history cut to fit the window (dropped_lines=%d, window=%d)", dropped, window)
+        removed = 0
+        for count in range(1, len(items)):
+            removed += len(items[count - 1]) + 1
+            summary = _history_summary(items[:count])
+            if over - removed + len(summary) + 1 <= 0:
+                break
+        kept = [summary, *items[count:]]
+        _logger.info("Local prompt history summarised to fit the window (summarised_lines=%d, window=%d)", count, window)
         fitted = list(messages)
-        fitted[index] = {**message, "content": content[:start] + "\n".join(items) + hint + content[end:]}
+        fitted[index] = {**message, "content": content[:start] + "\n".join(kept) + hint + content[end:]}
         return fitted
     return messages
 
@@ -418,11 +472,14 @@ class AuthenticatedOllamaAdapter:
         options = {"num_ctx": window, **(caller_options or {})}
         if model in _FIXED_CONTEXT_WINDOWS:
             options["num_ctx"] = window
+        # Narration only: an intent or front reading answers in a schema, and a cut JSON reading is lost.
+        cap = _REPLY_TOKEN_CAPS.get(model) if style else None
+        if cap is not None:
+            options["num_predict"] = min(options.get("num_predict") or cap, cap)
         local = {**call, "model": model, "options": options}
         messages = call.get("messages")
         if isinstance(messages, list):
-            if style:
-                messages = _with_local_rules(messages)
+            messages = _cache_friendly(messages, style=style, metadata_at_end=model in _METADATA_AT_END_MODELS)
             reply = max(options.get("num_predict") or _DEFAULT_REPLY_TOKENS, LOCAL_REPLY_RESERVE_TOKENS)
             local["messages"] = _fit_history(messages, window, reply)
         return local

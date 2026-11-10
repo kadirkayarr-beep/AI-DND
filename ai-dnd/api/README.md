@@ -43,9 +43,18 @@ clearly better than the E4B: it kept the dice rule, remembered the NPC's name an
 scene consistent. Ollama lists it as `gemma4-12b-dm:latest`.
 
 Measured on the owner's PC (RTX 3060 Ti 8 GB, Ollama 0.40.15): about 45 tok/s generation with thinking off,
-a typical reply in 4-5 s, about 7200 MiB of the 8192 MiB card in use. The margin is thin and the driver's
-system-memory fallback is off: a model that does not fit fails with an error instead of slowing down. One first
-request after loading once took about 38 s (most likely waiting for another model to leave VRAM); it did not repeat.
+a typical reply in 4-5 s, about 7120 MiB of the 8192 MiB card in use at 12K with other applications closed
+(about 1 GB to spare). The margin is thin and the driver's system-memory fallback is off: a model that does not
+fit fails with an error instead of slowing down. One first request after loading once took about 38 s (most
+likely waiting for another model to leave VRAM); it did not repeat.
+
+Known limits:
+
+- 12K limit: system prompt, world state, history and reply must fit 12 288 tokens (see below).
+- The VRAM margin is thin: keep the browser's hardware acceleration off while playing, or the card can run out
+  and the 12B falls back to `gemma4-fast`.
+- Because of the 3-bit compression the model now and then makes a Turkish spelling or subject (özne) mistake.
+  This is known and accepted.
 
 Modelfile (the two `FROM` lines are the model and its vision projector blobs; the projector stays unused):
 
@@ -64,21 +73,31 @@ PARSER gemma4
 PARAMETER num_gpu 99
 PARAMETER stop <turn|>
 PARAMETER temperature 0.7
-PARAMETER num_ctx 8192
+PARAMETER top_p 0.9
+PARAMETER num_ctx 12288
 ```
 
 What the adapter does for it (`api/ollama_adapter.py`; Gemini and Claude Haiku and their prompts are untouched):
 
-- The window is 8K (`num_ctx` 8192) on every call to the 12B, the warm-up and the character-note suggestion
+- The window is 12K (`num_ctx` 12288) on every call to the 12B, the warm-up and the character-note suggestion
   included; a caller cannot change it, because a bigger window does not fit the card and any other value makes
   Ollama load the model again.
-- 8K limit: system prompt, world state, history and reply must fit 8192 tokens. At about one token per three
-  characters of Turkish, the local prompt may be (8192 − reply) × 3 characters, where the reply keeps at least
-  600 tokens (the narration asks for 700). When it is bigger, the oldest RECENT NARRATION lines are dropped
-  (never the newest); the cloud models still get the whole prompt. Each call has its own window, so the turn's
-  second call (intent or front reading, NPC speech, arrival narration) counts on its own. Measured on a fixed
-  town over 96 turns: the largest narration prompt was 17 841 characters, which the 12B counted as 5221 tokens
-  (about 3.4 characters a token), so 5921 with the 700-token reply; reading calls stayed under 9300 characters.
+- A local 12B narration reply is capped at 300 tokens (`num_predict`; a caller asking for less keeps its number).
+  The intent and front readings keep their budget, so their JSON is not cut; the cloud models keep the engine's.
+- 12K budget: system prompt, world state, history and reply must fit 12 288 tokens. At about one token per three
+  characters of Turkish, the local prompt may be (12 288 − reply) × 3 characters, where the reply keeps at least
+  600 tokens. When it is bigger, the oldest RECENT NARRATION lines are folded into one summary line (the first
+  sentence of each, oldest first, at most 600 characters), made by plain Python with no model call; the newest
+  line, the system text and the player's message stay whole, and the cloud models still get the whole prompt.
+  Each call has its own window, so the turn's second call (intent or front reading, NPC speech, arrival
+  narration) counts on its own. Measured on a fixed town over 96 turns: the largest narration prompt was
+  17 841 characters, which the 12B counted as 5221 tokens (about 3.4 characters a token), far inside the budget;
+  reading calls stayed under 9300 characters.
+- Cache-friendly layout: Ollama reads the start a request shares with the previous one from its cache. The local
+  system text is the engine's (unchanged turn to turn), then the local rules and the sample reply, so it is
+  byte-identical on every narration call; the world metadata (hour, weather), which the adapter otherwise adds
+  to the system text, moves to the end of the last user message for the 12B. The engine's user prompt already
+  starts with its fixed instructions and ends with the player's message.
 - Every request carries `think: false` (unless a caller asks for `True`) and `keep_alive: "30m"`; local calls,
   the suggestion's included, go one at a time through one queue.
 - At API start (an adapter built from the environment) one tiny background request loads the model, so the first
@@ -86,9 +105,11 @@ What the adapter does for it (`api/ollama_adapter.py`; Gemini and Claude Haiku a
 - If Ollama answers that the 12B cannot run (not installed, out of VRAM, load error), the same call goes to
   `gemma4-fast` with its 16K window, the log says `falling back to gemma4-fast`, and the 12B rests for 10 minutes
   before it is tried again. A dead service or a timeout does not switch models. `gemma4-fast` stays installed.
-- The local narration's system prompt ends with the owner's local-only rules (short plain sentences, Turkish NPC
-  and place names, no English terms in brackets, rule names in Turkish, "sen" to the player throughout). The
-  intent and front readings, and the cloud models, do not get them.
+- The local narration's system prompt ends with the owner's local-only rules (`LOCAL_STYLE_RULES`: short plain
+  sentences, Turkish NPC and place names, no English terms in brackets, rule and skill names only in Turkish,
+  "sen" to the player throughout, the player's attempt in one sentence, then ask for a roll and stop) and one
+  sample reply in that voice (`LOCAL_DM_EXAMPLE`, provisional until the owner picks the text). The intent and
+  front readings, and the cloud models, do not get them.
 
 ## Local Gemma E4B (`gemma4-fast`, fallback)
 
@@ -128,7 +149,7 @@ What the adapter does for it, as the 12B's fallback or when selected (`api/ollam
 - Local calls run one at a time (one lock): Ollama serves one request here, so parallel turns queue.
 - Local-only: with one loaded model, another local tag (`qwen3*`) reloads the model on every switch.
 - The adapter warns in the log when the estimated prompt (about one token per three characters) plus the
-  reply budget exceeds the window, and when a reply used the whole window. Before that, the same history cut as
+  reply budget exceeds the window, and when a reply used the whole window. Before that, the same history summary as
   for the 12B applies against its 16K window (in practice it never triggers there).
 - No image or audio field is sent; the model's vision and audio projector stay unused.
 

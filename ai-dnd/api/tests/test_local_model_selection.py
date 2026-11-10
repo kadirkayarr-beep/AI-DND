@@ -80,7 +80,7 @@ class LocalModelSelectionTests(unittest.TestCase):
 
     def test_every_model_gets_the_same_call_shape(self):
         # Capability-neutral on purpose: think off, the model's window and the
-        # caller's schema and sampling untouched. Only the window follows the tag (12B: 8K, the rest 16K).
+        # caller's schema and sampling untouched. Only the window follows the tag (12B: 12K, the rest 16K).
         schema = {'type': 'object', 'properties': {'intent': {'type': 'string'}}}
         for model in SUPPORTED_LOCAL_MODELS:
             with self.subTest(model=model):
@@ -94,7 +94,7 @@ class LocalModelSelectionTests(unittest.TestCase):
                     'model': model, 'messages': [], 'format': schema, 'think': False, 'keep_alive': LOCAL_KEEP_ALIVE,
                     'options': {'num_ctx': local_context_window(model), 'temperature': 0.7, 'num_predict': 220},
                 }])
-                self.assertEqual(local_context_window(model), 8192 if model == GEMMA_12B else CONTEXT_WINDOW_TOKENS)
+                self.assertEqual(local_context_window(model), 12288 if model == GEMMA_12B else CONTEXT_WINDOW_TOKENS)
 
     def test_think_defaults_off_but_a_call_can_ask_for_it(self):
         client = RecordingClient((GEMMA,))
@@ -212,7 +212,7 @@ class IdentitySuggestionModelTests(unittest.TestCase):
         request = self.provider_request({})
         self.assertIs(request['think'], False)
         self.assertEqual(request['options']['num_ctx'], local_context_window(PRODUCTION_LOCAL_MODEL))
-        self.assertEqual(request['options']['num_ctx'], 8192)
+        self.assertEqual(request['options']['num_ctx'], 12288)
 
     def test_suggestion_refuses_an_unsupported_model(self):
         client = RecordingClient()

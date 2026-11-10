@@ -1,4 +1,4 @@
-"""The local last link is `gemma4-12b-dm` (Gemma 4 12B IQ3_M, 8K window); `gemma4-fast` (E4B, 16K) is its fallback.
+"""The local last link is `gemma4-12b-dm` (Gemma 4 12B IQ3_M, 12K window); `gemma4-fast` (E4B, 16K) is its fallback.
 
 Only the local call changes: the cloud providers receive the engine's prompt as before.
 """
@@ -21,11 +21,13 @@ from api.main import create_app
 from api.model_phase import classifier_call, front_call
 from api.ollama_adapter import (
     CONTEXT_WINDOW_TOKENS,
+    LOCAL_DM_EXAMPLE,
     LOCAL_REPLY_RESERVE_TOKENS,
     LOCAL_STYLE_RULES,
     PROVIDER_TIMEOUT_SECONDS,
     AuthenticatedOllamaAdapter,
     RequiredModelUnavailableError,
+    canonical_world_metadata_context,
     local_context_window,
 )
 from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
@@ -34,23 +36,31 @@ from api.tests.test_local_model_selection import RecordingClient
 DM = 'gemma4-12b-dm'
 FAST = 'gemma4-fast'
 OK = {'message': {'role': 'assistant', 'content': 'ok'}}
+WINDOW = 12288
+BUDGET = (WINDOW - 600) * 3  # characters the 12B's prompt may take: 600 tokens kept for the reply, ~3 characters a token
+ENGINE_SYSTEM = 'Sen bu oyunun anlatıcısısın.'
 
 
-def dm_messages(history_lines, line_length=240, player='Barmene selam veriyorum'):
+def dm_messages(history_lines, line_length=240, player='Barmene selam veriyorum', guidance='Konuşma turu.'):
     """The engine's narration prompt in miniature: a system text, then sections, the history block, the player last."""
-    history = '\n'.join(f'- {index:03d} ' + 'a' * (line_length - 6) for index in range(history_lines))
+    history = '\n'.join(
+        f'- Anlatım {index:03d} burada başlar. ' + 'a' * (line_length - 30) for index in range(history_lines))
     user = (
-        'Yalnızca bu turu yanıtla.\n\n'
+        f'Yalnızca bu turu yanıtla. {guidance}\n\n'
         'KOMPAKT WORLD CONTEXT (salt okunur):\n{"yer":"taverna"}\n\n'
         f'RECENT NARRATION (yalnızca tekrar etmeme için; olgusal dayanak değil):\n{history}\n'
         'Son anlatım “Ocakta ateş çıtırdıyor” diye başladı; aynı sözlerle ya da aynı kalıpla başlama.\n\n'
         f'CURRENT PLAYER MESSAGE (doğrulanmamış yeni girdi):\n{player}'
     )
-    return [{'role': 'system', 'content': 'Sen bu oyunun anlatıcısısın.'}, {'role': 'user', 'content': user}]
+    return [{'role': 'system', 'content': ENGINE_SYSTEM}, {'role': 'user', 'content': user}]
 
 
 def characters(messages):
     return sum(len(str(message.get('content', ''))) for message in messages)
+
+
+def local_system():
+    return f'{ENGINE_SYSTEM}\n\n{LOCAL_STYLE_RULES}\n\n{LOCAL_DM_EXAMPLE}'
 
 
 class FakeChain:
@@ -108,19 +118,30 @@ class TheModelIs12B(unittest.TestCase):
 
 
 class TheCallShape(unittest.TestCase):
-    def request(self, **extra):
-        client = RecordingClient((DM,))
-        AuthenticatedOllamaAdapter(client, model_name=DM).chat(model='qwen3:8b', messages=[], **extra)
+    def request(self, model=DM, **extra):
+        client = RecordingClient((model,))
+        AuthenticatedOllamaAdapter(client, model_name=model).chat(model='qwen3:8b', messages=[], **extra)
         return client.requests[0]
 
-    def test_the_12b_window_is_8k_and_e4b_keeps_16k(self):
-        self.assertEqual(local_context_window(DM), 8192)
+    def test_the_12b_window_is_12k_and_e4b_keeps_16k(self):
+        self.assertEqual(local_context_window(DM), WINDOW)
         self.assertEqual(local_context_window(FAST), 16384)
         self.assertEqual(CONTEXT_WINDOW_TOKENS, 16384)
-        self.assertEqual(self.request()['options']['num_ctx'], 8192)
+        self.assertEqual(self.request()['options']['num_ctx'], WINDOW)
 
     def test_the_12b_window_cannot_be_changed_by_a_caller_because_any_other_value_reloads_or_overflows(self):
-        self.assertEqual(self.request(options={'num_ctx': 16384})['options']['num_ctx'], 8192)
+        self.assertEqual(self.request(options={'num_ctx': 16384})['options']['num_ctx'], WINDOW)
+
+    def test_the_12b_reply_is_capped_near_300_tokens(self):
+        self.assertEqual(self.request(options={'num_predict': 700})['options']['num_predict'], 300)
+        self.assertEqual(self.request()['options']['num_predict'], 300)
+        self.assertEqual(self.request(options={'num_predict': 60})['options']['num_predict'], 60)
+        self.assertEqual(self.request(FAST, options={'num_predict': 700})['options']['num_predict'], 700)
+
+    def test_intent_and_front_readings_keep_their_reply_budget_so_their_json_is_not_cut(self):
+        for scope in (classifier_call, front_call):
+            with self.subTest(scope=scope.__name__), scope():
+                self.assertEqual(self.request(options={'num_predict': 400})['options']['num_predict'], 400)
 
     def test_think_off_and_kept_loaded_thirty_minutes(self):
         request = self.request()
@@ -130,9 +151,9 @@ class TheCallShape(unittest.TestCase):
 
 
 class TheHistoryFitsTheWindow(unittest.TestCase):
-    def local_request(self, messages, **options):
-        client = RecordingClient((DM,))
-        AuthenticatedOllamaAdapter(client, model_name=DM).chat(
+    def local_request(self, messages, model=DM, **options):
+        client = RecordingClient((model,))
+        AuthenticatedOllamaAdapter(client, model_name=model).chat(
             model='qwen3:8b', messages=messages, options=options or {'num_predict': 700})
         return client.requests[0]
 
@@ -141,44 +162,82 @@ class TheHistoryFitsTheWindow(unittest.TestCase):
         sent = self.local_request(messages)['messages']
         self.assertEqual(sent[1], messages[1])
 
-    def test_history_is_cut_oldest_first_until_prompt_and_reply_fit_8k(self):
-        messages = dm_messages(120)  # about 29 000 characters: more than (8192 - 700) * 3
-        self.assertGreater(characters(messages), (8192 - 700) * 3)
+    def test_old_history_is_summarised_until_prompt_and_reply_fit_12k_and_the_system_prompt_stays_whole(self):
+        messages = dm_messages(200)  # about 48 000 characters: more than (12288 - 600) * 3
+        self.assertGreater(characters(messages), BUDGET)
         sent = self.local_request(messages)['messages']
-        self.assertLessEqual(characters(sent), (8192 - 700) * 3)
+        self.assertLessEqual(characters(sent), BUDGET)
+        self.assertEqual(sent[0]['content'], local_system())
         user = sent[1]['content']
-        self.assertNotIn('- 000 ', user)
-        self.assertIn('- 119 ', user)  # the newest line stays
+        self.assertNotIn('- Anlatım 000 burada başlar. aaaa', user)  # the oldest line is no longer whole
+        self.assertIn('- Anlatım 199 burada başlar. ' + 'a' * 210, user)  # the newest stays whole
+        summary = next(line for line in user.split('\n') if line.startswith('- (Daha eski '))
+        self.assertIn('anlatımın özeti', summary)
+        self.assertIn('Anlatım 000 burada başlar.', summary)  # the first sentence of a summarised line survives
+        self.assertNotIn('aaaa', summary)
         self.assertTrue(user.startswith('Yalnızca bu turu yanıtla.'))
         self.assertIn('Son anlatım “Ocakta ateş çıtırdıyor” diye başladı', user)
         self.assertTrue(user.endswith('CURRENT PLAYER MESSAGE (doğrulanmamış yeni girdi):\nBarmene selam veriyorum'))
-        self.assertTrue(sent[0]['content'].startswith('Sen bu oyunun anlatıcısısın.'))
 
-    def test_at_least_600_tokens_are_kept_for_the_reply_even_when_the_call_asks_for_less(self):
+    def test_the_summary_is_the_same_for_the_same_history(self):
+        first = self.local_request(dm_messages(200))['messages']
+        second = self.local_request(dm_messages(200))['messages']
+        self.assertEqual(first, second)
+
+    def test_at_least_600_tokens_are_kept_for_the_reply(self):
         self.assertEqual(LOCAL_REPLY_RESERVE_TOKENS, 600)
-        sent = self.local_request(dm_messages(120), num_predict=200)['messages']
-        self.assertLessEqual(characters(sent), (8192 - 600) * 3)
-        self.assertGreater(characters(sent), (8192 - 700) * 3)  # the reserve is 600, not more
+        sent = self.local_request(dm_messages(200), num_predict=200)['messages']
+        self.assertLessEqual(characters(sent), BUDGET)
+        self.assertGreater(characters(sent), BUDGET - 1000)  # cut to the budget, not far below it
 
     def test_e4b_keeps_its_16k_budget(self):
-        messages = dm_messages(120)
-        client = RecordingClient((FAST,))
-        AuthenticatedOllamaAdapter(client, model_name=FAST).chat(
-            model='qwen3:8b', messages=messages, options={'num_predict': 700})
-        self.assertEqual(client.requests[0]['messages'][1], messages[1])
+        messages = dm_messages(150)  # about 36 000 characters: over the 12B's budget, inside the E4B's
+        self.assertEqual(self.local_request(messages, FAST)['messages'][1], messages[1])
 
     def test_the_cloud_receives_the_whole_history_and_no_local_rule(self):
-        messages = dm_messages(120)
+        messages = dm_messages(200)
         chain = FakeChain()
         client = RecordingClient((DM,))
         AuthenticatedOllamaAdapter(client, model_name=DM, chain=chain).chat(
             model='qwen3:8b', messages=messages, options={'num_predict': 700})
-        cloud = chain.calls[0]['messages']
-        self.assertEqual(cloud[1], messages[1])
-        self.assertNotIn(LOCAL_STYLE_RULES, cloud[0]['content'])
+        cloud = chain.calls[0]
+        self.assertEqual(cloud['messages'], messages)
+        self.assertEqual(cloud['options']['num_predict'], 700)
         local = client.requests[0]['messages']
-        self.assertIn(LOCAL_STYLE_RULES, local[0]['content'])
-        self.assertLess(characters(local), characters(cloud))
+        self.assertEqual(local[0]['content'], local_system())
+        self.assertLess(characters(local), characters(cloud['messages']))
+
+
+class TheCacheablePrefix(unittest.TestCase):
+    """Ollama reuses the cached start that a request shares with the one before it: the start must not move."""
+
+    def turn(self, messages, weather):
+        client = RecordingClient((DM,))
+        adapter = AuthenticatedOllamaAdapter(client, model_name=DM)
+        metadata = {'environment': 'tavern', 'time_of_day': 'evening', 'weather': weather}
+        with canonical_world_metadata_context(lambda: metadata):
+            adapter.chat(model='qwen3:8b', messages=messages, options={'num_predict': 700})
+        return client.requests[0]['messages']
+
+    def test_same_system_prompt_and_history_head_give_identical_leading_bytes(self):
+        one = self.turn(dm_messages(6, player='Etrafıma bakıyorum'), 'clear')
+        two = self.turn(dm_messages(6, player='Barmene selam veriyorum'), 'rain')
+        self.assertEqual(one[0], two[0])  # the whole system text, rules and example included
+        head = dm_messages(6)[1]['content'].split('CURRENT PLAYER MESSAGE')[0]
+        self.assertTrue(one[1]['content'].startswith(head))
+        self.assertTrue(two[1]['content'].startswith(head))
+        self.assertEqual(one[0]['content'], local_system())
+
+    def test_the_changing_world_metadata_goes_to_the_end_for_the_local_model_only(self):
+        sent = self.turn(dm_messages(2), 'rain')
+        self.assertNotIn('weather=', sent[0]['content'])
+        self.assertIn('weather=rain', sent[-1]['content'])
+        self.assertTrue(sent[-1]['content'].rstrip().endswith('Python remains authoritative.'))
+        chain = FakeChain()
+        adapter = AuthenticatedOllamaAdapter(RecordingClient((DM,)), model_name=DM, chain=chain)
+        with canonical_world_metadata_context(lambda: {'environment': 'tavern', 'time_of_day': 'night', 'weather': 'fog'}):
+            adapter.chat(model='qwen3:8b', messages=dm_messages(2))
+        self.assertIn('weather=fog', chain.calls[0]['messages'][0]['content'])  # the cloud prompt is as before
 
 
 class TheLocalRules(unittest.TestCase):
@@ -194,24 +253,25 @@ class TheLocalRules(unittest.TestCase):
 
     def test_the_rules_say_what_the_owner_asked(self):
         for words in ('Kısa ve yalın', 'NPC ve yer adları Türkçe', 'Parantez içinde İngilizce terim yazma',
-                      'kural adlarını Türkçe', '"sen"'):
+                      'beceri adlarını', 'El Çabukluğu', '"sen"',
+                      'Oyuncunun eylemini onun yerine ayrıntılı anlatma: denemeyi tek cümleyle belirt, zar iste ve dur.'):
             self.assertIn(words, LOCAL_STYLE_RULES)
+        self.assertNotIn('Sleight', LOCAL_DM_EXAMPLE)
+        self.assertIn('zar', LOCAL_DM_EXAMPLE)
 
-    def test_the_local_dm_system_prompt_ends_with_the_rules(self):
-        sent = self.sent(dm_messages(2))
-        self.assertTrue(sent[0]['content'].startswith('Sen bu oyunun anlatıcısısın.'))
-        self.assertTrue(sent[0]['content'].endswith(LOCAL_STYLE_RULES))
+    def test_the_local_dm_system_prompt_ends_with_the_rules_and_the_example(self):
+        self.assertEqual(self.sent(dm_messages(2))[0]['content'], local_system())
 
     def test_classifier_and_front_readings_get_no_style_rules(self):
         for scope in (classifier_call, front_call):
             with self.subTest(scope=scope.__name__):
-                self.assertEqual(self.sent(dm_messages(2), scope)[0]['content'], 'Sen bu oyunun anlatıcısısın.')
+                self.assertEqual(self.sent(dm_messages(2), scope)[0]['content'], ENGINE_SYSTEM)
 
     def test_a_call_without_a_system_message_gets_none_added(self):
         self.assertEqual(self.sent([{'role': 'user', 'content': 'Selam'}]), [{'role': 'user', 'content': 'Selam'}])
 
     def test_the_engine_messages_are_not_changed_in_place(self):
-        messages = dm_messages(2)
+        messages = dm_messages(200)
         before = [dict(message) for message in messages]
         self.sent(messages)
         self.assertEqual(messages, before)
@@ -227,6 +287,7 @@ class TheFallback(unittest.TestCase):
         self.assertEqual(response['message']['content'], 'ok')
         self.assertEqual([r['model'] for r in client.requests], [DM, FAST])
         self.assertEqual(client.requests[1]['options']['num_ctx'], 16384)
+        self.assertEqual(client.requests[1]['options']['num_predict'], 700)
         self.assertEqual(client.requests[1]['keep_alive'], '30m')
         self.assertIs(client.requests[1]['think'], False)
         self.assertEqual(failures, [])
@@ -297,7 +358,7 @@ class TheWarmUp(unittest.TestCase):
         self.assertEqual(len(client.requests), 1)
         request = client.requests[0]
         self.assertEqual(request['model'], DM)
-        self.assertEqual(request['options']['num_ctx'], 8192)  # another window would load the model a second time
+        self.assertEqual(request['options']['num_ctx'], WINDOW)  # another window would load the model a second time
         self.assertLessEqual(request['options']['num_predict'], 8)
         self.assertEqual(request['keep_alive'], '30m')
         self.assertIs(request['think'], False)
@@ -325,8 +386,10 @@ class TheWarmUp(unittest.TestCase):
 
     def test_only_an_environment_adapter_warms_up_and_the_app_starts_it(self):
         quiet = RecordingClient((DM,))
-        create_app(session_manager=TestPlayerSessionManager(), authenticator=FixedAuthenticator(TEST_PLAYER),
-                   ollama_adapter=AuthenticatedOllamaAdapter(quiet, model_name=DM))
+        adapter = AuthenticatedOllamaAdapter(quiet, model_name=DM)
+        with adapter.engine_binding():
+            create_app(session_manager=TestPlayerSessionManager(), authenticator=FixedAuthenticator(TEST_PLAYER),
+                       ollama_adapter=adapter)
         self.assertEqual(quiet.requests, [])
 
         warm = RecordingClient((DM,))
@@ -358,7 +421,7 @@ class TheSuggestionShares(unittest.TestCase):
         self.assertEqual(result, ['ok'])
         request = client.requests[0]
         self.assertEqual(request['model'], DM)
-        self.assertEqual(request['options']['num_ctx'], 8192)
+        self.assertEqual(request['options']['num_ctx'], WINDOW)
         self.assertEqual(request['keep_alive'], '30m')
 
 
