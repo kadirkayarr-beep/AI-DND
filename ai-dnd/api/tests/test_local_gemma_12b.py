@@ -240,6 +240,13 @@ class TheCacheablePrefix(unittest.TestCase):
         self.assertIn('weather=fog', chain.calls[0]['messages'][0]['content'])  # the cloud prompt is as before
 
 
+NEW_RULE = ('İstemdeki PYTHON ACTION RESULT bölümünde bir sonuç varsa tam olarak o sonucu anlat; '
+            'başarıyı ya da başarısızlığı değiştirme. Sonuç yoksa kısa anlat; başarı, başarısızlık ya da '
+            'sayısal sonuç uydurma.')
+EXAMPLE_TEXT = ('Kilidin içine maymuncuğu sokuyorsun. Mekanizma bir kez tıkırdıyor, sonra direnmeden açılıyor. '
+                'Kapı ağır bir gıcırtıyla aralanıyor.')
+
+
 class TheLocalRules(unittest.TestCase):
     def sent(self, messages, scope=None):
         client = RecordingClient((DM,))
@@ -254,10 +261,20 @@ class TheLocalRules(unittest.TestCase):
     def test_the_rules_say_what_the_owner_asked(self):
         for words in ('Kısa ve yalın', 'NPC ve yer adları Türkçe', 'Parantez içinde İngilizce terim yazma',
                       'beceri adlarını', 'El Çabukluğu', '"sen"',
-                      'Oyuncunun eylemini onun yerine ayrıntılı anlatma: denemeyi tek cümleyle belirt, zar iste ve dur.'):
+                      NEW_RULE):
             self.assertIn(words, LOCAL_STYLE_RULES)
         self.assertNotIn('Sleight', LOCAL_DM_EXAMPLE)
-        self.assertIn('zar', LOCAL_DM_EXAMPLE)
+        self.assertEqual(LOCAL_DM_EXAMPLE, EXAMPLE_TEXT)
+
+    def test_the_engine_rolls_so_no_local_prompt_asks_for_a_roll(self):
+        # The engine rolls every die before the narration; the model never asks the player for one.
+        for text in (LOCAL_STYLE_RULES, LOCAL_DM_EXAMPLE, local_system(),
+                     self.sent(dm_messages(2))[0]['content'].split(ENGINE_SYSTEM, 1)[1]):
+            lowered = text.lower()
+            for phrase in ('zar at', 'zarını', 'zarini', 'zar iste', 'zar atmas', 'roll', 'zar ve dur'):
+                self.assertNotIn(phrase, lowered)
+        self.assertNotIn('ve dur', LOCAL_STYLE_RULES)
+        self.assertNotIn('direniyor', LOCAL_DM_EXAMPLE)
 
     def test_the_local_dm_system_prompt_ends_with_the_rules_and_the_example(self):
         self.assertEqual(self.sent(dm_messages(2))[0]['content'], local_system())

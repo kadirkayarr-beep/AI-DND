@@ -51,14 +51,14 @@ LOCAL_STYLE_RULES = (
     "Parantez içinde İngilizce terim yazma; kural ve beceri adlarını yalnız Türkçe yaz "
     "(örneğin El Çabukluğu, Gizlilik, İkna, Kandırma) ve yanlarına İngilizcelerini ekleme. "
     'Oyuncuya baştan sona "sen" diye hitap et. '
-    "Oyuncunun eylemini onun yerine ayrıntılı anlatma: denemeyi tek cümleyle belirt, zar iste ve dur."
+    "İstemdeki PYTHON ACTION RESULT bölümünde bir sonuç varsa tam olarak o sonucu anlat; "
+    "başarıyı ya da başarısızlığı değiştirme. Sonuç yoksa kısa anlat; "
+    "başarı, başarısızlık ya da sayısal sonuç uydurma."
 )
-# One sample reply in the wanted voice. PROVISIONAL: the owner chooses the final text (report, Nov 2026);
-# swap this constant alone to change it.
+# One sample reply in the wanted voice. The engine has already rolled; the sample asks for no roll.
 LOCAL_DM_EXAMPLE = (
-    "ÜSLUP ÖRNEĞİ (yalnız üslup için; içeriğini bu sahnede kullanma): "
-    "\"Kilidin içine maymuncuğu sokuyorsun. Mekanizma bir kez tıkırdıyor, sonra direniyor. "
-    "El Çabukluğu zarını at.\""
+    "Kilidin içine maymuncuğu sokuyorsun. Mekanizma bir kez tıkırdıyor, sonra direnmeden açılıyor. "
+    "Kapı ağır bir gıcırtıyla aralanıyor."
 )
 # _attach_world_metadata appends this block to the system text. It changes with the hour and the weather, so the
 # local call moves it to the end, after the parts that stay the same and that Ollama can read from its cache.
