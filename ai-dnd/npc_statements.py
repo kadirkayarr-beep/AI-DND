@@ -714,7 +714,9 @@ def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str)
     ]
     names = {fold(npc.get("name", ""))} | {fold(living_world.public_npc_name(npc))}
     objects = [w for w in objects if not any(w.startswith(n) for n in names if n)]
-    if claim_kind is None and not objects and statements and not _SAID_CLAIM.search(folded):
+    from grounded_action import _PRONOUNS  # "bunu", "onu": a thing or someone else pointed at, not the meeting
+    if (claim_kind is None and not objects and statements and not _SAID_CLAIM.search(folded)
+            and not set(folded.split()) & set(_PRONOUNS)):
         # "Beni hatırlıyor musun?" asks after the meeting itself, not a content: their own recorded words are it.
         return {"status": "supported", "quote": statements[-1]["text"], "statement": statements[-1]}
     if claim_kind is not None:

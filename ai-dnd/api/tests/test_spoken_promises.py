@@ -505,6 +505,17 @@ class Recognition(Table):
             self.assertIn("yüzünü unutmadım", reply["narration"], mode)
             self.assertFalse(any(word in reply["narration"] for word in DENIALS), (mode, reply["narration"]))
 
+    async def test_a_thing_or_someone_else_pointed_at_is_not_a_meeting_remembered(self):
+        """Review I1: 'Bunu / Onu hatırlıyor musun?' asks after a thing or a third person, not the meeting."""
+        for line in ("Bunu hatırlıyor musun?", "Onu hatırlıyor musun?"):
+            with self.subTest(line=line):
+                await self.job()
+                self.never_met()  # they only ever greeted the player
+                npc_statements.record(self.world, self.npc, "selam", "Hoş geldin yolcu, ekmek taze.", turn=None)
+                self.assertNotEqual(npc_statements.claim_support(self.world, self.npc, line)["status"], "supported")
+                reply = await self.line(line, "Evet, o yüzüğü sana ben satmıştım.", mode="say")
+                self.assertNotIn("yüzüğü sana ben satmıştım", reply["narration"])
+
     async def test_someone_never_met_does_not_remember(self):
         for mode in (None, "say"):
             await self.job()
