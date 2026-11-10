@@ -2,6 +2,22 @@ import { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 
 /**
+ * The confirmation sentence: which turn is undone and how the purse comes back (Görev 26). `purseSpentCp` is the
+ * purse before the turn minus after it; null when it is not known (an old turn, a retried move), so no number is said.
+ * A slash command is never quoted, as on the server.
+ */
+export function undoConfirmText(turnLabel: string | null | undefined, purseSpentCp: number | null | undefined): string {
+  let label = (turnLabel ?? '').trim().replace(/\.$/, '');
+  if (label.startsWith('/')) label = '';
+  if (label.length > 120) label = `${label.slice(0, 117)}...`;
+  const head = label ? `“${label}” ve sonuçları geri alınacak` : 'Bu tur ve sonuçları geri alınacak';
+  if (typeof purseSpentCp !== 'number') return `${head}.`;
+  if (purseSpentCp > 0) return `${head}; kesene ${purseSpentCp} bakır geri döner.`;
+  if (purseSpentCp < 0) return `${head}; kesenden ${-purseSpentCp} bakır geri gider.`;
+  return `${head}; kesen değişmez.`;
+}
+
+/**
  * LR00-P7 small undo control for the last completed turn, with an explicit
  * confirmation. Disabled while a turn or an undo is in flight. When there is no
  * undo to offer it says why: a fight is on (`combatActive`: there is a last turn
@@ -16,6 +32,8 @@ export function LastTurnBar({
   onUndo,
   combatActive,
   justUndone,
+  turnLabel,
+  purseSpentCp,
 }: {
   summary: string | null;
   canUndo: boolean;
@@ -24,6 +42,8 @@ export function LastTurnBar({
   onUndo: () => void;
   combatActive: boolean;
   justUndone: boolean;
+  turnLabel?: string | null;
+  purseSpentCp?: number | null;
 }) {
   const [confirming, setConfirming] = useState(false);
   if (!summary && !canUndo && !recoveringUndo && !combatActive && !justUndone) return null;
@@ -58,7 +78,7 @@ export function LastTurnBar({
       )}
       {canUndo && confirming && (
         <span role="group" aria-label="Geri alma onayı" className="flex items-center gap-2" data-testid="confirm-undo">
-          <span>Bu tur ve sonuçları geri alınacak.</span>
+          <span data-testid="text-undo-confirm">{undoConfirmText(turnLabel, purseSpentCp)}</span>
           <button type="button" className="dnd-button" disabled={busy} data-testid="button-confirm-undo"
             onClick={() => { setConfirming(false); onUndo(); }}>Geri al</button>
           <button type="button" className="dnd-button secondary" data-testid="button-cancel-undo"

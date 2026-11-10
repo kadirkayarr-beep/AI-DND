@@ -1164,6 +1164,7 @@ def create_app(
             record.undo_checkpoint = {
                 "action_id": action_id,
                 "player_message": request.message,
+                "turn_label": narration,  # the card's fixed words name nothing; the undo quotes the engine's summary
                 "snapshot": snapshot,
                 "journal": journal_snapshot,
                 "narrative_memory": memory_snapshot,
@@ -2044,6 +2045,8 @@ def create_app(
             import economic_actions
             # C11/D2: the cards as they are now; only the one the undone action consumed opens again.
             current_offers = copy.deepcopy(economic_actions.offer_records(session.world_state))
+            # Read only, for the sentence: the purse the player sees before and after the very same restore.
+            purse_now = economic_actions.wallet_total_cp(session.world_state)
             try:
                 _restore_session(session, checkpoint["snapshot"])
                 if isinstance(session, game.GameSession):
@@ -2055,7 +2058,11 @@ def create_app(
                 record.narrative_memory = copy.deepcopy(checkpoint["narrative_memory"])
                 record.lore_authority = checkpoint["lore_authority"]
                 session.campaign_lore_state = checkpoint["lore_authority"]
-                narration = undo_narration(str(checkpoint.get("player_message") or ""))
+                narration = undo_narration(
+                    str(checkpoint.get("player_message") or ""),
+                    purse_delta_cp=economic_actions.wallet_total_cp(session.world_state) - purse_now,
+                    turn_label=checkpoint.get("turn_label"),
+                )
                 state = serialize_session_state(session, record.journal, record.lore_authority)
                 response = TurnUndoResponse(
                     session_id=session_id,

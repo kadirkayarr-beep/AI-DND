@@ -19,14 +19,28 @@ AMBIENT_JOIN_LINE = "Yanlarına gidiyorum."
 _UNDO_TAIL = "Dünya o turdan önceki hâline döndü; sıradaki hamle senin."
 
 
-def undo_narration(player_message: str) -> str:
-    """The undo sentence. A slash command (or nothing) is never quoted: the player never reads a raw command."""
-    quoted = str(player_message or "").strip()
+def _purse_sentence(purse_delta_cp: int | None) -> str:
+    """How the purse moved back (after the undo minus before it); nothing when it did not move."""
+    if type(purse_delta_cp) is not int or purse_delta_cp == 0:
+        return ""
+    if purse_delta_cp > 0:
+        return f"Kesene {purse_delta_cp} bakır geri döndü. "
+    return f"Kesenden {-purse_delta_cp} bakır geri alındı. "
+
+
+def undo_narration(player_message: str, purse_delta_cp: int | None = None, turn_label: str | None = None) -> str:
+    """The undo sentence. A slash command (or nothing) is never quoted: the player never reads a raw command.
+
+    `turn_label` names a turn whose player words are fixed (a card's "Teklifi onayla"): the engine's own summary.
+    """
+    label = str(turn_label or "").strip().rstrip(".")
+    quoted = label or str(player_message or "").strip()
+    purse = _purse_sentence(purse_delta_cp)
     if not quoted or quoted.startswith("/"):
-        return f"Son tur geri alındı; o turda olanlar yaşanmamış sayılıyor. {_UNDO_TAIL}"
+        return f"Son tur geri alındı; o turda olanlar yaşanmamış sayılıyor. {purse}{_UNDO_TAIL}"
     if len(quoted) > 120:
         quoted = quoted[:117] + "..."
-    return f"Son tur geri alındı: “{quoted}” ve sonuçları yaşanmamış sayılıyor. {_UNDO_TAIL}"
+    return f"Son tur geri alındı: “{quoted}” ve sonuçları yaşanmamış sayılıyor. {purse}{_UNDO_TAIL}"
 
 
 def _single(indexes: list[int]) -> int | None:

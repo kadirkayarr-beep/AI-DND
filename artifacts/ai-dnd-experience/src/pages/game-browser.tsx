@@ -1208,7 +1208,7 @@ export default function GameBrowser() {
   useEffect(() => { setInFlightSessions(new Set(inFlightSessionsRef.current)); }, [sessionId]);
   const turnSending = inFlightSessions.has(sessionId);
   // LR00-P5/P7: the last completed turn's receipt summary and undo target.
-  const [lastTurn, setLastTurn] = useState<{ sessionId: string; actionId: string; outcome: TurnOutcome | null } | null>(null);
+  const [lastTurn, setLastTurn] = useState<{ sessionId: string; actionId: string; outcome: TurnOutcome | null; label?: string | null; purseSpentCp?: number | null } | null>(null);
   const lastTurnRef = useRef(lastTurn);
   lastTurnRef.current = lastTurn;
   // True right after a successful undo until the next turn reply (or a reset, a new campaign, a resume).
@@ -1937,6 +1937,8 @@ export default function GameBrowser() {
     if (!stored) { primalKnowledgeIntent.choose(false); tacticalMindIntent.choose(false); redrawPrimalKnowledge(value => value + 1); }
     const actionId = key.actionId;
     const trimmed = String(request.message ?? '');
+    // Görev 26: the purse before this move, for the undo confirmation; a retried stored move cannot know it.
+    const purseBefore = stored ? null : state?.wallet?.total_cp ?? null;
     const metadata = { interaction_mode: request.interaction_mode as InteractionMode };
     inFlightSessionsRef.current.add(sessionId);
     setInFlightSessions(new Set(inFlightSessionsRef.current));
@@ -2057,7 +2059,11 @@ export default function GameBrowser() {
         const cardStepOnly = result.turn_outcome?.action === 'economic_prepare'
           || result.turn_outcome?.action === 'economic_cancel' || nonConsumingConfirm;
         if (stillVisible && !cardStepOnly) {
-          setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null });
+          const purseAfter = snapshot.state.wallet?.total_cp ?? null;
+          setLastTurn({ sessionId, actionId, outcome: result.turn_outcome ?? null,
+            // A card's fixed words name nothing: its engine summary names the turn instead.
+            label: receipt?.public_summary ?? (request.economic_action ? null : trimmed),
+            purseSpentCp: purseBefore !== null && purseAfter !== null ? purseBefore - purseAfter : null });
           setUndoneJustNow(false);
         }
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
@@ -2417,6 +2423,8 @@ export default function GameBrowser() {
                 onUndo={undoLastTurn}
                 combatActive={Boolean(visibleLastTurn) && state.combat.active}
                 justUndone={undoneJustNow}
+                turnLabel={visibleLastTurn?.label}
+                purseSpentCp={visibleLastTurn?.purseSpentCp}
               />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
