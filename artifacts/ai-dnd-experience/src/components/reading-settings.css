@@ -104,9 +104,14 @@
 
 @media (max-width: 560px) {
   .reading-settings { margin-left: auto; }
+  /* Open, the details stays the width of its button and the panel overflows leftwards from the right edge,
+     so it can never push the row past the viewport. */
+  .reading-settings[open] { width: 4.25rem; direction: rtl; }
+  /* ...and the scene-context strip (fixed 90px on phones) grows to show it instead of scrolling it inside the strip. */
+  .design-preview.play-shell .story-column:has(.reading-settings[open]) { grid-template-rows: auto minmax(0, 1fr); }
   .reading-settings > summary { width: 4.25rem; box-sizing: border-box; }
   .reading-settings__panel {
     width: min(17.5rem, calc(100vw - 2rem));
-    transform: translateX(-1rem);
+    direction: ltr;
   }
 }
