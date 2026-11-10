@@ -1,10 +1,13 @@
-"""The local Gemma last link: the `gemma4-fast` model, a 16K window, keep_alive, one local call at a time."""
+"""The E4B local Gemma: the `gemma4-fast` model, a 16K window, keep_alive, one local call at a time.
+
+Since Nov 2026 it is the 12B's fallback (test_local_gemma_12b), and still selectable on its own.
+"""
 import threading
 import time
 import unittest
 
 from api import ollama_adapter
-from api.local_model_config import PRODUCTION_LOCAL_MODEL, SUPPORTED_LOCAL_MODELS, validate_local_model
+from api.local_model_config import LOCAL_FALLBACK_MODELS, PRODUCTION_LOCAL_MODEL, SUPPORTED_LOCAL_MODELS, validate_local_model
 from api.ollama_adapter import CONTEXT_WINDOW_TOKENS, AuthenticatedOllamaAdapter
 from api.tests.test_local_model_selection import RecordingClient
 
@@ -12,8 +15,8 @@ FAST = 'gemma4-fast'
 
 
 class TheModelIsGemmaFast(unittest.TestCase):
-    def test_gemma4_fast_is_the_production_model_and_the_old_tag_is_gone(self):
-        self.assertEqual(PRODUCTION_LOCAL_MODEL, FAST)
+    def test_gemma4_fast_is_the_production_models_fallback_and_the_old_tag_is_gone(self):
+        self.assertEqual(LOCAL_FALLBACK_MODELS[PRODUCTION_LOCAL_MODEL], FAST)
         self.assertEqual(validate_local_model(FAST), FAST)
         self.assertNotIn('gemma4:e4b', SUPPORTED_LOCAL_MODELS)
 

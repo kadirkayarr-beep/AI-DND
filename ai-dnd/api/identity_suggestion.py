@@ -36,7 +36,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from api.auth import Principal
 from api.local_model_config import selected_local_model
 from api.model_chain import ModelChain
-from api.ollama_adapter import CONTEXT_WINDOW_TOKENS
+from api.ollama_adapter import _LOCAL_CALL_LOCK, LOCAL_KEEP_ALIVE, local_context_window
 
 
 FIELDS = ("origin", "appearance", "personality", "backstory")
@@ -178,10 +178,11 @@ def _local_client() -> Any:
 
 
 def _suggestion_call(prompt: str) -> dict[str, Any]:
+    model = selected_local_model()
     return {
-        # Same tag and window as the game, so one suggestion does not load a
-        # second model or reload this one on a small graphics card.
-        "model": selected_local_model(),
+        # Same tag, window and keep_alive as the game, so one suggestion does not load a
+        # second model, reload this one on a small graphics card or shorten its stay.
+        "model": model,
         "messages": [
             {
                 "role": "system",
@@ -189,9 +190,16 @@ def _suggestion_call(prompt: str) -> dict[str, Any]:
             },
             {"role": "user", "content": prompt},
         ],
-        "options": {"num_ctx": CONTEXT_WINDOW_TOKENS, "num_predict": 60, "temperature": 0.3},
+        "options": {"num_ctx": local_context_window(model), "num_predict": 60, "temperature": 0.3},
         "think": False,
+        "keep_alive": LOCAL_KEEP_ALIVE,
     }
+
+
+def _ask_local(call: dict[str, Any]) -> Any:
+    """In the game's local queue: Ollama serves one request at a time here."""
+    with _LOCAL_CALL_LOCK:
+        return _local_client().chat(**call)
 
 
 def _note_text(response: Any) -> str:
@@ -204,7 +212,7 @@ def _note_text(response: Any) -> str:
 
 def local_ollama_provider(prompt: str) -> str:
     """One local chat."""
-    return _note_text(_local_client().chat(**_suggestion_call(prompt)))
+    return _note_text(_ask_local(_suggestion_call(prompt)))
 
 
 def chain_provider(chain: ModelChain) -> SuggestionProvider:
@@ -213,7 +221,7 @@ def chain_provider(chain: ModelChain) -> SuggestionProvider:
     def provider(prompt: str) -> str:
         call = _suggestion_call(prompt)
         cloud_call = {**call, "options": {**call["options"], "num_predict": CLOUD_NOTE_TOKENS}}
-        return _note_text(chain.chat(cloud_call, lambda: _local_client().chat(**call))[0])
+        return _note_text(chain.chat(cloud_call, lambda: _ask_local(call))[0])
 
     return provider
 

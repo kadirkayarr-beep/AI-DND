@@ -9,8 +9,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$requiredModel = if ($env:AI_DND_OLLAMA_MODEL) { $env:AI_DND_OLLAMA_MODEL } else { "gemma4-fast" }
-if ($requiredModel -cnotin @("qwen3:8b", "qwen3.5:4b-q4_K_M", "qwen3.5:9b-q4_K_M", "gemma4-fast")) {
+$requiredModel = if ($env:AI_DND_OLLAMA_MODEL) { $env:AI_DND_OLLAMA_MODEL } else { "gemma4-12b-dm" }
+if ($requiredModel -cnotin @("qwen3:8b", "qwen3.5:4b-q4_K_M", "qwen3.5:9b-q4_K_M", "gemma4-fast", "gemma4-12b-dm")) {
     Write-Host "NOT READY: unsupported AI_DND_OLLAMA_MODEL. No services were started."
     exit 1
 }
@@ -53,8 +53,13 @@ try {
     $names = @($tags.models | ForEach-Object { if ($_.name) { $_.name } else { $_.model } })
     # Ollama lists an untagged model such as gemma4-fast as "gemma4-fast:latest".
     if (($names -cnotcontains $requiredModel) -and ($names -cnotcontains "${requiredModel}:latest")) {
-        Write-Host "NOT READY: selected model $requiredModel is not in /api/tags. No model will be downloaded."
-        exit 1
+        # The 12B falls back to gemma4-fast inside the API (ai-dnd/api/local_model_config.py, LOCAL_FALLBACK_MODELS).
+        if (($requiredModel -ceq "gemma4-12b-dm") -and (($names -ccontains "gemma4-fast") -or ($names -ccontains "gemma4-fast:latest"))) {
+            Write-Host "WARNING: gemma4-12b-dm is not in /api/tags; local turns will fall back to gemma4-fast."
+        } else {
+            Write-Host "NOT READY: selected model $requiredModel is not in /api/tags. No model will be downloaded."
+            exit 1
+        }
     }
 } catch {
     Write-Host "NOT READY: could not parse /api/tags"

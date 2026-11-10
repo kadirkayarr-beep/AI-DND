@@ -533,6 +533,10 @@ def create_app(
     )
     if adapter is not None:
         adapter.install_for_engine()
+        # Only an adapter built from the environment warms the local model (in the background, once).
+        warm_up = getattr(adapter, "warm_up_in_background", None)
+        if callable(warm_up):
+            warm_up()
     install_narrative_context_adapter(game)
 
     application = FastAPI(

@@ -17,12 +17,14 @@ from api.ollama_adapter import (
     MAX_MODEL_CALLS_PER_TURN,
     AuthenticatedOllamaAdapter,
     RequiredModelUnavailableError,
+    local_context_window,
 )
 from api.schemas import TurnRequest
 
 NINE = 'qwen3.5:9b-q4_K_M'
 FOUR = 'qwen3.5:4b-q4_K_M'
 GEMMA = 'gemma4-fast'
+GEMMA_12B = 'gemma4-12b-dm'
 START_LOCAL = Path(__file__).resolve().parents[3] / 'start_local.ps1'
 
 
@@ -53,12 +55,12 @@ class LocalModelSelectionTests(unittest.TestCase):
             os.environ.pop('AI_DND_OLLAMA_MODEL', None)
             with patch('ollama.Client'):
                 adapter = AuthenticatedOllamaAdapter.from_environment()
-        self.assertEqual(adapter.model_name, GEMMA)
+        self.assertEqual(adapter.model_name, GEMMA_12B)
         # The engine keeps sending its fixed 'qwen3:8b' tag; the adapter maps it.
-        client = RecordingClient((GEMMA,))
+        client = RecordingClient((GEMMA_12B,))
         mapped = AuthenticatedOllamaAdapter(client, model_name=adapter.model_name)
         mapped.chat(model='qwen3:8b', messages=[])
-        self.assertEqual(client.requests[0]['model'], GEMMA)
+        self.assertEqual(client.requests[0]['model'], GEMMA_12B)
 
     def test_explicit_local_selection_is_actual_requested_tag(self):
         for model in (FOUR, NINE, GEMMA):
@@ -77,8 +79,8 @@ class LocalModelSelectionTests(unittest.TestCase):
                 }])
 
     def test_every_model_gets_the_same_call_shape(self):
-        # Capability-neutral on purpose: think off, the same window and the
-        # caller's schema and sampling untouched. Nothing branches on the tag.
+        # Capability-neutral on purpose: think off, the model's window and the
+        # caller's schema and sampling untouched. Only the window follows the tag (12B: 8K, the rest 16K).
         schema = {'type': 'object', 'properties': {'intent': {'type': 'string'}}}
         for model in SUPPORTED_LOCAL_MODELS:
             with self.subTest(model=model):
@@ -90,8 +92,9 @@ class LocalModelSelectionTests(unittest.TestCase):
                 )
                 self.assertEqual(client.requests, [{
                     'model': model, 'messages': [], 'format': schema, 'think': False, 'keep_alive': LOCAL_KEEP_ALIVE,
-                    'options': {'num_ctx': CONTEXT_WINDOW_TOKENS, 'temperature': 0.7, 'num_predict': 220},
+                    'options': {'num_ctx': local_context_window(model), 'temperature': 0.7, 'num_predict': 220},
                 }])
+                self.assertEqual(local_context_window(model), 8192 if model == GEMMA_12B else CONTEXT_WINDOW_TOKENS)
 
     def test_think_defaults_off_but_a_call_can_ask_for_it(self):
         client = RecordingClient((GEMMA,))
@@ -208,7 +211,8 @@ class IdentitySuggestionModelTests(unittest.TestCase):
     def test_suggestion_keeps_think_off_and_the_game_context_window(self):
         request = self.provider_request({})
         self.assertIs(request['think'], False)
-        self.assertEqual(request['options']['num_ctx'], CONTEXT_WINDOW_TOKENS)
+        self.assertEqual(request['options']['num_ctx'], local_context_window(PRODUCTION_LOCAL_MODEL))
+        self.assertEqual(request['options']['num_ctx'], 8192)
 
     def test_suggestion_refuses_an_unsupported_model(self):
         client = RecordingClient()

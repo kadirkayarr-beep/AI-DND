@@ -934,7 +934,7 @@ class TheAdapter(unittest.TestCase):
             self.assertIsNone(AuthenticatedOllamaAdapter(EngineStub())._chain)
             self.assertIsNone(AuthenticatedOllamaAdapter.from_environment()._chain)
             self.assertEqual(AuthenticatedOllamaAdapter.from_environment(use_cloud=True).model_chain,
-                             ["gemini-3.5-flash-lite", "gemma4-fast"])
+                             ["gemini-3.5-flash-lite", "gemma4-12b-dm"])
 
     def test_the_cloud_reply_reaches_the_engine_through_the_old_contract(self):
         adapter, stub = self.adapter(FakeCloud(gemini=ok(gemini_reply())))
