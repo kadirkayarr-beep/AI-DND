@@ -136,6 +136,9 @@ _STOP = frozenset({
 RECOGNITION_VERBS = ("hatirl", "unut", "tani", "gord", "gorm", "goru")
 RECOGNISED_OF_YOURS = ("yuz", "ses", "goz", "ad", "isim", "ism")  # face, voice, eyes, name
 _YOURS = re.compile(r"^(?:%s)(?:l[ae]r)?[iu]n[iu]?$" % "|".join(RECOGNISED_OF_YOURS))  # "yüzünü", "gözlerini", "adın"
+# A named subset of `_STOP` (no new words): the "me / you" words a recorded event must hold to back a clause
+# with them (RR3-1).
+_PERSON = frozenset({"beni", "bana", "benim", "seni", "sana", "senin"}) & _STOP
 
 
 def fold(text: Any) -> str:
@@ -757,33 +760,38 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
     """A reply to a recognition question, less every clause that adds an event the person's words do not back.
 
     Spoken text and stage direction alike. A clause stands when its content words are all plain openers (yes,
-    of course…; `_NAME_OPENERS`, never the claim-acceptance table with its payment verbs), the player's own,
-    backed by this person's recorded words, or a recognition verb with nothing but the player's face, voice,
-    eyes or name beside it ("yüzünü unutmadım"; `RECOGNISED_OF_YOURS`). "Evet, o yüzüğü sana ben satmıştım."
+    of course…; `_NAME_OPENERS`, never the claim-acceptance table with its payment verbs), the player's own, or
+    a recognition verb with nothing but the player's face, voice, eyes or name beside it ("yüzünü unutmadım";
+    `RECOGNISED_OF_YOURS`); anything else is an event, and ONE recorded statement of theirs must hold every word
+    of it, the clause's "me / you" words included, word for word (a recorded "Kılıcı Ali'ye sattım" backs neither
+    "Kılıcı sana sattım" nor "sattın"; two sayings are not recombined). "Evet, o yüzüğü sana ben satmıştım."
     keeps "Evet." when no saying of theirs backs the sale; "Borcunu unutmadım." keeps nothing. Wrapping quotes
     go before the cut. The reply comes back unchanged when nothing is cut, and empty when nothing is left.
     """
-    said = [word for statement in view(world)["statements"].get(npc.get("id"), [])
-            for word in fold(statement.get("text", "")).split()]
+    statements = [set(fold(statement.get("text", "")).split())
+                  for statement in view(world)["statements"].get(npc.get("id"), [])]
     own = set(fold(player_text).split()) | {fold(npc.get("name", ""))}
+
+    def free(word: str) -> bool:
+        return word in _NAME_OPENERS or word in own or word.startswith(RECOGNITION_VERBS)
+
     parts = re.split(r"([,.;!?…]+)", reply.strip().strip("“”\"'‘’"))
-    kept, cut = [], False
+    pieces = []  # (clause, the mark after it, stands)
     for clause, mark in zip(parts[0::2], [*parts[1::2], ""]):
         folded = fold(clause)
         if not folded:
             continue  # blank, or a stray quote mark: not a clause
-        content = _objects(folded)
-        leftover = [word for word in content
-                    if word not in _NAME_OPENERS and word not in own and not word.startswith(RECOGNITION_VERBS)
-                    and not any(_stem_match(word, other) for other in said)]
-        recognised = any(word.startswith(RECOGNITION_VERBS) for word in content)
-        if leftover and not (recognised and all(_YOURS.match(w) for w in leftover)):
-            cut = True
-            continue
-        kept.append(clause.strip() + mark)
-    if not cut:
+        words = folded.split()
+        recognised = any(word.startswith(RECOGNITION_VERBS) for word in words)
+        content = [word for word in _objects(folded) if not free(word)]
+        event = [word for word in words if not free(word) and word not in _STOP and not (recognised and _YOURS.match(word))]
+        stands = (not content or (recognised and all(_YOURS.match(word) for word in content))
+                  or any(set(event) | ({word for word in words if word in _PERSON}) <= said for said in statements))
+        pieces.append((clause.strip(), mark, stands))
+    if all(stands for _, _, stands in pieces):
         return reply
-    text = " ".join(re.sub(r"[“”\"]", "", part) for part in kept).strip().rstrip(",;").strip()  # no half pairs
+    kept = [re.sub(r"[“”\"]", "", clause + mark) for clause, mark, stands in pieces if stands]  # no half pairs
+    text = " ".join(kept).strip().rstrip(",;").strip()
     if text and text[-1] not in ".!?…":
         text += "."
     return tr_case.upper_first(text) if text else ""

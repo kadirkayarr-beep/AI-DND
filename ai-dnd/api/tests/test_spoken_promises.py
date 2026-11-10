@@ -599,6 +599,17 @@ class Recognition(Table):
         self.assertIn("“Evet.”", reply["narration"])
         self.assertNotIn("““", reply["narration"])
 
+    async def test_their_recorded_words_do_not_back_a_recombined_event(self):
+        """Re-review RR3-1: a sale to Ali does not back a sale to you; 'verdi' does not back 'verdin'."""
+        for saying, answer, gone in (("Kılıcı Ali'ye sattım.", "Kılıcı sana sattım.", "sana sattım"),
+                                     ("Ali bana borç verdi.", "Bana borç verdin.", "verdin")):
+            for mode in (None, "say"):
+                with self.subTest(answer=answer, mode=mode):
+                    await self.job()
+                    self.greeted_only(saying)
+                    reply = await self.line(self.RECOGNISE, answer, mode=mode)
+                    self.assertNotIn(gone, reply["narration"])
+
 
 class RecognitionCut(unittest.TestCase):
     """only_what_recognition_backs alone, for someone who only ever greeted the player (re-review RR2-2, RR2-3)."""
@@ -633,6 +644,34 @@ class RecognitionCut(unittest.TestCase):
         self.assertEqual(self.cut('"Evet, sattım" dedi.'), "Evet.")
         self.assertEqual(self.cut("“Hatırlıyorum seni” dedi, “sana yüzük satmıştım”."), "Hatırlıyorum seni dedi.")
         self.assertEqual(self.cut("“Evet, hatırlıyorum seni.”"), "“Evet, hatırlıyorum seni.”")  # nothing cut: as is
+
+    def said(self, *sayings):
+        self.world = {}
+        for saying in sayings:
+            npc_statements.record(self.world, self.npc, "selam", saying, turn=0)
+
+    def test_one_recorded_statement_backs_an_event_with_its_own_people_and_words(self):
+        """Re-review RR3-1: no recombining across statements, no changed recipient, no 'verdi' for 'verdin'."""
+        self.said("Kılıcı Ali'ye sattım.")
+        self.assertEqual(self.cut("Kılıcı sana sattım."), "")
+        self.assertEqual(self.cut("Seni hatırlıyorum, kılıcı sana sattım."), "Seni hatırlıyorum.")
+        self.said("Ali bana borç verdi.")
+        self.assertEqual(self.cut("Bana borç verdin."), "")
+        self.assertEqual(self.cut("Sen bana borç verdin, hatırlıyorum."), "Hatırlıyorum.")
+        self.said("Kılıç satarım.", "Dün sana selam verdim.")
+        self.assertEqual(self.cut("Dün sana kılıç verdim."), "")
+        self.said("Bu yüzüğü sana geçen hafta otuz bakıra satmıştım.")
+        self.assertEqual(self.cut("Evet, o yüzüğü sana geçen ay otuz bakıra satmıştım."), "Evet.")
+
+    def test_a_recorded_event_said_again_still_stands(self):
+        self.said("Bu yüzüğü sana geçen hafta otuz bakıra satmıştım.")
+        self.assertEqual(self.cut("Evet, o yüzüğü sana ben satmıştım."), "Evet, o yüzüğü sana ben satmıştım.")
+        self.said("Ali bana borç verdi.")
+        self.assertEqual(self.cut("Ali bana borç verdi, hatırlıyorum."), "Ali bana borç verdi, hatırlıyorum.")
+        self.said("Kılıcı Ali'ye sattım.")
+        self.assertEqual(self.cut("Kılıcı Ali'ye sattım, sana yüzük sattım."), "Kılıcı Ali'ye sattım.")
+        self.said("Hoş geldin yolcu, ekmek taze.")
+        self.assertEqual(self.cut("Hoş geldin yolcu, ekmek taze dedim."), "Hoş geldin yolcu, ekmek taze dedim.")
 
 
 class CheckIsNotSpeech(Table):
