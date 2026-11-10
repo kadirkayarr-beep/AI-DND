@@ -359,3 +359,101 @@ class WalkTargetMustBeNamed(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["direct_response"].strip(), timed_gameplay.NO_ROUTE_LINE)
         self.assertNotIn("kapıdaki", result["direct_response"])
         self.assertEqual(self.location(), self.street)
+
+
+class WalkTargetFixRound1(WalkTargetMustBeNamed):
+    """Fix round 1 for Task 5 (seeds 4581..). Inherits the town set-up and helpers, not the tests."""
+
+    test_025_does_not_walk_to_an_unnamed_workshop = None
+    test_112_does_not_enter_the_inn_on_a_shared_word = None
+    test_named_walks_still_walk = None
+    test_generic_words_do_not_name_a_place = None
+    test_no_route_says_so_honestly = None
+
+    async def town(self):
+        with fixed_town(self, 4581):
+            await front_tests.FrontTable.begin(self)
+        self.street = self.world["location"]
+        self.inn = next(key for key, value in self.world["locations"].items()
+                        if isinstance(value, dict) and value.get("parent_location_id") == self.street
+                        and living_world.scene_kind(self.world, key) == "tavern")
+        door = next(item for item in self.world["doors"] if item.get("id") == f"venue-door:{self.inn}")
+        door.update(locked=False, open=False)
+        self.smithy = local_places.create_local_place(self.world, self.street, "smithy")["id"]
+        self.library = local_places.create_local_place(self.world, self.street, "library")["id"]
+
+    GATES = ("Kuzey Kapısı'na gidiyorum", "neverwinter kuzey kapısı'na gidiyorum", "kuzey kapısına gidiyorum",
+             "Doğu Kapısı'na gidiyorum", "KUZEY KAPISI'NA GİDİYORUM", "Zorak'ın kapısına gidiyorum",
+             "Neverwinter Kuzey Kapısı'na gidiyorum")
+
+    async def test_every_spelling_of_a_foreign_gate_stays_in_the_street(self):
+        await self.town()
+        for line in self.GATES:
+            with self.subTest(line=line):
+                await self.stand_in(self.street)
+                await self.turn(line, front={"kind": "go_to", "place_id": self.inn, "inside": True})
+                self.assertEqual(self.location(), self.street)
+
+    async def test_the_door_at_hand_still_binds(self):
+        await self.town()
+        await self.stand_in(self.inn)
+        for line in ("Evet. Tamam. Kapıya gidiyorum", "Tamam. Şimdi kapıya gidiyorum", "Ben kapıya gidiyorum",
+                     "kapıya gidiyorum"):
+            with self.subTest(line=line):
+                steps = grounded_action.plan(self.live(), line)["steps"]
+                self.assertTrue(steps and steps[-1]["target"] is not None, steps)
+        await self.stand_in(self.street)
+        for line in ("hanın kapısına gidiyorum", f"{self.name(self.inn)} Kapısı'na gidiyorum"):
+            with self.subTest(line=line):
+                steps = grounded_action.plan(self.live(), line)["steps"]
+                self.assertTrue(steps and steps[-1]["target"] is not None, steps)
+
+    def says(self, line, record):
+        return grounded_action._line_names_place(self.world, line, record)
+
+    async def test_english_kind_nouns_name_a_place(self):
+        await self.town()
+        record = self.world["locations"]
+        cases = [("I go to the inn", record[self.inn]), ("I walk into the pub", record[self.inn]),
+                 ("I visit the tavern", record[self.inn]), ("I go to the harbor", {"place_kind": "harbor"}),
+                 ("I go to the docks", {"place_kind": "harbor"}), ("I go to the smithy", record[self.smithy]),
+                 ("I go to the blacksmith", record[self.smithy]), ("I go to the market", {"place_kind": "market"}),
+                 ("I go to the library", record[self.library]), ("I go to the temple", {"place_kind": "temple"}),
+                 ("I go to the church", {"place_kind": "temple"}), ("I go to the stable", {"place_kind": "stable"}),
+                 ("I go to the shop", {"place_kind": "workshop"}), ("I go to the house", {"place_kind": "estate"})]
+        for line, rec in cases:
+            with self.subTest(line=line):
+                self.assertTrue(self.says(line, rec))
+        self.assertFalse(self.says("I go to the library", record[self.inn]))
+
+    async def test_turkish_forms_name_a_place(self):
+        await self.town()
+        cases = [("rahibe gidiyorum", {"place_kind": "temple"}), ("kiliseye gidiyorum", {"place_kind": "temple"}),
+                 ("hancı ile konuşmaya gidiyorum", {"place_kind": "tavern"}),
+                 ("atımı almaya gidiyorum", {"place_kind": "stable"}),
+                 ("efendinin yanına çıkıyorum", {"place_kind": "hall"}),
+                 ("tavernaya gidiyorum", {"place_kind": "tavern"}), ("meyhaneye gidiyorum", {"place_kind": "tavern"}),
+                 ("limana inelim", {"place_kind": "harbor"}), ("iskeleye gidiyorum", {"place_kind": "harbor"}),
+                 ("pazara gidiyorum", {"place_kind": "market"}), ("ahıra gidiyorum", {"place_kind": "stable"}),
+                 ("dükkana gidiyorum", {"place_kind": "workshop"}), ("Hanın sahibine gidiyorum", {"place_kind": "tavern"})]
+        for line, rec in cases:
+            with self.subTest(line=line):
+                self.assertTrue(self.says(line, rec))
+
+    async def test_a_shared_word_does_not_pick_the_wrong_place(self):
+        await self.town()
+        self.world["locations"][self.inn]["name"] = "Kanyon Sığınağı Hanı"
+        self.world["locations"][self.library]["name"] = "Kanyon Öyküsü Ciltevi"
+        for line in ("Kanyon Öyküsü Ciltevi'ne gidiyorum", "I walk to Kanyon Öyküsü Ciltevi"):
+            with self.subTest(line=line):
+                await self.stand_in(self.street)
+                await self.turn(line, front={"kind": "go_to", "place_id": self.inn, "inside": True})
+                self.assertNotEqual(self.location(), self.inn)
+        with self.subTest(line="tie"):
+            await self.stand_in(self.street)
+            await self.turn("Kanyon'a gidiyorum", front={"kind": "go_to", "place_id": self.inn, "inside": True})
+            self.assertEqual(self.location(), self.street)
+        with self.subTest(line="full name still walks"):
+            await self.stand_in(self.street)
+            await self.turn("Kanyon Sığınağı Hanı'na gidiyorum", front={"kind": "go_to", "place_id": self.inn, "inside": True})
+            self.assertEqual(self.location(), self.inn)

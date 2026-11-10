@@ -840,15 +840,26 @@ def _says_no_place(tokens: list[str], cands: list[dict[str, Any]], world: dict[s
     return not (_place_noun_in(tokens) or _detail_in(tokens) or bind(tokens, places, world=world, verb="go")["target"])
 
 
+_POSSESSIVE_DOOR = re.compile(r"^(?:kapisi|girisi|esigi)")
+_GENITIVE_PIECE = frozenset({"in", "un", "nin", "nun"})
+_NOT_A_NAME = frozenset({"bu", "su", "o", "bunun", "sunun", "onun", "evin", "binanin", "mekanin", "yerin", "odanin",
+                         "dukkanin", "evinin", "ev", "bina"})
+
+
 def _gate_of_another_name(player_input: str, target: dict[str, Any]) -> bool:
-    """"Neverwinter Kuzey Kapısı'na": a door word with a capitalised name before it, a name that is not this door's, is
-    another gate, not the door at hand. The first word of the line is capitalised for being first, so it says nothing."""
-    words = re.findall(r"\w+", str(player_input))
+    """"Kuzey Kapısı'na", "Özpil'in kapısına": a door word with a possessive ending (the gate OF something) after a
+    name that is not this door's is another gate, not the door at hand. Spelling and capitals say nothing; a bare
+    "kapıya" and the words of other sentences ("Tamam. Şimdi kapıya") are not names."""
     mine = [w for name in target.get("names", []) for w in name.split()]
-    for index, word in enumerate(words):
-        before = words[index - 1] if index >= 2 else ""
-        if fold(word).startswith(_DOOR_NOUNS) and before[:1].isupper():
-            if not any(fold(before).startswith(w) or w.startswith(fold(before)) for w in mine if w):
+    for sentence in re.split(r"[.!?;]+", str(player_input)):
+        tokens = fold(sentence).split()
+        for index, token in enumerate(tokens):
+            if not _POSSESSIVE_DOOR.match(token) or index == 0:
+                continue
+            name = tokens[index - 2] if tokens[index - 1] in _GENITIVE_PIECE and index >= 2 else tokens[index - 1]
+            if name in _NOT_A_NAME or name in _BARE_GO_WORDS:
+                continue
+            if not any(name.startswith(w) or w.startswith(name) for w in mine if w):
                 return True
     return False
 
@@ -3162,6 +3173,69 @@ def _trail_places(world: dict[str, Any]) -> set[str]:
     return found
 
 
+_KIND_WORDS: dict[str, tuple[str, ...]] = {
+    "tavern": ("inn", "pub", "tavern", "bar", "hanci", "meyhaneci", "birahane"),
+    "harbor": ("harbor", "harbour", "dock", "port", "pier", "wharf"),
+    "smithy": ("smithy", "blacksmith", "forge", "nalbant", "demirci"),
+    "market": ("market", "bazaar", "bazar", "pazarci"),
+    "library": ("library", "kitapl"),
+    "temple": ("temple", "church", "shrine", "chapel", "kilise", "rahip", "rahib", "papaz", "tapinak", "tapinag"),
+    "stable": ("stable",),
+    "workshop": ("workshop", "shop", "carpenter"),
+    "bakery": ("bakery", "baker", "shop"),
+    "estate": ("manor", "estate", "house", "mansion", "efendi"),
+    "hall": ("hall", "efendi"),
+    "barracks": ("barracks", "guardhouse"),
+    "archive": ("archive", "archives"),
+}
+_STABLE_AT = re.compile(r"^at(?:i|a|im|imi|ima|lar|larim|larimi|in|ini)?$")
+
+
+def _place_kind_of(world: dict[str, Any], record: dict[str, Any]) -> Any:
+    kind = record.get("place_kind") or record.get("scene_kind")
+    if not kind and isinstance(record.get("id"), str):
+        kind = living_world.scene_kind(world, record["id"])
+    return kind
+
+
+def _generic_words() -> set[str]:
+    import local_places
+    generic = set(_DOOR_NOUNS)
+    for spec in local_places.PLACE_KINDS.values():
+        generic.update(fold(spec.get("noun", "")).split())
+    generic.update(noun for noun, _ in npc_statements.PLACE_NOUNS)
+    for words in _KIND_WORDS.values():
+        generic.update(words)
+    return generic
+
+
+def _label_hits(label: Any, tokens: list[str], generic: set[str]) -> int:
+    """How many words (4 letters or more, no kind or door word) of the label the line says, endings after them fine."""
+    words = {w for w in fold(label).split() if len(w) >= 4 and not any(
+        w == g or (w.startswith(g) and npc_statements._CASE_TAIL.match(w[len(g):])) for g in generic)}
+    return sum(1 for word in words if any(token.startswith(word) for token in tokens))
+
+
+def _name_hits(record: dict[str, Any], tokens: list[str]) -> int:
+    generic = _generic_words()
+    return max(_label_hits(record.get("name"), tokens, generic), _label_hits(record.get("resident_name"), tokens, generic))
+
+
+def _kind_said(world: dict[str, Any], record: dict[str, Any], tokens: list[str]) -> bool:
+    import local_places
+    kind = _place_kind_of(world, record)
+    nouns = {fold(local_places.PLACE_KINDS.get(kind, {}).get("noun", ""))}
+    nouns.update(noun for noun, noun_kind in npc_statements.PLACE_NOUNS if noun_kind == kind)
+    nouns.update(npc_statements.KIND_NOUNS.get(kind, ()))
+    if any(_noun_hit(noun, tokens) for noun in nouns if noun):
+        return True
+    for word in _KIND_WORDS.get(kind, ()):
+        if any(t == word or t == word + "s" or (len(word) >= 5 and t.startswith(word) and len(t) - len(word) <= 5)
+               for t in tokens):
+            return True
+    return kind == "stable" and any(_STABLE_AT.match(t) for t in tokens)
+
+
 def _line_names_place(world: dict[str, Any], player_input: str, record: dict[str, Any]) -> bool:
     """Whether the line itself says the place: a word of its name, the word for its kind, or someone who is there.
 
@@ -3170,21 +3244,13 @@ def _line_names_place(world: dict[str, Any], player_input: str, record: dict[str
     tokens = fold(player_input).split()
     if not tokens or not isinstance(record, dict):
         return False
-    kind = record.get("place_kind") or record.get("scene_kind")
-    if not kind and isinstance(record.get("id"), str):
-        kind = living_world.scene_kind(world, record["id"])
-    generic = set(_DOOR_NOUNS)
-    for spec in local_places.PLACE_KINDS.values():
-        generic.update(fold(spec.get("noun", "")).split())
-    for noun, _ in npc_statements.PLACE_NOUNS:
-        generic.add(noun)
+    generic = _generic_words()
+    kind = _place_kind_of(world, record)
 
     def named_by(label: Any) -> bool:
-        words = [w for w in fold(label).split() if len(w) >= 4 and not any(
-            w == g or (w.startswith(g) and npc_statements._CASE_TAIL.match(w[len(g):])) for g in generic)]
-        return any(token.startswith(word) for word in words for token in tokens)
+        return _label_hits(label, tokens, generic) > 0
 
-    if named_by(record.get("name")) or named_by(record.get("resident_name")):
+    if _name_hits(record, tokens) or _kind_said(world, record, tokens):
         return True
     if named_by(local_places.PLACE_KINDS.get(kind, {}).get("role")):
         return True  # the one who is there is not met yet, but the kind of place has its person
@@ -3192,11 +3258,6 @@ def _line_names_place(world: dict[str, Any], player_input: str, record: dict[str
         return True
     if record.get("inner_of") and local_places.goes_further_in(world, record["inner_of"], player_input):
         return True  # "içeri" at a house is the room behind its door
-    nouns = {fold(local_places.PLACE_KINDS.get(kind, {}).get("noun", ""))}
-    nouns.update(noun for noun, noun_kind in npc_statements.PLACE_NOUNS if noun_kind == kind)
-    nouns.update(npc_statements.KIND_NOUNS.get(kind, ()))
-    if any(_noun_hit(noun, tokens) for noun in nouns if noun):
-        return True
     place_id = record.get("id")
     if place_id and any(t in _THERE for t in tokens) and place_id in _trail_places(world):
         return True  # "ilk izin peşinden oraya gidiyorum": the trail the player holds points there
@@ -3206,6 +3267,21 @@ def _line_names_place(world: dict[str, Any], player_input: str, record: dict[str
             named_by(living_world.public_npc_name(npc))
             or (living_world.npc_role_known_to_player(npc) and named_by(npc.get("role"))))
         for npc in npcs)
+
+
+def _a_better_named_place(session, player_input: str, target: dict[str, Any]) -> bool:
+    """Another place of the town takes more of the line's name words than the one picked (or as many, with no kind
+    word to tell them apart): the picked one shares a word, it is not the place the player named."""
+    world = session.world_state
+    tokens = fold(player_input).split()
+    mine = _name_hits(target["record"], tokens)
+    for other in candidates(session):
+        if other["kind"] != "place" or other["id"] == target["id"]:
+            continue
+        theirs = _name_hits(other["record"], tokens)
+        if theirs > mine or (theirs and theirs == mine and not _kind_said(world, target["record"], tokens)):
+            return True
+    return False
 
 
 def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool, *, whole_line: bool = False):
@@ -3236,6 +3312,8 @@ def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool,
     if (target["kind"] in {"place", "reference"} and here.get("exit_location_id") != target["id"]
             and not _line_names_place(session.world_state, player_input, target["record"])):
         return defer  # the reading picked a listed place the line never names ("hana giriyorum" went to a workshop)
+    if target["kind"] == "place" and _a_better_named_place(session, player_input, target):
+        return defer  # "Kanyon Öyküsü Ciltevi'ne": a word shared with the inn is not the library's name
     verb = "enter" if inside and target["kind"] != "outside" else "go"
     tokens = fold(player_input).split()
     if (verb == "go" and not steps and target["kind"] != "outside"
