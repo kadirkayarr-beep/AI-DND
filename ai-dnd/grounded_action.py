@@ -154,6 +154,14 @@ def _verb_of(token: str, following: str = "") -> tuple[str, bool, bool] | None:
     return None
 
 
+def _goes_on_to(tokens: list[str], index: Any) -> bool:
+    """The word after an infinitive is a walk that is not denied: "konuşmaya gidiyorum" (going, to talk)."""
+    if type(index) is not int or index + 1 >= len(tokens):
+        return False
+    helper = _verb_of(tokens[index + 1], tokens[index + 2] if index + 2 < len(tokens) else "")
+    return helper is not None and helper[0] == "go" and not helper[1]
+
+
 # ---------------------------------------------------------------------------
 # Clauses
 # ---------------------------------------------------------------------------
@@ -888,8 +896,16 @@ def plan(session, player_input: str) -> dict[str, Any]:
         binding = bind(goal_tokens, binding_candidates, world=world, verb=verb_for_bind)
         condition_binding = _condition_target_binding(pending_condition, cands, world)
         effective_verb = "search" if purpose and purpose["verb"] == "search" else verb
+        # "Javrek ile konuşmaya gidiyorum": the talk is what the walk is for; the one named is bound to their own place,
+        # not here, so the act of this line is the walk there (the talk comes once they are met).
+        to_talk = (verb == "talk" and info["attempt"] and _goes_on_to(tokens, info["verb_index"])
+                   and (binding["target"] or {}).get("kind") == "place"
+                   and binding["target"]["id"] != world.get("location"))
+        if to_talk:
+            effective_verb = "go"
         step = {
             "verb": effective_verb,
+            "to_talk": to_talk,
             "method": verb if purpose else None,
             "negated": info["negated"],
             "attempt": info["attempt"],
@@ -3015,6 +3031,25 @@ def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
                               "state_changes": changes, "direct_response": text}}
 
 
+def walks_out(session, player_input: Any) -> str | None:
+    """Where a line that walks out of here first goes ("dışarı çıkıp etrafa bakıyorum"), by Python's own reading; None
+    when it does not walk out (asked, denied, put off, up onto something) or there is no outside to walk to."""
+    world = session.world_state
+    p = plan(session, player_input)
+    steps = [s for s in p["steps"] if not s.get("reported") and not s.get("not_now")]
+    going_out = next((s for s in steps if s["verb"] == "leave" and "?" not in str(player_input) and not s["negated"]
+                      and not s.get("condition") and not _climbs_somewhere(s)), None)
+    return exits.outside(world, world.get("location")) if going_out is not None else None
+
+
+def walk_to_talk(session, player_input: Any) -> str | None:
+    """The place a line goes to in order to talk to someone there ("Javrek ile konuşmaya gidiyorum"), or None."""
+    p = plan(session, player_input)
+    step = next((s for s in p["steps"] if s.get("to_talk") and not s.get("reported") and not s.get("not_now")
+                 and not (s.get("negated") or s.get("question") or s.get("condition"))), None)
+    return step["target"]["id"] if step is not None else None
+
+
 def _no_step_is_taken(session, player_input: Any) -> bool:
     """Only asked, denied or put off: a clause that really goes, anywhere in the line, is a walk."""
     p = plan(session, player_input)
@@ -3076,7 +3111,8 @@ def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool,
     if not whole_line and (p["speech"] or any(s.get("question") for s in p["steps"]) or (p["steps"] and not steps)
                            or _SAID_AT_THE_END.search(fold(player_input))):
         return defer  # "hana nasıl giderim?": whatever the model read, Python's own reading says this is no walk
-    if steps and all(s.get("negated") or s.get("condition") for s in steps):
+    import timed_gameplay
+    if (steps and all(s.get("negated") or s.get("condition") for s in steps)) or timed_gameplay.says_no(player_input):
         return defer  # "hana gitmiyorum": the words themselves say this is no walk
     if not whole_line and (len(steps) > 1 or spoken_request(player_input)):
         return defer  # "hana gidip bira istiyorum": the chain that keeps the rest of the line takes it
@@ -3084,7 +3120,12 @@ def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool,
                   None)
     if target is None or (target["record"].get("inner_of") and any(s.get("outside") or (s.get("target") or {}).get("kind") == "outside" for s in steps)):
         return defer  # 'sokağa çıkıyorum' at a house: a small model can take the first room on the list for it
-    step = {"verb": "enter" if inside and target["kind"] != "outside" else "go", "target": target, "negated": False}
+    verb = "enter" if inside and target["kind"] != "outside" else "go"
+    if verb == "go" and not steps and target["kind"] != "outside":
+        # "hanın kapısının dışında duruyorum": no walk in the words and the reading did not say in, so the player comes
+        # up to it and stays outside; going in is said (inside=true, or a verb Python reads), never assumed.
+        verb = "approach"
+    step = {"verb": verb, "target": target, "negated": False}
     run = _Run(session, player_input)
     run.model_calls = 1  # the front reading chose this walk
     return "execute", (run, [step], {"steps": [step]})

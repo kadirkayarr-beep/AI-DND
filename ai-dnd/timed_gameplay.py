@@ -807,6 +807,13 @@ def input_route_markers(world, normalized):
 _NO_REST_ONLY = ("dinlenmeden", "uyumadan", "dinlenmeksizin", "uyumaksizin")
 _SAID_NO = re.compile(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir"
                       rf"|(?:{'|'.join(_NO_REST_ONLY)})(?!\s+once\b))\b")
+
+
+def says_no(text):
+    """The line says no to what it is about ("hana gitmiyorum"); a no to the rest alone is not a no to the line."""
+    return any(word not in _NO_REST_ONLY for word in _SAID_NO.findall(clock.normalize(text)))
+
+
 _UNNAMED_WAIT = 600  # "bekliyorum" with no length: a short while, not a form to fill in
 
 
@@ -844,11 +851,23 @@ def names_a_stretch(world, text):
         return False
 
 
+def _named_hour_already(session, normalized):
+    """'akşama kadar' when it already is evening: nothing to wait for, and the line says so (no day goes by).
+    Sleep keeps its own owner."""
+    if ("uyu" in normalized or _SLEEPING.search(normalized)
+            or not clock.named_hour_now(session.world_state, normalized)):
+        return None
+    return _result("wait", "Söylediğin vakit zaten geldi; beklemene gerek yok.")
+
+
 def pass_time(session, text):
     """The reading says the player is letting time go by: the clock moves by what they said, or a while."""
     normalized = clock.normalize(text)
     if "?" in str(text) or _SLEEPING.search(normalized):
         return None  # a question moves nothing, and sleep has its own owner
+    already = _named_hour_already(session, normalized)
+    if already is not None:
+        return already
     try:
         duration = clock.until_named_hour(session.world_state, normalized) or clock.requested_duration(text) or _A_WHILE
     except ValueError:
@@ -907,7 +926,7 @@ def resolve_input(session, text):
             return decision
     if "kararim:" in normalized:
         normalized = normalized.split("kararim:", 1)[1]
-    if any(word not in _NO_REST_ONLY for word in _SAID_NO.findall(normalized)):
+    if says_no(normalized):
         return None
     journey = world.get("journey")
     movement, wait, task, passive_observation = input_route_markers(world, normalized)
@@ -944,6 +963,9 @@ def resolve_input(session, text):
         return None
     duration = clock.requested_duration(text)
     if wait or passive_observation:
+        already = _named_hour_already(session, normalized)
+        if already is not None:
+            return already
         duration = clock.until_named_hour(world, normalized) or duration
         if duration is None and _SLEEPING.search(normalized):
             duration = 8 * 3600  # Lying down anywhere is sleeping; where is the player's business.

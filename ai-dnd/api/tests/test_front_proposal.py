@@ -179,6 +179,25 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.world["location"], here)
         self.assertEqual(self.world.get("grounded_action"), near_before)
 
+    async def test_a_line_that_says_no_to_the_walk_does_not_walk_through_an_open_door(self):
+        """The same 'no' with nothing in the way: no locked door may be what keeps the player where they are."""
+        with fixed_town(self, 2701):
+            await self.begin()
+        here, inn = self.world["location"], self.the_inn()
+        for door in self.world.get("doors", []):
+            door.update(locked=False, open=True)
+        near_before = self.world.get("grounded_action")
+        clock_before = copy.deepcopy(self.world.get("campaign_time"))
+        self.client.front = {"kind": "go_to", "place_id": inn}
+        for line in ("hana gitmiyorum", "Hana gitmiyorum."):
+            reply = await self.line(line)
+            self.assertEqual(self.world["location"], here, (line, reply["narration"], self.routes()[-1]))
+            self.assertEqual(self.world.get("grounded_action"), near_before)
+            self.assertEqual(self.world.get("campaign_time"), clock_before)
+        self.client.front = {"kind": "unclear"}
+        reply = await self.line("hana gitmiyorum")
+        self.assertEqual(self.world["location"], here, (reply["narration"], self.routes()[-1]))
+
     async def test_a_look_goes_to_the_owner_of_looking(self):
         await self.begin()
         self.client.front = {"kind": "look"}

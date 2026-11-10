@@ -199,3 +199,17 @@ def mentions_named_hour(normalized):
 def until_named_hour(world, normalized):
     """Seconds to the part of the day the player named, if they named one."""
     return next((_until_hour(world, hour) for words, hour in _NAMED_HOURS if words in normalized), None)
+
+
+def named_hour_now(world, normalized):
+    """It already is the part of the day the player named ("akşama kadar" at 18:30): it runs from its hour to the next
+    named one (evening 18-21, night 21-7). Waiting for it is no wait, not a whole day. "Sabaha kadar" keeps its own
+    meaning (until_morning: the next morning, the night let go by)."""
+    hour = next((hour for words, hour in _NAMED_HOURS if words in normalized), None)
+    time = public_time(world)
+    if hour is None or hour == 7 or time is None:
+        return False
+    starts = sorted({start for _, start in _NAMED_HOURS})
+    end = next((start for start in starts if start > hour), starts[0])
+    now = time["hour"]
+    return hour <= now < end if hour < end else (now >= hour or now < end)

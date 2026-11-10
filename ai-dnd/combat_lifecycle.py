@@ -236,15 +236,24 @@ def flee(session, action_id=None, session_id=None):
         character.get("proficiency_bonus") or 2, expertise_skills=character.get("expertise_skills") or (),
     )
     if check["result"] == "BAŞARILI":
+        # The way out takes what walking it takes (a long road is no step through a door): the same as a walk out.
+        left = (world.get("locations") or {}).get(world.get("location")) or {}
+        road_seconds = int(left.get("walk_seconds") or 0)
         if not session.commit_location_change(way_out):
             return _flight_cut_off(session, action_id, session_id, "exit_blocked",
                                    "Boşluğu buluyorsun ama çıkış yolun kapalı; kavga sürüyor.")
         session.end_combat("player_fled")  # commit already closed it on leaving; this keeps the fight's own reason
         world["combat"]["end_reason"] = "player_fled"
         narration = "Bir boşluk yakalayıp sıyrılıyorsun; ardından gelen bağırışlar geride kalıyor."
+        changes = ["combat", "location"]
+        if road_seconds > 0 and "campaign_time" in world:
+            passed = session.advance_campaign_time(road_seconds, "exploration") or {}
+            changes.append("campaign_time")
+            known = " ".join(event["summary"] for event in passed.get("player_known_events") or [])
+            narration = f"{narration} {known}".strip()
         return {"messages": session.messages, "narration": narration, "model_calls": 0,
                 "action_result": {"action": "flee", "status": "resolved", "success": True,
-                                  "state_changes": ["combat", "location"], "direct_response": narration}}
+                                  "state_changes": changes, "direct_response": narration}}
     result = action_economy.execute(session, {"steps": [{"kind": "end_turn"}]}, action_id, session_id)
     result["narration"] = f"Kaçacak bir açık bulamıyorsun; yolun kesiliyor. {result.get('narration', '')}".strip()
     return result

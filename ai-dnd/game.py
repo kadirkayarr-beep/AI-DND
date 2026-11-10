@@ -18955,6 +18955,15 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             session._named_word = word
             if route is not None and route["kind"] == "speak_to":
                 route = {"kind": "talk_around"}  # the repair gave the line to whoever was at hand; the reading named another
+    import grounded_action
+    if route is None or route["kind"] in {"speak_to", "talk_around", "unclear", "attempt"}:
+        to_talk = grounded_action.walk_to_talk(session, player_input)
+        if to_talk is not None:  # "Javrek ile konuşmaya gidiyorum": the one named is at their place, not here
+            route = {"kind": "go_to", "id": to_talk, "inside": True}
+    if route is not None and route["kind"] in {"look", "sit"}:
+        out = grounded_action.walks_out(session, player_input)
+        if out is not None:  # "dışarı çıkıp etrafa bakıyorum": the walk out is done, not only told
+            route = {"kind": "go_to", "id": out, "inside": False}
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
         return None
