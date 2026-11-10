@@ -18535,6 +18535,10 @@ def _run_player_turn_keyed(
     return result
 
 
+# Front readings that are the player's own doing, with no one spoken to: a second part after one is read on its own.
+_OWN_ACTS = frozenset({"consume", "wield", "sit", "bag", "look", "wait"})
+
+
 def _the_rest_of_the_line(result, messages, action_id, session_id, place_before):
     """"Bira ver, soylu arayan var mı": the owner did the first part, so the person gets the second, as a paid word does."""
     session = _session()
@@ -18548,23 +18552,34 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             or not ollama_adapter.model_calls_left()):
         return result
     read = getattr(session, "_front_read", None) or {}
-    here = _conversation_npcs()
-    hearer = next((npc for npc in here if npc.get("id") == read.get("id")), None) or _active_interlocutor() or (
-        here[0] if len(here) == 1 else None)
-    if not isinstance(hearer, dict):
-        return result
+    own_act = read.get("kind") in _OWN_ACTS
+    hearer = None
+    if not own_act:
+        here = _conversation_npcs()
+        hearer = next((npc for npc in here if npc.get("id") == read.get("id")), None) or _active_interlocutor() or (
+            here[0] if len(here) == 1 else None)
+        if not isinstance(hearer, dict):
+            return result
     session._front_rest = ""
-    session._thread_gate_done = True
     flags = session.world_state.setdefault("flags", {})
     turn = flags.get("turn_index", 0)
-    try:
-        said = _dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
-    finally:
-        session._thread_gate_done = False
+    if own_act:
+        # "Yemeği yiyorum ve şarabı içiyorum": the first part was the player's own doing, so the second is no word to
+        # whoever stands there; it is read as a line of its own (the turn's second call) and done by its own owner.
+        session._front_reply = session._front_read = None
+        session._front_ahead = False
+        said = _dispatch_player_turn(rest, messages, None, None, action_id, session_id, None, None)
+        session._front_rest = ""  # the second part has no second part of its own
+    else:
+        session._thread_gate_done = True
+        try:
+            said = _dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
+        finally:
+            session._thread_gate_done = False
     if flags.get("turn_index", 0) > turn:
         flags["turn_index"] = turn  # one line is one turn: the second part stands under the first part's index
     line = said.get("narration") or ""
-    if _is_stock(line):
+    if hearer is not None and _is_stock(line):
         line = _person_fallback(session.world_state, hearer, rest)
     result["narration"] = f"{result.get('narration') or ''} {line}".strip()
     # Both parts are one turn: what each proved is handed on together, under that one turn's index.
