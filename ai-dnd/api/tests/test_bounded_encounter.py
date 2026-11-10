@@ -137,7 +137,7 @@ class ProductionOwnerIntegrationTests(NativeBase):
 
     def test_route_updates_position_and_existing_action_budget(self):
         result = self.walk_to_contact()
-        self.assertIn("5 feet", result["narration"])
+        self.assertIn("5 fit", result["narration"])
         self.assertIn("koşarak yer değiştirir", result["narration"])
         self.assertNotIn("Python", result["narration"])
         state = self.session.world_state["bounded_encounter"]

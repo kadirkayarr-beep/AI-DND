@@ -58,7 +58,7 @@ class RageHttpTests(unittest.IsolatedAsyncioTestCase):
         flags=copy.deepcopy(r.game_session.world_state.get('flags'))
         self.assertEqual(flags.pop('turn_index'),old.pop('turn_index')+1)
         self.assertEqual(flags,old)
-        self.assertEqual(response.json()['narration'], 'Bonus Action ile Rage başlatırsın; kalan kullanım: 1.')
+        self.assertEqual(response.json()['narration'], 'Bonus eylem ile Öfke başlatırsın; kalan kullanım: 1.')
         before=self.snapshot(r)
         with patch('barbarian_rage.activate',side_effect=AssertionError('replay activation')), patch('action_economy.resolved_narration',side_effect=AssertionError('receipt narration regenerated')):
             replay=await self.post(a,command)
@@ -196,7 +196,7 @@ class RageHttpTests(unittest.IsolatedAsyncioTestCase):
         rage=response.json()['state']['character']['rage']
         self.assertEqual((rage['remaining_seconds'],rage['uses_remaining']),(12,1))
         self.assertFalse(rage['extend']['available'])
-        self.assertEqual(response.json()['narration'], 'Bonus Action ile Rage süreni uzatırsın; ek kullanım harcanmaz.')
+        self.assertEqual(response.json()['narration'], 'Bonus eylem ile Öfke süreni uzatırsın; ek kullanım harcanmaz.')
         before=self.snapshot(r)
         with patch('barbarian_rage.extend',side_effect=AssertionError('replay extension')), patch('action_economy.resolved_narration',side_effect=AssertionError('receipt narration regenerated')):
             replay=await self.post(a,command)

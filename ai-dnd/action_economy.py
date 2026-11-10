@@ -1061,9 +1061,9 @@ def resolved_narration(session, results):
                 and type(result.get("uses_remaining")) is int
                 and 0 <= result["uses_remaining"] <= 2):
                 narration_parts.append(
-                    f"Bonus Action ile Rage başlatırsın; kalan kullanım: {result['uses_remaining']}."
+                    f"Bonus eylem ile Öfke başlatırsın; kalan kullanım: {result['uses_remaining']}."
                     if step["kind"] == "activate_rage"
-                    else "Bonus Action ile Rage süreni uzatırsın; ek kullanım harcanmaz."
+                    else "Bonus eylem ile Öfke süreni uzatırsın; ek kullanım harcanmaz."
                 )
         elif step["kind"] == "second_wind":
             result = step["result"]
@@ -1074,10 +1074,10 @@ def resolved_narration(session, results):
         elif step["kind"] == "lay_on_hands":
             result = step["result"]
             poison = " ve Poisoned durumunu kaldırırsın" if result["poisoned_removed"] else ""
-            narration_parts.append(f"Bonus Action ile Lay On Hands kullanırsın: {result['healing']} can puanı kazanırsın{poison}; havuzda {result['pool_remaining']} kaldı.")
+            narration_parts.append(f"Bonus eylem ile Şifa Eli kullanırsın: {result['healing']} can puanı kazanırsın{poison}; havuzda {result['pool_remaining']} kaldı.")
         elif step["kind"] == "divine_smite":
             result = step["result"]
-            narration_parts.append(f"Bonus Action ile Divine Smite: hedef {result['damage']} Radiant hasar alır.")
+            narration_parts.append(f"Bonus eylem ile İlahi Darbe: hedef {result['damage']} Radiant hasar alır.")
         elif step["kind"] == "divine_sense":
             narration_parts.append(f"Bonus Action ile Divine Sense açarsın; kalan Channel Divinity: {step['result']['uses_remaining']}.")
         elif step["kind"] == "cunning_action":

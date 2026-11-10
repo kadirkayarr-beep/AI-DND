@@ -250,8 +250,8 @@ class RageTests(unittest.TestCase):
     def test_rage_narration_reads_completed_result_only(self):
         # No live session is available: summaries must not resolve or consult mechanics.
         for kind,expected in (
-            ('activate_rage','Bonus Action ile Rage başlatırsın; kalan kullanım: 1.'),
-            ('extend_rage','Bonus Action ile Rage süreni uzatırsın; ek kullanım harcanmaz.'),
+            ('activate_rage','Bonus eylem ile Öfke başlatırsın; kalan kullanım: 1.'),
+            ('extend_rage','Bonus eylem ile Öfke süreni uzatırsın; ek kullanım harcanmaz.'),
         ):
             result={'active':True,'uses_remaining':1,'remaining_seconds':12}
             before=copy.deepcopy(result)

@@ -293,7 +293,7 @@ def narration(result: dict[str, Any]) -> str:
         return text
     name = strike["option"].capitalize()
     if strike["option"] == "withdraw":
-        return f"{text} Cunning Strike ({name}): {strike['moved_ft']} feet uzaklaşırsın."
+        return f"{text} Cunning Strike ({name}): {strike['moved_ft']} fit uzaklaşırsın."
     condition = {"trip": "Prone", "poison": "Poisoned"}[strike["option"]]
     if strike["applied"]:
         return f"{text} Cunning Strike ({name}): hedef {condition} olur (DC {strike['dc']})."

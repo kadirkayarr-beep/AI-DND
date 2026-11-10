@@ -210,7 +210,7 @@ def visible_dash_narration(session, enemy):
     if not actor_id or actor_id != visible.get("npc_id") or type(distance) is not int:
         return ""
     npc = next((npc for npc in session.world_state["npcs"] if npc.get("id") == actor_id), None)
-    return f" {living_world.public_npc_name(npc)} koşarak yer değiştirir; artık senden {distance} feet uzakta."
+    return f" {living_world.public_npc_name(npc)} koşarak yer değiştirir; artık senden {distance} fit uzakta."
 
 
 def _reply(session, message, narration, action, **details):
@@ -273,7 +273,7 @@ def resolve_command(session, message, *, player_message=None):
         session.world_state["scene_state"]["player_position"]["bounded_node_id"] = "courtyard_entry"
         refresh(session)
         return _reply(session, message,
-                      f"Açık avlunun öte yanında, senden 60 feet uzakta {living_world.public_npc_name(npc)} sopa taşıyor.",
+                      f"Açık avlunun öte yanında, senden 60 fit uzakta {living_world.public_npc_name(npc)} sopa taşıyor.",
                       "scenario_enter", npc_id=npc["id"], scenario_id=SCENARIO_ID)
     if not state or state["location_id"] != session.world_state.get("location"):
         raise CombatRequestError("scenario_unavailable", "Enter the bounded courtyard first.", 400)

@@ -111,7 +111,7 @@ class CourtyardNarrationTests(NativeBase):
     def test_entry_keeps_distance_without_command_and_replays_original_receipt(self):
         import bounded_encounter as owner
         body, result=self.call(owner.ENTER)
-        self.assertIn('60 feet', result['narration'])
+        self.assertIn('60 fit', result['narration'])
         public = result['state']
         encounter = public['bounded_encounter']
         self.assertEqual(encounter['scenario_id'], owner.SCENARIO_ID)
