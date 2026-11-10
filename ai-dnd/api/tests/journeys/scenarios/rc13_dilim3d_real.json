@@ -1,0 +1,203 @@
+{
+  "id": "rc13_dilim3d_real",
+  "title": "Gerçek zincir, Dilim 3D'nin ikizi (39 ve 40 ile aynı satırlar, gerçek modelde, betiksiz): kuzey kapısı hana götürmez, 'hana yürü, sonra oda iste' tek satırda, İngilizce saat ve para, ikinci uzun dinlenme çok yakın, tapınaktan hana, kese; çalışma zamanı denetimleri: Türkçe yemek, duyulan işin izi, pazarda Mazduşa'dan elma fiyatı. Beklenti yalnız durum (ve #166'nın tek satırı); sahte modelde koşulmaz",
+  "source_items": [],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Nuri",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "C",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "front_proposal": true,
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Osman",
+        "role": "Barmen",
+        "current_hp": 10,
+        "location": "$yer:tavern",
+        "place_role_of": "$yer:tavern"
+      },
+      {
+        "id": "priest",
+        "name": "Teron",
+        "role": "Rahip",
+        "current_hp": 10,
+        "status": "active",
+        "location": "$yer:temple",
+        "place_role_of": "$yer:temple"
+      },
+      {
+        "id": "vendor",
+        "name": "Mazduşa",
+        "role": "Satıcı",
+        "current_hp": 10,
+        "location": "$yer:market",
+        "place_role_of": "$yer:market"
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "inventory": [
+      "Macera Çantası",
+      "Ekmek",
+      "Ekmek"
+    ],
+    "seed": 41,
+    "campaign_seed": 41,
+    "start_hour": 12
+  },
+  "steps": [
+    {
+      "say": "Neverwinter Kuzey Kapısı'na gidiyorum.",
+      "real_chain": true,
+      "expect": {
+        "konum": "fr:city:neverwinter"
+      }
+    },
+    {
+      "say": "I leave the guard behind and walk to Yolcu Turna Hanı, then ask the innkeeper for a room for one night.",
+      "real_chain": true,
+      "expect": {
+        "konum": "$yer:tavern",
+        "kese": 100
+      }
+    },
+    {
+      "say": "I sleep for eight hours and take a long rest here in the inn.",
+      "real_chain": true,
+      "expect": {
+        "saat": 8
+      }
+    },
+    {
+      "say": "I wait one full hour here, from 04:00 to 05:00, calmly observing the street without doing anything else.",
+      "real_chain": true,
+      "expect": {
+        "saat": 9
+      }
+    },
+    {
+      "say": "Hanın salonunda güvenli bir köşede 16 saat geçiriyorum; gecenin geri kalanında uyuyor, sabah kitaplarımla ilgileniyorum. 16 saat zaman ilerlesin.",
+      "real_chain": true,
+      "expect": {
+        "saat": 25
+      }
+    },
+    {
+      "say": "sekiz saat uyuyarak uzun dinlenme yapıyorum.",
+      "real_chain": true,
+      "expect": {
+        "gerekli_metin": [
+          "Daha yeni dinlenmiştin"
+        ]
+      }
+    },
+    {
+      "say": "tapınağa gidiyorum",
+      "real_chain": true,
+      "expect": {
+        "konum": "$yer:temple"
+      }
+    },
+    {
+      "say": "I thank the priest and leave for Yolcu Turna Hanı, where I paid for a room the previous night.",
+      "real_chain": true,
+      "expect": {
+        "konum": "$yer:tavern"
+      }
+    },
+    {
+      "say": "I volunteer to lift a heavy crate from the floor onto the stall, carefully testing my Strength (Athletics) check.",
+      "real_chain": true
+    },
+    {
+      "say": "Barmene beş gümüş veriyorum",
+      "real_chain": true,
+      "expect": {
+        "kese": 50
+      }
+    },
+    {
+      "say": "Masaya oturup aldığım yemeği yiyorum.",
+      "real_chain": true,
+      "expect": {
+        "envanter": {
+          "Macera Çantası": 1,
+          "Ekmek": 1
+        }
+      }
+    },
+    {
+      "say": "Barmene iş var mı diye soruyorum.",
+      "real_chain": true,
+      "expect": {
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "duyulan"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "say": "Pazara gidip Mazduşa'ya elmanın fiyatını soruyorum.",
+      "real_chain": true,
+      "expect": {
+        "tezgah": {
+          "key": "elma"
+        }
+      }
+    }
+  ]
+}

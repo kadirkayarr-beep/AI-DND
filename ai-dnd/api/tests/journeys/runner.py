@@ -100,7 +100,13 @@ JOB_TARGET = "$is_hedefi"
 # An expected ``konum`` of ``$kurulum_yeri`` is the place the setup stood the player in: a new campaign's town work
 # opens places first (Task 18), so the place's number is the engine's, never the scenario's.
 SETUP_PLACE = "$kurulum_yeri"
-SCRIPT_KEYS = frozenset({"intent", "front", "spoken", "narration", "speech", "arrival"})
+SCRIPT_KEYS = frozenset({"intent", "front", "fronts", "spoken", "narration", "speech", "arrival"})
+# ``fronts``: a list of front readings, one for each front-reading call of the step in turn (the last one stays for
+# any call after it); a line that walks and then asks reads twice. ``front`` is the same reading for every call.
+# A front reading's ``place_id`` (and a setup person's ``location``/``place_role_of``) of ``$yer:KIND`` is the place of
+# that scene kind (tavern, temple, ...) in the town the scenario started in: a seeded town's places are numbered by
+# the engine, never by the scenario. A kind the town lacks is made (a local place kind) at setup.
+TOWN_PLACE = "$yer:"
 # ``arrival``: the model's arrival text (a str), or a whole packet ({narration, world_updates, lore_claims}) returned as
 # written, so a scenario can try a broken one. A step that scripts none leaves the arrival call to fail (the Python line).
 # ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
@@ -234,6 +240,7 @@ class ScriptedClient(fixtures.FakeOllamaClient):
             raise ScenarioError(f"bilinmeyen script speech anahtarı: {', '.join(unknown)} "
                                 f"(izinli: {', '.join(sorted(SPEECH_SCRIPT_KEYS))})")
         self.script = script
+        self.front_reads = 0
         self.kinds: list[str] = []
         self.unexpected: list[list[str]] = []
 
@@ -281,9 +288,14 @@ class ScriptedClient(fixtures.FakeOllamaClient):
         return packet
 
     def _front(self) -> dict:
+        readings = self.script.get("fronts")
+        if readings:
+            reading = readings[min(self.front_reads, len(readings) - 1)]
+            self.front_reads += 1
+        else:
+            reading = self.script.get("front")
         return {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none",
-                "answer": "none", "inside": False, "kind": "unclear",
-                **copy.deepcopy(dict(self.script.get("front") or {}))}
+                "answer": "none", "inside": False, "kind": "unclear", **copy.deepcopy(dict(reading or {}))}
 
 
 class ModelDriver(Protocol):
@@ -302,13 +314,67 @@ class ScriptedModel:
 
     @contextmanager
     def bind(self, case: "JourneyCase", step: Step) -> Iterator[ScriptedClient]:
-        client = ScriptedClient(_with_price_offer_ids(case, _with_live_ids(case, _with_bag_ids(case, step.script))))
+        client = ScriptedClient(_with_town_places(case, _with_price_offer_ids(
+            case, _with_live_ids(case, _with_bag_ids(case, step.script)))))
         with (
             patch("socket.socket.connect",
                   side_effect=AssertionError("External network is disabled in journey tests.")),
             patch.object(case.app.state.ollama_adapter, "_client", client),
         ):
             yield client
+
+
+def _town_place(session: Any, town: str, kind: str) -> str:
+    """The first place of the scene or place kind ``kind`` in the town ``town`` (a place whose parent it is); made
+    when the town has none: the inn by the product's own inn maker (``game._ensure_local_tavern``, the one a spoken
+    "han" reaches), any other kind as a local place kind."""
+    world = session.world_state
+
+    def found() -> str | None:
+        return next((key for key, record in world.get("locations", {}).items()
+                     if isinstance(record, Mapping) and record.get("parent_location_id") == town
+                     and kind in (living_world.scene_kind(world, key), record.get("place_kind"))), None)
+
+    if (place := found()) is not None:
+        return place
+    if kind == "tavern":
+        token = game._ACTIVE_SESSION.set(session)
+        try:
+            record = game._ensure_local_tavern(town)
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+    elif kind in local_places.PLACE_KINDS:
+        record = local_places.create_local_place(world, town, kind)
+    else:
+        raise ScenarioError(f"'{TOWN_PLACE}{kind}': kasabada böyle bir yer yok ve yeri kurulamaz")
+    if record is None:
+        raise ScenarioError(f"'{TOWN_PLACE}{kind}': yer kurulamadı")
+    return record["id"]
+
+
+def _resolved_place(case: Any, value: Any) -> Any:
+    if not (isinstance(value, str) and value.startswith(TOWN_PLACE)):
+        return value
+    session = case.manager.get(case.last_session_id).game_session
+    return _town_place(session, case.setup_town_id, value[len(TOWN_PLACE):])
+
+
+def _with_town_places(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    """The step's script with every front reading's ``$yer:KIND`` place turned into that place of the setup town."""
+    readings = [(script or {}).get("front"), *((script or {}).get("fronts") or [])]
+    if not any(isinstance(reading, Mapping) and str(reading.get("place_id", "")).startswith(TOWN_PLACE)
+               for reading in readings):
+        return script
+
+    def fixed(reading: Any) -> Any:
+        return {**reading, "place_id": _resolved_place(case, reading["place_id"])} if isinstance(reading, Mapping)             and "place_id" in reading else reading
+
+    out = dict(script)
+    if "front" in out:
+        out["front"] = fixed(out["front"])
+    if "fronts" in out:
+        out["fronts"] = [fixed(reading) for reading in out["fronts"]]
+    return out
 
 
 def _with_price_offer_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
@@ -342,6 +408,9 @@ def _with_bag_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, A
 def _with_job_target(case: Any, expect: Mapping[str, Any], session_id: str) -> Mapping[str, Any]:
     """An expected ``konum`` of ``$is_hedefi`` is the target place of the setup's errand, read from the live world (a
     town's places are numbered as the campaign's seed made them, so the id is the engine's, never the scenario's)."""
+    place = expect.get("konum")
+    if isinstance(place, str) and place.startswith(TOWN_PLACE):
+        return {**expect, "konum": _resolved_place(case, place)}
     if expect.get("konum") == SETUP_PLACE:
         if getattr(case, "setup_place_id", None) is None:
             raise ScenarioError(f"'{SETUP_PLACE}': kurulumda bir yer (setup 'place') yok")
@@ -408,11 +477,17 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
     if "start_hour" in setup:
         world["campaign_time"]["start_second"] = setup["start_hour"] * 3600
     case.setup_place_id = None
+    case.setup_town_id = world["location"]
     if "place" in setup:
         _stand_in_place(world, setup["place"])
         case.setup_place_id = world["location"]
     if "npcs" in setup:
         world["npcs"] = [{"location": world["location"], **copy.deepcopy(npc)} for npc in setup["npcs"]]
+        for npc in world["npcs"]:
+            for key in ("location", "place_role_of"):
+                value = npc.get(key)
+                if isinstance(value, str) and value.startswith(TOWN_PLACE):
+                    npc[key] = _town_place(session, case.setup_town_id, value[len(TOWN_PLACE):])
     for key in ("currency", "inventory", "ammunition"):
         if key in setup:
             world[key] = copy.deepcopy(setup[key])

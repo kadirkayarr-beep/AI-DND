@@ -36,7 +36,7 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     # The owner's 19-item test: money paid or earned by the wrong move, and the quest record that goes with it.
     # 36: the messenger chain (3a), money and records through a delivery, a broken seal and the word it sends.
     ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b", "19c", "19d", "19e", "29", "36")),
-    ("Oda, uyku ve çıkış", ("03", "07")),
+    ("Oda, uyku ve çıkış", ("03", "07", "39")),
     ("Eşya, silah ve tüketim", ("04", "04b", "05", "05b", "05c", "28", "30")),
     ("Savaş eylemleri", ("06", "20", "21", "22", "22b")),
     ("Konuşma kipi", ("08", "08b")),
@@ -47,7 +47,7 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Sahne olayları ve açılış", ("31", "31b", "36a", "36b")),
     ("Anlatı biçimi", ("35", "38")),
     # The way to a person someone named: their place, and where the town says they are.
-    ("Yol ve hedef", ("37",)),
+    ("Yol ve hedef", ("37", "40")),
 )
 _OTHER_KIND = "Diğer"
 _NUMBER = re.compile(r"^(\d+[a-z]?)_")

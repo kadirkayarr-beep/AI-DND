@@ -1,0 +1,231 @@
+{
+  "id": "40_yuru_sor_eslik",
+  "title": "Yürü, sor, eşlik: adı geçmeyen yere yürünmez (kuzey kapısı hana götürmez); 'hana yürü, sonra oda iste' tek satırda yürür ve odanın fiyatını han başında sorar; rahip yalnız istenince yanında yürür ve yarım saat sonra kendi yerine döner",
+  "source_items": [
+    112,
+    20,
+    158
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Nuri",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "C",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Osman",
+        "role": "Barmen",
+        "current_hp": 10,
+        "location": "$yer:tavern",
+        "place_role_of": "$yer:tavern"
+      },
+      {
+        "id": "priest",
+        "name": "Teron",
+        "role": "Rahip",
+        "current_hp": 10,
+        "status": "active",
+        "location": "$yer:temple",
+        "place_role_of": "$yer:temple"
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "inventory": [
+      "Macera Çantası"
+    ],
+    "seed": 40,
+    "campaign_seed": 40,
+    "start_hour": 12,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "Neverwinter Kuzey Kapısı'na gidiyorum.",
+      "script": {
+        "front": {
+          "kind": "go_to",
+          "place_id": "$yer:tavern",
+          "inside": true
+        }
+      },
+      "expect": {
+        "konum": "fr:city:neverwinter",
+        "yasak_metin": [
+          "Kapıdan içeri giriyorsun"
+        ]
+      }
+    },
+    {
+      "say": "I leave the guard behind and walk to Yolcu Turna Hanı, then ask the innkeeper for a room for one night.",
+      "script": {
+        "fronts": [
+          {
+            "kind": "go_to",
+            "place_id": "$yer:tavern",
+            "inside": true,
+            "also_says": "ask the innkeeper for a room for one night"
+          },
+          {
+            "kind": "speak_to",
+            "person_id": "barman",
+            "economic_intent": "room_quote"
+          }
+        ]
+      },
+      "expect": {
+        "konum": "$yer:tavern",
+        "gerekli_metin": [
+          "Gecelik"
+        ],
+        "kese": 100
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "konum": "fr:city:neverwinter"
+      }
+    },
+    {
+      "say": "tapınağa gidiyorum",
+      "script": {
+        "front": {
+          "kind": "go_to",
+          "place_id": "$yer:temple",
+          "inside": true
+        }
+      },
+      "expect": {
+        "konum": "$yer:temple"
+      }
+    },
+    {
+      "say": "Rahip Teron'a yolu soruyorum",
+      "script": {
+        "spoken": "Yolu parmağımla göstereyim.",
+        "front": {
+          "kind": "speak_to",
+          "person_id": "priest"
+        }
+      },
+      "expect": {
+        "konum": "$yer:temple"
+      }
+    },
+    {
+      "say": "I thank the priest and leave for Yolcu Turna Hanı, where I paid for a room the previous night.",
+      "script": {
+        "front": {
+          "kind": "go_to",
+          "place_id": "$yer:tavern",
+          "inside": true
+        }
+      },
+      "expect": {
+        "yasak_metin": [
+          "yanında yürüyor"
+        ]
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "konum": "$yer:temple"
+      }
+    },
+    {
+      "say": "Rahiple birlikte hana gidiyorum.",
+      "script": {
+        "front": {
+          "kind": "go_to",
+          "place_id": "$yer:tavern",
+          "inside": true
+        }
+      },
+      "expect": {
+        "konum": "$yer:tavern",
+        "gerekli_metin": [
+          "yanında yürüyor"
+        ]
+      }
+    },
+    {
+      "say": "yarım saat bekliyorum",
+      "script": {
+        "front": {
+          "kind": "wait"
+        }
+      }
+    },
+    {
+      "say": "etrafıma bakıyorum",
+      "script": {
+        "front": {
+          "kind": "look"
+        }
+      },
+      "expect": {
+        "konum": "$yer:tavern",
+        "yasak_metin": [
+          "bir rahip var",
+          "Teron"
+        ]
+      }
+    },
+    {
+      "reload": true
+    }
+  ]
+}

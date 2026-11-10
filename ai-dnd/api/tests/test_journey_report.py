@@ -344,6 +344,10 @@ class RawLogAndSafetyTest(unittest.TestCase):
     def test_the_arrival_scenario_is_told_under_narration_form(self):
         self.assertEqual(report_kind("38_varis_anlatimi"), "Anlatı biçimi")
 
+    def test_the_new_journeys_have_their_kinds(self):
+        self.assertEqual(report_kind("39_ingilizce_saat_para"), "Oda, uyku ve çıkış")
+        self.assertEqual(report_kind("40_yuru_sor_eslik"), "Yol ve hedef")
+
 
 if __name__ == "__main__":
     unittest.main()

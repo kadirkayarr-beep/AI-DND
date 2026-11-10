@@ -1,0 +1,172 @@
+{
+  "id": "39_ingilizce_saat_para",
+  "title": "İngilizce saat ve para: İngilizce sekiz saatlik uyku, bir saatlik bekleme ve on altı saatlik geçirme satırı Türkçe eşleriyle aynı süreyi geçirir ('Yarım saat' ya da '32 saat' demez); geri al saati geri verir; beş gümüşlük oda İngilizce satırla tam beş gümüşe tutulur (iki kez değil); geri al parayı geri verir; yenileme aynı durumu verir",
+  "source_items": [
+    27,
+    104,
+    167,
+    22
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Nuri",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "C",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Beşvel",
+      "appearance": "İri yarı.",
+      "personality": "Dobra.",
+      "backstory": "Paralı askerlikten döndü."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "place": {
+      "kind": "smithy",
+      "name": "Göl Sofrası Hanı",
+      "scene_kind": "tavern",
+      "place_kind": "tavern"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "inventory": [
+      "Macera Çantası"
+    ],
+    "seed": 39,
+    "campaign_seed": 39,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "I sleep for eight hours and take a long rest here in the inn.",
+      "expect": {
+        "saat": 8
+      }
+    },
+    {
+      "say": "I wait one full hour here, from 04:00 to 05:00, calmly observing the street without doing anything else.",
+      "expect": {
+        "saat": 9,
+        "yasak_metin": [
+          "Yarım saat geçiyor"
+        ]
+      }
+    },
+    {
+      "say": "Hanın salonunda güvenli bir köşede 16 saat geçiriyorum; gecenin geri kalanında uyuyor, sabah kitaplarımla ilgileniyorum. 16 saat zaman ilerlesin.",
+      "expect": {
+        "saat": 25,
+        "yasak_metin": [
+          "32 saat"
+        ]
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "saat": 9
+      }
+    },
+    {
+      "say": "I accept the room for 5 silver. I hand the bartender exactly five silver pieces from my purse, ask for a key, and head upstairs.",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "barman",
+          "economic_intent": "room",
+          "coin_cp": 50
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "oda": false,
+        "kart": {
+          "max_total_cp": 50,
+          "kalemler": [
+            "Oda (bir gece)"
+          ]
+        }
+      }
+    },
+    {
+      "economic_action": {
+        "kind": "confirm"
+      },
+      "expect": {
+        "kese": 50,
+        "oda": true,
+        "kart": null
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 50,
+          "oda": true
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 100,
+        "oda": false
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 100,
+        "oda": false,
+        "saat": 9
+      }
+    }
+  ]
+}

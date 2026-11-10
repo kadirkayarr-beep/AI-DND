@@ -890,6 +890,12 @@ class TheScriptedClient(unittest.TestCase):
         client = ScriptedClient({"arrival": broken})
         self.assertEqual(json.loads(client.chat(format=ARRIVAL_SCHEMA)["message"]["content"]), broken)
 
+    def test_front_readings_answer_one_after_another(self):
+        client = ScriptedClient({"fronts": [{"kind": "go_to"}, {"kind": "speak_to"}]})
+        schema = {"properties": {"front": {}}}
+        kinds = [json.loads(client.chat(format=schema)["message"]["content"])["front"]["kind"] for _ in range(3)]
+        self.assertEqual(kinds, ["go_to", "speak_to", "speak_to"])  # the last reading stays for any call after it
+
     def test_an_unscripted_arrival_call_falls_back_quietly(self):
         client = ScriptedClient({"narration": "Başka."})
         with self.assertRaises(RuntimeError):
