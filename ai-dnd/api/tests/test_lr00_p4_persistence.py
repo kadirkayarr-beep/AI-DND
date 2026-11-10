@@ -26,13 +26,25 @@ from api.session_manager import SessionManager
 from api.tests import test_campaign_api
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_api import FakeOllamaClient, create_city_with_locked_tavern
+from api.tests.town_seed import fixed_town
+
+# A new campaign's town work opens its own places from the campaign id (Task 18): pinned, and the places counted
+# below are only the ones these turns made.
+TOWN_SEED = 3911
+TURN_KINDS = ("temple", "archive", "stable", "smithy")
 
 
 class Lr00PersistenceTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
-        _, self.session_id, _, self.turn_url, _, _ = await create_city_with_locked_tavern(self)
+        with fixed_town(self, TOWN_SEED):
+            _, self.session_id, _, self.turn_url, _, _ = await create_city_with_locked_tavern(self)
         self.record = self.manager.get(self.session_id)
+        self.town_places = {r["id"] for r in self.world()["locations"].values()
+                            if isinstance(r, dict) and r.get("place_kind")}
+        # The kinds these turns go to are not in the town yet, so each turn must make its place, as before.
+        self.assertEqual([r["place_kind"] for r in self.world()["locations"].values() if isinstance(r, dict)
+                          and r.get("place_kind") in TURN_KINDS], [])
 
     async def asyncTearDown(self):
         await test_campaign_api.CampaignApiTests.asyncTearDown(self)
@@ -41,7 +53,8 @@ class Lr00PersistenceTests(unittest.IsolatedAsyncioTestCase):
         return self.manager.get(self.session_id).game_session.world_state
 
     def places(self):
-        return [r for r in self.world()["locations"].values() if isinstance(r, dict) and r.get("place_kind")]
+        return [r for r in self.world()["locations"].values() if isinstance(r, dict) and r.get("place_kind")
+                and r["id"] not in self.town_places]
 
     async def post(self, message, action_id):
         return await self.http.post(self.turn_url, json={"message": message, "action_id": action_id})
