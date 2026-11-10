@@ -567,6 +567,19 @@ class Recognition(Table):
             reply = await self.line(self.RECOGNISE, "Elbette, yüzünü unutmadım.", mode=mode)
             self.assertNotIn("yüzünü unutmadım", reply["narration"], mode)
 
+    async def test_the_stage_direction_adds_no_unbacked_event_either(self):
+        """Re-review RR2-1: the narration of their reply is cut like the speech; the invented sale is not shown."""
+        for mode in (None, "say"):
+            with self.subTest(mode=mode):
+                await self.job()
+                self.greeted_only()
+                self.client.stage_direction = "Sana o yüzüğü sattığı günü hatırlayıp gülümser."
+                reply = await self.line(self.RECOGNISE, "Evet, hatırlıyorum seni.", mode=mode)
+                self.assertNotIn("sattığı", reply["narration"])
+                self.assertNotIn("yüzüğü", reply["narration"])
+                self.assertIn("hatırlıyorum seni", reply["narration"])
+                self.assertFalse(any(word in reply["narration"] for word in DENIALS), reply["narration"])
+
     async def test_a_debt_or_payment_next_to_a_recognition_verb_does_not_stand(self):
         """Re-review RR2-2: 'something of yours' is only your face, voice, eyes or name; a payment word is not plain."""
         for answer, gone in (("Borcunu unutmadım.", "Borcunu"), ("Tabii, ödemeni unutmadım.", "ödemeni")):

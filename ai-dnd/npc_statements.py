@@ -756,12 +756,12 @@ def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str)
 def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], player_text: str, reply: str) -> str:
     """A reply to a recognition question, less every clause that adds an event the person's words do not back.
 
-    A clause stands when its content words are all plain openers (yes, of course…; `_NAME_OPENERS`, never the
-    claim-acceptance table with its payment verbs), the player's own, backed by this person's recorded words, or
-    a recognition verb with nothing but the player's face, voice, eyes or name beside it ("yüzünü unutmadım";
-    `RECOGNISED_OF_YOURS`). "Evet, o yüzüğü sana ben satmıştım." keeps "Evet." when no saying of theirs backs
-    the sale; "Borcunu unutmadım." keeps nothing. The reply comes back unchanged when nothing is cut, and empty
-    when nothing is left.
+    Spoken text and stage direction alike. A clause stands when its content words are all plain openers (yes,
+    of course…; `_NAME_OPENERS`, never the claim-acceptance table with its payment verbs), the player's own,
+    backed by this person's recorded words, or a recognition verb with nothing but the player's face, voice,
+    eyes or name beside it ("yüzünü unutmadım"; `RECOGNISED_OF_YOURS`). "Evet, o yüzüğü sana ben satmıştım."
+    keeps "Evet." when no saying of theirs backs the sale; "Borcunu unutmadım." keeps nothing. The reply comes
+    back unchanged when nothing is cut, and empty when nothing is left.
     """
     said = [word for statement in view(world)["statements"].get(npc.get("id"), [])
             for word in fold(statement.get("text", "")).split()]

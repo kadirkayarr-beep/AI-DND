@@ -22755,9 +22755,13 @@ def _run_player_turn_internal(
                     cleaned_spoken = _without_lines_already_said(
                         cleaned_spoken, npc_target, world_state, player_input
                     )
-                    if recognised and cleaned_spoken.strip():  # re-review R1: recognition backs no added event
-                        cleaned_spoken = npc_statements.only_what_recognition_backs(
-                            world_state, npc_target, player_input, cleaned_spoken)
+                    if recognised:  # re-review R1, RR2-1: recognition backs no added event, said or shown
+                        if cleaned_spoken.strip():
+                            cleaned_spoken = npc_statements.only_what_recognition_backs(
+                                world_state, npc_target, player_input, cleaned_spoken)
+                        if cleaned_stage.strip():
+                            cleaned_stage = npc_statements.only_what_recognition_backs(
+                                world_state, npc_target, player_input, cleaned_stage)
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
                         threat=raw_intent.get("threat"),
