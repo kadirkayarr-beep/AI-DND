@@ -122,7 +122,7 @@ class SecondWind(unittest.TestCase):
     def test_narration_reports_the_resolved_result(self):
         with patch.object(self.session.rng, "randint", return_value=4):
             text = economy.execute(self.session, {"steps": [second_wind()]})["narration"]
-        self.assertIn("Second Wind", text)
+        self.assertIn("İkinci Nefes", text)
         self.assertIn("6", text)
 
     def test_outside_combat_it_is_the_same_pool_and_costs_no_economy(self):
