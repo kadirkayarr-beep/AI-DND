@@ -55,6 +55,16 @@ class ALineWithTwoActsDoesBoth(unittest.IsolatedAsyncioTestCase):
         self.assertLessEqual(self.client.chat_calls, 2)
         self.assertNotIn("Marek:", reply["narration"])  # the drink was done, not said to the man standing there
 
+    async def test_eating_then_asking_the_person_here_gets_their_answer(self):
+        # Review I1: the second part names someone here, so it is said to them and their answer is the model's.
+        await self.table(lambda t: {"kind": "consume", "item_id": t.food, "also_says": "Marek'e şehri soruyorum"},
+                         lambda t: {"kind": "speak_to", "person_id": t.npc["id"]})
+        reply = await self.line("yemeği yiyorum, Marek'e şehri soruyorum", "Şehir kalabalıktır.")
+        self.assertNotIn("Tabak yemek", self.held())
+        self.assertIn("Şehir kalabalıktır.", reply["narration"])
+        self.assertNotIn("Yavaş ol", reply["narration"])
+        self.assertLessEqual(self.client.chat_calls, 2)
+
     async def test_one_undo_takes_back_both_parts(self):
         import uuid
         await self.table(lambda t: {"kind": "consume", "item_id": t.food, "also_says": "şarabı içiyorum"},

@@ -18555,7 +18555,13 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
     read = getattr(session, "_front_read", None) or {}
     own_act = read.get("kind") in _OWN_ACTS
     hearer = None
-    if not own_act:
+    if own_act:
+        named = _addressed_in(rest, or_the_talk=False)
+        if isinstance(named, dict) and named.get("id") in {npc.get("id") for npc in _conversation_npcs()}:
+            # "yemeği yiyorum, Marek'e şehri soruyorum": the second part names someone here, so it is said to them
+            # (the say path keeps the turn's second call for their answer), not read again.
+            own_act, hearer = False, named
+    if not own_act and hearer is None:
         here = _conversation_npcs()
         hearer = next((npc for npc in here if npc.get("id") == read.get("id")), None) or _active_interlocutor() or (
             here[0] if len(here) == 1 else None)
@@ -18829,14 +18835,14 @@ def _reads_as_address(player_input):
     return "?" in player_input or is_npc_dialogue_input(player_input) or "," in player_input[:40]
 
 
-def _addressed_in(player_input):
-    """Who the line names, or else who the talk is with. Finding them here starts no conversation."""
+def _addressed_in(player_input, *, or_the_talk=True):
+    """Who the line names, or else (or_the_talk) who the talk is with. Finding them here starts no conversation."""
     world_state = _session().world_state
     world_state.setdefault("flags", {})
     saved = talk_mode.snapshot(world_state)
     found = resolve_npc_reference(player_input, force_dialogue=True, allow_active_fallback=False)
     talk_mode.restore(world_state, saved)
-    return found.get("npc") or _active_interlocutor()
+    return found.get("npc") or (_active_interlocutor() if or_the_talk else None)
 
 
 def _front_step(player_input, target_id, interaction_mode, combat_action, check_feature):
