@@ -135,6 +135,22 @@ test('test_prepare_controls_gift_and_tip_require_positive_amount', () => {
   assert.equal(controls.submit({ purpose: 'tip', recipientId: '', amount: '7', tip: '', allOrNone: false }), false);
 });
 
+test('Görev 32: the Ne field opens empty and an empty Ne sends nothing, never a gift', () => {
+  const { sentActions, send } = sender();
+  const controls = ui.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
+  for (const amount of ['7', '5900', '']) {
+    assert.equal(ui.prepareProposal({ purpose: '', recipientId: 'barman', amount, tip: '', allOrNone: false }), null, amount);
+    assert.equal(controls.submit({ purpose: '', recipientId: 'barman', amount, tip: '', allOrNone: false }), false, amount);
+  }
+  assert.equal(sentActions.length, 0);
+  const counterparties = [{ id: 'barman', label: 'Barmen' }];
+  const fresh = render(React.createElement(ui.EconomicPrepareControls, { counterparties, onPrepare: async () => {} }));
+  // The select shows the empty choice, no option is pre-selected, and the prepare button stays closed.
+  assert.match(fresh, /<select data-testid="economic-purpose"[^>]*>\s*<option value="" disabled="" selected="">Seç<\/option>/);
+  assert.doesNotMatch(fresh, /<option value="gift" selected/);
+  assert.match(fresh, /<button[^>]*data-testid="button-prepare-offer"[^>]*disabled=""/);
+});
+
 test('test_prepare_controls_disabled_while_card_open', () => {
   const counterparties = [{ id: 'barman', label: 'Barmen' }];
   const open = render(React.createElement(ui.EconomicPrepareControls, { counterparties, onPrepare: async () => {}, disabled: true }));

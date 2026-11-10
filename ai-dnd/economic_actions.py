@@ -1073,13 +1073,58 @@ def _payer(purpose: str, lines: list[OfferLine]) -> str | None:
     return lines[0].source_id if lines else None
 
 
+_BACK_VOWELS = "aıouâû"
+_FRONT_VOWELS = "eiöüî"
+
+
+def _with_case(name: str, case: Literal["dative", "ablative"], *, proper: bool) -> str | None:
+    """`name` in the dative (-e/-a) or ablative (-den/-tan...), by the last vowel; a proper name takes an apostrophe.
+
+    None when the name has no Turkish vowel to follow, so no wrong suffix is ever written.
+    """
+    lower = name.replace("I", "ı").replace("İ", "i").lower()
+    vowels = [char for char in lower if char in _BACK_VOWELS + _FRONT_VOWELS]
+    if not vowels:
+        return None
+    if not proper and lower.endswith("biri"):
+        return name + ("ne" if case == "dative" else "nden")  # "biri" keeps its pronominal n: birine, birinden
+    back = vowels[-1] in _BACK_VOWELS
+    if case == "dative":
+        suffix = ("y" if lower[-1] in _BACK_VOWELS + _FRONT_VOWELS else "") + ("a" if back else "e")
+    else:
+        suffix = ("t" if lower[-1] in "fstkçşhp" else "d") + ("an" if back else "en")
+    apostrophe = "'" if proper else ""
+    return f"{name}{apostrophe}{suffix}"
+
+
+def _payment_words(world: dict[str, Any], proposal: EconomicProposal, accepted: list[OfferLine]) -> str | None:
+    """Who was paid and for what, as the player knows them ("Marek'e bahşiş"); None when either cannot be said.
+
+    A room or goods come from the person (ablative), a gift or a tip goes to them (dative). An unknown person is
+    named by the same public descriptor the card shows, never by their hidden name.
+    """
+    import living_world
+    npc = _npc(world, proposal.recipient_id)
+    if npc is None or not accepted:
+        return None
+    proper = living_world.npc_name_known_to_player(npc) and bool(str(npc.get("name") or "").strip())
+    person = _with_case(living_world.public_npc_name(npc),
+                        "ablative" if proposal.purpose in ("purchase", "room") else "dative", proper=proper)
+    if person is None:
+        return None
+    things = [(f"{line.count} " if line.count > 1 else "") + living_world.turkish_initial_lower(_line_label(line))
+              for line in accepted]
+    what = things[0] if len(things) == 1 else ", ".join(things[:-1]) + " ve " + things[-1]
+    return f"{person} {what}"
+
+
 def _summary(status: str, reason: str | None, net: int, change: int, refusals: list[LineRefusal],
-             item_name: str | None = None) -> str:
+             item_name: str | None = None, words: str | None = None) -> str:
     if status != "applied":
         return _REFUSED_SUMMARY.get(str(reason), "İşlem gerçekleşmedi; hiçbir şey ödenmedi.")
     if item_name is not None:
         return f"{item_name} verildi."
-    text = f"{net} bakır ödendi."
+    text = f"{words}: {net} bakır ödendi." if words else f"{net} bakır ödendi."
     if change:
         text += f" Para üstü {change} bakır."
     if refusals:
@@ -1208,7 +1253,8 @@ def resolve_offer(state: EconomicState, offer: EconomicOffer, *, operation_id: s
     return dataclasses.replace(
         blank, status="applied", asset_deltas=[delta for delta in deltas if delta.before != delta.after],
         service_rights=rights, world_effects=list(offer.on_accept), refusals=refusals, change_cp=change,
-        net_debit_cp=net, public_summary=_summary("applied", None, net, change, refusals, item_name))
+        net_debit_cp=net, public_summary=_summary("applied", None, net, change, refusals, item_name,
+                                                  _payment_words(world, proposal, accepted)))
 
 
 def apply_resolution(state: EconomicState, resolution: EconomicResolution, *,

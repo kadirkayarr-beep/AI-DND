@@ -253,7 +253,7 @@ export function EconomicOfferCard({ offer, onConfirm, onCancel, disabled = false
   </fieldset>;
 }
 
-export type PrepareForm = { purpose: 'gift' | 'tip' | 'room'; recipientId: string; amount: string; tip: string; allOrNone: boolean };
+export type PrepareForm = { purpose: '' | 'gift' | 'tip' | 'room'; recipientId: string; amount: string; tip: string; allOrNone: boolean };
 
 // A whole copper amount from 1 to 999 999 999 with no sign, point or leading zero: matches "7", rejects "0" and "2.5".
 // Tester: https://regex101.com/?regex=%5E%5B1-9%5D%5Cd%7B0%2C8%7D%24&testString=7
@@ -263,6 +263,7 @@ const POSITIVE = /^[1-9]\d{0,8}$/;
 export function prepareProposal(form: PrepareForm): EconomicProposalIn | null {
   const recipient = form.recipientId.trim();
   if (!recipient) return null;
+  if (!form.purpose) return null; // Görev 32: an empty Ne is never read as a gift
   if (form.purpose === 'room') {
     const tip = form.tip.trim();
     if (tip && !POSITIVE.test(tip)) return null;
@@ -289,7 +290,7 @@ export function createPrepareController(onPrepare: (proposal: EconomicProposalIn
 export function EconomicPrepareControls({ counterparties, onPrepare, disabled = false }: {
   counterparties: { id: string; label: string }[]; onPrepare(proposal: EconomicProposalIn): Promise<void>; disabled?: boolean;
 }) {
-  const [form, setForm] = useState<PrepareForm>({ purpose: 'gift', recipientId: counterparties[0]?.id ?? '', amount: '', tip: '', allOrNone: false });
+  const [form, setForm] = useState<PrepareForm>({ purpose: '', recipientId: counterparties[0]?.id ?? '', amount: '', tip: '', allOrNone: false });
   const send = useRef(onPrepare);
   send.current = onPrepare;
   const controls = useRef<ReturnType<typeof createPrepareController> | null>(null);
@@ -304,7 +305,7 @@ export function EconomicPrepareControls({ counterparties, onPrepare, disabled = 
       {counterparties.map(person => <option key={person.id} value={person.id}>{person.label}</option>)}
     </select></label>
     <label>Ne <select data-testid="economic-purpose" value={form.purpose} onChange={event => set({ purpose: event.target.value as PrepareForm['purpose'] })}>
-      <option value="gift">Hediye</option><option value="tip">Bahşiş</option><option value="room">Oda (bir gece)</option>
+      <option value="" disabled>Seç</option><option value="gift">Hediye</option><option value="tip">Bahşiş</option><option value="room">Oda (bir gece)</option>
     </select></label>
     {/* The room's price is the house's own; the amount is only for a gift or a tip. */}
     <label>Tutar (bakır) <input data-testid="economic-amount" inputMode="numeric" disabled={form.purpose === 'room'} value={form.amount} onChange={event => set({ amount: event.target.value })} /></label>
