@@ -147,6 +147,23 @@ class TwoHandedShieldAc(JourneyCase):
         gear.draw(session.world_state, self.greatsword_id(session), character=session.character)
         self.assertTrue(dex())
 
+    async def test_the_shield_record_survives_a_reload_and_a_second_draw_lowers_nothing(self):
+        # Without the record a reloaded game would count the bag shield as in hand again and lower the total twice.
+        session = await self.fighter_with_shield_and_greatsword()
+        before = session.character["armor_class"]
+        share = self.shield_share(session.character)
+        gear.draw(session.world_state, self.greatsword_id(session), character=session.character)
+        record = copy.deepcopy(session.world_state["shield_down"])
+        fresh = game.create_session(seed=9)
+        restore_campaign_session(fresh, serialize_campaign_payload(session))
+        self.assertEqual(fresh.world_state["shield_down"], record)
+        self.assertEqual(fresh.character["armor_class"], before - share)
+        gear.draw(fresh.world_state, self.item_id(fresh, "Hançer"), character=fresh.character)
+        self.assertEqual(gear.draw(fresh.world_state, self.greatsword_id(fresh), character=fresh.character).status,
+                         "drawn")
+        self.assertEqual(fresh.character["armor_class"], before - share)
+        self.assertEqual(fresh.world_state["shield_down"], record)
+
     async def test_two_handed_draw_lowers_ac_and_undo_restores_it(self):
         results = await self.run_scenario(load_scenario(SCENARIO_DIR / "05c_greatsword_shield_ac.json"))
         self.assertEqual([r.status for r in results], ["pass"] * 5, results)
