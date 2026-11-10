@@ -167,36 +167,86 @@ class DurationConflict(ValueError):
     next step ("2 saat ..., sonra 2 saat daha"): the player is asked."""
 
 
-# Between two mentions of one length, or "daha" right after the second: the second is a next span, not a restatement.
-_ONE_MORE_SPAN = re.compile(r"\b(?:sonra\w*|daha|tekrar\w*|ardindan)\b")
-_MORE_OF_IT = re.compile(r"\s*daha\b")
+# Between two mentions of one length, or "daha"/"more" right after the second: the second is a next span, not a
+# restatement. The English words are the Turkish ones' twins (Dilim 3D Task 2).
+_ONE_MORE_SPAN = re.compile(r"\b(?:sonra\w*|daha|tekrar\w*|ardindan|then|again|another|more|afterwards?)\b")
+_MORE_OF_IT = re.compile(r"\s*(?:daha|more)\b")
+
+# Number words: a ten may take a one after it ("on altı", "twenty-four"). Turkish words go with Turkish units only and
+# English words with English units only ("on saat" is ten hours, "on the shelf" is nothing).
+_TR_ONES = {"bir": 1, "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alti": 6, "yedi": 7, "sekiz": 8, "dokuz": 9}
+_TR_TENS = {"on": 10, "yirmi": 20, "otuz": 30, "kirk": 40, "elli": 50, "altmis": 60, "yetmis": 70, "seksen": 80,
+            "doksan": 90}
+_EN_ONES = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9}
+_EN_TEENS = {"ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+             "seventeen": 17, "eighteen": 18, "nineteen": 19}
+_EN_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80,
+            "ninety": 90}
+_UNIT_SECONDS = {"saniye": 1, "dakika": 60, "saat": 3600, "gun": DAY, "hafta": 7 * DAY, "ay": 30 * DAY}
+_EN_UNIT = {"second": "saniye", "minute": "dakika", "hour": "saat", "day": "gun", "week": "hafta"}
+_ONE_OF = {"a", "an", "another"}  # "an hour", never "a second time"; "half a second" is no span either
+
+
+def _alternatives(*tables):
+    return "|".join(word for table in tables for word in sorted(table, key=len, reverse=True))
+
+
+_DIGITS = r"\d+(?:[.,]\d+)?"
+_TR_DURATION = re.compile(
+    rf"\b({_DIGITS}|(?:{_alternatives(_TR_TENS)})(?:\s+(?:{_alternatives(_TR_ONES)}))?|{_alternatives(_TR_ONES)}"
+    r"|yarim)\s*(saniye|dakika|saat|gun|hafta|ay)\b")
+_EN_DURATION = re.compile(
+    rf"\b(?:({_DIGITS})\s*|((?:{_alternatives(_EN_TENS)})(?:[-\s](?:{_alternatives(_EN_ONES)}))?"
+    rf"|{_alternatives(_EN_TEENS, _EN_ONES)}|half(?:\s+an?)?|another|an?)\s+)"
+    r"(?:(?:full|whole)\s+)?(second|minute|hour|day|week)s?\b")
+
+
+def _number(word, *tables):
+    """'on altı' -> 16, 'twenty-four' -> 24, '8' -> 8.0."""
+    if re.fullmatch(_DIGITS, word):
+        return float(word.replace(",", "."))
+    merged = {key: value for table in tables for key, value in table.items()}
+    return sum(merged[part] for part in re.split(r"[-\s]+", word))
+
+
+def _spans(normalized):
+    """(amount, canonical unit, start, end) for every length said, Turkish and English, in line order."""
+    spans = []
+    for match in _TR_DURATION.finditer(normalized):
+        amount, unit = match.groups()
+        number = 0.5 if amount == "yarim" else _number(amount, _TR_ONES, _TR_TENS)
+        spans.append((number, unit, match.start(), match.end()))
+    for match in _EN_DURATION.finditer(normalized):
+        digits, word, unit = match.groups()
+        word = word or ""
+        if (word in _ONE_OF or word.startswith("half")) and unit == "second":
+            continue
+        number = (_number(digits) if digits else 0.5 if word.startswith("half") else 1 if word in _ONE_OF
+                  else _number(word, _EN_ONES, _EN_TEENS, _EN_TENS))
+        spans.append((number, _EN_UNIT[unit], match.start(), match.end()))
+    return sorted(spans, key=lambda span: span[2])
 
 
 def requested_duration(text):
     """Read only explicit player duration, never generated prose.
 
     The same length said twice counts once ("16 saat ... 16 saat"); different units add ("2 saat 30 dakika");
-    two different amounts of one unit, or the same one again after "sonra/daha/tekrar/ardından", raise DurationConflict."""
+    two different amounts of one unit, or the same one again after "sonra/daha/tekrar/ardından" (English: "then",
+    "again", "another", "more"), raise DurationConflict. English lengths read as their Turkish twins."""
     normalized = normalize(text)
-    words = {"bir": 1, "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alti": 6,
-             "yedi": 7, "sekiz": 8, "dokuz": 9, "on": 10, "yarim": 0.5}
-    pattern = r"\b(\d+(?:[.,]\d+)?|" + "|".join(words) + r")\s*(saniye|dakika|saat|gun|hafta|ay)\b"
-    matches = list(re.finditer(pattern, normalized))
+    matches = _spans(normalized)
     if not matches:
         return None
     amounts, last_end = {}, {}
-    for match in matches:
-        amount, unit = match.groups()
-        number = words[amount] if amount in words else float(amount.replace(",", "."))
+    for number, unit, start, end in matches:
         if unit in amounts and (amounts[unit] != number
-                                or _ONE_MORE_SPAN.search(normalized, last_end[unit], match.start())
-                                or _MORE_OF_IT.match(normalized, match.end())):
+                                or _ONE_MORE_SPAN.search(normalized, last_end[unit], start)
+                                or _MORE_OF_IT.match(normalized, end)):
             raise DurationConflict(DURATION_CONFLICT)  # "sonra 2 saat daha": more time, not the same said again
-        amounts[unit], last_end[unit] = number, match.end()
+        amounts[unit], last_end[unit] = number, end
     total = 0
     for unit, number in amounts.items():
-        total += number * {"saniye": 1, "dakika": 60, "saat": 3600, "gun": DAY,
-                           "hafta": 7 * DAY, "ay": 30 * DAY}[unit]
+        total += number * _UNIT_SECONDS[unit]
     if total <= 0 or total > DAY * 365 or total != int(total):
         raise ValueError("Bekleme süresi pozitif ve en fazla bir oyun yılı olmalı.")
     return int(total)

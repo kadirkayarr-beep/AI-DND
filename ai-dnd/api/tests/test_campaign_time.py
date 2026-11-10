@@ -675,5 +675,64 @@ class DurationSaidTwice(unittest.TestCase):
         self.assertFalse(clock.names_duration("bekliyorum"))
 
 
+Q027 = "I sleep for eight hours and take a long rest here in the inn."  # QA #027, verbatim
+Q028 = "8 saat uyuyorum. Uzun dinlenme yapıyorum."  # QA #028, verbatim
+Q084 = ("I take one hour to rest, eat and carefully review my notes in a quiet corner "
+        "of the workshop.")  # QA #084, verbatim
+Q104 = ("I wait one full hour here, from 04:00 to 05:00, calmly observing the street "
+        "without doing anything else.")  # QA #104, verbatim
+Q105 = "Tam bir saat bekliyorum, başka hiçbir şey yapmıyorum."  # QA #105, verbatim
+
+
+class EnglishDurations(unittest.TestCase):
+    """Dilim 3D Task 2 (#027, #084, #104): an English length reads as its Turkish twin; the same pair rule holds."""
+
+    def test_qa_lines(self):
+        for line, seconds in ((Q027, 8 * 3600), (Q084, 3600), (Q104, 3600), ("I wait half an hour", 1800),
+                              ("I wait an hour", 3600), ("I wait 2 hours", 7200), ("I wait a whole day", 86400),
+                              ("I wait twelve minutes", 720), ("I wait a week", 7 * 86400),
+                              ("I wait 2 hours 30 minutes", 9000), ("I wait 45 seconds", 45)):
+            with self.subTest(line=line):
+                self.assertEqual(clock.requested_duration(line), seconds)
+
+    def test_english_words_that_are_not_durations(self):
+        for line in ("I knock a second time", "I put the book on the shelf", "one of the guards",
+                     "I wait a second", "I hesitate half a second", "the second hour of the watch",
+                     "I look at the gun", "I wait"):
+            with self.subTest(line=line):
+                self.assertIsNone(clock.requested_duration(line))
+
+    def test_turkish_durations_unchanged(self):
+        for line, seconds in (("on saat bekliyorum", 36000), ("yarım saat", 1800), (Q105, 3600), (Q028, 8 * 3600),
+                              ("2 saat 30 dakika bekliyorum", 9000), ("bir gün bekliyorum", 86400)):
+            with self.subTest(line=line):
+                self.assertEqual(clock.requested_duration(line), seconds)
+
+    def test_turkish_tens_read_whole(self):
+        # Park P2 (Task 1): the word table stopped at "on", so "on altı saat" was 6 hours
+        for line, seconds in (("on altı saat bekliyorum", 16 * 3600), ("on bir saat", 11 * 3600),
+                              ("yirmi saat", 20 * 3600), ("yirmi dört saat uyuyorum", 24 * 3600),
+                              ("otuz dakika bekliyorum", 1800), ("kırk beş dakika", 45 * 60)):
+            with self.subTest(line=line):
+                self.assertEqual(clock.requested_duration(line), seconds)
+
+    def test_english_tens_read_whole(self):
+        for line, seconds in (("I wait sixteen hours", 16 * 3600), ("I wait twenty hours", 20 * 3600),
+                              ("I sleep twenty-four hours", 24 * 3600), ("I wait twenty four hours", 24 * 3600),
+                              ("I wait thirty minutes", 1800)):
+            with self.subTest(line=line):
+                self.assertEqual(clock.requested_duration(line), seconds)
+
+    def test_english_pair_said_twice_once(self):
+        self.assertEqual(clock.requested_duration("I wait one hour, yes 1 hour"), 3600)
+        self.assertEqual(clock.requested_duration("bir saat, I mean one hour"), 3600)
+
+    def test_english_two_amounts_of_one_unit_ask(self):
+        for line in ("I wait 2 hours, no, 3 hours", "I wait one hour, then one hour more",
+                     "I wait an hour, then another hour", "I wait one hour and again one hour"):
+            with self.subTest(line=line), self.assertRaises(clock.DurationConflict):
+                clock.requested_duration(line)
+
+
 if __name__ == "__main__":
     unittest.main()

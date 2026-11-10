@@ -2,6 +2,7 @@
 
 A line that names two different lengths of one unit moves nothing and asks; Undo and a replayed action id stay whole.
 """
+import collections
 import copy
 import os
 import unittest
@@ -12,7 +13,7 @@ import campaign_time
 import front_proposal
 from api.tests import test_campaign_api as fixtures
 from api.tests.journeys.runner import ScriptedClient
-from api.tests.test_campaign_time import Q167
+from api.tests.test_campaign_time import Q027, Q028, Q084, Q104, Q105, Q167
 from api.tests.town_seed import fixed_town
 
 START = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
@@ -196,6 +197,136 @@ class DurationConflictWhileDown(unittest.TestCase):
         session.run_player_turn("2 saat bekliyorum, yok 3 saat")
         self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"], recovery_at)
         self.assertEqual(session.character["current_hp"], 1)
+
+
+Outcome = collections.namedtuple("Outcome", "delta action status long_rest_at narration")
+
+
+class EnglishClockParity(unittest.IsolatedAsyncioTestCase):
+    """Dilim 3D Task 2 (#027, #084, #104): an English line moves the clock and rests exactly as its Turkish twin.
+
+    Each line is played in a campaign of its own, in a store of its own, on the same pinned town (seed 4511), so two
+    outcomes can only differ by how the line itself was read."""
+    asyncSetUp = fixtures.CampaignApiTests.asyncSetUp
+    asyncTearDown = fixtures.CampaignApiTests.asyncTearDown
+    post_scene_turn = fixtures.CampaignApiTests.post_scene_turn
+    maxDiff = None
+
+    PAIRS = ((Q027, Q028), (Q104, Q105), (Q084, "Bir saat dinleniyorum."),
+             ("I wait two hours without sleeping", "uyumadan iki saat bekliyorum"),
+             ("I sleep for 2 hours", "2 saat uyuyorum"),
+             ("I wait sixteen hours", "on altı saat bekliyorum"))
+
+    async def outcome(self, line, *, front=None):
+        """A fresh campaign on the pinned town plays one turn: (clock delta, action, status, long rest, narration)."""
+        await self.asyncTearDown()
+        await fixtures.CampaignApiTests.asyncSetUp(self)
+        self._town_creations = 0  # a new store each time: the same town may be founded again
+        with fixed_town(self, 4511):
+            created = await self.http.post("/api/game/campaigns", json={"campaign_start": START})
+        self.assertEqual(created.status_code, 200, created.text)
+        session_id = created.json()["session_id"]
+        world = self.manager.get(session_id).game_session.world_state
+        before = world["campaign_time"]["elapsed_seconds"]
+        client = ScriptedClient({"front": front} if front is not None else {})
+        with patch.dict(os.environ, {front_proposal.FLAG: "1" if front is not None else "0"}):
+            reply = await self.post_scene_turn(f"/api/game/sessions/{session_id}/turn", client,
+                                               {"message": line, "action_id": str(uuid.uuid4())})
+        self.assertEqual(reply.status_code, 200, reply.text)
+        world = self.manager.get(session_id).game_session.world_state
+        body = reply.json()
+        return Outcome(world["campaign_time"]["elapsed_seconds"] - before, (body.get("turn_outcome") or {}).get("action"),
+                       (body.get("turn_outcome") or {}).get("status"), world.get("last_long_rest_completed_at"),
+                       body["narration"])
+
+    async def test_english_line_gives_the_turkish_lines_clock_and_rest(self):
+        for english, turkish in self.PAIRS:
+            for front in (None, {"kind": "wait"}):
+                if (english, front) == (Q104, None):
+                    continue  # Park P3: with no reading, Q105 itself moves nothing ("yapmıyorum" read as a no)
+                with self.subTest(english=english, front=front):
+                    en = await self.outcome(english, front=front)
+                    tr = await self.outcome(turkish, front=front)
+                    self.assertEqual(tuple(en), tuple(tr))  # a plain tuple: the full diff is shown
+                    self.assertNotIn("Yarım saat geçiyor", en.narration)
+
+    async def test_104_with_no_reading_waits_the_hour(self):
+        # The one pair left out above: the English line is held to the right hour, not to its twin's park P3 defect.
+        outcome = await self.outcome(Q104)
+        self.assertEqual((outcome.delta, outcome.action, outcome.status, outcome.long_rest_at),
+                         (3600, "wait", "completed", None))
+        self.assertTrue(outcome.narration.startswith("1 saat geçiyor."), outcome.narration)
+
+    async def test_027_takes_the_long_rest(self):
+        outcome = await self.outcome(Q027)
+        self.assertEqual((outcome.delta, outcome.action), (8 * 3600, "rest"))
+        self.assertIsNotNone(outcome.long_rest_at)
+
+    async def test_084_takes_a_short_rest(self):
+        outcome = await self.outcome(Q084)
+        self.assertEqual((outcome.delta, outcome.action, outcome.long_rest_at), (3600, "rest", None))
+        self.assertIn("Kısa dinlenme tamamlandı", outcome.narration)
+
+    async def test_english_rest_only_no(self):
+        for front in (None, {"kind": "wait"}):
+            with self.subTest(front=front):
+                outcome = await self.outcome("I wait two hours without sleeping", front=front)
+                self.assertEqual((outcome.delta, outcome.action, outcome.long_rest_at), (7200, "wait", None))
+
+    async def test_english_rest_said_no_waits_only(self):
+        for line in ("I don't want to rest, I wait two hours", "I wait two hours, but I do not rest"):
+            with self.subTest(line=line):
+                outcome = await self.outcome(line)
+                self.assertEqual((outcome.delta, outcome.action, outcome.long_rest_at), (7200, "wait", None))
+                self.assertNotIn("dinlenme", outcome.narration)
+
+
+class EnglishTimedOwners(unittest.TestCase):
+    """The timed owners read English sleep, wait, rest and their no as they read the Turkish words."""
+
+    def setUp(self):
+        from api.tests import test_death_system as death_fixtures
+        self.session = death_fixtures.make_session()
+        campaign_time.initialize(self.session.world_state)
+        self.before = copy.deepcopy(self.session.world_state)
+
+    def test_markers(self):
+        import timed_gameplay
+        for line in ("i sleep", "i am sleeping", "i go to sleep"):
+            with self.subTest(line=line):
+                self.assertTrue(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
+        for line in ("i wait without sleeping", "i do not sleep", "i don't sleep", "i never sleep", "uyumadan bekliyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
+        for line in ("i wait", "i am waiting", "i rest", "i take a long rest"):
+            with self.subTest(line=line):
+                self.assertTrue(timed_gameplay.input_route_markers(self.session.world_state, campaign_time.normalize(line))[1])
+
+    def test_a_no_to_waiting_is_a_no_to_the_line(self):
+        import timed_gameplay
+        for line in ("I don't wait two hours", "I will not wait an hour"):
+            with self.subTest(line=line):
+                self.assertTrue(timed_gameplay.says_no(line))
+                self.assertIsNone(timed_gameplay.resolve_input(self.session, line))
+                self.assertEqual(self.session.world_state, self.before)
+
+    def test_a_no_to_the_rest_is_no_no_to_the_line(self):
+        import timed_gameplay
+        for line in ("I wait two hours without sleeping", "I wait two hours without resting",
+                     "I don't want to rest, I wait two hours"):
+            with self.subTest(line=line):
+                self.assertFalse(timed_gameplay.says_no(line))
+
+    def test_the_rest_of_the_night_is_no_rest(self):
+        import timed_gameplay
+        result = timed_gameplay.resolve_input(self.session, "I wait two hours for the rest of the guards")
+        self.assertEqual((result["action"], result["time_result"]["elapsed_seconds"]), ("wait", 7200))
+
+    def test_a_short_english_sleep_is_a_sleep(self):
+        import timed_gameplay
+        english = timed_gameplay.resolve_input(self.session, "I sleep for 2 hours")
+        self.assertEqual((english["action"], english["time_result"]["reason"],
+                          english["time_result"]["elapsed_seconds"]), ("wait", "sleep", 7200))
 
 
 if __name__ == "__main__":

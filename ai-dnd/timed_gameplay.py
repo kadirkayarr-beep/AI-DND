@@ -784,16 +784,26 @@ def explicit_wait_request(text):
                    ("question", "reported", "conditional", "negated", "not_now"))
 
 
+# English twins (Dilim 3D Task 2): a negated sleep is no sleep, as "uyumadan" never matches the Turkish forms.
+_EN_NEGATED = r"(?<!without )(?<!not )(?<!n't )(?<!n’t )(?<!never )"
 _SLEEPING = re.compile(
     r"\buyu(?:yorum|rum|yacag\w*|yacam|ycam|cam|yayim|yalim|yup|ya)\b|\buykuya dal\w*|\bkiril\w*\s+uyu"
-    r"|\byat(?:iyorum|acagim|acam|icam|ayim|alim)\b")
+    r"|\byat(?:iyorum|acagim|acam|icam|ayim|alim)\b"
+    rf"|{_EN_NEGATED}\bsleep(?:s|ing)?\b")
+# "dinlen" in English: "I rest", "a long rest"; "the rest of the night" is no rest.
+_RESTING = re.compile(r"\brest(?:s|ing)?\b(?!\s+of\b)")
+
+
+def _says_rest(normalized):
+    return "dinlen" in normalized or bool(_RESTING.search(normalized))
 
 
 def input_route_markers(world, normalized):
     """Pure recognition shared by the timed owner and immediate-check admission."""
     journey = world.get("journey")
     movement = re.search(r"\b(devam|duruyorum|dur|geri don|rota|gidiyorum|gitmek|git|yuruyorum|giriyorum|donuyorum|don)", normalized)
-    wait = re.search(r"\b(bekliyorum|bekle|uyuyorum|uyu|dinleniyorum|dinlen|kaliyorum)", normalized) or _SLEEPING.search(normalized)
+    wait = (re.search(r"\b(bekliyorum|bekle|uyuyorum|uyu|dinleniyorum|dinlen|kaliyorum)", normalized)
+            or _SLEEPING.search(normalized) or re.search(r"\bwait(?:s|ing)?\b", normalized) or _RESTING.search(normalized))
     passive_observation = re.search(r"\b(gozlemliyorum|oturuyorum)\b", normalized)
     task = re.search(r"\b(arastiriyorum|arastir|arastirmaya|inceliyorum|incelemeye|ara)\b", normalized)
     if world.get("active_task") and "devam" in normalized and (not journey or journey["status"] == "ARRIVED"):
@@ -805,13 +815,19 @@ def input_route_markers(world, normalized):
 # followed by "önce" they are "before resting/sleeping", no "no". They say no to the rest only, not to the line
 # (a named subset: "dinlenmeden yola devam ediyorum" still goes on).
 _NO_REST_ONLY = ("dinlenmeden", "uyumadan", "dinlenmeksizin", "uyumaksizin")
+# English twins (Dilim 3D Task 2): "without sleeping", "I don't want to rest" say no to the rest only (as "uyumadan");
+# "I don't wait" says no to the wait (as "beklemiyorum"). Up to two words may sit between the no and the verb.
+_EN_NO_TO = r"(?:\b(?:without|not|never)|n['’]t)\s+(?:\w+\s+){0,2}"
+_EN_NO_REST = re.compile(rf"{_EN_NO_TO}(?:sleep|rest)(?:s|ing)?\b")
 _SAID_NO = re.compile(r"\b(?:istemiyorum|yapmiyorum|beklemiyorum|gitmiyorum|vazgectim|hayir"
-                      rf"|(?:{'|'.join(_NO_REST_ONLY)})(?!\s+once\b))\b")
+                      rf"|(?:{'|'.join(_NO_REST_ONLY)})(?!\s+once\b))\b"
+                      rf"|{_EN_NO_TO}(?:wait|sleep|rest)(?:s|ing)?\b")
 
 
 def says_no(text):
     """The line says no to what it is about ("hana gitmiyorum"); a no to the rest alone is not a no to the line."""
-    return any(word not in _NO_REST_ONLY for word in _SAID_NO.findall(clock.normalize(text)))
+    return any(word not in _NO_REST_ONLY and not _EN_NO_REST.fullmatch(word)
+               for word in _SAID_NO.findall(clock.normalize(text)))
 
 
 _UNNAMED_WAIT = 600  # "bekliyorum" with no length: a short while, not a form to fill in
@@ -890,7 +906,7 @@ def _rest_if_said(session, normalized, duration):
         return None  # "dinlenmek istemiyorum, iki saat bekliyorum": the wait is all that happens
     if ("uyu" in normalized or _SLEEPING.search(normalized)) and duration >= 8 * 3600:
         return _take_rest(session, "long_rest", duration)
-    if "dinlen" in normalized:
+    if _says_rest(normalized):
         if duration < 3600:
             return _result("rest", "Kısa dinlenme için en az bir saat gerekir.", status="clarification", success=False)
         return _take_rest(session, "long_rest" if duration >= 8 * 3600 else "short_rest", duration)
@@ -994,7 +1010,7 @@ def resolve_input(session, text):
         observation = {"kind": "observe", "location_id": world["location"]} if passive_observation and not (
             journey and journey["status"] != "ARRIVED"
         ) else None
-        slept = "uyu" in normalized and not _SAID_NO.search(normalized)  # "uyumadan sekiz saat": a wait, no sleep
+        slept = ("uyu" in normalized or bool(_SLEEPING.search(normalized))) and not _SAID_NO.search(normalized)  # "uyumadan sekiz saat": a wait, no sleep
         advancement = _advance(session, duration, "sleep" if slept else "explicit_wait", observation)
         import bold_acts
         seen = bold_acts.fire_line(world)
