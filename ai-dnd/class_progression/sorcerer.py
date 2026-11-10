@@ -104,7 +104,7 @@ def _level_four_prerequisite(session: Any) -> str | None:
         _validate_selected_spell_mirrors(character, state)
         core._validate_con_caches(character)
         # Replay from retained original provenance, never from current scores.
-        options = core.supported_asi_choices(character)
+        options = core.supported_asi_choices(character, session.world_state)
         if not options:
             return "no_supported_asi_choices"
         increase = options[0]["increase"]
@@ -140,7 +140,7 @@ def _check_level_choices(session, preview, choices):
                 or asi["feat"] != "Ability Score Improvement"
                 or not core._supported_asi_increase(asi["increase"])):
             return "selected_asi_not_supported"
-        if asi not in core.supported_asi_choices(session.character):
+        if asi not in core.supported_asi_choices(session.character, session.world_state):
             return "asi_choice_not_eligible"
         cantrips = choices.get("cantrips")
         allowed_cantrips = {s["id"] for s in SPELLS_CATALOG["Sorcerer"]["cantrips"]}
@@ -231,7 +231,7 @@ def _apply_selected_level_four(session: Any, preview: dict[str, Any], choices: d
             character["current_hp"] += base
         character.update(level=max(4, character["level"]), progression_level=4,
                          asi_choices=core._selected_asi_record(choices["asi"]["increase"]))
-        core._apply_asi_score_delta(character, projection["feat_delta"])
+        core._apply_asi_score_delta(character, projection["feat_delta"], session.world_state)
         character["spells"] = list(state["prepared"])
         character["cantrips"] = list(state["cantrips"])
         character["spell_slots_remaining"] = copy.deepcopy(state["slots"])
@@ -348,7 +348,7 @@ class Sorcerer(ClassProgression):
                 "sorcery_points": goal["sorcery_points"]}
 
     def preview_options(self, session, target_level):
-        return {"supported_asi_choices": core.supported_asi_choices(session.character)} if target_level == 4 else {}
+        return {"supported_asi_choices": core.supported_asi_choices(session.character, session.world_state)} if target_level == 4 else {}
 
     def check_choices(self, session, preview, choices):
         return _check_level_choices(session, preview, choices)

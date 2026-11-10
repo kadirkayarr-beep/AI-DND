@@ -292,7 +292,7 @@ def validate_saved_frenzy(world, character):
         count = sequence.get("attack_rolls")
         attacks = sequence.get("attacks")
         if (actor != "player" or not combat.get("active")
-            or not character_progression.berserker_eligible(character)
+            or not character_progression.berserker_eligible(character, world)
             # The save boundary already validates these optional records. A
             # historical Frenzy declaration requires their retained presence,
             # but does not require Rage to remain active after the attack.
@@ -863,7 +863,7 @@ def _resolve(session, c):
     else:
         if c["choice"].get("reckless_attack"):
             effect(session, "reckless_attack", actor, actor)
-            if (actor == "player" and character_progression.berserker_eligible(attacker)
+            if (actor == "player" and character_progression.berserker_eligible(attacker, session.world_state)
                     and barbarian_rage.active(session)):
                 turn_state(session, actor)["frenzy_eligible"] = True
         resolution = resolve_attack_roll(
@@ -911,7 +911,7 @@ def _resolve(session, c):
         sequence = sequence_snapshot(session, actor)
         if (actor == "player" and c["ability"] == "strength"
                 and session.world_state["combat"].get("current_actor_id") == "player"
-                and character_progression.berserker_eligible(attacker)
+                and character_progression.berserker_eligible(attacker, session.world_state)
                 and barbarian_rage.active(session)
                 and sequence.get("frenzy_eligible") is True
                 and "frenzy_used" not in sequence):

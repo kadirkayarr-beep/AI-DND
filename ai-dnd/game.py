@@ -2071,7 +2071,7 @@ def _player_state_for_save():
     character = _session().character
     import character_progression
     # Selected earned ASI requires format4/5/6; loaded formats are not promoted.
-    character_progression._validate_asi_choice_storage(character)
+    character_progression._validate_asi_choice_storage(character, world=_session().world_state)
     character_progression._validate_primal_knowledge(character)
     if "primal_knowledge_choice" in character and getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
         raise ValueError("Primal Knowledge requires save format4–6.")

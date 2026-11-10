@@ -231,11 +231,20 @@ def _origin_total(character: dict[str, Any], armor: str | None, shield: bool) ->
     return armor_class_total(character["class"], modifiers, armor, shield, character.get("fighting_style"))
 
 
-def _armor_class_explained_by(character: dict[str, Any], origin: dict[str, Any]) -> bool:
-    """The stored total is the origin's; a creation shield put down by a two-handed weapon (Dilim 3, Task 16) leaves
-    the same origin's total without the shield."""
-    totals = {_origin_total(character, origin["armor"], origin["shield"]), _origin_total(character, origin["armor"], False)}
-    return None not in totals and character.get("armor_class") in totals
+def _armor_class_explained_by(character: dict[str, Any], origin: dict[str, Any], world: Any) -> bool:
+    """The stored total is the origin's. A creation shield put down by a two-handed weapon (Dilim 3, Task 16) leaves
+    the origin's total without the shield, and only while the world's record of it (`shield_down`, written with the
+    lowered total) holds exactly that share; without a world nothing is put down."""
+    worn = _origin_total(character, origin["armor"], origin["shield"])
+    if worn is None:
+        return False
+    if character.get("armor_class") == worn:
+        return True
+    down = world.get("shield_down") if isinstance(world, dict) else None
+    bonus = down.get("ac_bonus") if isinstance(down, dict) else None
+    without = _origin_total(character, origin["armor"], False)
+    return (origin["shield"] is True and without is not None and type(bonus) is int and bonus == worn - without
+            and character.get("armor_class") == without)
 
 
 def shield_share(character: dict[str, Any]) -> int:
@@ -248,14 +257,15 @@ def shield_share(character: dict[str, Any]) -> int:
     return 0 if worn is None or down is None else worn - down
 
 
-def _verified_armor_origin(character: dict[str, Any]) -> dict[str, Any] | None:
-    """The origin, only while the stored total is exactly what it explains. Anything else cannot be followed, so it is never guessed."""
+def _verified_armor_origin(character: dict[str, Any], world: Any) -> dict[str, Any] | None:
+    """The origin, only while the stored total is exactly what it explains (with `world`'s shield record). Anything
+    else cannot be followed, so it is never guessed."""
     try:
         validate_armor_origin(character)
     except ValueError:
         return None
     origin = character.get("armor_origin")
-    return origin if type(origin) is dict and _armor_class_explained_by(character, origin) else None
+    return origin if type(origin) is dict and _armor_class_explained_by(character, origin, world) else None
 
 
 def repaired_armor_origin(character: dict[str, Any], world: dict[str, Any]) -> dict[str, Any] | None:
@@ -264,7 +274,7 @@ def repaired_armor_origin(character: dict[str, Any], world: dict[str, Any]) -> d
     if type(proof) is not dict or "armor_id" not in proof or proof["armor_id"] is not None:
         return None
     origin = {"armor": None, "shield": False}
-    return origin if _armor_class_explained_by(character, origin) else None
+    return origin if _armor_class_explained_by(character, origin, world) else None
 
 
 def _asi_moves_dexterity_modifier(character: dict[str, Any], increase: dict[str, int]) -> bool:
@@ -272,8 +282,8 @@ def _asi_moves_dexterity_modifier(character: dict[str, Any], increase: dict[str,
     return type(score) is int and (score + increase.get("dexterity", 0) - 10) // 2 != (score - 10) // 2
 
 
-def supported_asi_choices(character: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-    """Static engine family, or the choices this character can take.
+def supported_asi_choices(character: dict[str, Any] | None = None, world: Any = None) -> list[dict[str, Any]]:
+    """Static engine family, or the choices this character (in `world`) can take.
 
     C03 remains the score/eligibility owner. A choice that moves the Dexterity modifier also moves Armor Class, so it is
     offered only while the stored total can be tied to its origin; no other choice depends on that.
@@ -286,7 +296,7 @@ def supported_asi_choices(character: dict[str, Any] | None = None) -> list[dict[
     if character is None:
         return options
     detached = {**copy.deepcopy(character), "level": 4}
-    verified = _verified_armor_origin(character) is not None
+    verified = _verified_armor_origin(character, world) is not None
     return [option for option in options if feat_rules.apply_feat_choice(
         detached, option["feat"], {"source": "class_asi", "increase": option["increase"]})["status"] == "applied"
         and (verified or not _asi_moves_dexterity_modifier(character, option["increase"]))]
@@ -335,7 +345,7 @@ def _validate_con_caches(player: dict[str, Any], *, saved: bool = False) -> None
             raise ValueError("Inconsistent ASI ability caches.")
 
 
-def _validate_asi_choice_storage(player: dict[str, Any], *, saved: bool = False) -> None:
+def _validate_asi_choice_storage(player: dict[str, Any], *, world: Any, saved: bool = False) -> None:
     """Admit one selected ordinary ASI with source-reconstructable scores."""
     choices = player.get("asi_choices", [])
     applied = player.get("progression_level")
@@ -354,7 +364,7 @@ def _validate_asi_choice_storage(player: dict[str, Any], *, saved: bool = False)
         raise ValueError("Invalid earned ASI provenance: " + result["reason"])
     context = _score_context(player, saved=saved)
     prior = context["base_scores"]["dexterity"] + context["background_bonuses"].get("dexterity", 0)
-    if (player["dexterity"] - 10) // 2 != (prior - 10) // 2 and _verified_armor_origin(player) is None:
+    if (player["dexterity"] - 10) // 2 != (prior - 10) // 2 and _verified_armor_origin(player, world) is None:
         raise ValueError("Invalid DEX ASI armor class.")
     _validate_con_caches(player, saved=saved)
     for_class(player.get("class")).validate_asi_storage(player, saved=saved)
@@ -449,7 +459,7 @@ def _check_detached_asi_consistency(*, scores: Any, base_scores: Any,
 def validate_saved(player: dict[str, Any], world: dict[str, Any], *, saved: bool = False) -> None:
     """Validate applied choices, not completion of the selected feature effects."""
     validate_armor_origin(player)
-    _validate_asi_choice_storage(player, saved=saved)
+    _validate_asi_choice_storage(player, world=world, saved=saved)
     for each in registered():
         each.validate_class_fields(player)
         each.validate_class_world(player, world)
@@ -499,14 +509,15 @@ def apply_level_choices(session: Any, preview: Any, choices: Any) -> dict[str, A
     return for_class(character["class"]).apply_level(session, preview, choices)
 
 
-def _apply_asi_score_delta(character, feat_delta):
+def _apply_asi_score_delta(character, feat_delta, world=None):
     """Apply the recomputed C03 delta, preserving authoritative save offsets.
 
-    Armor Class follows the Dexterity modifier through its origin. Initiative reads `dexterity_mod`; a kept creation total
-    moves by the same amount so an Alert offset survives. Every other Dexterity reader derives its value.
+    Armor Class follows the Dexterity modifier through its origin (read with `world`'s shield record). Initiative reads
+    `dexterity_mod`; a kept creation total moves by the same amount so an Alert offset survives. Every other Dexterity
+    reader derives its value.
     """
     import feat_rules
-    origin = _verified_armor_origin(character)
+    origin = _verified_armor_origin(character, world)
     for change in feat_delta["changes"]:
         ability = change["ability"]
         old_modifier = (change["from"] - 10) // 2

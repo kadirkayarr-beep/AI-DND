@@ -75,7 +75,7 @@ def rogue_starting_creation_options() -> dict[str, Any] | None:
 
 def _asi_options(session) -> list[dict[str, Any]]:
     character = session.character
-    return [option for option in core.supported_asi_choices(character)
+    return [option for option in core.supported_asi_choices(character, session.world_state)
             if core._project_selected_asi_hp(character, FIRST_ASI_LEVEL, {"increase": option["increase"]})["status"] == "projected"]
 
 

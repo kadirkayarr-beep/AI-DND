@@ -96,7 +96,7 @@ def _asi_options(session) -> list[dict[str, Any]]:
     ac = character.get("armor_class")
     if type(ac) is not int or ac < 0:
         return []
-    return [option for option in core.supported_asi_choices(character)
+    return [option for option in core.supported_asi_choices(character, session.world_state)
             if core._project_selected_asi_hp(character, FIRST_ASI_LEVEL, {"increase": option["increase"]})["status"] == "projected"
             and (not _wisdom_modifier_rises(option, character) or ac == _canonical_ac(character))]
 

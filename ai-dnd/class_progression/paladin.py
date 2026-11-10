@@ -105,7 +105,7 @@ def paladin_starting_creation_options() -> dict[str, Any] | None:
 
 def _asi_options(session) -> list[dict[str, Any]]:
     character = session.character
-    return [option for option in core.supported_asi_choices(character)
+    return [option for option in core.supported_asi_choices(character, session.world_state)
             if core._project_selected_asi_hp(character, FIRST_ASI_LEVEL, {"increase": option["increase"]})["status"] == "projected"]
 
 
@@ -214,7 +214,7 @@ def _apply(session, preview, choices):
             changes.append({"kind": "subclass", "id": features.SUBCLASS})
         if projection:
             character["asi_choices"] = core._selected_asi_record(choices["asi"]["increase"])
-            core._apply_asi_score_delta(character, projection["feat_delta"])
+            core._apply_asi_score_delta(character, projection["feat_delta"], session.world_state)
             changes.extend([{"kind": "maximum_hit_points", "gain": projection["retroactive_max_gain"]},
                             {"kind": "asi", "feat_delta": projection["feat_delta"]}])
         session.character.clear()

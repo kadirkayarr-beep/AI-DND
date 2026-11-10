@@ -87,7 +87,7 @@ def apply_asi_step(session, preview, choices, *, armor_class_ability=None):
             character["current_hp"] += base
         character.update(level=max(4, character["level"]), progression_level=4,
                          asi_choices=core._selected_asi_record(choices["asi"]["increase"]))
-        core._apply_asi_score_delta(character, projection["feat_delta"])
+        core._apply_asi_score_delta(character, projection["feat_delta"], session.world_state)
         ac_delta = character[armor_class_ability + "_mod"] - old_ac_modifier if armor_class_ability else 0
         if ac_delta:
             # Choice admission checked the old canonical total, never guesses

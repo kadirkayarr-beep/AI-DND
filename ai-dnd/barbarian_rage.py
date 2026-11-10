@@ -17,7 +17,7 @@ def _format(session):
     return getattr(session,'_persisted_engine_format',game.SAVE_FORMAT_VERSION)
 
 
-def _level(character):
+def _level(character, world=None):
     value=character.get('progression_level',1)
     raw=character.get('level')
     if not (character.get('class')=='Barbarian' and type(value) is int and value in (1,2,3,4,5)
@@ -25,13 +25,13 @@ def _level(character):
         return None
     if value in (3,4,5):
         import character_progression
-        if not character_progression.berserker_eligible(character):
+        if not character_progression.berserker_eligible(character, world):
             return None
     return value
 
 
-def capacity(character):
-    level = _level(character)
+def capacity(character, world=None):
+    level = _level(character, world)
     if level is None:
         raise ValueError('Invalid Rage capacity level.')
     return 3 if level in (3,4,5) else 2
@@ -48,10 +48,10 @@ def validate(world,character,engine_format,*,strict_active=False):
     equipment_economy.validate_worn_armor(world,character,engine_format)
     if KEY not in world:return
     value=world[KEY]
-    if (type(engine_format) is not int or engine_format not in (4,5,6) or _level(character) is None
+    if (type(engine_format) is not int or engine_format not in (4,5,6) or _level(character,world) is None
             or PROOF not in world or type(value) is not dict or set(value)!={'version','remaining','active'}
             or type(value['version']) is not int or value['version']!=1
-            or type(value['remaining']) is not int or not 0<=value['remaining']<=capacity(character)):
+            or type(value['remaining']) is not int or not 0<=value['remaining']<=capacity(character,world)):
         raise ValueError('Invalid saved Rage state.')
     a=value['active']
     if a is None:return
@@ -75,7 +75,7 @@ def initialize(session,*,known_unarmored):
     """Creation owner only. Never adopt on preview/load/rest."""
     world=session.world_state
     world.pop(KEY,None);world.pop(PROOF,None)
-    if _level(session.character) is not None and known_unarmored and _format(session) in (4,5,6):
+    if _level(session.character,session.world_state) is not None and known_unarmored and _format(session) in (4,5,6):
         import equipment_economy
         equipment_economy.initialize_unarmored_proof(session)
         world[KEY]={'version':1,'remaining':2,'active':None}
@@ -165,7 +165,7 @@ def projection(session):
             if not session.world_state.get('combat',{}).get('active'):
                 remaining-=session.world_state['campaign_time']['elapsed_seconds']-a['settled_at']
         activate_reason=_reason(session);extend_reason=_reason(session,True)
-        return {'uses_remaining':state['remaining'],'max_uses':capacity(session.character),'active':enabled,'remaining_seconds':remaining,
+        return {'uses_remaining':state['remaining'],'max_uses':capacity(session.character,session.world_state),'active':enabled,'remaining_seconds':remaining,
                 'activate':{'available':activate_reason is None,'reason':activate_reason},
                 'extend':{'available':extend_reason is None,'reason':extend_reason}}
     except ValueError:
@@ -238,7 +238,7 @@ def restore(session,kind):
     settle(session)
     state=_state(session)
     if state is not None:
-        maximum=capacity(session.character)
+        maximum=capacity(session.character,session.world_state)
         state['remaining']=min(maximum,state['remaining']+1) if kind=='short_rest' else maximum
 
 
@@ -248,7 +248,7 @@ PRIMAL_KNOWLEDGE_SKILLS = ('Acrobatics', 'Intimidation', 'Perception', 'Stealth'
 def primal_knowledge_reason(session):
     """Pure selected-engine entitlement and current-Rage check, not a saved grant."""
     import character_progression
-    if not character_progression.berserker_eligible(session.character):
+    if not character_progression.berserker_eligible(session.character, session.world_state):
         return 'primal_knowledge_not_selected'
     try:
         if not active(session):
@@ -329,7 +329,7 @@ def primal_knowledge_annotation(evidence, action_result):
 
 def primal_knowledge_projection(session):
     import character_progression
-    if not character_progression.berserker_eligible(session.character):
+    if not character_progression.berserker_eligible(session.character, session.world_state):
         return None
     reason = primal_knowledge_reason(session)
     return {'available': reason is None, 'reason': reason, 'skills': list(PRIMAL_KNOWLEDGE_SKILLS)}

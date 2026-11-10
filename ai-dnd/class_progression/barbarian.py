@@ -52,7 +52,8 @@ def _validate_primal_knowledge(character):
         raise ValueError("Invalid selected Primal Knowledge provenance.")
 
 
-def berserker_eligible(character):
+def berserker_eligible(character, world=None):
+    """A Berserker's saved choices hold; `world` carries the shield record a lowered Armor Class is read with."""
     if (character.get("class") != "Barbarian" or type(character.get("level")) is not int
             or type(character.get("progression_level")) is not int
             or character["progression_level"] not in (3, 4, 5)
@@ -61,7 +62,7 @@ def berserker_eligible(character):
     try:
         _validate_primal_knowledge(character)
         if character["progression_level"] in (4, 5):
-            core._validate_asi_choice_storage(character, saved="origin_choices" in character)
+            core._validate_asi_choice_storage(character, world=world, saved="origin_choices" in character)
     except (ValueError, KeyError, TypeError):
         return False
     return character.get("subclass_id") == "berserker"
@@ -171,7 +172,7 @@ def _barbarian_asi_options(session) -> list[dict[str, Any]]:
     ac = character.get("armor_class")
     if type(ac) is not int or ac < 0:
         return []
-    options = core.supported_asi_choices(character)
+    options = core.supported_asi_choices(character, session.world_state)
     accepted = []
     for option in options:
         projection = core._project_selected_asi_hp(character, 4, {"increase": option["increase"]})
@@ -246,7 +247,7 @@ def _barbarian_five_prerequisite(session) -> str | None:
         if "rage_v1" not in session.world_state:
             return "selected_level_five_rage_capability_required"
         barbarian_rage.validate(session.world_state, character, version, strict_active=True)
-        if not berserker_eligible(character):
+        if not berserker_eligible(character, session.world_state):
             return "previous_barbarian_state_invalid"
     except (ValueError, KeyError, TypeError):
         return "previous_level_four_state_invalid"
