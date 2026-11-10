@@ -22761,7 +22761,7 @@ def _run_player_turn_internal(
                                 world_state, npc_target, player_input, cleaned_spoken)
                         if cleaned_stage.strip():
                             cleaned_stage = npc_statements.only_what_recognition_backs(
-                                world_state, npc_target, player_input, cleaned_stage)
+                                world_state, npc_target, player_input, cleaned_stage, stage=True)
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
                         threat=raw_intent.get("threat"),

@@ -619,6 +619,14 @@ class Recognition(Table):
         self.assertNotIn("satmadım", reply["narration"])
         self.assertNotIn("“Hayır.”", reply["narration"])
 
+    async def test_a_cut_stage_direction_keeps_its_case_after_the_name(self):
+        """Re-review RR3-5: 'Gülümser, seni hatırlar.' shows as 'Marek seni hatırlar.', no capital after the name."""
+        await self.job()
+        self.greeted_only()
+        self.client.stage_direction = "Gülümser, seni hatırlar."
+        reply = await self.line(self.RECOGNISE, "Evet, hatırlıyorum seni.", mode="say")
+        self.assertIn(f"{living_world.public_npc_name(self.npc)} seni hatırlar.", reply["narration"])
+
 
 class RecognitionCut(unittest.TestCase):
     """only_what_recognition_backs alone, for someone who only ever greeted the player (re-review RR2-2, RR2-3)."""
@@ -694,6 +702,12 @@ class RecognitionCut(unittest.TestCase):
         """Re-review RR3-4."""
         self.assertEqual(self.cut("“‘Evet’, dedi, ‘sana yüzük sattım’”"), "")
         self.assertEqual(self.cut("'Evet', hatırlıyorum seni, 'sana yüzük sattım'."), "Evet, hatırlıyorum seni.")
+
+    def test_a_stage_direction_keeps_its_own_case(self):
+        """Re-review RR3-5: the stage follows the person's name, so no capital is put on it."""
+        stage = npc_statements.only_what_recognition_backs(
+            self.world, self.npc, "Beni hatırlıyor musun?", "Gülümser, seni hatırlar.", stage=True)
+        self.assertEqual(stage, "seni hatırlar.")
 
 
 class CheckIsNotSpeech(Table):

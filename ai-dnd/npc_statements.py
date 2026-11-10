@@ -758,18 +758,20 @@ def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str)
     return {"status": "unsupported", "claim_kind": None, "objects": objects}
 
 
-def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], player_text: str, reply: str) -> str:
+def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], player_text: str, reply: str,
+                                *, stage: bool = False) -> str:
     """A reply to a recognition question, less every clause that adds an event the person's words do not back.
 
-    Spoken text and stage direction alike. A clause stands when its content words are all plain openers (yes,
-    of course…; `_NAME_OPENERS`, never the claim-acceptance table with its payment verbs), the player's own, or
-    a recognition verb with nothing but the player's face, voice, eyes or name beside it ("yüzünü unutmadım";
-    `RECOGNISED_OF_YOURS`); anything else is an event, and ONE recorded statement of theirs must hold every word
-    of it, the clause's "me / you" words included, word for word (a recorded "Kılıcı Ali'ye sattım" backs neither
-    "Kılıcı sana sattım" nor "sattın"; two sayings are not recombined). "Evet, o yüzüğü sana ben satmıştım."
-    keeps "Evet." when no saying of theirs backs the sale; "Borcunu unutmadım." keeps nothing. Wrapping quotes
-    go before the cut; a bare "Hayır." or "Dedi." left over is nothing left. The reply comes back unchanged when
-    nothing is cut, and empty when nothing is left.
+    Spoken text and stage direction alike (a stage follows the person's name, so it keeps its own case). A clause
+    stands when its content words are all plain openers (yes, of course…; `_NAME_OPENERS`, never the
+    claim-acceptance table with its payment verbs), the player's own, or a recognition verb with nothing but the
+    player's face, voice, eyes or name beside it ("yüzünü unutmadım"; `RECOGNISED_OF_YOURS`); anything else is
+    an event, and ONE recorded statement of theirs must hold every word of it, the clause's "me / you" words
+    included, word for word (a recorded "Kılıcı Ali'ye sattım" backs neither "Kılıcı sana sattım" nor "sattın";
+    two sayings are not recombined). "Evet, o yüzüğü sana ben satmıştım." keeps "Evet." when no saying of theirs
+    backs the sale; "Borcunu unutmadım." keeps nothing. Wrapping quotes go before the cut; a bare "Hayır." or
+    "Dedi." left over is nothing left. The reply comes back unchanged when nothing is cut, and empty when nothing
+    is left.
     """
     statements = [set(fold(statement.get("text", "")).split())
                   for statement in view(world)["statements"].get(npc.get("id"), [])]
@@ -805,7 +807,7 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
         return ""  # "Hayır." / "Dedi." with its event cut is no answer: the route's fallback speaks
     if text and text[-1] not in ".!?…":
         text += "."
-    return tr_case.upper_first(text) if text else ""
+    return text if stage or not text else tr_case.upper_first(text)
 
 
 def _said_clause(claim: str, drop: tuple[re.Pattern[str], ...], names: set[str]) -> list[str]:
