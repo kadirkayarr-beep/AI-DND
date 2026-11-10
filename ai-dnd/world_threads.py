@@ -926,6 +926,9 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     reading = {"meaning": None, "terms": False, "question": False, "take": False, "give": False,
                "start": False, "move": False, "reference": False, "pointing": False}
     table = answer_table()
+    if isinstance(text, str) and _TURKISH_LETTERS.search(text) and "sure" in table.get("accept", ()):
+        # folded Turkish "süre" (duration) is "sure": in a line with a Turkish letter it is no English yes
+        table = {**table, "accept": table["accept"] - {"sure"}}
     text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
     if text is None:
         return reading

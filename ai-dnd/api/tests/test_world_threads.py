@@ -621,6 +621,14 @@ class EnglishAnswers(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertEqual(self.meaning(line), meaning)
 
+    def test_turkish_sure_is_not_the_english_sure(self):
+        # Review 11 finding 3: folded Turkish "süre" (duration) is "sure"; with a Turkish letter in the line it accepts nothing.
+        for line in ("Peki, süre.", "süre", "Süre iyi."):
+            with self.subTest(line=line):
+                self.assertNotEqual(self.meaning(line), "accept")
+        self.assertEqual(self.meaning("Sure."), "accept")
+        self.assertEqual(self.meaning("Sure, sir."), "accept")
+
     def test_032_reads_like_its_turkish_twin(self):
         twin = "Tabii peder. Haskula kim, onu nerede bulurum, iki grup tam olarak ne istiyor?"
         self.assertEqual(self.meaning(twin), "accept")

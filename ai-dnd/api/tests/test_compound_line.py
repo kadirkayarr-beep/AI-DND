@@ -132,8 +132,8 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
     campaign_with_npc, open_job = front_tests.FrontTable.campaign_with_npc, front_tests.FrontTable.open_job
     front_calls = front_tests.FrontTable.front_calls
 
-    async def town(self, *, locked=False):
-        with fixed_town(self, 4531):
+    async def town(self, *, locked=False, seed=4531):
+        with fixed_town(self, seed):
             await front_tests.FrontTable.begin(self)
         import living_world
         self.inn = next(key for key, value in self.world["locations"].items()
@@ -267,6 +267,27 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
         offers = self.live().world_state["flags"].get("economic_offers", {}).values()
         self.assertEqual([row["status"] for row in offers].count("prepared"), 1)
         self.assertEqual(self.purse_cp(), before)
+
+    async def pay_by_name(self, line, rest, seed):
+        # Review 11 finding 1: the person named by NAME gets the same card as by role; the stated payment never vanishes.
+        await self.town(seed=seed)
+        before = self.purse_cp()
+        reply = await self.turn(line, [{"kind": "go_to", "place_id": self.inn, "inside": True, "also_says": rest},
+                                       {"kind": "speak_to", "person_id": self.barmen,
+                                        "economic_intent": "tip", "coin_cp": 50}])
+        self.assertEqual(self.location(), self.inn)
+        card = reply.json()["state"]["economic_offer"]
+        self.assertIsNotNone(card, reply.json()["narration"])
+        self.assertEqual(card["max_total_cp"], 50)
+        offers = self.live().world_state["flags"].get("economic_offers", {}).values()
+        self.assertEqual([row["status"] for row in offers].count("prepared"), 1)
+        self.assertEqual(self.purse_cp(), before)
+
+    async def test_walk_then_pay_by_name_opens_the_same_card(self):
+        await self.pay_by_name("hana gidiyorum ve Osman'a 5 gümüş veriyorum", "Osman'a 5 gümüş veriyorum", 4641)
+
+    async def test_walk_then_pay_by_name_after_a_comma_and_sonra(self):
+        await self.pay_by_name("hana gidiyorum, sonra Osman'a 5 gümüş veriyorum", "Osman'a 5 gümüş veriyorum", 4642)
 
     async def test_coin_read_with_the_walk_is_not_read_again_in_the_rest(self):
         # The walk's own reading already held the coin out (a room deal on arrival): the rest names the same coin, so

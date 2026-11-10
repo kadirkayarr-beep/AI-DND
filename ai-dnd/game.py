@@ -18659,7 +18659,14 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
         said = _dispatch_player_turn(rest, messages, None, None, action_id, session_id, None, None)
         session._front_rest = ""  # the second part has no second part of its own
     else:
-        session._thread_gate_done = True
+        # A rest that hands coin is read like any say line that names coin (the front step opens its card): the gate
+        # is left open for it, so a person named by name gets the card a role gets and no coin is paid without one.
+        import front_proposal
+        coin_rest = front_proposal.names_coin(rest)
+        session._thread_gate_done = not coin_rest
+        if coin_rest:
+            session._front_reply = session._front_read = None  # the walk's reading is spent: the coin line is read afresh
+            session._front_ahead = False
         try:
             said = _dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
         finally:
