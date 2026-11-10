@@ -21,6 +21,8 @@ from api.tests import test_front_proposal as front_table
 from api.tests.town_seed import fixed_town
 
 CROSSBOW = "Ağır Tatar Yayı & 20 Ok"
+# A blow whose words name no move the engine reads (Task 41: a trip is now the Shove, so not a trip).
+UNMAPPED = "Marek'in üstüne atlayıp gırtlağına sarılıyorum"
 
 
 class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
@@ -52,12 +54,44 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertIn("kavga", reply["narration"])
         return reply
 
-    async def test_a_trip_said_yes_to_rolls_nothing_until_the_real_move_is_chosen(self):
-        # H241 (review B1): 'çelme takıp düşürmeye çalışıyorum' - 'Evet.' was a crossbow shot, then a damaging punch.
-        # The engine has no trip: a yes to a line naming no move it reads asks Shove or punch, and nothing rolls.
+    async def test_a_trip_said_yes_to_is_the_shove_not_the_crossbow(self):
+        # Task 41 (owner vocabulary, 2026-11-10): a trip ('çelme', 'devir', 'düşür') is the 2024 Shove: the target's
+        # save, no damage, and the crossbow in hand is never used. No "Shove mı, yumruk mu?" question for it.
         await self.begin()
         self.npc.update(max_hp=4, current_hp=4)
-        await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
+        await self.ask("Marek'e çelme takıp düşürmeye çalışıyorum")
+        reply = await self.line("Evet.")
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertNotIn("karşılığı yok", reply["narration"])
+        shove = self.players_last_attack()
+        self.assertEqual(shove["unarmed_option"], "shove")
+        self.assertIn("dc", shove["resolution"])
+        self.assertNotEqual(reply["combat_result"]["weapon"], "Heavy Crossbow")
+        self.assertEqual(self.npc["current_hp"], 4)
+
+    async def test_a_trip_is_the_shove_only_when_no_weapon_and_no_other_move_is_named(self):
+        # Task 41: the trip words are read only when the words name no weapon of theirs and no other move.
+        import weapon_attack
+        await self.begin()
+        self.session._front_strike = None
+        for line in ("Marek'e çelme takıp düşürmeye çalışıyorum", "çelmeliyorum", "Marek'i devirmeye çalışıyorum",
+                     "onu yere düşürüyorum"):
+            with self.subTest(line=line):
+                identity, choice = weapon_attack.natural_choice(self.session, line)
+                self.assertEqual(identity, "unarmed")
+                self.assertEqual((choice.get("unarmed_option"), choice.get("shove_option")), ("shove", "prone"))
+                self.assertTrue(weapon_attack.names_a_move(self.session, line))
+        identity, choice = weapon_attack.natural_choice(self.session, "büyük kılıcımla Marek'e çelme takıyorum")
+        self.assertEqual((identity, choice.get("unarmed_option")), ("greatsword", None))
+        identity, choice = weapon_attack.natural_choice(self.session, "çelme takıp yüzüne yumruk atıyorum")
+        self.assertEqual((identity, choice.get("unarmed_option")), ("unarmed", None))
+        self.assertFalse(weapon_attack.names_a_move(self.session, UNMAPPED))
+
+    async def test_a_blow_naming_no_move_said_yes_to_rolls_nothing_until_the_real_move_is_chosen(self):
+        # H241 (review B1): a yes to a line naming no move the engine reads asks Shove or punch, and nothing rolls.
+        await self.begin()
+        self.npc.update(max_hp=4, current_hp=4)
+        await self.ask(UNMAPPED)
         reply = await self.line("Evet.")
         self.assertEqual(reply["turn_outcome"]["status"], "clarification", reply["narration"])
         self.assertIn("yumruk", reply["narration"])
@@ -70,18 +104,18 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.players_last_attack()["unarmed_option"], "shove")
         self.assertEqual(self.npc["current_hp"], 4)
 
-    async def test_a_punch_chosen_after_the_trip_question_is_bare_hands_not_the_crossbow(self):
+    async def test_a_punch_chosen_after_the_which_move_question_is_bare_hands_not_the_crossbow(self):
         await self.begin()
-        await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
+        await self.ask(UNMAPPED)
         await self.line("Evet.")
         reply = await self.line("yumruk atıyorum")
         self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
         self.assertEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
         self.assertNotIn("ranged_in_close_combat", reply["combat_result"].get("disadvantage_sources") or [])
 
-    async def test_an_answer_to_the_trip_question_naming_no_move_starts_nothing(self):
+    async def test_an_answer_to_the_which_move_question_naming_no_move_starts_nothing(self):
         await self.begin()
-        await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
+        await self.ask(UNMAPPED)
         await self.line("Evet.")
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
         reply = await self.line("boşver, konuşalım", "Peki.")
@@ -145,10 +179,10 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         self.npc.update(max_hp=4, current_hp=4)
         self.attacks_before = len([row for row in self.world["attack_results"] if row["actor"] == "player"])
 
-    async def in_fight_trip(self):
+    async def in_fight_unmapped(self):
         # Re-review I-R1: H241 in a fight already on, Marek chosen, the crossbow in hand.
         self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
-        reply = await self.line("Marek'e çelme takıp yere düşürmeye çalışıyorum", target=True)
+        reply = await self.line(UNMAPPED, target=True)
         self.assertEqual(reply["turn_outcome"]["status"], "clarification", reply["narration"])
         self.assertIn("itiyorum", reply["narration"])
         self.assertEqual(self.npc["current_hp"], 4)
@@ -156,25 +190,36 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
                          self.attacks_before)
         return reply
 
-    async def test_a_trip_in_a_fight_rolls_nothing_and_itiyorum_is_the_shove(self):
+    async def test_a_trip_in_a_fight_is_the_shove_on_the_chosen_opponent(self):
+        # Task 41: in a fight already on, the trip is the Shove at once: no question, no crossbow, no damage.
         await self.fight_marek()
-        await self.in_fight_trip()
+        self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+        reply = await self.line("Marek'e çelme takıp düşürmeye çalışıyorum", target=True)
+        self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
+        self.assertEqual(self.players_last_attack()["unarmed_option"], "shove")
+        self.assertEqual(self.players_last_attack()["target_id"], self.npc["id"])
+        self.assertNotEqual(reply["combat_result"]["weapon"], "Heavy Crossbow")
+        self.assertEqual(self.npc["current_hp"], 4)
+
+    async def test_a_blow_naming_no_move_in_a_fight_rolls_nothing_and_itiyorum_is_the_shove(self):
+        await self.fight_marek()
+        await self.in_fight_unmapped()
         reply = await self.line("itiyorum", target=True)
         self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
         self.assertEqual(self.players_last_attack()["unarmed_option"], "shove")
         self.assertEqual(self.players_last_attack()["target_id"], self.npc["id"])
         self.assertEqual(self.npc["current_hp"], 4)
 
-    async def test_a_trip_in_a_fight_then_a_punch_is_bare_hands(self):
+    async def test_a_blow_naming_no_move_in_a_fight_then_a_punch_is_bare_hands(self):
         await self.fight_marek()
-        await self.in_fight_trip()
+        await self.in_fight_unmapped()
         reply = await self.line("yumruk atıyorum", target=True)
         self.assertEqual(reply["turn_outcome"]["action"], "attack", reply["narration"])
         self.assertEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
 
     async def test_a_second_yes_to_the_which_move_question_asks_it_again(self):
         await self.begin()
-        await self.ask("Marek'e çelme takıp yere düşürmeye çalışıyorum")
+        await self.ask(UNMAPPED)
         await self.line("Evet.")
         reply = await self.line("Evet.")
         self.assertIn("itiyorum", reply["narration"])
