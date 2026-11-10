@@ -42,3 +42,25 @@ test("Replit artifact titles carry the player-visible name", () => {
     assert.doesNotMatch(toml.match(/^description = .*$/m)[0], /AI-DND/);
   }
 });
+
+test("protected internal ids keep their ai-dnd names", () => {
+  const expected = {
+    "src/lib/account-session.ts": [
+      '"ai-dnd-account-owner"',
+      '"ai-dnd-transcript-"',
+      '"ai-dnd-pending-turns:"',
+      '"ai-dnd-turn-context:"',
+    ],
+    "src/lib/gate-sound.ts": ["'ai-dnd-ui-sound-muted'", "'ai-dnd-ui-sound-volume'"],
+    "src/lib/pending-action.ts": ['"ai-dnd-pending-turns:action:"', '"ai-dnd-turn-context:species:"'],
+    "src/pages/game-browser.tsx": ["'ai-dnd-transcript-'", 'data-testid="brand-ai-dnd"'],
+    "package.json": ['"name": "@workspace/ai-dnd-experience"'],
+    "../ai-dnd-web/package.json": ['"name": "@workspace/ai-dnd-web"'],
+  };
+  for (const [file, strings] of Object.entries(expected)) {
+    const src = read(file);
+    for (const text of strings) {
+      assert.ok(src.includes(text), `${file} must still contain ${text}`);
+    }
+  }
+});
