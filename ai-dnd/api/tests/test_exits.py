@@ -21,11 +21,14 @@ from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, describe_problems
 from api.tests.journeys.schema import _load_step, load_scenario
 from api.tests.test_house_door import stub_feature, stub_npc
+from api.tests.town_seed import fixed_town
 from incidents import sublocations
 
 CITY = "fr:city:neverwinter"
 SIDE = "fr:city:neverwinter:side_street"
 SUCCESS = {"result": "BAŞARILI", "roll": 20, "total": 25, "dc": 12}
+# A new campaign seeds its town (and opens its places) from its id: pinned, so every run sees the same town.
+TOWN_SEED = 3901
 
 
 class ExitsTests(JourneyCase):
@@ -34,7 +37,8 @@ class ExitsTests(JourneyCase):
         scenario = load_scenario(SCENARIO_DIR / f"{name}.json")
         steps = (scenario.steps[:1] if fight else ()) + tuple(
             _load_step(raw, f"{name}, ek adım", False) for raw in extra)
-        results = await self.run_scenario(dataclasses.replace(scenario, steps=steps))
+        with fixed_town(self, TOWN_SEED):
+            results = await self.run_scenario(dataclasses.replace(scenario, steps=steps))
         self.assertEqual(describe_problems(results), [])
         session = self.manager.get(self.last_session_id).game_session
         if fight:
@@ -130,7 +134,11 @@ class ExitsTests(JourneyCase):
             world["locations"][f"location_{number}"] = {"id": f"location_{number}", "name": f"Yer {number}",
                                                         "parent_location_id": CITY, "exit_location_id": CITY}
             number += 1
-        self.assertIsNone(local_places.create_local_place(world, CITY, "smithy"))  # the cap is real
+        # The town may already hold some kinds (its own work opens them); a kind it lacks would be a new place.
+        kind = next((kind for kind, spec in local_places.PLACE_KINDS.items()
+                     if not spec.get("outdoors") and local_places.find_local_place(world, CITY, kind) is None), None)
+        self.assertIsNotNone(kind)
+        self.assertIsNone(local_places.create_local_place(world, CITY, kind))  # the cap is real
         self.assertEqual(exits.way_out(world, CITY, open_if_needed=True), SIDE)
         self.assertIn(SIDE, world["locations"])
 
@@ -158,7 +166,8 @@ class ExitsTests(JourneyCase):
         self.assertIn("Buradan çıkış yok; dövüşmeye devam edebilirsin.", result["narration"])
         self.assertNotIn("teslim", result["narration"])
         self.assertEqual(result["action_result"]["reason_code"], "no_exit")
-        self.assertEqual(session.world_state["location"], "location_001")
+        self.assertIsNotNone(self.setup_place_id)   # the locked cellar the setup stood the player in, by its live id
+        self.assertEqual(session.world_state["location"], self.setup_place_id)
         self.assertIs(session.world_state["combat"]["active"], True)
         self.assertGreater(session.world_state["combat"]["round"], round_before)
         self.assertEqual(len(session.world_state["locations"]), count)
