@@ -653,6 +653,27 @@ class DurationSaidTwice(unittest.TestCase):
         self.assertEqual(clock.DURATION_CONFLICT, "Aynı satırda iki farklı süre söyledin; tek bir süre yaz.")
         self.assertIsInstance(caught.exception, ValueError)
 
+    def test_the_same_length_again_after_a_sequencing_word_asks(self):
+        # Controller Ruling (fix round 1): "sonra / daha / tekrar / ardından / sonrasında" make the repeat more time
+        for line in ("2 saat bekliyorum, sonra 2 saat daha uyuyorum",
+                     "bir saat yürüyorum, sonra bir saat dinleniyorum",
+                     "yarım saat bekliyorum, yarım saat daha bekliyorum",
+                     "sabah 2 saat, öğleden sonra 2 saat çalışıyorum",
+                     "1 saat bekliyorum, tekrar 1 saat",
+                     "1 saat bekliyorum, ardından 1 saat",
+                     "1 saat bekliyorum, sonrasında 1 saat"):
+            with self.subTest(line=line), self.assertRaises(clock.DurationConflict):
+                clock.requested_duration(line)
+
+    def test_a_restatement_with_no_sequencing_word_still_counts_once(self):
+        self.assertEqual(clock.requested_duration(Q167), 16 * 3600)
+        self.assertEqual(clock.requested_duration("16 saat dinleniyorum. 16 saat zaman ilerlesin."), 16 * 3600)
+
+    def test_names_duration_counts_a_conflict_as_a_length(self):
+        self.assertTrue(clock.names_duration("2 saat bekliyorum, yok 3 saat"))
+        self.assertTrue(clock.names_duration("2 saat bekliyorum"))
+        self.assertFalse(clock.names_duration("bekliyorum"))
+
 
 if __name__ == "__main__":
     unittest.main()

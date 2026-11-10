@@ -163,26 +163,36 @@ DURATION_CONFLICT = "Aynı satırda iki farklı süre söyledin; tek bir süre y
 
 
 class DurationConflict(ValueError):
-    """One line names two different amounts of the same unit ("2 saat ..., yok 3 saat"): the player is asked."""
+    """One line names two different amounts of the same unit ("2 saat ..., yok 3 saat"), or the same amount again as a
+    next step ("2 saat ..., sonra 2 saat daha"): the player is asked."""
+
+
+# Between two mentions of one length, or "daha" right after the second: the second is a next span, not a restatement.
+_ONE_MORE_SPAN = re.compile(r"\b(?:sonra\w*|daha|tekrar\w*|ardindan)\b")
+_MORE_OF_IT = re.compile(r"\s*daha\b")
 
 
 def requested_duration(text):
     """Read only explicit player duration, never generated prose.
 
     The same length said twice counts once ("16 saat ... 16 saat"); different units add ("2 saat 30 dakika");
-    two different amounts of one unit raise DurationConflict."""
+    two different amounts of one unit, or the same one again after "sonra/daha/tekrar/ardından", raise DurationConflict."""
     normalized = normalize(text)
     words = {"bir": 1, "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alti": 6,
              "yedi": 7, "sekiz": 8, "dokuz": 9, "on": 10, "yarim": 0.5}
     pattern = r"\b(\d+(?:[.,]\d+)?|" + "|".join(words) + r")\s*(saniye|dakika|saat|gun|hafta|ay)\b"
-    matches = re.findall(pattern, normalized)
+    matches = list(re.finditer(pattern, normalized))
     if not matches:
         return None
-    amounts = {}
-    for amount, unit in matches:
+    amounts, last_end = {}, {}
+    for match in matches:
+        amount, unit = match.groups()
         number = words[amount] if amount in words else float(amount.replace(",", "."))
-        if amounts.setdefault(unit, number) != number:
-            raise DurationConflict(DURATION_CONFLICT)
+        if unit in amounts and (amounts[unit] != number
+                                or _ONE_MORE_SPAN.search(normalized, last_end[unit], match.start())
+                                or _MORE_OF_IT.match(normalized, match.end())):
+            raise DurationConflict(DURATION_CONFLICT)  # "sonra 2 saat daha": more time, not the same said again
+        amounts[unit], last_end[unit] = number, match.end()
     total = 0
     for unit, number in amounts.items():
         total += number * {"saniye": 1, "dakika": 60, "saat": 3600, "gun": DAY,

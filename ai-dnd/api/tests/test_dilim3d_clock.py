@@ -87,19 +87,51 @@ class DurationSaidTwiceTurn(unittest.IsolatedAsyncioTestCase):
         await self.undo()
         self.assertEqual(self.snapshot(), before)
 
-    async def test_a_conflict_moves_nothing_and_asks(self):
-        before = self.snapshot()
-        reply = await self.turn("2 saat bekliyorum, yok 3 saat")
+    def assert_asked_and_wrote_nothing(self, before, reply):
+        """The clarification is said; the clock, messages and world stay (only the turn's own flags bookkeeping moves)."""
         self.assertEqual(reply.status_code, 200, reply.text)
         self.assertIn(campaign_time.DURATION_CONFLICT, reply.json()["narration"])
-        self.assertEqual(self.elapsed(), before["world_state"]["campaign_time"]["elapsed_seconds"])
+        after = self.snapshot()
+        self.assertEqual(after["world_state"]["campaign_time"], before["world_state"]["campaign_time"])
+        self.assertEqual(after["messages"], before["messages"])
+        unflagged = lambda world: {key: value for key, value in world.items() if key != "flags"}
+        self.assertEqual(unflagged(after["world_state"]), unflagged(before["world_state"]))
+
+    async def test_a_conflict_moves_nothing_and_asks(self):
+        before = self.snapshot()
+        self.assert_asked_and_wrote_nothing(before, await self.turn("2 saat bekliyorum, yok 3 saat"))
 
     async def test_a_conflict_read_as_a_wait_by_the_front_moves_nothing_and_asks(self):
         before = self.snapshot()
-        reply = await self.turn("2 saat bekliyorum, yok 3 saat", front={"kind": "wait"})
+        self.assert_asked_and_wrote_nothing(before, await self.turn("2 saat bekliyorum, yok 3 saat", front={"kind": "wait"}))
+
+    async def test_a_conflict_read_as_an_attempt_by_the_front_moves_nothing_and_asks(self):
+        # no wait word: only names_a_stretch turns the front's 'attempt' into the wait owner, which asks
+        before = self.snapshot()
+        self.assert_asked_and_wrote_nothing(
+            before, await self.turn("kapıyı 2 saat zorluyorum, yok 3 saat", front={"kind": "attempt"}))
+
+    async def test_undo_after_a_conflict_gives_back_the_same_state(self):
+        before = self.snapshot()
+        reply = await self.turn("2 saat bekliyorum, yok 3 saat")
         self.assertEqual(reply.status_code, 200, reply.text)
-        self.assertIn(campaign_time.DURATION_CONFLICT, reply.json()["narration"])
-        self.assertEqual(self.elapsed(), before["world_state"]["campaign_time"]["elapsed_seconds"])
+        await self.undo()
+        self.assertEqual(self.snapshot(), before)
+
+    async def test_replayed_conflict_answers_the_same_and_writes_nothing(self):
+        action_id = str(uuid.uuid4())
+        first = await self.turn("2 saat bekliyorum, yok 3 saat", action_id=action_id)
+        self.assertEqual(first.status_code, 200, first.text)
+        after_first = self.snapshot()
+        again = await self.turn("2 saat bekliyorum, yok 3 saat", action_id=action_id)
+        self.assertEqual(again.status_code, 200, again.text)
+        self.assertEqual(again.json(), first.json())
+        self.assertEqual(self.snapshot(), after_first)
+
+    async def test_two_steps_of_one_length_ask(self):
+        # 'sonra ... daha': the same length again is more time, not a restatement; it is asked, never silently halved
+        before = self.snapshot()
+        self.assert_asked_and_wrote_nothing(before, await self.turn("2 saat bekliyorum, sonra 2 saat daha uyuyorum"))
 
     async def test_166_a_second_long_rest_too_soon_says_so(self):
         first = await self.turn("8 saat uyuyorum. Uzun dinlenme yapıyorum.")  # QA #028, verbatim
@@ -132,6 +164,18 @@ class TimedOwnersAsk(unittest.TestCase):
     def test_resolve_input_asks(self):
         import timed_gameplay
         self.assert_asks(timed_gameplay.resolve_input(self.session, "2 saat bekliyorum, yok 3 saat"))
+
+    def test_names_a_stretch_takes_a_conflict(self):
+        import timed_gameplay
+        self.assertTrue(timed_gameplay.names_a_stretch(self.session.world_state, "kapıyı 2 saat zorluyorum, yok 3 saat"))
+        self.assertEqual(self.session.world_state, self.before)
+
+    def test_primal_knowledge_refuses_a_conflict_line_as_timed(self):
+        import combat_lifecycle
+        with self.assertRaises(combat_lifecycle.CombatRequestError) as caught:
+            self.session.primal_knowledge_check_admission("2 saat bekliyorum, yok 3 saat")
+        self.assertEqual(caught.exception.code, "primal_knowledge_immediate_check_only")
+        self.assertEqual(self.session.world_state, self.before)
 
     def test_resolve_input_asks_before_a_rest(self):
         import timed_gameplay
