@@ -946,6 +946,7 @@
       "trouble_goes": "Bunun için {recipient} ile {target} içinde konuşman gerekiyor.",
       "trouble_stays": "Bunun için burada iş başına geçmen gerekiyor; başladığında söyle, bir gün sürer.",
       "matter_done": "Mesele konuşuldu, dert yatıştı.",
+      "offer_lapsed": "Bu teklifin süresi doldu; iş kapandı, artık alınamaz.",
       "board": "Panoya çivili kâğıtlarda şunlar yazıyor: {lines}",
       "board_hint": "Köşedeki ilan panosuna yeni kâğıtlar çivilenmiş.",
       "door_notice": "Kapıya bir kâğıt çivilenmiş: {paper}",

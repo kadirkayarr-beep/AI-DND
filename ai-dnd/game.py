@@ -8532,6 +8532,9 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     if decision == "give_late":
         gate["reply"] = dialogue_jobs.deliver_late(session, thread, person, player_input)
         return gate
+    if decision == "lapsed":
+        gate["reply"] = dialogue_jobs.lapsed_reply(session, thread, person, player_input)
+        return gate
     if decision == "matter":
         world_threads.settle_matter(world, thread, person)
         gate.update(decision="matter_settled", paid_line=(world_threads.job_lines("text") or {}).get("matter_done"))

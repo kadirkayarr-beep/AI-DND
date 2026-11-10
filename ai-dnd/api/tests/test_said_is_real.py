@@ -296,6 +296,49 @@ class HandingOver(ErrandBase):
         self.assertEqual(self.wallet(), 0)
 
 
+class ExpiredOffer(ErrandBase):
+    """An offer the clock took back: a yes to it is answered by the engine's own line, and nothing is taken."""
+
+    async def lapsed(self, front):
+        await self.errand(front=front)
+        self.client.front = {"kind": "wait"} if front else None
+        await self.line("iki gun bekliyorum")
+        self.assertEqual(self.status(), "expired")
+        self.record = json.dumps([world_threads.by_id(self.world, self.tid), self.world.get("quests"),
+                                  self.world.get("currency"), self.world.get("inventory")],
+                                 sort_keys=True, ensure_ascii=False)
+        # The model, on its own, says the job is taken: it never is.
+        self.client.speech_extra = {"commitment": {"kind": "job_accepted", "thread_id": self.tid}}
+
+    def unchanged(self):
+        self.assertEqual(json.dumps([world_threads.by_id(self.world, self.tid), self.world.get("quests"),
+                                     self.world.get("currency"), self.world.get("inventory")],
+                                    sort_keys=True, ensure_ascii=False), self.record)
+
+    def told_it_lapsed(self, reply):
+        self.unchanged()
+        self.assertEqual(reply["narration"], "Bu teklifin süresi doldu; iş kapandı, artık alınamaz.")
+
+    async def test_a_yes_read_by_the_old_reader(self):
+        await self.lapsed(front=False)
+        self.told_it_lapsed(await self.line("tamam, o notu alirim", "Tamam, anlaştık, iş senin. Al notu."))
+
+    async def test_a_yes_read_by_the_front(self):
+        await self.lapsed(front=True)
+        self.client.front = {"kind": "offer_answer", "offer_id": self.tid, "answer": "accept"}
+        self.told_it_lapsed(await self.line("tamam, o notu alirim", "Tamam, anlaştık, iş senin. Al notu."))
+
+    async def test_a_line_that_is_no_yes_is_still_answered_by_the_person(self):
+        await self.lapsed(front=False)
+        self.client.speech_extra = {}
+        reply = await self.line("o not isi ne oldu usta", "Beklemedin, ben de geri çektim.")
+        self.assertEqual(self.status(), "expired")  # the person telling what came of it may note that it was told
+        self.assertEqual(json.loads(self.record)[1:], [self.world.get("quests"), self.world.get("currency"),
+                                                       self.world.get("inventory")])
+        self.assertIn("geri çektim", reply["narration"])
+        self.assertNotIn("süresi doldu", reply["narration"])
+
+
 class TakingThings(ErrandBase):
     async def shown(self, words="Lavunel bakır defterine bir şeyler kaydediyor."):
         await self.errand()

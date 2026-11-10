@@ -383,6 +383,16 @@ def already_reply(session,thread,text):
             'action_result':{'action':'pocket','status':'resolved','success':False,'state_changes':[],'direct_response':shown}}
 
 
+def lapsed_reply(session,thread,person,text):
+    """A yes to an offer the clock already took back: the engine's own line, and nothing is taken or paid."""
+    import world_threads
+    shown=(world_threads.job_lines('text') or {}).get('offer_lapsed') or ''
+    session.messages.extend([{'role':'user','content':text},{'role':'assistant','content':shown}])
+    return {'messages':session.messages,'narration':shown,'model_calls':0,
+            'action_result':{'action':'dialogue','status':'blocked','success':False,'npc_id':person.get('id'),
+                             'state_changes':[],'direct_response':shown}}
+
+
 def abandon_thread_job(session,thread,owner):
     """Walking away from a job: the journal row closes and a parcel in hand goes back."""
     import world_threads

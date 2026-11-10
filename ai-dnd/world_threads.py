@@ -1088,6 +1088,13 @@ def _last_line_is_the_job(world: dict[str, Any], thread: dict[str, Any], npc: An
         _names_the_work(line, thread, answer_table()))
 
 
+def lapsed_yes(world: dict[str, Any], thread: dict[str, Any], text: Any, npc: Any) -> bool:
+    """A yes to an offer the clock took back, read as the very yes the open offer would have heard. Writes nothing."""
+    if thread.get("status") != "expired" or thread.get("accepted_at") is not None:
+        return False
+    return bind_player_decision(world, {**thread, "status": "offered"}, text, npc) == "accepted"
+
+
 def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: Any, npc: Any) -> str | None:
     """Python's reading of the player's own words on this thread. Writes nothing."""
     status = thread.get("status")
@@ -1459,6 +1466,8 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     for thread in closed:
         if thread["status"] == "done" and asks_for_pay(text):
             return {"thread_id": thread["thread_id"], "decision": "pay", "npc_id": npc.get("id")}
+        if lapsed_yes(world, thread, text, npc):
+            return {"thread_id": thread["thread_id"], "decision": "lapsed", "npc_id": npc.get("id")}
     for thread in (*mine, *closed):
         reading = read_answer(text, npc, thread)
         about = _speaks_of_work(text, reading, thread, answer_table())
