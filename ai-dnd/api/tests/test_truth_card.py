@@ -1,6 +1,7 @@
 """Dilim 1 Task 12: deterministic, read-only, NPC-scoped truth projections."""
 import copy
 import unittest
+from unittest.mock import patch
 
 import equipment_economy
 import truth_card
@@ -77,6 +78,19 @@ class TruthCard(unittest.TestCase):
         self.assertNotIn(nothing, truth_card.narrator_view(self.world, npc=smith))  # it is the person's own card only
         self.world["shops"] = [{"id": "shop_forge", "shopkeeper_id": "smith", "location": "inn"}]
         self.assertNotIn(nothing, truth_card.npc_view(self.world, npc=smith))  # a shop's wares are sold through the engine
+
+    def test_the_nothing_to_sell_line_never_pushes_their_own_job_off_the_card(self):
+        """Review M8: near the 600-byte cap the optional fact goes first; a quest giver keeps their job line."""
+        nothing = "\nmotorda sattığın ya da yaptığın bir şey yok"
+        giver = {"id": "giver", "name": "Oren", "role": "Kâhya", "location": "inn"}
+        self.world["npcs"].append(giver)
+        with patch.object(truth_card.quest_log, "card_lines", return_value=["görevlerin: "]):
+            empty = len(truth_card.npc_view(self.world, npc=giver).encode("utf-8")) - len(nothing.encode("utf-8"))
+        job = "görevlerin: " + "a" * (590 - empty)  # the card fits with the job alone, not with both
+        with patch.object(truth_card.quest_log, "card_lines", return_value=[job]):
+            card = truth_card.npc_view(self.world, npc=giver)
+        self.assertIn(job, card)
+        self.assertLessEqual(len(card.encode("utf-8")), 600)
 
     def test_no_room_is_shown_to_a_guest(self):
         guest = {"id": "guest", "name": "Oren", "role": "Yolcu", "location": "inn"}

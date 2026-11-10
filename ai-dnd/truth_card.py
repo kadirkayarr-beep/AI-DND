@@ -28,7 +28,8 @@ class _Line:
 
 REFUSAL_NOTE = "olmadı notu"  # the name a dropped refusal note has in the "(kısaltıldı: …)" mark (tasarım §3e)
 # Optional facts go in this order (tasarım karar 59); "son görev" is the last running-quest line, after the prices.
-_OPTIONAL_ORDER = ("çıkışlar", "izler", "görevler", "ödemeler", "çanta", "fiyatlar", "son görev")
+# "satış" (nothing sold or made through the engine) goes first: it never pushes a person's own job off the card.
+_OPTIONAL_ORDER = ("satış", "çıkışlar", "izler", "görevler", "ödemeler", "çanta", "fiyatlar", "son görev")
 
 
 def _clip(text, size, *, words=False):
@@ -268,5 +269,5 @@ def npc_view(world: dict, *, npc: dict, held_out_cp: int = 0, this_turn=(), max_
                  for shop in world.get("shops", [])):
         # Owner decision F: no engine sale (the list or a shop's wares) and no making exists for this person, so a
         # "körüğü yakıyorum" promise has nothing behind it.
-        lines.append(_Line("satış", "motorda sattığın ya da yaptığın bir şey yok", 1))
+        lines.append(_Line("satış", "motorda sattığın ya da yaptığın bir şey yok"))
     return _fit(lines, max_bytes)
