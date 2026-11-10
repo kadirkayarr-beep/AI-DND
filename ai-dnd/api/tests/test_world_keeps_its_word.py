@@ -257,6 +257,42 @@ class FrontLines(FrontScene):
         self.assertNotIn("last_long_rest_completed_at", self.world)
         self.assertEqual(self.session.character["current_hp"], hurt)
 
+    async def watch_without_rest(self, line):
+        # Task 41 (owner vocabulary, 2026-11-10): 'dinlenmeden', 'dinlenmeksizin' are a rest said no to.
+        await self.rest_scene()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        hurt = self.session.character["current_hp"]
+        self.client.front = {"kind": "wait"}
+        out = await self.line(line)
+        self.assertEqual(self.routes()[-1]["route"], "front:wait")
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 7200, out["narration"])
+        self.assertIsNone((self.session.character.get("hit_dice") or {}).get("window_second"), out["narration"])
+        self.assertNotIn("last_long_rest_completed_at", self.world)
+        self.assertEqual(self.session.character["current_hp"], hurt)
+
+    async def test_a_watch_kept_without_resting_is_only_the_wait(self):
+        await self.watch_without_rest("dinlenmeden iki saat nöbet tutuyorum")
+
+    async def test_a_watch_kept_with_no_rest_at_all_is_only_the_wait(self):
+        await self.watch_without_rest("dinlenmeksizin iki saat nöbet tutuyorum")
+
+    async def wait_without_sleep(self, line):
+        # Task 41: 'uyumadan', 'uyumaksızın' are a sleep said no to: eight hours pass, no Long Rest is recorded.
+        await self.rest_scene()
+        clock = self.world["campaign_time"]["elapsed_seconds"]
+        hurt = self.session.character["current_hp"]
+        self.client.front = {"kind": "wait"}
+        out = await self.line(line)
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock + 8 * 3600, out["narration"])
+        self.assertNotIn("last_long_rest_completed_at", self.world)
+        self.assertEqual(self.session.character["current_hp"], hurt)
+
+    async def test_eight_hours_waited_without_sleeping_is_no_long_rest(self):
+        await self.wait_without_sleep("uyumadan sekiz saat bekliyorum")
+
+    async def test_eight_hours_waited_with_no_sleep_at_all_is_no_long_rest(self):
+        await self.wait_without_sleep("uyumaksızın sekiz saat bekliyorum")
+
     async def test_a_rest_with_no_length_read_as_a_wait_asks_for_an_hour_and_passes_nothing(self):
         await self.rest_scene()
         clock = self.world["campaign_time"]["elapsed_seconds"]
