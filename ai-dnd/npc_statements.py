@@ -136,9 +136,11 @@ _STOP = frozenset({
 RECOGNITION_VERBS = ("hatirl", "unut", "tani", "gord", "gorm", "goru")
 RECOGNISED_OF_YOURS = ("yuz", "ses", "goz", "ad", "isim", "ism")  # face, voice, eyes, name
 _YOURS = re.compile(r"^(?:%s)(?:l[ae]r)?[iu]n[iu]?$" % "|".join(RECOGNISED_OF_YOURS))  # "yüzünü", "gözlerini", "adın"
-# A named subset of `_STOP` (no new words): the "me / you" words a recorded event must hold to back a clause
-# with them (RR3-1).
+# Named subsets of the tables above (no new words): the "me / you" words a recorded event must hold to back a
+# clause with them (RR3-1), the openers that join two clauses (RR3-2), and the openers that alone answer nothing.
 _PERSON = frozenset({"beni", "bana", "benim", "seni", "sana", "senin"}) & _STOP
+_BUT = frozenset({"ama", "fakat", "ancak"}) & _NAME_OPENERS
+_EMPTY_ANSWER = frozenset({"hayir", "dedi", "dedim", "dediydim", "demistim", "soyledim"}) & _FILLER
 
 
 def fold(text: Any) -> str:
@@ -766,7 +768,8 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
     of it, the clause's "me / you" words included, word for word (a recorded "Kılıcı Ali'ye sattım" backs neither
     "Kılıcı sana sattım" nor "sattın"; two sayings are not recombined). "Evet, o yüzüğü sana ben satmıştım."
     keeps "Evet." when no saying of theirs backs the sale; "Borcunu unutmadım." keeps nothing. Wrapping quotes
-    go before the cut. The reply comes back unchanged when nothing is cut, and empty when nothing is left.
+    go before the cut; a bare "Hayır." or "Dedi." left over is nothing left. The reply comes back unchanged when
+    nothing is cut, and empty when nothing is left.
     """
     statements = [set(fold(statement.get("text", "")).split())
                   for statement in view(world)["statements"].get(npc.get("id"), [])]
@@ -775,7 +778,7 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
     def free(word: str) -> bool:
         return word in _NAME_OPENERS or word in own or word.startswith(RECOGNITION_VERBS)
 
-    parts = re.split(r"([,.;!?…]+)", reply.strip().strip("“”\"'‘’"))
+    parts = re.split(r"([,.;!?…]+|\s+(?:%s)\s+)" % "|".join(_BUT), reply.strip().strip("“”\"'‘’"))
     pieces = []  # (clause, the mark after it, stands)
     for clause, mark in zip(parts[0::2], [*parts[1::2], ""]):
         folded = fold(clause)
@@ -790,8 +793,16 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
         pieces.append((clause.strip(), mark, stands))
     if all(stands for _, _, stands in pieces):
         return reply
-    kept = [re.sub(r"[“”\"]", "", clause + mark) for clause, mark, stands in pieces if stands]  # no half pairs
+    kept = []
+    for i, (clause, mark, stands) in enumerate(pieces):
+        if not stands:
+            continue
+        if not mark.strip() or mark.strip() in _BUT:  # "ama" joins two clauses only when both stay
+            mark = " " + mark.strip() if mark.strip() and i + 1 < len(pieces) and pieces[i + 1][2] else ""
+        kept.append(re.sub(r"[“”\"]", "", clause + mark))  # no half pairs
     text = " ".join(kept).strip().rstrip(",;").strip()
+    if text and all(word in _NAME_OPENERS for word in fold(text).split()) and set(fold(text).split()) & _EMPTY_ANSWER:
+        return ""  # "Hayır." / "Dedi." with its event cut is no answer: the route's fallback speaks
     if text and text[-1] not in ".!?…":
         text += "."
     return tr_case.upper_first(text) if text else ""

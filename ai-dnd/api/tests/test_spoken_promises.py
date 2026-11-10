@@ -610,6 +610,15 @@ class Recognition(Table):
                     reply = await self.line(self.RECOGNISE, answer, mode=mode)
                     self.assertNotIn(gone, reply["narration"])
 
+    async def test_a_no_with_its_event_cut_keeps_the_recognition_not_the_no(self):
+        """Re-review RR3-2: 'Hayır, sana yüzük satmadım ama seni hatırlıyorum.' keeps 'seni hatırlıyorum'."""
+        await self.job()
+        self.greeted_only()
+        reply = await self.line(self.RECOGNISE, "Hayır, sana yüzük satmadım ama seni hatırlıyorum.", mode="say")
+        self.assertIn("seni hatırlıyorum", reply["narration"])
+        self.assertNotIn("satmadım", reply["narration"])
+        self.assertNotIn("“Hayır.”", reply["narration"])
+
 
 class RecognitionCut(unittest.TestCase):
     """only_what_recognition_backs alone, for someone who only ever greeted the player (re-review RR2-2, RR2-3)."""
@@ -672,6 +681,14 @@ class RecognitionCut(unittest.TestCase):
         self.assertEqual(self.cut("Kılıcı Ali'ye sattım, sana yüzük sattım."), "Kılıcı Ali'ye sattım.")
         self.said("Hoş geldin yolcu, ekmek taze.")
         self.assertEqual(self.cut("Hoş geldin yolcu, ekmek taze dedim."), "Hoş geldin yolcu, ekmek taze dedim.")
+
+    def test_a_bare_no_or_said_left_over_is_nothing_left(self):
+        """Re-review RR3-2: 'Hayır.' or 'Dedi.' alone answers nothing; a recognition after 'ama' is kept."""
+        self.assertEqual(self.cut("Hayır, sana yüzük satmadım."), "")
+        self.assertEqual(self.cut("“Sana yüzük sattım,” dedi."), "")
+        self.assertEqual(self.cut("Hayır, sana yüzük satmadım ama seni hatırlıyorum."), "Hayır, seni hatırlıyorum.")
+        self.assertEqual(self.cut("Seni hatırlıyorum ama sana yüzük satmadım."), "Seni hatırlıyorum.")
+        self.assertEqual(self.cut("Evet, sana yüzük sattım."), "Evet.")  # a yes is still an answer
 
 
 class CheckIsNotSpeech(Table):
