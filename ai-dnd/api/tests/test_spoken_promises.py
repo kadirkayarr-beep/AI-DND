@@ -590,9 +590,18 @@ class Recognition(Table):
                     reply = await self.line(self.RECOGNISE, answer, mode=mode)
                     self.assertNotIn(gone, reply["narration"])
 
+    async def test_a_reply_wrapped_in_quotes_is_cut_cleanly(self):
+        """Re-review RR2-3: the wrapping quotes go before the cut, so no '““Evet, ”.”' reaches the screen."""
+        await self.job()
+        self.greeted_only()
+        reply = await self.line(self.RECOGNISE, "“Evet, o yüzüğü sana ben satmıştım.”", mode="say")
+        self.assertNotIn("satmıştım", reply["narration"])
+        self.assertIn("“Evet.”", reply["narration"])
+        self.assertNotIn("““", reply["narration"])
+
 
 class RecognitionCut(unittest.TestCase):
-    """only_what_recognition_backs alone, for someone who only ever greeted the player (re-review RR2-2)."""
+    """only_what_recognition_backs alone, for someone who only ever greeted the player (re-review RR2-2, RR2-3)."""
 
     def setUp(self):
         self.world = {}
@@ -618,6 +627,12 @@ class RecognitionCut(unittest.TestCase):
                       "Hayır, hatırlamıyorum."):
             with self.subTest(reply=reply):
                 self.assertEqual(self.cut(reply), reply)
+
+    def test_wrapping_quotes_go_before_the_cut(self):
+        self.assertEqual(self.cut("“Evet, o yüzüğü sana ben satmıştım.”"), "Evet.")
+        self.assertEqual(self.cut('"Evet, sattım" dedi.'), "Evet.")
+        self.assertEqual(self.cut("“Hatırlıyorum seni” dedi, “sana yüzük satmıştım”."), "Hatırlıyorum seni dedi.")
+        self.assertEqual(self.cut("“Evet, hatırlıyorum seni.”"), "“Evet, hatırlıyorum seni.”")  # nothing cut: as is
 
 
 class CheckIsNotSpeech(Table):

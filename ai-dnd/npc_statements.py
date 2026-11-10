@@ -760,18 +760,19 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
     of course…; `_NAME_OPENERS`, never the claim-acceptance table with its payment verbs), the player's own,
     backed by this person's recorded words, or a recognition verb with nothing but the player's face, voice,
     eyes or name beside it ("yüzünü unutmadım"; `RECOGNISED_OF_YOURS`). "Evet, o yüzüğü sana ben satmıştım."
-    keeps "Evet." when no saying of theirs backs the sale; "Borcunu unutmadım." keeps nothing. The reply comes
-    back unchanged when nothing is cut, and empty when nothing is left.
+    keeps "Evet." when no saying of theirs backs the sale; "Borcunu unutmadım." keeps nothing. Wrapping quotes
+    go before the cut. The reply comes back unchanged when nothing is cut, and empty when nothing is left.
     """
     said = [word for statement in view(world)["statements"].get(npc.get("id"), [])
             for word in fold(statement.get("text", "")).split()]
     own = set(fold(player_text).split()) | {fold(npc.get("name", ""))}
-    parts = re.split(r"([,.;!?…]+)", reply)
+    parts = re.split(r"([,.;!?…]+)", reply.strip().strip("“”\"'‘’"))
     kept, cut = [], False
     for clause, mark in zip(parts[0::2], [*parts[1::2], ""]):
-        if not clause.strip():
-            continue
-        content = _objects(fold(clause))
+        folded = fold(clause)
+        if not folded:
+            continue  # blank, or a stray quote mark: not a clause
+        content = _objects(folded)
         leftover = [word for word in content
                     if word not in _NAME_OPENERS and word not in own and not word.startswith(RECOGNITION_VERBS)
                     and not any(_stem_match(word, other) for other in said)]
@@ -782,7 +783,7 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
         kept.append(clause.strip() + mark)
     if not cut:
         return reply
-    text = " ".join(kept).strip().rstrip(",;").strip()
+    text = " ".join(re.sub(r"[“”\"]", "", part) for part in kept).strip().rstrip(",;").strip()  # no half pairs
     if text and text[-1] not in ".!?…":
         text += "."
     return tr_case.upper_first(text) if text else ""
