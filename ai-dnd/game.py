@@ -8818,6 +8818,12 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
                else " Bu cevapta adını söylemene gerek yok.")
         )
     import town_knowledge
+    asked_for = town_knowledge.person_named_in(world, player_input)  # "Özpil nerede?" asked of someone here (Task 29)
+    place = (town_knowledge.place_of_person(world, asked_for)
+             if asked_for and npc_statements.fold(asked_for) != npc_statements.fold(name) else None)
+    if place is not None:
+        lines.append(f"Kasabanın bildiği (motor kaydı): {asked_for}, {place['name']} tarafında bulunur. "
+                     "Sorulursa bunu söyleyebilirsin; başka bir yer söyleme.")
     earlier = town_knowledge.said_before_note(world, npc, _claim_denial_quotes()).strip()
     if earlier:
         lines.append(earlier)

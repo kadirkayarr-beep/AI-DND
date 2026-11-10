@@ -647,6 +647,13 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
         best["id"] in strict_name_ids
         and any(c["id"] in strict_name_ids for c in tied)
     )
+    if tied and same_explicit_name:
+        # Two places of one name ("Özpil'in konağına"): the kind of place said picks one, as the kind filter reads it.
+        said = _place_noun_in(clause_tokens)
+        fits = [c for c in (best, *tied) if said and c["kind"] == "place" and {said[0], said[1]} & {
+            c["record"].get("scene_kind"), c["record"].get("place_kind"), c["record"].get("generic_noun")}]
+        if len(fits) == 1:
+            best, tied = fits[0], []
     if tied and (best_score < 100 or same_explicit_name):
         return {"target": None, "part": part, "score": best_score, "ambiguous": [best, *tied]}
     best = _prefer_side(best, scored, verb, part, cands)

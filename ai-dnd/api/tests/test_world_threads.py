@@ -333,6 +333,25 @@ class TheAuthoredCatalog(unittest.TestCase):
                 self.assertNotIn("{", thread["public_line"] + thread["owner_line"])
         self.assertGreater(seen, 60)
 
+    def test_a_job_line_is_said_the_way_a_person_says_it(self):
+        """'Ölçü gereci, X kişisine Y üzerinde gidecek. Ücret 29 bakır.' was the catalog's form, not speech (Task 29)."""
+        by_id = {item["id"]: item for item in self.raw}
+        checked = set()
+        for template in thread_catalog.load():
+            public = by_id[template["id"]]["public_line_template"]
+            if template["type"] == "errand":
+                thing = thread_catalog._package(public)
+                thing = ("i" if thing[0] == "İ" else "ı" if thing[0] == "I" else thing[0].lower()) + thing[1:]
+                self.assertEqual(template["owner_lines"],
+                                 [f"{{recipient}}, {{target}} içinde {thing} bekliyor. Teslim edene {{pay}} bakır."])
+            elif template["type"] == "hiring":
+                topic = public.rstrip(" .").replace("{place_name}", "{place}")
+                self.assertEqual(template["owner_lines"], [f"{topic}. {{days}} günlük iş; toplam {{pay}} bakır."])
+            else:
+                continue
+            checked.add(template["type"])
+        self.assertEqual(checked, {"errand", "hiring"})
+
     def test_a_missing_catalog_leaves_the_starter_kinds(self):
         with patch.object(thread_catalog, "CATALOG_DIR", thread_catalog.CATALOG_DIR / "absent"):
             self.assertEqual(thread_catalog.load(), [])

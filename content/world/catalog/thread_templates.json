@@ -83,7 +83,7 @@
       "id": "THR001",
       "requester_role_id": "ROLE003",
       "public_line_template": "{place_name} için erzak sayımına yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "inspection_location": "İnceleme yetkisi alınmış, ilgili konuma bağlı doğrulanmış erişilebilir yer veya kayıt noktası.",
@@ -131,7 +131,7 @@
       "id": "THR002",
       "requester_role_id": "ROLE005",
       "public_line_template": "{place_name} içinde küçük onarım işi için yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "craft_material": "Bu iş için kullanımı veya devri yetkilendirilmiş, miktarı ve güvenli kullanımı doğrulanmış malzeme.",
         "damaged_fixture": "Hasarı görünür veya yetkili kayıtta doğrulanmış yer donanımı; hasarın nedeni otomatik bilinmez.",
@@ -179,7 +179,7 @@
       "id": "THR003",
       "requester_role_id": "ROLE001",
       "public_line_template": "{place_name} etkinliğinde sıra düzenlemek için yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "disputed_custom": "Etkinlikte gerçekten açıklanmış ve tarafların farklı yorumladığı sıra veya görgü uygulaması; evrensel kültür kuralı değildir.",
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
@@ -227,7 +227,7 @@
       "id": "THR004",
       "requester_role_id": "ROLE005",
       "public_line_template": "{place_name} su düzeneğinin incelenmesi için yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "inspection_location": "İnceleme yetkisi alınmış, ilgili konuma bağlı doğrulanmış erişilebilir yer veya kayıt noktası.",
@@ -277,7 +277,7 @@
       "id": "THR005",
       "requester_role_id": "ROLE002",
       "public_line_template": "{place_name} üzerinden bir saat değişikliği notu gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -326,7 +326,7 @@
       "id": "THR006",
       "requester_role_id": "ROLE001",
       "public_line_template": "{place_name} üzerinden iade eşyası gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -375,7 +375,7 @@
       "id": "THR007",
       "requester_role_id": "ROLE002",
       "public_line_template": "{place_name} üzerinden izinli bir kayıt kopyası gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -564,7 +564,7 @@
       "id": "THR011",
       "requester_role_id": "ROLE006",
       "public_line_template": "{place_name} için nemli paketleri ayıracak yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "pay": "Aday katalogda bakır cinsinden önerilen sıfırdan büyük tam sayı ücret. Bu bir kaynak-plan gerçeği değildir; gerçek motor ekonomi birimi ve gerekiyorsa tam sayı dönüşümü ayrıca doğrulanır. Yalnız geçerli tamamlanma ve ekonomi işlemiyle ödenebilir.",
@@ -611,7 +611,7 @@
       "id": "THR012",
       "requester_role_id": "ROLE007",
       "public_line_template": "{place_name} tezgâhında kayıtlı satış için yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "pay": "Aday katalogda bakır cinsinden önerilen sıfırdan büyük tam sayı ücret. Bu bir kaynak-plan gerçeği değildir; gerçek motor ekonomi birimi ve gerekiyorsa tam sayı dönüşümü ayrıca doğrulanır. Yalnız geçerli tamamlanma ve ekonomi işlemiyle ödenebilir.",
@@ -660,7 +660,7 @@
       "id": "THR013",
       "requester_role_id": "ROLE008",
       "public_line_template": "{place_name} çıkışlı yük arabasına kayıt tutacak refakatçi aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "cargo_batch": "Sahibi, izinli işlem kapsamı ve miktarı belirlenmiş yük partisi; kapalı içeriği görünmeden bilinmez.",
         "delivery_location": "İşin izinli güzergâhında veya gözlem kapsamında bulunan, motorca doğrulanmış hedef yerin açık adı; bu tür için DELIVERY hedef bağı gerektirmez.",
@@ -711,7 +711,7 @@
       "id": "THR014",
       "requester_role_id": "ROLE007",
       "public_line_template": "{place_name} üzerinden kumaş örnekleri gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -759,7 +759,7 @@
       "id": "THR015",
       "requester_role_id": "ROLE009",
       "public_line_template": "{place_name} üzerinden ölçü gereci gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -808,7 +808,7 @@
       "id": "THR016",
       "requester_role_id": "ROLE010",
       "public_line_template": "{place_name} üzerinden iade kapları gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "container_batch": "İade için sahibi tarafından ayrılmış taşınabilir kap grubu; depozito mülkiyeti ayrıca korunur.",
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
@@ -857,7 +857,7 @@
       "id": "THR017",
       "requester_role_id": "ROLE006",
       "public_line_template": "{place_name} üzerinden bir hesap açıklaması gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "account_notice": "Kaynak kişinin paylaşmaya yetkili olduğu kurgusal hesap açıklaması; doğrulanmamış borç gerçek kabul edilmez.",
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
@@ -1044,7 +1044,7 @@
       "id": "THR021",
       "requester_role_id": "ROLE015",
       "public_line_template": "{place_name} yardım dağıtımında malzeme ayıracak yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "pay": "Aday katalogda bakır cinsinden önerilen sıfırdan büyük tam sayı ücret. Bu bir kaynak-plan gerçeği değildir; gerçek motor ekonomi birimi ve gerekiyorsa tam sayı dönüşümü ayrıca doğrulanır. Yalnız geçerli tamamlanma ve ekonomi işlemiyle ödenebilir.",
@@ -1091,7 +1091,7 @@
       "id": "THR022",
       "requester_role_id": "ROLE013",
       "public_line_template": "{place_name} avlusunda izinli küçük bakım için yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "craft_material": "Bu iş için kullanımı veya devri yetkilendirilmiş, miktarı ve güvenli kullanımı doğrulanmış malzeme.",
         "damaged_fixture": "Hasarı görünür veya yetkili kayıtta doğrulanmış yer donanımı; hasarın nedeni otomatik bilinmez.",
@@ -1139,7 +1139,7 @@
       "id": "THR023",
       "requester_role_id": "ROLE011",
       "public_line_template": "{place_name} açık okumasına yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "document_title": "İzinli okuma veya kopyalama kapsamındaki özgün kurgusal kaydın başlığı; gerçek kitap alıntısı ya da gizli bilgi içermez.",
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
@@ -1188,7 +1188,7 @@
       "id": "THR024",
       "requester_role_id": "ROLE014",
       "public_line_template": "{place_name} üzerinden kandil malzemesi gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -1237,7 +1237,7 @@
       "id": "THR025",
       "requester_role_id": "ROLE013",
       "public_line_template": "{place_name} üzerinden ödünç eşya gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -1286,7 +1286,7 @@
       "id": "THR026",
       "requester_role_id": "ROLE011",
       "public_line_template": "{place_name} üzerinden buluşma değişikliği notu gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -1520,7 +1520,7 @@
       "id": "THR031",
       "requester_role_id": "ROLE020",
       "public_line_template": "{place_name} için açık yol koşullarını kaydedecek yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "İşin izinli güzergâhında veya gözlem kapsamında bulunan, motorca doğrulanmış hedef yerin açık adı; bu tür için DELIVERY hedef bağı gerektirmez.",
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
@@ -1569,7 +1569,7 @@
       "id": "THR032",
       "requester_role_id": "ROLE019",
       "public_line_template": "{place_name} eğitim araçlarının kontrolüne yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "pay": "Aday katalogda bakır cinsinden önerilen sıfırdan büyük tam sayı ücret. Bu bir kaynak-plan gerçeği değildir; gerçek motor ekonomi birimi ve gerekiyorsa tam sayı dönüşümü ayrıca doğrulanır. Yalnız geçerli tamamlanma ve ekonomi işlemiyle ödenebilir.",
@@ -1618,7 +1618,7 @@
       "id": "THR033",
       "requester_role_id": "ROLE018",
       "public_line_template": "{place_name} açık duyurularını asacak yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "notice_locations": "İzinli ve doğrulanmış halka açık ilan noktalarının sınırlı listesi; kapalı alan içermez.",
@@ -1665,7 +1665,7 @@
       "id": "THR034",
       "requester_role_id": "ROLE016",
       "public_line_template": "{place_name} teslim sırasını düzenleyecek yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "cargo_batch": "Sahibi, izinli işlem kapsamı ve miktarı belirlenmiş yük partisi; kapalı içeriği görünmeden bilinmez.",
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
@@ -1713,7 +1713,7 @@
       "id": "THR035",
       "requester_role_id": "ROLE019",
       "public_line_template": "{place_name} üzerinden onarım takımı gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -1763,7 +1763,7 @@
       "id": "THR036",
       "requester_role_id": "ROLE018",
       "public_line_template": "{place_name} üzerinden yol kapanışı duyurusu gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -1812,7 +1812,7 @@
       "id": "THR037",
       "requester_role_id": "ROLE018",
       "public_line_template": "{place_name} üzerinden sahibine iade eşyası gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "claim_token": "Gerçek kişisel veri içermeyen kurgusal teslim eşleştirme işareti; teslim doğrulamasını motor yapar.",
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
@@ -2000,7 +2000,7 @@
       "id": "THR041",
       "requester_role_id": "ROLE021",
       "public_line_template": "{place_name} yük sayımına yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "cargo_batch": "Sahibi, izinli işlem kapsamı ve miktarı belirlenmiş yük partisi; kapalı içeriği görünmeden bilinmez.",
         "cargo_marks": "İlgili yük üzerinde doğrudan görülen veya yetkili kayıtta açıkça paylaşılan taşıma işaretleri.",
@@ -2048,7 +2048,7 @@
       "id": "THR042",
       "requester_role_id": "ROLE022",
       "public_line_template": "{place_name} kullanım dışı halatlarını ayıracak yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "pay": "Aday katalogda bakır cinsinden önerilen sıfırdan büyük tam sayı ücret. Bu bir kaynak-plan gerçeği değildir; gerçek motor ekonomi birimi ve gerekiyorsa tam sayı dönüşümü ayrıca doğrulanır. Yalnız geçerli tamamlanma ve ekonomi işlemiyle ödenebilir.",
@@ -2095,7 +2095,7 @@
       "id": "THR043",
       "requester_role_id": "ROLE021",
       "public_line_template": "{place_name} biniş düzeninde yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "pay": "Aday katalogda bakır cinsinden önerilen sıfırdan büyük tam sayı ücret. Bu bir kaynak-plan gerçeği değildir; gerçek motor ekonomi birimi ve gerekiyorsa tam sayı dönüşümü ayrıca doğrulanır. Yalnız geçerli tamamlanma ve ekonomi işlemiyle ödenebilir.",
@@ -2144,7 +2144,7 @@
       "id": "THR044",
       "requester_role_id": "ROLE023",
       "public_line_template": "{place_name} üzerinden iade takımı gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -2193,7 +2193,7 @@
       "id": "THR045",
       "requester_role_id": "ROLE024",
       "public_line_template": "{place_name} üzerinden tekne onarım örnekleri gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -2242,7 +2242,7 @@
       "id": "THR046",
       "requester_role_id": "ROLE023",
       "public_line_template": "{place_name} üzerinden vardiya öğünleri gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -2291,7 +2291,7 @@
       "id": "THR047",
       "requester_role_id": "ROLE021",
       "public_line_template": "{place_name} üzerinden sefer değişikliği notu gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -2478,7 +2478,7 @@
       "id": "THR051",
       "requester_role_id": "ROLE026",
       "public_line_template": "{place_name} açık işlik gösterimine yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "pay": "Aday katalogda bakır cinsinden önerilen sıfırdan büyük tam sayı ücret. Bu bir kaynak-plan gerçeği değildir; gerçek motor ekonomi birimi ve gerekiyorsa tam sayı dönüşümü ayrıca doğrulanır. Yalnız geçerli tamamlanma ve ekonomi işlemiyle ödenebilir.",
@@ -2526,7 +2526,7 @@
       "id": "THR052",
       "requester_role_id": "ROLE027",
       "public_line_template": "{place_name} malzeme ölçümü ve sayımına yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "material_batch": "İzinli ölçüm, ayırma veya yerleştirme konusu olan, sahibi ve miktarı tanımlı malzeme partisi.",
@@ -2574,7 +2574,7 @@
       "id": "THR053",
       "requester_role_id": "ROLE028",
       "public_line_template": "{place_name} açık gösterimini not edecek yardımcı aranıyor.",
-      "owner_terms_template": "{work_summary}. Ücret {pay} bakır; süre {work_days} gün. {eligibility_condition}",
+      "owner_terms_template": "{work_summary}. {work_days} günlük iş; toplam {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "eligibility_condition": "Oyuncuya açıklanabilir kısa teklif koşulu; koşul yoksa yokluğu açıkça belirtilir. Kefalet ancak motorun doğruladığı gerçek requires bağı varsa yazılır, arka plan tek başına yeterli sayılmaz.",
         "pay": "Aday katalogda bakır cinsinden önerilen sıfırdan büyük tam sayı ücret. Bu bir kaynak-plan gerçeği değildir; gerçek motor ekonomi birimi ve gerekiyorsa tam sayı dönüşümü ayrıca doğrulanır. Yalnız geçerli tamamlanma ve ekonomi işlemiyle ödenebilir.",
@@ -2622,7 +2622,7 @@
       "id": "THR054",
       "requester_role_id": "ROLE026",
       "public_line_template": "{place_name} üzerinden ödünç ölçü gereci gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -2671,7 +2671,7 @@
       "id": "THR055",
       "requester_role_id": "ROLE030",
       "public_line_template": "{place_name} üzerinden deneme parçaları gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",
@@ -2720,7 +2720,7 @@
       "id": "THR056",
       "requester_role_id": "ROLE029",
       "public_line_template": "{place_name} üzerinden yeniden kullanım malzemesi gönderilecek.",
-      "owner_terms_template": "{delivery_package}, {recipient_name} kişisine {delivery_location} üzerinde gidecek. Ücret {pay} bakır. {eligibility_condition}",
+      "owner_terms_template": "{recipient_name}, {delivery_location} içinde {delivery_package} bekliyor. Teslim edene {pay} bakır. {eligibility_condition}",
       "required_bindings": {
         "delivery_location": "DELIVERY hedef yer kimliğiyle bire bir eşleşen, motorca doğrulanıp kaydedilmiş ulaşılabilir teslim yerinin açık adı.",
         "delivery_package": "Talep sahibinin kaynak konumunda hazır olan tek taşınabilir teslim paketi veya nesnesi; içeriği istekte belirtilen eşya ile aynı olmalı, kaynak ve hedef bağları DELIVERY doğrulamasından geçmelidir.",

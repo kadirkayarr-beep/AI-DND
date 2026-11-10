@@ -43,19 +43,22 @@ def _topic(public: str) -> str:
     return public.rstrip(" .")
 
 
+def _package_words(public: str) -> str | None:
+    """'{place_name} üzerinden iade eşyası gönderilecek.' -> 'iade eşyası', as said inside a sentence."""
+    found = re.fullmatch(r"\{place_name\} üzerinden (.+) gönderilecek\.", public)
+    return found.group(1) if found else None
+
+
 def _package(public: str) -> str | None:
     """'{place_name} üzerinden iade eşyası gönderilecek.' -> 'İade eşyası'."""
-    found = re.fullmatch(r"\{place_name\} üzerinden (.+) gönderilecek\.", public)
-    if not found:
-        return None
-    text = found.group(1)
-    return tr_case.upper_first(text)
+    text = _package_words(public)
+    return tr_case.upper_first(text) if text is not None else None
 
 
 def _owner_line(item: dict[str, Any]) -> str | None:
     line = str(item.get("owner_terms_template") or "")
     public = str(item.get("public_line_template") or "")
-    package = _package(public) if "{delivery_package}" in line else ""
+    package = _package_words(public) if "{delivery_package}" in line else ""  # said mid-sentence: "... iade eşyası bekliyor"
     if package is None:
         return None
     slots = {

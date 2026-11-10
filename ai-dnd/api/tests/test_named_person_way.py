@@ -81,6 +81,57 @@ class NamedPersonWayTests(ThreePlaysTests):
         new = [self.world["locations"][key] for key in set(self.world["locations"]) - before]
         self.assertEqual([place for place in new if place.get("inner_of") != estate["id"]], [])
 
+    async def test_two_places_of_one_name_are_told_apart_by_the_kind_said(self):
+        """Task 29: the 'which one' question only when the words leave it open."""
+        await self.town()
+        self.assertNotIn("Orsela", [place.get("resident_name") for place in self.world["locations"].values()])
+        estate = local_places.create_local_place(self.world, self.settlement, "estate", name="Kelmaren Konağı")
+        workshop = local_places.create_local_place(self.world, self.settlement, "workshop", name="Ozan Tezgâhı")
+        estate["resident_name"] = workshop["resident_name"] = "Orsela"
+        step = grounded_action.plan(self.session, "orselanın konağına gidiyorum")["steps"][0]
+        self.assertEqual((step["target"] or {}).get("id"), estate["id"], step["ambiguous"])
+        self.assertEqual(step["ambiguous"], [])
+        # The words name no kind of either place (a "dükkân" is neither an estate nor, by the engine's nouns, a
+        # workshop): both are still offered.
+        for line in ("orselaya gidiyorum", "orselanın dükkanına gidiyorum"):
+            with self.subTest(line=line):
+                step = grounded_action.plan(self.session, line)["steps"][0]
+                self.assertIsNone(step["target"])
+                self.assertEqual({cand["id"] for cand in step["ambiguous"]}, {estate["id"], workshop["id"]})
+
+    async def test_asked_of_someone_here_where_a_named_person_is_the_town_tells_them(self):
+        """Task 29: the person asked hears, as engine data, where the town says the named person is."""
+        await self.town_with_errand()
+        heard = []
+
+        class Listening(PlayClient):
+            def chat(self, *args, **kwargs):
+                if "spoken_text" in ((kwargs.get("format") or {}).get("properties") or {}):
+                    heard.append(str(kwargs.get("messages")))
+                return super().chat(*args, **kwargs)
+
+        self.world["npcs"] = [npc for npc in self.world["npcs"] if npc["id"] != "npc_vobarin"]
+        self.add_person("Hedda", "Seyyar satıcı")  # a bystander: Özpil's job is not hers
+        await self.say("Hedda, Özpil nerede?", client=Listening(spoken="Bilmem, sor bakalım."), mode="say")
+        self.assertTrue(heard, "Hedda was not asked")
+        self.assertIn(f"Özpil, {self.estate['name']} tarafında bulunur", heard[-1])
+
+    async def test_a_person_not_named_brings_no_place_into_the_ask(self):
+        await self.town_with_errand()
+        heard = []
+
+        class Listening(PlayClient):
+            def chat(self, *args, **kwargs):
+                if "spoken_text" in ((kwargs.get("format") or {}).get("properties") or {}):
+                    heard.append(str(kwargs.get("messages")))
+                return super().chat(*args, **kwargs)
+
+        self.world["npcs"] = [npc for npc in self.world["npcs"] if npc["id"] != "npc_vobarin"]
+        self.add_person("Hedda", "Seyyar satıcı")
+        await self.say("Hedda, bugün hava nasıl?", client=Listening(spoken="Serin."), mode="say")
+        self.assertTrue(heard, "Hedda was not asked")
+        self.assertNotIn(f"{self.estate['name']} tarafında bulunur", heard[-1])
+
     async def test_a_resident_standing_here_is_the_person_not_their_place(self):
         await self.town()
         estate = local_places.create_local_place(self.world, self.settlement, "estate", name="Kelmaren Konağı")
