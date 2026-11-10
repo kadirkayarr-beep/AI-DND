@@ -67,6 +67,17 @@ class TruthCard(unittest.TestCase):
         self.assertIn("bu tur: Sana ödeme yapıldı", card)
         self.assertNotIn("Başka sır", card)
 
+    def test_someone_with_nothing_in_the_engine_to_sell_or_make_is_told_so(self):
+        """Owner decision F: a smith says "körüğü yakıyorum" but no forging exists; the card says what is real."""
+        nothing = "motorda sattığın ya da yaptığın bir şey yok"
+        smith = {"id": "smith", "name": "Oren", "role": "Demirci", "location": "inn"}
+        self.world["npcs"].append(smith)
+        self.assertIn(nothing, truth_card.npc_view(self.world, npc=smith))
+        self.assertNotIn(nothing, truth_card.npc_view(self.world, npc=self.npc))  # the barman sells: his prices stand
+        self.assertNotIn(nothing, truth_card.narrator_view(self.world, npc=smith))  # it is the person's own card only
+        self.world["shops"] = [{"id": "shop_forge", "shopkeeper_id": "smith", "location": "inn"}]
+        self.assertNotIn(nothing, truth_card.npc_view(self.world, npc=smith))  # a shop's wares are sold through the engine
+
     def test_no_room_is_shown_to_a_guest(self):
         guest = {"id": "guest", "name": "Oren", "role": "Yolcu", "location": "inn"}
         card = truth_card.npc_view(self.world, npc=guest)

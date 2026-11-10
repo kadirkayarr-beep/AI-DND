@@ -264,4 +264,9 @@ def npc_view(world: dict, *, npc: dict, held_out_cp: int = 0, this_turn=(), max_
     prices = _prices(world, npc, scoped=True)
     if prices:
         lines.append(prices)
+    elif not any(isinstance(shop, dict) and npc.get("id") and shop.get("shopkeeper_id") == npc.get("id")
+                 for shop in world.get("shops", [])):
+        # Owner decision F: no engine sale (the list or a shop's wares) and no making exists for this person, so a
+        # "körüğü yakıyorum" promise has nothing behind it.
+        lines.append(_Line("satış", "motorda sattığın ya da yaptığın bir şey yok", 1))
     return _fit(lines, max_bytes)
