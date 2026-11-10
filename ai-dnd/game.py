@@ -18556,13 +18556,19 @@ def _walked_there(read, action_result, place_before):
     """The walk got there: the player stands in the place walked to, or in front of it (its receipt completed)."""
     here = _session().world_state.get("location")
     if action_result.get("action") == "travel":
+        if action_result.get("status") == "already_here":  # "zaten içindesin": being there is having got there
+            return here == action_result.get("target_id")
         return action_result.get("status") == "resolved" and here == action_result.get("target_id") != place_before
     if action_result.get("action") != "grounded_action" or action_result.get("status") != "completed":
         return False
     target = read.get("id") if read.get("kind") == "go_to" else action_result.get("target_id")
+    if target is None:
+        return False
     steps = [step for step in action_result.get("steps") or [] if isinstance(step, dict)]
     return here == target or (here == place_before and any(
-        step.get("target_id") == target and step.get("position") in {"at_door", "outside"} for step in steps))
+        step.get("target_id") == target and step.get("position") in {"at_door", "outside"}
+        and not (step.get("door_state") or {}).get("locked")  # a locked door is where the walk stopped
+        for step in steps))
 
 
 def _the_rest_of_the_line(result, messages, action_id, session_id, place_before):
@@ -20133,6 +20139,7 @@ def _sleep_after_walk(walked, player_input, place_before, scene_plan=None):
             return  # this line already opened the room card; no second card, and no sleep before it is confirmed
         room = bold_acts.take_room(_session(), player_input, walk_to_bed=True)
         if room is not None:
+            _session()._front_rest = ""  # the room part of the line is answered here, not read again
             walked["narration"] = f"{walked.get('narration') or ''} {room['line']}".strip()
             if room["coin_seen"]:
                 walked.setdefault("action_result", {})["coin_seen_by"] = "room"
@@ -20144,6 +20151,7 @@ def _sleep_after_walk(walked, player_input, place_before, scene_plan=None):
         return
     slept = timed_gameplay.resolve_input(_session(), player_input)
     if slept is not None:
+        _session()._front_rest = ""  # the line's sleep is slept here, once
         walked["narration"] = f"{walked.get('narration') or ''} {slept['direct_response']}".strip()
         talk_mode.close(world_state, "rest")
 

@@ -207,6 +207,39 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("Buyrun.", reply.json()["narration"])
         self.assertNotIn(self.room_price_text(), reply.json()["narration"])
 
+    async def test_a_locked_door_reached_from_outside_drops_the_rest(self):
+        # Review I-1: "walk to the inn" read as going up to it (inside: false) stops at the locked door; standing at
+        # a locked door is no arrival, so the guard left in the street is not asked for the innkeeper's room.
+        await self.town(locked=True)
+        for npc in self.world["npcs"]:
+            if npc.get("id") != self.npc["id"] and npc.get("location") == self.world["location"]:
+                npc["location"] = self.inn
+        reply = await self.turn(Q020, [{"kind": "go_to", "place_id": self.inn, "inside": False,
+                                        "also_says": Q020_REST},
+                                       {"kind": "speak_to", "person_id": self.npc["id"]}], reply="Öyle olsun bakalım.")
+        self.assertNotEqual(self.location(), self.inn)
+        self.assertEqual(len(self.front_calls()), 1)
+        self.assertEqual(self.client.chat_calls, 1)
+        self.assertNotIn("Marek", reply.json()["narration"])
+        self.assertNotIn("Öyle olsun bakalım.", reply.json()["narration"])
+
+    async def test_a_walk_then_sleep_sleeps_once(self):
+        # Review I-2: the walk's own sleep owner already slept the line's sleep; the rest is not slept again.
+        import bold_acts
+        import grounded_action
+        await self.town()
+        world = self.live().world_state
+        now = world["campaign_time"]["elapsed_seconds"]
+        world["flags"]["inn_room"] = {"place": self.inn, "until": now + bold_acts._ROOM_DAY}
+        reply = await self.turn("hana gidiyorum ve uyuyorum",
+                                [{"kind": "go_to", "place_id": self.inn, "inside": True, "also_says": "uyuyorum"},
+                                 {"kind": "wait"}])
+        self.assertEqual(self.location(), self.inn)
+        elapsed = self.live().world_state["campaign_time"]["elapsed_seconds"] - now
+        self.assertEqual(elapsed, grounded_action.LOCAL_WALK_SECONDS + 8 * 3600, reply.json()["narration"])
+        self.assertNotIn("Daha yeni dinlenmiştin", reply.json()["narration"])
+        self.assertEqual(len(self.front_calls()), 1)
+
     async def test_one_undo_takes_back_both_parts(self):
         await self.town()
         before = self.snapshot()
@@ -247,7 +280,7 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.location(), self.inn)
         self.assertEqual(len(self.front_calls()), 1)
         offers = self.live().world_state["flags"].get("economic_offers", {}).values()
-        self.assertLessEqual([row["status"] for row in offers].count("prepared"), 1)
+        self.assertEqual([row["status"] for row in offers].count("prepared"), 0)  # a walk's coin opens no card here
         self.assertEqual(self.purse_cp(), before)
 
     async def test_replayed_action_id_does_not_say_the_rest_again(self):
@@ -273,6 +306,33 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.location(), self.inn)
         self.assertEqual(len(self.front_calls()), 1)
         self.assertNotIn(self.room_price_text(), reply.json()["narration"])
+
+
+class WhatCountsAsGettingThere(unittest.TestCase):
+    """Review minors 4 and 6: the walk's receipt alone, without a turn around it."""
+
+    def there(self, read, action_result, *, here="inn", before="street"):
+        session = game.create_session(seed=7)
+        session.world_state["location"] = here
+        return game._walked_there(read, action_result, before, session=session)
+
+    def test_an_old_chain_walk_already_inside_has_got_there(self):
+        receipt = {"action": "travel", "status": "already_here", "target_id": "inn"}
+        self.assertTrue(self.there({}, receipt, before="inn"))
+        self.assertFalse(self.there({}, {**receipt, "target_id": "smithy"}, before="inn"))
+
+    def test_a_walk_with_no_place_named_gets_nowhere(self):
+        receipt = {"action": "grounded_action", "status": "completed", "target_id": None,
+                   "steps": [{"verb": "go", "status": "completed"}]}
+        self.assertFalse(self.there({"kind": "go_to", "id": None}, receipt, here="street"))
+
+    def test_a_locked_door_is_no_arrival_an_open_one_is(self):
+        step = {"verb": "go", "status": "completed", "target_id": "inn", "position": "at_door",
+                "door_state": {"open": False, "locked": True, "broken": False}}
+        receipt = {"action": "grounded_action", "status": "completed", "target_id": "inn", "steps": [step]}
+        self.assertFalse(self.there({"kind": "go_to", "id": "inn"}, receipt, here="street"))
+        unlocked = {**step, "door_state": {"open": False, "locked": False, "broken": False}}
+        self.assertTrue(self.there({"kind": "go_to", "id": "inn"}, {**receipt, "steps": [unlocked]}, here="street"))
 
 
 if __name__ == "__main__":
