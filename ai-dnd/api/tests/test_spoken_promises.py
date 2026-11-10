@@ -540,13 +540,18 @@ class CheckIsNotSpeech(Table):
         said = "Marek, ses dinliyorum; sen de bir şey duyuyor musun?"
         reply = await self.line(said, "Elbette, dün buraya iş sormaya gelmiştin.", mode="say")
         self.assertEqual(self.session.last_narration_safety.get("handling"), "python_fallback", reply["narration"])
-        # The safety's stand-in is the Perception check's own line: "İncelemen sonuç vermedi; ...".
-        self.assertNotIn("İncelemen", reply["narration"])
+        # The safety's stand-in is the Perception check's own line ("İncelemen sonuç vermedi; ..."): it stays as the
+        # narrator's line, outside any quote, and the person's own fallback follows it (review M3).
+        at = reply["narration"].find(" " + living_world.public_npc_name(self.npc))
+        self.assertGreater(at, 0, reply["narration"])
+        check, person = reply["narration"][:at], reply["narration"][at + 1:]
+        self.assertTrue(check.startswith("İncelemen"), reply["narration"])
+        self.assertNotIn("“", check)
+        self.assertNotIn("İncelemen", person)
         self.assertNotIn("gelmiştin", reply["narration"])
-        self.assertTrue(reply["narration"].startswith(living_world.public_npc_name(self.npc)), reply["narration"])
         with patch.object(game, "_session", return_value=self.session):
             own = game._person_fallback(self.world, self.npc, said)  # only the person's own fallback speaks for them
-        self.assertIn(own, reply["narration"])
+        self.assertIn(own, person)
 
 
 if __name__ == "__main__":

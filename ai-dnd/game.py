@@ -22929,9 +22929,11 @@ def _run_player_turn_internal(
                     if (action_result.get("action") == "skill_check" and final_safety_handling == "python_fallback"
                             and text != text_before_finalize and not text.casefold().startswith(name.casefold())):
                         # The safety put the check's own narration in place of the reply ("İncelemen sonuç
-                        # vermedi"): that is the narrator's, not theirs; the person answers in their own words (Task 34).
-                        text = _person_fallback(world_state, npc_target, player_input)
-                    if not text.casefold().startswith(name.casefold()):
+                        # vermedi"): that is the narrator's, not theirs. It stays as narration, outside any quote,
+                        # and the person answers in their own words (Task 34, review M3).
+                        own = _person_fallback(world_state, npc_target, player_input)
+                        text = f"{text} {own if own.casefold().startswith(name.casefold()) else f'{name}, “{own}”'}"
+                    elif not text.casefold().startswith(name.casefold()):
                         text = f'{name}, “{text}”'
 
             if experimental_npc_dialogue:
