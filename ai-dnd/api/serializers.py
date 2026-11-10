@@ -599,6 +599,27 @@ def _way_out_projection(world: dict[str, Any]) -> dict[str, str] | None:
     return {"id": out if out is not None else f"{location}:side_street", "name": name}
 
 
+def _visited_counters(world: dict[str, Any]) -> list[dict[str, Any]]:
+    """A visited place where someone serves has a counter even with no shop record; the journal lists it."""
+    import shop_trade
+    scenes = (world.get("scene_state") or {}).get("scenes") or {}
+    listed = {shop.get("location") for shop in world.get("shops", []) if isinstance(shop, dict)}
+    rows = []
+    for place_id, scene in scenes.items():
+        record = world.get("locations", {}).get(place_id)
+        if not isinstance(scene, dict) or scene.get("last_visit_turn") is None or place_id in listed:
+            continue
+        if not isinstance(record, dict) or not isinstance(record.get("name"), str):
+            continue
+        vendor = next((npc for npc in scheduled_events.visible_npcs(world)
+                       if npc.get("location") == place_id and shop_trade.is_vendor(world, npc)), None)
+        if vendor is not None:
+            rows.append({"id": f"counter:{place_id}", "name": record["name"],
+                         "description": record.get("description", ""), "location": place_id,
+                         "tags": ["counter"], "shopkeeper_id": vendor.get("id")})
+    return rows
+
+
 def serialize_session_state(
     session: Any,
     journal: dict[str, Any] | None = None,
@@ -797,7 +818,7 @@ def serialize_session_state(
             if world.get("spellcasting_v1") is not None else None
         ),
         "npcs": _project_list(visible_world["npcs"], _NPC_FIELDS),
-        "shops": _project_list([living_world.public_shop_projection(world, shop) for shop in exploration.player_entities(world, world.get("shops", []))], _SHOP_FIELDS),
+        "shops": _project_list([living_world.public_shop_projection(world, shop) for shop in exploration.player_entities(world, world.get("shops", []))] + _visited_counters(world), _SHOP_FIELDS),
         "features": _project_list(exploration.player_entities(world, world.get("features", [])), _FEATURE_FIELDS),
         "doors": _project_list(exploration.visible_doors(world), _DOOR_FIELDS),
         "way_out": _way_out_projection(world),

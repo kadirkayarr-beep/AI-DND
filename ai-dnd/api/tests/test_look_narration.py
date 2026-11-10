@@ -10,6 +10,7 @@ import living_world
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.test_free_attempts import NarratingClient
+from api.tests.town_seed import fixed_town
 
 LOOK = "Çevremi gözlemliyorum."
 
@@ -28,7 +29,8 @@ class LookNarrationTests(unittest.IsolatedAsyncioTestCase):
     campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
 
     async def scene(self):
-        _, _, self.session, self.turn_url, self.npc = await self.campaign_with_npc(experimental=False)
+        with fixed_town(self, 4569):
+            _, _, self.session, self.turn_url, self.npc = await self.campaign_with_npc(experimental=False)
         self.npc["appearance"] = "Elindeki defteri karıştırıyor."
         self.npc["name_known_to_player"] = True
         self.world = self.session.world_state

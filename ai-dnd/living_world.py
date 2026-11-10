@@ -2020,6 +2020,17 @@ def resolve_entry_target_reference(
     return {"location_id": location_id, "door_id": door_id}
 
 
+def _still_the_opening_hour(world_state: dict[str, Any]) -> bool:
+    """The authored opening tells the first hour; once the day or its period has moved on it is stale."""
+    import campaign_time
+    clock = world_state.get("campaign_time")
+    if not isinstance(clock, dict):
+        return True
+    now = campaign_time.public_time(world_state)
+    start = campaign_time.public_time({"campaign_time": {**clock, "elapsed_seconds": 0}})
+    return now["day_index"] == 0 and now["time_of_day"] == start["time_of_day"]
+
+
 def public_scene_projection(
     world_state: dict[str, Any],
     turn_index: int,
@@ -2103,7 +2114,7 @@ def public_scene_projection(
         ),
         "opening": (
             scene.get("opening", {}).get("text")
-            if isinstance(scene.get("opening"), dict)
+            if isinstance(scene.get("opening"), dict) and _still_the_opening_hour(world_state)
             else None
         ),
         "player_position": copy.deepcopy(

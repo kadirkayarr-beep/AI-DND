@@ -1229,10 +1229,40 @@ def _affirmative_door_verb(normalized_text, prefix, stems):
     return False
 
 
+_SKILL_CHECK_WORD = re.compile(r"\b(?:check|roll|zar\w*|yoklama\w*|kontrol\w*)\b")
+
+
+def named_skill(player_input):
+    """The one skill the line names as the check to roll ("Atletizm zarı", "Strength (Athletics) check"), else None."""
+    from api.dnd_2024_rules import SKILL_DEFINITIONS
+    if not isinstance(player_input, str) or "?" in player_input:
+        return None
+    text = _normalize_turkish_typos(player_input)
+    named = {}
+    for key, definition in SKILL_DEFINITIONS.items():
+        english = re.escape(_normalize_turkish_typos(key))
+        turkish = _normalize_turkish_typos(definition["name_tr"].split(" (")[0])
+        suffix = r"\w{0,3}" if len(turkish) >= 5 else ""
+        if re.search(rf"\b{english}\b|\b{re.escape(turkish)}{suffix}\b", text):
+            named[key] = True
+    if len(named) != 1:
+        return None
+    skill = next(iter(named))
+    # "Yetenek (Beceri)" is the form the sheet prints a skill in: an ability word, then the skill in brackets.
+    in_brackets = any(
+        re.search(r"\w\s+\(\s*" + re.escape(name.casefold()) + r"\s*\)", player_input.casefold())
+        for name in (skill, SKILL_DEFINITIONS[skill]["name_tr"].split(" (")[0])
+    )
+    return skill if _SKILL_CHECK_WORD.search(text) or in_brackets else None
+
+
 def deterministic_check_for_action(player_input):
     """Map clear, known actions before consulting the model classifier."""
     text = player_input.casefold()
     normalized_text = _normalize_turkish_typos(player_input)
+    skill = named_skill(player_input)
+    if skill:
+        return {"action_type": "check", "skill": skill, "difficulty": "medium"}
 
     if "?" not in player_input:
         if re.search(
@@ -4022,6 +4052,17 @@ def create_npc_from_ai(proposal, request_key=None, *, allow_other_location=False
     return npc
 
 
+_ENGLISH_STOP_WORDS = frozenset(("the", "a", "an", "and", "of", "on", "with", "is", "are"))
+
+
+def _reads_english(text):
+    """No Turkish letter and at least two English function words: the text is English, not Turkish."""
+    if not isinstance(text, str) or re.search(r"[çğıöşüÇĞİÖŞÜ]", text):
+        return False
+    words = re.findall(r"[a-z]+", text.casefold())
+    return sum(1 for word in words if word in _ENGLISH_STOP_WORDS) >= 2
+
+
 def create_local_feature(proposal):
     """Register a harmless, addressable local feature with a stable Python ID."""
     world_state = _session().world_state
@@ -4034,6 +4075,8 @@ def create_local_feature(proposal):
     description = _clean_world_text(proposal.get("description", ""), 200) or ""
     if location != world_state.get("location") or not name or "\n" in name:
         return None
+    if _reads_english(f"{name} {description}"):
+        return None  # the game is told in Turkish; an English name and line is not stored
     parent_id = (
         _valid_local_feature_parent_id(proposal.get("parent_id"), location)
         if proposal.get("parent_id") is not None
@@ -22161,9 +22204,14 @@ def _run_player_turn_internal(
                 living_world.public_npc_name(npc)
                 for npc in local_shopkeepers
             )
-            message = (
-                f"{names} burada, ama şu anda açık bir tezgâhı yok."
-            )
+            import shop_trade
+            counter = shop_trade.counter(world_state)
+            if counter["status"] == "ready" and counter["vendor"]:
+                message = f"{counter['vendor']['name']} burada; tezgâhı açık."
+            else:
+                message = (
+                    f"{names} burada, ama şu anda açık bir tezgâhı yok."
+                )
         else:
             message = (
                 "Bu çevrede şu an görünür bir dükkân ya da dükkâncı yok."
@@ -22872,6 +22920,7 @@ def _run_player_turn_internal(
                             if isinstance(feature, dict)
                         ],
                     )
+                    cleaned_spoken = npc_speech_boundary.without_no_name_claim(cleaned_spoken)
                     cleaned_stage = npc_speech_boundary.strip_player_quote(
                         cleaned_stage, player_input
                     )

@@ -15069,7 +15069,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             return [{
                 "proposal_key": "f1", "location": city,
                 "parent_id": session._review_second_id, "name": name,
-                "description": "A visible note on the second building.",
+                "description": "A visible note on the second building (görünür not).",
                 "kind": "detail", "aliases": [],
             }]
         response, session, model, city, first_id, *_ = await self.run_review_scene_turn(
@@ -15170,12 +15170,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         for name, description, expected_count in (
             (
                 "Hidden Passage Seat",
-                "A secret passage leads into the locked inn.",
+                "A secret passage leads into the locked inn (gizli geçit).",
                 0,
             ),
             (
                 "Window Bench",
-                "A sturdy bench sits beneath the window.",
+                "A sturdy bench sits beneath the window (sağlam sıra).",
                 1,
             ),
         ):

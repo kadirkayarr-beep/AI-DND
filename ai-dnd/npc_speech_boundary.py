@@ -506,3 +506,28 @@ def strip_player_quote(text, player_input):
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
     return cleaned.strip(" \t\"“”«»‘’'")
+
+
+_NO_NAME_CLAIM = re.compile(r"(?<![\wçğıöşü])(?:benim\s+)?(?:ad[ıiIİ]m|ismim)\s+yok(?![\wçğıöşü])", re.IGNORECASE)
+_OPEN_QUOTES = "“\"«‘'"
+_CLOSE_QUOTES = "”\"»’'"
+
+
+def without_no_name_claim(text):
+    """No one in this world says they have no name: that sentence goes, the rest stays, quotes stay paired."""
+    if not isinstance(text, str) or not _NO_NAME_CLAIM.search(text):
+        return text
+    sentences = re.split(r"(?<=[.!?…])\s+", text.strip())
+    kept = [s for s in sentences if not _NO_NAME_CLAIM.search(s)]
+    if not kept:
+        return ""
+    first_dropped, last_dropped = _NO_NAME_CLAIM.search(sentences[0]), _NO_NAME_CLAIM.search(sentences[-1])
+    if first_dropped:
+        lead = re.match("[" + re.escape(_OPEN_QUOTES) + "]+", sentences[0])
+        if lead and not kept[0][:1] in _OPEN_QUOTES:
+            kept[0] = lead.group(0) + kept[0]
+    if last_dropped:
+        tail = re.search("[" + re.escape(_CLOSE_QUOTES) + "]+$", sentences[-1])
+        if tail and not kept[-1][-1:] in _CLOSE_QUOTES:
+            kept[-1] += tail.group(0)
+    return " ".join(kept)

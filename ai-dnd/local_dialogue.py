@@ -543,7 +543,8 @@ def personal_question_kind(value: Any) -> str | None:
         r"\b(?:kimsin|sen kimsin|adini sor)\b|"
         r"\b(?:ismini|adini|adinizi|isminizi)\b.{0,30}"
         r"\b(?:ogren\w*|soyle\w*|sora\w*|sorabilir\w*)\b|"
-        r"\b(?:ismin|adin) ne\w*\b",
+        r"\b(?:ismin|adin) ne\w*\b|"
+        r"\bwhat (?:is|s) your name\b|\bwho are you\b",
         text,
     ):
         return "npc_identity"

@@ -262,6 +262,8 @@ def npc_view(world: dict, *, npc: dict, held_out_cp: int = 0, this_turn=(), max_
     lines.extend(_note_rows([note for npc_id, note in this_turn if npc_id is not None and npc_id == npc.get("id")]))
     if npc.get("id"):  # only that person's jobs and trails (tasarım karar 61); never the player's hand or bag (D28)
         lines.extend(_quest_rows(quest_log.card_lines(world, npc=npc)))
+    if not living_world.npc_name_known_to_player(npc):
+        lines.append(_Line("ad", "Adını sorarlarsa söyleyebilir ya da kibarca geçebilirsin; adının olmadığını söyleme.", 1))
     prices = _prices(world, npc, scoped=True)
     if prices:
         lines.append(prices)
