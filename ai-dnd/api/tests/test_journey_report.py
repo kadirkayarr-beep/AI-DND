@@ -126,7 +126,7 @@ class ReportCountsTest(unittest.TestCase):
                                                          "19_quest_item_no_duplicate", "19b_quest_item_name_dotted_i",
                                                          "19c_quest_log_one_source", "19d_delivery_undo",
                                                          "19e_take_quest_item_variants", "29_trail_follow_on",
-                                                         "36_messenger_chain")},
+                                                         "36_messenger_chain", "41_is_haberi_sokakta")},
                          {"Para ve kayıt"})
         self.assertEqual(report_kind("23_no_shop_in_combat"), "Para ve alışveriş")
         self.assertEqual(report_kind("08b_talk_mode_front"), "Konuşma kipi")
@@ -134,6 +134,9 @@ class ReportCountsTest(unittest.TestCase):
         self.assertEqual({report_kind(name) for name in ("20_xp_after_win", "21_spell_target_in_melee",
                                                          "22_one_counter_per_move", "22b_counter_told_in_order")},
                          {"Savaş eylemleri"})
+
+    def test_the_street_job_news_journey_has_its_kind(self):
+        self.assertEqual(report_kind("41_is_haberi_sokakta"), "Para ve kayıt")
 
     def test_a_stale_marker_and_an_unreached_scenario_are_not_counted_as_breaks(self):
         scenarios = {

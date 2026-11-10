@@ -1,0 +1,195 @@
+{
+  "id": "41_is_haberi_sokakta",
+  "title": "Sokakta iş haberi (4A.0, denetim 9): sokakta geçen biri çömlekçi Halil'in işini adıyla anar; günlükte tek iz kalır, aynı haber ikinci kez sorulunca iz çoğalmaz, kabul yalnız iş sahibi Halil'de olur (kese ve eşya o ana dek değişmez), Geri Al kabulü geri alır ve iz kalır, yenileme aynı durumu okur",
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      },
+      {
+        "id": "passer",
+        "name": "Selin",
+        "role": "Yolcu",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 42,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "Şehirde iş var mı?",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "passer"
+        },
+        "spoken": "Çömlekçi Halil'in iade takımını iskeledeki Tuna'ya götürecek birini aradığını duydum."
+      },
+      "expect": {
+        "gunluk": {
+          "iz": [
+            {
+              "kaynak": "haber"
+            }
+          ],
+          "iz_sayisi": 1
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          },
+          "gunluk": {
+            "iz_sayisi": 1
+          }
+        }
+      ],
+      "known_broken": [
+        9
+      ],
+      "independent": true,
+      "broken_because": [
+        "gunluk.iz: beklenen iz bulunamadı (sırayla aranır): {'kaynak': 'haber'}",
+        "gunluk.iz_sayisi: 1 bekleniyordu, 0 var"
+      ]
+    },
+    {
+      "say": "Şehirde iş var mı?",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "passer"
+        },
+        "spoken": "Çömlekçi Halil'in iade takımını iskeledeki Tuna'ya götürecek birini aradığını duydum."
+      },
+      "expect": {
+        "gunluk": {
+          "iz_sayisi": 1
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          },
+          "gunluk": {
+            "iz_sayisi": 1
+          }
+        }
+      ],
+      "known_broken": [
+        9
+      ],
+      "independent": true,
+      "broken_because": [
+        "gunluk.iz_sayisi: 1 bekleniyordu, 0 var"
+      ]
+    },
+    {
+      "say": "Halil, iş için geldim",
+      "script": {
+        "front": {
+          "kind": "offer_answer",
+          "person_id": "potter",
+          "offer_id": "$is:potter",
+          "answer": "accept"
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 1
+          }
+        }
+      ],
+      "known_broken": [
+        9
+      ],
+      "independent": true,
+      "broken_because": [
+        "gunluk.iz_sayisi: 1 bekleniyordu, 0 var"
+      ]
+    },
+    {
+      "undo": true,
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          },
+          "gunluk": {
+            "iz_sayisi": 1
+          }
+        }
+      ],
+      "known_broken": [
+        9
+      ],
+      "independent": true,
+      "broken_because": [
+        "gunluk.iz_sayisi: 1 bekleniyordu, 0 var"
+      ]
+    },
+    {
+      "reload": true,
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          },
+          "gunluk": {
+            "iz_sayisi": 1
+          }
+        }
+      ],
+      "known_broken": [
+        9
+      ],
+      "independent": true,
+      "broken_because": [
+        "gunluk.iz_sayisi: 1 bekleniyordu, 0 var"
+      ]
+    }
+  ]
+}
