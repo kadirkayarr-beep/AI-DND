@@ -194,12 +194,66 @@ class EscortOnlyWhenAsked(unittest.IsolatedAsyncioTestCase):
     async def test_asks_along_reads_name_or_role_with_a_together_word(self):
         priest = self.person(self.priest)
         for line in ("Rahiple birlikte hana gidiyorum.", "Teron benimle gelsin, hana gidiyoruz.",
-                     "Teron, come with me to the inn.", "We go to the inn together, Teron and I.", "Rahip bana eşlik etsin."):
+                     "Teron, come with me to the inn.", "Teron and I go to the inn together.", "Rahip bana eşlik etsin.",
+                     "Come with me to the inn, Teron."):
             with self.subTest(line=line):
                 self.assertTrue(grounded_action._asks_along(self.world_now(), line, priest))
-        for line in (Q158, "Hana gidiyorum.", "Rahibe teşekkür edip hana gidiyorum.", "Birlikte hana gidelim."):
+        for line in (Q158, "Hana gidiyorum.", "Rahibe teşekkür edip hana gidiyorum.", "Birlikte hana gidelim.",
+                     # Fix round 1 (F3): a no, 'alone', or a together-word that belongs to another doing is no ask
+                     "Rahip benimle gelmesin, hana yalnız gidiyorum.", "Rahip benimle gelmeden hana gidiyorum.",
+                     "Rahip kilisede diğerleriyle birlikte dua ediyor; ben hana gidiyorum.",
+                     "Rahiple birlikte dua ettikten sonra hana gidiyorum.", "Rahip benimle gelmek istemedi; hana gidiyorum.",
+                     "Teron'un dediği gibi, Sera ile birlikte hana gidiyorum.", "Teron, don't come with me to the inn.",
+                     "Rahiple birlikte değil, tek başıma hana gidiyorum."):
             with self.subTest(line=line):
                 self.assertFalse(grounded_action._asks_along(self.world_now(), line, priest))
+
+    async def assert_stays_home(self, line):
+        reply = await self.turn(line, front={"kind": "go_to", "place_id": self.inn, "inside": True})
+        self.assertEqual(self.location(), self.inn)
+        self.assertEqual(self.npc_location(self.priest), self.temple)
+        self.assertNotIn("yanında yürüyor", reply.json()["narration"])
+        self.assertNotIn("escort_return", self.person(self.priest))
+        self.assertTrue(npc_statements.open_commitments(self.world_now(), npc_id=self.priest, kind="show"))
+
+    async def test_a_no_in_the_same_breath_leaves_him_home(self):
+        await self.assert_stays_home("Rahip benimle gelmesin, hana yalnız gidiyorum.")
+
+    async def test_a_together_that_is_someone_elses_leaves_him_home(self):
+        await self.assert_stays_home("Rahip kilisede diğerleriyle birlikte dua ediyor; ben hana gidiyorum.")
+
+    def strike_down(self, how):
+        self.person(self.priest).update(current_hp=0 if how == "dead" else 1, combat_status=how)
+
+    async def test_a_dead_or_unconscious_priest_does_not_walk(self):
+        for how in ("dead", "unconscious"):
+            with self.subTest(how=how):
+                self.strike_down(how)
+                await self.assert_stays_home("Rahiple birlikte hana gidiyorum.")
+                self.world_now()["location"] = self.temple
+
+    async def test_a_dead_or_unconscious_escort_is_not_sent_home(self):
+        await self.escort_to_inn()
+        for how in ("dead", "unconscious"):
+            with self.subTest(how=how):
+                self.strike_down(how)
+                self.assertEqual(npc_statements.return_escorts(self.world_now(), self.elapsed() + 3600), [])
+                self.assertEqual(self.npc_location(self.priest), self.inn)
+        await self.wait("yarım saat bekliyorum")
+        self.assertEqual(self.npc_location(self.priest), self.inn)
+
+    async def test_a_locked_door_leaves_him_beside_the_player_in_the_street(self):
+        next(d for d in self.world["doors"] if d.get("id") == f"venue-door:{self.inn}").update(locked=True, open=False)
+        reply = await self.turn("Rahiple birlikte hana gidiyorum.",
+                                front={"kind": "go_to", "place_id": self.inn, "inside": True})
+        self.assertEqual(self.location(), self.street)
+        self.assertEqual(self.npc_location(self.priest), self.street)  # he walked along; the state says so too
+        self.assertIn("Teron yanında yürüyor", reply.json()["narration"])
+        self.assertIn("kilitli", reply.json()["narration"])
+        self.assertEqual(self.person(self.priest)["escort_return"]["home"], self.temple)
+        self.assertFalse(npc_statements.open_commitments(self.world_now(), npc_id=self.priest, kind="show"))
+        await self.wait("yarım saat bekliyorum")
+        self.assertEqual(self.npc_location(self.priest), self.temple)
 
     async def test_he_goes_home_after_half_an_hour(self):
         await self.escort_to_inn()

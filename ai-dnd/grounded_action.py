@@ -1425,23 +1425,46 @@ def _materialize_reference(run: _Run, ref: dict[str, Any]) -> dict[str, Any] | N
 
 
 _TOGETHER = ("birlikte", "beraber", "benimle", "eslik", "with me", "come with", "together")
+# A clause is one breath of the line: punctuation, or 'sonra'/'ardından' (what came before it is another doing).
+_CLAUSE_BREAK = re.compile(r"[;.,!?]|\b(?:sonra|ardından|ardindan)\b", re.IGNORECASE)
+# Going or coming, in the clause that asks: 'birlikte dua ediyor' is not a walk.
+_GOING = re.compile(r"\b(?:gid\w*|git\w*|gel\w*|yuru\w*|cik\w*|gir\w*|yola|eslik|go|goes|going|come\w*|walk\w*|head\w*)\b")
+# A no, or alone, in the same clause cancels the ask ('gelmesin', 'gelmeden', 'istemedi', 'değil', 'yalnız', "don't").
+_NOT_ALONG = re.compile(r"\b(?:\w+m[ae](?:sin|den|di|dim|din|z|yecek|yacak|mis|yin)|gelme|degil|yalniz|tek basima|"
+                        r"hayir|olmaz|not|don t|dont|without|alone)\b")
 
 
 def _asks_along(world: dict[str, Any], player_input: str, npc: dict[str, Any]) -> bool:
     """The line names the person (name or role the player knows) and asks them along (Dilim 3D Task 6, Ruling R5).
 
-    'Rahiple birlikte hana gidiyorum' asks; 'I thank the priest and leave for the inn' only mentions him."""
-    folded = fold(player_input)
-    if not any(word in folded for word in _TOGETHER):
-        return False
+    The ask lives in one clause: the person, a together-word and a going or coming, with no no and no 'alone' in it.
+    'Rahiple birlikte hana gidiyorum' asks; 'I thank the priest and leave for the inn' only mentions him; 'Rahip
+    benimle gelmesin, hana yalnız gidiyorum' and 'Rahip diğerleriyle birlikte dua ediyor; ben hana gidiyorum' do not.
+    A clause that is only the person's name is a vocative and belongs to the clauses beside it."""
     labels = []
     if living_world.npc_name_known_to_player(npc):
         labels.append(npc.get("name"))
     if living_world.npc_role_known_to_player(npc):
         labels.append(npc.get("role"))
     words = [w for label in labels for w in fold(label or "").split() if len(w) >= 3]
-    tokens = folded.split()
-    return any(token.startswith(word) for word in words for token in tokens)
+    if not words:
+        return False
+
+    def named(tokens):
+        return any(token.startswith(word) for word in words for token in tokens)
+
+    clauses = [fold(part).split() for part in _CLAUSE_BREAK.split(str(player_input or ""))]
+    clauses = [tokens for tokens in clauses if tokens]
+    vocative = [bool(tokens) and all(any(t.startswith(w) for w in words) for t in tokens) for tokens in clauses]
+    for index, tokens in enumerate(clauses):
+        if vocative[index]:
+            continue
+        clause = " ".join(tokens)
+        if not any(word in clause for word in _TOGETHER) or not _GOING.search(clause) or _NOT_ALONG.search(clause):
+            continue
+        if named(tokens) or (index > 0 and vocative[index - 1]) or (index + 1 < len(clauses) and vocative[index + 1]):
+            return True
+    return False
 
 
 def _escort_with(run: _Run, place: dict[str, Any] | None, commitment: dict[str, Any] | None) -> str:
@@ -1456,7 +1479,7 @@ def _escort_with(run: _Run, place: dict[str, Any] | None, commitment: dict[str, 
         if not item:
             continue
         npc = npc_statements._npc(world, item.get("npc_id"))
-        if not npc or npc.get("location") != run.here or npc.get("status", "active") != "active":
+        if not npc or npc.get("location") != run.here or not npc_statements.on_their_feet(npc):
             continue
         destination = item.get("destination") or {}
         if commitment is not None:
@@ -1520,6 +1543,7 @@ def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=Non
                         for r in (run.location(run.here) or {}, record)]
             if not run.game.commit_location_change(parent):
                 return _receipt(verb, "blocked", place, reason="cannot_leave", text="Bulunduğun yerden çıkamıyorsun.")
+            _carry_escorts(run, parent)  # whoever walks along is in the street with the player, whatever the door says
             if not all(outdoors):  # from the caravan stop on down the road, nobody walks back through the streets
                 prefix += f"Dışarı, {run.location(parent).get('name')} sokaklarına çıkıyorsun. "
     if door is not None:

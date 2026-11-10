@@ -842,16 +842,22 @@ def fulfil(world: dict[str, Any], commitment_id: str, how: str) -> None:
                 commitment["fulfilled_by"] = how  # a broken/cancelled/earlier-fulfilled promise keeps its own reason
 
 
+def on_their_feet(npc: Any) -> bool:
+    """Whether this person can walk anywhere: active, and neither dead nor out cold (the engine's `combat_status`)."""
+    return (isinstance(npc, dict) and npc.get("status", "active") == "active"
+            and npc.get("combat_status") not in {"dead", "unconscious"})
+
+
 def return_escorts(world: dict[str, Any], now: int) -> list[str]:
     """Send home the people who walked along and whose half hour is up (`npc["escort_return"]`): not during a fight,
-    and only an active person whose home still exists; a home that is gone leaves them where they are. The field
-    goes either way. Returns the ids of those who went home; an older save with no field is left alone."""
+    and only a person on their feet whose home still exists; a home that is gone leaves them where they are. The
+    field goes either way. Returns the ids of those who went home; an older save with no field is left alone."""
     if (world.get("combat") or {}).get("active") or type(now) is not int:
         return []
     locations = world.get("locations") if isinstance(world.get("locations"), dict) else {}
     returned = []
     for npc in world.get("npcs") or []:
-        if not isinstance(npc, dict) or npc.get("status", "active") != "active":
+        if not on_their_feet(npc):
             continue
         field = npc.get("escort_return")
         if not isinstance(field, dict) or type(field.get("at")) is not int or field["at"] > now:
