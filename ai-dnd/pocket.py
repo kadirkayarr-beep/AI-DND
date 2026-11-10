@@ -301,6 +301,8 @@ def _committed(session, item: str, stem: str, text: str, person: Any, line: Any)
                     None)
         if held is None or item_transfers.item_needs_card(world, held):
             return False  # a thing of worth changes hands only by its own owner's way, never by a reply
+        if held["item_id"] == getattr(session, "_given_now", None):
+            return False  # the player just gave it to them: their reply this same turn does not hand it back
         source = str(person.get("id"))
     else:
         found = item_transfers.real_thing_here(world, stem)

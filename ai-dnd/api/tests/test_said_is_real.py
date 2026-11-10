@@ -224,6 +224,18 @@ class HandingOver(ErrandBase):
         self.assertIn(item, self.owner["inventory"])
         self.assertIn("Sağ ol", reply["narration"])
 
+    async def test_a_thing_given_does_not_come_back_with_the_reply(self):
+        """The person's reply in the same turn names the given thing as handed back: it stays in their hands."""
+        await self.errand()
+        item = self.plain("Kırık halka")
+        self.client.front = {"kind": "hand_over", "person_id": self.owner["id"], "item_id": item["item_id"]}
+        self.client.speech_extra = {"commitment": {"kind": "give", "item": "halka"}}
+        reply = await self.line("su halkayi sana uzatiyorum usta, sakla", "Sağ ol. Al, halkanı geri ver diyorsun ya, al.")
+        self.assertIn("Sağ ol", reply["narration"])
+        self.assertNotIn("halkanı", reply["narration"])  # the line may not say it came back
+        self.assertNotIn("Kırık halka", self.bag())
+        self.assertIn(item["item_id"], [i.get("item_id") for i in self.owner["inventory"] if isinstance(i, dict)])
+
     def plain(self, name):
         equipment_economy.grant_plain(self.world, name)
         return next(i for i in self.world["inventory"] if isinstance(i, dict) and i.get("name") == name)

@@ -18231,6 +18231,7 @@ def _clear_turn_transients(session) -> None:
     The turn's economic source key goes with it (A4): a card a later turn finds is never this turn's own.
     """
     session._handed_note = None
+    session._given_now = None
     session._coin_paid = None
     session._front_coin = 0
     session._front_economic_none = False
@@ -19453,6 +19454,7 @@ def _front_hand_over(route, player_input):
                 given = dialogue_jobs.give_plain(world, item_id, person)
                 if given is not None:
                     session._handed_note = given.get("name")
+                    session._given_now = given.get("item_id")  # their reply this turn cannot hand it back (Task 33)
                 return heard
             due = [job for job in [*world_threads.deliveries_to(world, person), *world_threads.late_parcels(world, person)]
                    if dialogue_jobs.holds_parcel(world, job)]
