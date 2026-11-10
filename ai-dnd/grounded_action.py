@@ -650,7 +650,9 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
     if tied and same_explicit_name:
         # Two places of one name ("Özpil'in konağına"): the kind of place said picks one, as the kind filter reads it.
         said = _place_noun_in(clause_tokens)
-        fits = [c for c in (best, *tied) if said and c["kind"] == "place" and {said[0], said[1]} & {
+        kinds = {said[0], said[1], *(kind for kind, nouns in npc_statements.KIND_NOUNS.items()
+                                     if said[0] in nouns)} if said else set()
+        fits = [c for c in (best, *tied) if said and c["kind"] == "place" and kinds & {
             c["record"].get("scene_kind"), c["record"].get("place_kind"), c["record"].get("generic_noun")}]
         if len(fits) == 1:
             best, tied = fits[0], []

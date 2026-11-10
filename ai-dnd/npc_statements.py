@@ -56,6 +56,11 @@ PLACE_NOUNS: tuple[tuple[str, str], ...] = (
     ("konak", "estate"), ("konag", "estate"), ("malikane", "estate"), ("kosk", "estate"),
     ("kule", "generic"), ("depo", "generic"), ("ambar", "generic"),
 )
+# Owner-approved vocabulary (Task 41, 2026-11-10), a named exception to the no-word-list rule: place kind -> the
+# generic nouns that also cover it. A "dükkân" is a workshop-type place or a market stall, never an estate.
+KIND_NOUNS: dict[str, tuple[str, ...]] = {
+    "workshop": ("dukkan",), "smithy": ("dukkan",), "bakery": ("dukkan",), "market": ("dukkan",),
+}
 # A bare noun with only case endings after it is not a name ("Hanın yolu").
 _CASE_TAIL = re.compile(
     r"^(?:i|in|ina|ini|inda|indan|a|e|da|de|dan|den|ta|te|tan|ten|ya|ye|yi|nin|nun|"

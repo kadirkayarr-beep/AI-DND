@@ -91,13 +91,23 @@ class NamedPersonWayTests(ThreePlaysTests):
         step = grounded_action.plan(self.session, "orselanın konağına gidiyorum")["steps"][0]
         self.assertEqual((step["target"] or {}).get("id"), estate["id"], step["ambiguous"])
         self.assertEqual(step["ambiguous"], [])
-        # The words name no kind of either place (a "dükkân" is neither an estate nor, by the engine's nouns, a
-        # workshop): both are still offered.
-        for line in ("orselaya gidiyorum", "orselanın dükkanına gidiyorum"):
+        # Task 41 (owner vocabulary, 2026-11-10): a "dükkân" is a workshop-type place or a market stall, never an
+        # estate: it picks the workshop.
+        for line in ("orselanın dükkanına gidiyorum", "Orsela'nın dükkânına gidiyorum"):
             with self.subTest(line=line):
                 step = grounded_action.plan(self.session, line)["steps"][0]
-                self.assertIsNone(step["target"])
-                self.assertEqual({cand["id"] for cand in step["ambiguous"]}, {estate["id"], workshop["id"]})
+                self.assertEqual((step["target"] or {}).get("id"), workshop["id"], step["ambiguous"])
+                self.assertEqual(step["ambiguous"], [])
+        # The words name no kind of either place: both are still offered.
+        step = grounded_action.plan(self.session, "orselaya gidiyorum")["steps"][0]
+        self.assertIsNone(step["target"])
+        self.assertEqual({cand["id"] for cand in step["ambiguous"]}, {estate["id"], workshop["id"]})
+        # Two places of the dükkân kinds: the word cannot pick one, so it is still asked.
+        stall = local_places.create_local_place(self.world, self.settlement, "market", name="Ozan Pazarı")
+        stall["resident_name"] = "Orsela"
+        step = grounded_action.plan(self.session, "orselanın dükkanına gidiyorum")["steps"][0]
+        self.assertIsNone(step["target"])
+        self.assertLessEqual({workshop["id"], stall["id"]}, {cand["id"] for cand in step["ambiguous"]})
 
     async def test_asked_of_someone_here_where_a_named_person_is_the_town_tells_them(self):
         """Task 29: the person asked hears, as engine data, where the town says the named person is."""
