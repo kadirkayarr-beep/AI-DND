@@ -10766,7 +10766,7 @@ def _experimental_private_npc_disclosure(
 # A capitalised word in a person's place: acting, standing, described, or the speaker before a quote.
 _NARRATED_NAME_PATTERNS = (
     r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})(?:,)?\s+(?=(?:içeri|dışarı|düşünür|korkar|yaklaşır|girer|konuşur|yanıt verir|şöyle der|"
-    r"sana|senden|yakınında|yanında|ortaya çıkar|belirir|vardır|durur|gözleri|başını|adlı|isimli|"
+    r"sana|senden|yakınında|yanında|ortaya çıkar|belirir|vardır|durur|gözleri|başını|adlı|isimli|adında|isminde|"
     r"barmen|gezgin|tüccar|muhafız|komutan|sakin|yaşlı|genç|sessiz|eski|yorgun|orta yaşlı|"
     r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı)\b)",
     r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}),\s*[\"“]",
@@ -23401,6 +23401,7 @@ class GameSession:
         # Ephemeral diagnostics only; these are deliberately outside canonical
         # world state and are never returned in the player-facing turn payload.
         self.last_narration_safety = None
+        self.last_arrival_narration = None
         self.narration_safety_history = []
         self._xp_level_up = None
         self._persisted_engine_format = SAVE_FORMAT_VERSION

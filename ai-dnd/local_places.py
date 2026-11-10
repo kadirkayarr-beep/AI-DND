@@ -559,7 +559,8 @@ _OPEN_AIR_TIME_LINES = {
 }
 
 
-def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *, first_visit: bool) -> str:
+def arrival_parts(world: dict[str, Any], record: dict[str, Any], npc, feature, *, first_visit: bool) -> dict[str, Any]:
+    """The arrival, taken apart: the Python lines and what they were made from. Writes visited/seen_at."""
     import bold_acts
     import campaign_time
     import fallen
@@ -601,15 +602,44 @@ def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *,
             parts.append(time_lines[clock["time_of_day"]])
     if isinstance(feature, dict) and not burning:
         parts.append(str(feature.get("description") or ""))
+    present, presence_line = [], ""
     if isinstance(npc, dict) and npc.get("combat_status") != "dead" and npc.get("location") == record["id"]:
         who = living_world.public_npc_name(npc)
         hour = f":{clock['day_index']}:{clock['time_of_day']}" if clock and not first_visit else ""
         activity = _pick(world, record["id"], spec["activities"], f"activity{hour}")[0]
-        parts.append(f"{who} burada. {activity}")
+        presence_line = f"{who} burada. {activity}"
+        present.append({"name": who, "activity": activity})
+        parts.append(presence_line)
+    facts = []
     if first_visit and inner_room_of(world, record["id"]) is not None:
-        parts.append("Daha içeri açılan ağır bir kapı var; önünden kimse habersiz geçmiyor.")
+        facts.append("Daha içeri açılan ağır bir kapı var; önünden kimse habersiz geçmiyor.")
     if first_visit and record.get("local_issue"):
-        parts.append(str(record["local_issue"]))
-    parts.extend(marks)
-    parts.append(fallen.scene_line(world))
+        facts.append(str(record["local_issue"]))
+    facts.extend(marks)
+    facts.append(fallen.scene_line(world))
+    return {
+        "place_id": record["id"],
+        "name": record["name"],
+        "noun": spec["noun"],
+        "description": str(record.get("description") or ""),
+        "feature": (str(feature.get("description") or "") or None) if isinstance(feature, dict) and not burning else None,
+        "form": "open_air" if spec.get("open_air") else "outdoors" if spec.get("outdoors") else "indoor",
+        "burning": bool(burning),
+        "visit": "first" if first_visit else "return",
+        "away_seconds": int(away),
+        "clock": clock,
+        "present": present,
+        "fallback": _joined(parts),
+        "presence_line": presence_line,
+        "facts_line": _joined(facts),
+        "wants_model": bool(first_visit or burning or away >= AWAY_SECONDS or marks),
+    }
+
+
+def _joined(parts) -> str:
     return " ".join(part.strip() for part in parts if part and part.strip())
+
+
+def arrival_text(world: dict[str, Any], record: dict[str, Any], npc, feature, *, first_visit: bool) -> str:
+    parts = arrival_parts(world, record, npc, feature, first_visit=first_visit)
+    return " ".join(part for part in (parts["fallback"], parts["facts_line"]) if part)
