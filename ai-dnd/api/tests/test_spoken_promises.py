@@ -514,5 +514,29 @@ class Recognition(Table):
             self.assertNotIn("yüzünü unutmadım", reply["narration"], mode)
 
 
+class CheckIsNotSpeech(Table):
+    """A check's result is the narrator's; when the reply cannot stand, the person answers in their own words (Task 34)."""
+
+    async def job(self, **kwargs):
+        with fixed_town(self, 2821):
+            await super().job(**kwargs)
+
+    async def test_a_turned_down_reply_after_a_check_is_not_the_check_in_their_mouth(self):
+        await self.job()
+        world_threads.view(self.world)["threads"].clear()
+        self.npc.pop("place_role_of")
+        # The reply makes up what the player did, so the safety turns it down after the Perception roll.
+        said = "Marek, ses dinliyorum; sen de bir şey duyuyor musun?"
+        reply = await self.line(said, "Elbette, dün buraya iş sormaya gelmiştin.", mode="say")
+        self.assertEqual(self.session.last_narration_safety.get("handling"), "python_fallback", reply["narration"])
+        # The safety's stand-in is the Perception check's own line: "İncelemen sonuç vermedi; ...".
+        self.assertNotIn("İncelemen", reply["narration"])
+        self.assertNotIn("gelmiştin", reply["narration"])
+        self.assertTrue(reply["narration"].startswith(living_world.public_npc_name(self.npc)), reply["narration"])
+        with patch.object(game, "_session", return_value=self.session):
+            own = game._person_fallback(self.world, self.npc, said)  # only the person's own fallback speaks for them
+        self.assertIn(own, reply["narration"])
+
+
 if __name__ == "__main__":
     unittest.main()
