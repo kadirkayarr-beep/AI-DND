@@ -305,6 +305,29 @@ class EnglishClockParity(unittest.IsolatedAsyncioTestCase):
                         # which English lines never reach (D-1 b); the clock and the rest above stay equal.
                         self.assertEqual((en.action, en.status), (tr.action, tr.status))
 
+    # Fix round 2 (re-review recall regression): "I <do something> and sleep" and "I would like / decide to sleep"
+    # are the player's own sleep, as "uzanıp uyuyorum" is (the QA #027 shape).
+    THE_PLAYERS_SLEEP = (
+        ("I lie down and sleep", "uzanıp uyuyorum"),
+        ("I make camp and sleep", "kamp kurup uyuyorum"),
+        ("I curl up and sleep", "kıvrılıp uyuyorum"),
+        ("We camp and sleep through the night", "kamp kurup gece boyunca uyuyorum"),
+        ("I settle in and sleep until dawn", "yerleşip uyuyorum"),  # English named hours are out of scope (D-1 b)
+        ("I would like to sleep", "uyuyacağım"),
+        ("I decide to sleep", "uyuyayım"),
+        ("I lie down and sleep for eight hours", "uzanıp sekiz saat uyuyorum"),
+        ("I make camp and sleep for eight hours", "kamp kurup sekiz saat uyuyorum"),
+        ("I would like to sleep for eight hours", "sekiz saat uyuyacağım"))
+
+    async def test_the_players_sleep_after_another_act_is_a_sleep(self):
+        for english, turkish in self.THE_PLAYERS_SLEEP:
+            for front in (None, {"kind": "wait"}):
+                with self.subTest(english=english, front=front):
+                    en = await self.outcome(english, front=front)
+                    tr = await self.outcome(turkish, front=front)
+                    self.assertEqual((en.delta, en.action, en.long_rest_at), (8 * 3600, "rest", 8 * 3600))
+                    self.assertEqual(tuple(en), tuple(tr))
+
 
 class EnglishTimedOwners(unittest.TestCase):
     """The timed owners read English sleep, wait, rest and their no as they read the Turkish words."""
@@ -337,9 +360,24 @@ class EnglishTimedOwners(unittest.TestCase):
         for line in ("I sneak past the sleeping guard", "the guard sleeps", "a sleeping dragon", "I watch him sleep",
                      "I search the sleeping man's pockets", "two hours ago I was sleeping", "I can't sleep",
                      "I don't want to sleep yet, I look around", "I'm not going to sleep, I keep watch all night",
-                     "I won't sleep", "I sit on the bed", "uyuyan muhafız"):
+                     "I won't sleep", "I sit on the bed", "uyuyan muhafız",
+                     # fix round 2: the "... and sleep" form keeps someone else's sleep and a no out
+                     "I tell the guard to go and sleep", "I watch him eat and sleep", "I don't eat and sleep",
+                     "I never camp and sleep here", "the guard eats and sleeps", "they camp and sleep",
+                     "I search the room and the sleeping man"):
             with self.subTest(line=line):
                 self.assertFalse(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
+
+    def test_the_players_sleep_after_another_act_reads_as_sleep(self):
+        # Fix round 2 (re-review): a short first-person clause, then "and"/"then", then sleep; and more intents
+        import timed_gameplay
+        for line in ("I lie down and sleep", "I make camp and sleep", "I curl up and sleep",
+                     "We camp and sleep through the night", "I settle in and sleep until dawn", "I would like to sleep",
+                     "I'd like to sleep", "I decide to sleep", "I decided to sleep", "I plan to sleep", "I need to sleep",
+                     "I have to sleep", "I'm ready to sleep", "I eat, then sleep", "I eat and then sleep",
+                     "I lie down and go to sleep"):
+            with self.subTest(line=line):
+                self.assertTrue(timed_gameplay._SLEEPING.search(campaign_time.normalize(line)))
 
     def test_a_sleep_said_no_a_few_words_away_is_left_to_the_model(self):
         import timed_gameplay
