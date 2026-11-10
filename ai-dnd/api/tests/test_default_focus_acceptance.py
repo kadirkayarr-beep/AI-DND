@@ -95,7 +95,9 @@ class DefaultFocusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(session.world_state['location'], venue_id)
                     canonical_door = next(d for d in session.world_state['doors'] if d['id'] == door_id)
                     self.assertTrue(canonical_door['open'])
-                    self.assertEqual(client.chat_calls, 0)
+                    # Dilim 3b: walking in asks for the arrival scene once and nothing else (the Python text stands)
+                    self.assertEqual(client.chat_calls, 1)
+                    self.assertIn('arrival', client.schemas[-1]['properties'])
                     self.assertFalse(session.world_state['flags'].get('active_npc_id'))
 
 

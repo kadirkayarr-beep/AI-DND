@@ -1488,10 +1488,15 @@ def create_app(
                 # Exact resource-only conversion has no scene/reference authority.
                 # Its display label or a retained UI target must not focus an NPC,
                 # materialize a place, or alter an existing conversation first.
-                scene_plan = None if slot_conversion else session.plan_living_world_turn(
-                    narrative_player_message,
-                    **plan_kwargs,
-                )
+                # The planner's own entry (an inn walked into by name) may tell its arrival with a model call:
+                # it is counted in the same window as the front reading, so the turn's cap holds.
+                with active_adapter.capture_model_calls() as planner_calls:
+                    planner_calls.extend(calls_before_turn)
+                    scene_plan = None if slot_conversion else session.plan_living_world_turn(
+                        narrative_player_message,
+                        **plan_kwargs,
+                    )
+                calls_before_turn = planner_calls
                 lore_context = _lore_context_for_turn(
                     record,
                     session,

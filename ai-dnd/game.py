@@ -17564,7 +17564,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             and candidate_record.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
             and candidate_record.get("parent_location_id") == current
         ):
-            entry = grounded_action.enter_existing_place(_session(), candidate)
+            entry = grounded_action.enter_existing_place(_session(), candidate, player_input)
             direct = {
                 "action": "enter",
                 "status": entry["status"],
@@ -17572,6 +17572,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                 "target_id": candidate,
                 "state_changes": [],
                 "direct_response": entry["text"],
+                **({"arrival_narration": entry["arrival_narration"]} if entry.get("arrival_narration") else {}),
             }
         elif (
             candidate == current
@@ -18166,8 +18167,9 @@ def _local_place_turn(player_input):
     npc, feature = local_places.furnish(
         world, record, create_npc=create_npc_from_ai, create_feature=create_local_feature,
     )
-    narration = local_places.arrival_text(world, record, npc, feature, first_visit=created)
-    narration = _with_job_news(world, record["id"], narration)
+    import arrival_narration  # here, not at the top: arrival_narration imports game
+    narration, told = arrival_narration.arrive(sys.modules[__name__], world, record, npc, feature, first_visit=created,
+                                               player_input=player_input, messages=session.messages)
     action_result = {
         "action": "travel",
         "status": "resolved",
@@ -18180,6 +18182,7 @@ def _local_place_turn(player_input):
             "npc_id": npc.get("id") if isinstance(npc, dict) else None,
             "feature_id": feature.get("id") if isinstance(feature, dict) else None,
         },
+        "arrival_narration": {"source": told["source"], "reason_code": told["reason_code"]},
         "direct_response": narration,
     }
     session.evaluate_quest_events(before, action_result)
@@ -18190,7 +18193,7 @@ def _local_place_turn(player_input):
     return {
         "messages": session.messages,
         "narration": narration,
-        "model_calls": 0,
+        "model_calls": told["calls"],
         "action_result": action_result,
     }
 

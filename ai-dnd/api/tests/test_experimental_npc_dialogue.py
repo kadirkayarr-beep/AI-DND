@@ -1030,14 +1030,17 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(travel_replay.status_code, 200, travel_replay.text)
         self.assertEqual(travel_replay.json(), travel.json())
         self.assertEqual(session.world_state["locations"], locations_after_visit)
-        self.assertEqual(client.chat_calls, 1)
+        # Dilim 3b: the walk to the named place asks for its arrival scene once (this client answers speech there,
+        # so the Python arrival text stands); the replay asks for nothing.
+        self.assertEqual(client.chat_calls, 2)
+        self.assertIn("arrival", client.schemas[-1]["properties"])
 
         replay = await test_campaign_api.CampaignApiTests.post_scene_turn(
             self, turn_url, client, body
         )
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), response.json())
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(client.chat_calls, 2)
 
         campaign_id = self.manager.get(session_id).campaign_id
         saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")

@@ -34,10 +34,12 @@ class ReceiptContractTests(unittest.IsolatedAsyncioTestCase):
 
     async def enter(self):
         place, door, feature, hidden = self.seed()
+        arrivals = self.client.arrival_calls
         entered = await self.turn("Orin Dükkânı'na gidiyorum.", interaction_mode='do')
         self.assertEqual(self.world['location'], place['id'])
         self.assertTrue(next(d for d in self.world['doors'] if d['id'] == door['id'])['open'])
         self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.arrival_calls, arrivals + 1)  # the arrival scene's call (fails here: Python text)
         return place, door, feature, hidden, entered
 
     async def observe(self, *, failing_save=False, text=TEXT, claims=None, registry=None, message='Etrafıma bakıyorum.'):

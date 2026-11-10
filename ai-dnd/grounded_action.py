@@ -1103,6 +1103,7 @@ class _Run:
         self.inspections: list[dict[str, Any]] = []
         self.local_place: dict[str, Any] | None = None
         self.model_calls = 0
+        self.arrival_calls = 0  # arrival narration calls; not the target reading's, so not in grounding (Ruling R7)
         self.model_ms: list[int] = []
         self.escorts: list[str] = []
 
@@ -1476,6 +1477,7 @@ def _door_public(door):
 
 
 def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, Any]:
+    import arrival_narration
     import local_places
 
     record = place["record"]
@@ -1512,14 +1514,16 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
         first = not seen_before
         run.local_place = {"kind": record["place_kind"], "created": first,
                            "npc_id": npc.get("id") if isinstance(npc, dict) else None}
-        arrival = local_places.arrival_text(run.world, record, npc, feature, first_visit=first)
-        arrival = run.game._with_job_news(run.world, record["id"], arrival)
-        return _receipt("enter", "completed", place, text=f"{prefix}{opened}{arrival}".strip())
-    people = run.game.active_npcs(place["id"])[:3]
-    inside = f" İçeride {living_world.public_scene_people(people)} var." if people else " İçerisi sessiz."
-    description = record.get("description") or ""
-    return _receipt("enter", "completed", place,
-                    text=f"{prefix}{opened}Kapıdan içeri giriyorsun. {record.get('name')} içindesin. {description}{inside}".strip())
+        arrival, told = arrival_narration.arrive(run.game, run.world, record, npc, feature, first_visit=first,
+                                                 player_input=run.text, messages=run.session.messages)
+    else:
+        people = run.game.active_npcs(place["id"])[:3]
+        arrival, told = arrival_narration.narrate(
+            run.game, arrival_narration.venue_scene(run.world, record, people, seen_before=seen_before),
+            player_input=run.text, messages=run.session.messages)
+    run.arrival_calls += told["calls"]
+    return _receipt("enter", "completed", place, text=f"{prefix}{opened}{arrival}".strip(),
+                    arrival_narration={"source": told["source"], "reason_code": told["reason_code"]})
 
 
 def _current_door_target(run: _Run, step) -> dict[str, Any] | None:
@@ -2683,9 +2687,9 @@ def model_ground(run: _Run, player_input: str, cands: list[dict[str, Any]]) -> l
 # ---------------------------------------------------------------------------
 # Public helpers used by older pipeline exits.
 # ---------------------------------------------------------------------------
-def enter_existing_place(session, location_id):
+def enter_existing_place(session, location_id, player_input=""):
     """Shared entry mechanics; the caller retains turn bookkeeping and receipt shape."""
-    run = _Run(session, "")
+    run = _Run(session, player_input)
     record = run.location(location_id)
     if record is None:
         return None
@@ -3467,7 +3471,7 @@ def _bookkeeping(run: _Run, narration: str, action_result: dict[str, Any]) -> di
         {"role": "user", "content": run.text},
         {"role": "assistant", "content": narration},
     ])
-    return {"messages": session.messages, "narration": narration, "model_calls": run.model_calls,
+    return {"messages": session.messages, "narration": narration, "model_calls": run.model_calls + run.arrival_calls,
             "action_result": action_result}
 
 
@@ -3516,6 +3520,9 @@ def _finish(run: _Run, results, p) -> dict[str, Any]:
         action_result["inspection"] = run.inspections[-1]
     if run.local_place:
         action_result["local_place"] = run.local_place
+    told = next((r["arrival_narration"] for r in results if r.get("arrival_narration")), None)
+    if told is not None:
+        action_result["arrival_narration"] = told
     if any(r.get("repeated_observation") for r in results):
         action_result["repeated_observation"] = True
     if run.escorts:

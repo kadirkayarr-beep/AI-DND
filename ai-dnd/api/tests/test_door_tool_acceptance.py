@@ -109,14 +109,16 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
 
     async def test_unlocked_entry_and_normal_open_keep_destination(self):
         await self.scene(locked=False)
-        calls=self.client.calls
+        calls=self.client.calls; arrivals=self.client.arrival_calls
         _,receipt,_=await self.post('Orryn Hanı Kapısını açıyorum.')
         self.assertEqual(receipt['target_id'],self.door_id)
         self.assertTrue(self.door()['open'])
+        self.assertEqual(arrivals,self.client.arrival_calls)
         out,receipt,_=await self.post('İçeri giriyorum.')
         self.assertEqual(self.world['location'],self.place['id'])
         self.assertIn('Orryn',out['narration'])
         self.assertEqual(calls,self.client.calls)
+        self.assertEqual(arrivals+1,self.client.arrival_calls)  # walking in asks for the arrival scene once (fails here)
 
     async def test_locked_entry_stays_locked_without_model(self):
         await self.scene()

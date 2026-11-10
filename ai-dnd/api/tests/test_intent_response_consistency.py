@@ -27,8 +27,14 @@ class NoNarrationClient(test_campaign_api.FakeOllamaClient):
         self.calls = 0
         self.allow_narration = False
         self.intent_calls = 0
+        self.arrival_calls = 0
 
     def chat(self, *args, **kwargs):
+        if "arrival" in (kwargs.get("format", {}).get("properties") or {}):
+            # Dilim 3b: walking into a place may ask the model for the arrival scene (its own call, counted apart);
+            # here it fails, so the Python arrival text stands. IntentResponseConsistencyTests.turn pins when it may run.
+            self.arrival_calls += 1
+            raise RuntimeError("arrival narration is not scripted here")
         self.calls += 1
         if "intent" in (kwargs.get("format", {}).get("properties") or {}):
             self.intent_calls += 1
@@ -64,9 +70,14 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.client.calls = 0
 
     async def turn(self, message, **fields):
+        here, arrivals = self.world.get("location"), self.client.arrival_calls
         response = await self.http.post(f"/api/game/sessions/{self.session_id}/turn",
                                        json={"message": message, "action_id": str(uuid.uuid4()), **fields})
         self.assertEqual(response.status_code, 200, response.text)
+        # The only model call a resolved move may make is one arrival scene, and only on a turn that arrives somewhere.
+        self.assertIn(self.client.arrival_calls - arrivals, (0, 1))
+        if self.client.arrival_calls != arrivals:
+            self.assertNotEqual(self.world.get("location"), here)
         return response.json()
 
     async def arrive(self):
@@ -83,11 +94,13 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_implicit_enter_commits_destination(self):
         door, place = await self.arrive()
+        arrivals = self.client.arrival_calls
         result = await self.turn("içeri giriyorum")
         self.assertEqual(self.world["location"], place["id"])
         self.assertTrue(door["open"])
         self.assertIn(place["name"], result["narration"])
         self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.arrival_calls, arrivals + 1)
 
     def known_shop(self, *, locked=False):
         import grounded_action
