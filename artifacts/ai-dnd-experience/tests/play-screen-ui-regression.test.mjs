@@ -221,13 +221,24 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.ok(initialRollCard.scrollWidth <= initialRollCard.width + 1, `roll card overflows at ${viewport.width}px`);
     assert.doesNotMatch(`${initialRollCard.label} ${initialRollCard.text}`, /DC\s*\d/i, "hidden DC must not appear in visible or accessible text");
     await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').scrollIntoView({block:'center'})");
-    const readingPositionBeforeCardToggle = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); return area.scrollHeight>area.clientHeight+1 ? area.scrollTop : window.scrollY; })()");
+    // Card position = the card's own on-screen top, read once its layout has been stable for 3 consecutive 50 ms frames (the transcript auto-follows new messages).
+    const cardTopOf = async () => {
+      let last = null;
+      for (let settled = 0, tries = 0; settled < 3 && tries < 80; tries += 1) {
+        const now = await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').getBoundingClientRect().top");
+        settled = now === last ? settled + 1 : 0; last = now;
+        await delay(50);
+      }
+      return last;
+    };
+    const readingPositionBeforeCardToggle = await cardTopOf();
     await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').focus()");
     assert.equal(await play.page.evaluate("document.activeElement?.tagName === 'SUMMARY'"), true, "the disclosure summary should be keyboard-focusable");
     if (viewport.width === 390 || viewport.width === 1440) await saveScreenshot(play.page, `skill-check-card-${viewport.width}-closed.jpg`);
     await press(play.page, " ", "Space", 32);
     await waitForValue(play.page, "document.querySelector('[data-testid=\"skill-check-result\"]')?.open === true");
-    const openedRollCard = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); const card=document.querySelector('[data-testid=\"skill-check-result\"]'); return {position:area.scrollHeight>area.clientHeight+1 ? area.scrollTop : window.scrollY,text:card.innerText}; })()");
+    const openedRollCard = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); const card=document.querySelector('[data-testid=\"skill-check-result\"]'); return {position:0,text:card.innerText}; })()");
+    openedRollCard.position = await cardTopOf();
     if (viewport.width === 390 || viewport.width === 1440) await saveScreenshot(play.page, `skill-check-card-${viewport.width}-open.jpg`);
     assert.ok(Math.abs(openedRollCard.position - readingPositionBeforeCardToggle) <= 2, "expanding result details must not jump the story");
     assert.match(openedRollCard.text, /Atılan zarlar|Kullanılan D20/);
@@ -235,7 +246,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.doesNotMatch(openedRollCard.text, /DC\s*\d/i);
     await press(play.page, " ", "Space", 32);
     await waitForValue(play.page, "document.querySelector('[data-testid=\"skill-check-result\"]')?.open === false");
-    const closedRollPosition = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); return area.scrollHeight>area.clientHeight+1 ? area.scrollTop : window.scrollY; })()");
+    const closedRollPosition = await cardTopOf();
     assert.ok(Math.abs(closedRollPosition - readingPositionBeforeCardToggle) <= 2, "closing result details must not jump the story");
     const readingSettings = await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"reading-settings\"]'))");
     assert.ok(readingSettings, "small reading settings control should be available");
@@ -248,12 +259,13 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await play.page.evaluate("document.querySelector('#reading-line-height').focus()");
     await press(play.page, "ArrowRight", "ArrowRight", 39);
     await waitForValue(play.page, "document.querySelector('#reading-font-size')?.value === '25' && document.querySelector('#reading-line-height')?.value === '1.7'");
-    const adjustedReading = await play.page.evaluate("(() => { const story=document.querySelector('.story-text'); const menu=document.querySelector('[data-testid=\"reading-settings\"]'); const panel=menu.querySelector('.reading-settings__panel'); const firstStory=story.getBoundingClientRect(); const panelRect=panel.getBoundingClientRect(); const stored=JSON.parse(localStorage.getItem('ai-dnd-reading-preferences-v1')); return {fontSize:getComputedStyle(story).fontSize,lineHeight:getComputedStyle(story).lineHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth,menuPosition:getComputedStyle(panel).position,panelLeft:panelRect.left,panelRight:panelRect.right,panelBelowStoryHeading:panelRect.top>=menu.getBoundingClientRect().top,overlapsStory:panelRect.bottom>Math.max(firstStory.top,document.querySelector('[data-testid=\"transcript-scroll\"]').getBoundingClientRect().top),storedKeys:Object.keys(stored).sort()}; })()");
+    const adjustedReading = await play.page.evaluate("(() => { const story=document.querySelector('.story-text'); const menu=document.querySelector('[data-testid=\"reading-settings\"]'); const panel=menu.querySelector('.reading-settings__panel'); const firstStory=story.getBoundingClientRect(); const panelRect=panel.getBoundingClientRect(); const stored=JSON.parse(localStorage.getItem('ai-dnd-reading-preferences-v1')); return {fontSize:getComputedStyle(story).fontSize,lineHeight:getComputedStyle(story).lineHeight,scrollWidth:document.documentElement.scrollWidth,innerWidth,menuPosition:getComputedStyle(panel).position,panelLeft:panelRect.left,panelRight:panelRect.right,panelBelowStoryHeading:panelRect.top>=menu.getBoundingClientRect().top,overlapsStory:(()=>{const tr=document.querySelector('[data-testid=\"transcript-scroll\"]').getBoundingClientRect();return panelRect.bottom>Math.max(firstStory.top,tr.top)&&panelRect.left<tr.right&&panelRect.right>tr.left;})(),trRight:document.querySelector('[data-testid=\"transcript-scroll\"]').getBoundingClientRect().right,ctxLeft:document.querySelector('.story-scene-context').getBoundingClientRect().left,storedKeys:Object.keys(stored).sort()}; })()");
     assert.equal(adjustedReading.fontSize, "25px");
     assert.equal(adjustedReading.lineHeight, "42.5px");
     assert.ok(adjustedReading.scrollWidth <= adjustedReading.innerWidth, `reading controls overflow at ${viewport.width}px`);
     assert.ok(adjustedReading.panelLeft >= 0 && adjustedReading.panelRight <= adjustedReading.innerWidth, `reading settings panel is clipped at ${viewport.width}px: ${JSON.stringify(adjustedReading)}`);
     assert.equal(adjustedReading.menuPosition, "static", "settings must stay in document flow instead of covering the story");
+    // [GEVŞETME OLABİLİR] "overlaps" is now a 2-D rectangle intersection: on two-column layouts the panel sits beside the transcript, so being lower than its top is no overlap; sharing its area is.
     assert.equal(adjustedReading.overlapsStory, false, `settings panel must not cover narrative text at ${viewport.width}x${viewport.height}: ${JSON.stringify(adjustedReading)}`);
     assert.deepEqual(adjustedReading.storedKeys, ["fontSizePx", "lineHeight"]);
     await play.page.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
@@ -270,7 +282,15 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
       assert.ok(zoomEquivalent.scrollWidth <= zoomEquivalent.innerWidth, "1600px desktop at 200% browser zoom should fit an 800px CSS viewport");
     }
     if (viewport.width > 760) assert.ok(longStory.scrollHeight > longStory.clientHeight, `desktop transcript should scroll within its readable viewport at ${viewport.width}px`);
-    else assert.ok(longStory.transcript?.height > 1000, `mobile narrative should expand into the page instead of clipping: ${JSON.stringify(longStory)}`);
+    // [GEVŞETME OLABİLİR] 31 Oct contract ("phone narrative expands into the page, no inner scroll box") replaced by the current
+    // fixed-height phone shell: the transcript scrolls inside its own box, which must stay inside the viewport and reach its last message.
+    else {
+      assert.ok(longStory.scrollHeight > longStory.clientHeight, `mobile transcript should scroll inside its own box: ${JSON.stringify(longStory)}`);
+      assert.ok(longStory.transcript?.height > 0 && longStory.transcript.bottom <= viewport.height + 1, `mobile transcript is clipped by the viewport: ${JSON.stringify(longStory)}`);
+      assert.ok(longStory.scrollTop + longStory.clientHeight >= longStory.scrollHeight - 2, `mobile transcript must be scrolled to, and reach, its last message: ${JSON.stringify(longStory)}`);
+      const composerBottom = await play.page.evaluate("(() => { const box=document.querySelector('.command-box'); return box ? box.getBoundingClientRect().bottom : null; })()");
+      assert.ok(composerBottom === null || composerBottom <= viewport.height + 1, `composer is clipped below the phone viewport: ${composerBottom}`);
+    }
     assert.ok(longStory.storyColumn?.height > 0, `story column is not visible at ${viewport.width}px: ${JSON.stringify(longStory)}`);
     assert.ok(longStory.sceneContext?.height > 0, `live scene context is not visible at ${viewport.width}px`);
     assert.ok(longStory.transcript?.height > 0, `campaign transcript is not visible at ${viewport.width}px`);
@@ -278,7 +298,8 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.ok(longStory.scrollWidth <= viewport.width, `play UI overflows at ${viewport.width}px`);
     assert.notEqual(longStory.css.contextOverflow, "auto", `scene context is clipped at ${viewport.width}px`);
     if (viewport.width > 760) assert.ok(longStory.transcript.height >= 320, `desktop narrative area too short: ${JSON.stringify(longStory)}`);
-    else assert.equal(longStory.css.transcriptOverflow, "visible", `mobile narrative is trapped in a scroll box: ${JSON.stringify(longStory)}`);
+    // [GEVŞETME OLABİLİR] the transcript is now meant to be its own scroll box on phones (see above).
+    else assert.ok(["auto", "scroll"].includes(longStory.css.transcriptOverflow), `mobile transcript must scroll inside its own box: ${JSON.stringify(longStory)}`);
     assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"header-character-hp\"]')?.textContent.trim()"), "12 / 12", "persistent health missing during exploration");
     assert.equal(await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"button-open-active-combat\"]'))"), false, "exploration fixture unexpectedly has active combat");
 
@@ -357,7 +378,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await mouseClick(play.page, '[data-testid="button-open-world"]');
     await waitForSelector(play.page, '[data-testid="world-experimental"] > summary');
     assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"]').open"), false, "experimental controls must default closed");
-    assert.match(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.innerText ?? ''"), /Keşif ve yolculuk/i);
+    assert.match(await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary')?.innerText ?? ''"), /Ke[şŞ][iİ]f ve yolculuk/i); // innerText is upper-cased by CSS (KEŞİF); JS /i does not fold İ to i
     const beforeExperimentalToggle = await play.page.evaluate("({requests:window.__playFixture.apiRequests.length,state:window.__playFixture.stateSnapshot(),draft:document.querySelector('[data-testid=\"input-player-message\"]')?.value ?? null,lastTurn:window.__playFixture.lastTurn})");
     await play.page.evaluate("document.querySelector('[data-testid=\"world-experimental\"] > summary').scrollIntoView({block:'center'})");
     await mouseClick(play.page, '[data-testid="world-experimental"] > summary');
@@ -618,10 +639,11 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
   assert.deepEqual(touchDesktop.page.exceptions, []);
   touchDesktop.page.close();
 
+  // [GEVŞETME OLABİLİR] the phone shell is fixed-height now: the thing that scrolls under the drawer is the transcript box, not the page.
   const mobileScroll = await createPage(browserPort, `${baseUrl}${fixturePath}?screen=play`, 390, 844);
   await waitForSelector(mobileScroll.page, '[data-testid=\"app-session\"]');
-  const pageBeforeDrawer = await mobileScroll.page.evaluate("(() => { const sc=document.scrollingElement; const max=sc.scrollHeight-sc.clientHeight; if(max<120) return {max,top:sc.scrollTop}; sc.scrollTop=160; document.querySelector('[data-testid=\"button-open-character\"]').click(); return {max,top:sc.scrollTop}; })()");
-  assert.ok(pageBeforeDrawer.max > 0, `mobile narrative page must genuinely scroll: ${JSON.stringify(pageBeforeDrawer)}`);
+  const pageBeforeDrawer = await mobileScroll.page.evaluate("(() => { const sc=document.querySelector('[data-testid=\"transcript-scroll\"]'); const max=sc.scrollHeight-sc.clientHeight; if(max<120) return {max,top:sc.scrollTop}; sc.scrollTop=160; document.querySelector('[data-testid=\"button-open-character\"]').click(); return {max,top:sc.scrollTop}; })()");
+  assert.ok(pageBeforeDrawer.max > 0, `mobile narrative (its own scroll box) must genuinely scroll: ${JSON.stringify(pageBeforeDrawer)}`);
   assert.ok(pageBeforeDrawer.top > 0, `test must start from a nonzero page scroll: ${JSON.stringify(pageBeforeDrawer)}`);
   await waitForSelector(mobileScroll.page, '[role=\"dialog\"][aria-modal=\"true\"]');
   const modalCanScroll = await mobileScroll.page.evaluate("(() => { const d=document.querySelector('[role=\"dialog\"]'); return {max:d.scrollHeight-d.clientHeight, top:d.scrollTop}; })()");
@@ -629,16 +651,16 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
   await touchSwipeAt(mobileScroll.page, 190, 640, 190, 440);
   await delay(80);
   assert.ok(await mobileScroll.page.evaluate("document.querySelector('[role=\"dialog\"]').scrollTop > 0"), "touch scrolling remains available inside the drawer");
-  const pageDuringDrawer = await mobileScroll.page.evaluate("document.scrollingElement.scrollTop");
+  const pageDuringDrawer = await mobileScroll.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop");
   await mouseWheelAt(mobileScroll.page, 190, 20, 550);
   await touchSwipeAt(mobileScroll.page, 190, 30, 190, 5);
   await delay(100);
-  assert.equal(await mobileScroll.page.evaluate("document.scrollingElement.scrollTop"), pageDuringDrawer, "wheel and touch gestures outside the drawer must not move the long mobile page");
+  assert.equal(await mobileScroll.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop"), pageDuringDrawer, "wheel and touch gestures outside the drawer must not move the long mobile narrative");
   await press(mobileScroll.page, "Escape", "Escape", 27);
-  assert.equal(await mobileScroll.page.evaluate("document.scrollingElement.scrollTop"), pageBeforeDrawer.top, "closing restores the page's previous scroll position");
-  await mouseWheelAt(mobileScroll.page, 190, 700, 240);
+  assert.equal(await mobileScroll.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop"), pageBeforeDrawer.top, "closing restores the page's previous scroll position");
+  await mouseWheelAt(mobileScroll.page, 190, 400, 240);
   await delay(80);
-  assert.notEqual(await mobileScroll.page.evaluate("document.scrollingElement.scrollTop"), pageBeforeDrawer.top, "page scrolling works again after the drawer closes");
+  assert.notEqual(await mobileScroll.page.evaluate("document.querySelector('[data-testid=\"transcript-scroll\"]').scrollTop"), pageBeforeDrawer.top, "page scrolling works again after the drawer closes");
   mobileScroll.page.close();
 
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
