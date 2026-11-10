@@ -567,6 +567,45 @@ class Recognition(Table):
             reply = await self.line(self.RECOGNISE, "Elbette, yüzünü unutmadım.", mode=mode)
             self.assertNotIn("yüzünü unutmadım", reply["narration"], mode)
 
+    async def test_a_debt_or_payment_next_to_a_recognition_verb_does_not_stand(self):
+        """Re-review RR2-2: 'something of yours' is only your face, voice, eyes or name; a payment word is not plain."""
+        for answer, gone in (("Borcunu unutmadım.", "Borcunu"), ("Tabii, ödemeni unutmadım.", "ödemeni")):
+            for mode in (None, "say"):
+                with self.subTest(answer=answer, mode=mode):
+                    await self.job()
+                    self.greeted_only()
+                    reply = await self.line(self.RECOGNISE, answer, mode=mode)
+                    self.assertNotIn(gone, reply["narration"])
+
+
+class RecognitionCut(unittest.TestCase):
+    """only_what_recognition_backs alone, for someone who only ever greeted the player (re-review RR2-2)."""
+
+    def setUp(self):
+        self.world = {}
+        self.npc = {"id": "npc_marek", "name": "Marek"}
+        npc_statements.record(self.world, self.npc, "selam", "Hoş geldin yolcu, ekmek taze.", turn=0)
+
+    def cut(self, reply):
+        return npc_statements.only_what_recognition_backs(self.world, self.npc, "Beni hatırlıyor musun?", reply)
+
+    def test_only_your_face_voice_eyes_or_name_sit_next_to_a_recognition_verb(self):
+        for reply, gone in (("Borcunu unutmadım.", "Borcunu"), ("Tabii, ödemeni unutmadım.", "ödemeni"),
+                            ("Sözünü unutmadım.", "Sözünü"), ("Kardeşini hatırlıyorum.", "Kardeşini"),
+                            ("Seni ve kardeşini hatırlıyorum.", "kardeşini"), ("Görevini hatırlıyorum.", "Görevini"),
+                            ("Ödeme sözünü unutmadım.", "sözünü"), ("Ödemeyi hatırlıyorum.", "Ödemeyi"),
+                            ("Evet, sana verecektim.", "verecektim"), ("Seni sattığımı hatırlıyorum.", "sattığımı"),
+                            ("Yüzünü ve borcunu unutmadım.", "borcunu")):
+            with self.subTest(reply=reply):
+                self.assertNotIn(gone, self.cut(reply))
+
+    def test_a_plain_recognition_stands_whole(self):
+        for reply in ("Elbette, yüzünü unutmadım.", "Seni daha önce gördüm.", "Evet, hatırlıyorum seni.",
+                      "Sesini hatırlıyorum.", "Gözlerini unutmadım.", "Adını hatırlıyorum.", "İsmini unutmadım.",
+                      "Hayır, hatırlamıyorum."):
+            with self.subTest(reply=reply):
+                self.assertEqual(self.cut(reply), reply)
+
 
 class CheckIsNotSpeech(Table):
     """A check's result is the narrator's; when the reply cannot stand, the person answers in their own words (Task 34)."""

@@ -130,11 +130,12 @@ _STOP = frozenset({
     "soylemistin", "demistin", "dedin", "bahsetmistin", "anlatmistin", "unuttun",
     "hatirliyor", "musun", "misin", "hatirla", "sadece", "simdi", "hemen", "diye",
 })
-# Owner-approved vocabulary exception (re-review R1, option B): the verbs of knowing someone again, folded stems.
-# A recognition question backs only these; any other event a reply adds needs the person's own recorded words.
+# Owner-approved vocabulary exception (re-review R1, option B; RR2-2 adds the nouns): the verbs of knowing someone
+# again, and the few things of the player's own that such a verb may name, folded stems. A recognition question
+# backs only these; any other event a reply adds needs the person's own recorded words.
 RECOGNITION_VERBS = ("hatirl", "unut", "tani", "gord", "gorm", "goru")
-_YOURS = re.compile(r"[iu]n[iu]$")  # "yüzünü", "sesini": something of the player's, the one recognised
-_FROM_A_VERB = re.compile(r"(?:[dt][iu]g|[ae]c[ae]g|m[ae]|[iu]s)[iu]n[iu]$")  # "ödediğini", "geleceğini": an event
+RECOGNISED_OF_YOURS = ("yuz", "ses", "goz", "ad", "isim", "ism")  # face, voice, eyes, name
+_YOURS = re.compile(r"^(?:%s)(?:l[ae]r)?[iu]n[iu]?$" % "|".join(RECOGNISED_OF_YOURS))  # "yüzünü", "gözlerini", "adın"
 
 
 def fold(text: Any) -> str:
@@ -752,14 +753,15 @@ def claim_support(world: dict[str, Any], npc: dict[str, Any] | None, claim: str)
     return {"status": "unsupported", "claim_kind": None, "objects": objects}
 
 
-def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], player_text: str, reply: str,
-                                *, plain: Any) -> str:
+def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], player_text: str, reply: str) -> str:
     """A reply to a recognition question, less every clause that adds an event the person's words do not back.
 
-    A clause stands when its content words are all `plain` (yes, of course…), the player's own, backed by this
-    person's recorded words, or a recognition verb with nothing but something of the player's ("yüzünü
-    unutmadım"). "Evet, o yüzüğü sana ben satmıştım." keeps "Evet." when no saying of theirs backs the sale.
-    The reply comes back unchanged when nothing is cut, and empty when nothing is left.
+    A clause stands when its content words are all plain openers (yes, of course…; `_NAME_OPENERS`, never the
+    claim-acceptance table with its payment verbs), the player's own, backed by this person's recorded words, or
+    a recognition verb with nothing but the player's face, voice, eyes or name beside it ("yüzünü unutmadım";
+    `RECOGNISED_OF_YOURS`). "Evet, o yüzüğü sana ben satmıştım." keeps "Evet." when no saying of theirs backs
+    the sale; "Borcunu unutmadım." keeps nothing. The reply comes back unchanged when nothing is cut, and empty
+    when nothing is left.
     """
     said = [word for statement in view(world)["statements"].get(npc.get("id"), [])
             for word in fold(statement.get("text", "")).split()]
@@ -771,10 +773,10 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
             continue
         content = _objects(fold(clause))
         leftover = [word for word in content
-                    if not plain(word) and word not in own and not word.startswith(RECOGNITION_VERBS)
+                    if word not in _NAME_OPENERS and word not in own and not word.startswith(RECOGNITION_VERBS)
                     and not any(_stem_match(word, other) for other in said)]
         recognised = any(word.startswith(RECOGNITION_VERBS) for word in content)
-        if leftover and not (recognised and all(_YOURS.search(w) and not _FROM_A_VERB.search(w) for w in leftover)):
+        if leftover and not (recognised and all(_YOURS.match(w) for w in leftover)):
             cut = True
             continue
         kept.append(clause.strip() + mark)

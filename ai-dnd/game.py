@@ -22757,8 +22757,7 @@ def _run_player_turn_internal(
                     )
                     if recognised and cleaned_spoken.strip():  # re-review R1: recognition backs no added event
                         cleaned_spoken = npc_statements.only_what_recognition_backs(
-                            world_state, npc_target, player_input, cleaned_spoken,
-                            plain=lambda word: bool(_CLAIM_ACCEPTANCE_RE.fullmatch(word)))
+                            world_state, npc_target, player_input, cleaned_spoken)
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
                         threat=raw_intent.get("threat"),
