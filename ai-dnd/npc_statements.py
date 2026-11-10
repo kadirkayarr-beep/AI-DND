@@ -33,6 +33,7 @@ MAX_RESTATED_TURNS = 5
 COMMITMENT_STATUSES = frozenset({"open", "fulfilled", "broken", "cancelled", "closed"})
 _RECIPIENT = "player"  # one player per session; the recipient is part of a promise's identity
 STREET = "street_talk"  # not a person: what the town itself was heard saying
+ESCORT_STAY_SECONDS = 1800  # someone who walked along stays this long, then goes back to where they were (3D Task 6)
 _FILLER = frozenset({"evet", "hayir", "tamam", "dedim", "dedi", "dediydim", "demistim", "soyledim", "ya", "yani", "iste"})
 # Words a speaker opens a clause with; capitalised, but never the start of a name.
 _NAME_OPENERS = _FILLER | {
@@ -839,6 +840,28 @@ def fulfil(world: dict[str, Any], commitment_id: str, how: str) -> None:
             if commitment.get("status") == "open":
                 transition_commitment(world, commitment_id, "fulfilled", f"fulfilled:{how}")
                 commitment["fulfilled_by"] = how  # a broken/cancelled/earlier-fulfilled promise keeps its own reason
+
+
+def return_escorts(world: dict[str, Any], now: int) -> list[str]:
+    """Send home the people who walked along and whose half hour is up (`npc["escort_return"]`): not during a fight,
+    and only an active person whose home still exists; a home that is gone leaves them where they are. The field
+    goes either way. Returns the ids of those who went home; an older save with no field is left alone."""
+    if (world.get("combat") or {}).get("active") or type(now) is not int:
+        return []
+    locations = world.get("locations") if isinstance(world.get("locations"), dict) else {}
+    returned = []
+    for npc in world.get("npcs") or []:
+        if not isinstance(npc, dict) or npc.get("status", "active") != "active":
+            continue
+        field = npc.get("escort_return")
+        if not isinstance(field, dict) or type(field.get("at")) is not int or field["at"] > now:
+            continue
+        home = field.get("home")
+        del npc["escort_return"]
+        if isinstance(home, str) and isinstance(locations.get(home), dict) and npc.get("location") != home:
+            npc["location"] = home
+            returned.append(npc["id"])
+    return returned
 
 
 def transition_commitment(world: dict[str, Any], commitment_id: str, status: str, reason_event_id: str) -> None:

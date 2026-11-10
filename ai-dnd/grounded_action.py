@@ -1413,8 +1413,30 @@ def _materialize_reference(run: _Run, ref: dict[str, Any]) -> dict[str, Any] | N
     return record
 
 
+_TOGETHER = ("birlikte", "beraber", "benimle", "eslik", "with me", "come with", "together")
+
+
+def _asks_along(world: dict[str, Any], player_input: str, npc: dict[str, Any]) -> bool:
+    """The line names the person (name or role the player knows) and asks them along (Dilim 3D Task 6, Ruling R5).
+
+    'Rahiple birlikte hana gidiyorum' asks; 'I thank the priest and leave for the inn' only mentions him."""
+    folded = fold(player_input)
+    if not any(word in folded for word in _TOGETHER):
+        return False
+    labels = []
+    if living_world.npc_name_known_to_player(npc):
+        labels.append(npc.get("name"))
+    if living_world.npc_role_known_to_player(npc):
+        labels.append(npc.get("role"))
+    words = [w for label in labels for w in fold(label or "").split() if len(w) >= 3]
+    tokens = folded.split()
+    return any(token.startswith(word) for word in words for token in tokens)
+
+
 def _escort_with(run: _Run, place: dict[str, Any] | None, commitment: dict[str, Any] | None) -> str:
-    """An NPC who really agreed to take the player along walks with them."""
+    """An NPC who really agreed to take the player along walks with them.
+
+    A promise with no destination (an offer to point the way) is walked only when the line asks them along."""
     world = run.world
     pool = [commitment] if commitment else [
         c for c in npc_statements.open_commitments(world) if c.get("kind") in {"escort", "show"}
@@ -1426,18 +1448,37 @@ def _escort_with(run: _Run, place: dict[str, Any] | None, commitment: dict[str, 
         if not npc or npc.get("location") != run.here or npc.get("status", "active") != "active":
             continue
         destination = item.get("destination") or {}
-        matches = commitment is not None or not destination
-        if place is not None and not matches:
+        if commitment is not None:
+            matches = True
+        elif not destination:
+            matches = _asks_along(world, run.text, npc)
+        elif place is not None:
             ref_id = destination.get("ref_id")
             ref = next((r for r in npc_statements.place_references(world) if r["id"] == ref_id), None) if ref_id else None
             matches = (destination.get("location_id") == place["id"]
                        or (ref is not None and ref.get("location_id") == place["id"])
                        or destination.get("place_kind") in {place.get("place_kind"), place["record"].get("scene_kind")})
+        else:
+            matches = False
         if matches:
             run.escorts.append(npc["id"])
             npc_statements.fulfil(world, item["id"], "walked_with_player")
             return living_world.public_npc_name(npc)
     return ""
+
+
+def _carry_escorts(run: _Run, location_id: str) -> None:
+    """The people walking with the player go where the player goes and remember where they came from: the first
+    carry writes `escort_return` (home, and the hour they go back); a later carry keeps that home."""
+    now = (run.world.get("campaign_time") or {}).get("elapsed_seconds")
+    for npc in (npc_statements._npc(run.world, npc_id) for npc_id in run.escorts):
+        if not npc or npc.get("location") == location_id:
+            continue
+        if type(now) is int:
+            earlier = npc.get("escort_return")
+            home = earlier["home"] if isinstance(earlier, dict) and earlier.get("home") else npc.get("location")
+            npc["escort_return"] = {"home": home, "at": now + npc_statements.ESCORT_STAY_SECONDS}
+        npc["location"] = location_id
 
 
 def _walk_seconds(run: _Run, place: dict[str, Any]) -> int:
@@ -1513,15 +1554,12 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
                             door_state=_door_public(door))
         door["open"] = True
         opened = f"{door.get('name', 'Kapı')} kolunu çevirip açıyorsun. "
-    companions = [npc_statements._npc(run.world, npc_id) for npc_id in run.escorts]
     scenes = (run.world.get("scene_state") or {}).get("scenes") or {}
     seen_before = isinstance(scenes.get(place["id"]), dict) and scenes[place["id"]].get("last_visit_turn") is not None
     if not run.game.commit_location_change(place["id"]):
         return _receipt("enter", "blocked", place, reason="entry_refused",
                         text=f"{prefix}İçeri geçemiyorsun.".strip())
-    for npc in companions:
-        if npc:
-            npc["location"] = place["id"]
+    _carry_escorts(run, place["id"])
     run.near(None)
     run.memory["last_target_id"] = place["id"]
     if record.get("place_kind") in local_places.PLACE_KINDS:
@@ -2229,14 +2267,11 @@ def _do_leave(run: _Run, step) -> dict[str, Any]:
     if not parent or not run.location(parent):
         return _receipt("leave", "completed", None, text="Zaten dışarıdasın.")
     left = record.get("name")
-    companions = [npc_statements._npc(run.world, i) for i in run.escorts]
     if record.get("walk_seconds"):
         run.spend(record["walk_seconds"])
     if not run.game.commit_location_change(parent):
         return _receipt("leave", "blocked", None, reason="exit_refused", text="Dışarı çıkamıyorsun.")
-    for npc in companions:
-        if npc:
-            npc["location"] = parent
+    _carry_escorts(run, parent)
     door = run.door_for(record["id"]) if record.get("id") else None
     run.near(door["id"] if door else None)
     return _receipt("leave", "completed", {"id": parent, "label": run.location(parent).get("name")},

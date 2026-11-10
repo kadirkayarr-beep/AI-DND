@@ -144,6 +144,8 @@ def advance(world, seconds, reason, source, *, observation=None):
     actual = resolution["stop_at"] - old
     clock["elapsed_seconds"] = old + actual  # before the town moves: what happens now happens at the new hour
     if actual > 0:
+        import npc_statements
+        npc_statements.return_escorts(world, old + actual)  # whoever walked along goes home before the town moves
         import world_threads
         world_threads.tick(world, old + actual)
         import bold_acts
