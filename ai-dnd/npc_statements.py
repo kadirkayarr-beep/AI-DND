@@ -799,7 +799,7 @@ def only_what_recognition_backs(world: dict[str, Any], npc: dict[str, Any], play
             continue
         if not mark.strip() or mark.strip() in _BUT:  # "ama" joins two clauses only when both stay
             mark = " " + mark.strip() if mark.strip() and i + 1 < len(pieces) and pieces[i + 1][2] else ""
-        kept.append(re.sub(r"[“”\"]", "", clause + mark))  # no half pairs
+        kept.append(re.sub(r"[“”\"‘’]|(?<!\w)'|'(?!\w)", "", clause + mark))  # no half pairs; "Ali'ye" keeps its '
     text = " ".join(kept).strip().rstrip(",;").strip()
     if text and all(word in _NAME_OPENERS for word in fold(text).split()) and set(fold(text).split()) & _EMPTY_ANSWER:
         return ""  # "Hayır." / "Dedi." with its event cut is no answer: the route's fallback speaks

@@ -690,6 +690,11 @@ class RecognitionCut(unittest.TestCase):
         self.assertEqual(self.cut("Seni hatırlıyorum ama sana yüzük satmadım."), "Seni hatırlıyorum.")
         self.assertEqual(self.cut("Evet, sana yüzük sattım."), "Evet.")  # a yes is still an answer
 
+    def test_single_quotes_go_with_the_cut_too(self):
+        """Re-review RR3-4."""
+        self.assertEqual(self.cut("“‘Evet’, dedi, ‘sana yüzük sattım’”"), "")
+        self.assertEqual(self.cut("'Evet', hatırlıyorum seni, 'sana yüzük sattım'."), "Evet, hatırlıyorum seni.")
+
 
 class CheckIsNotSpeech(Table):
     """A check's result is the narrator's; when the reply cannot stand, the person answers in their own words (Task 34)."""
