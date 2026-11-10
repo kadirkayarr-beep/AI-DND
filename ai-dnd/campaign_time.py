@@ -159,8 +159,18 @@ def normalize(text):
     return "".join(c for c in text if not unicodedata.combining(c))
 
 
+DURATION_CONFLICT = "Aynı satırda iki farklı süre söyledin; tek bir süre yaz."
+
+
+class DurationConflict(ValueError):
+    """One line names two different amounts of the same unit ("2 saat ..., yok 3 saat"): the player is asked."""
+
+
 def requested_duration(text):
-    """Read only explicit player duration, never generated prose."""
+    """Read only explicit player duration, never generated prose.
+
+    The same length said twice counts once ("16 saat ... 16 saat"); different units add ("2 saat 30 dakika");
+    two different amounts of one unit raise DurationConflict."""
     normalized = normalize(text)
     words = {"bir": 1, "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alti": 6,
              "yedi": 7, "sekiz": 8, "dokuz": 9, "on": 10, "yarim": 0.5}
@@ -168,14 +178,26 @@ def requested_duration(text):
     matches = re.findall(pattern, normalized)
     if not matches:
         return None
-    total = 0
+    amounts = {}
     for amount, unit in matches:
         number = words[amount] if amount in words else float(amount.replace(",", "."))
+        if amounts.setdefault(unit, number) != number:
+            raise DurationConflict(DURATION_CONFLICT)
+    total = 0
+    for unit, number in amounts.items():
         total += number * {"saniye": 1, "dakika": 60, "saat": 3600, "gun": DAY,
                            "hafta": 7 * DAY, "ay": 30 * DAY}[unit]
     if total <= 0 or total > DAY * 365 or total != int(total):
         raise ValueError("Bekleme süresi pozitif ve en fazla bir oyun yılı olmalı.")
     return int(total)
+
+
+def names_duration(text):
+    """The line names a length; two lengths that disagree still name one (the wait owner asks which)."""
+    try:
+        return requested_duration(text) is not None
+    except DurationConflict:
+        return True
 
 
 def until_morning(world):

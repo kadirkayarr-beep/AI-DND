@@ -834,7 +834,7 @@ def is_timed_wait(text):
     if re.search(r"\b(?:sonra|ardindan|once)\b", normalized):
         return False  # one thing after another is a plan, and a plan runs step by step
     return bool(re.search(r"\bbekl", normalized)) and "?" not in str(text) and (
-        clock.mentions_named_hour(normalized) or clock.requested_duration(text) is not None
+        clock.mentions_named_hour(normalized) or clock.names_duration(text)
     )
 
 
@@ -847,7 +847,7 @@ def names_a_stretch(world, text):
     if "?" in str(text) or _SLEEPING.search(normalized) or input_route_markers(world, normalized)[2]:
         return False
     try:
-        return clock.mentions_named_hour(normalized) or clock.requested_duration(text) is not None
+        return clock.mentions_named_hour(normalized) or clock.names_duration(text)
     except ValueError:
         return False
 
@@ -871,6 +871,8 @@ def pass_time(session, text):
         return already
     try:
         duration = clock.until_named_hour(session.world_state, normalized) or clock.requested_duration(text) or _A_WHILE
+    except clock.DurationConflict as exc:
+        return _result("wait", str(exc), status="clarification", success=False)
     except ValueError:
         return None
     rested = _rest_if_said(session, normalized, duration)
@@ -962,7 +964,10 @@ def resolve_input(session, text):
         if len(candidates) == 1:
             return start_travel(session, candidates[0])
         return None
-    duration = clock.requested_duration(text)
+    try:
+        duration = clock.requested_duration(text)
+    except clock.DurationConflict as exc:
+        return _result("wait", str(exc), status="clarification", success=False)
     if wait or passive_observation:
         already = _named_hour_already(session, normalized)
         if already is not None:

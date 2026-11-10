@@ -630,5 +630,29 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
             await assert_replay(http, manager, reopened_store, sid)
 
 
+Q167 = ("Hanın salonunda güvenli bir köşede 16 saat geçiriyorum; gecenin geri kalanında uyuyor, "
+        "sabah kitaplarımla ilgileniyorum. 16 saat zaman ilerlesin.")  # QA #167, verbatim
+
+
+class DurationSaidTwice(unittest.TestCase):
+    """Dilim 3D Task 1 (#3, #167): a length said twice in one line counts once; two lengths of one unit ask."""
+
+    def test_167_counts_sixteen_hours_once(self):
+        self.assertEqual(clock.requested_duration(Q167), 16 * 3600)
+
+    def test_different_units_still_add(self):
+        self.assertEqual(clock.requested_duration("2 saat 30 dakika bekliyorum"), 9000)
+
+    def test_the_same_pair_in_words_and_digits_once(self):
+        self.assertEqual(clock.requested_duration("bir saat bekliyorum, evet 1 saat"), 3600)
+
+    def test_two_amounts_of_one_unit_ask(self):
+        with self.assertRaises(clock.DurationConflict) as caught:
+            clock.requested_duration("2 saat bekliyorum, yok 3 saat")
+        self.assertEqual(str(caught.exception), clock.DURATION_CONFLICT)
+        self.assertEqual(clock.DURATION_CONFLICT, "Aynı satırda iki farklı süre söyledin; tek bir süre yaz.")
+        self.assertIsInstance(caught.exception, ValueError)
+
+
 if __name__ == "__main__":
     unittest.main()

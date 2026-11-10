@@ -15764,7 +15764,7 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
     )
     journey = world.get('journey')
     movement, wait, task, observation = timed_gameplay.input_route_markers(world, text)
-    timed = ((wait or task or observation) and campaign_time.requested_duration(player_input) is not None)
+    timed = ((wait or task or observation) and campaign_time.names_duration(player_input))
     if (not simple or timed or world.get('active_task')
             or (journey and journey.get('status') != 'ARRIVED')
             or any(event.get('decision_status') == 'PENDING' for event in timed_gameplay.pending_events(world))
@@ -17431,7 +17431,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     if current in world_state.get("locations", {}) and (
         scheduled_events.pending_events(world_state)
         or
-        campaign_time.requested_duration(player_input) is not None
+        campaign_time.names_duration(player_input)
         or timed_gameplay.explicit_wait_request(player_input)
         or timed_gameplay.clock.normalize(player_input).startswith(
             ("sabaha kadar", "yola devam", "yolculuga devam", "geri don")
@@ -18720,8 +18720,11 @@ def _down_outside_combat_turn(player_input):
         now = world["campaign_time"]["elapsed_seconds"]
         if death["stable"]:
             recovery = death["recovery"]
-            seconds = (campaign_time.requested_duration(player_input)
-                       or (max(1, recovery["at"] - now) if recovery else 3600))
+            try:
+                asked = campaign_time.requested_duration(player_input)
+            except campaign_time.DurationConflict:
+                asked = None  # two lengths said: the body sleeps until it wakes, as when none is said
+            seconds = asked or (max(1, recovery["at"] - now) if recovery else 3600)
         else:
             due = death["noncombat_next_save_at"]
             seconds = 6 if due is None else max(1, due - now)
