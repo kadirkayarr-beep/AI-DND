@@ -221,19 +221,24 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.ok(initialRollCard.scrollWidth <= initialRollCard.width + 1, `roll card overflows at ${viewport.width}px`);
     assert.doesNotMatch(`${initialRollCard.label} ${initialRollCard.text}`, /DC\s*\d/i, "hidden DC must not appear in visible or accessible text");
     await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').scrollIntoView({block:'center'})");
-    // The transcript follows new messages to the bottom after render; take the baseline only once that scroll has settled.
-    for (let settled = 0, last = -1, tries = 0; settled < 3 && tries < 40; tries += 1) {
-      const now = await play.page.evaluate("(() => { const a=document.querySelector('[data-testid=\"transcript-scroll\"]'); return a.scrollTop + window.scrollY; })()");
-      settled = now === last ? settled + 1 : 0; last = now;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    const readingPositionBeforeCardToggle = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); return area.scrollHeight>area.clientHeight+1 ? area.scrollTop : window.scrollY; })()");
+    // Card position = the card's own on-screen top, read once its layout has been stable for 3 consecutive 50 ms frames (the transcript auto-follows new messages).
+    const cardTopOf = async () => {
+      let last = null;
+      for (let settled = 0, tries = 0; settled < 3 && tries < 80; tries += 1) {
+        const now = await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').getBoundingClientRect().top");
+        settled = now === last ? settled + 1 : 0; last = now;
+        await delay(50);
+      }
+      return last;
+    };
+    const readingPositionBeforeCardToggle = await cardTopOf();
     await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').focus()");
     assert.equal(await play.page.evaluate("document.activeElement?.tagName === 'SUMMARY'"), true, "the disclosure summary should be keyboard-focusable");
     if (viewport.width === 390 || viewport.width === 1440) await saveScreenshot(play.page, `skill-check-card-${viewport.width}-closed.jpg`);
     await press(play.page, " ", "Space", 32);
     await waitForValue(play.page, "document.querySelector('[data-testid=\"skill-check-result\"]')?.open === true");
-    const openedRollCard = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); const card=document.querySelector('[data-testid=\"skill-check-result\"]'); return {position:area.scrollHeight>area.clientHeight+1 ? area.scrollTop : window.scrollY,text:card.innerText}; })()");
+    const openedRollCard = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); const card=document.querySelector('[data-testid=\"skill-check-result\"]'); return {position:0,text:card.innerText}; })()");
+    openedRollCard.position = await cardTopOf();
     if (viewport.width === 390 || viewport.width === 1440) await saveScreenshot(play.page, `skill-check-card-${viewport.width}-open.jpg`);
     assert.ok(Math.abs(openedRollCard.position - readingPositionBeforeCardToggle) <= 2, "expanding result details must not jump the story");
     assert.match(openedRollCard.text, /Atılan zarlar|Kullanılan D20/);
@@ -241,7 +246,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.doesNotMatch(openedRollCard.text, /DC\s*\d/i);
     await press(play.page, " ", "Space", 32);
     await waitForValue(play.page, "document.querySelector('[data-testid=\"skill-check-result\"]')?.open === false");
-    const closedRollPosition = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); return area.scrollHeight>area.clientHeight+1 ? area.scrollTop : window.scrollY; })()");
+    const closedRollPosition = await cardTopOf();
     assert.ok(Math.abs(closedRollPosition - readingPositionBeforeCardToggle) <= 2, "closing result details must not jump the story");
     const readingSettings = await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"reading-settings\"]'))");
     assert.ok(readingSettings, "small reading settings control should be available");
