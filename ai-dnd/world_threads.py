@@ -883,9 +883,18 @@ def _with_the_comma_put_back(tokens, asked, after_but, table):
     return [(tokens, asked, after_but)]
 
 
+# Folded Turkish 'iş'/'işe' is 'is'/'ise': in an English clause ('Who is Haskula?') it is no word for the work.
+_ENGLISH_MARKS = frozenset({"the", "who", "whom", "where", "what", "when", "how", "which", "you", "does", "do", "are",
+                            "there", "this", "that", "it", "i"})
+
+
+def _without_english_is(words: list[str]) -> list[str]:
+    return [word for word in words if word not in {"is", "ise"}] if _ENGLISH_MARKS & set(words) else words
+
+
 def _asks_about_the_job(tokens, table, names, thread):
     """A question tied to this work: it names the work, or asks what the speaker is to do."""
-    words = [word for word in tokens if word not in table["fillers"] and word not in names]
+    words = [word for word in _without_english_is(tokens) if word not in table["fillers"] and word not in names]
     if not words or " ".join(tokens) in table["question_words"]:
         return True
     stems = _item_stems(thread or {})
@@ -915,8 +924,9 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     names = _names_of(npc)
     stems = _item_stems(thread or {})
     words = whole.split()
-    reading["reference"] = any(word in table["reference"] or any(word.startswith(s) for s in stems) for word in words) or (
-        _has_phrase(words, table["reference"]))
+    job_words = _without_english_is(words)
+    reading["reference"] = any(word in table["reference"] or any(word.startswith(s) for s in stems) for word in job_words) or (
+        _has_phrase(job_words, table["reference"]))
     reading["pointing"] = bool(set(words) & table["pointing"])
     reading["terms"] = False
     if whole in table["unclear"]:

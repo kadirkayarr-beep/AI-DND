@@ -363,6 +363,20 @@ class EnglishCoin(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertEqual(front_proposal.coin_in(read(50), line), 0)
 
+    def test_an_english_maybe_hands_nothing(self):
+        # Fix round 1: the Turkish twins ('verebilirim', 'versem') hand nothing; neither do these.
+        for line in ("I would pay 5 silver if the room is clean", "If you want, I could pay 5 silver",
+                     "I'd pay 5 silver", "I might pay 5 silver", "I pay 5 silver unless it's dirty"):
+            with self.subTest(line=line):
+                self.assertEqual(front_proposal.coin_in(read(50), line), 0)
+                self.assertFalse(front_proposal.names_coin(line))
+
+    def test_an_english_no_before_a_turkish_coin_word_hands_nothing(self):
+        self.assertEqual(front_proposal.coin_in(read(50), "I will not pay 5 gümüş"), 0)
+        self.assertEqual(front_proposal.coin_in(read(50), "I don't give him beş bakır"), 0)
+        # A Turkish 'not' (a note) is still no negation.
+        self.assertEqual(front_proposal.coin_in(read(50), "bir not ve beş gümüş bırakıyorum"), 50)
+
     def test_want_is_no_negation(self):
         self.assertEqual(front_proposal.coin_in(read(50), "I want to pay 5 silver"), 50)
 

@@ -630,6 +630,28 @@ class EnglishAnswers(unittest.TestCase):
         self.assertIsNone(self.meaning("Evet. Haskula kim?"))
         self.assertIsNone(self.meaning("Yes. Where do I find Haskula?"))
 
+    def test_english_is_is_no_job_word(self):
+        # Folded Turkish 'iş' is 'is': an English question with 'is' is not about the job, as its twin is not.
+        for english, turkish in (("Yes. Who is Haskula?", "Evet. Haskula kim?"),
+                                 ("Yes, where is the tavern?", "Evet, meyhane nerede?"),
+                                 ("Yes. Is the tavern open?", "Evet. Meyhane açık mı?")):
+            with self.subTest(line=english):
+                self.assertIsNone(self.meaning(turkish))
+                self.assertIsNone(self.meaning(english))
+                self.assertFalse(world_threads.read_answer(english, self.priest())["reference"])
+        self.assertEqual(self.meaning("Yes."), "accept")
+        self.assertTrue(world_threads.read_answer("Evet, bu işi yaparım.", self.priest())["reference"])
+
+    def test_how_much_asks_the_terms_as_ne_kadar_does(self):
+        for english, turkish in (("Yes, how much is the beer?", "Evet, bira ne kadar?"),
+                                 ("Sure, how much?", "Tabii, ne kadar?")):
+            with self.subTest(line=english):
+                turkish_reading = world_threads.read_answer(turkish, self.priest())
+                english_reading = world_threads.read_answer(english, self.priest())
+                self.assertTrue(turkish_reading["terms"])
+                self.assertEqual((english_reading["meaning"], english_reading["terms"]),
+                                 (turkish_reading["meaning"], turkish_reading["terms"]))
+
     def test_not_sure_is_no_yes(self):
         self.assertIsNone(self.meaning("I'm not sure."))
 

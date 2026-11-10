@@ -275,7 +275,10 @@ _EN_NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six":
 # 'not', 'never', 'n't' (folded to 'don t', or typed 'dont'), and a promise ('will', ''ll', 'tomorrow'): said, not
 # done, as 'vermiyorum' and 'veririm' are in Turkish.
 _EN_NOT_NOW = re.compile(r"\b(?:not|never|cannot|(?:do|does|did|wo|ca|could|would|should|is|are|was|were|have|has|"
-                         r"had|must|need)n\s?t|will|ll|shall|gonna|going to|tomorrow|later)\b")
+                         r"had|must|need)n\s?t|will|ll|shall|gonna|going to|tomorrow|later|"
+                         r"would|could|might|d|if|unless)\b")  # a maybe ('versem', 'verebilirim') hands nothing
+# An English speaker in the clause ('I will not pay 5 gümüş'): the English no stands whatever tongue the coin is in.
+_EN_SPEAKERS = {"i", "you", "we", "they"}
 
 
 def _number_before(words: list[str], at: int, numbers: dict[str, float] | None = None) -> float | None:
@@ -347,7 +350,8 @@ def _coin_clauses(line: str) -> list[str]:
         if ((english or any(word.startswith(_COIN_WORDS) for word in clause_words)) and end != "?"
                 and (not asked or any(_HANDED_NOW.fullmatch(word) for word in clause_words))
                 and not world_threads.says_later(clause)
-                and not (english and _EN_NOT_NOW.search(" ".join(clause_words)))  # a Turkish 'not' is a note
+                and not ((english or _EN_SPEAKERS & set(clause_words))  # a Turkish 'not' is a note
+                         and _EN_NOT_NOW.search(" ".join(clause_words)))
                 and not game._NO_BLOW_NOW.search(game._normalize_turkish_typos(clause))):  # 'vermiyorum': said, not done
             found.append(clause)
     return found
