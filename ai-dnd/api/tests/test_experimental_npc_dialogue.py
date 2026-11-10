@@ -16,14 +16,23 @@ from api.persistence.campaign_models import CampaignStorageError
 from api.tests import test_campaign_api
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_api import create_city_with_locked_tavern
+from api.tests.town_seed import fixed_town
+
+
+# A fixed town for the turns that compare the places before and after (a new campaign seeds its town from its id).
+TOWN_SEED = 4101
 
 
 def without_seeded_town(session, physical_before):
-    """The world as the turn left it, minus the places the lazy town seed itself added: Python's, not the reply's."""
+    """The world as the turn left it, minus the places the lazy town seed itself added: Python's, not the reply's.
+
+    Only places new since before the turn leave; a town place the campaign already opened at its start
+    (since 2d74693b) is compared like any other place.
+    """
     now = {key: copy.deepcopy(session.world_state.get(key)) for key in physical_before}
     now["locations"] = {
         key: value for key, value in now["locations"].items()
-        if (value.get("provenance") or {}).get("source") != "world_thread"
+        if key in physical_before["locations"] or (value.get("provenance") or {}).get("source") != "world_thread"
     }
     return now
 
@@ -657,7 +666,8 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.sensitive_state(session), before)
 
     async def test_opt_in_speech_rejects_physical_action_assigned_to_player(self):
-        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        with fixed_town(self, TOWN_SEED):
+            _, _, session, turn_url, npc = await self.campaign_with_npc()
         before = self.sensitive_state(session)
         physical_before = {
             key: copy.deepcopy(session.world_state.get(key))
@@ -689,7 +699,8 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(without_seeded_town(session, physical_before), physical_before)
 
     async def test_opt_in_mixed_speech_keeps_only_revalidated_answering_remainder(self):
-        _, _, session, turn_url, npc = await self.campaign_with_npc()
+        with fixed_town(self, TOWN_SEED):
+            _, _, session, turn_url, npc = await self.campaign_with_npc()
         before = self.sensitive_state(session)
         physical_before = {
             key: copy.deepcopy(session.world_state.get(key))
