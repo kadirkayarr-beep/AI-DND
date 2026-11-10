@@ -110,7 +110,7 @@ def don_shield(world, character, *, session=None) -> GearResult:
     candidate["armor_class"] += bonus
     if (candidate.get("armor_origin") is not None
             and character_progression._verified_armor_origin(candidate, candidate_world) is None):
-        return GearResult("not_down", None)  # the total would not follow its origin: the save would not load
+        return GearResult("not_down", None)  # conservative: the total would not follow its recorded armor origin, so change nothing
     if session is not None and world.get("combat", {}).get("active"):
         import action_economy
         try:
