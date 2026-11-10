@@ -1042,10 +1042,10 @@ export function CharacterCreationScreen({
       <div className="cc-shell">
         {/* Top Header */}
         <header className="cc-header">
-          <div className="cc-brand" aria-label="AI Dungeon Master">
+          <div className="cc-brand" aria-label="Unwritten">
             <span className="cc-brand-mark"><Compass size={17} strokeWidth={1.3} /></span>
             <span>
-              <strong>AI DUNGEON MASTER</strong>
+              <strong>Unwritten</strong>
               <small>Solo Sefer · {selectedRegion?.name ?? 'Kanonik Başlangıç Yeri'}</small>
             </span>
           </div>

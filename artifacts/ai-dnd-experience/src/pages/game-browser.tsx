@@ -161,7 +161,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className="brand" data-testid="brand-ai-dnd">
       <div className="brand-mark"><OuroborosMark /></div>
-      {!compact && <div><div className="brand-name">AI DUNGEON MASTER</div><div className="brand-subtitle">Tek oyunculu macera · Forgotten Realms</div></div>}
+      {!compact && <div><div className="brand-name">Unwritten</div><div className="brand-subtitle">Tek oyunculu macera · Forgotten Realms</div></div>}
     </div>
   );
 }

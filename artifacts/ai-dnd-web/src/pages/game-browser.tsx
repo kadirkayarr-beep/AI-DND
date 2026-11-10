@@ -637,7 +637,7 @@ export default function GameBrowser() {
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-primary))]"><ScrollText className="h-4 w-4" /></div>
             <div>
-              <div className="font-serif text-lg font-semibold tracking-tight">AI-DND</div>
+              <div className="font-serif text-lg font-semibold tracking-tight">Unwritten</div>
               <div className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">browser / solo</div>
             </div>
           </div>
@@ -802,7 +802,7 @@ function Brand() {
     <div className="flex items-center gap-3" data-testid="brand-ai-dnd">
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-primary))]"><ScrollText className="h-4 w-4" /></div>
       <div>
-        <div className="font-serif text-lg font-semibold tracking-tight">AI-DND</div>
+        <div className="font-serif text-lg font-semibold tracking-tight">Unwritten</div>
         <div className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">browser / solo</div>
       </div>
     </div>

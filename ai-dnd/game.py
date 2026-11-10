@@ -2359,7 +2359,7 @@ def _validate_save_payload(payload):
     if not isinstance(payload, dict):
         raise ValueError("Kayıt dosyası bir JSON nesnesi olmalı.")
     if payload.get("format") != "ai-dnd-save":
-        raise ValueError("Bu dosya AI-DND kayıt dosyası değil.")
+        raise ValueError("Bu dosya bir Unwritten kayıt dosyası değil.")
     version = payload.get("version")
     if version not in _SUPPORTED_SAVE_VERSIONS:
         raise ValueError("Bu kayıt sürümü desteklenmiyor.")
@@ -15218,7 +15218,7 @@ def initialize_game(creation_choice=None, input_fn=input, print_fn=print):
     interactive = creation_choice is None
     if interactive:
         print_fn("=" * 35)
-        print_fn("       AI DUNGEON MASTER")
+        print_fn("       UNWRITTEN")
         print_fn("=" * 35)
         print_fn("Oyuna hoş geldin.\n")
         print_fn("=== KARAKTER OLUŞTURMA ===")
