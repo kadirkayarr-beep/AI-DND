@@ -98,11 +98,18 @@ class LevelFiveTests(unittest.TestCase):
     def test_session_award_boundary_rejects_legacy_and_rolls_back_failed_v6_admission(self):
         s = four()
         self.assertTrue(callable(getattr(s, '_receive_xp_award', None)), 'Session must wrap pre-award mutation')
+        # 4B carry-over (was: legacy 1..3 refused): the crossing now moves the campaign to format6 in place, admitted
+        # by the real save validator; a refused admission still restores everything, the legacy format included.
         for version in (1, 2, 3):
             s = four(); s._persisted_engine_format = version
+            r = s._receive_xp_award(xp.apply_xp, s.character, s.world_state, 3800, 'quest:legacy-five')
+            self.assertEqual((r['previous_level'], r['new_level'], s.character['level'], s._persisted_engine_format), (4, 5, 5, 6))
+            game._validate_save_payload(s.serialize_game_state())
+            s = four(); s._persisted_engine_format = version
             before = s._capture_runtime_snapshot()
-            with self.assertRaises(ValueError):
-                s._receive_xp_award(xp.apply_xp, s.character, s.world_state, 3800, 'quest:legacy-five')
+            with patch('game._validate_save_payload', side_effect=ValueError('synthetic admission failure')):
+                with self.assertRaises(ValueError):
+                    s._receive_xp_award(xp.apply_xp, s.character, s.world_state, 3800, 'quest:legacy-five')
             self.assertEqual(s._capture_runtime_snapshot(), before)
             self.assertEqual(s._persisted_engine_format, version)
         s = four(); before = s._capture_runtime_snapshot()

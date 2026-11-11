@@ -23604,6 +23604,9 @@ class GameSession:
 
         Sessionless callers may use xp.apply_xp for detached numeric work, but
         persistent sessions must use this boundary to atomically adopt format6.
+        A campaign still on save format 1..3 moves to format 6 here too (its live
+        spell fields are the canonical empty ones load_game set); the real save
+        validator admits the result or the whole award is put back.
         """
         snapshot = self._capture_runtime_snapshot()
         had_format = "_persisted_engine_format" in self.__dict__
@@ -23612,8 +23615,8 @@ class GameSession:
             summary = award_owner(*args, **kwargs)
             crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
                         and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
-            if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
-                raise ValueError("Legacy numeric advancement requires supported spell/save state.")
+            if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in _SUPPORTED_SAVE_VERSIONS:
+                raise ValueError("Numeric advancement requires a supported save format.")
             self._remember_xp_award(summary)
             if crossing:
                 # Read through the real production admission owner before commit.
