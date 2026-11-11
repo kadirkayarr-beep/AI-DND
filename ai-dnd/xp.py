@@ -314,6 +314,21 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
     return apply_xp_grants(character, world, grants)
 
 
+def award_downed(npc: Mapping[str, Any], world: dict[str, Any], character: dict[str, Any], *,
+                 person_kind: str | None = None):
+    """Pay a knocked-out creature at the knock-out, under the same receipt a defeated one uses (once per campaign).
+
+    ``None`` when it pays nothing (no reward) or was already paid; the ending of any fight then drops the paid id.
+    """
+    identity = npc.get("id") if isinstance(npc, Mapping) else None
+    if not isinstance(identity, str) or not identity:
+        return None
+    reward = reward_for(npc, person_kind)
+    if reward <= 0:
+        return None
+    return apply_xp_grants(character, world, [(_foe_award_id(identity), reward)])
+
+
 class JobXpRefused(ValueError):
     """A finished job's experience is due and could not be recorded: the turn that finished it must not stand."""
 

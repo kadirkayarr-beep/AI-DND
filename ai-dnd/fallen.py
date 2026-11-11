@@ -26,6 +26,10 @@ def knock_out(session, npc: dict[str, Any]) -> None:
     weapon_attack.add_condition(npc, "unconscious")
     import bold_acts
     bold_acts.put_down(session.world_state, npc)
+    import game
+    import xp
+    session._receive_xp_award(xp.award_downed, npc, session.world_state, session.character,
+                              person_kind=game.person_fight_kind(npc))
 
 
 def wake(session) -> None:

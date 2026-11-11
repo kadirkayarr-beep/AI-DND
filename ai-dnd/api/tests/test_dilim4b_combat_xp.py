@@ -223,6 +223,107 @@ class CombatXp(unittest.TestCase):
         xp.validate_saved_advancement(self.session.character, self.world)
 
 
+class DownedPays(unittest.TestCase):
+    """Task 8 (owner decision 2026-11-11): a knocked-out creature pays once, at the knock-out, through the same
+    ``combat:foe:<id>`` receipt a defeated one uses; no fight is needed and the fight's ending reason does not matter."""
+
+    def setUp(self):
+        self.session = game.create_session(seed=4811)
+        fighter(self.session)
+        self.world = self.session.world_state
+
+    def foes(self, *people):
+        self.world["npcs"] = list(people)
+        return people
+
+    def test_a_knock_out_without_a_fight_pays_a_guard_25_and_a_drunk_10(self):
+        (guard,) = self.foes(person("guard1", "muhafız"))
+        fallen.knock_out(self.session, guard)
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertEqual(guard["combat_status"], "unconscious")
+        self.assertEqual(self.session.character["xp"], 25)
+        self.assertEqual(self.world["xp_awarded_event_ids"], ["combat:foe:guard1"])
+        other = game.create_session(seed=4812)
+        fighter(other)
+        drunk = person("drunk1", "ayyaş")
+        other.world_state["npcs"] = [drunk]
+        fallen.knock_out(other, drunk)
+        self.assertEqual(other.character["xp"], 10)
+        self.assertEqual(other.world_state["xp_awarded_event_ids"], ["combat:foe:drunk1"])
+
+    def test_a_woken_foe_beaten_later_or_killed_while_down_pays_nothing_more(self):
+        (guard,) = self.foes(person("guard1", "muhafız"))
+        fallen.knock_out(self.session, guard)
+        self.world["campaign_time"] = {"elapsed_seconds": guard["knocked_out_at"] + 3600}
+        fallen.wake(self.session)
+        self.assertEqual(guard["combat_status"], "active")
+        guard["current_hp"] = 8
+        self.assertEqual(beat(self.session, guard)["reason"], "target_defeated")
+        self.assertEqual(self.session.character["xp"], 25)
+        drunk = person("drunk1", "ayyaş")
+        self.world["npcs"].append(drunk)
+        fallen.knock_out(self.session, drunk)
+        self.assertEqual(self.session.character["xp"], 35)
+        self.session.apply_npc_damage(drunk, 5)  # killed while out cold, no fight
+        self.assertEqual(drunk["combat_status"], "dead")
+        self.assertEqual(self.session.character["xp"], 35)
+        self.assertEqual(sorted(self.world["xp_awarded_event_ids"]), ["combat:foe:drunk1", "combat:foe:guard1"])
+
+    def test_a_foe_knocked_out_in_a_fight_that_ends_for_another_reason_is_paid(self):
+        guard, drunk = self.foes(person("guard1", "muhafız"), person("drunk1", "ayyaş"))
+        self.session.start_combat(guard)
+        self.session.join_combat_participants([drunk["id"]])
+        self.session.apply_npc_damage(guard, 99, knock_out=True)
+        self.assertEqual(guard["combat_status"], "unconscious")
+        self.assertTrue(self.world["combat"]["active"])
+        self.session.end_combat("location_changed")
+        self.assertEqual(self.session.character["xp"], 25)
+        self.assertEqual(self.world["xp_awarded_event_ids"], ["combat:foe:guard1"])
+
+    def test_a_level_up_from_a_knock_out_in_the_middle_of_a_fight_keeps_the_fight_record_true(self):
+        self.session.character["xp"] = 290
+        guard, drunk = self.foes(person("guard1", "muhafız"), person("drunk1", "ayyaş"))
+        self.session.start_combat(guard)
+        self.session.join_combat_participants([drunk["id"]])
+        self.session.apply_npc_damage(guard, 99, knock_out=True)
+        character = self.session.character
+        self.assertEqual((character["xp"], character["level"]), (315, 2))
+        self.assertGreater(character["max_hp"], 12)
+        self.assertEqual(character["current_hp"], character["max_hp"])
+        self.assertTrue(self.world["combat"]["active"])
+        self.session._validate_save_payload(self.session.serialize_game_state())  # a save taken right now loads
+        self.session.ensure_combat_state()
+        (record,) = [r for r in self.world["combat"]["participant_records"] if r["id"] == "player"]
+        self.assertEqual((record["current_hp"], record["max_hp"]), (character["current_hp"], character["max_hp"]))
+        saved = self.session.serialize_game_state()
+        self.session._validate_save_payload(saved)
+        (record,) = [r for r in saved["world_state"]["combat"]["participant_records"] if r["id"] == "player"]
+        self.assertEqual(record["max_hp"], character["max_hp"])
+        drunk.update(current_hp=0, combat_status="dead")
+        self.session.ensure_combat_state()
+        self.assertEqual(self.session._combat_end_if_decided()["reason"], "target_defeated")
+        self.assertEqual(character["xp"], 325)
+        self.assertEqual(sorted(self.world["xp_awarded_event_ids"]), ["combat:foe:drunk1", "combat:foe:guard1"])
+        published = {}
+        self.session._publish_level_up(published)
+        self.assertEqual((published["level_up"]["previous_level"], published["level_up"]["new_level"],
+                          published["level_up"]["xp_gained"]), (1, 2, 35))
+
+    def test_nothing_to_pay_or_already_paid_still_knocks_out_without_an_error(self):
+        guard, drunk = self.foes(person("guard1", "muhafız"), person("drunk1", "ayyaş"))
+        self.world["xp_awarded_event_ids"] = ["combat:foe:guard1"]
+        fallen.knock_out(self.session, guard)
+        self.assertEqual(guard["combat_status"], "unconscious")
+        self.assertEqual(self.session.character["xp"], 0)
+        self.assertEqual(self.world["xp_awarded_event_ids"], ["combat:foe:guard1"])
+        with patch.object(game, "person_fight_kind", lambda npc: "unknown"):
+            fallen.knock_out(self.session, drunk)
+        self.assertEqual(drunk["combat_status"], "unconscious")
+        self.assertEqual(self.session.character["xp"], 0)
+        self.assertEqual(self.world["xp_awarded_event_ids"], ["combat:foe:guard1"])
+        self.assertIsNone(xp.award_downed(drunk, self.world, self.session.character, person_kind="unknown"))
+
+
 class CombatXpRoutes(JourneyCase):
     """The route-level chain: scenario 44's setup, scripted model, a real campaign saved and reloaded."""
     use_setup = wield_front.WieldFront.use_setup
@@ -275,6 +376,35 @@ class CombatXpRoutes(JourneyCase):
         self.assertIn(response.status_code, (200, 409), response.text)
         self.assertEqual(self.session.character["xp"], 25)
         self.assertEqual(self.world["xp_awarded_event_ids"], ["combat:foe:guard"])
+
+    async def knock_down(self):
+        await self.say("Muhafıza saldırıyorum, kabzasıyla bayıltıyorum", intent=ATTACK)
+        for _ in range(12):
+            if self.world["npcs"][0].get("combat_status", "active") != "active":
+                break
+            await self.say("kabzasıyla vurup bayıltıyorum", intent=ATTACK)
+        self.assertEqual(self.world["npcs"][0]["combat_status"], "unconscious")
+
+    async def test_a_knock_out_then_undo_takes_the_xp_back_and_replay_pays_once(self):
+        await self.start(4811)
+        await self.knock_down()
+        self.assertEqual(self.session.character["xp"], 25)
+        self.assertEqual(self.world["xp_awarded_event_ids"], ["combat:foe:guard"])
+        await self.undo()
+        self.assertEqual(self.session.character["xp"], 0)
+        self.assertEqual(self.world.get("xp_awarded_event_ids", []), [])
+        self.assertEqual(self.world["npcs"][0].get("combat_status", "active"), "active")
+        await self.knock_down()
+        self.assertEqual(self.session.character["xp"], 25)
+        self.assertEqual(self.world["xp_awarded_event_ids"], ["combat:foe:guard"])
+        replay = copy.deepcopy(self.last_turn_action_id)
+        response = await self.http.post(f"/api/game/sessions/{self.session_id}/turn",
+                                        json={"action_id": replay, "message": "kabzasıyla vurup bayıltıyorum"})
+        self.assertIn(response.status_code, (200, 409), response.text)
+        self.assertEqual(self.session.character["xp"], 25)
+        await self.reload()
+        self.assertEqual((self.session.character["xp"], self.world["xp_awarded_event_ids"]), (25, ["combat:foe:guard"]))
+        xp.validate_saved_advancement(self.session.character, self.world)
 
     async def test_save_load_keeps_xp_and_receipts(self):
         await self.start(4803)
