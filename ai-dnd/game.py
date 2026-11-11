@@ -5678,7 +5678,7 @@ def end_combat(reason="combat_ended"):
     combat = ensure_combat_state()
     if not combat["active"]:
         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
-    if reason == "target_defeated":
+    if reason in ("target_defeated", "parley_accepted", "opponents_relocated"):
         import xp
         _session()._receive_xp_award(
             xp.award_defeated_combat, combat, _session().world_state, _session().character,

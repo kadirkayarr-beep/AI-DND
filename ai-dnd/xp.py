@@ -266,9 +266,10 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
                           person_kind: Callable[[Mapping[str, Any]], str] | None = None):
     """Pay every beaten foe of an ended encounter in one all-or-nothing grant, once per creature for the campaign.
 
-    The caller must still have the participant list. Leaving, or the player falling unconscious, is not this
-    function's job and pays nothing.
+    A beaten foe is one that went down or accepted-surrendered in this fight (a foe that merely retreats is not). The caller must still have
+    the participant list. The player leaving, or falling unconscious, is not this function's job and pays nothing.
     """
+    import monster_combat
     if not isinstance(combat, dict) or not isinstance(world, dict):
         return None
     participants = combat.get("participants")
@@ -286,7 +287,10 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
         if not isinstance(participant_id, str) or participant_id == "player" or participant_id in listed:
             continue
         npc = by_id.get(participant_id)
-        if not isinstance(npc, dict) or not _is_defeated(npc):
+        if not isinstance(npc, dict):
+            continue
+        combat_id = combat.get("combat_id")
+        if not (_is_defeated(npc) or monster_combat.surrendered_in(world, combat_id, participant_id)):
             continue
         reward = reward_for(npc, person_kind(npc) if person_kind else None)
         if reward <= 0:

@@ -618,6 +618,23 @@ def observe_attack(session, result):
                     observed["beliefs"][damage["damage_type"]] = "suspected_resistant"
 
 
+def _is_beaten(session, actor):
+    npc = attacks.actor_data(session, actor)
+    hp = npc.get("current_hp")
+    return npc.get("combat_status", "active") in {"unconscious", "defeated", "dead"} or (type(hp) is int and hp <= 0)
+
+
+def surrendered_in(world, combat_id, actor_id):
+    """True when the foe's accepted SURRENDER proposal belongs to this fight (a parley is not a surrender)."""
+    memory = (world.get("monster_combat", {}).get("actors", {}) or {}).get(actor_id)
+    if not isinstance(memory, dict) or not isinstance(combat_id, str) or not combat_id:
+        return False
+    return any(
+        isinstance(p, dict) and p.get("type") == "SURRENDER_PROPOSED" and p.get("status") == "accepted"
+        and isinstance(p.get("proposal_id"), str) and p["proposal_id"].startswith(combat_id + ":")
+        for p in memory.get("proposals", []) or [])
+
+
 def proposal_response(session, actor, proposal_id, accept):
     """Player interaction owner calls this; never infer acceptance from prose."""
     if type(accept) is not bool:
@@ -659,8 +676,10 @@ def player_response(session, text, target_id=None):
     combat = session.world_state["combat"]
     combat_id = combat["combat_id"]
     if accepted:
+        # Only foes still resisting must have agreed; a beaten foe (down, out) cannot hold the ending hostage.
         enemies = [a for a in combat["participants"] if a != "player"
-                   and perception.relationship(session, a, "player") == "enemy"]
+                   and perception.relationship(session, a, "player") == "enemy"
+                   and not _is_beaten(session, a)]
         if all(any(p["status"] == "accepted" for p in root.get(a, {}).get("proposals", [])) for a in enemies):
             session.end_combat("parley_accepted")
     return {"messages": session.messages, "model_calls": 0,
