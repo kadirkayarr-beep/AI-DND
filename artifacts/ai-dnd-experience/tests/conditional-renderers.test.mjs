@@ -63,7 +63,7 @@ function renderWithoutMutation(render,state){const before=JSON.stringify(state);
 test('Human postcommit reveal renders serialized origin, separate feats and bonus skill; empty values grant nothing',()=>{
  const state=exact('human',['origin','origin_feat','species_bonus_feat','species_bonus_skills']);
  const html=renderWithoutMutation(reveal,state);
- for(const [id,value] of [['reveal-character-origin','Neverwinter test origin'],['reveal-background-origin-feat','Geçmiş: Tough'],['reveal-species-bonus-feat','Tür: Skilled'],['reveal-species-bonus-skills','Insight']]){
+ for(const [id,value] of [['reveal-character-origin','Neverwinter test origin'],['reveal-background-origin-feat','Geçmiş: Tough'],['reveal-species-bonus-feat','Tür: Skilled'],['reveal-species-bonus-skills','Sezgi']]){
   assert.ok(html.includes(`data-testid="${id}"`));assert.ok(html.includes(value),value);
  }
  const empty=renderWithoutMutation(reveal,exact('empty',['origin','origin_feat','species_bonus_feat','species_bonus_skills']));

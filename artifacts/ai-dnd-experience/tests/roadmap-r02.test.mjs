@@ -1,3 +1,4 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 // R02: a technical retry (same action id) is separate from a deliberate new action with identical text.
@@ -202,7 +203,7 @@ function harness({ sessionStorage = memoryStorage(), localStorage = memoryStorag
   const messages = [];
   const entries = [];
   const life = createActionLifetime();
-  const env = {
+  const env = { ...combatStartInjection(),
     reconcileState, RETRY_MESSAGE, ReconciliationError, turnLifetime: life,
     closePending: pending.closePending, createIntentKey: pending.createIntentKey, readPending: pending.readPending, resumePending: pending.resumePending,
     speciesActionUnresolved: pending.speciesActionUnresolved, pendingAmbientActionRef: { current: null }, notice: null,
