@@ -4000,6 +4000,1142 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
 
 
 /**
+ * @summary Read the spell preparation window, its limit and candidate spells
+ */
+export const GetGameSessionSpellPreparationParams = zod.object({
+  "session_id": zod.coerce.string().uuid()
+})
+
+export const GetGameSessionSpellPreparationResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "supported": zod.boolean(),
+  "class_name": zod.string().nullish(),
+  "open": zod.boolean(),
+  "reason": zod.union([zod.literal('creation'),zod.literal('long_rest'),zod.literal('migration'),zod.literal(null)]).nullish(),
+  "limit": zod.number().int(),
+  "candidates": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "spellbook": zod.array(zod.string()).nullish()
+})
+
+
+/**
+ * Valid names are kept, invalid ones are dropped with a reason; a list over the limit saves nothing and asks which to leave out. The engine never chooses a spell.
+ * @summary Save the player's spell preparation list while the window is open
+ */
+export const PrepareGameSessionSpellsParams = zod.object({
+  "session_id": zod.coerce.string().uuid()
+})
+
+export const prepareGameSessionSpellsBodyPreparedMax = 32;
+
+export const prepareGameSessionSpellsBodyCloseDefault = false;
+
+export const PrepareGameSessionSpellsBody = zod.object({
+  "prepared": zod.array(zod.string()).max(prepareGameSessionSpellsBodyPreparedMax),
+  "close": zod.boolean().default(prepareGameSessionSpellsBodyCloseDefault),
+  "action_id": zod.string().uuid().nullish()
+})
+
+export const prepareGameSessionSpellsResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateCampaignTimeOneHourMin = 0;
+export const prepareGameSessionSpellsResponseStateCampaignTimeOneHourMax = 23;
+
+export const prepareGameSessionSpellsResponseStateCampaignTimeOneMinuteMin = 0;
+export const prepareGameSessionSpellsResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const prepareGameSessionSpellsResponseStateCampaignTimeOneSecondMin = 0;
+export const prepareGameSessionSpellsResponseStateCampaignTimeOneSecondMax = 59;
+
+export const prepareGameSessionSpellsResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
+export const prepareGameSessionSpellsResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateJourneyOneRemainingSecondsMin = 0;
+
+
+
+export const prepareGameSessionSpellsResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const prepareGameSessionSpellsResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const prepareGameSessionSpellsResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const prepareGameSessionSpellsResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const prepareGameSessionSpellsResponseStateExpeditionExhaustionMin = 0;
+export const prepareGameSessionSpellsResponseStateExpeditionExhaustionMax = 6;
+
+export const prepareGameSessionSpellsResponseStateExpeditionTrackingSecondsMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateSceneOneVisitRevisionMin = 0;
+
+export const prepareGameSessionSpellsResponseStateSceneOneActivityRevisionMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateSceneOneNpcsMax = 12;
+
+export const prepareGameSessionSpellsResponseStateSceneOneFeaturesMax = 24;
+
+export const prepareGameSessionSpellsResponseStateSceneOneReferentsItemAddressableAliasOneMax = 80;
+
+export const prepareGameSessionSpellsResponseStateSceneOneReferentsMax = 6;
+
+export const prepareGameSessionSpellsResponseStateWorldEnvironmentDefault = `unknown`;
+export const prepareGameSessionSpellsResponseStateWorldTimeOfDayDefault = `day`;
+export const prepareGameSessionSpellsResponseStateWorldWeatherDefault = `clear`;
+export const prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const prepareGameSessionSpellsResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const prepareGameSessionSpellsResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const prepareGameSessionSpellsResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalKnownNpcsMax = 500;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalNotableEventsMax = 200;
+
+export const prepareGameSessionSpellsResponseStateJournalQuestsItemTitleMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const prepareGameSessionSpellsResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const prepareGameSessionSpellsResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const prepareGameSessionSpellsResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const prepareGameSessionSpellsResponseStateJournalQuestsMax = 100;
+
+export const prepareGameSessionSpellsResponseStateCharacterPrimalKnowledgeCheckSkillsMin = 5;
+export const prepareGameSessionSpellsResponseStateCharacterPrimalKnowledgeCheckSkillsMax = 5;
+
+export const prepareGameSessionSpellsResponseStateCharacterRageUsesRemainingMin = 0;
+export const prepareGameSessionSpellsResponseStateCharacterRageUsesRemainingMax = 3;
+
+export const prepareGameSessionSpellsResponseStateCharacterRageRemainingSecondsMax = 12;
+
+export const prepareGameSessionSpellsResponseStateCharacterFighterSecondWindUsesRemainingMin = 0;
+
+
+
+export const prepareGameSessionSpellsResponseStateCharacterFighterActionSurgeOneUsesRemainingMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateCharacterPaladinLayOnHandsPoolRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterPaladinLayOnHandsPoolMaximumMin = 5;
+
+export const prepareGameSessionSpellsResponseStateCharacterPaladinChannelDivinityOneUsesRemainingMin = 0;
+
+
+
+
+export const prepareGameSessionSpellsResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateCharacterMonkMartialArtsDieMin = 2;
+
+export const prepareGameSessionSpellsResponseStateCharacterMonkMovementBonusFtMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterMonkFocusOnePointsRemainingMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpeedFtMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterOriginMax = 240;
+
+export const prepareGameSessionSpellsResponseStateCharacterTemporaryHitPointsMin = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const prepareGameSessionSpellsResponseStateCharacterXpMin = 0;
+
+export const prepareGameSessionSpellsResponseStateSpellcastingOneSorceryPointsCurrentMin = 0;
+
+export const prepareGameSessionSpellsResponseStateSpellcastingOneSorceryPointsMaxMin = 2;
+export const prepareGameSessionSpellsResponseStateSpellcastingOneSorceryPointsMaxMax = 5;
+
+export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const prepareGameSessionSpellsResponseStateDeathStateSuccessesMin = 0;
+export const prepareGameSessionSpellsResponseStateDeathStateSuccessesMax = 3;
+
+export const prepareGameSessionSpellsResponseStateDeathStateFailuresMin = 0;
+export const prepareGameSessionSpellsResponseStateDeathStateFailuresMax = 3;
+
+export const prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
+export const prepareGameSessionSpellsResponseStateTurnIndexMin = 0;
+
+export const prepareGameSessionSpellsResponseStateQuestLogActiveCountMin = 0;
+
+export const prepareGameSessionSpellsResponseStateQuestsItemQuestIdMax = 120;
+
+export const prepareGameSessionSpellsResponseStateQuestsItemTitleMax = 160;
+
+export const prepareGameSessionSpellsResponseStateQuestsItemDescriptionMax = 2000;
+
+export const prepareGameSessionSpellsResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const prepareGameSessionSpellsResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const prepareGameSessionSpellsResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const prepareGameSessionSpellsResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const prepareGameSessionSpellsResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const prepareGameSessionSpellsResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const prepareGameSessionSpellsResponseStateQuestOffersItemTitleMax = 160;
+
+export const prepareGameSessionSpellsResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const prepareGameSessionSpellsResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const prepareGameSessionSpellsResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const prepareGameSessionSpellsResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const prepareGameSessionSpellsResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const prepareGameSessionSpellsResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const prepareGameSessionSpellsResponseStateKnownFactionsItemStandingMin = -5;
+export const prepareGameSessionSpellsResponseStateKnownFactionsItemStandingMax = 5;
+
+export const prepareGameSessionSpellsResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin = 0;
+
+
+
+export const PrepareGameSessionSpellsResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().nullish(),
+  "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(prepareGameSessionSpellsResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string().nullable(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(prepareGameSessionSpellsResponseStateCampaignTimeOneHourMin).max(prepareGameSessionSpellsResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(prepareGameSessionSpellsResponseStateCampaignTimeOneMinuteMin).max(prepareGameSessionSpellsResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(prepareGameSessionSpellsResponseStateCampaignTimeOneSecondMin).max(prepareGameSessionSpellsResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(prepareGameSessionSpellsResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
+  "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(prepareGameSessionSpellsResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(prepareGameSessionSpellsResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(prepareGameSessionSpellsResponseStateJourneyOneRemainingSecondsMin).optional(),
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(prepareGameSessionSpellsResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(prepareGameSessionSpellsResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(prepareGameSessionSpellsResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(prepareGameSessionSpellsResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(prepareGameSessionSpellsResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(prepareGameSessionSpellsResponseStateExpeditionExhaustionMin).max(prepareGameSessionSpellsResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(prepareGameSessionSpellsResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
+  "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(prepareGameSessionSpellsResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(prepareGameSessionSpellsResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1),
+  "actionable": zod.object({
+  "can_interact": zod.boolean(),
+  "reason": zod.union([zod.string(),zod.null()])
+}).optional()
+}),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()]),
+  "bounded_node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']).optional().describe('The player\'s authored node inside a bounded encounter; left out elsewhere.')
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(prepareGameSessionSpellsResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(prepareGameSessionSpellsResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()]),
+  "addressable_alias": zod.union([zod.string().min(1).max(prepareGameSessionSpellsResponseStateSceneOneReferentsItemAddressableAliasOneMax),zod.null()])
+})).max(prepareGameSessionSpellsResponseStateSceneOneReferentsMax)
+}),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(prepareGameSessionSpellsResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(prepareGameSessionSpellsResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(prepareGameSessionSpellsResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(prepareGameSessionSpellsResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(prepareGameSessionSpellsResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(prepareGameSessionSpellsResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(prepareGameSessionSpellsResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(prepareGameSessionSpellsResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(prepareGameSessionSpellsResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(prepareGameSessionSpellsResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(prepareGameSessionSpellsResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(prepareGameSessionSpellsResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome', 'adventure_event']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(prepareGameSessionSpellsResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(prepareGameSessionSpellsResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(prepareGameSessionSpellsResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(prepareGameSessionSpellsResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(prepareGameSessionSpellsResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(prepareGameSessionSpellsResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(prepareGameSessionSpellsResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(prepareGameSessionSpellsResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(prepareGameSessionSpellsResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
+})).max(prepareGameSessionSpellsResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(prepareGameSessionSpellsResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(prepareGameSessionSpellsResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(prepareGameSessionSpellsResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(prepareGameSessionSpellsResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(prepareGameSessionSpellsResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(prepareGameSessionSpellsResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]).optional(),
+  "exit_location_id": zod.union([zod.string(),zod.null()]).optional().describe('Present only for a location the world placed inside another; left out for a top-level location, like parent_location_id.')
+})),
+  "character": zod.object({
+  "primal_knowledge_check": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "skills": zod.array(zod.enum(['Acrobatics', 'Intimidation', 'Perception', 'Stealth', 'Survival'])).min(prepareGameSessionSpellsResponseStateCharacterPrimalKnowledgeCheckSkillsMin).max(prepareGameSessionSpellsResponseStateCharacterPrimalKnowledgeCheckSkillsMax)
+}).optional(),
+  "rage": zod.object({
+  "uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterRageUsesRemainingMin).max(prepareGameSessionSpellsResponseStateCharacterRageUsesRemainingMax),
+  "max_uses": zod.union([zod.literal(2),zod.literal(3)]),
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().min(1).max(prepareGameSessionSpellsResponseStateCharacterRageRemainingSecondsMax).nullable(),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "extend": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}).optional(),
+  "fighter": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "tactical_mind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "second_wind": zod.object({
+  "uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterFighterSecondWindUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "die": zod.literal(10),
+  "level_bonus": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "tactical_shift": zod.boolean()
+}),
+  "action_surge": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterFighterActionSurgeOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()])
+}).optional(),
+  "paladin": zod.object({
+  "fighting_style": zod.string().nullable(),
+  "lay_on_hands": zod.object({
+  "pool_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterPaladinLayOnHandsPoolRemainingMin),
+  "pool_maximum": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterPaladinLayOnHandsPoolMaximumMin),
+  "poison_cost": zod.literal(5),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),
+  "divine_smite": zod.union([zod.object({
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "target_id": zod.string().nullable(),
+  "free_cast_available": zod.boolean(),
+  "slot_levels": zod.array(zod.number().int())
+}),zod.null()]),
+  "channel_divinity": zod.union([zod.object({
+  "uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterPaladinChannelDivinityOneUsesRemainingMin),
+  "max_uses": zod.number().int().min(1)
+}),zod.null()]),
+  "divine_sense": zod.union([zod.object({
+  "active": zod.boolean(),
+  "remaining_seconds": zod.number().int().nullable(),
+  "detected": zod.array(zod.object({
+  "target_id": zod.string(),
+  "creature_type": zod.string(),
+  "distance_ft": zod.number().int()
+})),
+  "activate": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "sacred_weapon": zod.union([zod.object({
+  "active": zod.boolean(),
+  "weapon_id": zod.string().nullable(),
+  "remaining_seconds": zod.number().int().nullable(),
+  "attack_bonus": zod.number().int().min(1),
+  "start": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "always_prepared": zod.array(zod.string()),
+  "prepared_spells": zod.array(zod.object({
+  "id": zod.string(),
+  "castable": zod.boolean()
+}))
+}).optional(),
+  "rogue": zod.object({
+  "subclass": zod.string().nullable(),
+  "sneak_attack": zod.object({
+  "dice": zod.number().int().min(1),
+  "die": zod.literal(6),
+  "used_this_turn": zod.boolean()
+}),
+  "cunning_action": zod.union([zod.object({
+  "dash": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "disengage": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+})
+}),zod.null()]),
+  "steady_aim": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable(),
+  "active": zod.boolean()
+}),zod.null()]),
+  "cunning_strike": zod.union([zod.object({
+  "dc": zod.number().int(),
+  "withdraw_max_ft": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterRogueCunningStrikeOneWithdrawMaxFtMin),
+  "trip_refused_targets": zod.array(zod.string()).describe('Combat participant ids that Trip refuses as larger than Large.'),
+  "options": zod.array(zod.object({
+  "id": zod.enum(['poison', 'trip', 'withdraw']),
+  "cost": zod.number().int().min(1),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}),zod.null()]),
+  "uncanny_dodge": zod.union([zod.object({
+  "enabled": zod.boolean(),
+  "reaction_available": zod.boolean()
+}),zod.null()])
+}).optional(),
+  "monk": zod.object({
+  "martial_arts_die": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterMonkMartialArtsDieMin),
+  "martial_arts_ready": zod.boolean(),
+  "movement_bonus_ft": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterMonkMovementBonusFtMin),
+  "save_dc": zod.number().int(),
+  "focus": zod.union([zod.object({
+  "points_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterMonkFocusOnePointsRemainingMin),
+  "max_points": zod.number().int().min(1)
+}),zod.null()]),
+  "martial_arts_strike": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),
+  "flurry_of_blows": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "flurry_strikes_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterMonkFlurryStrikesRemainingMin),
+  "patient_defense": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "step_of_the_wind": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "uncanny_metabolism": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "stunning_strike": zod.union([zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}),zod.null()]),
+  "deflect_mode": zod.union([zod.enum(['off', 'reduce', 'redirect']),zod.null()]),
+  "open_hand_techniques": zod.array(zod.enum(['push', 'topple']))
+}).optional(),
+  "name": zod.string(),
+  "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeedFtMin).optional(),
+  "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(prepareGameSessionSpellsResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "expertise_skills": zod.array(zod.string()),
+  "origin_feat": zod.string().nullish(),
+  "species_bonus_feat": zod.string().nullish(),
+  "species_bonus_skills": zod.array(zod.string()).optional(),
+  "origin_feats": zod.array(zod.string()).optional(),
+  "level": zod.number().int(),
+  "progression_level": zod.number().int().optional().describe('Canonical applied progression level, not an unapplied XP level.'),
+  "metamagic": zod.array(zod.string()).optional().describe('Selected Metamagic options only; effects are not implemented.'),
+  "subclass_id": zod.string().optional().describe('Selected subclass ID only; subclass effects and grants remain pending.'),
+  "progression_effects_pending": zod.array(zod.string()).optional().describe('Informative pending effects at the applied level; not spendable resources.'),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "temporary_hit_points": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterTemporaryHitPointsMin).optional(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
+}),
+  "spellcasting": zod.union([zod.object({
+  "convert_spell_slot": zod.object({
+  "options": zod.array(zod.object({
+  "slot_level": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "points_gained": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}))
+}).optional(),
+  "sorcery_points": zod.object({
+  "current": zod.number().int().min(prepareGameSessionSpellsResponseStateSpellcastingOneSorceryPointsCurrentMin),
+  "max": zod.number().int().min(prepareGameSessionSpellsResponseStateSpellcastingOneSorceryPointsMaxMin).max(prepareGameSessionSpellsResponseStateSpellcastingOneSorceryPointsMaxMax)
+}).optional(),
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(prepareGameSessionSpellsResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMin).max(prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
+})),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "way_out": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
+  "combat": zod.object({
+  "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
+  "combat_id": zod.string().nullish(),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(prepareGameSessionSpellsResponseStateDeathStateSuccessesMin).max(prepareGameSessionSpellsResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(prepareGameSessionSpellsResponseStateDeathStateFailuresMin).max(prepareGameSessionSpellsResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_call_open": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneFailuresMin).max(prepareGameSessionSpellsResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
+  "turn_index": zod.number().int().min(prepareGameSessionSpellsResponseStateTurnIndexMin),
+  "quest_log": zod.object({
+  "active": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "offered": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "done": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "let_go": zod.array(zod.object({
+  "quest_id": zod.string(),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "giver": zod.union([zod.string(),zod.null()]),
+  "recipient": zod.union([zod.string(),zod.null()]),
+  "place": zod.union([zod.string(),zod.null()]),
+  "status": zod.string(),
+  "objectives": zod.array(zod.string()),
+  "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "record_kind": zod.union([zod.string(),zod.null()]),
+  "raw_status": zod.string()
+}).describe('One quest record as the journal shows it, under public names only.')),
+  "trails": zod.array(zod.object({
+  "id": zod.string(),
+  "what": zod.string(),
+  "where": zod.string(),
+  "who": zod.union([zod.string(),zod.null()]),
+  "source": zod.enum(['teslim', 'mektup', 'haber', 'duyulan']),
+  "followed": zod.boolean()
+}).describe('A trail the engine really opened, pointing at a live record.')),
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active_count": zod.number().int().min(prepareGameSessionSpellsResponseStateQuestLogActiveCountMin)
+}).optional().describe('The one read-only view the counter, the journal and the old quest fields are built from.'),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(prepareGameSessionSpellsResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(prepareGameSessionSpellsResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(prepareGameSessionSpellsResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(prepareGameSessionSpellsResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(prepareGameSessionSpellsResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(prepareGameSessionSpellsResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(prepareGameSessionSpellsResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(prepareGameSessionSpellsResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(prepareGameSessionSpellsResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(prepareGameSessionSpellsResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(prepareGameSessionSpellsResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(prepareGameSessionSpellsResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(prepareGameSessionSpellsResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(prepareGameSessionSpellsResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(prepareGameSessionSpellsResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(prepareGameSessionSpellsResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "adventure": zod.object({
+  "threads": zod.array(zod.object({
+  "thread_id": zod.string(),
+  "title": zod.string(),
+  "origin": zod.enum(['player', 'local_proposal', 'legacy_quest']),
+  "status": zod.enum(['discovered', 'offered', 'active', 'progressing', 'reframed', 'succeeded', 'failed', 'abandoned', 'expired']),
+  "location_id": zod.string(),
+  "npc_id": zod.string().nullable(),
+  "allegiance_id": zod.string().nullable(),
+  "deadline": zod.number().int().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string(),
+  "description": zod.string(),
+  "optional": zod.boolean(),
+  "status": zod.enum(['active', 'completed'])
+}))
+})),
+  "commitments": zod.array(zod.object({
+  "commitment_id": zod.string(),
+  "npc_id": zod.string(),
+  "quote": zod.string(),
+  "thread_id": zod.string().nullable(),
+  "kind": zod.enum(['promise', 'conditional', 'debt']),
+  "status": zod.enum(['open', 'fulfilled', 'broken'])
+})),
+  "plan": zod.union([zod.object({
+  "plan_id": zod.string(),
+  "goal": zod.string(),
+  "status": zod.enum(['awaiting_confirmation', 'paused', 'completed', 'abandoned']),
+  "cursor": zod.number().int(),
+  "location_id": zod.string(),
+  "steps": zod.array(zod.object({
+  "quote": zod.string(),
+  "precondition": zod.string(),
+  "depends_on": zod.number().int().nullable(),
+  "interruption": zod.enum(['player_confirmation'])
+}))
+}),zod.null()]),
+  "recent_events": zod.array(zod.object({
+  "event_id": zod.string(),
+  "summary": zod.string(),
+  "turn": zod.number().int()
+}))
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(prepareGameSessionSpellsResponseStateKnownFactionsItemStandingMin).max(prepareGameSessionSpellsResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.'),
+  "economic_offer": zod.union([zod.object({
+  "offer_id": zod.string(),
+  "confirmation_digest": zod.string(),
+  "counterparty_label": zod.string(),
+  "lines": zod.array(zod.object({
+  "line_id": zod.string(),
+  "label": zod.string(),
+  "count": zod.number().int(),
+  "unit_cp": zod.number().int(),
+  "total_cp": zod.number().int(),
+  "optional": zod.boolean()
+})),
+  "dependency": zod.enum(['base_required', 'all_or_none']),
+  "max_total_cp": zod.number().int(),
+  "tender_cp": zod.union([zod.number().int(),zod.null()]).optional(),
+  "may_refuse": zod.boolean()
+}).describe('The card the player sees; no inner acceptance, check difficulty or refusal reason.'),zod.null()]).describe('The player\'s one open economic card, or null. Preparing it moved no coin, goods or time.'),
+  "wallet": zod.object({
+  "total_cp": zod.number().int()
+}).describe('The player\'s own purse in copper; NPC balances are never public.'),
+  "bounded_encounter": zod.object({
+  "scenario_id": zod.string(),
+  "location_id": zod.string(),
+  "player_node_id": zod.union([zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near']),zod.null()]),
+  "visible_opponent": zod.union([zod.object({
+  "npc_id": zod.string(),
+  "statblock_id": zod.string(),
+  "source": zod.string(),
+  "distance_ft": zod.number().int().min(prepareGameSessionSpellsResponseStateBoundedEncounterVisibleOpponentOneDistanceFtMin),
+  "node_id": zod.enum(['courtyard_entry', 'courtyard_far', 'courtyard_near'])
+}).describe('The opponent the player can currently see, with its source-backed stat block.'),zod.null()])
+}).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
+}).describe('Public state projection produced by the API serializers.'),
+  "result": zod.object({
+  "status": zod.enum(['prepared', 'too_many']),
+  "prepared": zod.array(zod.string()),
+  "dropped": zod.array(zod.object({
+  "spell_id": zod.string(),
+  "reason": zod.enum(['duplicate', 'cantrip', 'not_in_spellbook', 'not_on_class_list'])
+})),
+  "limit": zod.number().int(),
+  "excess": zod.number().int(),
+  "open": zod.boolean(),
+  "message": zod.string()
+})
+})
+
+
+/**
  * Compatibility alias for /game/sessions/{session_id}/species-actions.
  * @summary Legacy server-authoritative species action alias
  */

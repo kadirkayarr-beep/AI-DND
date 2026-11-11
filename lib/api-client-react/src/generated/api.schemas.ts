@@ -3512,6 +3512,82 @@ export interface SpeciesTraitCommandResult {
   result: SpeciesTraitActionResult;
 }
 
+export interface SpellPrepareInput {
+  /** @maxItems 32 */
+  prepared: string[];
+  close?: boolean;
+  /** @nullable */
+  action_id?: string | null;
+}
+
+export type SpellPrepareDroppedReason = typeof SpellPrepareDroppedReason[keyof typeof SpellPrepareDroppedReason];
+
+
+export const SpellPrepareDroppedReason = {
+  duplicate: 'duplicate',
+  cantrip: 'cantrip',
+  not_in_spellbook: 'not_in_spellbook',
+  not_on_class_list: 'not_on_class_list',
+} as const;
+
+export interface SpellPrepareDropped {
+  spell_id: string;
+  reason: SpellPrepareDroppedReason;
+}
+
+/**
+ * @nullable
+ */
+export type SpellPrepareViewResponseReason = typeof SpellPrepareViewResponseReason[keyof typeof SpellPrepareViewResponseReason] | null;
+
+
+export const SpellPrepareViewResponseReason = {
+  creation: 'creation',
+  long_rest: 'long_rest',
+  migration: 'migration',
+} as const;
+
+export interface SpellPrepareViewResponse {
+  session_id: string;
+  supported: boolean;
+  /** @nullable */
+  class_name?: string | null;
+  open: boolean;
+  /** @nullable */
+  reason?: SpellPrepareViewResponseReason;
+  limit: number;
+  candidates: string[];
+  prepared: string[];
+  /** @nullable */
+  spellbook?: string[] | null;
+}
+
+export type SpellPrepareResultStatus = typeof SpellPrepareResultStatus[keyof typeof SpellPrepareResultStatus];
+
+
+export const SpellPrepareResultStatus = {
+  prepared: 'prepared',
+  too_many: 'too_many',
+} as const;
+
+export interface SpellPrepareResult {
+  status: SpellPrepareResultStatus;
+  prepared: string[];
+  dropped: SpellPrepareDropped[];
+  limit: number;
+  excess: number;
+  open: boolean;
+  message: string;
+}
+
+export interface SpellPrepareCommandResult {
+  session_id: string;
+  /** @nullable */
+  action_id?: string | null;
+  state: GameState;
+  result: SpellPrepareResult;
+}
+
 export type CampaignCreateInputDeathMode = typeof CampaignCreateInputDeathMode[keyof typeof CampaignCreateInputDeathMode];
 
 
