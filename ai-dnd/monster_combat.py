@@ -682,6 +682,8 @@ def player_response(session, text, target_id=None):
                    and not _is_beaten(session, a)]
         if all(any(p["status"] == "accepted" for p in root.get(a, {}).get("proposals", [])) for a in enemies):
             session.end_combat("parley_accepted")
+        elif combat["active"]:
+            session._sync_combat_participant_records(combat)  # an accepted surrender is written as 'surrendered' now
     return {"messages": session.messages, "model_calls": 0,
             "narration": "Teklifi kabul ettin." if accepted else "Teklifi reddettin; çatışma sürüyor.",
             "action_result": {"action": "monster_proposal_response", "status": "resolved",

@@ -2345,7 +2345,7 @@ def _validate_combat_v3_payload(combat):
             or max_hp < 1
             or current_hp > max_hp
             or armor_class < 0
-            or participant_status not in ("active", "unconscious", "defeated", "dead", "inactive")
+            or participant_status not in ("active", "unconscious", "defeated", "dead", "inactive", "surrendered")
             or type(action_available) is not bool
             or action_available != (participant_id not in actions_used)
         ):
@@ -3667,6 +3667,8 @@ def _combat_record_for_actor(participant_id, initiative=None, actions_used=()):
         raise ValueError("Active combat participant has an invalid status.")
     if npc.get("location") != session.world_state.get("location"):
         status = "inactive"  # Real authoritative relocation, not a fabricated turn.
+    elif status == "active" and action_economy._surrendered(session, participant_id):
+        status = "surrendered"  # the fight's own accepted surrender: out of the fight, no longer an enemy
     return {
         "id": participant_id,
         "kind": "npc",
@@ -19832,6 +19834,10 @@ def _dispatch_player_turn(
                                              "do", action_id)
     _reopen_public_doors()
     player_input = combat_lifecycle.answered_attack_question(_session(), player_input)
+    surrender_answer = (combat_lifecycle.answered_surrender_question(_session(), player_input)
+                        if combat_action is None else None)
+    if surrender_answer is not None:
+        player_input, combat_action = surrender_answer  # the asked blow at the surrendered foe, now confirmed
     if getattr(_session(), "_which_move", None):
         return _ask_which_move(_session()._which_move)
     owner_reply = _owner_module_reply(player_input, interaction_mode)
@@ -20203,6 +20209,9 @@ def _dispatch_player_turn(
             return fled
     command = combat_action or (None if planning else
                                action_economy.natural_command(_session(), player_input, target_id))
+    surrender_question = combat_lifecycle.surrendered_strike_question(_session(), player_input, target_id, command)
+    if surrender_question is not None:
+        return surrender_question
     if command:
         return action_economy.execute(_session(), command, action_id, session_id)
     if action_economy.pending_reaction(_session()):

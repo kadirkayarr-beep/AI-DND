@@ -63,7 +63,16 @@ def present(session, actor):
 
 def can_act(session, actor):
     return (present(session, actor)
-            and not conditions(session, actor) & {"incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"})
+            and not conditions(session, actor) & {"incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"}
+            and not (actor != "player" and _surrendered(session, actor)))  # no action, bonus or reaction
+
+
+def _surrendered(session, actor):
+    """The active fight's accepted surrender took this foe out of it (the same reading as its participant record)."""
+    import monster_combat
+    combat = session.world_state.get("combat")
+    return (isinstance(combat, dict) and combat.get("active") is True
+            and monster_combat.surrendered_in(session.world_state, combat.get("combat_id"), actor))
 
 
 def speed(session, actor):

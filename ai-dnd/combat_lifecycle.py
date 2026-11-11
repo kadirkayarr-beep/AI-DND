@@ -1,5 +1,6 @@
 """Read-only request guards for the existing Python combat scheduler."""
 
+import copy
 import re
 from dataclasses import dataclass
 from typing import Literal
@@ -396,6 +397,53 @@ def answered_attack_question(session, message):
     if not asked or len(str(message).split()) > 4:
         return message
     return f"{message} saldırıyorum" if pointed_targets(session, message) else message
+
+
+def answered_surrender_question(session, message):
+    """"...teslim olmuş birine saldırıyorsun. Yine de vuruyor musun?" - "evet": the asked blow, not the bare yes.
+
+    Returns the (line, command) to play, or ``None``; anything but a yes or the same blow again forgets the question.
+    """
+    asked = getattr(session, "_surrender_strike_asked", None)
+    if not asked:
+        return None
+    if _says_yes(session, message, asked["id"]):
+        return asked["said"], copy.deepcopy(asked["command"])
+    if not is_attack_decision(session, message):
+        session._surrender_strike_asked = None
+    return None
+
+
+def surrendered_strike_question(session, message, target_id, command):
+    """A blow at a foe whose surrender was accepted in this fight is asked about first (repair, never a refusal).
+
+    The question is for this sitting only (like "kavga mı başlatıyorsun?"); a yes, or the same blow again, strikes.
+    """
+    combat = session.world_state.get("combat", {})
+    if not combat.get("active") or session.character.get("current_hp", 0) <= 0:
+        return None
+    if command:
+        aimed = [step.get("target_id") for step in command.get("steps", [])
+                 if isinstance(step, dict) and step.get("kind") in {"attack", "continue_attack"}]
+    elif is_attack_decision(session, message):
+        targets = _attack_targets(session, message, target_id)
+        aimed = [targets[0].get("id")] if len(targets) == 1 else []
+    else:
+        return None
+    import action_economy
+    out = next((a for a in aimed if isinstance(a, str) and action_economy._surrendered(session, a)), None)
+    asked = getattr(session, "_surrender_strike_asked", None)
+    session._surrender_strike_asked = None
+    if out is None or (asked and asked["id"] == out):
+        return None  # not at the surrendered one, or the player said yes / struck again: the blow stands
+    session._surrender_strike_asked = {"id": out, "said": str(message or ""), "command": copy.deepcopy(command)}
+    npc = next((n for n in session.world_state.get("npcs", []) if isinstance(n, dict) and n.get("id") == out), {})
+    line = (f"{living_world.public_npc_name(npc)} teslim oldu; teslim olmuş birine saldırıyorsun. "
+            "Yine de vuruyor musun?")
+    return {"messages": session.messages, "narration": line, "model_calls": 0,
+            "action_result": {"action": "attack", "status": "clarification", "success": False,
+                              "outcome": "surrendered_target", "target_id": out, "state_changes": [],
+                              "direct_response": line}}
 
 
 def strike_the_fallen(session, message, target_id=None):
