@@ -62,4 +62,4 @@ Güncel kapsam, temiz kampanya, doğrulama ve arşiv durumu: [Oynanabilir diyalo
 
 ## Çalışma ve test kuralları
 
-Çalışma, test ve ajan disiplini için `CLAUDE.md` ("Çalışma ve test disiplini") ve `docs/agents/implementer-preamble.md` geçerlidir.
+Çalışma, test ve ajan disiplini için `CLAUDE.md` ("Çalışma ve test disiplini") ve `docs/agents/implementer-preamble.md` geçerlidir. Açık parklar için tek defter: `docs/agents/debt-register.md`.
