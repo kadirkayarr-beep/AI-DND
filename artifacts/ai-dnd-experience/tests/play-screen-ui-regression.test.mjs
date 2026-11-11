@@ -839,6 +839,33 @@ test("settings drawer: Escape closes it and returns focus to its opener, and pic
   await play.close();
 });
 
+test("reading faces: Atkinson Hyperlegible (dyslexia setting) and Spectral load with Turkish glyphs and apply to the story text", async (t) => {
+  try {
+    const response = await fetch("https://fonts.googleapis.com/css2?family=Spectral&display=swap", { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  } catch (error) {
+    t.skip(`SKIPPED, not passed: the font service is unreachable (${error.message}); the font check needs network`);
+    return;
+  }
+  const env = await startFixtureEnv(t);
+  const play = await env.open(`${fixturePath}?screen=play`, 1280, 900);
+  await waitForSelector(play.page, '[data-testid="button-open-settings"]');
+  const sample = JSON.stringify("ğüşiöçİı");
+  for (const [family, dyslexia] of [["Atkinson Hyperlegible", true], ["Spectral", false]]) {
+    await play.page.evaluate(`document.documentElement.setAttribute('data-unw-font', ${JSON.stringify(dyslexia ? "dyslexia" : "normal")})`);
+    let loaded = 0;
+    for (let attempt = 0; attempt < 50 && !loaded; attempt += 1) {
+      loaded = await play.page.evaluate(`document.fonts.load("16px '${family}'", ${sample}).then((faces) => faces.length)`);
+      if (!loaded) await delay(200);
+    }
+    assert.ok(loaded > 0, `${family}: no face loaded for the Turkish sample`);
+    assert.equal(await play.page.evaluate(`document.fonts.check("16px '${family}'", ${sample})`), true, `${family}: check is false for the Turkish sample`);
+    assert.match(await play.page.evaluate("getComputedStyle(document.querySelector('.story-text')).fontFamily"), new RegExp(family), `${family} is not the story text face`);
+  }
+  assert.deepEqual(play.page.exceptions, []);
+  await play.close();
+});
+
 async function waitForSelector(page, selector) {
   const encoded = JSON.stringify(selector);
   for (let attempt = 0; attempt < 100; attempt += 1) {
