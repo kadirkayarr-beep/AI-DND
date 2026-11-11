@@ -402,13 +402,18 @@ def answered_attack_question(session, message):
 def answered_surrender_question(session, message):
     """"...teslim olmuş birine saldırıyorsun. Yine de vuruyor musun?" - "evet": the asked blow, not the bare yes.
 
-    Returns the (line, command) to play, or ``None``; anything but a yes or the same blow again forgets the question.
+    Returns the (line, command, target id) to play, or ``None``; anything but a yes or the same blow again forgets
+    the question, and so does a yes once that foe's surrender no longer holds (the fight it belonged to is over).
     """
     asked = getattr(session, "_surrender_strike_asked", None)
     if not asked:
         return None
+    import action_economy
+    if not action_economy._surrendered(session, asked["id"]):
+        session._surrender_strike_asked = None
+        return None
     if _says_yes(session, message, asked["id"]):
-        return asked["said"], copy.deepcopy(asked["command"])
+        return asked["said"], copy.deepcopy(asked["command"]), asked["id"]
     if not is_attack_decision(session, message):
         session._surrender_strike_asked = None
     return None

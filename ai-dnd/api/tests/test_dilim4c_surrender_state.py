@@ -185,6 +185,62 @@ class AskBeforeStrikingTheSurrendered(unittest.TestCase):
             result = s.run_player_turn("Muhafıza saldırıyorum", target_id=other["id"])
         self.assertNotEqual(result["action_result"].get("outcome"), "surrendered_target")
 
+    def test_a_yes_with_no_target_strikes_the_asked_foe(self):
+        s, n, other = surrendered_fight()
+        self.player_turn(s)
+        s.run_player_turn("Muhafıza saldırıyorum", target_id=n["id"])
+        with patch("game.roll_attack", return_value=20):
+            result = s.run_player_turn("evet")
+        self.assertNotEqual(result["action_result"].get("status"), "clarification")
+        self.assertLess(n["current_hp"], 10)
+        self.assertEqual(other["current_hp"], 8)
+
+    def test_a_yes_sent_with_another_foes_target_strikes_only_the_asked_one(self):
+        s, n, other = surrendered_fight()
+        self.player_turn(s)
+        s.run_player_turn("Muhafıza saldırıyorum", target_id=n["id"])
+        with patch("game.roll_attack", return_value=20):
+            s.run_player_turn("evet", target_id=other["id"])
+        self.assertEqual(other["current_hp"], 8)
+        self.assertEqual(other["combat_status"], "active")
+        self.assertLess(n["current_hp"], 10)
+
+    def test_the_question_ends_with_the_fight(self):
+        s, n, other = surrendered_fight()
+        self.player_turn(s)
+        s.run_player_turn("Muhafıza saldırıyorum", target_id=n["id"])
+        other.update(current_hp=0, combat_status="dead")
+        s._combat_end_if_decided()
+        self.assertFalse(s.world_state["combat"]["active"])
+        self.assertIsNone(getattr(s, "_surrender_strike_asked", None))
+        import combat_lifecycle
+        self.assertIsNone(combat_lifecycle.answered_surrender_question(s, "evet"))
+
+    def test_a_yes_after_the_surrender_no_longer_holds_strikes_nothing(self):
+        """The question was kept (e.g. a spell line returned before the gate) but the fight it belonged to is over."""
+        s, n, other = surrendered_fight()
+        self.player_turn(s)
+        s.run_player_turn("Muhafıza saldırıyorum", target_id=n["id"])
+        asked = copy.deepcopy(s._surrender_strike_asked)
+        other.update(current_hp=0, combat_status="dead")
+        s._combat_end_if_decided()
+        s._surrender_strike_asked = asked  # a path that skipped every clearing point
+        hp = n["current_hp"]
+        import combat_lifecycle
+        self.assertIsNone(combat_lifecycle.answered_surrender_question(s, "evet"))
+        self.assertIsNone(s._surrender_strike_asked)
+        self.assertEqual(n["current_hp"], hp)
+
+
+class DamagedSaves(unittest.TestCase):
+    def test_a_null_monster_memory_reads_as_no_surrender(self):
+        import monster_combat
+        s, n, other = two_foes()
+        s.world_state["monster_combat"] = None
+        self.assertFalse(monster_combat.surrendered_in(s.world_state, s.world_state["combat"]["combat_id"], n["id"]))
+        s.world_state["monster_combat"] = {"actors": None}
+        self.assertFalse(monster_combat.surrendered_in(s.world_state, s.world_state["combat"]["combat_id"], n["id"]))
+
 
 if __name__ == "__main__":
     unittest.main()

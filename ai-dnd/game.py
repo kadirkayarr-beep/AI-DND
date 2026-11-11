@@ -5688,6 +5688,7 @@ def end_combat(reason="combat_ended"):
     combat = ensure_combat_state()
     if not combat["active"]:
         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
+    _session()._surrender_strike_asked = None  # a question about a surrendered foe ends with its fight
     if reason in ("target_defeated", "parley_accepted", "opponents_relocated"):
         import xp
         _session()._receive_xp_award(
@@ -19839,7 +19840,7 @@ def _dispatch_player_turn(
     surrender_answer = (combat_lifecycle.answered_surrender_question(_session(), player_input)
                         if combat_action is None else None)
     if surrender_answer is not None:
-        player_input, combat_action = surrender_answer  # the asked blow at the surrendered foe, now confirmed
+        player_input, combat_action, target_id = surrender_answer  # the asked blow, at the asked foe only
     if getattr(_session(), "_which_move", None):
         return _ask_which_move(_session()._which_move)
     owner_reply = _owner_module_reply(player_input, interaction_mode)
