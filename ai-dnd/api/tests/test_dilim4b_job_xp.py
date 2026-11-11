@@ -10,11 +10,15 @@ Every test holds the MONEY invariant: the purse moves by exactly the job's own w
 from __future__ import annotations
 
 import copy
+import json
+import tempfile
 import unittest
 from contextlib import closing
+from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
+import game
 import world_happenings
 import world_threads
 import xp
@@ -362,3 +366,38 @@ class TroubleXp(_FixedHiring):
         await self.line("Kalila'nın meselesi için geldim, konuşalım")
         self.assertEqual((self.t()["status"], self.t()["xp_due"]), ("done", 50))
         self.assertEqual((self.xp(), self.receipts(), self.wallet()), (50, [f"job:{self.tid}"], purse))
+
+
+class CorruptReceiptListInASave(unittest.TestCase):
+    """Task 3 review F1: a receipt list that is not a list of strings is refused at load, never repaired to [].
+
+    A repair to [] would pay every finished job still in history (its ``xp_due`` stays) a second time."""
+
+    def setUp(self):
+        self.session = game.create_session(seed=4832)
+        self.session.world_state["xp_awarded_event_ids"] = ["job:thread_001"]
+        self.payload = self.session.serialize_game_state()
+
+    def load(self, payload):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "save.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            self.session.load_game(path)
+
+    def test_a_non_list_or_non_string_receipt_list_is_refused(self):
+        for bad in ("corrupt", None, {"job:thread_001": True}, 7, ["job:thread_001", 3], [None]):
+            payload = copy.deepcopy(self.payload)
+            payload["world_state"]["xp_awarded_event_ids"] = bad
+            before = copy.deepcopy((self.session.character, self.session.world_state))
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    self.load(payload)
+                self.assertEqual((self.session.character, self.session.world_state), before)
+
+    def test_a_valid_list_and_a_missing_one_still_load(self):
+        self.load(copy.deepcopy(self.payload))
+        self.assertEqual(self.session.world_state["xp_awarded_event_ids"], ["job:thread_001"])
+        legacy = copy.deepcopy(self.payload)
+        legacy["world_state"].pop("xp_awarded_event_ids")
+        self.load(legacy)
+        self.assertNotIn("job:thread_001", self.session.world_state.get("xp_awarded_event_ids", []))

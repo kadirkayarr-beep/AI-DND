@@ -2468,6 +2468,11 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt NPC listesi geçersiz.")
     if not isinstance(saved_world["inventory"], list):
         raise ValueError("Kayıt envanteri geçersiz.")
+    # Every save version: a receipt list that is not a list of strings is refused, never repaired to [] (that would
+    # pay every finished job still in history again). Version 5+ also checks each id in xp.validate_saved_advancement.
+    receipts = saved_world.get("xp_awarded_event_ids", [])
+    if not isinstance(receipts, list) or any(not isinstance(item, str) for item in receipts):
+        raise ValueError("Kayıt deneyim olayları geçersiz.")
     if interaction_adventure.KEY in saved_world:
         interaction_adventure.validate(saved_world[interaction_adventure.KEY], saved_world)
     if "incidents" in saved_world or "emergence_state" in saved_world or "incident_threads" in saved_world:
