@@ -216,3 +216,67 @@ test('the story text is never produced or altered by the atmosphere: the layer a
 test('reading faces and dyslexia setting reach the story text, the player lines and the composer input', () => {
   assert.match(readingCss, /\.story-text,[\s\S]*?\.player-text,[\s\S]*?\.command-input \{\s*font-family: var\(--unw-font-read\);\s*letter-spacing: var\(--unw-read-letter-spacing\);\s*word-spacing: var\(--unw-read-word-spacing\);/);
 });
+
+/* ---------- S4: arrivals, Az level, bounded tip ---------- */
+
+test('freshInkIndex: an empty transcript is an arrival only when the last entry is marked live (opening, first turn), never for a loaded history', () => {
+  const n = (text, extra = {}) => ({ kind: 'narration', text, ...extra });
+  const p = (text) => ({ kind: 'player', text });
+  assert.equal(freshInkIndex([], [n('Açılış.', { live: true })]), 0, 'the opening of a new adventure');
+  assert.equal(freshInkIndex([], [p('Selam.'), n('Cevap.', { live: true })]), 1, 'the first turn of an adventure with no opening');
+  assert.equal(freshInkIndex([], [n('Açılış.')]), null, 'a loaded one-entry history');
+  assert.equal(freshInkIndex([], [p('a'), n('b')]), null, 'a loaded one-turn history');
+  assert.equal(freshInkIndex([], [n('a'), p('b'), n('c', { live: true })]), null, 'three new entries are a load even if the last one is live');
+  assert.equal(freshInkIndex([], []), null);
+});
+
+test('Az (low effects) plays a reduced reveal: under half the time of Tam at the same speed, Kapalı none', () => {
+  for (const speed of ['slow', 'normal', 'fast']) {
+    for (const words of [3, 40, 400]) {
+      const full = inkStepMs(speed, words, 'full') * words;
+      const low = inkStepMs(speed, words, 'low') * words;
+      assert.ok(low > 0 && low < full * 0.5, `${speed} ${words} words: low ${low} vs full ${full}`);
+      assert.equal(inkStepMs(speed, words, 'off'), 0);
+    }
+    assert.equal(inkStepMs(speed, 5), inkStepMs(speed, 5, 'full'), 'the default level is Tam');
+  }
+});
+
+test('InkText: level low renders a shorter step and tip delay than full, same words and same text', () => {
+  const story = 'Kapı kilitli ve avlu sessiz duruyor.';
+  const full = renderToStaticMarkup(React.createElement(InkText, { text: story, speed: 'normal', animate: true, quill: true, still: false }));
+  const low = renderToStaticMarkup(React.createElement(InkText, { text: story, speed: 'normal', animate: true, quill: true, still: false, level: 'low' }));
+  assert.equal(textOf(low), textOf(full));
+  const ms = (html, name) => Number(new RegExp(`${name}:([0-9.]+)ms`).exec(html)?.[1]);
+  assert.ok(ms(low, '--ink-step') < ms(full, '--ink-step'));
+  assert.ok(ms(low, '--ink-delay') < ms(full, '--ink-delay'));
+});
+
+test('Transcript: a live opening renders as a fresh ink reveal on the very first render, a loaded one-entry history does not', () => {
+  const live = renderTranscript([{ kind: 'narration', text: 'Açılış cümlesi burada.', live: true }]);
+  assert.match(live, /class="story-text ink-fresh"/);
+  assert.equal(textOf(live).includes('Açılış cümlesi burada.'), true, 'the full text is in the first paint');
+  assert.doesNotMatch(renderTranscript([{ kind: 'narration', text: 'Açılış cümlesi burada.' }]), /ink-fresh/);
+});
+
+test('Transcript: effects Az reveals a live arrival with the shorter step, Kapalı and instant speed never reveal', () => {
+  const live = [{ kind: 'narration', text: 'Açılış cümlesi burada.', live: true }];
+  const step = (settings) => Number(/--ink-step:([0-9.]+)ms/.exec(renderTranscript(live, settings))?.[1]);
+  assert.ok(step({ effectsLevel: 'low' }) < step({ effectsLevel: 'full' }));
+  assert.doesNotMatch(renderTranscript(live, { effectsLevel: 'off' }), /ink-fresh/);
+  assert.doesNotMatch(renderTranscript(live, { inkRevealSpeed: 'instant' }), /ink-fresh/);
+});
+
+test('the quill tip breathes a bounded number of times and no animation in the reading layer repeats forever', () => {
+  const tip = /\.ink-tip \{[^}]*\}/.exec(readingCss)?.[0] ?? '';
+  assert.match(tip, /ink-tip-wait [0-9.]+s ease-in-out [0-9]+ calc\(/, 'a finite iteration count');
+  assert.doesNotMatch(readingCss, /\binfinite\b/);
+});
+
+test('the game screen marks only live narration, strips the mark from the saved copy, and never sets it on loaded history', () => {
+  const browser = read('../src/pages/game-browser.tsx');
+  assert.match(browser, /\{ kind: 'narration', text: opening, live: true \}/);
+  assert.match(browser, /JSON\.stringify\(transcript\.map\(\(\{ kind, text \}\) => \(\{ kind, text \}\)\)\)/);
+  assert.match(browser, /text: result\.narration,\s*skillCheckResult: result\.skill_check_result \?\? undefined,\s*live: true,/);
+  assert.doesNotMatch(read('../src/lib/transcript-history.ts'), /\blive\b/);
+});

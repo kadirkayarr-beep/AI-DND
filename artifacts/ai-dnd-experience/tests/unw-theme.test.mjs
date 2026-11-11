@@ -62,13 +62,12 @@ test('contrast helper matches known WCAG values', () => {
   assert.equal(contrastRatio('#777777', '#777777'), 1);
 });
 
-test('CSS token hex values match the TypeScript source of truth (themes, high contrast, night islands)', () => {
+test('CSS token hex values match the TypeScript source of truth (themes and high contrast)', () => {
   const blocks = {
     night: [/:root,\s*:root\[data-unw-theme="night"\]\s*\{([^}]*)\}/.exec(css)?.[1], UNW_THEME_COLORS.night],
     day: [/:root\[data-unw-theme="day"\]\s*\{([^}]*)\}/.exec(css)?.[1], UNW_THEME_COLORS.day],
     'night high contrast': [/:root\[data-unw-theme="night"\]\[data-unw-contrast="high"\]\s*\{([^}]*)\}/.exec(css)?.[1], UNW_HIGH_CONTRAST_COLORS.night],
     'day high contrast': [/:root\[data-unw-theme="day"\]\[data-unw-contrast="high"\]\s*\{([^}]*)\}/.exec(css)?.[1], UNW_HIGH_CONTRAST_COLORS.day],
-    'night island in day': [/\.design-preview\.play-shell \.story-scene-context \{([^}]*--unw-page[^}]*)\}/.exec(css)?.[1], UNW_THEME_COLORS.night],
   };
   for (const [name, [block, colours]] of Object.entries(blocks)) {
     assert.ok(block, `${name} block exists`);
@@ -76,8 +75,13 @@ test('CSS token hex values match the TypeScript source of truth (themes, high co
       assert.match(block, new RegExp(`--unw-${kebab(token)}:\\s*${hex};`, 'i'), `${name} ${token}`);
     }
   }
-  const island = /:root\[data-unw-theme="day"\] \.unwritten-entry,([^{]*)\{/.exec(css)?.[1] ?? '';
-  for (const selector of ['.character-creation-screen', '.drawer-sheet', '.story-scene-context']) assert.ok(island.includes(selector), `island selector ${selector}`);
+});
+
+test('no night islands: no rule re-declares the --unw tokens for a surface, so every screen follows the theme and the contrast level', () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const redeclared = [...bare.matchAll(/([^{}]*)\{([^{}]*--unw-(?:page|surface|text)\s*:[^{}]*)\}/g)].map((m) => m[1].trim());
+  const allowed = [':root,\n:root[data-unw-theme="night"]', ':root[data-unw-theme="day"]', ':root[data-unw-theme="night"][data-unw-contrast="high"]', ':root[data-unw-theme="day"][data-unw-contrast="high"]'];
+  assert.deepEqual(redeclared.filter((selector) => !allowed.includes(selector)), []);
 });
 
 test('theme resolution lives in code: no prefers-color-scheme block sets tokens, font variables exist', () => {

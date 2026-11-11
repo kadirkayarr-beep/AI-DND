@@ -8,6 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
+import { RENDERED_CONTRAST_SCRIPT, contrastOffenders } from "./helpers/rendered-contrast.mjs";
 
 const chromiumPath = process.env.CHROMIUM_PATH;
 if (!chromiumPath || !path.isAbsolute(chromiumPath)) {
@@ -678,7 +679,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     const creation = await createPage(browserPort, `${baseUrl}/tests/character-creation-fixture/`, viewport.width, viewport.height);
     await waitForSelector(creation.page, '[data-testid="screen-character-creation"]');
     await delay(800);
-    assert.equal(await creation.page.evaluate("getComputedStyle(document.querySelector('.character-creation-screen')).backgroundColor"), "rgb(23, 26, 26)");
+    assert.equal(await creation.page.evaluate("getComputedStyle(document.querySelector('.character-creation-screen')).backgroundColor"), "rgb(14, 18, 22)");
     if (viewport.width === 390) await saveScreenshot(creation.page, "character-creation-390.jpg");
     if (viewport.width === 1440) await saveScreenshot(creation.page, "character-creation-1440.jpg");
     await creation.page.evaluate("document.querySelector('.cc-portrait-grid .cc-choice-card').click()");
@@ -702,6 +703,140 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
   }
 
   await writeFile(path.join(outputDir, "measurements.json"), JSON.stringify({ fixture: "fixed mock responses; not signed in and not a real campaign", metrics }, null, 2));
+});
+
+// ---- S4: rendered checks (own server and browser, same disposable fixtures) ----
+async function startFixtureEnv(t) {
+  const tempProfile = await mkdtemp(path.join(os.tmpdir(), "ai-dnd-chromium-"));
+  const vitePort = await freePort();
+  const browserPort = await freePort();
+  const require = createRequire(import.meta.url);
+  const viteCli = path.join(path.dirname(require.resolve("vite/package.json")), "bin", "vite.js");
+  const vite = spawn(process.execPath, [viteCli, "--config", "vite.config.ts", "--host", "127.0.0.1"], {
+    cwd: process.cwd(),
+    env: { ...process.env, PORT: String(vitePort), BASE_PATH: "/", REPL_ID: undefined, AI_DND_API_ORIGIN: `http://127.0.0.1:${await freePort()}` },
+    stdio: "ignore",
+  });
+  const browser = spawn(chromiumPath, [
+    "--headless=new", "--disable-gpu", "--disable-dev-shm-usage",
+    `--remote-debugging-port=${browserPort}`, `--user-data-dir=${tempProfile}`,
+    "about:blank",
+  ], { stdio: "ignore" });
+  t.after(async () => {
+    await Promise.all([stopChild(vite), stopChild(browser)]);
+    await rm(tempProfile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  });
+  const baseUrl = `http://127.0.0.1:${vitePort}`;
+  await waitFor(`${baseUrl}${fixturePath}`);
+  await waitFor(`http://127.0.0.1:${browserPort}/json/version`, true);
+  const open = async (route, width, height) => {
+    const { page, targetId } = await createPage(browserPort, `${baseUrl}${route}`, width, height);
+    return { page, close: async () => { page.close(); await fetch(`http://127.0.0.1:${browserPort}/json/close/${targetId}`); } };
+  };
+  return { open };
+}
+
+const READING_STATES = [["night", "normal"], ["day", "normal"], ["night", "high"], ["day", "high"]];
+
+function setReadingState(page, theme, contrast) {
+  return page.evaluate(`(() => { document.documentElement.setAttribute('data-unw-theme', ${JSON.stringify(theme)}); document.documentElement.setAttribute('data-unw-contrast', ${JSON.stringify(contrast)}); })()`);
+}
+
+async function sweepAllStates(page, screenName) {
+  for (const [theme, contrast] of READING_STATES) {
+    await setReadingState(page, theme, contrast);
+    await delay(120);
+    const sweep = await page.evaluate(RENDERED_CONTRAST_SCRIPT);
+    assert.ok(sweep.checked >= 5, `${screenName} ${theme}/${contrast}: sweep saw only ${sweep.checked} text nodes`);
+    assert.deepEqual(contrastOffenders(sweep), [], `${screenName} ${theme}/${contrast}: text below its threshold (4.5, story text 7)`);
+  }
+}
+
+test("rendered contrast: visible text holds 4.5:1 (story text 7:1) on opening, creation, play, combat and every drawer, in night, day and both high-contrast sets", async (t) => {
+  const env = await startFixtureEnv(t);
+
+  const opening = await env.open(`${fixturePath}?screen=opening`, 1280, 900);
+  await waitForSelector(opening.page, '[data-testid="app-start"]');
+  await sweepAllStates(opening.page, "opening");
+  assert.deepEqual(opening.page.exceptions, []);
+  await opening.close();
+
+  const creation = await env.open("/tests/character-creation-fixture/", 1280, 900);
+  await waitForSelector(creation.page, '[data-testid="screen-character-creation"]');
+  await delay(500);
+  await sweepAllStates(creation.page, "creation");
+  assert.deepEqual(creation.page.exceptions, []);
+  await creation.close();
+
+  for (const query of ["?screen=play", "?screen=play&combat=1"]) {
+    const play = await env.open(`${fixturePath}${query}`, 1280, 900);
+    await waitForSelector(play.page, '[data-testid="button-open-settings"]');
+    await sweepAllStates(play.page, `play${query}`);
+    const openers = ["character", "world", "settings"].map((name) => `button-open-${name}`);
+    if (query.includes("combat")) openers.push("button-open-active-combat");
+    for (const opener of openers) {
+      await play.page.evaluate(`document.querySelector('[data-testid="${opener}"]').click()`);
+      await waitForSelector(play.page, '[role="dialog"]');
+      await sweepAllStates(play.page, `${opener}${query}`);
+      await play.page.evaluate("document.querySelector('[data-testid=\"button-close-drawer\"]').click()");
+      await waitForValue(play.page, "!document.querySelector('[role=\"dialog\"]')");
+    }
+    assert.deepEqual(play.page.exceptions, []);
+    await play.close();
+  }
+});
+
+test("375px play header: every control stays on one row, no label wraps, and the row keeps clear of the screen edges", async (t) => {
+  const env = await startFixtureEnv(t);
+  const play = await env.open(`${fixturePath}?screen=play`, 375, 800);
+  await waitForSelector(play.page, '[data-testid="button-open-settings"]');
+  for (const [theme, contrast] of READING_STATES) {
+    await setReadingState(play.page, theme, contrast);
+    await delay(150);
+    const row = await play.page.evaluate(`(() => {
+      const actions = document.querySelector('.header-actions');
+      const box = actions.getBoundingClientRect();
+      const lineCount = (el) => { const tops = new Set(); const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); for (let n = walk.nextNode(); n; n = walk.nextNode()) { if (!n.nodeValue.trim()) continue; const range = document.createRange(); range.selectNodeContents(n); for (const r of range.getClientRects()) if (r.width > 0) tops.add(Math.round(r.top / 4)); } return tops.size; };
+      const items = [...actions.children].filter((el) => el.getBoundingClientRect().width > 0).map((el) => { const r = el.getBoundingClientRect(); return { label: el.textContent.trim(), left: r.left, right: r.right, top: r.top, lines: lineCount(el), clipped: el.scrollWidth > el.clientWidth + 1 }; });
+      return { left: box.left, right: box.right, width: innerWidth, scrollWidth: document.documentElement.scrollWidth, items };
+    })()`);
+    const tag = `${theme}/${contrast} ${JSON.stringify(row)}`;
+    assert.ok(row.scrollWidth <= row.width, `page overflows at 375px ${tag}`);
+    assert.ok(row.left >= 8 && row.right <= row.width - 8, `header row touches the screen edge ${tag}`);
+    for (const item of row.items) {
+      assert.equal(item.lines, 1, `"${item.label}" wraps ${tag}`);
+      assert.equal(item.clipped, false, `"${item.label}" is clipped ${tag}`);
+    }
+    for (let i = 1; i < row.items.length; i += 1) assert.ok(row.items[i].left >= row.items[i - 1].right - 0.5, `"${row.items[i].label}" overlaps its neighbour ${tag}`);
+  }
+  assert.deepEqual(play.page.exceptions, []);
+  await play.close();
+});
+
+test("settings drawer: Escape closes it and returns focus to its opener, and picking a theme re-renders the page without a reload", async (t) => {
+  const env = await startFixtureEnv(t);
+  const play = await env.open(`${fixturePath}?screen=play`, 1280, 900);
+  const opener = '[data-testid="button-open-settings"]';
+  await waitForSelector(play.page, opener);
+  await mouseClick(play.page, opener);
+  await waitForSelector(play.page, '[role="dialog"]');
+  await waitForValue(play.page, "document.querySelector('[role=\"dialog\"]').contains(document.activeElement)");
+  await press(play.page, "Escape", "Escape", 27);
+  await waitForValue(play.page, "!document.querySelector('[role=\"dialog\"]')");
+  assert.equal(await play.page.evaluate(`document.activeElement === document.querySelector('${opener}')`), true, "focus returns to the button that opened the drawer");
+
+  await play.page.evaluate("window.__noReload = true");
+  await mouseClick(play.page, opener);
+  await waitForSelector(play.page, '[data-testid="radio-theme-day"]');
+  await play.page.evaluate("document.querySelector('[data-testid=\"radio-theme-day\"]').click()");
+  await waitForValue(play.page, "document.documentElement.getAttribute('data-unw-theme') === 'day' && document.querySelector('[data-testid=\"radio-theme-day\"]').checked");
+  const bodyBg = await play.page.evaluate("getComputedStyle(document.querySelector('.drawer-sheet')).backgroundColor");
+  await play.page.evaluate("document.querySelector('[data-testid=\"radio-theme-night\"]').click()");
+  await waitForValue(play.page, "document.documentElement.getAttribute('data-unw-theme') === 'night' && document.querySelector('[data-testid=\"radio-theme-night\"]').checked");
+  assert.notEqual(await play.page.evaluate("getComputedStyle(document.querySelector('.drawer-sheet')).backgroundColor"), bodyBg, "the open drawer repaints when the theme changes");
+  assert.equal(await play.page.evaluate("window.__noReload === true"), true, "no page reload happened");
+  assert.deepEqual(play.page.exceptions, []);
+  await play.close();
 });
 
 async function waitForSelector(page, selector) {

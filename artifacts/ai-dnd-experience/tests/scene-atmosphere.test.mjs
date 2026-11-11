@@ -284,15 +284,8 @@ const PLAY_STACKS = {
 };
 const PLAY_BODY_TOKENS = ['text'];
 const PLAY_SOFT_TOKENS = ['textSoft', 'accentLight', 'patinaText', 'dangerText'];
-const PLAY_NOT_ON_PAGE = ['#201d19']; // dark label on the light primary-button fill (.unwritten-entry), never on the page.
-// Hex text colours left in unwritten-play.css all sit inside the night islands (opening, creation, drawers); they are tested on the night play page anyway.
+// Hex text colours used to live in unwritten-play.css and were checked here; S4 moved every surface to the tokens, so the check is now "none left" (below).
 const NIGHT_PLAY_PAGE = playPage(UNW_THEME_COLORS.night);
-
-async function playScreenColours() {
-  const css = await readFile(new URL('../src/components/unwritten-play.css', import.meta.url), 'utf8');
-  const found = [...css.matchAll(/(?:[^-a-z]color|--preview-(?:text|muted)): *(#[0-9a-fA-F]{6})/g)].map((m) => m[1].toLowerCase());
-  return [...new Set(found)].filter((c) => !PLAY_NOT_ON_PAGE.includes(c)).sort();
-}
 
 /*
  * S3 closed the old allowlist: the 23 soft colours and the narration colour now come from tokens that hold the
@@ -337,13 +330,17 @@ test('token themes: body >= 7 and soft >= 4.5 under every layer and the veil ove
   }
 });
 
-test('play screen: every hex text colour left in unwritten-play.css holds its threshold on the night page under every layer', async () => {
-  const colours = await playScreenColours();
-  assert.ok(colours.length >= 10, `parsed ${colours.length} colours`);
-  for (const colour of colours) {
-    assert.ok(worstOverWorld('night', NIGHT_PLAY_PAGE, colour) >= 4.5, `${colour}`);
+test('no app stylesheet sets a literal text colour any more: every text colour is a token, so the threshold tests above hold them all', async () => {
+  const dir = new URL('../src/', import.meta.url);
+  const files = ['index.css', ...(await readdir(new URL('components/', dir))).filter((f) => f.endsWith('.css')).map((f) => `components/${f}`)];
+  assert.ok(files.length >= 9, `found ${files.length} stylesheets`);
+  const literal = /(?:^|[;{\s])(?:color|-webkit-text-fill-color|caret-color|fill|stroke|--[a-z0-9-]*(?:ink|text|muted|faint|ivory|gold|accent|emerald))\s*:\s*[^;}]*(?:#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(\s*\d)/;
+  for (const file of files) {
+    const lines = (await readFile(new URL(file, dir), 'utf8')).split('\n');
+    // The --unw-* token definitions in index.css hold the literal values by design.
+    const hits = lines.map((line, i) => [i + 1, line.trim()]).filter(([, line]) => !line.startsWith('--unw-') && literal.test(line));
+    assert.deepEqual(hits, [], `${file} sets a literal text colour`);
   }
-  assert.equal(colours.includes('#deddd4'), false, 'the narration colour is a token now');
 });
 
 test('the fog veil keeps its old core strength .16 and is modelled above the text, not only the page', () => {
@@ -566,8 +563,8 @@ test('old wash variables and weather ::before overlays are gone from the CSS', a
   assert.doesNotMatch(css, /\.environment-theme[^{]*::before/);
   assert.doesNotMatch(css, /repeating-linear-gradient\(108deg/, 'rain veil lives in the table now');
   // The page background for a neutral atmosphere is the single static wash that was the old default.
-  assert.match(css, /\.dnd-app \{[^}]*radial-gradient\(ellipse at 12% 8%, rgba\(86, 78, 64, \.11\), transparent 42rem\),\s*transparent;/);
-  assert.match(css, /\.environment-theme \{[^}]*--theme-line: rgba\(117, 108, 91, \.62\);/);
+  assert.match(css, /\.dnd-app \{[^}]*radial-gradient\(ellipse at 12% 8%, color-mix\(in srgb, var\(--unw-surface\) 11%, transparent\), transparent 42rem\),\s*transparent;/);
+  assert.match(css, /\.environment-theme \{[^}]*--theme-line: color-mix\(in srgb, var\(--unw-border\) 81%, transparent\);/);
 });
 
 test('every consumer of the environment theme still resolves, and the layer is mounted once', async () => {

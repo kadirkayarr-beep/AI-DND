@@ -132,7 +132,7 @@ test('play shell locks desktop viewports and allows scroll for narrow, short, an
   assert.doesNotMatch(viewport, /maximum-scale|user-scalable\s*=\s*no/);
   assert.doesNotMatch(play, /cc-point-buy|cc-method-tab|opening-screen|reveal-screen/);
   const creation = await readFile('src/components/character-creation-screen.css', 'utf8');
-  assert.match(creation, /\.cc-point-buy-bar,\s*\.cc-roll-bar \{[^}]*background: rgba\(238, 228, 204, \.65\)/s);
+  assert.match(creation, /\.cc-point-buy-bar,\s*\.cc-roll-bar \{[^}]*background: color-mix\(in srgb, var\(--unw-accent-light\) 14%, var\(--unw-surface\)\)/s);
 });
 
 test('the play screen fixture renders GameBrowser and does not touch auth', async () => {
