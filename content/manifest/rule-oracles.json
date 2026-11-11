@@ -1213,9 +1213,9 @@
         {"id": "12", "kind": "boundary", "input": {"op": "recovery", "hours": 2}, "expected": {"hp": 1, "stable": false, "status": "active"}},
         {"id": "13", "kind": "interaction", "input": {"op": "death_save", "rolls": [9], "constitution": 20}, "expected": {"outcomes": ["failure"], "successes": 0, "failures": 1, "stable": false, "dead": false, "hp": 0, "status": "unconscious", "constitution_save_bonus": 7}},
         {"id": "14", "kind": "boundary", "input": {"op": "stable_no_save"}, "expected": {"result": null, "stable": true, "successes": 0, "failures": 0, "hp": 0, "status": "unconscious"}},
-        {"id": "15", "kind": "boundary", "input": {"op": "instant", "max_hp": 12, "hp": 6, "damage": 17}, "expected": {"dead": false, "status": "unconscious", "hp": 0, "failures": 0}},
-        {"id": "16", "kind": "boundary", "input": {"op": "instant", "max_hp": 12, "hp": 6, "damage": 18}, "expected": {"dead": true, "status": "dead", "hp": 0}},
-        {"id": "17", "kind": "boundary", "input": {"op": "instant", "max_hp": 12, "hp": 12, "damage": 24}, "expected": {"dead": true, "status": "dead", "hp": 0}},
+        {"id": "15", "kind": "boundary", "source_ref": {"pdf_page": 27, "text": "Dropping to 0 Hit Points: Massive Damage (leftover damage equal to the Hit Point maximum kills outright)"}, "input": {"op": "instant", "max_hp": 12, "hp": 6, "damage": 17}, "expected": {"dead": false, "status": "unconscious", "hp": 0, "failures": 0}},
+        {"id": "16", "kind": "boundary", "source_ref": {"pdf_page": 27, "text": "Dropping to 0 Hit Points: Massive Damage (leftover damage equal to the Hit Point maximum kills outright)"}, "input": {"op": "instant", "max_hp": 12, "hp": 6, "damage": 18}, "expected": {"dead": true, "status": "dead", "hp": 0}},
+        {"id": "17", "kind": "boundary", "source_ref": {"pdf_page": 27, "text": "Dropping to 0 Hit Points: Massive Damage (leftover damage equal to the Hit Point maximum kills outright)"}, "input": {"op": "instant", "max_hp": 12, "hp": 12, "damage": 24}, "expected": {"dead": true, "status": "dead", "hp": 0}},
         {"id": "18", "kind": "boundary", "input": {"op": "recovery", "hours": 1}, "expected": {"hp": 1, "stable": false, "status": "active"}},
         {"id": "19", "kind": "boundary", "input": {"op": "recovery", "hours": 4}, "expected": {"hp": 1, "stable": false, "status": "active"}},
         {"id": "20", "kind": "boundary", "input": {"op": "recovery", "hours": 4, "wait_seconds": 14399}, "expected": {"hp": 0, "stable": true, "status": "unconscious"}}

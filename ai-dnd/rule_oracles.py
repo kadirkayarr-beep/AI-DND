@@ -527,4 +527,4 @@ def evaluate_rule_case(case_id: str, oracles: dict | None = None) -> dict:
     leaf, case = _case(oracles, case_id)
     actual = DISPATCH[leaf["leaf_id"]](case)
     return {"case_id": case_id, "leaf_id": leaf["leaf_id"], "kind": case["kind"], "expected": case["expected"],
-            "actual": actual, "match": actual == case["expected"], "source_ref": leaf["source_ref"]}
+            "actual": actual, "match": actual == case["expected"], "source_ref": case.get("source_ref", leaf["source_ref"])}

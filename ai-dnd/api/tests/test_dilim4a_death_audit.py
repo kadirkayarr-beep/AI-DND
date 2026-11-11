@@ -1,6 +1,6 @@
 """4A.2 death-rules audit: source-backed oracle cases and the table-rule label.
 
-Expected values are written by hand from the cited rule (PHB 2024: Dropping to 0 Hit Points / Death Saving Throws on pdf page 28,
+Expected values are written by hand from the cited rule (PHB 2024: Death Saving Throws / Stabilizing a Character on pdf page 28, Dropping to 0 Hit Points and Massive Damage on pdf page 27,
 the Unconscious condition on pdf page 376), never taken from engine output. No HTTP case: every case drives a GameSession directly.
 """
 from __future__ import annotations
@@ -46,6 +46,16 @@ class DeathTableHouseRules(unittest.TestCase):
             with self.subTest(case=number):
                 result = rule_oracles.evaluate_rule_case(f"K07.death_saves_and_stable.core#{number:02d}", ORACLES)
                 self.assertTrue(result["match"], result)
+                self.assertEqual(result["source_ref"]["pdf_page"], 27 if number <= 17 else 28)
+
+    def test_massive_damage_cases_cite_page_27_and_stabilizing_stays_on_28(self):
+        for number in (15, 16, 17):
+            with self.subTest(case=number):
+                result = rule_oracles.evaluate_rule_case(f"K07.death_saves_and_stable.core#{number:02d}", ORACLES)
+                self.assertEqual(result["source_ref"]["pdf_page"], 27)
+        for number in (4, 10, 12, 14, 18):
+            with self.subTest(case=number):
+                result = rule_oracles.evaluate_rule_case(f"K07.death_saves_and_stable.core#{number:02d}", ORACLES)
                 self.assertEqual(result["source_ref"]["pdf_page"], 28)
 
     def test_unconscious_condition_oracle_cases_match_source(self):
@@ -79,6 +89,33 @@ class DeathTableHouseRules(unittest.TestCase):
                     result = session.resolve_enemy_attack(enemy)
                 self.assertEqual(result["critical"], failures == 2)
                 self.assertEqual(session.ensure_death_state()["failures"], failures)
+
+    def test_prone_and_unconscious_target_hit_from_beyond_five_feet_rolls_straight(self):
+        # Unconscious advantage and Prone disadvantage beyond 5 ft cancel: one d20, no automatic critical.
+        for distance in (30, 10):
+            with self.subTest(distance=distance):
+                session = downed()
+                session.ensure_death_state()["prone"] = True
+                enemy = shortbow_enemy(session, distance)
+                with patch("game.roll_d20", side_effect=[14]) as rolled, patch("game.roll_damage", return_value=2):
+                    result = session.resolve_enemy_attack(enemy)
+                self.assertEqual(rolled.call_count, 1)
+                self.assertIn("target_unconscious", result["advantage_sources"])
+                self.assertIn("target_prone", result["disadvantage_sources"])
+                self.assertEqual(result["attack_rolls"], [14])
+                self.assertEqual(result["outcome"], "hit")
+                self.assertFalse(result["critical"])
+                self.assertEqual(session.ensure_death_state()["failures"], 1)
+
+    def test_prone_and_unconscious_target_hit_within_five_feet_is_a_critical(self):
+        session = downed()
+        session.ensure_death_state()["prone"] = True
+        enemy = shortbow_enemy(session, 5)
+        with patch("game.roll_d20", side_effect=[10, 14]), patch("game.roll_damage", return_value=2):
+            result = session.resolve_enemy_attack(enemy)
+        self.assertIn("target_prone", result["advantage_sources"])
+        self.assertTrue(result["critical"])
+        self.assertEqual(session.ensure_death_state()["failures"], 2)
 
     def test_stable_creature_stays_down_before_its_hours(self):
         session = downed()
