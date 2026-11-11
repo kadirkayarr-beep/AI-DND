@@ -1,12 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import {
   DEFAULT_APPEARANCE_SETTINGS,
-  readAppearanceSettings,
   resolveEffectsLevel,
-  writeAppearanceSettings,
   type AppearanceSettings,
   type EffectsLevel,
 } from '@/lib/appearance-settings';
+import { createAppearanceStore } from '@/lib/appearance-store';
 import { readPrefersReducedMotion, subscribePrefersReducedMotion } from '@/lib/reduced-motion';
 
 type AppearanceContextValue = {
@@ -27,24 +26,17 @@ const AppearanceContext = createContext<AppearanceContextValue>({
 const browserWindow = () => (typeof window === 'undefined' ? null : window);
 const subscribeReducedMotion = (onChange: () => void) => subscribePrefersReducedMotion(browserWindow(), onChange);
 const snapshotReducedMotion = () => readPrefersReducedMotion(browserWindow());
-const serverReducedMotion = () => false;
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<AppearanceSettings>(() => readAppearanceSettings());
-  const prefersReducedMotion = useSyncExternalStore(subscribeReducedMotion, snapshotReducedMotion, serverReducedMotion);
-  const setSetting = useCallback(<K extends keyof AppearanceSettings>(key: K, value: AppearanceSettings[K]) => {
-    setSettings((current) => {
-      const next = { ...current, [key]: value };
-      writeAppearanceSettings(next);
-      return next;
-    });
-  }, []);
+  const [store] = useState(() => createAppearanceStore());
+  const settings = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const prefersReducedMotion = useSyncExternalStore(subscribeReducedMotion, snapshotReducedMotion, snapshotReducedMotion);
   const value = useMemo<AppearanceContextValue>(() => ({
     settings,
-    setSetting,
+    setSetting: store.set,
     effectsLevel: resolveEffectsLevel(settings, prefersReducedMotion),
     prefersReducedMotion,
-  }), [settings, setSetting, prefersReducedMotion]);
+  }), [settings, store, prefersReducedMotion]);
   return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;
 }
 

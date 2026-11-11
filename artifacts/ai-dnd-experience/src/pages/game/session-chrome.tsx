@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { type CombatLogEntry } from '@/components/combat-panel';
+import { tabStops, trapWrapTarget } from '@/lib/focus-trap';
 import { focusReturnTarget } from '@/lib/play-viewport';
 import {
   Feather,
@@ -84,8 +85,8 @@ export function DrawerSheet({ drawer, state, catalog, decisionScope, conversionB
       if (dialog && event.target instanceof Node && !dialog.contains(event.target)) event.preventDefault();
     };
     document.addEventListener('touchmove', stopBackgroundTouch, { capture: true, passive: false });
-    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [tabindex]') ?? [])
-      .filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden');
+    const focusable = () => tabStops(Array.from(dialog?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [tabindex]') ?? [])
+      .filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden'));
     focusable()[0]?.focus();
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -96,10 +97,8 @@ export function DrawerSheet({ drawer, state, catalog, decisionScope, conversionB
       if (event.key !== 'Tab') return;
       const elements = focusable();
       if (!elements.length) { event.preventDefault(); return; }
-      const first = elements[0];
-      const last = elements[elements.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      const wrap = trapWrapTarget(elements, document.activeElement, event.shiftKey);
+      if (wrap) { event.preventDefault(); wrap.focus(); }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
