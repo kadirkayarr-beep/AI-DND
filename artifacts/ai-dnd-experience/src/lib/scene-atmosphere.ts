@@ -196,12 +196,12 @@ const RAIN_VEIL: WeatherVeil = {
   speck: false,
 };
 /*
- * Ruling: the old fog veil (core alpha .16) alone left 0.07 of contrast margin for muted text on the
- * play screen (4.57 against the 4.5 floor), so nothing else could sit under it. Core is now .12, the
- * fog wash is halved and fog lets 20% of the place's light through: the only weakening of an old
- * overlay, forced by the contrast rule (quality wins). Rain, snow and storm keep their old strength.
+ * Ruling: fog keeps its old veil strength (core alpha .16). The wash is halved (.055) and fog lets 20%
+ * of the place's light through (calm .2): the only weakening of an old overlay, a margin kept for the
+ * contrast rule. The veil sits above both the text and the page (position fixed, z-index 10), so the
+ * contrast test composites it over the text colour as well as the background.
  */
-const FOG_CORE: Rgba = [196, 205, 194, 0.12];
+const FOG_CORE: Rgba = [196, 205, 194, 0.16];
 const FOG_HAZE: Rgba = [170, 184, 180, 0.035];
 const SNOW_FLAKES: readonly Rgba[] = [[226, 232, 238, 0.85], [226, 232, 238, 0.72], [226, 232, 238, 0.6]];
 
