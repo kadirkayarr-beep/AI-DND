@@ -3468,6 +3468,8 @@ def _restore_combat_death_checkpoint(cause):
         checkpoint.get("recent_dm_narrations", [])
     )
     session.world_metadata = copy.deepcopy(checkpoint.get("world_metadata"))
+    # The XP, level and receipt of an award are back to the checkpoint; so is its pending announcement.
+    session._xp_level_up = None
     campaign_state = checkpoint.get("campaign_state")
     if campaign_state is not None:
         restorer = getattr(session, "death_checkpoint_restorer", None)

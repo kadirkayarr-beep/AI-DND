@@ -309,6 +309,25 @@ class DownedPays(unittest.TestCase):
         self.assertEqual((published["level_up"]["previous_level"], published["level_up"]["new_level"],
                           published["level_up"]["xp_gained"]), (1, 2, 35))
 
+    def test_a_death_that_takes_the_award_back_takes_its_level_up_announcement_back(self):
+        # Normal mode: the knock-out award and level-up happen mid-fight, then the player falls and the checkpoint
+        # restores XP, level and receipt. The pending announcement of that award must not survive the rollback.
+        self.session.character["xp"] = 290
+        guard, drunk = self.foes(person("guard1", "muhafız"), person("drunk1", "ayyaş"))
+        self.session.start_combat(guard)
+        self.session.join_combat_participants([drunk["id"]])
+        self.session.apply_npc_damage(guard, 99, knock_out=True)
+        self.assertEqual((self.session.character["xp"], self.session.character["level"]), (315, 2))
+        self.assertIsNotNone(self.session._xp_level_up)
+        result = self.session._apply_player_damage(99, took_damage=True)
+        self.assertTrue(result["death_resolution"]["rolled_back"])
+        self.assertEqual((self.session.character["xp"], self.session.character["level"]), (290, 1))
+        self.assertEqual(self.world.get("xp_awarded_event_ids", []), [])
+        self.assertIsNone(self.session._xp_level_up)
+        published = {}
+        self.session._publish_level_up(published)
+        self.assertNotIn("level_up", published)
+
     def test_nothing_to_pay_or_already_paid_still_knocks_out_without_an_error(self):
         guard, drunk = self.foes(person("guard1", "muhafız"), person("drunk1", "ayyaş"))
         self.world["xp_awarded_event_ids"] = ["combat:foe:guard1"]
