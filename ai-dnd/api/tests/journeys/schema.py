@@ -47,6 +47,7 @@ EXPECT_KEYS = frozenset(
         "olay",
         "zirh",
         "varis",
+        "seviye",
     }
 )
 
@@ -136,6 +137,7 @@ EXPECT_VALUE_RULES = {
     "olay": (lambda value: _event_rule(value),
              "var/tiklanabilir (true ya da false) ve neden (boş olmayan metin) alanlarından yalnız bilinenleri taşıyan, boş olmayan nesne"),
     "zirh": (_integer, "tam sayı"),
+    "seviye": (_integer, "tam sayı"),
     "varis": (lambda value: _varis_rule(value),
               "cagri (tam sayı) ve kaynak (model, python ya da null) alanlarından yalnız bilinenleri taşıyan, boş olmayan nesne"),
     "anlatilan": (lambda value: _filled_mapping(value) and all(isinstance(npc, str) and npc and _needles(needles)

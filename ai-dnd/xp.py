@@ -192,6 +192,15 @@ def apply_xp(character: dict[str, Any], world: dict[str, Any], amount: int, even
 
 
 
+def award_line(summary: Mapping[str, Any]) -> str:
+    """The player's XP/level line, written from the award's own facts (never from the model)."""
+    line = f"+{summary['xp_gained']} deneyim puanı."
+    if summary["new_level"] > summary["previous_level"]:
+        line += (f" Seviye {summary['new_level']} oldun; en yüksek canın {summary['hit_points_gained']} arttı."
+                 " Yeni seviyenin seçimleri karakter ekranında seni bekliyor.")
+    return line
+
+
 def _is_defeated(npc: Mapping[str, Any]) -> bool:
     if npc.get("combat_status") in _DEFEATED:
         return True

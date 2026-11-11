@@ -18500,6 +18500,7 @@ def _run_player_turn_keyed(
     fallen.wake(_session())
     before = copy.deepcopy(_session().world_state)
     before_hp = _session().character.get("current_hp")
+    messages_before = len(_session().messages)
     try:
         runtime_snapshot = _session()._capture_runtime_snapshot()
     except AttributeError:
@@ -18603,6 +18604,15 @@ def _run_player_turn_keyed(
         local_dialogue.remember_native_reply(
             _session().world_state, action_result, player_input, result.get("narration")
         )
+        if isinstance(action_result.get("level_up"), dict):
+            # After every narration check (and after a person's reply is remembered): Python's own line from the
+            # award's facts, in the reply and in this turn's assistant message (no model call, no number from the model).
+            line = xp.award_line(action_result["level_up"])
+            result["narration"] = f"{result.get('narration') or ''} {line}".strip()
+            for row in reversed(_session().messages[messages_before:]):
+                if isinstance(row, dict) and row.get("role") == "assistant":
+                    row["content"] = f"{row.get('content') or ''} {line}".strip()
+                    break
     return result
 
 

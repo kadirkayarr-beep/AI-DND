@@ -87,10 +87,12 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 # its referent has run out, as the click route counts a referent's twelve turns). ``campaign_seed`` (a positive whole
 # number) fixes the new campaign's id, and so the campaign seed its town is drawn from (its jobs, places and their
 # papers); ``seed`` seeds only the dice. ``start_hour`` (0-23) sets the hour of the day the new campaign's clock
-# starts at (after the campaign is made, so the seeded start hour is overwritten).
+# starts at (after the campaign is made, so the seeded start hour is overwritten). ``xp`` (a whole number, 0 or more)
+# is the made character's experience total; it may not reach a level the character does not have yet (no level-up
+# hidden in the setup: the scenario earns it in play).
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
                         "current_hp", "seed", "front_proposal", "death_mode", "job", "letter", "room",
-                        "ambient_event", "campaign_seed", "start_hour"})
+                        "ambient_event", "campaign_seed", "start_hour", "xp"})
 AMBIENT_EVENT_KEYS = frozenset({"event_id", "turns_ago"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
@@ -496,6 +498,12 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         _hands_hold_only_the_bag(world)
     if "current_hp" in setup:
         session.character.update(current_hp=setup["current_hp"])
+    if "xp" in setup:
+        import xp
+        total = setup["xp"]
+        if type(total) is not int or total < 0 or xp.level_for_xp(total) > session.character.get("level", 1):
+            raise ScenarioError("setup 'xp' 0 ya da daha büyük bir tam sayı olmalı ve karakterin seviyesini aşmamalı")
+        session.character["xp"] = total
     case.setup_job_id = None
     if "job" in setup:
         case.setup_job_id = _give_job(world, setup["job"])
@@ -760,6 +768,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "olay": _scene_event(state.get("scene")),
         "zirh": session.character.get("armor_class"),
         "xp": session.character.get("xp", 0),
+        "seviye": session.character.get("level"),
         "saat": (world.get("campaign_time") or {}).get("elapsed_seconds", 0) // _HOUR,
         "gorev": _open_quests(world.get("quests") or []),
         "karsi_saldiri": counter_attacks(getattr(case, "last_combat_result", None)),
