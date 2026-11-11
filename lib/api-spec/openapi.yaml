@@ -2880,6 +2880,20 @@ components:
           - type: string
             maxLength: 48
           - type: 'null'
+        healing:
+          description: Hit Points a healing turn outside a fight restored (the last call's one Hit Point); left out otherwise.
+          type: integer
+          minimum: 0
+        heal_source:
+          description: Where that healing came from; left out otherwise.
+          type: string
+          enum:
+          - spell
+          - rest
+          - class_feature
+          - species
+          - death_save
+          - potion
     GameTurnUndoInput:
       type: object
       additionalProperties: false
@@ -3805,6 +3819,18 @@ components:
           type:
           - integer
           - 'null'
+        heal_source:
+          description: Where a healing event came from; potion is reserved (no engine path yet).
+          anyOf:
+          - type: string
+            enum:
+            - spell
+            - rest
+            - class_feature
+            - species
+            - death_save
+            - potion
+          - type: 'null'
         slot_spent:
           type:
           - boolean

@@ -46,9 +46,11 @@ def _changes(level: int, result: dict[str, Any]) -> list[dict[str, Any]]:
     if level:
         changes.append({"kind": "spell_slot", "level": level, "spent": 1})
     if result.get("damage"):
-        changes.append({"kind": "damage", "target_id": result["target_id"], "amount": result["damage"]})
+        changes.append({"kind": "damage", "target_id": result["target_id"], "amount": result["damage"],
+                        "damage_type": result.get("damage_type")})
     if result.get("healing"):
-        changes.append({"kind": "healing", "target_id": result["target_id"], "amount": result["healing"]})
+        changes.append({"kind": "healing", "target_id": result["target_id"], "amount": result["healing"],
+                        "heal_source": result.get("heal_source")})
     if result.get("hit") is False:  # a miss / successful save is an explicit receipt, not an empty list
         changes.append({"kind": "no_effect", "target_id": result["target_id"], "reason": "miss_or_save_succeeded"})
     return changes

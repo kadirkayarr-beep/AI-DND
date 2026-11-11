@@ -454,6 +454,10 @@ class CombatAttackResult(BaseModel):
     )
 
 
+HEAL_SOURCES = ("spell", "rest", "class_feature", "species", "death_save", "potion")  # "potion": reserved, no engine path yet
+HealSource = Literal["spell", "rest", "class_feature", "species", "death_save", "potion"]
+
+
 class CombatTurnResult(CombatAttackResult):
     economy_steps: list[dict[str, Any]] | None = None
     combat_id: str | None = None
@@ -466,6 +470,7 @@ class CombatTurnResult(CombatAttackResult):
     save_roll: int | None = None
     save_dc: int | None = None
     healing: int | None = None
+    heal_source: HealSource | None = None
     slot_spent: bool | None = None
     combat_started: bool | None = None
     combat_ended: bool | None = None
@@ -680,6 +685,9 @@ class TurnOutcome(BaseModel):
     # Only a counter trade or offer names its engine reason (offer_stale, price_changed, ...), so the panel can ask again.
     # Left out when absent, so a receipt stored before this field replays byte for byte.
     reason: str | None = Field(default=None, max_length=48, exclude_if=lambda value: value is None)
+    # A healing turn outside a fight (the last call's one Hit Point); left out when absent.
+    healing: int | None = Field(default=None, ge=0, exclude_if=lambda value: value is None)
+    heal_source: HealSource | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class TurnResponse(BaseModel):

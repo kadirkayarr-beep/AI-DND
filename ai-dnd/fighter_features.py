@@ -208,7 +208,7 @@ def _regain(session: Any, level: int) -> dict[str, Any]:
     roll = session.rng.randint(1, SECOND_WIND_DIE)
     healing = _heal(session, roll + level)
     _spend(session.character, "second_wind_spent")
-    return {"roll": roll, "healing": healing, "current_hp": session.character["current_hp"],
+    return {"roll": roll, "healing": healing, "heal_source": "class_feature", "current_hp": session.character["current_hp"],
             "uses_remaining": second_wind_maximum(level) - _uses(session.character)["second_wind_spent"]}
 
 

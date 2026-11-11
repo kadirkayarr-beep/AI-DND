@@ -264,12 +264,14 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         state["slot_turn"] = marker
     result = {"spell_id": spell_id, "target_id": target_id, "slot_level": selected_level,
               "spell_attack_modifier": modifier + pb, "spell_save_dc": 8 + modifier + pb,
-              "damage": 0, "healing": 0, "resolution": None}
+              "damage": 0, "healing": 0, "resolution": None,
+              # Event fields (4C.1): read by the public result, never saved.
+              "damage_type": damage_type, "slot_spent": bool(level), "casting_ability": ability}
     if spell_id == "Cure Wounds":
         before = character["current_hp"]
         amount = max(0, session.roll_damage(8, 2, modifier))
         session.heal_player(amount)
-        result.update(healing=character["current_hp"] - before, rolled_healing=amount)
+        result.update(healing=character["current_hp"] - before, rolled_healing=amount, heal_source="spell")
     else:
         dice = 1 + sum(character_level >= threshold for threshold in (5, 11, 17))
         critical = False
@@ -281,12 +283,14 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
                 actor_id="player", target_id=target_id,
             )
             result["resolution"] = resolution
+            result["attack_or_save"] = "attack"
             hits = resolution["outcome"] != "MISS"
             critical = resolution["outcome"] == "CRITICAL_HIT"
         elif spell_id == "Sacred Flame":
             resolution = attacks.save(session, target_id, ["dexterity"], 8 + modifier + pb,
                                       effect_context={"source": "Sacred Flame", "severity": "harmful"})
             result["resolution"] = resolution
+            result.update(attack_or_save="save", save_roll=resolution.get("selected_roll"))
             hits = resolution["outcome"] == "FAILURE"
         if hits:
             if spell_id == "Magic Missile":

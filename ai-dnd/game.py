@@ -4890,7 +4890,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         healing = min(sum(rolls), character["max_hp"] - character["current_hp"])
         heal_player(healing)
         state["healing_hands_uses_remaining"] -= 1
-        effects = {"dice": rolls, "healing": healing, "current_hp": character["current_hp"]}
+        effects = {"dice": rolls, "healing": healing, "heal_source": "species", "current_hp": character["current_hp"]}
         message = f"Şifa Veren Eller {healing} can puanı yeniledi."
         if combat["active"]:
             _mark_combat_action_used("player", "feature")
@@ -5092,7 +5092,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             "adrenaline_rush": max(0, (character.get("proficiency_bonus", 2) if species == "Orc" else 0) - old_state["adrenaline_rush_uses_remaining"]),
             "relentless_endurance": not old_state["relentless_endurance_available"] and species in {"Orc", "Half-Orc"},
         }
-        heal_player(character["max_hp"] - character["current_hp"])
+        long_rest_healing = heal_player(character["max_hp"] - character["current_hp"])
         import hit_dice
         hit_dice.restore_all(character)  # PHB 2024 Long Rest: ALL spent Hit Point Dice return
         _session().world_state["player_combat_status"] = "active"
@@ -5107,7 +5107,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 npc.pop("speed_penalty_turns_remaining", None)
                 npc.pop("prone", None)
         state = character["species_trait_state"]
-        effects = {"refreshed": refreshed, "current_hp": character["current_hp"]}
+        effects = {"refreshed": refreshed, "current_hp": character["current_hp"],
+                   "healing": long_rest_healing, "heal_source": "rest"}
         import spell_scope
         spell_scope.restore_slots(_session())
         import sorcery_points
@@ -18946,6 +18947,7 @@ def player_cannot_act_turn():
         "action_result": {
             "action": "narrative", "status": status, "success": False,
             "state_changes": [], "direct_response": narration,
+            **({"healing": 1, "heal_source": "death_save"} if status == "player_rescued" else {}),
         },
     }
 

@@ -1050,10 +1050,35 @@ def _execute(session, command, action_id=None, session_id=None):
         "messages": session.messages,
         "narration": resolved_narration(session, results),
         "action_result": {"action": "action_economy", "status": "resolved", "success": True,
-                          "combat_id": combat_id, "economy_steps": results},
+                          "combat_id": combat_id, "economy_steps": results, **event_fields(results)},
         "action_economy_result": {"combat_id": combat_id, "steps": results, "state": projection(session)},
         "model_calls": 0,
     }
+
+
+def event_fields(results):
+    """The turn-level event fields the UI reads (4C.1): a spell step names its spell, damage type and roll; healing steps name their source.
+
+    Read from the finished step results only; nothing here rolls, spends or is saved. Several healing steps with different
+    sources leave the turn level empty: each step result still carries its own heal_source.
+    """
+    fields = {}
+    magic = next((step["result"] for step in results if step["kind"] == "magic"), None)
+    if magic is not None:
+        fields.update(spell=magic["spell_id"], slot_spent=magic["slot_spent"], casting_ability=magic.get("casting_ability"),
+                      damage_type=magic["damage_type"], attack_or_save=magic.get("attack_or_save"),
+                      target_id=magic["target_id"])
+        if magic.get("attack_or_save") == "save":
+            fields.update(save_dc=magic["spell_save_dc"], save_roll=magic.get("save_roll"))
+        if "hp_before" in magic:
+            fields.update(damage=magic["damage"], target_hp_before=magic["hp_before"], target_hp_after=magic["hp_after"])
+        elif magic.get("hit") is False:
+            fields["damage"] = 0
+    healed = [step["result"] for step in results
+              if isinstance(step.get("result"), dict) and step["result"].get("heal_source")]
+    if healed and len({entry["heal_source"] for entry in healed}) == 1:
+        fields.update(healing=sum(entry["healing"] for entry in healed), heal_source=healed[0]["heal_source"])
+    return fields
 
 
 def resolved_narration(session, results):

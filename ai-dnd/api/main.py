@@ -248,6 +248,8 @@ def _turn_outcome(action_result: Any) -> TurnOutcome | None:
         place_created=place.get("created") if isinstance(place.get("created"), bool) else None,
         reason=short(action_result.get("reason"), 48)
         if action_result.get("action") in {"equipment_transaction", "shop_offer"} else None,
+        healing=action_result.get("healing") if action_result.get("action") == "narrative" else None,
+        heal_source=action_result.get("heal_source") if action_result.get("action") == "narrative" else None,
     )
 
 
