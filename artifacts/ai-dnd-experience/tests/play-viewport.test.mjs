@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
@@ -73,7 +74,7 @@ test('keyboard recovery respects the clipping container as well as the viewport'
 });
 
 test('a validated own turn preserves the reader position and marks a new response when needed', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let submit = '';
   const visit = node => {
@@ -145,7 +146,7 @@ test('the play screen fixture renders GameBrowser and does not touch auth', asyn
 });
 
 test('this package keeps the mode buttons and the existing turn submission path', async () => {
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   assert.match(page, /data-testid="interaction-mode-picker"/);
   assert.match(page, /data-testid="select-interaction-mode"/);
   assert.match(page, /<option value="do">Yap<\/option>/);
@@ -169,7 +170,7 @@ test('the final composer rule cannot cover the bounded story and scene regions',
   const positions = [...rules.at(-1)[1].matchAll(/(?:^|;)\s*position\s*:\s*([^;]+)/g)];
   assert.equal(positions.at(-1)?.[1].trim(), 'static');
   assert.match(css, /\.play-shell \.story-scene-context\s*\{[^}]*overflow-y:\s*auto/s);
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   assert.match(page, /className="story-scene-context"[^>]*aria-label="Sahne bilgileri"/);
 });
 
@@ -198,7 +199,7 @@ test('transcript follow-bottom ends at the answer rather than a decorative tail'
 // Regression trigger: only the scrolling viewport shrinks, before content RO.
 async function storyFollowHarness({ following = true } = {}) {
   const { runInNewContext } = await import('node:vm');
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const declarations = new Map(); let resizeEffect, windowEffect;
   const visit = node => {

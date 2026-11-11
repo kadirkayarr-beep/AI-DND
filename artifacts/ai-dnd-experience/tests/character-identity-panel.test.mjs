@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -99,7 +100,7 @@ test('missing and null fields stay unlabeled fiction and an empty string stays e
 
 test('identity scroll stays inside the panel and the command box keeps its place', async () => {
   const css = await readFile('src/index.css', 'utf8');
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   const panel = await readFile('src/components/character-panel.tsx', 'utf8');
   assert.match(css, /\.identity-notes \{[^}]*max-height: 9rem;[^}]*overflow: auto/);
   assert.match(css, /\.identity-note-text \{[^}]*white-space: pre-wrap/);

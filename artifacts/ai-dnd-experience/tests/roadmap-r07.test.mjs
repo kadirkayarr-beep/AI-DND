@@ -2,6 +2,7 @@
 // budget; hanging at any step is bounded; an expired deadline is an UNKNOWN outcome (draft and ActionKey stay, no automatic
 // new action), and a late commit cannot create a second effect. The number is a technical default, not a performance target.
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { QueryClient } from '@tanstack/react-query';
@@ -125,7 +126,7 @@ test('reconcileState is capped by what is left of the shared deadline', async ()
 });
 
 test('production paths draw one deadline and keep the draft and ActionKey on expiry', () => {
-  const browser = readFileSync(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+  const browser = readGameBrowserSource();
   assert.ok((browser.match(/startDeadline\(/g) ?? []).length >= 2, 'turn and undo each start one deadline');
   assert.ok((browser.match(/withActionDeadline\(/g) ?? []).length >= 2, 'the deadline travels in the operation');
   assert.match(browser, /ActionDeadlineError/, 'expiry is a typed, unknown outcome');

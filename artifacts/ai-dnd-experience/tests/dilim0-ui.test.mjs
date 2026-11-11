@@ -1,6 +1,7 @@
 // Dilim 0 (UI tour): pure helpers and components rendered from the real modules.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
 import vm from 'node:vm';
@@ -157,7 +158,7 @@ test('a resumed game keeps an open conversation in Söyle', async () => {
     { mode: 'say', targetId: 'barman' });
   assert.deepEqual(resumeMode.resumeComposerMode({ conversation: { active: false, interlocutor: null } }), { mode: 'do', targetId: '' });
   assert.deepEqual(resumeMode.resumeComposerMode({}), { mode: 'do', targetId: '' });
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /resumeComposerMode\(resumed\.state\)/);
   assert.match(source, /justUndone=\{undoneJustNow\}/);
 });
@@ -179,14 +180,14 @@ test('a success notice carries a check, not a warning', () => {
   assert.match(bad, /data-testid="notice-icon-warning"/); assert.doesNotMatch(bad, /notice-icon-success/);
 });
 test('the play screen maps history through one helper', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.equal((source.match(/historyToEntries\(/g) ?? []).length, 4);
   assert.doesNotMatch(source, /history\.flatMap\(\(entry/);
   assert.match(source, /combatActive=\{Boolean\(visibleLastTurn\) && state\.combat\.active\}/);
 });
 test('the local transcript cache gives the undo flags back, and only true ones', async () => {
   // A campaignless session restores its story from the local cache (game-browser.tsx restore effect, run as written).
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const browser = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
   const effect = browser.body.statements.find(n => ts.isExpressionStatement(n) && n.getText(ast).startsWith('useEffect(')
@@ -226,7 +227,7 @@ test('the quest section never says no quests while an adventure runs', () => {
   assert.match(empty, /<span class="character-badge">00<\/span>/);
 });
 test('the rail summary says Süren görevler from the same count', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /Süren görevler \{state\.quest_log\?\.active_count \?\? 0\}/);
   assert.doesNotMatch(source, /Görevler \{state\.quests\?\.length/);
 });
@@ -241,7 +242,7 @@ test('the counter shows outside a fight only', async () => {
   assert.equal(panels.showsCounter({}, 'c1'), true);
 });
 test('the play screen draws the counter through showsCounter and folds the offer form', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /showsCounter\(state, campaignId\) && <ShopControls/);
   assert.match(source, /economic-prepare-drawer[\s\S]{0,200}Para ver ya da teklif hazırla/);
   assert.match(source, /!state\.combat\.active && <details className="economic-prepare-drawer"/);
@@ -261,7 +262,7 @@ test('the strip shows the round and every side hit points, player first', async 
 });
 test('the start notice comes from combat_started and the generic end is said once', async () => {
   const strip = await vite.ssrLoadModule('/src/components/combat-status-strip.tsx');
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /combat_started === true/);
   assert.match(source, /<CombatTransitionBanner kind="start"/);
   assert.match(source, /<CombatTransitionBanner kind="end"/);
@@ -284,7 +285,7 @@ test('the strip reuses the combat panel status words', async () => {
 });
 
 test('combat start notices clear on later turns and context changes, and ignore stale results', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const browser = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
   const reset = browser.body.statements.find(n => ts.isExpressionStatement(n) && n.getText(ast).startsWith('useEffect(')
@@ -314,7 +315,7 @@ test('combat start notices clear on later turns and context changes, and ignore 
 });
 
 test('accepted current server recovery clears an old combat start banner without replaying it', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let reconcile;
   function visit(node) {
@@ -466,7 +467,7 @@ test('rage duration is a value without developer prose or a client countdown', a
   assert.doesNotMatch(source,/Sunucunun bildirdiği kalan süre|Bu bir canlı geri sayım/);
 });
 test('welcome and creation display skills without changing submitted skill identifiers', async () => {
-  const game=await readFile('src/pages/game-browser.tsx','utf8');
+  const game=readGameBrowserSource();
   const creation=await readFile('src/components/character-creation-screen.tsx','utf8');
   assert.doesNotMatch(game,/LVL \{/);
   assert.match(game,/Sv\. \{character\.level\}/);
@@ -475,7 +476,7 @@ test('welcome and creation display skills without changing submitted skill ident
   assert.match(creation,/proficient_skills: derivedStats\.allSkills/);
 });
 test('account card separates its heading from its description', async () => {
-  const source=await readFile('src/pages/game-browser.tsx','utf8');
+  const source=readGameBrowserSource();
   assert.match(source,/HESABIN VE KAMPANYALARIN<\/span>\{' '\}<strong>/);
 });
 
@@ -491,7 +492,7 @@ test('specialized origin feats keep the catalog name and localized class', async
   const feats={'Magic Initiate':{name_tr:'Büyüye Giriş'},'Savage Attacker':{name_tr:'Vahşi Saldırgan'}};
   assert.equal(labels.originFeatLabel(feats,'Magic Initiate (Wizard)'), 'Büyüye Giriş (Sihirbaz)');
   assert.equal(labels.originFeatLabel(feats,'Savage Attacker'),'Vahşi Saldırgan');
-  const source=await readFile('src/pages/game-browser.tsx','utf8');
+  const source=readGameBrowserSource();
   assert.match(source,/originFeatLabel\([^;]*character\.species_bonus_feat/);
 });
 test('inventory preserves terminal unrelated brackets and labels without proven generated identity', async () => {
@@ -542,7 +543,7 @@ test('known subclass catalog names survive the real character panel and welcome 
   const state = { ...makeState(), character, wallet: { total_cp: 100 } };
   const before = JSON.stringify(state);
   assert.match(render(panel.CharacterPanel, { character, catalog: subclassCatalog }), /Alt sınıf: Şampiyon/);
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const declaration = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'CharacterReveal');
   assert.ok(declaration, 'production welcome component exists');
@@ -576,7 +577,7 @@ test('subclass display uses only the matching class catalog and hides missing or
 });
 
 test('the live character drawer forwards the real catalog at every production boundary', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const openings = [];
   function visit(node) {
@@ -609,7 +610,7 @@ test('reckless and quickened descriptions use Turkish visible prose while preser
 
 test('a cold saved-campaign resume enables and fills the real catalog query before showing the subclass', async () => {
   const { QueryClient, QueryObserver } = await import('@tanstack/react-query');
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let declaration;
   function visit(node) {

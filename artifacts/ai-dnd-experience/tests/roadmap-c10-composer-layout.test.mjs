@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
 import {createRequire} from 'node:module';
@@ -11,7 +12,7 @@ const css=postcss.parse(await readFile('src/components/unwritten-play.css','utf8
 function style(selector,width,height=800){const out={};css.walkRules(rule=>{if(!rule.selectors.includes(selector))return;let p=rule.parent;while(p){if(p.type==='atrule'&&p.name==='container'){const max=p.params.match(/max-height:\s*(\d+)px/);if(max&&height>+max[1])return;}if(p.type==='atrule'&&p.name==='media'){const min=p.params.match(/min-width:\s*(\d+)px/),max=p.params.match(/max-width:\s*(\d+)px/);if(min&&width<+min[1]||max&&width>+max[1])return;}p=p.parent;}rule.walkDecls(d=>out[d.prop]=d.value);});return out;}
 // Actual C024 browser RED supersedes the earlier document-flow workaround:
 // it prevented overlap but left the Send button outside a 1280x800 viewport.
-const awaitSource=await readFile('src/pages/game-browser.tsx','utf8');
+const awaitSource=readGameBrowserSource();
 test('auxiliary actions have their own scroll allocation instead of pushing the story',()=>{
  const story=style('.design-preview.play-shell .story-column',1280);
  assert.equal(story.display,'grid'); assert.equal(story['min-height'],'0');

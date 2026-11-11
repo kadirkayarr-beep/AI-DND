@@ -44,8 +44,8 @@ let vite, cases, reveal, traits;
 before(async()=>{
  cases=JSON.parse(execFileSync(python,['-B','-c',fixtureProgram],{cwd:path.resolve('../../ai-dnd'),encoding:'utf8',env:{...process.env,PYTHONUTF8:'1'}}));
  const { createServer }=await import('vite');
- vite=await createServer({configFile:path.resolve('vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent',plugins:[{name:'test-only-reveal-export',enforce:'pre',transform(code,id){if(id.replaceAll('\\','/').endsWith('/src/pages/game-browser.tsx'))return code+'\nexport { CharacterReveal as TestCharacterReveal };';}}]});
- const { TestCharacterReveal }=await vite.ssrLoadModule('/src/pages/game-browser.tsx');
+ vite=await createServer({configFile:path.resolve('vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent',plugins:[{name:'test-only-reveal-export',enforce:'pre',transform(code,id){if(id.replaceAll('\\','/').endsWith('/src/pages/game/character-reveal.tsx'))return code+'\nexport { CharacterReveal as TestCharacterReveal };';}}]});
+ const { TestCharacterReveal }=await vite.ssrLoadModule('/src/pages/game/character-reveal.tsx');
  const { SpeciesTraitControls }=await vite.ssrLoadModule('/src/components/species-trait-controls.tsx');
  const React=await import('react');const {renderToStaticMarkup}=await import('react-dom/server');
  const { QueryClient,QueryClientProvider }=await import('@tanstack/react-query');
@@ -63,7 +63,7 @@ function renderWithoutMutation(render,state){const before=JSON.stringify(state);
 test('Human postcommit reveal renders serialized origin, separate feats and bonus skill; empty values grant nothing',()=>{
  const state=exact('human',['origin','origin_feat','species_bonus_feat','species_bonus_skills']);
  const html=renderWithoutMutation(reveal,state);
- for(const [id,value] of [['reveal-character-origin','Neverwinter test origin'],['reveal-background-origin-feat','Geçmiş: Tough'],['reveal-species-bonus-feat','Tür: Skilled'],['reveal-species-bonus-skills','Insight']]){
+ for(const [id,value] of [['reveal-character-origin','Neverwinter test origin'],['reveal-background-origin-feat','Geçmiş: Tough'],['reveal-species-bonus-feat','Tür: Skilled'],['reveal-species-bonus-skills','Sezgi']]){
   assert.ok(html.includes(`data-testid="${id}"`));assert.ok(html.includes(value),value);
  }
  const empty=renderWithoutMutation(reveal,exact('empty',['origin','origin_feat','species_bonus_feat','species_bonus_skills']));

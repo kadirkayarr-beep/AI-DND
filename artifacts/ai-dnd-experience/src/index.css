@@ -660,3 +660,47 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
      Large text and short screens scroll within regions, not over the footer. */
   .play-shell .app-header { max-height: 20dvh; overflow-y: auto; }
 }
+
+/* Unwritten reading tokens. Inert until a component reads var(--unw-*); the theme
+   attribute data-unw-theme on <html> is set by src/lib/unw-theme.ts (applyTheme).
+   Hex values are mirrored in src/lib/unw-theme.ts and checked by tests/unw-theme.test.mjs. */
+:root,
+:root[data-unw-theme="night"] {
+  --unw-page: #11161B;
+  --unw-surface: #1A2128;
+  --unw-text: #E6DFCE;
+  --unw-text-soft: #B8B1A0;
+  --unw-accent-light: #D9A441;
+  --unw-patina: #4F8F83;
+  --unw-danger: #A8332E;
+  --unw-shadow-color: 0 0 0 / 0.45;
+}
+
+:root[data-unw-theme="day"] {
+  --unw-page: #DCD8C8;
+  --unw-surface: #EAE6D8;
+  --unw-text: #26211A;
+  --unw-text-soft: #4A4336;
+  --unw-accent-light: #7A4F0A;
+  --unw-patina: #2E675C;
+  --unw-danger: #8C2621;
+  --unw-shadow-color: 38 33 26 / 0.25;
+}
+
+:root {
+  --unw-space-1: 0.25rem;
+  --unw-space-2: 0.5rem;
+  --unw-space-3: 0.75rem;
+  --unw-space-4: 1rem;
+  --unw-space-5: 1.5rem;
+  --unw-space-6: 2rem;
+  --unw-space-7: 3rem;
+  --unw-radius-sm: 4px;
+  --unw-radius-md: 8px;
+  --unw-radius-lg: 14px;
+  --unw-shadow-sm: 0 1px 2px rgb(var(--unw-shadow-color));
+  --unw-shadow-md: 0 4px 12px rgb(var(--unw-shadow-color));
+  --unw-shadow-lg: 0 12px 32px rgb(var(--unw-shadow-color));
+  --unw-font-read: 'Spectral', 'Literata', Georgia, 'Times New Roman', serif;
+  --unw-font-display: 'IM Fell English', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+}

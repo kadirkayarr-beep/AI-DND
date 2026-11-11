@@ -2,6 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { readGameBrowserSource } from "./helpers/read-game-browser-source.mjs";
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
@@ -23,7 +24,7 @@ test("browser tab and share metadata name the game Unwritten", () => {
 });
 
 test("header and character-creation brand say Unwritten", () => {
-  const browser = read("src/pages/game-browser.tsx");
+  const browser = readGameBrowserSource();
   const creation = read("src/components/character-creation-screen.tsx");
   const web = read("../ai-dnd-web/src/pages/game-browser.tsx");
   assert.match(browser, /className="brand-name">Unwritten</);
@@ -58,7 +59,7 @@ test("protected internal ids keep their ai-dnd names", () => {
     "../ai-dnd-web/package.json": ['"name": "@workspace/ai-dnd-web"'],
   };
   for (const [file, strings] of Object.entries(expected)) {
-    const src = read(file);
+    const src = file === "src/pages/game-browser.tsx" ? readGameBrowserSource() : read(file);
     for (const text of strings) {
       assert.ok(src.includes(text), `${file} must still contain ${text}`);
     }

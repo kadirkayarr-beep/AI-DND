@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {before,after,test} from 'node:test';
 import path from 'node:path';
 let vite,ui;
-before(async()=>{process.env.PORT||='4184';process.env.BASE_PATH||='/';const {createServer}=await import('vite');vite=await createServer({configFile:path.join(process.cwd(),'vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent',plugins:[{name:'font-test-surface',enforce:'pre',transform(code,id){if(id.replaceAll('\\','/').endsWith('/src/pages/game-browser.tsx'))return code+'\nexport {LeftColumn as TestLeftColumn};';}}]});ui=await vite.ssrLoadModule('/src/components/spellcasting-panel.tsx');});
+before(async()=>{process.env.PORT||='4184';process.env.BASE_PATH||='/';const {createServer}=await import('vite');vite=await createServer({configFile:path.join(process.cwd(),'vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent',plugins:[{name:'font-test-surface',enforce:'pre',transform(code,id){if(id.replaceAll('\\','/').endsWith('/src/pages/game/world-panels.tsx'))return code+'\nexport {LeftColumn as TestLeftColumn};';}}]});ui=await vite.ssrLoadModule('/src/components/spellcasting-panel.tsx');});
 after(async()=>await vite?.close());
 function nodes(e){return Array.isArray(e)?e.flatMap(nodes):e&&typeof e==='object'?[e,...nodes(e.props?.children)]:[];}
 const casting={cantrips:[],prepared:[],slots:{1:2,2:1},slot_turn:null,sorcery_points:{current:0,max:3},convert_spell_slot:{options:[{slot_level:1,points_gained:1,available:true,reason:null},{slot_level:2,points_gained:2,available:true,reason:null}]}};
@@ -13,7 +13,7 @@ test('legacy source absent hides conversion; unavailable option and pending neve
 test('no Magic Missile, Quickened choice, ordinary Action or Bonus budget is required by conversion control',()=>{let sent;const tree=render({slot:'1',onCommand:(_m,c)=>sent=c});assert.equal(find(tree,'button-convert-spell-slot').props.disabled,false);find(tree,'button-convert-spell-slot').props.onClick();assert.deepEqual(sent,{steps:[{kind:'convert_spell_slot',slot_level:1}]});});
 
 test('actual character spell surface forwards same typed command owner and pending scope outside combat',async()=>{
- const {TestLeftColumn}=await vite.ssrLoadModule('/src/pages/game-browser.tsx');let sent;
+ const {TestLeftColumn}=await vite.ssrLoadModule('/src/pages/game/world-panels.tsx');let sent;
  const command={steps:[{kind:'convert_spell_slot',slot_level:1}]};const onCommand=(_m,c)=>sent=c;
  const tree=nodes(TestLeftColumn({state:{spellcasting:casting,character:{},inventory:[],combat:{active:false}},decisionScope:'owner:campaign:session',conversionBlocked:true,onCommand}));
  const panel=tree.find(n=>n.type?.name==='SpellcastingPanel');assert.equal(panel.props.onCommand,onCommand);assert.equal(panel.props.conversionBlocked,true);assert.match(panel.props.decisionScope,/owner:campaign:session/);panel.props.onCommand('convert',command);assert.deepEqual(sent,command);
