@@ -1,6 +1,7 @@
 // Dilim 0 (UI tour): pure helpers and components rendered from the real modules.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
 import vm from 'node:vm';
@@ -475,7 +476,7 @@ test('welcome and creation display skills without changing submitted skill ident
   assert.match(creation,/proficient_skills: derivedStats\.allSkills/);
 });
 test('account card separates its heading from its description', async () => {
-  const source=await readFile('src/pages/game-browser.tsx','utf8');
+  const source=readGameBrowserSource();
   assert.match(source,/HESABIN VE KAMPANYALARIN<\/span>\{' '\}<strong>/);
 });
 
