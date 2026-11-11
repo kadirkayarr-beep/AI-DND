@@ -172,6 +172,75 @@ class LevelMoment(JourneyCase):
 
 
 
+TWO_LEVEL_LINE = ("+3810 deneyim puanı. Seviye 5 oldun; en yüksek canın 16 arttı. "
+                  "Yeni seviyenin seçimleri hikâyenin üstündeki \"Kazanılmış seviye seçimlerini kontrol et\" düğmesinde seni bekliyor.")
+
+
+class TwoLevelJump(unittest.TestCase):
+    """Jarvis J-100 item 3: one award crossing two levels through the real ``apply_xp`` (Fighter 3, CON 15, 2690 XP)."""
+
+    def test_three_to_five_in_one_award(self):
+        player = {"class": "Fighter", "level": 3, "xp": 2690, "max_hp": 28, "current_hp": 28,
+                  "proficiency_bonus": 2, "constitution": 15}
+        world = {"xp_awarded_event_ids": []}
+        summary = xp.apply_xp(player, world, 3810, "quest:two-levels")
+        self.assertEqual(summary, {"previous_level": 3, "new_level": 5, "hit_points_gained": 16, "xp_gained": 3810})
+        self.assertEqual((player["xp"], player["level"], player["max_hp"], player["current_hp"],
+                          player["proficiency_bonus"]), (6500, 5, 44, 44, 3))
+        self.assertEqual(world["xp_awarded_event_ids"], ["quest:two-levels"])
+        self.assertEqual(xp.award_line(summary), TWO_LEVEL_LINE)
+        before = copy.deepcopy((player, world))
+        self.assertIsNone(xp.apply_xp(player, world, 3810, "quest:two-levels"))
+        self.assertEqual((player, world), before)
+
+
+class TwoLevelJumpRoutes(JourneyCase):
+    """The same jump through the real routes: scenario 46's guard carries a server-set 3810 XP reward."""
+    use_setup = wield_front.WieldFront.use_setup
+    session = wield_front.WieldFront.session
+    world = wield_front.WieldFront.world
+    flag = wield_front.WieldFront.flag
+    play = wield_front.WieldFront.play
+    say = wield_front.WieldFront.say
+    undo = wield_front.WieldFront.undo
+    reload = wield_front.WieldFront.reload
+    start = LevelMoment.start
+    turn = LevelMoment.turn
+    win_kept = LevelMoment.win_kept
+
+    async def test_three_to_five_through_a_fight_survives_undo_replay_and_reload(self):
+        await self.start(4848)
+        max_hp = self.session.character["max_hp"]
+        self.world["npcs"][0]["xp_reward"] = 3810
+        self.manager.save_campaign(self.campaign_id)
+        answer = await self.win_kept()
+        self.assertEqual(answer["level_up"], {"previous_level": 3, "new_level": 5, "xp_gained": 3810,
+                                              "hit_points_gained": 16})
+        self.assertTrue(answer["narration"].endswith(" " + TWO_LEVEL_LINE), answer["narration"])
+        self.assertEqual(answer["narration"].count("deneyim puanı"), 1)
+        after = (6500, 5, max_hp + 16, 3, ["combat:foe:guard"])
+
+        def now():
+            return (self.session.character["xp"], self.session.character["level"], self.session.character["max_hp"],
+                    self.session.character["proficiency_bonus"], self.world["xp_awarded_event_ids"])
+        self.assertEqual(now(), after)
+        await self.undo()
+        self.assertEqual((self.session.character["xp"], self.session.character["level"],
+                          self.session.character["max_hp"], self.session.character["proficiency_bonus"],
+                          self.world.get("xp_awarded_event_ids", [])), (2690, 3, max_hp, 2, []))
+        for _ in range(12):
+            answer = await self.turn("vuruyorum")
+            if not self.world["combat"]["active"]:
+                break
+        self.assertEqual(answer["level_up"]["new_level"], 5)
+        self.assertEqual(now(), after)
+        await self.reload()
+        self.assertEqual(now(), after)
+        xp.validate_saved_advancement(self.session.character, self.world)
+        self.assertIsNone(xp.apply_xp(self.session.character, self.world, 3810, "combat:foe:guard"))
+        self.assertEqual(now(), after)
+
+
 class JobLine(job_xp._JobCase):
     """A talking turn writes an assistant message: the delivery's job XP line ends the reply and that message."""
     deliver_turn = job_xp.JobXp.deliver_turn
