@@ -36,7 +36,7 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     # The owner's 19-item test: money paid or earned by the wrong move, and the quest record that goes with it.
     # 36: the messenger chain (3a), money and records through a delivery, a broken seal and the word it sends.
     # 41: a job heard in the street: its trail, taken only from its owner, undo and reload.
-    ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b", "19c", "19d", "19e", "29", "36", "41")),
+    ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b", "19c", "19d", "19e", "29", "36", "41", "45")),
     ("Oda, uyku ve çıkış", ("03", "07", "39")),
     ("Eşya, silah ve tüketim", ("04", "04b", "05", "05b", "05c", "28", "30", "43")),
     ("Savaş eylemleri", ("06", "20", "21", "22", "22b", "42", "44")),

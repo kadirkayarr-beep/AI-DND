@@ -1,0 +1,192 @@
+{
+  "id": "45_is_teslimi_xp",
+  "title": "İş teslimi XP'si (4B.3, SIFIR TOLERANS): 19d'nin kurye işi alınır ve iskeledeki Tuna'ya teslim edilir; teslim turu 12 bakırı ve 25 XP'yi birlikte bir kez öder; Geri Al ikisini birlikte geri alır; yeniden teslim yine bir kez öder; yenileme aynısını okur; beklenince Halil'in teşekkür ulağı gelir ve ne para ne XP getirir",
+  "zero_tolerance": true,
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 48,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "xp": 0
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "xp": 0,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "expect": {
+        "konum": "$is_hedefi"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "xp": 0,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "script": {
+        "front": {
+          "kind": "hand_over"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "xp": 25,
+        "gorev": {
+          "aktif": 0
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "xp": 25,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 100,
+        "xp": 0
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "xp": 0,
+          "envanter": {
+            "İade takımı": 1
+          },
+          "gorev": {
+            "aktif": 1
+          }
+        }
+      ]
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "script": {
+        "front": {
+          "kind": "hand_over"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "xp": 25
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "xp": 25,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 112,
+        "xp": 25
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "xp": 25,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        }
+      ]
+    },
+    {
+      "say": "20 saat bekliyorum",
+      "expect": {
+        "gerekli_metin": "Halil"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "xp": 25,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 112,
+        "xp": 25
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "xp": 25,
+          "envanter": {},
+          "gorev": {
+            "aktif": 0
+          }
+        }
+      ]
+    }
+  ]
+}

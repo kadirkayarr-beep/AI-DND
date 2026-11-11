@@ -691,7 +691,7 @@
         "opened": ["{who} yanına gelip duruyor, gözünü senden ayırmıyor. “{Owner} adına geldim. {message}”", "{who} yolunu kesiyor. “Mührü kıran sensin. {Owner} gönderdi beni. {message}”", "{who} önüne dikiliyor. “{Owner} seni arıyor. {message}”"],
         "kept": ["{who} yanına gelip duruyor, elini uzatıyor. “{Owner} adına geldim. {message}”", "{who} yolunu kesiyor. “{Owner} gönderdi beni. {message}”", "{who} önünü kesip avucunu açıyor. “Beni {owner} yolladı. {message}”"],
         "delivered": ["{who} yanına gelip duruyor, başıyla selam veriyor. “{Owner} adına geldim. {message}”", "{who} yolunu kesiyor, yüzü yumuşak. “Sen olmalısın. {Owner} selam yolladı. {message}”", "{who} yanına sokulup gülümsüyor. “{Owner} gönderdi beni. {message}”"],
-        "messages": {"warned": ["{why} Bir daha karşısına çıkma, dedi.", "{why} Hesabı kapatmak istiyorsan kendin git, dedi; istemiyorsan uzak dur.", "{why} Bir dahakine lafla gelmem, dedi."], "opened": ["Mührü kırdığını biliyor; {what} için kendi ağzından hesap istiyor.", "{what} açılmış; kimin okuduğunu biliyor. Gidip yüzüne söyleyeceksin, dedi.", "Kırılan mühür yanına kalmaz, dedi; {what} için gidip konuşacaksın."], "kept": ["{what} sende kaldı; geri istiyor, hem de bugün.", "{what} nerede? Geri getir, dedi; yoksa kapısından içeri alınmazsın.", "{what} yerine varmadı. Getirirsen mesele kapanır, dedi."], "delivered": ["{what} mührü bozulmadan varmış; bunu bilmeni istedi.", "{what} sağlam varmış; teşekkür etti, kapısı sana açık dedi.", "{what} elden ele sağlam gitmiş; adını unutmayacak."]},
+        "messages": {"warned": ["{why} Bir daha karşısına çıkma, dedi.", "{why} Hesabı kapatmak istiyorsan kendin git, dedi; istemiyorsan uzak dur.", "{why} Bir dahakine lafla gelmem, dedi."], "opened": ["Mührü kırdığını biliyor; {what} için kendi ağzından hesap istiyor.", "{what} açılmış; kimin okuduğunu biliyor. Gidip yüzüne söyleyeceksin, dedi.", "Kırılan mühür yanına kalmaz, dedi; {what} için gidip konuşacaksın."], "kept": ["{what} sende kaldı; geri istiyor, hem de bugün.", "{what} nerede? Geri getir, dedi; yoksa kapısından içeri alınmazsın.", "{what} yerine varmadı. Getirirsen mesele kapanır, dedi."], "delivered": ["{what} sağ salim varmış; bunu bilmeni istedi.", "{what} sağlam varmış; teşekkür etti, kapısı sana açık dedi.", "{what} elden ele sağlam gitmiş; adını unutmayacak."]},
         "why": {"assault": "Üzerine yürüdüğünü unutmadı.", "theft": "Eline uzandığını unutmadı.", "said": "Söylediklerini unutmadı.", "about": "{what} meselesini unutmadı."},
         "summons": "Seni {place} içinde görmek istiyor.",
         "leaves": ["{who} söyleyeceğini söyledi; başını sallayıp çıkıyor.", "{who} daha fazla durmuyor; sırtını dönüp gidiyor.", "{who} işini bitirmiş; omuz silkip yoluna gidiyor."]
@@ -700,7 +700,7 @@
         "coming_warned": "Seni bekleyen: {what}; {when}. Bu senin tehdidin; birinin geleceğini biliyorsun, inkâr etme, gün ya da saat söyleme.",
         "coming_opened": "Mühür kırılmış, haberi sana ulaştı: {what}; {when} bunu sormaya biri gidecek. Sorulursa inkâr etme, gün ya da saat söyleme.",
         "coming_kept": "{what} geri gelmedi; {when} onu almaya biri gidecek. Sorulursa inkâr etme, gün ya da saat söyleme.",
-        "coming_delivered": "{what} mührü bozulmadan yerine vardı; {when} bunu bilen biri teşekkürünü götürecek.",
+        "coming_delivered": "{what} sağ salim yerine vardı; {when} bunu bilen biri teşekkürünü götürecek.",
         "coming_guarded": "Karşındaki seni tehdit etti ({what}); {when} önlemini almış olacaksın. Bunu kendi tavrınla belli et.",
         "sent": "Karşındakine adamını sen gönderdin ve onu buldu; mesele: {what}. Bu kişiyi tanıyorsun, inkâr etme, ondan ne istediğini kendi ağzınla söyle. {letter}",
         "sent_letter": "Mektupta şu yazıyordu: {words}",
@@ -709,7 +709,7 @@
         "caller_warned": "Seni {owner} gönderdi. Mesele: {what}. Bunu biliyorsun; kimin adına geldiğini saklamıyorsun, para teklif etme, kendi tavrınla konuş.",
         "caller_opened": "Seni {owner} gönderdi. Mesele: {what}; mührü kırıldı ve bunu karşındakinin yaptığını biliyorsun. Bedelini hatırlat, para teklif etme, mektupta ne yazdığını bilmiyorsun.",
         "caller_kept": "Seni {owner} gönderdi. Mesele: {what} geri dönmedi, karşındakinde kaldı; geri almaya geldin. Para teklif etme.",
-        "caller_delivered": "Seni {owner} gönderdi. Mesele: {what} mührü bozulmadan yerine vardı; bunun bilindiğini söylemeye geldin. Para teklif etme, iş sözü verme."
+        "caller_delivered": "Seni {owner} gönderdi. Mesele: {what} sağ salim yerine vardı; bunun bilindiğini söylemeye geldin. Para teklif etme, iş sözü verme."
       }
     },
     "shared": {

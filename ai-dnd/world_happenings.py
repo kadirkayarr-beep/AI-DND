@@ -258,11 +258,14 @@ def seal_broken(world: dict[str, Any], thread: dict[str, Any]) -> None:
 
 
 def _letter_closed(world: dict[str, Any], thread: dict[str, Any], status: str) -> None:
-    """A sealed letter does not end at the door: its owner sends word, or sends for it."""
+    """A delivered errand does not end at the door: its owner sends thanks. A sealed letter kept back is sent for;
+    an opened seal sends no thanks (that word goes out when the seal breaks)."""
     from adventure import dialogue_jobs
-    if not dialogue_jobs.sealed(thread) or thread.get("seal_broken"):
+    sealed = dialogue_jobs.sealed(thread)
+    if sealed and thread.get("seal_broken"):
         return
-    tone = "delivered" if status == "done" else "kept" if status in LET_GO and dialogue_jobs.holds_parcel(world, thread) else None
+    tone = ("delivered" if status == "done"
+            else "kept" if sealed and status in LET_GO and dialogue_jobs.holds_parcel(world, thread) else None)
     if tone:
         tie(world, CALLER, tone, world_threads.owner_of(world, thread), thread["place_id"], about=thread["thread_id"])
 

@@ -51,7 +51,10 @@ XP_BY_CR = {"0": 10, "1/8": 25, "1/4": 50, "1/2": 100, "1": 200, "2": 450, "3": 
 # masa kuralı: stat bloğu olmayan kişi en yakın SRD bloğu (Guard / Commoner), Kadir kararı 4
 PERSON_KIND_CR = {"armed": "1/8", "strong": "0", "plain": "0"}
 
-_AWARD_ID = re.compile(r"^(quest|combat):\S{1,180}$")
+# masa kuralı (SRD'de yok), Kadir kararı 4: küçük 25, orta 50; "tehlikeli 100" karşılığı olan tür yok
+JOB_XP_BY_TYPE = {"errand": 25, "hiring": 50, "trouble": 50}
+
+_AWARD_ID = re.compile(r"^(quest|combat|job):\S{1,180}$")
 _DEFEATED = frozenset({"unconscious", "defeated", "dead"})
 
 
@@ -300,6 +303,55 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
     if not grants:
         return None
     return apply_xp_grants(character, world, grants)
+
+
+class JobXpRefused(ValueError):
+    """A finished job's experience is due and could not be recorded: the turn that finished it must not stand."""
+
+
+def _job_award_id(thread_id: str) -> str:
+    event_id = f"job:{thread_id}"
+    if len(event_id) > 184 or _AWARD_ID.fullmatch(event_id) is None:  # the receipt pattern allows 180 chars after 'job:'
+        event_id = f"job:sha256:{hashlib.sha256(thread_id.encode('utf-8')).hexdigest()}"
+    return event_id
+
+
+def job_grants_due(world: Mapping[str, Any]) -> list[tuple[str, int]]:
+    """Every finished job of the player's whose ``xp_due`` has no ``job:`` receipt yet (read only)."""
+    import world_threads
+    state = world_threads.view(world) if isinstance(world, dict) else None
+    if state is None:
+        return []
+    held = world.get("xp_awarded_event_ids")
+    held = set(held) if isinstance(held, list) else set()
+    grants: list[tuple[str, int]] = []
+    for thread in (*state.get("threads", []), *state.get("history", [])):
+        if not isinstance(thread, dict) or thread.get("status") != "done" or not isinstance(thread.get("thread_id"), str):
+            continue
+        due = thread.get("xp_due")
+        if type(due) is not int or due <= 0:
+            continue
+        event_id = _job_award_id(thread["thread_id"])
+        if event_id not in held and all(event_id != listed for listed, _ in grants):
+            grants.append((event_id, due))
+    return grants
+
+
+def award_finished_jobs(world: dict[str, Any], character: dict[str, Any]):
+    """Pay every finished job's ``xp_due`` once, all together, under its ``job:<thread_id>`` receipt.
+
+    ``None`` when nothing new is due (every finished job already paid). A due grant the receipt list or the XP cap
+    refuses raises ``JobXpRefused``: the job's money and its close happened in this same turn, so the caller's turn
+    boundary puts them back with it instead of leaving a finished, paid job without its experience.
+    ``xp_due`` is never removed: the receipt is the one record of payment.
+    """
+    grants = job_grants_due(world)
+    if not grants:
+        return None
+    summary = apply_xp_grants(character, world, grants)
+    if summary is None:
+        raise JobXpRefused("A finished job's experience could not be recorded.")
+    return summary
 
 
 def award_completed_quest(world: dict[str, Any], character: dict[str, Any], quest_id: str):

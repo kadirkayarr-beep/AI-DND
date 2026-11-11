@@ -18588,6 +18588,11 @@ def _run_player_turn_keyed(
         interaction_adventure.consume(
             _session(), result.get("action_result", {}), before, player_input
         )
+    import xp
+    if xp.job_grants_due(_session().world_state):
+        # A job finished in this turn (by any route, direct ones included) is paid here, before the turn is answered.
+        # A refused grant raises: the turn's own boundary then puts back the job's close and its money with it.
+        _session()._receive_xp_award(xp.award_finished_jobs, _session().world_state, _session().character)
     if isinstance(result, dict) and isinstance(action_result, dict):
         _session()._publish_level_up(action_result)
         local_dialogue.remember_native_reply(

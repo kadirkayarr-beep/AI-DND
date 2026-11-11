@@ -200,13 +200,20 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         equipment_economy.validate_world(self.world)
         self.assertFalse([k for k in self.world["currency"] if k.startswith("adventure-pool")])
 
-    async def test_a_job_pays_no_xp_and_opens_no_followup_adventure(self):
+    async def test_a_job_pays_its_table_xp_once_and_opens_no_followup_adventure(self):
+        # [YENİDEN YAZIM][GEVŞETME OLABİLİR] 4B.3: a delivered errand now pays the table rule's 25 XP once, under its own
+        # job receipt (was: no XP at all); the journal row still pays none and no adventure follows.
         await self.play_to_the_door()
-        xp = self.session.character.get("xp")
+        xp = self.session.character.get("xp") or 0
+        receipts = list(self.world.get("xp_awarded_event_ids") or [])
         count = len(self.world["quests"])
         await self.line("mektubu getirdim")
-        self.assertEqual(self.session.character.get("xp"), xp)
+        self.assertEqual(self.status(), "done")
+        self.assertEqual(self.session.character.get("xp"), xp + 25)
+        self.assertEqual(self.world["xp_awarded_event_ids"], receipts + [f"job:{self.tid}"])
         self.assertEqual(len(self.world["quests"]), count)
+        await self.line("teşekkürler")
+        self.assertEqual(self.session.character.get("xp"), xp + 25)
 
     async def test_saying_the_money_is_due_after_delivery_never_pays_twice(self):
         await self.play_to_the_door()

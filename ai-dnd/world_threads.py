@@ -64,7 +64,7 @@ TRANSITIONS = {
 }
 _OPTIONAL_INTS = ("offered_turn", "offered_at", "declined_turn", "accepted_at", "accepted_turn", "starts_at", "work_until",
                   "days_worked", "shift_seconds", "shift_until", "last_paid_day_index", "paid_cp",
-                  "outcome_known_turn", "offer_line_turn", "fires_at")
+                  "outcome_known_turn", "offer_line_turn", "fires_at", "xp_due")
 _OPTIONAL_TEXTS = ("owner_npc_id", "recipient_npc_id", "quest_id", "item_noun", "filled_by_npc_id", "filled_by_name",
                    "offer_line", "job_line", "letter_line")
 _LOG = logging.getLogger(__name__)
@@ -599,7 +599,7 @@ def _close_due(world, state, now):
     state["threads"], closed = _split_closed(state["threads"])
     state["history"].extend(closed)
     effects += world_happenings.fire_due(world, state, now)
-    _trim_history(state)
+    _trim_history(state, world)
     return effects
 
 
@@ -607,10 +607,19 @@ def _split_closed(threads):
     return [t for t in threads if t["status"] not in TERMINAL], [t for t in threads if t["status"] in TERMINAL]
 
 
-def _trim_history(state):
-    """Old closings go; one the player had a hand in stays until they have learned how it ended."""
+def _unpaid(world, thread):
+    """A finished job whose experience the turn has not paid yet (no ``job:`` receipt): it must not be trimmed away."""
+    if world is None or thread.get("xp_due") is None:
+        return False
+    import xp
+    held = world.get("xp_awarded_event_ids")
+    return not (isinstance(held, list) and xp._job_award_id(thread["thread_id"]) in held)
+
+
+def _trim_history(state, world=None):
+    """Old closings go; one the player had a hand in stays until they have learned how it ended, and was paid for it."""
     waiting = [t for t in state["history"] if fires_at(t) is not None
-               or (t.get("offered_at") is not None and t.get("outcome_known_turn") is None)]
+               or (t.get("offered_at") is not None and t.get("outcome_known_turn") is None) or _unpaid(world, t)]
     known = [t for t in state["history"] if not any(t is w for w in waiting)]
     keep = {id(t) for t in (*known[-MAX_HISTORY:], *waiting[-MAX_HISTORY:])}
     state["history"] = [t for t in state["history"] if id(t) in keep]
@@ -634,7 +643,7 @@ def sync_from_quests(world: dict[str, Any], state: dict[str, Any] | None = None)
     if effects:
         state["threads"], closed = _split_closed(state["threads"])
         state["history"].extend(closed)
-        _trim_history(state)
+        _trim_history(state, world)
         _apply_effects(world, effects)
     return effects
 
@@ -681,6 +690,11 @@ def _close_effects(world, thread_id, thread, status):
     from adventure.transitions import TransitionError
     import world_happenings
     thread.pop(CLOSE_FAILED, None)  # it closed: an earlier failed try no longer matters
+    if status == "done" and thread.get("accepted_at") is not None and "xp_due" not in thread:
+        import xp
+        amount = xp.JOB_XP_BY_TYPE.get(thread.get("type"))
+        if amount:  # what the player is owed for work they took on; paid once at the turn's end (xp.award_finished_jobs)
+            thread["xp_due"] = amount
     world_happenings.on_close(world, thread, status)
     owner = owner_of(world, thread)
     if status in _RELATION and isinstance(owner, dict) and isinstance(owner.get("id"), str):
@@ -1520,7 +1534,7 @@ def apply_decision(world: dict[str, Any], thread: dict[str, Any], decision: str,
         state = view(world)
         state["threads"], closed = _split_closed(state["threads"])
         state["history"].extend(closed)
-        _trim_history(state)
+        _trim_history(state, world)
         _apply_effects(world, [(thread["thread_id"], "abandoned")])
         return True
     return False
@@ -1590,7 +1604,7 @@ def _close_as_done(world: dict[str, Any], thread: dict[str, Any]) -> bool:
     state = view(world)
     state["threads"], closed = _split_closed(state["threads"])
     state["history"].extend(closed)
-    _trim_history(state)
+    _trim_history(state, world)
     _apply_effects(world, [(thread["thread_id"], "done")])
     return True
 
@@ -1943,6 +1957,9 @@ def validate(state: Any) -> None:
             raise ValueError("World thread record is invalid.")
         if thread["status"] in TERMINAL and any(
                 thread.get(name) is not None and type(thread.get(name)) is not int for name in _OPTIONAL_INTS):
+            raise ValueError("World thread record is invalid.")
+        if "xp_due" in thread and (type(thread["xp_due"]) is not int or not 0 < thread["xp_due"] <= 100_000
+                                   or thread["status"] != "done"):  # owed only for a finished job, and never nothing
             raise ValueError("World thread record is invalid.")
         if any(thread.get(name) is not None and not isinstance(thread.get(name), str) for name in _OPTIONAL_TEXTS):
             raise ValueError("World thread record is invalid.")

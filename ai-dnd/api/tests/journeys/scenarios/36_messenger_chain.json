@@ -1,6 +1,6 @@
 {
   "id": "36_messenger_chain",
-  "title": "Haberci zinciri (3a, SIFIR TOLERANS): 29'un kurulumunda Halil'e iş sorulur, iş alınır ve iskeledeki Tuna'ya teslim edilir (12 bakır bir kez, defterde 'teslim' izi); Selin'in mühürlü mektubu alınıp mührü kırılır; 6 saat beklenince kayıttaki bağdan bir ulak gelir ve mesajını kayıttan söyler; yenilemede ulak, bağ ve iz aynıdır; ulağa cevap verilir, sonra Selin ulağı kendisinin gönderdiğini ve mektupta ne yazdığını bilir; Geri Al Selin'le konuşmayı geri alır ve ulak geri gelir; yenileme aynısını okur. Para, eşya, görev ve iz sayısı her adımda tek izinli durumdur",
+  "title": "Haberci zinciri (3a, SIFIR TOLERANS): 29'un kurulumunda Halil'e iş sorulur, iş alınır ve iskeledeki Tuna'ya teslim edilir (12 bakır bir kez, defterde 'teslim' izi); Selin'in mühürlü mektubu alınıp mührü kırılır; 6 saat beklenince Halil'in teşekkür ulağı gelir (4B.3: teslim edilen her iş teşekkür yollar, para yok), bir saat daha beklenince Selin'in kayıttaki bağından ulak gelir ve mesajını kayıttan söyler; yenilemede ulak, bağ ve iz aynıdır; ulağa cevap verilir, sonra Selin ulağı kendisinin gönderdiğini ve mektupta ne yazdığını bilir; Geri Al Selin'le konuşmayı geri alır ve ulak geri gelir; yenileme aynısını okur. Para, eşya, görev ve iz sayısı her adımda tek izinli durumdur",
   "zero_tolerance": true,
   "setup": {
     "campaign_start": {
@@ -216,14 +216,18 @@
           }
         },
         "gerekli_metin": [
-          "Selin adına geldim",
-          "Mührü kırdığını biliyor; mühürlü mektup için kendi ağzından hesap istiyor"
+          "Halil adına geldim",
+          "iade takımı sağ salim varmış; bunu bilmeni istedi."
         ],
         "yasak_metin": "görmek istiyor",
         "gunluk": {
           "iz": [
             {
-              "ne": "Mührü kırdığını biliyor",
+              "ne": "bir teşekkür taşıyormuş",
+              "kaynak": "haber"
+            },
+            {
+              "ne": "iade takımı sağ salim varmış",
               "kaynak": "haber"
             }
           ]
@@ -245,12 +249,53 @@
       ]
     },
     {
+      "say": "1 saat bekliyorum",
+      "expect": {
+        "saat": 7,
+        "kip": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_004",
+            "name": "Topallayan biri",
+            "role": null
+          }
+        },
+        "gerekli_metin": [
+          "Selin gönderdi beni",
+          "mühürlü mektup açılmış; kimin okuduğunu biliyor. Gidip yüzüne söyleyeceksin, dedi."
+        ],
+        "yasak_metin": "görmek istiyor",
+        "gunluk": {
+          "iz": [
+            {
+              "ne": "mühürlü mektup açılmış; kimin okuduğunu biliyor",
+              "kaynak": "haber"
+            }
+          ]
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "envanter": {
+            "Mühürlü mektup": 1
+          },
+          "gorev": {
+            "aktif": 1
+          },
+          "gunluk": {
+            "iz_sayisi": 6
+          }
+        }
+      ]
+    },
+    {
       "reload": true,
       "expect": {
         "kip": {
           "interlocutor": {
-            "id": "npc_003",
-            "name": "Kızıl saçlı biri",
+            "id": "npc_004",
+            "name": "Topallayan biri",
             "role": null
           }
         }
@@ -265,16 +310,16 @@
             "aktif": 1
           },
           "gunluk": {
-            "iz_sayisi": 4
+            "iz_sayisi": 6
           }
         }
       ]
     },
     {
       "say": "geliyorum",
-      "konus": "npc_003",
+      "konus": "npc_004",
       "expect": {
-        "konusmaya_giden": "Getirdiğin söz şuydu: Mührü kırdığını biliyor; mühürlü mektup için kendi ağzından hesap istiyor"
+        "konusmaya_giden": "Getirdiğin söz şuydu: mühürlü mektup açılmış; kimin okuduğunu biliyor. Gidip yüzüne söyleyeceksin, dedi."
       },
       "sifir_tolerans": [
         {
@@ -286,7 +331,7 @@
             "aktif": 1
           },
           "gunluk": {
-            "iz_sayisi": 4
+            "iz_sayisi": 6
           }
         }
       ]
@@ -322,7 +367,7 @@
             "aktif": 1
           },
           "gunluk": {
-            "iz_sayisi": 4
+            "iz_sayisi": 6
           }
         }
       ]
@@ -332,8 +377,8 @@
       "expect": {
         "kip": {
           "interlocutor": {
-            "id": "npc_003",
-            "name": "Kızıl saçlı biri",
+            "id": "npc_004",
+            "name": "Topallayan biri",
             "role": null
           }
         }
@@ -348,7 +393,7 @@
             "aktif": 1
           },
           "gunluk": {
-            "iz_sayisi": 4
+            "iz_sayisi": 6
           }
         }
       ]
@@ -358,8 +403,8 @@
       "expect": {
         "kip": {
           "interlocutor": {
-            "id": "npc_003",
-            "name": "Kızıl saçlı biri",
+            "id": "npc_004",
+            "name": "Topallayan biri",
             "role": null
           }
         }
@@ -374,7 +419,7 @@
             "aktif": 1
           },
           "gunluk": {
-            "iz_sayisi": 4
+            "iz_sayisi": 6
           }
         }
       ]

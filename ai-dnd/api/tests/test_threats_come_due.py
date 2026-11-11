@@ -269,11 +269,18 @@ class TheSealsOwner(unittest.TestCase):
         closed(world, letter, "done")
         self.assertEqual([link["tone"] for link in links(world)], ["opened"])
 
-    def test_a_plain_errand_sends_nobody(self):
+    def test_a_plain_errand_sends_thanks_and_nobody_for_a_kept_one(self):
+        # [YENİDEN YAZIM][GEVŞETME OLABİLİR] 4B.3: a delivered courier parcel now sends its owner's thanks (was: nobody);
+        # a plain parcel kept back still sends nobody (only a sealed letter is sent for).
         world, _, letter, owner = a_letter()
         letter.update(item_noun="paket", owner_line="Şu paketi götür.")
         world["inventory"] = []
         closed(world, letter, "done")
+        self.assertEqual([(link["kind"], link["tone"], link["about_thread_id"], link["owner_npc_id"]) for link in links(world)],
+                         [(world_happenings.CALLER, "delivered", letter["thread_id"], owner["id"])])
+        world, _, letter, owner = a_letter()
+        letter.update(item_noun="paket", owner_line="Şu paketi götür.")
+        closed(world, letter, "failed")
         self.assertEqual(links(world), [])
 
     def test_the_owner_knows_it_is_coming_and_the_street_can_hear_of_it_after(self):
