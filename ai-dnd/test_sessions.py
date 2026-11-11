@@ -1935,6 +1935,10 @@ class SessionTests(unittest.TestCase):
                                     "spell_slots"
                                 ]
                             )
+                            # 4C.2: a finished Long Rest opens the Wizard/Cleric preparation window at its last second.
+                            world["spellcasting_v1"]["prepare_window"] = {
+                                "opened_second": world["campaign_time"]["elapsed_seconds"], "reason": "long_rest",
+                            }
                     rng_before = [session.rng.getstate() for session in sessions]
                     messages_before = [copy.deepcopy(session.messages)
                                        for session in sessions]
