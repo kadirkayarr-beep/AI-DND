@@ -2909,6 +2909,21 @@ export const GameActionStatusState = {
  */
 export type GameActionStatusDetail = { [key: string]: unknown } | null;
 
+/**
+ * Where a healing event came from; potion is reserved (no engine path yet).
+ */
+export type CombatTurnResultHealSource = typeof CombatTurnResultHealSource[keyof typeof CombatTurnResultHealSource] | null;
+
+
+export const CombatTurnResultHealSource = {
+  spell: 'spell',
+  rest: 'rest',
+  class_feature: 'class_feature',
+  species: 'species',
+  death_save: 'death_save',
+  potion: 'potion',
+} as const;
+
 export type CombatAttackResultSpeciesEffectsItem = { [key: string]: unknown };
 
 export type CombatAttackResultResolution = { [key: string]: unknown } | null;
@@ -3103,6 +3118,8 @@ export interface CombatTurnResult {
   save_dc?: number | null;
   /** @nullable */
   healing?: number | null;
+  /** Where a healing event came from; potion is reserved (no engine path yet). */
+  heal_source?: CombatTurnResultHealSource;
   /** @nullable */
   slot_spent?: boolean | null;
   /** @nullable */
@@ -3268,6 +3285,21 @@ export interface LevelUpResult {
   hit_points_gained: number;
 }
 
+/**
+ * Where that healing came from; left out otherwise.
+ */
+export type TurnOutcomeHealSource = typeof TurnOutcomeHealSource[keyof typeof TurnOutcomeHealSource];
+
+
+export const TurnOutcomeHealSource = {
+  spell: 'spell',
+  rest: 'rest',
+  class_feature: 'class_feature',
+  species: 'species',
+  death_save: 'death_save',
+  potion: 'potion',
+} as const;
+
 export interface TurnOutcome {
   action?: string | null;
   status?: string | null;
@@ -3277,6 +3309,13 @@ export interface TurnOutcome {
   place_created?: boolean | null;
   /** Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action. */
   reason?: string | null;
+  /**
+     * Hit Points a healing turn outside a fight restored (the last call's one Hit Point); left out otherwise.
+     * @minimum 0
+     */
+  healing?: number;
+  /** Where that healing came from; left out otherwise. */
+  heal_source?: TurnOutcomeHealSource;
 }
 
 export interface GameTurnResult {

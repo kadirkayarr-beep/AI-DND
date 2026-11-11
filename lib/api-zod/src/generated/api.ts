@@ -5657,6 +5657,8 @@ export const playGameTurnResponseTurnOutcomeOneTargetNameOneMax = 120;
 
 export const playGameTurnResponseTurnOutcomeOneReasonOneMax = 48;
 
+export const playGameTurnResponseTurnOutcomeOneHealingMin = 0;
+
 
 
 export const PlayGameTurnResponse = zod.object({
@@ -6550,6 +6552,7 @@ export const PlayGameTurnResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -6744,6 +6747,7 @@ export const PlayGameTurnResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -6911,7 +6915,9 @@ export const PlayGameTurnResponse = zod.object({
   "target_name": zod.union([zod.string().max(playGameTurnResponseTurnOutcomeOneTargetNameOneMax),zod.null()]).optional(),
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
   "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
-  "reason": zod.union([zod.string().max(playGameTurnResponseTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
+  "reason": zod.union([zod.string().max(playGameTurnResponseTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.'),
+  "healing": zod.number().int().min(playGameTurnResponseTurnOutcomeOneHealingMin).optional().describe('Hit Points a healing turn outside a fight restored (the last call\'s one Hit Point); left out otherwise.'),
+  "heal_source": zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']).optional().describe('Where that healing came from; left out otherwise.')
 }),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.'),
   "economic_resolution": zod.union([zod.object({
   "operation_id": zod.string(),
@@ -7435,6 +7441,8 @@ export const getGameActionStatusResponseResponseTwoTurnOutcomeOneKindOneMax = 48
 export const getGameActionStatusResponseResponseTwoTurnOutcomeOneTargetNameOneMax = 120;
 
 export const getGameActionStatusResponseResponseTwoTurnOutcomeOneReasonOneMax = 48;
+
+export const getGameActionStatusResponseResponseTwoTurnOutcomeOneHealingMin = 0;
 
 
 
@@ -8332,6 +8340,7 @@ export const GetGameActionStatusResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -8526,6 +8535,7 @@ export const GetGameActionStatusResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -8693,7 +8703,9 @@ export const GetGameActionStatusResponse = zod.object({
   "target_name": zod.union([zod.string().max(getGameActionStatusResponseResponseTwoTurnOutcomeOneTargetNameOneMax),zod.null()]).optional(),
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
   "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
-  "reason": zod.union([zod.string().max(getGameActionStatusResponseResponseTwoTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
+  "reason": zod.union([zod.string().max(getGameActionStatusResponseResponseTwoTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.'),
+  "healing": zod.number().int().min(getGameActionStatusResponseResponseTwoTurnOutcomeOneHealingMin).optional().describe('Hit Points a healing turn outside a fight restored (the last call\'s one Hit Point); left out otherwise.'),
+  "heal_source": zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']).optional().describe('Where that healing came from; left out otherwise.')
 }),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.'),
   "economic_resolution": zod.union([zod.object({
   "operation_id": zod.string(),
@@ -9142,6 +9154,8 @@ export const abandonGameActionResponseResponseTwoTurnOutcomeOneKindOneMax = 48;
 export const abandonGameActionResponseResponseTwoTurnOutcomeOneTargetNameOneMax = 120;
 
 export const abandonGameActionResponseResponseTwoTurnOutcomeOneReasonOneMax = 48;
+
+export const abandonGameActionResponseResponseTwoTurnOutcomeOneHealingMin = 0;
 
 
 
@@ -10039,6 +10053,7 @@ export const AbandonGameActionResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -10233,6 +10248,7 @@ export const AbandonGameActionResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -10400,7 +10416,9 @@ export const AbandonGameActionResponse = zod.object({
   "target_name": zod.union([zod.string().max(abandonGameActionResponseResponseTwoTurnOutcomeOneTargetNameOneMax),zod.null()]).optional(),
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
   "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
-  "reason": zod.union([zod.string().max(abandonGameActionResponseResponseTwoTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
+  "reason": zod.union([zod.string().max(abandonGameActionResponseResponseTwoTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.'),
+  "healing": zod.number().int().min(abandonGameActionResponseResponseTwoTurnOutcomeOneHealingMin).optional().describe('Hit Points a healing turn outside a fight restored (the last call\'s one Hit Point); left out otherwise.'),
+  "heal_source": zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']).optional().describe('Where that healing came from; left out otherwise.')
 }),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.'),
   "economic_resolution": zod.union([zod.object({
   "operation_id": zod.string(),
@@ -21777,6 +21795,7 @@ export const CreateCampaignResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -23191,6 +23210,7 @@ export const GetCampaignResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -24582,6 +24602,7 @@ export const ResumeCampaignResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -28606,6 +28627,8 @@ export const playLegacyTurnResponseTurnOutcomeOneTargetNameOneMax = 120;
 
 export const playLegacyTurnResponseTurnOutcomeOneReasonOneMax = 48;
 
+export const playLegacyTurnResponseTurnOutcomeOneHealingMin = 0;
+
 
 
 export const PlayLegacyTurnResponse = zod.object({
@@ -29499,6 +29522,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -29693,6 +29717,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -29860,7 +29885,9 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_name": zod.union([zod.string().max(playLegacyTurnResponseTurnOutcomeOneTargetNameOneMax),zod.null()]).optional(),
   "found": zod.union([zod.boolean(),zod.null()]).optional(),
   "place_created": zod.union([zod.boolean(),zod.null()]).optional(),
-  "reason": zod.union([zod.string().max(playLegacyTurnResponseTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.')
+  "reason": zod.union([zod.string().max(playLegacyTurnResponseTurnOutcomeOneReasonOneMax),zod.null()]).optional().describe('Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action.'),
+  "healing": zod.number().int().min(playLegacyTurnResponseTurnOutcomeOneHealingMin).optional().describe('Hit Points a healing turn outside a fight restored (the last call\'s one Hit Point); left out otherwise.'),
+  "heal_source": zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']).optional().describe('Where that healing came from; left out otherwise.')
 }),zod.null()]).optional().describe('Player-safe receipt of what the turn resolved (target, found, place created). Null on older receipts.'),
   "economic_resolution": zod.union([zod.object({
   "operation_id": zod.string(),
@@ -33953,6 +33980,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -35369,6 +35397,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
@@ -36761,6 +36790,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "save_roll": zod.number().int().nullish(),
   "save_dc": zod.number().int().nullish(),
   "healing": zod.number().int().nullish(),
+  "heal_source": zod.union([zod.enum(['spell', 'rest', 'class_feature', 'species', 'death_save', 'potion']),zod.null()]).optional().describe('Where a healing event came from; potion is reserved (no engine path yet).'),
   "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),

@@ -7,6 +7,7 @@
  */
 import type { CombatAttackResult } from './combatAttackResult';
 import type { CombatTurnResultEconomyStepsItem } from './combatTurnResultEconomyStepsItem';
+import type { CombatTurnResultHealSource } from './combatTurnResultHealSource';
 import type { CombatTurnResultResolution } from './combatTurnResultResolution';
 import type { CombatTurnResultSpeciesEffectsItem } from './combatTurnResultSpeciesEffectsItem';
 import type { DeathResolutionResult } from './deathResolutionResult';
@@ -114,6 +115,8 @@ export interface CombatTurnResult {
   save_dc?: number | null;
   /** @nullable */
   healing?: number | null;
+  /** Where a healing event came from; potion is reserved (no engine path yet). */
+  heal_source?: CombatTurnResultHealSource;
   /** @nullable */
   slot_spent?: boolean | null;
   /** @nullable */

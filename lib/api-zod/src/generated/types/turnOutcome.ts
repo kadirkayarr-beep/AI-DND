@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { TurnOutcomeHealSource } from './turnOutcomeHealSource';
 
 export interface TurnOutcome {
   action?: string | null;
@@ -15,4 +16,11 @@ export interface TurnOutcome {
   place_created?: boolean | null;
   /** Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action. */
   reason?: string | null;
+  /**
+     * Hit Points a healing turn outside a fight restored (the last call's one Hit Point); left out otherwise.
+     * @minimum 0
+     */
+  healing?: number;
+  /** Where that healing came from; left out otherwise. */
+  heal_source?: TurnOutcomeHealSource;
 }
