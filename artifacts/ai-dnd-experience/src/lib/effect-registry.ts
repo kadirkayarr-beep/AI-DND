@@ -36,11 +36,17 @@ export type EffectRegistry = {
 type MutableHandle = { id: string; finished: boolean };
 
 type Entry = {
-  id: string;
+  key: string;
   spec: EffectSpec;
   timer: unknown;
   handle: MutableHandle;
 };
+
+/** Largest delay a platform timer accepts, minus the failsafe margin. */
+const MAX_DURATION_MS = 2 ** 31 - 1 - FAILSAFE_MARGIN_MS;
+/** Bounds on cascades where a dispose starts further effects. */
+const MAX_CASCADE_STEPS = MAX_ACTIVE_EFFECTS * 4;
+const MAX_FLUSH_PASSES = 100;
 
 /** Effects level as a decision: callers never branch on the level strings. */
 export function shouldPlayEffects(level: EffectsLevel): boolean {
@@ -59,55 +65,94 @@ export function createEffectRegistry(options: EffectRegistryOptions = {}): Effec
   const clearTimer =
     options.clearTimer ?? ((token: unknown) => clearTimeout(token as ReturnType<typeof setTimeout>));
   // Map keeps insertion order, so the first value is always the oldest effect.
+  // Keys are namespaced: caller ids and generated ids can never collide.
   const active = new Map<string, Entry>();
+  const entryOf = new WeakMap<object, Entry>();
   let errorCount = 0;
   let autoId = 0;
+  // Nesting depth of dispose calls; cap trimming only runs at depth 0 so a dispose
+  // that starts effects cannot make eviction recurse without bound.
+  let disposeDepth = 0;
 
   function settle(entry: Entry): void {
     if (entry.handle.finished) return;
     entry.handle.finished = true;
-    if (active.get(entry.id) === entry) active.delete(entry.id);
+    if (active.get(entry.key) === entry) active.delete(entry.key);
     try {
       clearTimer(entry.timer);
     } catch {
       errorCount += 1;
     }
+    disposeDepth += 1;
     try {
       entry.spec.dispose();
     } catch {
       errorCount += 1;
+    } finally {
+      disposeDepth -= 1;
+    }
+  }
+
+  function trimTo(limit: number): void {
+    if (disposeDepth > 0) return;
+    let steps = 0;
+    while (active.size > limit) {
+      if (steps++ >= MAX_CASCADE_STEPS) {
+        errorCount += 1;
+        return;
+      }
+      settle(active.values().next().value as Entry);
     }
   }
 
   function start(spec: EffectSpec): EffectHandle {
-    const id = spec.id ?? `effect-${++autoId}`;
-    const previous = active.get(id);
-    if (previous) settle(previous);
-    while (active.size >= MAX_ACTIVE_EFFECTS) {
-      const oldest = active.values().next().value as Entry;
-      settle(oldest);
-    }
+    const generated = spec.id === undefined ? ++autoId : 0;
+    const id = spec.id ?? `effect-${generated}`;
+    const key = spec.id === undefined ? `auto:${generated}` : `id:${spec.id}`;
     const handle: MutableHandle = { id, finished: false };
-    const entry: Entry = { id, spec, timer: undefined, handle };
-    active.set(id, entry);
+    const entry: Entry = { key, spec, timer: undefined, handle };
+    entryOf.set(handle, entry);
+
+    // Take the slot out of the map before running any dispose, so a dispose that
+    // starts an effect cannot be overwritten and orphaned by this start.
+    const replaced: Entry[] = [];
+    const previous = active.get(key);
+    if (previous) {
+      active.delete(key);
+      replaced.push(previous);
+    }
+    trimTo(MAX_ACTIVE_EFFECTS - 1);
+    const clash = active.get(key);
+    if (clash) replaced.push(clash);
+    active.set(key, entry);
+
     const duration = Number.isFinite(spec.durationMs) && spec.durationMs > 0 ? spec.durationMs : 0;
     try {
-      entry.timer = setTimer(() => settle(entry), duration + FAILSAFE_MARGIN_MS);
+      entry.timer = setTimer(() => settle(entry), Math.min(duration, MAX_DURATION_MS) + FAILSAFE_MARGIN_MS);
     } catch {
       // Without a failsafe timer the effect must still end: dispose now.
       errorCount += 1;
       settle(entry);
     }
+    // Dispose the replaced effects last; the slot is already ours.
+    for (const old of replaced) settle(old);
+    trimTo(MAX_ACTIVE_EFFECTS);
     return handle;
   }
 
   function finish(handle: EffectHandle): void {
-    const entry = active.get(handle.id);
-    if (entry && entry.handle === handle) settle(entry);
+    const entry = entryOf.get(handle);
+    if (entry) settle(entry);
   }
 
   function flushAll(): void {
-    for (const entry of [...active.values()]) settle(entry);
+    for (let pass = 0; active.size > 0; pass += 1) {
+      if (pass >= MAX_FLUSH_PASSES) {
+        errorCount += 1;
+        return;
+      }
+      for (const entry of [...active.values()]) settle(entry);
+    }
   }
 
   return {

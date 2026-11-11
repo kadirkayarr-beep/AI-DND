@@ -81,16 +81,19 @@ test('a throwing dispose is counted, swallowed and never stays registered', () =
 test('cap evicts the oldest effect first', () => {
   const { registry } = setup();
   const all = [];
+  let firstHandle;
   for (let i = 0; i < MAX_ACTIVE_EFFECTS; i += 1) {
     const fx = counted();
     all.push(fx);
-    registry.start(fx);
+    const h = registry.start(fx);
+    if (i === 0) firstHandle = h;
   }
   assert.equal(registry.leftovers(), MAX_ACTIVE_EFFECTS);
   const extra = counted();
   registry.start(extra);
   assert.equal(registry.leftovers(), MAX_ACTIVE_EFFECTS);
   assert.equal(all[0].calls, 1);
+  assert.equal(firstHandle.finished, true);
   assert.ok(all.slice(1).every((fx) => fx.calls === 0));
   assert.equal(extra.calls, 0);
   for (let i = 0; i < 40; i += 1) registry.start(counted());
@@ -143,10 +146,12 @@ test('restarting the same id disposes the old effect and the stale handle is ine
 
 test('the old failsafe of a restarted id cannot dispose the new effect', () => {
   const { registry, clock } = setup();
-  registry.start(counted({ id: 'x', durationMs: 100 }));
-  clock.advance(300);
+  const oldFx = counted({ id: 'x', durationMs: 100 });
+  registry.start(oldFx);
   const next = counted({ id: 'x', durationMs: 1000 });
   registry.start(next);
+  assert.equal(oldFx.calls, 1);
+  assert.equal(clock.pending(), 1, 'the old failsafe timer must be cleared via clearTimer');
   clock.advance(300);
   assert.equal(next.calls, 0);
   clock.advance(1100);
@@ -217,4 +222,128 @@ test('attachBrowserGuards does not expose debug hooks outside dev', () => {
   attachBrowserGuards(registry, win, false);
   assert.equal(win.__effectLeftovers, undefined);
   assert.equal(win.__flushEffects, undefined);
+});
+
+test('re-entrant start of the same id inside dispose leaves no orphan', () => {
+  const { registry, clock } = setup();
+  const inner = counted({ id: 'a' });
+  const outer = counted({
+    id: 'a',
+    dispose() { outer.calls += 1; if (outer.calls === 1) registry.start(inner); },
+  });
+  registry.start(outer);
+  const replacement = counted({ id: 'a' });
+  registry.start(replacement);
+  assert.equal(registry.leftovers(), 1);
+  registry.flushAll();
+  assert.equal(registry.leftovers(), 0);
+  assert.equal(inner.calls, 1, 'inner must be disposed by flushAll, not by its failsafe');
+  assert.equal(clock.pending(), 0);
+  clock.advance(5000);
+  assert.equal(outer.calls, 1);
+  assert.equal(inner.calls, 1);
+  assert.equal(replacement.calls, 1);
+  assert.equal(clock.pending(), 0);
+});
+
+test('re-entrant start of a different id inside dispose is tracked', () => {
+  const { registry } = setup();
+  const child = counted({ id: 'child' });
+  const parent = counted({ id: 'parent', dispose() { parent.calls += 1; registry.start(child); } });
+  const h = registry.start(parent);
+  registry.finish(h);
+  assert.equal(registry.leftovers(), 1);
+  registry.flushAll();
+  assert.equal(registry.leftovers(), 0);
+  assert.equal(child.calls, 1);
+  assert.equal(parent.calls, 1);
+});
+
+test('finish called inside dispose does not double dispose', () => {
+  const { registry } = setup();
+  let handle;
+  const fx = counted({ dispose() { fx.calls += 1; registry.finish(handle); } });
+  handle = registry.start(fx);
+  registry.finish(handle);
+  assert.equal(fx.calls, 1);
+  assert.equal(registry.leftovers(), 0);
+});
+
+test('flushAll also disposes an effect started mid-flush', () => {
+  const { registry } = setup();
+  const late = counted({ id: 'late' });
+  const first = counted({ id: 'first', dispose() { first.calls += 1; registry.start(late); } });
+  registry.start(first);
+  registry.flushAll();
+  assert.equal(registry.leftovers(), 0);
+  assert.equal(late.calls, 1);
+});
+
+test('endless re-spawning dispose terminates and counts an error', () => {
+  const { registry } = setup();
+  let n = 0;
+  const spawn = () => ({ id: `s${n++}`, durationMs: 10, dispose() { registry.start(spawn()); } });
+  registry.start(spawn());
+  registry.flushAll();
+  assert.ok(registry.errors() >= 1);
+  const evictor = () => ({ durationMs: 10, dispose() { registry.start(evictor()); } });
+  for (let i = 0; i < MAX_ACTIVE_EFFECTS + 3; i += 1) registry.start(evictor());
+  // Termination is the guarantee here: the cascade is cut off and reported.
+  assert.ok(registry.errors() >= 2);
+});
+
+test('a throwing setTimer disposes the effect immediately and counts an error', () => {
+  const registry = createEffectRegistry({ setTimer() { throw new Error('no timer'); }, clearTimer() {} });
+  const fx = counted();
+  const h = registry.start(fx);
+  assert.equal(fx.calls, 1);
+  assert.equal(h.finished, true);
+  assert.equal(registry.leftovers(), 0);
+  assert.equal(registry.errors(), 1);
+});
+
+test('a throwing clearTimer is counted and the effect is still disposed once', () => {
+  const clock = fakeClock();
+  const registry = createEffectRegistry({ ...clock, clearTimer() { throw new Error('no clear'); } });
+  const fx = counted();
+  const h = registry.start(fx);
+  registry.finish(h);
+  assert.equal(fx.calls, 1);
+  assert.equal(registry.leftovers(), 0);
+  assert.equal(registry.errors(), 1);
+});
+
+test('a throwing onVisibilityHidden is counted, not thrown', () => {
+  const clock = fakeClock();
+  const registry = createEffectRegistry({ ...clock, onVisibilityHidden() { throw new Error('hook'); } });
+  const fx = counted();
+  registry.start(fx);
+  assert.doesNotThrow(() => registry.cancelOnHidden());
+  assert.equal(fx.calls, 1);
+  assert.equal(registry.errors(), 1);
+});
+
+test('caller ids cannot collide with generated ids', () => {
+  const { registry } = setup();
+  const a = counted();
+  const b = counted({ id: 'effect-1' });
+  const c = counted();
+  registry.start(a);
+  registry.start(b);
+  registry.start(c);
+  assert.equal(registry.leftovers(), 3);
+  assert.equal(a.calls + b.calls + c.calls, 0);
+  registry.flushAll();
+  assert.deepEqual([a.calls, b.calls, c.calls], [1, 1, 1]);
+});
+
+test('huge or infinite durations are clamped to a legal timer delay', () => {
+  const delays = [];
+  const registry = createEffectRegistry({ setTimer(_fn, ms) { delays.push(ms); return 1; }, clearTimer() {} });
+  registry.start(counted({ durationMs: Infinity }));
+  registry.start(counted({ durationMs: 1e15 }));
+  registry.start(counted({ durationMs: NaN }));
+  assert.ok(delays.slice(0, 2).every((d) => d <= 2 ** 31 - 1));
+  assert.equal(delays[2], 400);
+  registry.flushAll();
 });
