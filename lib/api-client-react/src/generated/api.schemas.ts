@@ -3609,6 +3609,7 @@ export const SpellPrepareViewResponseReason = {
   creation: 'creation',
   long_rest: 'long_rest',
   migration: 'migration',
+  level_up: 'level_up',
 } as const;
 
 export interface SpellPrepareViewResponse {

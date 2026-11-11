@@ -4316,7 +4316,7 @@ export const GetGameSessionSpellPreparationResponse = zod.object({
   "blocked_reason": zod.union([zod.literal('not_preparing_class'),zod.literal('spellbook_missing'),zod.literal(null)]).nullish(),
   "class_name": zod.string().nullish(),
   "open": zod.boolean(),
-  "reason": zod.union([zod.literal('creation'),zod.literal('long_rest'),zod.literal('migration'),zod.literal(null)]).nullish(),
+  "reason": zod.union([zod.literal('creation'),zod.literal('long_rest'),zod.literal('migration'),zod.literal('level_up'),zod.literal(null)]).nullish(),
   "limit": zod.number().int(),
   "candidates": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
