@@ -1,0 +1,154 @@
+{
+  "id": "rc16_combat_xp_real",
+  "title": "Gerçek zincir, savaş XP'sinin ikizi (44'ün satırları, gerçek modelde, betiksiz; 1. seviye Fighter, düşman bir muhafız): yenilen muhafız 25 XP verir, XP satırını Python yazar; Geri Al XP'yi 0'a döndürür, yeniden yenmek yine 25 verir, yenileme aynısını okur. Beklenti yalnız durum (xp, seviye, kese); modelin söylediği rakam XP, seviye ya da keseyi değiştirmez",
+  "source_items": [
+    111
+  ],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Carius",
+      "race": "Human",
+      "species": "Human",
+      "class": "Fighter",
+      "background": "Soldier",
+      "alignment": "Chaotic Neutral",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "background_ability_bonuses": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Athletics",
+        "Intimidation",
+        "Perception",
+        "Insight",
+        "Persuasion"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Alert",
+      "origin_feat": "Savage Attacker",
+      "fighting_style": "Defense",
+      "equipment_package": "A",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Goblin"
+      ],
+      "origin": "Baldur's Gate",
+      "appearance": "Sırım gibi.",
+      "personality": "Kurnaz.",
+      "backstory": "Ordudan ayrıldı."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "guard",
+        "name": "Muhafız",
+        "role": "Muhafız",
+        "current_hp": 9,
+        "max_hp": 9,
+        "armor_class": 5,
+        "hostile": true,
+        "distance_ft": 5
+      }
+    ],
+    "seed": 1,
+    "campaign_seed": 50,
+    "currency": {
+      "player": 1000
+    },
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "Muhafıza saldırıyorum",
+      "real_chain": true,
+      "expect": {
+        "savas": true,
+        "xp": 0
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "seviye": 1,
+          "xp": 0
+        }
+      ]
+    },
+    {
+      "say": "vuruyorum",
+      "real_chain": true,
+      "expect": {
+        "xp": 25,
+        "savas": false
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "seviye": 1,
+          "xp": 25
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "real_chain": true,
+      "expect": {
+        "xp": 0
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "seviye": 1,
+          "xp": 0
+        }
+      ]
+    },
+    {
+      "say": "vuruyorum",
+      "real_chain": true,
+      "expect": {
+        "xp": 25,
+        "savas": false
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "seviye": 1,
+          "xp": 25
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "real_chain": true,
+      "expect": {
+        "xp": 25
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 1000,
+          "seviye": 1,
+          "xp": 25
+        }
+      ]
+    }
+  ]
+}

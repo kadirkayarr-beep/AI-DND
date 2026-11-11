@@ -1,0 +1,131 @@
+{
+  "id": "rc17_job_xp_real",
+  "title": "Gerçek zincir, iş teslimi XP'sinin ikizi (45'in satırları, gerçek modelde, betiksiz): kurye işi alınır ve iskeledeki Tuna'ya teslim edilir; teslim turu 12 bakırı ve 25 XP'yi birlikte bir kez öder, XP satırını Python yazar; Geri Al ikisini geri alır, yeniden teslim yine bir kez öder, yenileme aynısını okur. Beklenti yalnız durum (xp, seviye, kese); modelin söylediği rakam XP, seviye ya da keseyi değiştirmez",
+  "source_items": [],
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 51,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "real_chain": true,
+      "expect": {
+        "xp": 0
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "seviye": 1,
+          "xp": 0
+        }
+      ]
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "real_chain": true,
+      "expect": {
+        "konum": "$is_hedefi"
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "seviye": 1,
+          "xp": 0
+        }
+      ]
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "real_chain": true,
+      "expect": {
+        "kese": 112,
+        "xp": 25,
+        "gorev": {
+          "aktif": 0
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "seviye": 1,
+          "xp": 25
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "real_chain": true,
+      "expect": {
+        "kese": 100,
+        "xp": 0
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "seviye": 1,
+          "xp": 0
+        }
+      ]
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, buyur",
+      "real_chain": true,
+      "expect": {
+        "kese": 112,
+        "xp": 25
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "seviye": 1,
+          "xp": 25
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "real_chain": true,
+      "expect": {
+        "kese": 112,
+        "xp": 25
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 112,
+          "seviye": 1,
+          "xp": 25
+        }
+      ]
+    }
+  ]
+}
