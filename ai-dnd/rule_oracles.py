@@ -28,6 +28,10 @@ def _case(oracles: dict, case_id: str):
             for case in leaf["cases"]:
                 if case["id"] == number:
                     return leaf, case
+    # A pending leaf (page-cited, no resolver yet) is OPEN by its own leaf id: its open_rule name ("spell_bless") is not a
+    # substring of its case ids ("4C.spell.bless#01"), so the family check below cannot catch it.
+    if any(pending["leaf_id"] == leaf_id for pending in oracles.get("pending_leaves", [])):
+        raise OpenRule(f"{case_id} belongs to a pending leaf without an engine resolver")
     if any(open_leaf["rule"] in case_id for open_leaf in oracles["open_leaves"]):
         raise OpenRule(f"{case_id} belongs to an OPEN rule family")
     raise KeyError(case_id)

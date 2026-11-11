@@ -24,6 +24,12 @@ ALIASES = {"ateş oku": "Fire Bolt", "ates oku": "Fire Bolt",
            "kutsal alev": "Sacred Flame"}
 
 
+def harmful(spell_id):
+    """A spell that deals damage (its catalog damage type): the surrendered-foe question asks about it (D-036)."""
+    entry = CATALOG.get(spell_id) if isinstance(spell_id, str) else None
+    return entry is not None and entry[3] is not None
+
+
 def fail(code, message):
     attacks.fail(code, message)
 

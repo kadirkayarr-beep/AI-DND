@@ -2375,7 +2375,11 @@ def create_app(
             if record.revoked:
                 raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
             require_current(record)
-            view = spell_preparation.view(record.game_session)
+            try:
+                view = spell_preparation.view(record.game_session)
+            except (ValueError, KeyError, TypeError):  # the POST route's guard: an unreadable saved state is a 409, never a 500
+                raise HTTPException(status_code=409, detail={
+                    "code": "prepare_unavailable", "message": "Kayıtlı büyü durumu okunamadı."}) from None
             return SpellPrepareViewResponse.model_validate({"session_id": session_id, **view}).model_dump(mode="json")
 
     @application.post("/api/game/sessions/{session_id}/spellcasting/prepare", response_model=SpellPrepareCommandResult,
