@@ -26,6 +26,7 @@ export function combatStatusLabel(value: string | null | undefined): string | un
   if (value === 'unconscious') return 'Bilinçsiz';
   if (value === 'dead') return 'Ölü';
   if (value === 'defeated') return 'Etkisiz';
+  if (value === 'surrendered') return 'Teslim oldu';
   return value ?? undefined;
 }
 

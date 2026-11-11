@@ -281,6 +281,12 @@ test('the strip reuses the combat panel status words', async () => {
   const html = render(strip.CombatStatusStrip, { combat: { ...stripCombat, participant_records: [
     { ...stripCombat.participant_records[0], status: 'unconscious', current_hp: 0 }, stripCombat.participant_records[1]] } });
   assert.match(html, /Haydut · Can 0\/11 · Bilinçsiz/);
+  const yielded = render(strip.CombatStatusStrip, { combat: { ...stripCombat, participant_records: [
+    { ...stripCombat.participant_records[0], status: 'surrendered' }, stripCombat.participant_records[1]] } });
+  assert.match(yielded, /Haydut · Can \d+\/11 · Teslim oldu/);
+  assert.doesNotMatch(yielded, /surrendered/);
+  const browserSource = await readFile('src/pages/game-browser.tsx', 'utf8');
+  assert.match(browserSource, /npc\.combat_status === 'surrendered' \? 'Teslim oldu'/);
 });
 
 test('combat start notices clear on later turns and context changes, and ignore stale results', async () => {
