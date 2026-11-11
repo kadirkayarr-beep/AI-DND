@@ -1,6 +1,6 @@
 {
   "id": "20_xp_after_win",
-  "title": "Kazanılan savaştan sonra XP artar (111): 1. seviye Fighter tek darbede düşen bir ayyaşla (Commoner) dövüşür; savaş bitince deneyim 10 olur (Monster Manual 2024 Commoner, CR 0, 10 XP; motorun bounded_encounter stat bloğu da 10 der). Bugün motor yalnız düşmanın xp_reward alanından öder ve hiçbir ürün kodu o alanı yazmaz",
+  "title": "Kazanılan savaştan sonra XP artar (111): 1. seviye Fighter tek darbede düşen bir ayyaşla (Commoner) dövüşür; savaş bitince deneyim 10 olur (Monster Manual 2024 Commoner, CR 0, 10 XP; motorun bounded_encounter stat bloğu da 10 der). Ödül tablodan gelir: stat bloğu olmayan kişi masa kuralıyla ödenir (ayyaş 10)",
   "source_items": [
     111
   ],
@@ -97,11 +97,7 @@
       "expect": {
         "xp": 10,
         "savas": false
-      },
-      "known_broken": [
-        111
-      ],
-      "broken_because": ["xp: beklenen 10, gözlenen 0"]
+      }
     }
   ]
 }

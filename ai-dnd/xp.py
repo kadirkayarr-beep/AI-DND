@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from feat_rules import held_feats
 from quest_catalog import find_quest
@@ -44,6 +44,12 @@ FIXED_HP_BY_CLASS = {
     "Sorcerer": 4,
     "Wizard": 4,
 }
+
+# Experience Points by Challenge Rating (SRD 5.2.1). CR 0 pays 10 here because every person we put in a fight
+# has an effective attack.
+XP_BY_CR = {"0": 10, "1/8": 25, "1/4": 50, "1/2": 100, "1": 200, "2": 450, "3": 700, "4": 1100, "5": 1800}
+# masa kuralı: stat bloğu olmayan kişi en yakın SRD bloğu (Guard / Commoner), Kadir kararı 4
+PERSON_KIND_CR = {"armed": "1/8", "strong": "0", "plain": "0"}
 
 _AWARD_ID = re.compile(r"^(quest|combat):\S{1,180}$")
 _DEFEATED = frozenset({"unconscious", "defeated", "dead"})
@@ -190,11 +196,78 @@ def _is_defeated(npc: Mapping[str, Any]) -> bool:
     return type(current_hp) is int and current_hp <= 0
 
 
-def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], character: dict[str, Any]):
-    """Pay server-authored creature rewards when an encounter ends in defeat.
+def reward_for(npc: Mapping[str, Any], person_kind: str | None) -> int:
+    """What a beaten creature pays: a server-set ``xp_reward``, else its stat block's Challenge Rating, else its kind.
 
-    The caller must still have the participant list. Leaving, or the player
-    falling unconscious, is not this function's job and pays nothing.
+    Only the server (or a test) writes ``xp_reward`` and ``monster_stat_block``; nothing the model proposes reaches them.
+    """
+    reward = npc.get("xp_reward")
+    if type(reward) is int and 1 <= reward <= MAX_GRANT:
+        return reward
+    block = npc.get("monster_stat_block")
+    if isinstance(block, Mapping):
+        rating = block.get("challenge_rating")
+        if isinstance(rating, str) and rating in XP_BY_CR:
+            return XP_BY_CR[rating]
+    rating = PERSON_KIND_CR.get(person_kind) if isinstance(person_kind, str) else None
+    return XP_BY_CR[rating] if rating is not None else 0
+
+
+def apply_xp_grants(character: dict[str, Any], world: dict[str, Any], grants: Sequence[tuple[str, int]]):
+    """Pay several awards at once: all of them or none (``None``, nothing changed).
+
+    Every id must fit the receipt pattern and appear once in the list; every amount is 1..MAX_GRANT; the total and the
+    receipt count stay inside their caps. Ids the world already paid are dropped quietly and the rest are paid; when
+    none is left the answer is ``None``. The summary has the keys ``apply_xp`` gives.
+    """
+    if not isinstance(character, dict) or not isinstance(world, dict) or isinstance(grants, (str, bytes)):
+        return None
+    try:
+        grants = list(grants)
+    except TypeError:
+        return None
+    seen: set[str] = set()
+    for grant in grants:
+        if not isinstance(grant, (tuple, list)) or len(grant) != 2:
+            return None
+        event_id, amount = grant
+        if not isinstance(event_id, str) or _AWARD_ID.fullmatch(event_id) is None or event_id in seen:
+            return None
+        if type(amount) is not int or amount <= 0 or amount > MAX_GRANT:
+            return None
+        seen.add(event_id)
+    held = world.get("xp_awarded_event_ids")
+    held = held if isinstance(held, list) else []
+    held_set = set(held)
+    fresh = [(event_id, amount) for event_id, amount in grants if event_id not in held_set]
+    if not fresh or len(held) + len(fresh) > MAX_AWARD_IDS:
+        return None
+    total = sum(amount for _, amount in fresh)
+    current_xp = character.get("xp")
+    if type(current_xp) is not int or current_xp < 0:
+        current_xp = 0
+    new_xp = current_xp + total
+    if new_xp > MAX_STORED_XP:
+        return None
+    summary = _apply_numeric_level(character, level_for_xp(new_xp))  # raises before any write if the class is unknown
+    _award_ids(world).extend(event_id for event_id, _ in fresh)
+    character["xp"] = new_xp  # the character is written last
+    return {**summary, "xp_gained": total}
+
+
+def _foe_award_id(npc_id: str) -> str:
+    event_id = f"combat:foe:{npc_id}"
+    if len(event_id) > 187 or _AWARD_ID.fullmatch(event_id) is None:  # the receipt pattern allows 180 chars after 'combat:'
+        event_id = f"combat:foe:sha256:{hashlib.sha256(npc_id.encode('utf-8')).hexdigest()}"
+    return event_id
+
+
+def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], character: dict[str, Any], *,
+                          person_kind: Callable[[Mapping[str, Any]], str] | None = None):
+    """Pay every beaten foe of an ended encounter in one all-or-nothing grant, once per creature for the campaign.
+
+    The caller must still have the participant list. Leaving, or the player falling unconscious, is not this
+    function's job and pays nothing.
     """
     if not isinstance(combat, dict) or not isinstance(world, dict):
         return None
@@ -207,30 +280,22 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
         for npc in npcs
         if isinstance(npc, dict) and isinstance(npc.get("id"), str)
     }
-    rewarded: list[str] = []
-    total = 0
+    grants: list[tuple[str, int]] = []
+    listed: set[str] = set()
     for participant_id in participants:
-        if not isinstance(participant_id, str) or participant_id == "player":
+        if not isinstance(participant_id, str) or participant_id == "player" or participant_id in listed:
             continue
         npc = by_id.get(participant_id)
         if not isinstance(npc, dict) or not _is_defeated(npc):
             continue
-        reward = npc.get("xp_reward")
-        if type(reward) is not int or reward <= 0 or reward > MAX_GRANT:
+        reward = reward_for(npc, person_kind(npc) if person_kind else None)
+        if reward <= 0:
             continue
-        total += reward
-        rewarded.append(participant_id)
-    if total <= 0:
+        listed.add(participant_id)
+        grants.append((_foe_award_id(participant_id), reward))
+    if not grants:
         return None
-    flags = world.get("flags")
-    turn = flags.get("turn_index", 0) if isinstance(flags, dict) else 0
-    if type(turn) is not int or turn < 0:
-        turn = 0
-    event_id = f"combat:{turn}:{','.join(sorted(rewarded))}"
-    if len(event_id) > 187:  # The existing receipt validator allows 180 chars after 'combat:'.
-        digest = hashlib.sha256(event_id.encode("utf-8")).hexdigest()
-        event_id = f"combat:sha256:{digest}"
-    return apply_xp(character, world, total, event_id)
+    return apply_xp_grants(character, world, grants)
 
 
 def award_completed_quest(world: dict[str, Any], character: dict[str, Any], quest_id: str):

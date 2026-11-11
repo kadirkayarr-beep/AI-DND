@@ -12,6 +12,8 @@ def character():
 
 class XpReceiptRegression(unittest.TestCase):
     def test_many_defeated_participants_grant_once_with_bounded_receipt(self):
+        # [YENİDEN YAZIM] was one combined receipt "combat:<turn>:<ids>" (hashed when long); a creature now has its own
+        # bounded receipt "combat:foe:<id>" and the whole ending is still one all-or-nothing grant paid once.
         player = character()
         ids = [f"monster_{i:02d}_long_creature_id" for i in range(20)]
         world = {"npcs": [{"id": identity, "combat_status": "dead",
@@ -22,8 +24,10 @@ class XpReceiptRegression(unittest.TestCase):
         self.assertIsNotNone(first)
         self.assertEqual(first["xp_gained"], 100)
         self.assertEqual(player["xp"], 100)
-        self.assertEqual(len(world["xp_awarded_event_ids"]), 1)
-        self.assertLessEqual(len(world["xp_awarded_event_ids"][0]), 187)
+        self.assertEqual(len(world["xp_awarded_event_ids"]), 20)
+        for receipt in world["xp_awarded_event_ids"]:
+            self.assertTrue(receipt.startswith("combat:foe:"))
+            self.assertLessEqual(len(receipt), 187)
         self.assertIsNone(xp.award_defeated_combat(combat, world, player))
         self.assertEqual(player["xp"], 100)
         xp.validate_saved_advancement(player, world)

@@ -3837,10 +3837,15 @@ _PERSON_FIGHT = {
 }
 
 
+def person_fight_kind(npc):
+    """What a person with no stat block fights as, read from their role: "armed", "strong" or "plain"."""
+    role = _normalize_turkish_typos(f"{npc.get('role', '')}")
+    return "armed" if _ARMED_ROLE.search(role) else "strong" if _STRONG_ROLE.search(role) else "plain"
+
+
 def _person_fight(npc):
     """A person fights like what they are; only stats nobody set take these values."""
-    role = _normalize_turkish_typos(f"{npc.get('role', '')}")
-    kind = "armed" if _ARMED_ROLE.search(role) else "strong" if _STRONG_ROLE.search(role) else "plain"
+    kind = person_fight_kind(npc)
     armor, hit_points, bonus, die, damage_type = _PERSON_FIGHT[kind]
     npc.setdefault("armor_class", armor)
     if "max_hp" not in npc:
@@ -5677,6 +5682,7 @@ def end_combat(reason="combat_ended"):
         import xp
         _session()._receive_xp_award(
             xp.award_defeated_combat, combat, _session().world_state, _session().character,
+            person_kind=person_fight_kind,
         )
     import barbarian_rage
     barbarian_rage.settle(_session(), combat_active=True)
@@ -23583,7 +23589,7 @@ class GameSession:
         self._xp_level_up = None
         self._persisted_engine_format = SAVE_FORMAT_VERSION
 
-    def _receive_xp_award(self, award_owner, *args):
+    def _receive_xp_award(self, award_owner, *args, **kwargs):
         """Session adoption of an existing XP owner; no new reward or receipt policy.
 
         Sessionless callers may use xp.apply_xp for detached numeric work, but
@@ -23593,7 +23599,7 @@ class GameSession:
         had_format = "_persisted_engine_format" in self.__dict__
         old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
         try:
-            summary = award_owner(*args)
+            summary = award_owner(*args, **kwargs)
             crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
                         and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
             if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):

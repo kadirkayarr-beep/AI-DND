@@ -181,7 +181,7 @@ class ExperienceAwardTests(unittest.TestCase):
         self.assertEqual(self.session.character["level"], 2)
         self.assertEqual(
             self.session.world_state["xp_awarded_event_ids"],
-            ["combat:3:npc_test"],
+            ["combat:foe:npc_test"],
         )
         published = {}
         self.session._publish_level_up(published)
@@ -199,8 +199,22 @@ class ExperienceAwardTests(unittest.TestCase):
         npc["combat_status"] = "active"
         self.session.world_state["flags"]["turn_index"] = 4
         _defeat(self.session)
-        self.assertEqual(self.session.character["xp"], 600)
+        # [YENİDEN YAZIM] was 600: the same creature beaten again on a later turn paid again (the receipt named the
+        # turn); the receipt now names the creature, so it pays once per campaign (Dilim 4B Task 1) and a second,
+        # different creature still pays in full.
+        self.assertEqual(self.session.character["xp"], 300)
         self.assertEqual(self.session.character["level"], 2)
+        second = dict(npc, id="npc_second", name="Second", current_hp=8, combat_status="active")
+        self.session.world_state["npcs"].append(second)
+        self.session.world_state["flags"]["turn_index"] = 5
+        self.session.start_combat(second)
+        second["current_hp"] = 0
+        second["combat_status"] = "unconscious"
+        self.session.ensure_combat_state()
+        self.session._combat_end_if_decided()
+        self.assertEqual(self.session.character["xp"], 600)
+        self.assertEqual(self.session.world_state["xp_awarded_event_ids"],
+                         ["combat:foe:npc_test", "combat:foe:npc_second"])
 
     def test_leaving_or_falling_unconscious_pays_nothing(self):
         _enemy(self.session, 300)
@@ -226,14 +240,19 @@ class ExperienceAwardTests(unittest.TestCase):
         )
         self.assertEqual(self.session.character["xp"], 0)
 
-    def test_a_creature_without_a_server_reward_pays_nothing(self):
-        _enemy(self.session, None)
+    def test_a_creature_without_a_server_reward_pays_its_table_value(self):
+        # [YENİDEN YAZIM] [GEVŞETME OLABİLİR] was "...pays_nothing": a creature with no xp_reward now pays by the table
+        # (role "guard" has no stat block and reads as a plain person: Commoner, CR 0, 10 XP; Dilim 4B Task 1)
+        npc = _enemy(self.session, None)
+        self.assertNotIn("xp_reward", npc)
+        self.assertNotIn("monster_stat_block", npc)
         _defeat(self.session)
-        self.assertEqual(self.session.character["xp"], 0)
-        self.assertFalse(hasattr(self.session, "_xp_level_up") and self.session._xp_level_up)
-        untouched = {"action": "attack"}
-        self.session._publish_level_up(untouched)
-        self.assertNotIn("level_up", untouched)
+        self.assertEqual(self.session.character["xp"], 10)
+        self.assertEqual(self.session.world_state["xp_awarded_event_ids"], ["combat:foe:npc_test"])
+        published = {}
+        self.session._publish_level_up(published)
+        self.assertEqual(published["level_up"]["xp_gained"], 10)
+        self.assertNotIn("xp_reward", self.session.world_state["npcs"][0])  # nothing writes the reward field back
 
     def test_quest_xp_is_paid_once_and_narration_is_not_a_source(self):
         self.assertEqual(quest_catalog.CATALOG, ())
@@ -355,7 +374,7 @@ class ExperienceAwardTests(unittest.TestCase):
                     self.session.character,
                     self.session.world_state,
                     300,
-                    "combat:3:npc_test",
+                    "combat:foe:npc_test",
                 )
             )
 
@@ -444,14 +463,14 @@ class ExperienceAwardTests(unittest.TestCase):
         self.assertEqual(restarted.character["max_hp"], max_hp)
         self.assertEqual(
             restarted.world_state["xp_awarded_event_ids"],
-            ["combat:3:npc_test"],
+            ["combat:foe:npc_test"],
         )
         self.assertIsNone(
             xp.apply_xp(
                 restarted.character,
                 restarted.world_state,
                 300,
-                "combat:3:npc_test",
+                "combat:foe:npc_test",
             )
         )
         self.assertEqual(self.session.character["xp"], 300)
@@ -492,7 +511,7 @@ class ExperienceAwardTests(unittest.TestCase):
         self.assertEqual(restarted.character["level"], 2)
         self.assertEqual(
             restarted.world_state["xp_awarded_event_ids"],
-            ["combat:3:npc_test"],
+            ["combat:foe:npc_test"],
         )
 
     def test_missing_xp_does_not_keep_another_sessions_total(self):
@@ -565,7 +584,7 @@ class ExperienceAwardTests(unittest.TestCase):
                 self.session.character,
                 self.session.world_state,
                 300,
-                "combat:3:npc_test",
+                "combat:foe:npc_test",
             )
         )
         self.assertIsNone(
