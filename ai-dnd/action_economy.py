@@ -68,11 +68,15 @@ def can_act(session, actor):
 
 
 def _surrendered(session, actor):
-    """The active fight's accepted surrender took this foe out of it (the same reading as its participant record)."""
+    """The active fight's accepted surrender took this foe out of it (the same reading as its participant record).
+
+    A surrendered foe that has since gone down (dead, out, defeated) is no longer 'surrendered' but beaten (D-045).
+    """
     import monster_combat
     combat = session.world_state.get("combat")
     return (isinstance(combat, dict) and combat.get("active") is True
-            and monster_combat.surrendered_in(session.world_state, combat.get("combat_id"), actor))
+            and monster_combat.surrendered_in(session.world_state, combat.get("combat_id"), actor)
+            and not monster_combat._is_beaten(session, actor))
 
 
 def speed(session, actor):

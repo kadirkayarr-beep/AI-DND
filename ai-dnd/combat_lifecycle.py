@@ -414,9 +414,27 @@ def answered_surrender_question(session, message):
         return None
     if _says_yes(session, message, asked["id"]):
         return asked["said"], copy.deepcopy(asked["command"]), asked["id"]
-    if not is_attack_decision(session, message):
+    if not (is_attack_decision(session, message) or _names_one_spell(message)):
         session._surrender_strike_asked = None
     return None
+
+
+def surrender_yes(session, message):
+    """Read only: this line is a yes to the engine's own surrendered-foe question, so it needs no model (D-036)."""
+    asked = getattr(session, "_surrender_strike_asked", None)
+    if not asked:
+        return False
+    import action_economy
+    return action_economy._surrendered(session, asked["id"]) and _says_yes(session, message, asked["id"])
+
+
+def _names_one_spell(message):
+    """The same harmful spell typed again is the same blow again (the spell owner's own reading, never a cast)."""
+    import spell_scope
+    try:
+        return spell_scope.natural_command(message, None) is not None
+    except CombatRequestError:
+        return False
 
 
 def surrendered_strike_question(session, message, target_id, command):
@@ -428,8 +446,11 @@ def surrendered_strike_question(session, message, target_id, command):
     if not combat.get("active") or session.character.get("current_hp", 0) <= 0:
         return None
     if command:
+        import spell_scope
         aimed = [step.get("target_id") for step in command.get("steps", [])
-                 if isinstance(step, dict) and step.get("kind") in {"attack", "continue_attack"}]
+                 if isinstance(step, dict) and (step.get("kind") in {"attack", "continue_attack"} or (
+                     step.get("kind") == "magic"  # a harmful spell (D-036); healing is never asked
+                     and spell_scope.CATALOG.get(step.get("ability"), (None,) * 4)[3] is not None))]
     elif is_attack_decision(session, message):
         targets = _attack_targets(session, message, target_id)
         aimed = [targets[0].get("id")] if len(targets) == 1 else []

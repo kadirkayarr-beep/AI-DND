@@ -20192,6 +20192,10 @@ def _dispatch_player_turn(
     spell_command = (spell_scope.natural_command(player_input, target_id)
                      if combat_action is None and not planning else None)
     if spell_command is not None:
+        surrender_question = combat_lifecycle.surrendered_strike_question(
+            _session(), player_input, target_id, spell_command)  # a harmful spell is asked like a blow (D-036)
+        if surrender_question is not None:
+            return surrender_question
         return action_economy.execute(_session(), spell_command, action_id, session_id)
     import bounded_encounter
     if not planning:

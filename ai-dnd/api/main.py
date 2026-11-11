@@ -1381,7 +1381,8 @@ def create_app(
                 or (
                     request.combat_action is None
                     and (authored_dungeon.native_request(request.message, session)
-                         or exploration.native_request(request.message, session))
+                         or exploration.native_request(request.message, session)
+                         or combat_lifecycle.surrender_yes(session, request.message))
                 )
             ):
                 active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
