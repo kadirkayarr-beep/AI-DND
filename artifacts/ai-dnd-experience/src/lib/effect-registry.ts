@@ -22,6 +22,11 @@ export type EffectRegistryOptions = {
   clearTimer?: (token: unknown) => void;
   /** Called after cancelOnHidden has disposed everything (for glue code and tests). */
   onVisibilityHidden?: () => void;
+  /**
+   * Cap for event effects, 1..MAX_ACTIVE_EFFECTS (default MAX_ACTIVE_EFFECTS). The scene atmosphere layer
+   * owns always-on animated elements, so the screen passes EVENT_EFFECT_BUDGET (scene-atmosphere.ts).
+   */
+  maxActive?: number;
 };
 
 export type EffectRegistry = {
@@ -66,6 +71,8 @@ export function createEffectRegistry(options: EffectRegistryOptions = {}): Effec
     options.clearTimer ?? ((token: unknown) => clearTimeout(token as ReturnType<typeof setTimeout>));
   // Map keeps insertion order, so the first value is always the oldest effect.
   // Keys are namespaced: caller ids and generated ids can never collide.
+  const requested = options.maxActive;
+  const cap = Number.isInteger(requested) && requested! >= 1 && requested! <= MAX_ACTIVE_EFFECTS ? requested! : MAX_ACTIVE_EFFECTS;
   const active = new Map<string, Entry>();
   const entryOf = new WeakMap<object, Entry>();
   let errorCount = 0;
@@ -121,7 +128,7 @@ export function createEffectRegistry(options: EffectRegistryOptions = {}): Effec
       active.delete(key);
       replaced.push(previous);
     }
-    trimTo(MAX_ACTIVE_EFFECTS - 1);
+    trimTo(cap - 1);
     const clash = active.get(key);
     if (clash) replaced.push(clash);
     active.set(key, entry);
@@ -136,7 +143,7 @@ export function createEffectRegistry(options: EffectRegistryOptions = {}): Effec
     }
     // Dispose the replaced effects last; the slot is already ours.
     for (const old of replaced) settle(old);
-    trimTo(MAX_ACTIVE_EFFECTS);
+    trimTo(cap);
     return handle;
   }
 
