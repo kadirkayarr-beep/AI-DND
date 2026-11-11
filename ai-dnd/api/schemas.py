@@ -470,7 +470,8 @@ class CombatTurnResult(CombatAttackResult):
     save_roll: int | None = None
     save_dc: int | None = None
     healing: int | None = None
-    heal_source: HealSource | None = None
+    # Left out when absent, so a receipt stored before 4C.1 replays byte for byte.
+    heal_source: HealSource | None = Field(default=None, exclude_if=lambda value: value is None)
     slot_spent: bool | None = None
     combat_started: bool | None = None
     combat_ended: bool | None = None

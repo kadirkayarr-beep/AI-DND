@@ -220,3 +220,16 @@ class SavedStateUnchanged(unittest.TestCase):
             ("/world_state/campaign_time/elapsed_seconds", "changed"),
             ("/world_state/last_long_rest_completed_at", "added"),
         })
+
+
+class ReplayStability(unittest.TestCase):
+    """A receipt stored before 4C.1 must replay exactly as stored: the new fields stay absent when they have no value."""
+
+    def test_old_stored_combat_receipt_gains_no_new_key(self):
+        stored = {"action": "attack", "status": "resolved", "damage": 3, "damage_type": "slashing", "spell": None,
+                  "healing": None, "slot_spent": None}
+        replay = CombatTurnResult.model_validate(stored, strict=True).model_dump(mode="json")
+        self.assertNotIn("heal_source", replay)
+        self.assertEqual({k: v for k, v in replay.items() if k in stored}, stored)
+        self.assertNotIn("heal_source", TurnOutcome().model_dump(mode="json"))
+        self.assertEqual(CombatTurnResult(heal_source="spell").model_dump(mode="json")["heal_source"], "spell")
