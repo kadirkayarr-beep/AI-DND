@@ -2061,6 +2061,764 @@
     {"family": "state", "rule": "short_rest_other_benefits", "status": "OPEN", "reason": "not covered: features that recharge on a Short Rest (species Short Rest features are not given after an interrupted Long Rest), damage after the rest other than via the HP guard, a level applied between the rest and the spend, Hit Dice display in the UI, interruptions by walking/exertion (PDF 370); Hit Point Dice spending is covered by K07.hit_dice_short_and_long_rest"},
     {"family": "state", "rule": "feature_recharge_by_rest", "status": "OPEN", "reason": "species uses and spell slots are restored by Long Rest in the engine; per-feature recharge rules are not oracle-covered. ENGINE DIVERGENCE (untested): with supplies tracking on and a missing food/water record the engine skips the Exhaustion reduction, the glossary always reduces it by 1; rest interrupted by a time event and the interruptions in the glossary (rolling Initiative, casting a non-cantrip spell) are only partly covered"},
     {"family": "conditions", "rule": "conditions_other_effects", "status": "OPEN", "reason": "not oracle-covered: Charmed effects beyond attacks against known canonical charmer (K07.charmed_attack_charmer), Deafened, Frightened (movement and line of sight), Invisible effects beyond Initiative advantage and explicit directed sight attack exception (covered by K07.initiative_invisible and K07.invisible_attack_explicit_sight_exception); special-sense sight production remains OPEN, Blinded auto-fail on sight checks, Prone crawling and standing cost, Unconscious dropping items, Exhaustion D20 penalties beyond Initiative (covered by K07.initiative_exhaustion_penalty) and death at level 6, Concentration broken by Incapacitated, Dehydration/Malnutrition exhaustion removal, outside-combat movement still blocked for Incapacitated/Stunned by exploration._busy (Speed is correct there, journeys are not), a Grapple ending when the grappler is Incapacitated (not modelled); sources: K07 release_v2 (scope_and_exceptions.json unsupported list applies)"},
-    {"family": "combat_order", "rule": "bonus_action_and_reaction_sources", "status": "OPEN", "reason": "which features grant Bonus Actions/Reactions (Cunning Action, Opportunity Attack triggers, Shield and other reaction spells, Action Surge) belong to the class/spell tasks (C05, C10-C21) and K05; free object interaction and the 'one thing at a time' rule are not oracle-covered; the dispatcher sets reaction_spent directly because the only engine reaction path needs a Ready opportunity, so 'a spent Reaction refuses a second one' and 'Incapacitated prevents a Reaction' are UNVERIFIED; Dodge benefits/loss are covered by K07.dodge_benefits_loss; its activation/expiry and the effects of Disengage, Help, Hide, Ready, Search, Study are not oracle-covered (the leaf checks only the 12 names); not covered: Action Surge/extra actions, bonus grants of quantity > 1, out_of_turn refusals, double Dash, speed 0, prone/difficult-terrain movement cost, exhaustion/grapple speed reduction; the former Incapacitated Speed 0 divergence is fixed (K07.conditions_speed_actions_attacks_saves)"}
+    {"family": "combat_order", "rule": "bonus_action_and_reaction_sources", "status": "OPEN", "reason": "which features grant Bonus Actions/Reactions (Cunning Action, Opportunity Attack triggers, Shield and other reaction spells, Action Surge) belong to the class/spell tasks (C05, C10-C21) and K05; free object interaction and the 'one thing at a time' rule are not oracle-covered; the dispatcher sets reaction_spent directly because the only engine reaction path needs a Ready opportunity, so 'a spent Reaction refuses a second one' and 'Incapacitated prevents a Reaction' are UNVERIFIED; Dodge benefits/loss are covered by K07.dodge_benefits_loss; its activation/expiry and the effects of Disengage, Help, Hide, Ready, Search, Study are not oracle-covered (the leaf checks only the 12 names); not covered: Action Surge/extra actions, bonus grants of quantity > 1, out_of_turn refusals, double Dash, speed 0, prone/difficult-terrain movement cost, exhaustion/grapple speed reduction; the former Incapacitated Speed 0 divergence is fixed (K07.conditions_speed_actions_attacks_saves)"},
+    {"family": "spell", "rule": "spell_ray_of_frost", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
+    {"family": "spell", "rule": "spell_shocking_grasp", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
+    {"family": "spell", "rule": "spell_toll_the_dead", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
+    {"family": "spell", "rule": "spell_healing_word", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
+    {"family": "spell", "rule": "spell_bless", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
+    {"family": "concentration", "rule": "concentration", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"}
+  ],
+  "pending_leaves": [
+    {
+      "leaf_id": "4C.spell.ray_of_frost",
+      "family": "spell",
+      "status": "PENDING_RESOLVER",
+      "resolver_task": "4C.4b",
+      "open_rule": "spell_ray_of_frost",
+      "source_ref": {
+        "pdf_page": 310,
+        "printed_page": 311,
+        "text": "Ray of Frost (Evocation cantrip): Action, 60 ft, V S, Instantaneous; ranged spell attack; on a hit 1d8 Cold damage and the target's Speed drops by 10 ft until the start of the caster's next turn; one more d8 at levels 5, 11, 17",
+        "verified_from": "page scan image (embedded page JPEG of the checksum-matched PDF, read 2026-11-12; the OCR text layer agrees)"
+      },
+      "spell": {
+        "name": "Ray of Frost",
+        "level": 0,
+        "casting_time": "Action",
+        "range": "60 feet",
+        "concentration": false,
+        "resolution": "ranged_spell_attack",
+        "damage": {
+          "die": 8,
+          "count_at_level_1": 1,
+          "type": "cold"
+        },
+        "cantrip_upgrade": {
+          "5": 2,
+          "11": 3,
+          "17": 4
+        },
+        "on_hit_rider": {
+          "target_speed_penalty_ft": 10,
+          "until": "start_of_caster_next_turn"
+        }
+      },
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "caster_level": 1,
+            "attack": "hit",
+            "dice_rolled": [
+              6
+            ]
+          },
+          "expected": {
+            "damage": 6,
+            "damage_type": "cold",
+            "target_speed_penalty_ft": 10,
+            "penalty_until": "start_of_caster_next_turn"
+          }
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "caster_level": 1,
+            "attack": "miss"
+          },
+          "expected": {
+            "damage": 0,
+            "target_speed_penalty_ft": 0
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "caster_level": 4,
+            "attack": "hit",
+            "dice_rolled": [
+              8
+            ]
+          },
+          "expected": {
+            "damage": 8,
+            "damage_type": "cold",
+            "target_speed_penalty_ft": 10,
+            "penalty_until": "start_of_caster_next_turn"
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "caster_level": 5,
+            "attack": "hit",
+            "dice_rolled": [
+              8,
+              1
+            ]
+          },
+          "expected": {
+            "damage": 9,
+            "damage_type": "cold",
+            "target_speed_penalty_ft": 10,
+            "penalty_until": "start_of_caster_next_turn"
+          }
+        },
+        {
+          "id": "05",
+          "kind": "boundary",
+          "input": {
+            "caster_level": 11,
+            "attack": "hit",
+            "dice_rolled": [
+              1,
+              1,
+              1
+            ]
+          },
+          "expected": {
+            "damage": 3,
+            "damage_type": "cold",
+            "target_speed_penalty_ft": 10,
+            "penalty_until": "start_of_caster_next_turn"
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "4C.spell.shocking_grasp",
+      "family": "spell",
+      "status": "PENDING_RESOLVER",
+      "resolver_task": "4C.4b",
+      "open_rule": "spell_shocking_grasp",
+      "source_ref": {
+        "pdf_page": 315,
+        "printed_page": 316,
+        "text": "Shocking Grasp (Evocation cantrip): Action, Touch, V S, Instantaneous; melee spell attack; on a hit 1d8 Lightning damage and the target can't make Opportunity Attacks until the start of its next turn (only Opportunity Attacks, not every Reaction; no metal-armor Advantage in this edition); one more d8 at levels 5, 11, 17",
+        "verified_from": "page scan image (embedded page JPEG of the checksum-matched PDF, read 2026-11-12; the OCR text layer agrees)"
+      },
+      "spell": {
+        "name": "Shocking Grasp",
+        "level": 0,
+        "casting_time": "Action",
+        "range": "Touch",
+        "concentration": false,
+        "resolution": "melee_spell_attack",
+        "damage": {
+          "die": 8,
+          "count_at_level_1": 1,
+          "type": "lightning"
+        },
+        "cantrip_upgrade": {
+          "5": 2,
+          "11": 3,
+          "17": 4
+        },
+        "on_hit_rider": {
+          "no_opportunity_attacks": true,
+          "until": "start_of_target_next_turn"
+        }
+      },
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "caster_level": 1,
+            "attack": "hit",
+            "dice_rolled": [
+              5
+            ]
+          },
+          "expected": {
+            "damage": 5,
+            "damage_type": "lightning",
+            "target_can_make_opportunity_attacks": false,
+            "rider_until": "start_of_target_next_turn"
+          }
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "caster_level": 1,
+            "attack": "miss"
+          },
+          "expected": {
+            "damage": 0,
+            "target_can_make_opportunity_attacks": true
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "caster_level": 5,
+            "attack": "hit",
+            "dice_rolled": [
+              3,
+              4
+            ]
+          },
+          "expected": {
+            "damage": 7,
+            "damage_type": "lightning",
+            "target_can_make_opportunity_attacks": false,
+            "rider_until": "start_of_target_next_turn"
+          }
+        },
+        {
+          "id": "04",
+          "kind": "interaction",
+          "input": {
+            "caster_level": 1,
+            "attack": "hit",
+            "dice_rolled": [
+              5
+            ],
+            "target_reaction": "other_than_opportunity_attack"
+          },
+          "expected": {
+            "damage": 5,
+            "target_reaction_blocked": false
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "4C.spell.toll_the_dead",
+      "family": "spell",
+      "status": "PENDING_RESOLVER",
+      "resolver_task": "4C.4b",
+      "open_rule": "spell_toll_the_dead",
+      "source_ref": {
+        "pdf_page": 333,
+        "printed_page": 334,
+        "text": "Toll the Dead (Necromancy cantrip): Action, 60 ft, V S, Instantaneous; one creature the caster can see; Wisdom save or 1d8 Necrotic, 1d12 instead if the target is missing any Hit Points; no damage on a success; one more die at levels 5, 11, 17",
+        "verified_from": "page scan image (embedded page JPEG of the checksum-matched PDF, read 2026-11-12; the OCR text layer agrees)"
+      },
+      "spell": {
+        "name": "Toll the Dead",
+        "level": 0,
+        "casting_time": "Action",
+        "range": "60 feet",
+        "concentration": false,
+        "resolution": "saving_throw",
+        "save_ability": "wisdom",
+        "damage": {
+          "die": 8,
+          "die_if_target_missing_hp": 12,
+          "count_at_level_1": 1,
+          "type": "necrotic",
+          "on_success": 0
+        },
+        "target_must_be_seen": true,
+        "cantrip_upgrade": {
+          "5": 2,
+          "11": 3,
+          "17": 4
+        }
+      },
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "caster_level": 1,
+            "save": "fail",
+            "target_hp": 10,
+            "target_max_hp": 10,
+            "dice_rolled": [
+              7
+            ]
+          },
+          "expected": {
+            "die": 8,
+            "damage": 7,
+            "damage_type": "necrotic"
+          }
+        },
+        {
+          "id": "02",
+          "kind": "boundary",
+          "input": {
+            "caster_level": 1,
+            "save": "fail",
+            "target_hp": 9,
+            "target_max_hp": 10,
+            "dice_rolled": [
+              11
+            ]
+          },
+          "expected": {
+            "die": 12,
+            "damage": 11,
+            "damage_type": "necrotic"
+          }
+        },
+        {
+          "id": "03",
+          "kind": "normal",
+          "input": {
+            "caster_level": 1,
+            "save": "success",
+            "target_hp": 9,
+            "target_max_hp": 10
+          },
+          "expected": {
+            "damage": 0
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "caster_level": 5,
+            "save": "fail",
+            "target_hp": 4,
+            "target_max_hp": 10,
+            "dice_rolled": [
+              12,
+              1
+            ]
+          },
+          "expected": {
+            "die": 12,
+            "damage": 13,
+            "damage_type": "necrotic"
+          }
+        },
+        {
+          "id": "05",
+          "kind": "boundary",
+          "input": {
+            "caster_level": 17,
+            "save": "fail",
+            "target_hp": 10,
+            "target_max_hp": 10,
+            "dice_rolled": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "expected": {
+            "die": 8,
+            "damage": 10,
+            "damage_type": "necrotic"
+          }
+        }
+      ]
+    },
+    {
+      "leaf_id": "4C.spell.healing_word",
+      "family": "spell",
+      "status": "PENDING_RESOLVER",
+      "resolver_task": "4C.4b",
+      "open_rule": "spell_healing_word",
+      "source_ref": {
+        "pdf_page": 283,
+        "printed_page": 284,
+        "text": "Healing Word (level 1 Abjuration): Bonus Action, 60 ft, V only, Instantaneous; a creature of the caster's choice that the caster can see regains 2d4 + spellcasting ability modifier Hit Points; +2d4 per slot level above 1",
+        "verified_from": "page scan image (embedded page JPEG of the checksum-matched PDF, read 2026-11-12; the OCR text layer agrees)"
+      },
+      "spell": {
+        "name": "Healing Word",
+        "level": 1,
+        "casting_time": "Bonus Action",
+        "range": "60 feet",
+        "concentration": false,
+        "resolution": "healing",
+        "heal_source": "spell",
+        "healing": {
+          "die": 4,
+          "count_at_slot_1": 2,
+          "per_slot_level_above_1": 2,
+          "adds_spellcasting_modifier": true
+        },
+        "components": {
+          "v": true,
+          "s": false,
+          "m": false
+        },
+        "target_must_be_seen": true
+      },
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "slot_level": 1,
+            "spellcasting_modifier": 3,
+            "dice_rolled": [
+              2,
+              4
+            ]
+          },
+          "expected": {
+            "healing": 9,
+            "heal_source": "spell",
+            "slot_spent": 1,
+            "resource": "bonus_action"
+          }
+        },
+        {
+          "id": "02",
+          "kind": "boundary",
+          "input": {
+            "slot_level": 2,
+            "spellcasting_modifier": 3,
+            "dice_rolled": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "expected": {
+            "healing": 7,
+            "heal_source": "spell",
+            "slot_spent": 2,
+            "resource": "bonus_action"
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "slot_level": 1,
+            "spellcasting_modifier": 0,
+            "dice_rolled": [
+              1,
+              1
+            ]
+          },
+          "expected": {
+            "healing": 2,
+            "heal_source": "spell",
+            "slot_spent": 1,
+            "resource": "bonus_action"
+          }
+        }
+      ],
+      "not_covered": "healing above the Hit Point maximum (K07 open leaf heal_cap_and_temp_hp_no_stack_choice); a negative spellcasting modifier (the page names no minimum: UNVERIFIED, no case written); the one-leveled-spell-per-turn rule and slot levels above 3"
+    },
+    {
+      "leaf_id": "4C.spell.bless",
+      "family": "spell",
+      "status": "PENDING_RESOLVER",
+      "resolver_task": "4C.4b",
+      "open_rule": "spell_bless",
+      "source_ref": {
+        "pdf_page": 246,
+        "printed_page": 247,
+        "text": "Bless (level 1 Enchantment): Action, 30 ft, V S M (a Holy Symbol worth 5+ GP), Concentration up to 1 minute; up to three creatures in range add 1d4 to each attack roll and saving throw they make before the spell ends (not ability checks); one more target per slot level above 1",
+        "verified_from": "page scan image (embedded page JPEG of the checksum-matched PDF, read 2026-11-12; the OCR text layer agrees)"
+      },
+      "spell": {
+        "name": "Bless",
+        "level": 1,
+        "casting_time": "Action",
+        "range": "30 feet",
+        "concentration": true,
+        "duration": "Concentration, up to 1 minute",
+        "resolution": "buff",
+        "bonus": {
+          "die": 4,
+          "count": 1,
+          "applies_to": [
+            "attack_roll",
+            "saving_throw"
+          ]
+        },
+        "targets": {
+          "at_slot_1": 3,
+          "per_slot_level_above_1": 1
+        },
+        "material": {
+          "item": "Holy Symbol",
+          "min_value_gp": 5,
+          "consumed": false
+        }
+      },
+      "cases": [
+        {
+          "id": "01",
+          "kind": "normal",
+          "input": {
+            "roll": "attack_roll",
+            "d20_total": 12,
+            "bless_die": 3
+          },
+          "expected": {
+            "total": 15
+          }
+        },
+        {
+          "id": "02",
+          "kind": "normal",
+          "input": {
+            "roll": "saving_throw",
+            "d20_total": 9,
+            "bless_die": 4
+          },
+          "expected": {
+            "total": 13
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "roll": "ability_check",
+            "d20_total": 9,
+            "bless_die": 4
+          },
+          "expected": {
+            "total": 9
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "slot_level": 1,
+            "op": "max_targets"
+          },
+          "expected": {
+            "targets": 3
+          }
+        },
+        {
+          "id": "05",
+          "kind": "boundary",
+          "input": {
+            "slot_level": 3,
+            "op": "max_targets"
+          },
+          "expected": {
+            "targets": 5
+          }
+        },
+        {
+          "id": "06",
+          "kind": "interaction",
+          "input": {
+            "roll": "attack_roll",
+            "concentration": "lost",
+            "d20_total": 12,
+            "bless_die": 3
+          },
+          "expected": {
+            "total": 12
+          }
+        }
+      ],
+      "not_covered": "the length of 1 minute in combat rounds (not read in this leaf: UNVERIFIED, no case written); whether the engine treats the creation spellcasting focus as the Holy Symbol"
+    },
+    {
+      "leaf_id": "4C.concentration",
+      "family": "concentration",
+      "status": "PENDING_RESOLVER",
+      "resolver_task": "4C.4b",
+      "open_rule": "concentration",
+      "source_ref": {
+        "pdf_page": 362,
+        "printed_page": 363,
+        "text": "Concentration (glossary): the caster may end it any time; starting to cast another Concentration spell ends the first; taking damage asks a Constitution save, DC 10 or half the damage taken (round down), whichever is higher, at most 30; Incapacitated or death ends it",
+        "verified_from": "page scan image (embedded page JPEG of the checksum-matched PDF, read 2026-11-12; the OCR text layer agrees)",
+        "also": {
+          "text": "Unconscious includes Incapacitated: PDF 376 (printed 377), read 2026-11-12 from the text layer, already covered by K07.death_saves_and_stable.unconscious_condition; dropping to 0 Hit Points: K07.death_saves_and_stable.core (PDF 28); a save total that equals the DC succeeds (cases 09/10): D20 Test step 3, PDF 9 (printed 10), read 2026-11-12 from the text layer"
+        }
+      },
+      "cases": [
+        {
+          "id": "01",
+          "kind": "boundary",
+          "input": {
+            "op": "save_dc",
+            "damage": 1
+          },
+          "expected": {
+            "dc": 10
+          }
+        },
+        {
+          "id": "02",
+          "kind": "boundary",
+          "input": {
+            "op": "save_dc",
+            "damage": 21
+          },
+          "expected": {
+            "dc": 10
+          }
+        },
+        {
+          "id": "03",
+          "kind": "boundary",
+          "input": {
+            "op": "save_dc",
+            "damage": 22
+          },
+          "expected": {
+            "dc": 11
+          }
+        },
+        {
+          "id": "04",
+          "kind": "boundary",
+          "input": {
+            "op": "save_dc",
+            "damage": 23
+          },
+          "expected": {
+            "dc": 11
+          }
+        },
+        {
+          "id": "05",
+          "kind": "normal",
+          "input": {
+            "op": "save_dc",
+            "damage": 40
+          },
+          "expected": {
+            "dc": 20
+          }
+        },
+        {
+          "id": "06",
+          "kind": "boundary",
+          "input": {
+            "op": "save_dc",
+            "damage": 59
+          },
+          "expected": {
+            "dc": 29
+          }
+        },
+        {
+          "id": "07",
+          "kind": "boundary",
+          "input": {
+            "op": "save_dc",
+            "damage": 60
+          },
+          "expected": {
+            "dc": 30
+          }
+        },
+        {
+          "id": "08",
+          "kind": "boundary",
+          "input": {
+            "op": "save_dc",
+            "damage": 61
+          },
+          "expected": {
+            "dc": 30
+          }
+        },
+        {
+          "id": "09",
+          "kind": "normal",
+          "input": {
+            "op": "damage_save",
+            "damage": 8,
+            "save_total": 10
+          },
+          "expected": {
+            "kept": true
+          }
+        },
+        {
+          "id": "10",
+          "kind": "boundary",
+          "input": {
+            "op": "damage_save",
+            "damage": 8,
+            "save_total": 9
+          },
+          "expected": {
+            "kept": false
+          }
+        },
+        {
+          "id": "11",
+          "kind": "interaction",
+          "input": {
+            "op": "start_casting",
+            "holding": "Bless",
+            "casting_requires_concentration": true
+          },
+          "expected": {
+            "kept": false
+          }
+        },
+        {
+          "id": "12",
+          "kind": "interaction",
+          "input": {
+            "op": "start_casting",
+            "holding": "Bless",
+            "casting_requires_concentration": false
+          },
+          "expected": {
+            "kept": true
+          }
+        },
+        {
+          "id": "13",
+          "kind": "interaction",
+          "input": {
+            "op": "condition",
+            "condition": "incapacitated"
+          },
+          "expected": {
+            "kept": false
+          }
+        },
+        {
+          "id": "14",
+          "kind": "interaction",
+          "input": {
+            "op": "condition",
+            "condition": "unconscious"
+          },
+          "expected": {
+            "kept": false
+          }
+        },
+        {
+          "id": "15",
+          "kind": "interaction",
+          "input": {
+            "op": "dies"
+          },
+          "expected": {
+            "kept": false
+          }
+        },
+        {
+          "id": "16",
+          "kind": "normal",
+          "input": {
+            "op": "end_voluntarily"
+          },
+          "expected": {
+            "kept": false,
+            "action_spent": false
+          }
+        }
+      ],
+      "not_covered": "several damage instances in one turn (one save per instance is not stated on this page: UNVERIFIED, no case written)"
+    }
   ]
 }
