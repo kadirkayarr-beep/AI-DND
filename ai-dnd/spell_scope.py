@@ -99,6 +99,10 @@ def upgrade(world, character):
         return
     validate(state, character)
     cls = state["class"]
+    if cls == "Wizard" and not _book_from(character):
+        # Save formats 1-3 carry no creation spells (load_game empties them): there is no book to build and the engine
+        # never chooses one. Stay version 1 (behaves exactly as before); the window reports `spellbook_missing`.
+        return
     fighting = world.get("combat", {}).get("active")
     migrated = {**copy.deepcopy(state), "version": 2,
                 "spellbook": _book_from(character) if cls == "Wizard" else None,

@@ -25,14 +25,29 @@ def _state(session: Any, *, write: bool = True) -> dict[str, Any] | None:
     return state
 
 
+# A creation or migration window waits for the player's first list (fix round 1): it ignores the clock and a fight,
+# and ends with the first saved list, `close: true` or a finished Long Rest. A Long Rest window keeps the approved rule.
+_STANDING = frozenset({"creation", "migration"})
+
+
+def _blocked(state: Any) -> str | None:
+    """Why this caster cannot use the window: not a preparing class, or a Wizard whose save carries no spellbook."""
+    if not isinstance(state, dict) or state["class"] not in spell_scope.PREPARING:
+        return "not_preparing_class"
+    if state["version"] == 1:  # only a Wizard with no saved creation spells stays version 1 (spell_scope.upgrade)
+        return "spellbook_missing"
+    return None
+
+
 def _supported(state: Any) -> bool:
-    return isinstance(state, dict) and state["class"] in spell_scope.PREPARING
+    return _blocked(state) is None
 
 
 def _open(world: dict[str, Any], state: Any) -> bool:
     window = state.get("prepare_window") if isinstance(state, dict) else None
-    return (window is not None and window["opened_second"] == spell_scope.clock_second(world)
-            and not world.get("combat", {}).get("active"))
+    if window is None or world.get("combat", {}).get("active"):
+        return False
+    return window["reason"] in _STANDING or window["opened_second"] == spell_scope.clock_second(world)
 
 
 def window_open(session: Any) -> bool:
@@ -47,8 +62,10 @@ def open_window(session: Any, reason: str) -> None:
 
 
 def close_window(session: Any) -> None:
+    """Combat start: a Long Rest window ends for good; a creation/migration window waits for the first list."""
     state = session.world_state.get("spellcasting_v1")
-    if isinstance(state, dict) and state.get("prepare_window") is not None:
+    window = state.get("prepare_window") if isinstance(state, dict) else None
+    if window is not None and window["reason"] not in _STANDING:
         state["prepare_window"] = None
 
 
@@ -62,19 +79,24 @@ def _candidates(state: dict[str, Any], character: dict[str, Any]) -> list[str]:
 
 def view(session: Any) -> dict[str, Any]:
     state = _state(session, write=False)
-    if not _supported(state):
-        return {"supported": False, "class_name": session.character.get("class"), "open": False, "reason": None,
-                "limit": 0, "candidates": [], "prepared": [], "spellbook": None}
+    blocked = _blocked(state)
+    if blocked:
+        return {"supported": False, "blocked_reason": blocked, "class_name": session.character.get("class"),
+                "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None}
     window = state["prepare_window"]
-    return {"supported": True, "class_name": state["class"], "open": _open(session.world_state, state),
+    return {"supported": True, "blocked_reason": None, "class_name": state["class"], "open": _open(session.world_state, state),
             "reason": window["reason"] if window else None, "limit": spell_scope.prepare_limit(session.character),
             "candidates": _candidates(state, session.character), "prepared": list(state["prepared"]),
             "spellbook": copy.deepcopy(state["spellbook"])}
 
 
-def prepare(session: Any, requested: list[str], close: bool = False) -> dict[str, Any]:
+def prepare(session: Any, requested: list[str] | None, close: bool = False) -> dict[str, Any]:
+    """`requested=None` keeps today's list (a plain "done"); an explicit [] is an explicit empty list."""
     state = _state(session)
-    if not _supported(state):
+    blocked = _blocked(state)
+    if blocked == "spellbook_missing":
+        raise ValueError("Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor.")
+    if blocked:
         raise ValueError("Bu sınıf büyü hazırlamaz.")
     if not window_open(session):
         raise ValueError("Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş olmalısın.")
@@ -83,7 +105,7 @@ def prepare(session: Any, requested: list[str], close: bool = False) -> dict[str
     cantrips = {s["id"] for s in SPELLS_CATALOG[state["class"]]["cantrips"]}
     kept: list[str] = []
     dropped: list[dict[str, str]] = []
-    for spell in requested:
+    for spell in (list(state["prepared"]) if requested is None else requested):
         if spell in kept:
             reason = "duplicate"
         elif spell in cantrips:
@@ -100,8 +122,8 @@ def prepare(session: Any, requested: list[str], close: bool = False) -> dict[str
         return {"status": "too_many", "prepared": kept, "dropped": dropped, "limit": limit, "excess": excess,
                 "open": True, "message": f"En çok {limit} büyü hazırlayabilirsin; {excess} fazlası var. Hangisini bırakıyorsun?"}
     candidate = {**copy.deepcopy(state), "prepared": kept}
-    if close:
-        candidate["prepare_window"] = None
+    if close or state["prepare_window"]["reason"] in _STANDING:
+        candidate["prepare_window"] = None  # the first saved list ends a creation/migration window
     spell_scope.validate(candidate, character)  # check the whole new state before it is written
     session.world_state["spellcasting_v1"] = candidate
     empty = limit - len(kept)

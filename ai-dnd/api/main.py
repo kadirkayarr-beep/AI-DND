@@ -2415,14 +2415,6 @@ def create_app(
                     })
                 raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
             require_current(record)
-            window = spell_preparation.view(session)
-            if not window["supported"]:
-                raise HTTPException(status_code=409, detail={
-                    "code": "prepare_not_supported", "message": "Bu sınıf büyü hazırlamaz."})
-            if not window["open"]:
-                raise HTTPException(status_code=409, detail={
-                    "code": "prepare_window_closed",
-                    "message": "Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş olmalısın."})
             snapshot = _capture_session(session)
             metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
             journal_snapshot = copy.deepcopy(record.journal)
@@ -2438,7 +2430,24 @@ def create_app(
 
             response_payload = None
             try:
-                result = spell_preparation.prepare(session, list(request.prepared), close=request.close)
+                try:
+                    window = spell_preparation.view(session)
+                except (ValueError, KeyError, TypeError):
+                    raise HTTPException(status_code=409, detail={
+                        "code": "prepare_unavailable", "message": "Kayıtlı büyü durumu okunamadı."}) from None
+                if window["blocked_reason"] == "spellbook_missing":
+                    raise HTTPException(status_code=409, detail={
+                        "code": "prepare_spellbook_missing",
+                        "message": "Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor."})
+                if not window["supported"]:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "prepare_not_supported", "message": "Bu sınıf büyü hazırlamaz."})
+                if not window["open"]:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "prepare_window_closed",
+                        "message": "Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş olmalısın."})
+                prepared = None if request.prepared is None else list(request.prepared)
+                result = spell_preparation.prepare(session, prepared, close=request.close)
                 response = SpellPrepareCommandResult(
                     session_id=session_id, action_id=action_id,
                     state=serialize_session_state(session, record.journal, record.lore_authority),
@@ -2453,6 +2462,9 @@ def create_app(
                                          "response": response_payload},
                 )
                 return response_payload
+            except HTTPException:
+                restore_command()
+                raise
             except ValueError as error:
                 restore_command()
                 raise HTTPException(status_code=409, detail={
@@ -2460,6 +2472,17 @@ def create_app(
             except CampaignError as error:
                 _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
                 restore_command()
+                if isinstance(error, CampaignStaleError):
+                    # Same as species actions: the winning receipt may only become visible at save time.
+                    try:
+                        previous = manager.get_turn_action(record, action_id)
+                    except CampaignError as receipt_error:
+                        raise campaign_http_exception(receipt_error) from None
+                    if previous is not None and previous["request_hash"] != request_hash:
+                        raise HTTPException(status_code=409, detail={
+                            "code": "action_id_conflict",
+                            "message": "This action ID was already used for a different action.",
+                        }) from None
                 raise campaign_http_exception(error) from None
             except Exception as error:
                 _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)

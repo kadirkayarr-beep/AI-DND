@@ -3364,12 +3364,16 @@ components:
     SpellPrepareInput:
       type: object
       additionalProperties: false
+      description: Omitted (or null) prepared keeps today's list; an explicit empty list is an explicit empty list.
       properties:
         prepared:
-          type: array
+          type:
+          - array
+          - 'null'
           maxItems: 32
           items:
             type: string
+            maxLength: 64
         close:
           type: boolean
           default: false
@@ -3378,8 +3382,6 @@ components:
           - string
           - 'null'
           format: uuid
-      required:
-      - prepared
     SpellPrepareDropped:
       type: object
       additionalProperties: false
@@ -3405,6 +3407,14 @@ components:
           format: uuid
         supported:
           type: boolean
+        blocked_reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - not_preparing_class
+          - spellbook_missing
+          - null
         class_name:
           type:
           - string

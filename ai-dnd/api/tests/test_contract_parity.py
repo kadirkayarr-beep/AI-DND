@@ -1272,8 +1272,12 @@ class ContractParityTests(unittest.TestCase):
                          "#/components/schemas/SpellPrepareResult")
         self.assertEqual(_property("SpellPrepareResult", "dropped")["items"].get("$ref"),
                          "#/components/schemas/SpellPrepareDropped")
-        self.assertEqual(_property("SpellPrepareInput", "prepared").get("maxItems"),
-                         SpellPrepareRequest.model_json_schema()["properties"]["prepared"].get("maxItems"))
+        runtime_list = next(branch for branch in SpellPrepareRequest.model_json_schema()["properties"]["prepared"]["anyOf"]
+                            if branch.get("type") == "array")
+        published_list = _property("SpellPrepareInput", "prepared")
+        self.assertEqual((published_list.get("maxItems"), published_list["items"].get("maxLength")),
+                         (runtime_list.get("maxItems"), runtime_list["items"].get("maxLength")))
+        self.assertEqual((runtime_list.get("maxItems"), runtime_list["items"].get("maxLength")), (32, 64))
 
     def test_species_action_schemas_match_runtime_models(self):
         models = {

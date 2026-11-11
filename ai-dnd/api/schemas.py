@@ -793,7 +793,9 @@ class SpellPrepareRequest(BaseModel):
     """4C.2: the player's own preparation list; the engine keeps the valid names and never adds one."""
     model_config = ConfigDict(extra="forbid")
 
-    prepared: list[StrictStr] = Field(max_length=32)
+    # Omitted keeps today's list (a plain "done" with close); [] is an explicit empty list. Names and the list are capped
+    # so an oversized value is refused before it can reach a stored receipt through `dropped`.
+    prepared: Annotated[list[Annotated[StrictStr, Field(max_length=64)]], Field(max_length=32)] | None = None
     close: StrictBool = False
     action_id: UUID | None = None
 
@@ -809,6 +811,7 @@ class SpellPrepareView(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     supported: bool
+    blocked_reason: Literal["not_preparing_class", "spellbook_missing"] | None = None
     class_name: str | None = None
     open: bool
     reason: Literal["creation", "long_rest", "migration"] | None = None

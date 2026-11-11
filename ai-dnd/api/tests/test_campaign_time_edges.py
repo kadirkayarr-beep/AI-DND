@@ -2779,9 +2779,7 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertLess(character["current_hp"], character["max_hp"])
             self.assertEqual(character["species_trait_state"], traits)
             self.assertEqual(character["species_trait_state"]["adrenaline_rush_uses_remaining"], 0)
-            # 4C.2: starting the fight closes the Wizard's preparation window; nothing else in the spell state moves.
-            self.assertEqual(world["spellcasting_v1"],
-                             {**spells, "prepare_window": None} if status == "IN_COMBAT" else spells)
+            self.assertEqual(world["spellcasting_v1"], spells)
             self.assertEqual(world["spellcasting_v1"]["slots"]["1"], 0)
             self.assertEqual(world["campaign_time"], partial_clock)
             self.assertEqual(world["campaign_time"]["elapsed_seconds"], 1200)
@@ -3220,8 +3218,7 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertLess(character["current_hp"], character["max_hp"])
             self.assertEqual(character["species_trait_state"], traits)
             self.assertEqual(character["species_trait_state"]["adrenaline_rush_uses_remaining"], 0)
-            # 4C.2: every check here is after the fight started, which closed the Wizard's preparation window.
-            self.assertEqual(world["spellcasting_v1"], {**spells, "prepare_window": None})
+            self.assertEqual(world["spellcasting_v1"], spells)
             self.assertEqual(world["spellcasting_v1"]["slots"]["1"], 0)
             self.assertEqual(world["campaign_time"], partial_clock)
             self.assertEqual(world["campaign_time"]["elapsed_seconds"], 1218 if window_expired else 1200)

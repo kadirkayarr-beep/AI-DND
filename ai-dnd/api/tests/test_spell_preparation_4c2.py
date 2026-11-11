@@ -20,12 +20,14 @@ import spell_scope
 from api.auth import FixedAuthenticator
 from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
 from api.main import _capture_session, _restore_session, create_app
+from api.persistence.campaign_models import CampaignStaleError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as campaign_fixtures
 from api.tests import test_death_system as fixtures
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_time import scene
+from api.tests.test_economic_action_http import EconomicHttpFixture
 from api.tests.test_spell_scope import caster
 from api.tests.town_seed import fixed_town
 
@@ -45,6 +47,15 @@ def prepper(cls="Wizard", session=None):
     if s.world_state.get("combat", {}).get("active"):
         s.end_combat("fixture_setup")
     spell_scope.initialize(s)
+    return s
+
+
+def rested(cls="Wizard"):
+    """A caster whose creation list is saved and whose window is the one a finished Long Rest opened."""
+    s = prepper(cls)
+    spell_preparation.prepare(s, [], close=True)
+    s.resolve_species_trait_action("long_rest")
+    assert s.world_state["spellcasting_v1"]["prepare_window"]["reason"] == "long_rest"
     return s
 
 
@@ -125,8 +136,8 @@ class CreationAndShape(unittest.TestCase):
 
 
 class PrepareWindow(unittest.TestCase):
-    def test_window_is_open_at_creation_and_closes_when_the_clock_moves(self):
-        w = prepper("Wizard")
+    def test_a_long_rest_window_closes_when_the_clock_moves(self):
+        w = rested("Wizard")
         self.assertTrue(spell_preparation.window_open(w))
         w.advance_campaign_time(60, "wait")
         self.assertFalse(spell_preparation.window_open(w))
@@ -134,13 +145,59 @@ class PrepareWindow(unittest.TestCase):
             spell_preparation.prepare(w, ["Magic Missile"])
         self.assertEqual(w.world_state["spellcasting_v1"]["prepared"], [])
 
-    def test_combat_start_closes_the_window_for_good(self):
-        w = prepper("Wizard")
+    def test_combat_start_closes_a_long_rest_window_for_good(self):
+        w = rested("Wizard")
         fixtures.start_test_combat(w)
         self.assertIsNone(w.world_state["spellcasting_v1"]["prepare_window"])
         self.assertFalse(spell_preparation.window_open(w))
         w.end_combat("test")
         self.assertFalse(spell_preparation.window_open(w))
+
+    def test_a_new_caster_who_spends_time_first_can_still_prepare(self):
+        for cls, spell in (("Wizard", "Magic Missile"), ("Cleric", "Bless")):
+            with self.subTest(cls=cls):
+                s = prepper(cls)
+                s.advance_campaign_time(2 * 3600, "wait")
+                self.assertTrue(spell_preparation.window_open(s))
+                result = spell_preparation.prepare(s, [spell])
+                self.assertEqual((result["status"], result["prepared"], result["open"]), ("prepared", [spell], False))
+                # the first saved list ends the creation window
+                self.assertIsNone(s.world_state["spellcasting_v1"]["prepare_window"])
+                with self.assertRaises(ValueError):
+                    spell_preparation.prepare(s, [])
+
+    def test_combat_start_keeps_a_creation_or_migration_window(self):
+        for reason in ("creation", "migration"):
+            with self.subTest(reason=reason):
+                w = prepper("Wizard")
+                w.world_state["spellcasting_v1"]["prepare_window"]["reason"] = reason
+                window = copy.deepcopy(w.world_state["spellcasting_v1"]["prepare_window"])
+                fixtures.start_test_combat(w)
+                self.assertEqual(w.world_state["spellcasting_v1"]["prepare_window"], window)
+                self.assertFalse(spell_preparation.window_open(w))  # never during the fight
+                w.end_combat("test")
+                w.advance_campaign_time(60, "wait")
+                self.assertTrue(spell_preparation.window_open(w))
+
+    def test_a_long_rest_replaces_a_creation_window(self):
+        w = prepper("Wizard")
+        w.resolve_species_trait_action("long_rest")
+        self.assertEqual(w.world_state["spellcasting_v1"]["prepare_window"],
+                         {"opened_second": now(w), "reason": "long_rest"})
+        w.advance_campaign_time(60, "wait")
+        self.assertFalse(spell_preparation.window_open(w))
+
+    def test_an_omitted_list_keeps_todays_list_and_an_empty_list_empties_it(self):
+        w = rested("Wizard")
+        spell_preparation.prepare(w, ["Magic Missile", "Shield"])
+        kept = spell_preparation.prepare(w, None, close=True)
+        self.assertEqual((kept["prepared"], kept["dropped"], kept["open"]), (["Magic Missile", "Shield"], [], False))
+        self.assertEqual(w.world_state["spellcasting_v1"]["prepared"], ["Magic Missile", "Shield"])
+        w = rested("Wizard")
+        spell_preparation.prepare(w, ["Magic Missile", "Shield"])
+        emptied = spell_preparation.prepare(w, [], close=True)
+        self.assertEqual(emptied["prepared"], [])
+        self.assertEqual(w.world_state["spellcasting_v1"]["prepared"], [])
 
     def test_prepare_keeps_the_valid_ones_and_names_why_the_rest_fell(self):
         w = prepper("Wizard")
@@ -151,9 +208,9 @@ class PrepareWindow(unittest.TestCase):
         self.assertEqual(result["dropped"], [{"spell_id": "Cure Wounds", "reason": "not_in_spellbook"},
                                              {"spell_id": "Magic Missile", "reason": "duplicate"},
                                              {"spell_id": "Fire Bolt", "reason": "cantrip"}])
-        self.assertEqual((result["limit"], result["open"]), (4, True))
+        self.assertEqual((result["limit"], result["open"]), (4, False))
         state = w.world_state["spellcasting_v1"]
-        self.assertEqual(state, {**before, "prepared": ["Magic Missile", "Shield"]})
+        self.assertEqual(state, {**before, "prepared": ["Magic Missile", "Shield"], "prepare_window": None})
         c = prepper("Cleric")
         result = spell_preparation.prepare(c, ["Cure Wounds", "Magic Missile", "Bless"])
         self.assertEqual(result["prepared"], ["Cure Wounds", "Bless"])
@@ -174,7 +231,7 @@ class PrepareWindow(unittest.TestCase):
         self.assertIn("3", result["message"])
 
     def test_close_ends_the_window_and_the_same_request_is_idempotent(self):
-        w = prepper("Wizard")
+        w = rested("Wizard")
         first = spell_preparation.prepare(w, ["Magic Missile"])
         state = copy.deepcopy(w.world_state["spellcasting_v1"])
         self.assertEqual(spell_preparation.prepare(w, ["Magic Missile"]), first)
@@ -237,7 +294,8 @@ class PrepareWindow(unittest.TestCase):
     def test_view_lists_candidates_and_limit(self):
         w = prepper("Wizard")
         view = spell_preparation.view(w)
-        self.assertEqual(view, {"supported": True, "class_name": "Wizard", "open": True, "reason": "creation",
+        self.assertEqual(view, {"supported": True, "blocked_reason": None, "class_name": "Wizard", "open": True,
+                                "reason": "creation",
                                 "limit": 4, "candidates": BOOK, "prepared": [], "spellbook": BOOK})
         c = prepper("Cleric")
         self.assertEqual(spell_preparation.view(c)["candidates"], [s["id"] for s in SPELLS_CATALOG["Cleric"]["spells_level_1"]])
@@ -295,7 +353,7 @@ class SaveUndoReplay(unittest.TestCase):
         self.assertFalse(spell_preparation.window_open(w))
 
     def test_undo_snapshot_restores_the_window_combat_closed(self):
-        w = prepper("Wizard")
+        w = rested("Wizard")
         snapshot = _capture_session(w)
         before = copy.deepcopy(w.world_state["spellcasting_v1"])
         fixtures.start_test_combat(w)
@@ -402,6 +460,27 @@ class OldSaveMigration(unittest.TestCase):
         self.assertEqual(w.world_state["spellcasting_v1"]["spellbook"], ["Shield", "Sleep"])
         spell_scope.validate(w.world_state["spellcasting_v1"], w.character)
 
+    def test_old_wizard_save_without_creation_spells_stays_version_one_and_says_so(self):
+        """Save formats 1-3 carry no creation spells (load_game empties them): no book to build, none is invented."""
+        with tempfile.TemporaryDirectory() as folder:
+            path, payload = self.old_save("Wizard", folder)
+            payload["player"]["spells"] = []
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            fresh = game.GameSession()
+            fresh.load_game(path)
+            self.assertEqual(fresh.world_state["spellcasting_v1"], payload["world_state"]["spellcasting_v1"])
+            view = spell_preparation.view(fresh)
+            self.assertEqual((view["supported"], view["blocked_reason"]), (False, "spellbook_missing"))
+            before = copy.deepcopy(fresh.world_state)
+            with self.assertRaises(ValueError):
+                spell_preparation.prepare(fresh, ["Magic Missile"])
+            self.assertEqual(fresh.world_state, before)
+        w = prepper("Wizard")
+        spells = list(w.character["spells"])
+        w.world_state["spellcasting_v1"] = v1_of(w.world_state["spellcasting_v1"])
+        spell_scope.upgrade(w.world_state, w.character)
+        self.assertEqual(w.character["spells"], spells)  # the migration never edits the character's own spells
+
     def test_migration_during_a_fight_opens_no_window(self):
         s, _ = caster(cls="Cleric")
         s.world_state["spellcasting_v1"] = v1_of(s.world_state["spellcasting_v1"])
@@ -487,6 +566,149 @@ class PrepareApi(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.serialize_game_state(), before)
         view = await self.http.get(f"/api/game/sessions/{sid}/spellcasting/prepare")
         self.assertEqual((view.status_code, view.json()["supported"]), (200, False))
+
+    async def test_oversized_names_and_lists_are_refused_before_any_receipt(self):
+        created = await self.campaign()
+        sid = created["session_id"]
+        s = prepper("Wizard", self.manager.get(sid).game_session)
+        before = copy.deepcopy(s.serialize_game_state())
+        url = f"/api/game/sessions/{sid}/spellcasting/prepare"
+        for body in ({"prepared": ["x" * 65]}, {"prepared": ["Shield"] * 33}, {"prepared": [7]}):
+            with self.subTest(body=str(body)[:40]):
+                action_id = str(uuid.uuid4())
+                response = await self.http.post(url, json={"action_id": action_id, **body})
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertIsNone(self.manager.get_turn_action(self.manager.get(sid), action_id))
+        self.assertEqual(s.serialize_game_state(), before)
+        fits = await self.http.post(url, json={"action_id": str(uuid.uuid4()), "prepared": ["x" * 64]})
+        self.assertEqual(fits.status_code, 200, fits.text)
+        self.assertEqual(fits.json()["result"]["dropped"], [{"spell_id": "x" * 64, "reason": "not_in_spellbook"}])
+
+    async def test_a_stale_save_that_lost_to_another_body_is_an_action_id_conflict(self):
+        created = await self.campaign()
+        sid = created["session_id"]
+        s = prepper("Wizard", self.manager.get(sid).game_session)
+        before = copy.deepcopy(s.serialize_game_state())
+        winner = {"action_id": "x", "request_hash": "another body", "response": {}}
+        with patch.object(self.manager, "get_turn_action", side_effect=[None, winner]), \
+                patch.object(self.manager, "autosave_turn", side_effect=CampaignStaleError("stale")):
+            response = await self.http.post(f"/api/game/sessions/{sid}/spellcasting/prepare",
+                                            json={"action_id": str(uuid.uuid4()), "prepared": ["Shield"]})
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "action_id_conflict")
+        self.assertEqual(s.serialize_game_state(), before)
+
+    async def test_an_unreadable_spell_state_is_a_clean_refusal(self):
+        created = await self.campaign()
+        sid = created["session_id"]
+        s = prepper("Wizard", self.manager.get(sid).game_session)
+        s.world_state["spellcasting_v1"]["spellbook"] = 5
+        broken = copy.deepcopy(s.world_state["spellcasting_v1"])
+        response = await self.http.post(f"/api/game/sessions/{sid}/spellcasting/prepare",
+                                        json={"action_id": str(uuid.uuid4()), "prepared": ["Shield"]})
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "prepare_unavailable")
+        self.assertEqual(s.world_state["spellcasting_v1"], broken)
+
+
+class PrepareWithTurnsUndoRestAndResume(EconomicHttpFixture):
+    """The window next to real turns, the Undo route, a Long Rest over HTTP and a store resume of a version-1 save."""
+
+    async def asyncSetUp(self):
+        with fixed_town(self, 4301):
+            await EconomicHttpFixture.asyncSetUp(self)
+        self.sid = self.campaign["session_id"]
+        self.url = f"/api/game/sessions/{self.sid}/spellcasting/prepare"
+
+    def wizard(self):
+        session = prepper("Wizard", self.record.game_session)
+        self.save()
+        return session
+
+    async def prep(self, **body):
+        return await self.http.post(self.url, json={"action_id": str(uuid.uuid4()), **body})
+
+    async def test_a_preparation_after_a_turn_makes_that_turns_undo_stale(self):
+        w = self.wizard()
+        turn_id, _ = await self.real_turn()
+        prepared = await self.prep(prepared=["Magic Missile"])
+        self.assertEqual(prepared.status_code, 200, prepared.text)
+        undone = await self.undo(turn_id)
+        self.assertEqual(undone.status_code, 409, undone.text)
+        self.assertEqual(undone.json()["detail"]["code"], "undo_stale")
+        self.assertEqual(w.world_state["spellcasting_v1"]["prepared"], ["Magic Missile"])
+
+    async def test_undoing_a_turn_after_a_preparation_keeps_the_list(self):
+        w = self.wizard()
+        prepared = await self.prep(prepared=["Magic Missile", "Shield"])
+        self.assertEqual(prepared.status_code, 200, prepared.text)
+        spells = copy.deepcopy(w.world_state["spellcasting_v1"])
+        turn_id, _ = await self.real_turn()
+        undone = await self.undo(turn_id)
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.assertEqual(self.record.game_session.world_state["spellcasting_v1"], spells)
+        self.assertEqual(self.store.get_campaign(self.campaign["campaign_id"]).payload["engine_save"]["world_state"]
+                         ["spellcasting_v1"], spells)
+
+    async def test_long_rest_then_the_window_is_open_then_a_list_is_saved(self):
+        w = self.wizard()
+        done = await self.prep(prepared=[], close=True)
+        self.assertEqual(done.status_code, 200, done.text)
+        if "campaign_time" not in w.world_state:
+            campaign_time.initialize(w.world_state)
+        rest = await self.http.post(f"/api/game/sessions/{self.sid}/species-actions",
+                                    json={"action": "long_rest", "action_id": str(uuid.uuid4())})
+        self.assertEqual(rest.status_code, 200, rest.text)
+        view = await self.http.get(self.url)
+        self.assertEqual((view.json()["open"], view.json()["reason"]), (True, "long_rest"))
+        saved = await self.prep(prepared=["Sleep", "Shield"])
+        self.assertEqual(saved.status_code, 200, saved.text)
+        self.assertEqual(w.world_state["spellcasting_v1"]["prepared"], ["Sleep", "Shield"])
+        self.assertEqual(self.store.get_campaign(self.campaign["campaign_id"]).payload["engine_save"]["world_state"]
+                         ["spellcasting_v1"]["prepared"], ["Sleep", "Shield"])
+
+    async def resume(self):
+        manager = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
+        sid, record, *_ = manager.resume_campaign(self.campaign["campaign_id"])
+        app = create_app(session_manager=manager, authenticator=FixedAuthenticator(TEST_PLAYER))
+        return sid, record, httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver")
+
+    async def test_store_resume_of_a_version_one_wizard_campaign(self):
+        w = self.wizard()
+        old = v1_of(w.world_state["spellcasting_v1"])
+        w.world_state["spellcasting_v1"] = copy.deepcopy(old)
+        self.save()
+        stored = self.store.get_campaign(self.campaign["campaign_id"]).payload["engine_save"]["world_state"]
+        self.assertEqual(stored["spellcasting_v1"], old)
+        sid, record, http = await self.resume()
+        async with http:
+            state = record.game_session.world_state["spellcasting_v1"]
+            self.assertEqual(state, {**old, "version": 2, "spellbook": BOOK, "prepare_window": {
+                "opened_second": now(record.game_session), "reason": "migration"}})
+            view = await http.get(f"/api/game/sessions/{sid}/spellcasting/prepare")
+            self.assertEqual((view.json()["open"], view.json()["reason"]), (True, "migration"))
+            saved = await http.post(f"/api/game/sessions/{sid}/spellcasting/prepare",
+                                    json={"action_id": str(uuid.uuid4()), "prepared": ["Magic Missile"]})
+            self.assertEqual(saved.status_code, 200, saved.text)
+        self.assertEqual(self.store.get_campaign(self.campaign["campaign_id"]).payload["engine_save"]["world_state"]
+                         ["spellcasting_v1"]["prepared"], ["Magic Missile"])
+
+    async def test_store_resume_of_a_version_one_wizard_without_creation_spells(self):
+        w = self.wizard()
+        old = v1_of(w.world_state["spellcasting_v1"])
+        w.world_state["spellcasting_v1"] = copy.deepcopy(old)
+        w.character["spells"] = []
+        self.save()
+        sid, record, http = await self.resume()
+        async with http:
+            self.assertEqual(record.game_session.world_state["spellcasting_v1"], old)
+            view = await http.get(f"/api/game/sessions/{sid}/spellcasting/prepare")
+            self.assertEqual((view.json()["supported"], view.json()["blocked_reason"]), (False, "spellbook_missing"))
+            refused = await http.post(f"/api/game/sessions/{sid}/spellcasting/prepare",
+                                      json={"action_id": str(uuid.uuid4()), "prepared": ["Magic Missile"]})
+            self.assertEqual(refused.status_code, 409, refused.text)
+            self.assertEqual(refused.json()["detail"]["code"], "prepare_spellbook_missing")
+        self.assertEqual(record.game_session.world_state["spellcasting_v1"], old)
 
 
 if __name__ == "__main__":
