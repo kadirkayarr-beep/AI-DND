@@ -46,7 +46,7 @@ class ClassRegistry(unittest.TestCase):
                     class_progression._register(handler)
 
     def test_unregistered_and_malformed_classes_get_the_level_one_defaults(self):
-        for name in ("Wizard", "", None, 7, ["Barbarian"]):
+        for name in ("Bard", "", None, 7, ["Barbarian"]):  # Wizard is registered since 4C.3; Bard is not
             handler = class_progression.for_class(name)
             self.assertEqual(handler.supported_level, 1)
             self.assertFalse(handler.selected_asi)

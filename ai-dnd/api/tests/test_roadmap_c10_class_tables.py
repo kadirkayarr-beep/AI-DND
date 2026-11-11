@@ -150,7 +150,7 @@ ORACLE = {
                                 slots=[slot_map(t) for t in FULL_SLOTS])),
 }
 CLASSES = tuple(ORACLE)
-NOT_PROGRESSED = tuple(name for name in CLASSES if name not in {"Fighter", "Monk", "Paladin", "Rogue"})  # these tables moved to classes/ with real progression (C14, C15, C16, C18)
+NOT_PROGRESSED = tuple(name for name in CLASSES if name not in {"Cleric", "Fighter", "Monk", "Paladin", "Rogue", "Wizard"})  # these tables moved to classes/ with real progression (C14, C15, C16, C18, 4C.3)
 
 
 def oracle_row(name, level):
@@ -207,7 +207,7 @@ class TableOracleTests(unittest.TestCase):
                 self.assertEqual(src["verification"]["level"], "dual-source+render-read")
                 self.assertTrue(src["verification"]["package_file"].endswith(f"{name.lower()}_1_20.md"))
                 self.assertEqual(src["unverified_cells"], [], "no cell is unverified; a null is an em dash")
-                if name not in {"Fighter", "Monk", "Paladin", "Rogue"}:  # a table moved to classes/ states its progression scope
+                if name not in {"Cleric", "Fighter", "Monk", "Paladin", "Rogue", "Wizard"}:  # a table moved to classes/ states its progression scope
                     self.assertEqual(src["scope"], "progression table only; no feature effects, spell lists or choices")
 
     def test_features_per_level_and_distinct_names(self):
@@ -381,7 +381,7 @@ class NoGameplayChangeTests(unittest.TestCase):
     """The new data must not make any class appear supported for creation or level-up."""
 
     def test_classes_directory_holds_only_the_classes_with_real_progression(self):
-        self.assertEqual(sorted(p.name for p in CLASS_DIR.glob("*.json")), ["barbarian.json", "fighter.json", "monk.json", "paladin.json", "rogue.json", "sorcerer.json"])
+        self.assertEqual(sorted(p.name for p in CLASS_DIR.glob("*.json")), ["barbarian.json", "cleric.json", "fighter.json", "monk.json", "paladin.json", "rogue.json", "sorcerer.json", "wizard.json"])
 
     def test_progression_engine_still_has_no_table_and_level_one_support_for_the_ten_classes(self):
         for name in NOT_PROGRESSED:
@@ -390,7 +390,8 @@ class NoGameplayChangeTests(unittest.TestCase):
                 self.assertFalse(cp.has_table({"class": name}))
                 self.assertEqual(cp._supported_level(name), 1)
                 self.assertIsNone(cp.capacity({"class": name, "level": 3}))
-        self.assertEqual((cp._supported_level("Sorcerer"), cp._supported_level("Barbarian"), cp._supported_level("Fighter"), cp._supported_level("Rogue")), (5, 5, 5, 5))
+        self.assertEqual((cp._supported_level("Sorcerer"), cp._supported_level("Barbarian"), cp._supported_level("Fighter"), cp._supported_level("Rogue"),
+                          cp._supported_level("Wizard"), cp._supported_level("Cleric")), (5, 5, 5, 5, 5, 5))
 
     def test_level_up_and_creation_stay_blocked_for_the_ten_classes(self):
         import game
