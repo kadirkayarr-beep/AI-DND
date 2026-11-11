@@ -1,6 +1,5 @@
 """4C.1: every damage event names its damage_type, every healing event its heal_source (event fields only, no saved key)."""
 import copy
-import json
 import unittest
 from unittest.mock import patch
 
@@ -177,32 +176,47 @@ class DamageTypeEverywhere(unittest.TestCase):
 
 
 class SavedStateUnchanged(unittest.TestCase):
-    """No new saved key: the only difference after a spell and a rest is the rules' own state."""
+    """No new saved key: a full before/after comparison of the serialized game after a spell and after a rest."""
 
-    def keys(self, value, prefix=""):
-        if isinstance(value, dict):
-            for k, v in value.items():
-                yield from self.keys(v, f"{prefix}/{k}")
-        else:
-            yield prefix
+    def diff(self, before, after, path=""):
+        """Every leaf that differs, every added and every removed key, with its path."""
+        if isinstance(before, dict) and isinstance(after, dict):
+            for key in sorted(set(before) | set(after), key=str):
+                if key not in before:
+                    yield f"{path}/{key}", "added"
+                elif key not in after:
+                    yield f"{path}/{key}", "removed"
+                else:
+                    yield from self.diff(before[key], after[key], f"{path}/{key}")
+        elif isinstance(before, list) and isinstance(after, list) and len(before) == len(after):
+            for index, (old, new) in enumerate(zip(before, after)):
+                yield from self.diff(old, new, f"{path}/{index}")
+        elif before != after:
+            yield path, "changed"
 
-    def test_no_event_field_reaches_the_saved_game(self):
-        forbidden = {"heal_source", "damage_type", "attack_or_save", "slot_spent", "save_roll"}
-        s, e = caster(cls="Cleric")
-        spell_turn(s, "Sacred Flame", e["id"], d20=1)
-        saved = json.dumps(s.serialize_game_state(), sort_keys=True, default=str)
-        for name in ("heal_source", "attack_or_save", "slot_spent", "save_roll"):
-            self.assertNotIn(f'"{name}"', saved)
-        s = hit_dice_fighter()
-        s.resolve_species_trait_action("long_rest")
-        saved = json.dumps(s.serialize_game_state(), sort_keys=True, default=str)
-        self.assertNotIn('"heal_source"', saved)
-        self.assertTrue(forbidden)
-
-    def test_cast_changes_only_the_expected_saved_paths(self):
+    def test_a_spell_changes_only_the_rules_own_saved_state(self):
         s, e = caster(cls="Cleric")
         before = copy.deepcopy(s.serialize_game_state())
         spell_turn(s, "Sacred Flame", e["id"], d20=1)
         after = s.serialize_game_state()
-        added = set(self.keys(after)) - set(self.keys(before))
-        self.assertTrue(all("heal_source" not in k and "damage_type" not in k and "slot_spent" not in k for k in added), added)
+        target = next(i for i, n in enumerate(after["world_state"]["npcs"]) if n["id"] == e["id"])
+        records = {r["id"]: i for i, r in enumerate(after["world_state"]["combat"]["participant_records"])}
+        self.assertEqual(set(self.diff(before, after)), {
+            ("/world_state/combat/actions_used", "changed"),
+            ("/world_state/combat/turn_resources/player/base_action_spent", "changed"),
+            ("/world_state/flags/turn_index", "changed"),
+            (f"/world_state/npcs/{target}/current_hp", "changed"),
+            (f"/world_state/combat/participant_records/{records['player']}/primary_action_available", "changed"),
+            (f"/world_state/combat/participant_records/{records[e['id']]}/current_hp", "changed"),
+        })
+
+    def test_a_long_rest_changes_only_the_rules_own_saved_state(self):
+        s = hit_dice_fighter()
+        before = copy.deepcopy(s.serialize_game_state())
+        s.resolve_species_trait_action("long_rest")
+        self.assertEqual(set(self.diff(before, s.serialize_game_state())), {
+            ("/player/current_hp", "changed"),
+            ("/player/hit_dice", "added"),
+            ("/world_state/campaign_time/elapsed_seconds", "changed"),
+            ("/world_state/last_long_rest_completed_at", "added"),
+        })
