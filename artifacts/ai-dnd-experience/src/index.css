@@ -538,8 +538,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   background: color-mix(in srgb, var(--unw-surface-sunken) 93%, transparent);
   padding: 8px 12px;
   color: var(--unw-accent-light);
-  font-size: 12px;
+  font-family: var(--unw-font-read);
+  font-size: 14px;
 }
+.player-account button, .player-account a, .player-account input { font: inherit; }
 @media (max-width: 390px) {
   :root { --player-account-lane: 72px; }
   .player-account { right: 8px; bottom: 8px; }
