@@ -397,6 +397,51 @@ export interface PaladinLevel5Choices {
   prepared_spells: string[];
 }
 
+export interface WizardSpellbookChoices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  spellbook_spells: string[];
+}
+
+export interface WizardLevel3Choices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  spellbook_spells: string[];
+  subclass_id: 'evoker';
+}
+
+export interface WizardLevel4Choices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  spellbook_spells: string[];
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  cantrips: string[];
+  asi: LevelUpAsiChoice;
+}
+
+export const ClericLevel3ChoicesValue = {
+  subclass_id: 'life_domain',
+} as const;
+export type ClericLevel3Choices = typeof ClericLevel3ChoicesValue;
+
+export interface ClericLevel4Choices {
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  cantrips: string[];
+  asi: LevelUpAsiChoice;
+}
+
 export interface LevelUpApplyRequest {
   action_id: string;
   campaign_id: string;
@@ -407,7 +452,7 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices | WizardSpellbookChoices | WizardLevel3Choices | WizardLevel4Choices | ClericLevel3Choices | ClericLevel4Choices;
 }
 
 export type LevelUpCommandResultState = { [key: string]: unknown };
@@ -511,6 +556,7 @@ export interface SorcererSubclassOption {
 export interface LevelUpPreviewResponse {
   primal_knowledge_skill_options?: string[] | null;
   fighting_style_options?: string[] | null;
+  spellbook_spell_ids?: string[] | null;
   session_id: string;
   campaign_id: string | null;
   revision: number | null;

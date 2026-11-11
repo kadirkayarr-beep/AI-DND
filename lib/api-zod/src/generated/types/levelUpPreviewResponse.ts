@@ -15,6 +15,7 @@ import type { SorcererSubclassOption } from './sorcererSubclassOption';
 export interface LevelUpPreviewResponse {
   primal_knowledge_skill_options?: string[] | null;
   fighting_style_options?: string[] | null;
+  spellbook_spell_ids?: string[] | null;
   session_id: string;
   campaign_id: string | null;
   revision: number | null;

@@ -99,6 +99,7 @@ export const getGameSessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwooneC
 export const GetGameSessionLevelUpResponse = zod.object({
   "primal_knowledge_skill_options": zod.union([zod.array(zod.string()),zod.null()]).optional(),
   "fighting_style_options": zod.union([zod.array(zod.string()),zod.null()]).optional(),
+  "spellbook_spell_ids": zod.union([zod.array(zod.string()),zod.null()]).optional(),
   "session_id": zod.string(),
   "campaign_id": zod.union([zod.string(),zod.null()]),
   "revision": zod.union([zod.number().int(),zod.null()]),
@@ -455,6 +456,175 @@ export const applyGameSessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneCharisma
 
 export const applyGameSessionLevelUpBodyChoicesOnefourPreparedSpellsMax = 1;
 
+export const applyGameSessionLevelUpBodyChoicesOnefiveSpellbookSpellsMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnefiveSpellbookSpellsMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesixSpellbookSpellsMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnesixSpellbookSpellsMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenSpellbookSpellsMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnesevenSpellbookSpellsMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenCantripsMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneStrengthMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneStrengthMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwoDexterityMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwoDexterityMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseThreeConstitutionMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseThreeConstitutionMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseFourIntelligenceMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseFourIntelligenceMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseFiveWisdomMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseFiveWisdomMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseSixCharismaMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseSixCharismaMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseSevenStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseSevenDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseEightStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseEightConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseNineStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseNineIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnezeroStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnezeroWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneoneStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnetwoDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnetwoConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnethreeDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefourDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefourWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefiveDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwooneCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineCantripsMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneStrengthMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneStrengthMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwoDexterityMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwoDexterityMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseThreeConstitutionMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseThreeConstitutionMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseFourIntelligenceMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseFourIntelligenceMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseFiveWisdomMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseFiveWisdomMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseSixCharismaMin = 2;
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseSixCharismaMax = 2;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseSevenStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseSevenDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseEightStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseEightConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseNineStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseNineIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnezeroStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnezeroWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneoneStrengthMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnetwoDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnetwoConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnethreeDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnefourDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnefourWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnefiveDexterityMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneCharismaMax = 1;
+
 
 
 export const ApplyGameSessionLevelUpBody = zod.object({
@@ -677,6 +847,140 @@ export const ApplyGameSessionLevelUpBody = zod.object({
 }).strict()
 }).strict(),zod.object({
   "prepared_spells": zod.array(zod.string()).min(1).max(applyGameSessionLevelUpBodyChoicesOnefourPreparedSpellsMax)
+}).strict(),zod.object({
+  "spellbook_spells": zod.array(zod.string()).min(applyGameSessionLevelUpBodyChoicesOnefiveSpellbookSpellsMin).max(applyGameSessionLevelUpBodyChoicesOnefiveSpellbookSpellsMax)
+}).strict(),zod.object({
+  "spellbook_spells": zod.array(zod.string()).min(applyGameSessionLevelUpBodyChoicesOnesixSpellbookSpellsMin).max(applyGameSessionLevelUpBodyChoicesOnesixSpellbookSpellsMax),
+  "subclass_id": zod.literal("evoker")
+}).strict(),zod.object({
+  "spellbook_spells": zod.array(zod.string()).min(applyGameSessionLevelUpBodyChoicesOnesevenSpellbookSpellsMin).max(applyGameSessionLevelUpBodyChoicesOnesevenSpellbookSpellsMax),
+  "cantrips": zod.array(zod.string()).min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenCantripsMax),
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneStrengthMin).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwoDexterityMin).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwoDexterityMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseThreeConstitutionMin).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseThreeConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseFourIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseFourIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseFiveWisdomMin).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseFiveWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseSixCharismaMin).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseSixCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseSevenStrengthMax),
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseSevenDexterityMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseEightStrengthMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseEightConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseNineStrengthMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseNineIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnezeroWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneoneCharismaMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnetwoConstitutionMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnethreeIntelligenceMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefourWisdomMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefiveDexterityMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnesevenAsiIncreaseTwooneCharismaMax)
+}).strict()])
+}).strict()
+}).strict(),zod.object({
+  "subclass_id": zod.literal("life_domain")
+}).strict(),zod.object({
+  "cantrips": zod.array(zod.string()).min(1).max(applyGameSessionLevelUpBodyChoicesOnenineCantripsMax),
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneStrengthMin).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneStrengthMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwoDexterityMin).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwoDexterityMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseThreeConstitutionMin).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseThreeConstitutionMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseFourIntelligenceMin).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseFourIntelligenceMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseFiveWisdomMin).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseFiveWisdomMax)
+}).strict(),zod.object({
+  "charisma": zod.number().int().min(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseSixCharismaMin).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseSixCharismaMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseSevenStrengthMax),
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseSevenDexterityMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseEightStrengthMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseEightConstitutionMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseNineStrengthMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseNineIntelligenceMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnezeroWisdomMax)
+}).strict(),zod.object({
+  "strength": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneoneCharismaMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnetwoConstitutionMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnethreeIntelligenceMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnefourWisdomMax)
+}).strict(),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnefiveDexterityMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnefiveCharismaMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnesixIntelligenceMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnesevenWisdomMax)
+}).strict(),zod.object({
+  "constitution": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOneeightCharismaMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseOnenineWisdomMax)
+}).strict(),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwozeroCharismaMax)
+}).strict(),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneCharismaMax)
+}).strict()])
+}).strict()
 }).strict()])
 }).strict()
 
@@ -32245,6 +32549,7 @@ export const getLegacySessionLevelUpResponseSupportedAsiChoicesItemIncreaseTwoon
 export const GetLegacySessionLevelUpResponse = zod.object({
   "primal_knowledge_skill_options": zod.union([zod.array(zod.string()),zod.null()]).optional(),
   "fighting_style_options": zod.union([zod.array(zod.string()),zod.null()]).optional(),
+  "spellbook_spell_ids": zod.union([zod.array(zod.string()),zod.null()]).optional(),
   "session_id": zod.string(),
   "campaign_id": zod.union([zod.string(),zod.null()]),
   "revision": zod.union([zod.number().int(),zod.null()]),
@@ -32602,6 +32907,175 @@ export const applyLegacySessionLevelUpBodyChoicesOnethreeAsiIncreaseTwooneCharis
 
 export const applyLegacySessionLevelUpBodyChoicesOnefourPreparedSpellsMax = 1;
 
+export const applyLegacySessionLevelUpBodyChoicesOnefiveSpellbookSpellsMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnefiveSpellbookSpellsMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesixSpellbookSpellsMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnesixSpellbookSpellsMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenSpellbookSpellsMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnesevenSpellbookSpellsMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenCantripsMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneStrengthMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneStrengthMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwoDexterityMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwoDexterityMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseThreeConstitutionMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseThreeConstitutionMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseFourIntelligenceMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseFourIntelligenceMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseFiveWisdomMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseFiveWisdomMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseSixCharismaMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseSixCharismaMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseSevenStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseSevenDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseEightStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseEightConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseNineStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseNineIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnezeroStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnezeroWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneoneStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnetwoDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnetwoConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnethreeDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefourDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefourWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefiveDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwooneCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineCantripsMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneStrengthMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneStrengthMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwoDexterityMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwoDexterityMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseThreeConstitutionMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseThreeConstitutionMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseFourIntelligenceMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseFourIntelligenceMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseFiveWisdomMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseFiveWisdomMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseSixCharismaMin = 2;
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseSixCharismaMax = 2;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseSevenStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseSevenDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseEightStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseEightConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseNineStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseNineIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnezeroStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnezeroWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneoneStrengthMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneoneCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnetwoDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnetwoConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnethreeDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnethreeIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnefourDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnefourWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnefiveDexterityMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnefiveCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnesixConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnesixIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnesevenConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnesevenWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneeightConstitutionMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneeightCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnenineIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnenineWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwozeroIntelligenceMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwozeroCharismaMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneWisdomMax = 1;
+
+export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneCharismaMax = 1;
+
 
 
 export const ApplyLegacySessionLevelUpBody = zod.object({
@@ -32824,6 +33298,140 @@ export const ApplyLegacySessionLevelUpBody = zod.object({
 })
 }),zod.object({
   "prepared_spells": zod.array(zod.string()).min(1).max(applyLegacySessionLevelUpBodyChoicesOnefourPreparedSpellsMax)
+}),zod.object({
+  "spellbook_spells": zod.array(zod.string()).min(applyLegacySessionLevelUpBodyChoicesOnefiveSpellbookSpellsMin).max(applyLegacySessionLevelUpBodyChoicesOnefiveSpellbookSpellsMax)
+}),zod.object({
+  "spellbook_spells": zod.array(zod.string()).min(applyLegacySessionLevelUpBodyChoicesOnesixSpellbookSpellsMin).max(applyLegacySessionLevelUpBodyChoicesOnesixSpellbookSpellsMax),
+  "subclass_id": zod.literal("evoker")
+}),zod.object({
+  "spellbook_spells": zod.array(zod.string()).min(applyLegacySessionLevelUpBodyChoicesOnesevenSpellbookSpellsMin).max(applyLegacySessionLevelUpBodyChoicesOnesevenSpellbookSpellsMax),
+  "cantrips": zod.array(zod.string()).min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenCantripsMax),
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneStrengthMin).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneStrengthMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwoDexterityMin).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwoDexterityMax)
+}),zod.object({
+  "constitution": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseThreeConstitutionMin).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseThreeConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseFourIntelligenceMin).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseFourIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseFiveWisdomMin).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseFiveWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseSixCharismaMin).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseSixCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseSevenStrengthMax),
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseSevenDexterityMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseEightStrengthMax),
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseEightConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseNineStrengthMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseNineIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnezeroWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneoneCharismaMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnetwoConstitutionMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnethreeIntelligenceMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefourWisdomMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefiveDexterityMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnesevenAsiIncreaseTwooneCharismaMax)
+})])
+})
+}),zod.object({
+  "subclass_id": zod.literal("life_domain")
+}),zod.object({
+  "cantrips": zod.array(zod.string()).min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineCantripsMax),
+  "asi": zod.object({
+  "feat": zod.literal("Ability Score Improvement"),
+  "increase": zod.union([zod.object({
+  "strength": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneStrengthMin).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneStrengthMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwoDexterityMin).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwoDexterityMax)
+}),zod.object({
+  "constitution": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseThreeConstitutionMin).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseThreeConstitutionMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseFourIntelligenceMin).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseFourIntelligenceMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseFiveWisdomMin).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseFiveWisdomMax)
+}),zod.object({
+  "charisma": zod.number().int().min(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseSixCharismaMin).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseSixCharismaMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseSevenStrengthMax),
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseSevenDexterityMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseEightStrengthMax),
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseEightConstitutionMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseNineStrengthMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseNineIntelligenceMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnezeroStrengthMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnezeroWisdomMax)
+}),zod.object({
+  "strength": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneoneStrengthMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneoneCharismaMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnetwoDexterityMax),
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnetwoConstitutionMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnethreeDexterityMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnethreeIntelligenceMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnefourDexterityMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnefourWisdomMax)
+}),zod.object({
+  "dexterity": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnefiveDexterityMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnefiveCharismaMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnesixConstitutionMax),
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnesixIntelligenceMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnesevenConstitutionMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnesevenWisdomMax)
+}),zod.object({
+  "constitution": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneeightConstitutionMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOneeightCharismaMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnenineIntelligenceMax),
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseOnenineWisdomMax)
+}),zod.object({
+  "intelligence": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwozeroIntelligenceMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwozeroCharismaMax)
+}),zod.object({
+  "wisdom": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneWisdomMax),
+  "charisma": zod.number().int().min(1).max(applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneCharismaMax)
+})])
+})
 })])
 })
 
