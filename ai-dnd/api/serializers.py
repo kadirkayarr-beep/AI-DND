@@ -683,7 +683,8 @@ def serialize_session_state(
     monk = monk_features.projection(session) if isinstance(session, game.GameSession) else None
     if monk is not None:
         character["monk"] = monk
-    if player.get("class") in ("Barbarian", "Fighter", "Monk", "Paladin", "Rogue") or (player.get("class") == "Sorcerer" and "progression_level" in player):
+    if player.get("class") in ("Barbarian", "Fighter", "Monk", "Paladin", "Rogue") or (
+            player.get("class") in ("Sorcerer", "Wizard", "Cleric") and "progression_level" in player):
         disclosure = character_progression.progression_disclosure(
             player["class"], character_progression.applied_level(player),
             rage_adopted=rage is not None, points_adopted=points is not None,

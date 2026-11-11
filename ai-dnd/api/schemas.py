@@ -1102,6 +1102,36 @@ class PaladinLevelChoices(BaseModel):
     level_5: PaladinLevel5Choices = Field(default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None)
 
 
+class WizardSpellbookChoices(BaseModel):
+    """Wizard levels 2 and 5: two spells for the spellbook (PHB PDF 164); the step owner checks them against the slotted Wizard lists."""
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+
+
+class WizardLevel3Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+    subclass_id: Literal["evoker"]
+
+
+class WizardLevel4Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+    cantrips: list[StrictStr] = Field(min_length=1, max_length=1)
+    asi: LevelUpAsiChoice
+
+
+class ClericLevel3Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    subclass_id: Literal["life_domain"]
+
+
+class ClericLevel4Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    cantrips: list[StrictStr] = Field(min_length=1, max_length=1)
+    asi: LevelUpAsiChoice
+
+
 class RogueLevel3Choices(BaseModel):
     model_config = ConfigDict(extra="forbid")
     subclass_id: Literal["assassin"]
@@ -1639,12 +1669,14 @@ class LevelUpApplyRequest(BaseModel):
     campaign_id: UUID
     expected_revision: int = Field(strict=True, ge=0)
     target_level: int = Field(strict=True, ge=2, le=5)
-    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices
+    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices | WizardSpellbookChoices | WizardLevel3Choices | WizardLevel4Choices | ClericLevel3Choices | ClericLevel4Choices
 
     @model_validator(mode="after")
     def choices_match_target(self):
-        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices, PaladinLevel2Choices), 3: (SorcererLevel3Choices, BarbarianLevel3Choices, FighterLevel3Choices, MonkLevel3Choices, RogueLevel3Choices, PaladinLevel3Choices),
-                    4: (LevelUpChoices, BarbarianLevel4Choices, PaladinLevel4Choices), 5: (LevelUpFiveChoices, BarbarianLevel2Choices, PaladinLevel5Choices)}[self.target_level]
+        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices, PaladinLevel2Choices, WizardSpellbookChoices),
+                    3: (SorcererLevel3Choices, BarbarianLevel3Choices, FighterLevel3Choices, MonkLevel3Choices, RogueLevel3Choices, PaladinLevel3Choices, WizardLevel3Choices, ClericLevel3Choices),
+                    4: (LevelUpChoices, BarbarianLevel4Choices, PaladinLevel4Choices, WizardLevel4Choices, ClericLevel4Choices),
+                    5: (LevelUpFiveChoices, BarbarianLevel2Choices, PaladinLevel5Choices, WizardSpellbookChoices)}[self.target_level]
         if not isinstance(self.choices, expected):
             raise ValueError("Level-up choice shape does not match target level.")
         return self
@@ -1670,6 +1702,7 @@ class LevelUpPreviewResponse(BaseModel):
     subclass_options: list[SorcererSubclassOption] = Field(default_factory=list)
     primal_knowledge_skill_options: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
     fighting_style_options: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
+    spellbook_spell_ids: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
     effects_supported: list[str] = Field(default_factory=list)
     choices_required: dict[str, int] = Field(default_factory=dict)
     cantrip_ids: list[str] = Field(default_factory=list)

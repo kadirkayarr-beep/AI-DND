@@ -12,11 +12,13 @@ from class_progression.base import ClassProgression
 
 CLASS_MODULES = (
     "barbarian",
+    "cleric",
     "fighter",
     "monk",
     "paladin",
     "rogue",
     "sorcerer",
+    "wizard",
 )
 
 _DEFAULT = ClassProgression()

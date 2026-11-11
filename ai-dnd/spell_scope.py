@@ -31,7 +31,7 @@ def fail(code, message):
 _V1_KEYS = frozenset({"version", "class", "cantrips", "prepared", "slots", "slot_turn"})
 _V2_KEYS = _V1_KEYS | {"spellbook", "prepare_window"}  # 4C.2: state version 2
 PREPARING = frozenset({"Wizard", "Cleric"})  # prepare from a window (4C.2); Druid keeps the version-1 rule (no prepared list)
-WINDOW_REASONS = frozenset({"creation", "long_rest", "migration"})
+WINDOW_REASONS = frozenset({"creation", "long_rest", "migration", "level_up"})  # level_up: a Wizard/Cleric level step (4C.3)
 
 
 def clock_second(world):
@@ -50,17 +50,9 @@ def _book_from(character):
 
 
 def prepare_limit(character):
-    """How many level-1+ spells a preparing class may hold: the applied level's sourced table row.
-
-    Until 4C.3 moves the Wizard/Cleric tables into `classes/`, the row is read from the verified class_tables oracle
-    (same file, no copy); afterwards `character_progression.capacity` gives the same cell."""
+    """How many level-1+ spells a preparing class may hold: the applied level's row of its `classes/` table (4C.3)."""
     import character_progression
-    sourced = character_progression.capacity(character)
-    if sourced:
-        return sourced["prepared_spells"]
-    import class_tables
-    row = class_tables.table(character["class"])["levels"][str(character_progression.applied_level(character))]
-    return row["prepared_spells"]
+    return character_progression.capacity(character)["prepared_spells"]
 
 
 def initialize(session):
@@ -128,9 +120,9 @@ def validate(state, character):
     preparing = state["version"] == 2 and cls in PREPARING
     for field, source, limit in (
         ("cantrips", "cantrips", sourced["cantrips"] if sourced else definition["cantrips_count"]),
-        ("prepared", "spells_level_1", sourced["prepared_spells"] if sourced
-         else prepare_limit(character) if preparing
-         else 0 if cls in {"Wizard", "Cleric", "Druid"} else definition["spells_count"]),
+        # A version-1 Wizard/Cleric state predates preparation and keeps its empty list even with a table (4C.3).
+        ("prepared", "spells_level_1", 0 if cls in {"Wizard", "Cleric", "Druid"} and not preparing
+         else sourced["prepared_spells"] if sourced else definition["spells_count"]),
     ):
         selected = state[field]
         allowed = {s["id"] for s in catalog.get(source, [])} | character_progression.extra_spell_ids(character, field)
@@ -157,7 +149,9 @@ def validate(state, character):
 def _validate_v2(state, character):
     cls, book, window = state["class"], state["spellbook"], state["prepare_window"]
     if cls == "Wizard":
-        allowed = {s["id"] for s in SPELLS_CATALOG["Wizard"]["spells_level_1"]}
+        import character_progression
+        allowed = ({s["id"] for s in SPELLS_CATALOG["Wizard"]["spells_level_1"]}
+                   | character_progression.extra_spell_ids(character, "prepared"))  # level 2+ spells once their slots exist
         if (not isinstance(book, list) or any(not isinstance(s, str) for s in book)
                 or len(book) != len(set(book)) or not set(book) <= allowed
                 or not set(state["prepared"]) <= set(book)):

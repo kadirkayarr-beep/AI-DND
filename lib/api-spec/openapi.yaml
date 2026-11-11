@@ -1471,6 +1471,11 @@ components:
           - $ref: '#/components/schemas/PaladinLevel3Choices'
           - $ref: '#/components/schemas/PaladinLevel4Choices'
           - $ref: '#/components/schemas/PaladinLevel5Choices'
+          - $ref: '#/components/schemas/WizardSpellbookChoices'
+          - $ref: '#/components/schemas/WizardLevel3Choices'
+          - $ref: '#/components/schemas/WizardLevel4Choices'
+          - $ref: '#/components/schemas/ClericLevel3Choices'
+          - $ref: '#/components/schemas/ClericLevel4Choices'
           title: Choices
       additionalProperties: false
       type: object
@@ -1981,6 +1986,12 @@ components:
               type: string
           - type: 'null'
         fighting_style_options:
+          anyOf:
+          - type: array
+            items:
+              type: string
+          - type: 'null'
+        spellbook_spell_ids:
           anyOf:
           - type: array
             items:
@@ -7879,6 +7890,71 @@ components:
       - supported_starting_levels
       - level_2
       title: FighterStartingCreationOptions
+    WizardSpellbookChoices:
+      type: object
+      additionalProperties: false
+      properties:
+        spellbook_spells:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 2
+      required: [spellbook_spells]
+    WizardLevel3Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        spellbook_spells:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 2
+        subclass_id:
+          type: string
+          const: evoker
+      required: [spellbook_spells, subclass_id]
+    WizardLevel4Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        spellbook_spells:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 2
+        cantrips:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+        asi:
+          $ref: '#/components/schemas/LevelUpAsiChoice'
+      required: [spellbook_spells, cantrips, asi]
+    ClericLevel3Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        subclass_id:
+          type: string
+          const: life_domain
+      required: [subclass_id]
+    ClericLevel4Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        cantrips:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+        asi:
+          $ref: '#/components/schemas/LevelUpAsiChoice'
+      required: [cantrips, asi]
     RogueLevel3Choices:
       type: object
       additionalProperties: false

@@ -1,7 +1,7 @@
 """4C.2: the spell preparation window (Wizard from the spellbook, Cleric from the class list).
 
 The window lives in `spellcasting_v1["prepare_window"]` (state version 2): opened at creation, at the end of a finished
-Long Rest, or by the version-1 migration. Like the Hit Dice window it is open only at the second it opened and out of
+Long Rest, by the version-1 migration, or by a Wizard/Cleric level step (4C.3). Like the Hit Dice window it is open only at the second it opened and out of
 combat; a combat start or the player's "done" closes it for good. The engine never chooses a spell: invalid names are
 dropped with a reason, and a list over the limit saves nothing and asks which to leave out.
 """
@@ -25,9 +25,10 @@ def _state(session: Any, *, write: bool = True) -> dict[str, Any] | None:
     return state
 
 
-# A creation or migration window waits for the player's first list (fix round 1): it ignores the clock and a fight,
-# and ends with the first saved list, `close: true` or a finished Long Rest. A Long Rest window keeps the approved rule.
-_STANDING = frozenset({"creation", "migration"})
+# A creation, migration or level-up window waits for the player's first list (fix round 1; 4C.3 level steps): it ignores
+# the clock and a fight, and ends with the first saved list, `close: true` or a finished Long Rest. A Long Rest window keeps
+# the approved rule.
+STANDING = frozenset({"creation", "migration", "level_up"})
 
 
 def _blocked(state: Any) -> str | None:
@@ -47,7 +48,7 @@ def _open(world: dict[str, Any], state: Any) -> bool:
     window = state.get("prepare_window") if isinstance(state, dict) else None
     if window is None or world.get("combat", {}).get("active"):
         return False
-    return window["reason"] in _STANDING or window["opened_second"] == spell_scope.clock_second(world)
+    return window["reason"] in STANDING or window["opened_second"] == spell_scope.clock_second(world)
 
 
 def window_open(session: Any) -> bool:
@@ -65,7 +66,7 @@ def close_window(session: Any) -> None:
     """Combat start: a Long Rest window ends for good; a creation/migration window waits for the first list."""
     state = session.world_state.get("spellcasting_v1")
     window = state.get("prepare_window") if isinstance(state, dict) else None
-    if window is not None and window["reason"] not in _STANDING:
+    if window is not None and window["reason"] not in STANDING:
         state["prepare_window"] = None
 
 
@@ -99,7 +100,7 @@ def prepare(session: Any, requested: list[str] | None, close: bool = False) -> d
     if blocked:
         raise ValueError("Bu sınıf büyü hazırlamaz.")
     if not window_open(session):
-        raise ValueError("Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş olmalısın.")
+        raise ValueError("Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş ya da yeni bir seviyeye geçmiş olmalısın.")
     character = session.character
     candidates = _candidates(state, character)
     cantrips = {s["id"] for s in SPELLS_CATALOG[state["class"]]["cantrips"]}
@@ -122,7 +123,7 @@ def prepare(session: Any, requested: list[str] | None, close: bool = False) -> d
         return {"status": "too_many", "prepared": kept, "dropped": dropped, "limit": limit, "excess": excess,
                 "open": True, "message": f"En çok {limit} büyü hazırlayabilirsin; {excess} fazlası var. Hangisini bırakıyorsun?"}
     candidate = {**copy.deepcopy(state), "prepared": kept}
-    if close or state["prepare_window"]["reason"] in _STANDING:
+    if close or state["prepare_window"]["reason"] in STANDING:
         candidate["prepare_window"] = None  # the first saved list ends a creation/migration window
     spell_scope.validate(candidate, character)  # check the whole new state before it is written
     session.world_state["spellcasting_v1"] = candidate

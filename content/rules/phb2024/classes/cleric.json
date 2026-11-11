@@ -20,7 +20,21 @@
    "normalisation": "em dash cells are stored as null (or omitted from slots); typographic apostrophes are stored as ASCII"
   },
   "unverified_cells": [],
-  "scope": "progression table only; no feature effects, spell lists or choices"
+  "scope": "Cleric 1-5 (4C.3): table slots, cantrip and prepared counts, the level-3 subclass choice (Life Domain only, effects pending) and the level-4 ASI. Other features are pending; effects and disclosures are owned by class_progression/cleric.py.",
+  "class_rules": {
+   "spellcasting": {
+    "pdf_page": 68,
+    "level": "accepted release text (PHB package kaynak_paketler/Cleric/release_v1/cleric.md) read 2026-11-12; not re-read on the render"
+   },
+   "divine_order_channel_divinity": {
+    "pdf_page": 69,
+    "level": "accepted release text (cleric.md) read 2026-11-12; not re-read on the render"
+   },
+   "life_domain": {
+    "pdf_page": 72,
+    "level": "accepted release text (cleric.md) read 2026-11-12; not re-read on the render"
+   }
+  }
  },
  "levels": {
   "1": {
