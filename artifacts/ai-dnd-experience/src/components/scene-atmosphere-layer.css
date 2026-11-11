@@ -1,0 +1,67 @@
+@property --sc-tint { syntax: '<color>'; inherits: true; initial-value: rgba(0, 0, 0, 0); }
+@property --sc-bloom { syntax: '<color>'; inherits: true; initial-value: rgba(0, 0, 0, 0); }
+@property --sc-win { syntax: '<color>'; inherits: true; initial-value: rgba(0, 0, 0, 0); }
+@property --sc-vig { syntax: '<color>'; inherits: true; initial-value: rgba(0, 0, 0, 0); }
+@property --sc-fog { syntax: '<color>'; inherits: true; initial-value: rgba(0, 0, 0, 0); }
+@property --sc-mote { syntax: '<color>'; inherits: true; initial-value: rgba(0, 0, 0, 0); }
+@property --sc-bx { syntax: '<percentage>'; inherits: true; initial-value: 50%; }
+@property --sc-by { syntax: '<percentage>'; inherits: true; initial-value: 50%; }
+@property --sc-br { syntax: '<percentage>'; inherits: true; initial-value: 60%; }
+
+/* Page layer: the parent must be position: relative; story text sits above it (z-index 1+). */
+.unw-atmo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    --sc-tint 1.5s ease-in-out, --sc-bloom 1.5s ease-in-out, --sc-win 1.5s ease-in-out,
+    --sc-vig 1.5s ease-in-out, --sc-fog 1.5s ease-in-out, --sc-mote 1.5s ease-in-out,
+    --sc-bx 1.5s ease-in-out, --sc-by 1.5s ease-in-out, --sc-br 1.5s ease-in-out;
+}
+.unw-atmo[data-motion="0"] { transition: none; }
+.unw-atmo > i { position: absolute; display: block; }
+.unw-atmo-tint { inset: 0; background: var(--sc-tint); }
+.unw-atmo-bloom { inset: 0; background: radial-gradient(circle at var(--sc-bx) var(--sc-by), var(--sc-bloom) 0, transparent var(--sc-br)); }
+.unw-atmo-win {
+  inset: 0;
+  background:
+    linear-gradient(104deg, transparent 47%, var(--sc-win) 56%, transparent 64%),
+    linear-gradient(104deg, transparent 65%, var(--sc-win) 71%, transparent 78%);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 75%);
+  mask-image: linear-gradient(to bottom, #000, transparent 75%);
+}
+.unw-atmo-vig { inset: 0; background: radial-gradient(ellipse 110% 95% at 50% 45%, transparent 52%, var(--sc-vig) 100%); }
+.unw-atmo-fog {
+  left: -20%;
+  width: 140%;
+  height: var(--h);
+  top: var(--y);
+  background: radial-gradient(ellipse at center, var(--sc-fog), transparent 68%);
+  animation: unw-atmo-fogdrift var(--t) ease-in-out infinite alternate;
+}
+.unw-atmo-mote {
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: var(--sc-mote);
+  box-shadow: 0 0 var(--glow) var(--sc-mote);
+  opacity: 0;
+  animation: unw-atmo-mote var(--t) linear infinite;
+  animation-delay: var(--d);
+}
+.unw-atmo[data-hidden="1"] .unw-atmo-fog,
+.unw-atmo[data-hidden="1"] .unw-atmo-mote { animation-play-state: paused; }
+@keyframes unw-atmo-fogdrift { from { transform: translateX(-4%); } to { transform: translateX(4%); } }
+@keyframes unw-atmo-mote {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15%, 85% { opacity: 1; }
+  100% { transform: translate(var(--vx), var(--vy)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .unw-atmo { transition: none; }
+  .unw-atmo-fog, .unw-atmo-mote { display: none; }
+}
