@@ -65,7 +65,7 @@ export function QuestJournalSection({
         <span className="character-badge">{String(questLog ? questLog.active_count : runningQuestCount({ quests, campaign_adventures: adventures })).padStart(2, '0')}</span>
       </div>
       {hasError && (
-        <p className="mt-3 text-sm text-red-700" role="alert" data-testid="quest-command-error">
+        <p className="mt-3 text-sm text-(color:--unw-danger-text)" role="alert" data-testid="quest-command-error">
           Görev işlemi kaydedilemedi. Lütfen yeniden dene.
         </p>
       )}

@@ -85,7 +85,7 @@ export function CampaignLibrary({
           <button className="text-button" type="button" onClick={onBack} data-testid="button-back-opening">
             <ArrowLeft size={13} /> Geri dön
           </button>
-          <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.18em] text-[#8f8069]">
+          <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.18em] text-(color:--unw-text-soft)">
             <ScrollText size={14} /> Macera defteri
           </div>
         </header>
@@ -93,8 +93,8 @@ export function CampaignLibrary({
         <section className="gate-library mx-auto max-w-4xl py-8 md:py-14">
           <div className="mb-8 max-w-2xl">
             <div className="opening-eyebrow"><span className="dnd-kicker">Kayıtlı yolculuklar</span></div>
-            <h1 className="dnd-display mt-4 text-4xl text-[#eddfc5] sm:text-5xl">Karakterler<br /><span className="text-[#c09a61]">ve kayıtlar.</span></h1>
-            <p className="dnd-serif mt-4 max-w-xl text-lg leading-7 text-[#a99a80]">
+            <h1 className="dnd-display mt-4 text-4xl text-(color:--unw-text) sm:text-5xl">Karakterler<br /><span className="text-(color:--unw-accent-light)">ve kayıtlar.</span></h1>
+            <p className="dnd-serif mt-4 max-w-xl text-lg leading-7 text-(color:--unw-text-soft)">
               Her macera, bıraktığın dünyaya açılır. Bir yolculuğu seç ya da yeni bir sayfa başlat.
             </p>
           </div>
@@ -119,8 +119,8 @@ export function CampaignLibrary({
           ) : error ? (
             <div className="dnd-card dnd-texture p-7" data-testid="campaign-list-error">
               <div className="relative z-10">
-                <div className="flex items-center gap-2 text-[#dca49b]"><AlertTriangle size={16} /> {statusOf(error) === 401 ? 'Kimlik doğrulaması gerekli.' : 'Kayıt defteri açılamadı.'}</div>
-                <p className="dnd-serif mt-3 text-lg text-[#a99a80]">{statusOf(error) === 401 ? 'Oturum doğrulanmadan maceralar açılmaz.' : 'Dungeon Master’a şu anda ulaşılamıyor.'}</p>
+                <div className="flex items-center gap-2 text-(color:--unw-danger-text)"><AlertTriangle size={16} /> {statusOf(error) === 401 ? 'Kimlik doğrulaması gerekli.' : 'Kayıt defteri açılamadı.'}</div>
+                <p className="dnd-serif mt-3 text-lg text-(color:--unw-text-soft)">{statusOf(error) === 401 ? 'Oturum doğrulanmadan maceralar açılmaz.' : 'Dungeon Master’a şu anda ulaşılamıyor.'}</p>
                 <button className="dnd-button secondary mt-5" type="button" onClick={onRetry} data-testid="button-retry-campaigns">
                   <RefreshCw size={14} /> Yeniden dene
                 </button>
@@ -140,23 +140,23 @@ export function CampaignLibrary({
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <div className="dnd-kicker">Kayıtlı macera · Seviye {campaign.character_level}</div>
-                          <h2 className="dnd-display mt-2 text-2xl text-[#eddfc5] sm:text-3xl">{campaign.name}</h2>
-                          <p className="mt-2 font-serif text-base text-[#c09a61]">
+                          <h2 className="dnd-display mt-2 text-2xl text-(color:--unw-text) sm:text-3xl">{campaign.name}</h2>
+                          <p className="mt-2 font-serif text-base text-(color:--unw-accent-light)">
                             {speciesLabel(campaign.character_race)} {classLabel(campaign.character_class)} · {campaign.character_name}
                           </p>
                         </div>
-                        <BookOpen className="mt-1 text-[#9b7946]" size={20} aria-hidden="true" />
+                        <BookOpen className="mt-1 text-(color:--unw-accent-light)" size={20} aria-hidden="true" />
                       </div>
 
-                      <div className="my-5 border-t border-[#4b3926]" />
-                      <div className="flex flex-col gap-3 text-sm text-[#a99a80] sm:flex-row sm:items-center sm:gap-8">
+                      <div className="my-5 border-t border-(color:--unw-border)" />
+                      <div className="flex flex-col gap-3 text-sm text-(color:--unw-text-soft) sm:flex-row sm:items-center sm:gap-8">
                         <div className="flex items-center gap-2" data-testid="campaign-location">
-                          <MapPinned size={14} className="text-[#c09a61]" />
-                          <span><span className="text-[#83745e]">Son konum:</span> {campaignLocationLabel(campaign.location, locationCatalog)}</span>
+                          <MapPinned size={14} className="text-(color:--unw-accent-light)" />
+                          <span><span className="text-(color:--unw-text-soft)">Son konum:</span> {campaignLocationLabel(campaign.location, locationCatalog)}</span>
                         </div>
                         <div className="flex items-center gap-2" data-testid="campaign-last-played">
-                          <CalendarDays size={14} className="text-[#c09a61]" />
-                          <span><span className="text-[#83745e]">Son oynanma:</span> {formatPlayedAt(campaign.last_played_at)}</span>
+                          <CalendarDays size={14} className="text-(color:--unw-accent-light)" />
+                          <span><span className="text-(color:--unw-text-soft)">Son oynanma:</span> {formatPlayedAt(campaign.last_played_at)}</span>
                         </div>
                       </div>
 
@@ -183,11 +183,11 @@ export function CampaignLibrary({
           ) : (
             <div className="dnd-card dnd-texture p-7 text-center sm:p-10" data-testid="campaign-list-empty">
               <div className="relative z-10">
-                <div className="mx-auto grid h-12 w-12 place-items-center border border-[#9b7946]/60 text-[#c6a46d]">
+                <div className="mx-auto grid h-12 w-12 place-items-center border border-[color-mix(in_srgb,var(--unw-accent-light)_55%,var(--unw-border))]/60 text-(color:--unw-accent-light)">
                   <ScrollText size={20} />
                 </div>
-                <h2 className="dnd-display mt-5 text-2xl text-[#eddfc5]">Henüz kayıtlı macera yok.</h2>
-                <p className="dnd-serif mx-auto mt-3 max-w-md text-lg text-[#a99a80]">
+                <h2 className="dnd-display mt-5 text-2xl text-(color:--unw-text)">Henüz kayıtlı macera yok.</h2>
+                <p className="dnd-serif mx-auto mt-3 max-w-md text-lg text-(color:--unw-text-soft)">
                   Yeni yolculuğunu daha sonra buradan kaldığın yerden sürdürebilirsin.
                 </p>
                 <button className="dnd-button mt-6" type="button" onClick={onNew} data-testid="button-create-from-library">
@@ -197,7 +197,7 @@ export function CampaignLibrary({
             </div>
           )}
 
-          {deleteError && <p role="alert" className="mt-5 text-red-300">{deleteError}</p>}
+          {deleteError && <p role="alert" className="mt-5 text-(color:--unw-danger-text)">{deleteError}</p>}
           <div className="mt-7 flex justify-between">
             <button className="text-button" type="button" onClick={onBack}><ArrowLeft size={13} /> Ana kapıya dön</button>
             {campaigns?.length ? (

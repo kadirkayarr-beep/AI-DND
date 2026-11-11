@@ -53,7 +53,7 @@ export function PaladinControl({ paladin, blocked, onCommand }: {
   return <div className="story-meta mt-3" data-testid="paladin-controls">
     <PaladinStatus paladin={value} />
     <label><span title={termTitle('lay_on_hands')}>{term('lay_on_hands')}</span> (can) <input aria-label={term('lay_on_hands') + ' miktarı'} data-testid="paladin-lay-amount" type="number" min="1" step="1"
-      className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={amount} onChange={event => setAmount(event.target.value)} /></label>
+      className="w-16 bg-transparent border border-(color:--unw-border) rounded px-1" value={amount} onChange={event => setAmount(event.target.value)} /></label>
     <label><input type="checkbox" data-testid="paladin-lay-poison" checked={poison} onChange={event => setPoison(event.target.checked)} /> Poisoned kaldır ({value.lay_on_hands.poison_cost} puan)</label>
     <button type="button" className="action-suggestion" data-testid="button-lay-on-hands" disabled={!touchEnabled} onClick={() => {
       if (touchEnabled && touch) { setAmount(''); setPoison(false); onCommand(abilitySentence(term('lay_on_hands')), touch); }

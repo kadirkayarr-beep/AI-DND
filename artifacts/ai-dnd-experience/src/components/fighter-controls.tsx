@@ -53,7 +53,7 @@ export function FighterControl({ fighter, blocked, shift, onShiftChange, onComma
   return <div className="story-meta mt-3" data-testid="fighter-controls">
     <FighterStatus fighter={value} />
     {value.second_wind.tactical_shift && <label><span title={termTitle('tactical_shift')}>{term('tactical_shift')}</span> (<span title={termTitle('feet')}>{term('feet')}</span>, en çok <span title={termTitle('speed')}>{term('speed')}</span>'in yarısı) <input aria-label={term('tactical_shift') + " mesafesi"} data-testid="fighter-tactical-shift" type="number" min="1" step="1"
-      className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={shift} onChange={event => onShiftChange(event.target.value)} /></label>}
+      className="w-16 bg-transparent border border-(color:--unw-border) rounded px-1" value={shift} onChange={event => onShiftChange(event.target.value)} /></label>}
     <button type="button" className="action-suggestion" data-testid="button-second-wind" disabled={!windEnabled} onClick={() => {
       if (windEnabled && windStep) onCommand(abilitySentence(term('second_wind')), windStep);
     }}><span title={termTitle('second_wind')}>{term('second_wind')}</span> · <span title={termTitle('bonus_action')}>{term('bonus_action')}</span></button>
