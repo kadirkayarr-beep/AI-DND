@@ -1,3 +1,4 @@
+* text=auto eol=lf
 ai-dnd/docs/evidence/phase8-expansion/lore-review-1501-freeze-candidate/Owner_Decision_Castle_Ward_1501.md -text
 ai-dnd/api/lore_authority/packs/pack_index.json -text
 ai-dnd/api/lore_authority/packs/neverwinter_the_north_v1.extraction.json -text
@@ -11,3 +12,11 @@ ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501
 ai-dnd/docs/evidence/phase8-expansion/lore-review-1501-freeze-candidate/1501_Record_Inclusion_Manifest.json -text
 ai-dnd/docs/evidence/phase8-expansion/lore-review-1501-freeze-candidate/1501_Restricted_Lore_Manifest.json -text
 content/manifest/phb2024-source-index.json -text
+ai-dnd/acceptance_test.py -text
+ai-dnd/docs/evidence/spell-presentation/changed-files.json -text
+ai-dnd/docs/evidence/spell-presentation/production-guard.json -text
+ai-dnd/docs/evidence/spell-presentation/start.json -text
+ai-dnd/docs/evidence/ui-presentation-closeout/production-guard.json -text
+ai-dnd/docs/evidence/ui-presentation-closeout/start.json -text
+ai-dnd/docs/evidence/ui-presentation/production-guard.json -text
+ai-dnd/docs/evidence/ui-presentation/start.json -text
