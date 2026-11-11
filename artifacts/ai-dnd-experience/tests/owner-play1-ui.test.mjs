@@ -67,7 +67,7 @@ test('the wizard heading follows the chosen level', async () => {
 });
 
 test('the input is simply there: open at the start and still open after a turn', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /const \[composerOpen, setComposerOpen\] = useState\(true\);/);
   const afterTurn = source.slice(source.indexOf('if (stillVisible && (!stored'), source.indexOf('if (stillVisible) setLastTurn'));
   assert.doesNotMatch(afterTurn, /setComposerOpen\(false\)/);

@@ -1,4 +1,5 @@
 import { combatStartInjection } from './support/combat-start-env.mjs';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
@@ -14,7 +15,7 @@ import { historyToEntries } from '../src/lib/transcript-history.ts';
 import { getTurnInteractionMetadata } from '../src/lib/action-suggestions.ts';
 import { gateInjection } from './support/state-gate-env.mjs';
 
-const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+const source = readGameBrowserSource();
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const component = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
 const declaration = name => component.body.statements.find(n => ts.isVariableStatement(n) && n.declarationList.declarations.some(d => d.name.getText(ast) === name));

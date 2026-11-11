@@ -76,10 +76,10 @@ import '@/components/cinematic-gate.css';
 import '@/components/unwritten-play.css';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
-import { Drawer, SessionHeader, DrawerSheet } from '@/pages/game/session-chrome';
+import { type Drawer, SessionHeader, DrawerSheet } from '@/pages/game/session-chrome';
 import { LOCAL_OWNER, statusCode, friendlyError, OpeningScreen, StateSkeleton } from '@/pages/game/shell-parts';
 import { StoryColumn } from '@/pages/game/story-column';
-import { WorldTab, RailPanelId, RailSummary, DetailsPanel } from '@/pages/game/world-panels';
+import { type WorldTab, type RailPanelId, RailSummary, DetailsPanel } from '@/pages/game/world-panels';
 import { CharacterReveal } from '@/pages/game/character-reveal';
 
 export { DetailsPanel } from '@/pages/game/world-panels';

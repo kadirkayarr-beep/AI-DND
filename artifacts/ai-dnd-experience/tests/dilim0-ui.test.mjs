@@ -158,7 +158,7 @@ test('a resumed game keeps an open conversation in Söyle', async () => {
     { mode: 'say', targetId: 'barman' });
   assert.deepEqual(resumeMode.resumeComposerMode({ conversation: { active: false, interlocutor: null } }), { mode: 'do', targetId: '' });
   assert.deepEqual(resumeMode.resumeComposerMode({}), { mode: 'do', targetId: '' });
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /resumeComposerMode\(resumed\.state\)/);
   assert.match(source, /justUndone=\{undoneJustNow\}/);
 });
@@ -180,14 +180,14 @@ test('a success notice carries a check, not a warning', () => {
   assert.match(bad, /data-testid="notice-icon-warning"/); assert.doesNotMatch(bad, /notice-icon-success/);
 });
 test('the play screen maps history through one helper', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.equal((source.match(/historyToEntries\(/g) ?? []).length, 4);
   assert.doesNotMatch(source, /history\.flatMap\(\(entry/);
   assert.match(source, /combatActive=\{Boolean\(visibleLastTurn\) && state\.combat\.active\}/);
 });
 test('the local transcript cache gives the undo flags back, and only true ones', async () => {
   // A campaignless session restores its story from the local cache (game-browser.tsx restore effect, run as written).
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const browser = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
   const effect = browser.body.statements.find(n => ts.isExpressionStatement(n) && n.getText(ast).startsWith('useEffect(')
@@ -242,7 +242,7 @@ test('the counter shows outside a fight only', async () => {
   assert.equal(panels.showsCounter({}, 'c1'), true);
 });
 test('the play screen draws the counter through showsCounter and folds the offer form', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /showsCounter\(state, campaignId\) && <ShopControls/);
   assert.match(source, /economic-prepare-drawer[\s\S]{0,200}Para ver ya da teklif hazırla/);
   assert.match(source, /!state\.combat\.active && <details className="economic-prepare-drawer"/);
@@ -285,7 +285,7 @@ test('the strip reuses the combat panel status words', async () => {
 });
 
 test('combat start notices clear on later turns and context changes, and ignore stale results', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const browser = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
   const reset = browser.body.statements.find(n => ts.isExpressionStatement(n) && n.getText(ast).startsWith('useEffect(')
@@ -315,7 +315,7 @@ test('combat start notices clear on later turns and context changes, and ignore 
 });
 
 test('accepted current server recovery clears an old combat start banner without replaying it', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let reconcile;
   function visit(node) {
@@ -610,7 +610,7 @@ test('reckless and quickened descriptions use Turkish visible prose while preser
 
 test('a cold saved-campaign resume enables and fills the real catalog query before showing the subclass', async () => {
   const { QueryClient, QueryObserver } = await import('@tanstack/react-query');
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let declaration;
   function visit(node) {

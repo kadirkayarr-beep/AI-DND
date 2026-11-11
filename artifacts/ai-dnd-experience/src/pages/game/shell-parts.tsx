@@ -47,7 +47,7 @@ export function Brand({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function GateSoundControl() {
+function GateSoundControl() {
   const [muted, setMuted] = useState(gateSoundMuted);
   const [volume, setVolume] = useState(gateSoundVolume);
   return (
@@ -76,7 +76,7 @@ export function Rule() {
   return <div className="dnd-rule" aria-hidden="true" />;
 }
 
-export function EngineHealth() {
+function EngineHealth() {
   const health = useGetGameHealth({ query: { queryKey: getGetGameHealthQueryKey(), staleTime: 30_000, retry: 1 } });
   const ready = Boolean(health.data && ['ok', 'healthy', 'ready'].includes(health.data.status.toLowerCase()));
   return (

@@ -1,4 +1,5 @@
 import { combatStartInjection } from './support/combat-start-env.mjs';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 // Actual GameBrowser closures extracted by TypeScript AST; scripted transport is not real HTTP evidence.
 import assert from 'node:assert/strict';
@@ -14,7 +15,7 @@ import { historyToEntries } from '../src/lib/transcript-history.ts';
 import {createActionLifetime,reconcileState,ReconciliationError,RETRY_MESSAGE} from '../src/lib/action-reconciliation.ts';
 import {startDeadline,withActionDeadline,ActionDeadlineError} from '../src/lib/action-deadline.ts';
 import {currentAuthEpoch,rotateAuthEpoch} from '@workspace/api-client-react/custom-fetch';
-const source=await readFile(new URL('../src/pages/game-browser.tsx',import.meta.url),'utf8');
+const source=readGameBrowserSource();
 const ast=ts.createSourceFile('game-browser.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
 const component=ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='GameBrowser');
 const pick=name=>{const n=component.body.statements.find(n=>ts.isVariableStatement(n)&&n.declarationList.declarations.some(d=>d.name.getText(ast)===name));assert.ok(n,`real ${name}`);return n.getText(ast);};

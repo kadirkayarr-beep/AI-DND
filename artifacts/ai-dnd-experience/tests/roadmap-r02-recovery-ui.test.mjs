@@ -1,4 +1,5 @@
 import { combatStartInjection } from './support/combat-start-env.mjs';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 // R02 recovery wiring in the REAL GameBrowser source: serverRecovery, recoveryHandlers and showServerOpenAction are selected
 // from src/pages/game-browser.tsx by AST and run in a vm; only hooks, view setters and the transport are replaced. The
 // transport answers with the shared backend bodies (ai-dnd/api/tests/fixtures/r02_intent_contract.json). This proves the
@@ -16,7 +17,7 @@ import * as pending from '../src/lib/pending-action.ts';
 import * as recovery from '../src/lib/action-recovery.ts';
 
 const contract = JSON.parse(await readFile(new URL('../../../ai-dnd/api/tests/fixtures/r02_intent_contract.json', import.meta.url), 'utf8'));
-const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+const source = readGameBrowserSource();
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const component = ast.statements.find((n) => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
 const pick = (name) => {

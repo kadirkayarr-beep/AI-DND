@@ -74,7 +74,7 @@ test('keyboard recovery respects the clipping container as well as the viewport'
 });
 
 test('a validated own turn preserves the reader position and marks a new response when needed', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let submit = '';
   const visit = node => {
@@ -199,7 +199,7 @@ test('transcript follow-bottom ends at the answer rather than a decorative tail'
 // Regression trigger: only the scrolling viewport shrinks, before content RO.
 async function storyFollowHarness({ following = true } = {}) {
   const { runInNewContext } = await import('node:vm');
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const declarations = new Map(); let resizeEffect, windowEffect;
   const visit = node => {

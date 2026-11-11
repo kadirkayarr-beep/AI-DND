@@ -33,7 +33,7 @@ import { LOCAL_OWNER, Kicker, Rule } from '@/pages/game/shell-parts';
 
 export type WorldTab = 'world' | 'npcs' | 'journal' | 'combat';
 
-export function WorldPanel({ state }: { state: GameState }) {
+function WorldPanel({ state }: { state: GameState }) {
   return <CampaignContextPanel state={state} />;
 }
 
@@ -64,7 +64,7 @@ export function SceneIdeas({ state, recentText, sending, onDraft }: {
   </details>;
 }
 
-export function ExperimentalWorldControls({ state, sending, onExplorationCommand, onDraft, onSetCombatTarget }: {
+function ExperimentalWorldControls({ state, sending, onExplorationCommand, onDraft, onSetCombatTarget }: {
   state: GameState;
   sending: boolean;
   onExplorationCommand: (message: string) => void;
@@ -144,7 +144,7 @@ export function RailSummary({ panel, state }: { panel: RailPanelId; state: GameS
   </div>;
 }
 
-export function PeoplePanel({ state }: { state: GameState }) {
+function PeoplePanel({ state }: { state: GameState }) {
   const scenePeople = currentSceneContext(state).people;
   const sceneIds = new Set(scenePeople.map((npc) => npc.id));
   const otherPeople = currentSceneContext(state).scene ? [] : state.npcs.filter((npc) => npc.location === state.location && !sceneIds.has(npc.id));
@@ -201,7 +201,7 @@ export function LeftColumn({ state, catalog, decisionScope = '', conversionBlock
   return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} catalog={catalog} walletTotalCp={state.wallet?.total_cp ?? null} /><SpellcastingPanel spellcasting={state.spellcasting} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
 }
 
-export const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
+const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
   tavern: 'Taverna',
   forest: 'Orman',
   city: 'Şehir',
@@ -216,7 +216,7 @@ export const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
   unknown: 'Türü bilinmiyor',
 };
 
-export function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sessionId: string; campaignId?: string }) {
+function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sessionId: string; campaignId?: string }) {
   const queryClient = useQueryClient();
   const [commandNotice, setCommandNotice] = useState<string | null>(null);
   // Quest commands change the world too: they wait behind an unresolved play move or species action of this campaign.

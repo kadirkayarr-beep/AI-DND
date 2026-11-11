@@ -18,7 +18,7 @@ import { CampaignDate } from '@/components/campaign-context-panel';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { type InteractionMode } from '@/lib/action-suggestions';
 import { Kicker } from '@/pages/game/shell-parts';
-import { WorldTab, LeftColumn, WorldTabs } from '@/pages/game/world-panels';
+import { type WorldTab, LeftColumn, WorldTabs } from '@/pages/game/world-panels';
 
 export type Drawer = 'character' | 'world' | null;
 

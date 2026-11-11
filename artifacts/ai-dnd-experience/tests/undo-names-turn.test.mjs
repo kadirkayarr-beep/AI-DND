@@ -1,5 +1,6 @@
 // Görev 26: the undo confirmation says which turn is undone and how the purse comes back. Text only.
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
@@ -37,7 +38,7 @@ test('the bar and the play screen carry the label and the purse change into the 
   const bar = await readFile('src/components/last-turn-bar.tsx', 'utf8');
   assert.match(bar, /undoConfirmText\(turnLabel, purseSpentCp\)/);
   assert.doesNotMatch(bar, /<span>Bu tur ve sonuçları geri alınacak\.<\/span>/);
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   assert.match(page, /turnLabel=\{visibleLastTurn\?\.label\}/);
   assert.match(page, /purseSpentCp=\{visibleLastTurn\?\.purseSpentCp\}/);
   // A retried stored move cannot know the purse before it: no number is guessed.

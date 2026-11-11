@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import {test} from 'node:test';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
@@ -37,7 +38,7 @@ test('public generated interface, OpenAPI and game upper flow agree without a na
   const [spec,client,source,helper]=await Promise.all([
     readFile(new URL('../../../lib/api-spec/openapi.yaml',import.meta.url),'utf8'),
     readFile(new URL('../../../lib/api-client-react/src/generated/api.schemas.ts',import.meta.url),'utf8'),
-    readFile(new URL('../src/pages/game-browser.tsx',import.meta.url),'utf8'),
+    readGameBrowserSource(),
     readFile(new URL('../src/lib/transcript-history.ts',import.meta.url),'utf8')
   ]);
   const block=client.match(/export interface CampaignHistoryEntry \{([^}]+)\}/);

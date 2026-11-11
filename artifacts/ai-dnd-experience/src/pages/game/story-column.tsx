@@ -28,9 +28,9 @@ import { getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-s
 import { Kicker } from '@/pages/game/shell-parts';
 import { SceneIdeas } from '@/pages/game/world-panels';
 
-export const PREVIOUS_INTERACTION_MODE: Record<InteractionMode, InteractionMode> = { do: 'ask_dm', say: 'do', ask_dm: 'say' };
+const PREVIOUS_INTERACTION_MODE: Record<InteractionMode, InteractionMode> = { do: 'ask_dm', say: 'do', ask_dm: 'say' };
 
-export const NEXT_INTERACTION_MODE: Record<InteractionMode, InteractionMode> = { do: 'say', say: 'ask_dm', ask_dm: 'do' };
+const NEXT_INTERACTION_MODE: Record<InteractionMode, InteractionMode> = { do: 'say', say: 'ask_dm', ask_dm: 'do' };
 
 export function StoryColumn({
   topControls,

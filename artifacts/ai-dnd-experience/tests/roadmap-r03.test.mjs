@@ -103,10 +103,10 @@ test('the query cache path (structural sharing) refuses an older fetch result an
 // Every writer of the visible state goes through the gate: no component may call setQueryData on a state key.
 test('no mutation path writes the game state cache without the gate', () => {
   for (const file of ['../src/pages/game-browser.tsx', '../src/components/species-trait-controls.tsx', '../src/components/death-recovery-controls.tsx']) {
-    const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+    const source = file === '../src/pages/game-browser.tsx' ? readGameBrowserSource() : readFileSync(new URL(file, import.meta.url), 'utf8');
     assert.ok(!/queryClient\.setQueryData\(/.test(source), `${file} still writes the cache directly`);
   }
-  const browser = readFileSync(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+  const browser = readGameBrowserSource();
   const uses = browser.match(/applyGameState\(/g) ?? [];
   assert.ok(uses.length >= 8, `expected the quest, ambient, turn, undo, create and resume paths to use the gate, found ${uses.length}`);
   assert.match(browser, /stateStructuralSharing\(/);
