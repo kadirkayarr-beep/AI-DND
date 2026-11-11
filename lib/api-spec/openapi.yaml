@@ -3440,6 +3440,7 @@ components:
           - creation
           - long_rest
           - migration
+          - level_up
           - null
         limit:
           type: integer

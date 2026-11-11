@@ -814,7 +814,7 @@ class SpellPrepareView(BaseModel):
     blocked_reason: Literal["not_preparing_class", "spellbook_missing"] | None = None
     class_name: str | None = None
     open: bool
-    reason: Literal["creation", "long_rest", "migration"] | None = None
+    reason: Literal["creation", "long_rest", "migration", "level_up"] | None = None
     limit: int
     candidates: list[str]
     prepared: list[str]

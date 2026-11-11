@@ -2468,7 +2468,7 @@ def create_app(
             except ValueError as error:
                 restore_command()
                 raise HTTPException(status_code=409, detail={
-                    "code": "prepare_unavailable", "message": str(error)}) from None
+                    "code": getattr(error, "code", "prepare_unavailable"), "message": str(error)}) from None
             except CampaignError as error:
                 _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
                 restore_command()

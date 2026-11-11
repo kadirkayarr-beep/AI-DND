@@ -14,6 +14,14 @@ import spell_scope
 from api.dnd_2024_rules import SPELLS_CATALOG
 
 
+class PrepareRefused(ValueError):
+    """A refusal with its own public code (the route answers 409 with it); nothing was changed."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
 def _state(session: Any, *, write: bool = True) -> dict[str, Any] | None:
     """The version-2 state. A version-1 state still in memory (an old death checkpoint) is upgraded first; a read
     (`write=False`) upgrades a copy and leaves the session untouched."""
@@ -117,6 +125,13 @@ def prepare(session: Any, requested: list[str] | None, close: bool = False) -> d
             kept.append(spell)
             continue
         dropped.append({"spell_id": spell, "reason": reason})
+    if requested is not None and state["prepare_window"]["reason"] == "level_up":
+        # A level step only grows the list (PHB: "choose additional spells"); replacing spells needs a finished Long Rest.
+        removed = [spell for spell in state["prepared"] if spell not in kept]
+        if removed:
+            raise PrepareRefused("prepare_level_up_additive_only",
+                                 "Yeni seviyede yalnız büyü ekleyebilirsin; hazırladığın büyüleri değiştirmek için uzun dinlenme "
+                                 f"gerekir. Listede kalması gereken: {', '.join(removed)}.")
     limit = spell_scope.prepare_limit(character)
     if len(kept) > limit:
         excess = len(kept) - limit

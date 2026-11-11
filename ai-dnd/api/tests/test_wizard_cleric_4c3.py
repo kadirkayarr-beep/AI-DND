@@ -24,6 +24,7 @@ from api.dnd_2024_rules import SPELLS_CATALOG
 from api.main import _capture_session, _restore_session
 from api.persistence.campaign_validation import restore_campaign_session, serialize_campaign_payload
 from api.tests import test_campaign_api as campaign_fixtures
+from api.tests.test_economic_action_http import EconomicHttpFixture
 from api.tests.test_roadmap_c06 import SPEC
 from api.tests.town_seed import fixed_town
 
@@ -458,6 +459,171 @@ class LevelUpApi(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(session.serialize_game_state(), before)
 
+
+def fight_and_cast_magic_missile(test, session):
+    """A real fight with one enemy at 30 ft; Magic Missile from the prepared list spends a level-1 slot; the fight ends."""
+    import bounded_encounter
+    import spell_registry
+    from api.tests import test_death_system as fixtures
+    session.world_state["npcs"] = [n for n in session.world_state["npcs"] if n["id"] != "death-save-enemy"]
+    fixtures.start_test_combat(session)
+    enemy = session.world_state["npcs"][-1]
+    enemy.update(current_hp=100, max_hp=100, distance_ft=30, monster_stat_block=copy.deepcopy(bounded_encounter.COMMONER))
+    session.world_state["equipment"] = {"main_hand": None, "off_hand": None}
+    session.world_state["attack_environment"] = {"pairs": {"player|" + enemy["id"]: {
+        "distance_ft": 30, "attacker_sees_target": True, "target_sees_attacker": True, "cover": "none"}}}
+    session.ensure_combat_state()
+    with patch.object(session.rng, "randint", return_value=3):
+        cast = spell_registry.cast_spell("Magic Missile", {"session": session}, 1, {"target_id": enemy["id"]})
+    test.assertEqual(cast["status"], "applied", cast)
+    session.end_combat("test")
+
+
+class LevelUpWindowIsAdditive(unittest.TestCase):
+    """Review finding 1: a level step opens a window that only ADDS to today's list; swapping the list needs a Long Rest."""
+
+    def leveled_with_list_a(self):
+        session = earned(self, "Wizard", 1)
+        session.resolve_species_trait_action("long_rest")
+        self.assertEqual(spell_preparation.prepare(session, ["Magic Missile", "Shield"])["status"], "prepared")
+        earn(session, 2)
+        step(self, session, 2)
+        self.assertEqual(spells(session)["prepare_window"]["reason"], "level_up")
+        return session
+
+    def test_the_probe_level_up_fight_cast_then_a_new_list_is_refused(self):
+        session = self.leveled_with_list_a()
+        fight_and_cast_magic_missile(self, session)
+        self.assertTrue(spell_preparation.window_open(session))
+        before = copy.deepcopy(session.serialize_game_state())
+        for requested in (["Thunderwave", "Feather Fall"], ["Magic Missile", "Thunderwave"], []):
+            with self.subTest(requested):
+                with self.assertRaises(spell_preparation.PrepareRefused) as caught:
+                    spell_preparation.prepare(session, requested)
+                self.assertEqual(caught.exception.code, "prepare_level_up_additive_only")
+                self.assertIn("Shield", str(caught.exception))
+                self.assertEqual(session.serialize_game_state(), before)
+
+    def test_an_additive_list_is_saved_and_closes_the_window(self):
+        session = self.leveled_with_list_a()
+        fight_and_cast_magic_missile(self, session)
+        wanted = ["Shield", "Magic Missile", "Thunderwave", "Feather Fall", "Sleep"]
+        result = spell_preparation.prepare(session, wanted)
+        self.assertEqual((result["status"], result["prepared"]), ("prepared", wanted))
+        self.assertIsNone(spells(session)["prepare_window"])
+
+    def test_a_plain_done_keeps_the_list_and_a_long_rest_window_still_swaps(self):
+        session = self.leveled_with_list_a()
+        self.assertEqual(spell_preparation.prepare(session, None, close=True)["prepared"], ["Magic Missile", "Shield"])
+        session.advance_campaign_time(16 * 3600, "wait")  # a new Long Rest needs 16 hours after the last one
+        session.resolve_species_trait_action("long_rest")
+        self.assertEqual(spell_preparation.prepare(session, ["Thunderwave"])["prepared"], ["Thunderwave"])
+
+    def test_too_many_is_still_asked_after_the_additive_check(self):
+        session = self.leveled_with_list_a()
+        result = spell_preparation.prepare(session, ["Magic Missile", "Shield", "Thunderwave", "Feather Fall", "Sleep", "Mage Armor"])
+        self.assertEqual((result["status"], result["excess"]), ("too_many", 1))
+
+
+class LevelUpApiHigherLevels(LevelUpApi):
+    async def step(self, body, session, target, amount, choices, expected_required):
+        session._receive_xp_award(xp.apply_xp, session.character, session.world_state, amount, f"quest:4c3-http-{target}")
+        self.manager.save_campaign(body["campaign_id"])
+        url = f"/api/game/sessions/{body['session_id']}/level-up"
+        p = (await self.http.get(url)).json()
+        self.assertEqual((p["status"], p["target_level"], p["choices_required"]), ("ready", target, expected_required), p)
+        request = dict(action_id=str(uuid.uuid4()), campaign_id=body["campaign_id"], expected_revision=p["revision"],
+                       target_level=target, choices=copy.deepcopy(choices))
+        response = await self.http.post(url, json=request)
+        self.assertEqual(response.status_code, 200, response.text)
+        again = await self.http.post(url, json=request)
+        self.assertEqual((again.status_code, again.json()), (200, response.json()))
+        return p
+
+    async def test_levels_three_to_five_over_http(self):
+        from api.session_manager import SessionManager
+        from api.persistence.campaign_store import CampaignStore
+        from api.tests.auth_fixture import TEST_PLAYER
+        for cls, seed in (("Wizard", 4431), ("Cleric", 4441)):
+            with self.subTest(cls):
+                body, session = await self.start(cls, seed)
+                await self.level_up(body, CHOICES[cls]["2"])
+                wizard = cls == "Wizard"
+                p3 = await self.step(body, session, 3, 600, CHOICES[cls]["3"],
+                                     {**({"spellbook_spells": 2} if wizard else {}), "subclass_id": 1})
+                self.assertEqual(p3["subclass_options"], [{"id": CHOICES[cls]["3"]["subclass_id"],
+                                                           "name": "Evoker" if wizard else "Life Domain"}])
+                if wizard:
+                    self.assertIn("Misty Step", p3["spellbook_spell_ids"])
+                p4 = await self.step(body, session, 4, 1800, CHOICES[cls]["4"],
+                                     {**({"spellbook_spells": 2} if wizard else {}), "asi": 1, "cantrips": 1})
+                self.assertIn(CHOICES[cls]["4"]["cantrips"][0], p4["cantrip_ids"])
+                self.assertIn(CHOICES[cls]["4"]["asi"], p4["supported_asi_choices"])
+                p5 = await self.step(body, session, 5, 3800, CHOICES[cls]["5"], {"spellbook_spells": 2} if wizard else {})
+                self.assertEqual(p5["capacity"]["slots"], SLOTS[4])
+                view = await self.http.get(f"/api/game/sessions/{body['session_id']}/spellcasting/prepare")
+                self.assertEqual(view.status_code, 200, view.text)
+                self.assertEqual((view.json()["open"], view.json()["limit"]), (True, 9))
+                self.assertIn(view.json()["reason"], ("creation", "level_up"))
+                saved = copy.deepcopy(session.serialize_game_state())
+                manager = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
+                _, record, *_ = manager.resume_campaign(body["campaign_id"])
+                self.assertEqual(record.game_session.world_state["spellcasting_v1"], saved["world_state"]["spellcasting_v1"])
+                self.assertEqual((record.game_session.character["progression_level"], record.game_session.character["subclass_id"]),
+                                 (5, CHOICES[cls]["3"]["subclass_id"]))
+
+    async def test_the_additive_rule_over_http(self):
+        body, session = await self.start("Cleric", 4451)
+        url = f"/api/game/sessions/{body['session_id']}/spellcasting/prepare"
+        first = await self.http.post(url, json={"action_id": str(uuid.uuid4()), "prepared": ["Bless", "Cure Wounds"]})
+        self.assertEqual(first.status_code, 200, first.text)
+        await self.level_up(body, {})
+        view = await self.http.get(url)
+        self.assertEqual(view.status_code, 200, view.text)
+        self.assertEqual((view.json()["open"], view.json()["reason"]), (True, "level_up"))
+        before = copy.deepcopy(session.serialize_game_state())
+        swap = await self.http.post(url, json={"action_id": str(uuid.uuid4()), "prepared": ["Command", "Bane"]})
+        self.assertEqual(swap.status_code, 409, swap.text)
+        self.assertEqual(swap.json()["detail"]["code"], "prepare_level_up_additive_only")
+        self.assertEqual(session.serialize_game_state(), before)
+        request = {"action_id": str(uuid.uuid4()), "prepared": ["Bless", "Cure Wounds", "Command"]}
+        added = await self.http.post(url, json=request)
+        self.assertEqual(added.status_code, 200, added.text)
+        self.assertEqual(session.world_state["spellcasting_v1"]["prepared"], ["Bless", "Cure Wounds", "Command"])
+        saved = copy.deepcopy(session.serialize_game_state())
+        again = await self.http.post(url, json=request)
+        self.assertEqual((again.status_code, again.json()), (200, added.json()))
+        self.assertEqual(session.serialize_game_state(), saved)
+
+
+class UndoWithALevelUpWindow(EconomicHttpFixture):
+    """A real turn taken while a level_up window is open: Undo gives back exactly the window and the list."""
+
+    async def asyncSetUp(self):
+        with fixed_town(self, 4461):
+            await EconomicHttpFixture.asyncSetUp(self)
+        self.sid = self.campaign["session_id"]
+
+    async def test_undo_of_a_turn_restores_the_open_level_up_window(self):
+        from api.tests.test_spell_preparation_4c2 import prepper
+        session = prepper("Wizard", self.record.game_session)
+        state = session.world_state["spellcasting_v1"]
+        state["prepared"] = ["Magic Missile"]
+        state["prepare_window"] = {"opened_second": spell_scope.clock_second(session.world_state), "reason": "level_up"}
+        self.save()
+        spells_before = copy.deepcopy(state)
+        turn_id, _ = await self.real_turn()
+        undone = await self.undo(turn_id)
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.assertEqual(self.record.game_session.world_state["spellcasting_v1"], spells_before)
+        self.assertEqual(self.store.get_campaign(self.campaign["campaign_id"]).payload["engine_save"]["world_state"]
+                         ["spellcasting_v1"], spells_before)
+        self.assertTrue(spell_preparation.window_open(self.record.game_session))
+        url = f"/api/game/sessions/{self.sid}/spellcasting/prepare"
+        refused = await self.http.post(url, json={"action_id": str(uuid.uuid4()), "prepared": ["Shield"]})
+        self.assertEqual(refused.json()["detail"]["code"], "prepare_level_up_additive_only")
+        added = await self.http.post(url, json={"action_id": str(uuid.uuid4()), "prepared": ["Magic Missile", "Shield"]})
+        self.assertEqual(added.status_code, 200, added.text)
 
 if __name__ == "__main__":
     unittest.main()
