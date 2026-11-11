@@ -76,6 +76,12 @@ def run_turn(player_input):
     return game.run_player_turn(player_input, messages)
 
 
+def run_turn_with_action(player_input, action_id):
+    """A turn that may need an action receipt (flee ends the turn through the action economy)."""
+    messages = [{"role": "system", "content": "test"}]
+    return game.run_player_turn(player_input, messages, action_id=action_id)
+
+
 # =========================================================
 # TEST 1: Failed Stealth + Narrator Success Contradiction
 # =========================================================
@@ -412,33 +418,67 @@ def test_return_travel_route_refusals():
             assert game.world_state.get("journey") is None
 
 
+def _combat_in_tavern(pending):
+    before = travel_fixture(pending=pending, route=True)
+    game.world_state["locations"]["tavern"]["exit_location_id"] = "forest"
+    if pending:
+        with patch.object(game.rng, "randint", return_value=1):
+            outward = run_turn("ormana gidiyorum")
+        assert outward["action_result"]["status"] == "interrupted", outward
+        before = game.world_state["campaign_time"]["elapsed_seconds"]
+    npc = game.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})
+    with patch.object(engine, "roll_initiative_player", return_value=20),          patch.object(engine, "roll_initiative", return_value=1):
+        game.start_combat(npc)
+    return before
+
+
 def test_exit_and_return_combat_refusal():
-    """Bare commands cannot evade the existing normal-travel combat restriction."""
-    for command in ("buradan çıkıyorum", "geri dönüyorum"):
-        for pending in (None, "forest"):
-            before = travel_fixture(pending=pending, route=True)
-            game.world_state["locations"]["tavern"]["exit_location_id"] = "forest"
-            if pending:
-                with patch.object(game.rng, "randint", return_value=1):
-                    outward = run_turn("ormana gidiyorum")
-                assert outward["action_result"]["status"] == "interrupted", outward
-                before = game.world_state["campaign_time"]["elapsed_seconds"]
-            npc = game.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})
-            with patch.object(engine, "roll_initiative_player", return_value=20), \
-                 patch.object(engine, "roll_initiative", return_value=1):
-                game.start_combat(npc)
-            snapshot = deepcopy(game.world_state)
-            try:
-                run_turn(command)
-            except engine.combat_lifecycle.CombatRequestError as exc:
-                assert exc.code == "combat_travel", exc
-            else:
-                raise AssertionError(f"Combat must refuse travel: {command}")
-            assert game.world_state["location"] == "tavern"
-            assert game.world_state["flags"]["pending_destination"] == pending
-            assert game.world_state["campaign_time"]["elapsed_seconds"] == before
-            assert game.world_state.get("journey") == snapshot.get("journey")
-            assert game.world_state["combat"] == snapshot["combat"]
+    """Bare return cannot evade the normal-travel combat restriction; "buradan çıkıyorum" is a flee attempt."""
+    for pending in (None, "forest"):
+        before = _combat_in_tavern(pending)
+        snapshot = deepcopy(game.world_state)
+        try:
+            run_turn("geri dönüyorum")
+        except engine.combat_lifecycle.CombatRequestError as exc:
+            assert exc.code == "combat_travel", exc
+        else:
+            raise AssertionError("Combat must refuse travel: geri dönüyorum")
+        assert game.world_state["location"] == "tavern"
+        assert game.world_state["flags"]["pending_destination"] == pending
+        assert game.world_state["campaign_time"]["elapsed_seconds"] == before
+        assert game.world_state.get("journey") == snapshot.get("journey")
+        assert game.world_state["combat"] == snapshot["combat"]
+
+
+def test_exit_in_combat_is_a_flee_attempt():
+    """114707b3: in a fight "buradan çıkıyorum" is a real attempt, not a travel command (replaces the old refusal case)."""
+    success = {"result": "BAŞARILI", "roll": 20, "total": 25, "dc": 12}
+    failed = {"result": "BAŞARISIZ", "roll": 1, "total": 2, "dc": 12}
+    for pending in (None, "forest"):
+        # failed attempt: the turn is lost, the fight and the place stay, no move is claimed
+        before = _combat_in_tavern(pending)
+        journey_before = deepcopy(game.world_state.get("journey"))
+        with patch.object(game, "perform_skill_check", create=True, return_value=dict(failed)):
+            result = run_turn_with_action("buradan çıkıyorum", f"flee-fail-{pending}")
+        action = result["action_result"]
+        assert action["action"] == "action_economy" and action["status"] == "resolved", action
+        assert game.world_state["location"] == "tavern"
+        assert game.world_state["combat"]["active"] is True
+        assert game.world_state["flags"]["pending_destination"] == pending
+        # the lost turn is exactly one combat round (6 s), not travel time, and it ends the turn
+        assert [step["kind"] for step in action["economy_steps"]] == ["end_turn"], action
+        assert game.world_state["campaign_time"]["elapsed_seconds"] == before + 6
+        assert game.world_state.get("journey") is None or game.world_state["journey"] == journey_before
+        assert "Kaçacak bir açık bulamıyorsun" in result["narration"], result
+        # successful attempt: away and out, the fight ends as player_fled
+        _combat_in_tavern(pending)
+        with patch.object(game, "perform_skill_check", create=True, return_value=dict(success)):
+            result = run_turn_with_action("buradan çıkıyorum", f"flee-ok-{pending}")
+        action = result["action_result"]
+        assert action["action"] == "flee" and action["status"] == "resolved" and action["success"] is True, action
+        assert game.world_state["location"] == "forest", game.world_state["location"]
+        assert game.world_state["combat"]["active"] is False
+        assert game.world_state["combat"]["end_reason"] == "player_fled"
 
 
 # =========================================================
@@ -648,6 +688,9 @@ def test_unsupported_attack():
             parse.assert_not_called()
             chat.assert_not_called()
 
+        # a clarification turn legitimately notes the combat category (6522af70), as test_combat_v2 expects
+        for world in (before_world, game.world_state):
+            world.pop("adventure_recent_categories", None)
         assert game.world_state == before_world, "Rejected attack changed world state"
         assert game.character == before_character, "Rejected attack changed character"
         assert game.rng.getstate() == before_rng, "Rejected attack consumed dice"
@@ -821,6 +864,7 @@ if __name__ == "__main__":
         test_return_travel_retraces_progress,
         test_return_travel_route_refusals,
         test_exit_and_return_combat_refusal,
+        test_exit_in_combat_is_a_flee_attempt,
         test_named_location_return,
         test_ground_item_same_location,
         test_ground_item_different_location,
