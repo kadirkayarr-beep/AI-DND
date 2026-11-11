@@ -3512,9 +3512,16 @@ export interface SpeciesTraitCommandResult {
   result: SpeciesTraitActionResult;
 }
 
+/**
+ * Omitted (or null) prepared keeps today's list; an explicit empty list is an explicit empty list.
+ */
 export interface SpellPrepareInput {
-  /** @maxItems 32 */
-  prepared: string[];
+  /**
+     * @maxItems 32
+     * @nullable
+     * @items.maxLength 64
+     */
+  prepared?: string[] | null;
   close?: boolean;
   /** @nullable */
   action_id?: string | null;
@@ -3538,6 +3545,17 @@ export interface SpellPrepareDropped {
 /**
  * @nullable
  */
+export type SpellPrepareViewResponseBlockedReason = typeof SpellPrepareViewResponseBlockedReason[keyof typeof SpellPrepareViewResponseBlockedReason] | null;
+
+
+export const SpellPrepareViewResponseBlockedReason = {
+  not_preparing_class: 'not_preparing_class',
+  spellbook_missing: 'spellbook_missing',
+} as const;
+
+/**
+ * @nullable
+ */
 export type SpellPrepareViewResponseReason = typeof SpellPrepareViewResponseReason[keyof typeof SpellPrepareViewResponseReason] | null;
 
 
@@ -3550,6 +3568,8 @@ export const SpellPrepareViewResponseReason = {
 export interface SpellPrepareViewResponse {
   session_id: string;
   supported: boolean;
+  /** @nullable */
+  blocked_reason?: SpellPrepareViewResponseBlockedReason;
   /** @nullable */
   class_name?: string | null;
   open: boolean;

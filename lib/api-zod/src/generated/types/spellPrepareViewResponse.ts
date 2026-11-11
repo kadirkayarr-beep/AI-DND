@@ -5,11 +5,14 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { SpellPrepareViewResponseBlockedReason } from './spellPrepareViewResponseBlockedReason';
 import type { SpellPrepareViewResponseReason } from './spellPrepareViewResponseReason';
 
 export interface SpellPrepareViewResponse {
   session_id: string;
   supported: boolean;
+  /** @nullable */
+  blocked_reason?: SpellPrepareViewResponseBlockedReason;
   /** @nullable */
   class_name?: string | null;
   open: boolean;

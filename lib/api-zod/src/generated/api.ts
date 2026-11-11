@@ -4009,6 +4009,7 @@ export const GetGameSessionSpellPreparationParams = zod.object({
 export const GetGameSessionSpellPreparationResponse = zod.object({
   "session_id": zod.string().uuid(),
   "supported": zod.boolean(),
+  "blocked_reason": zod.union([zod.literal('not_preparing_class'),zod.literal('spellbook_missing'),zod.literal(null)]).nullish(),
   "class_name": zod.string().nullish(),
   "open": zod.boolean(),
   "reason": zod.union([zod.literal('creation'),zod.literal('long_rest'),zod.literal('migration'),zod.literal(null)]).nullish(),
@@ -4027,15 +4028,17 @@ export const PrepareGameSessionSpellsParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const prepareGameSessionSpellsBodyPreparedItemMax = 64;
+
 export const prepareGameSessionSpellsBodyPreparedMax = 32;
 
 export const prepareGameSessionSpellsBodyCloseDefault = false;
 
 export const PrepareGameSessionSpellsBody = zod.object({
-  "prepared": zod.array(zod.string()).max(prepareGameSessionSpellsBodyPreparedMax),
+  "prepared": zod.array(zod.string().max(prepareGameSessionSpellsBodyPreparedItemMax)).max(prepareGameSessionSpellsBodyPreparedMax).nullish(),
   "close": zod.boolean().default(prepareGameSessionSpellsBodyCloseDefault),
   "action_id": zod.string().uuid().nullish()
-})
+}).describe('Omitted (or null) prepared keeps today\'s list; an explicit empty list is an explicit empty list.')
 
 export const prepareGameSessionSpellsResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
 

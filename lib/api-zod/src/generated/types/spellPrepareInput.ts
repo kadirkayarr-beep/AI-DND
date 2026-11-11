@@ -6,9 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Omitted (or null) prepared keeps today's list; an explicit empty list is an explicit empty list.
+ */
 export interface SpellPrepareInput {
-  /** @maxItems 32 */
-  prepared: string[];
+  /**
+     * @maxItems 32
+     * @nullable
+     * @items.maxLength 64
+     */
+  prepared?: string[] | null;
   close?: boolean;
   /** @nullable */
   action_id?: string | null;

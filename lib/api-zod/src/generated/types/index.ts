@@ -367,6 +367,7 @@ export * from './spellPrepareInput';
 export * from './spellPrepareResult';
 export * from './spellPrepareResultStatus';
 export * from './spellPrepareViewResponse';
+export * from './spellPrepareViewResponseBlockedReason';
 export * from './spellPrepareViewResponseReason';
 export * from './spellSlotConversion';
 export * from './spellSlotConversionOption';
