@@ -22,7 +22,7 @@ Kaynak kısaltmaları: L4A = `.superpowers/sdd/DILIM4A_PLAN_20261111/progress.md
 | D-005 | G1: teslimi kabul edilen yaratık aktif düşman sayılır, yeniden saldırabilir; "teslim oldu" durumu yok | ux | L4B T2 G1, HO | Dilim 4C (Kadir kararı 2026-11-11: 4C içinde) | 4C satırı | tamamlandı (4731cdc2, 8bca6f77; inceleme bekliyor) |
 | D-006 | G2: savaşta taşınan yaratık kabulleri `invalid_combat_target` ile düşürür (önceden var) | ux | L4B T2 G2, HO | Dilim 4 sonu | Dilim sonu listesi | açık |
 | D-007 | G3: `player_stable` / `participants_left` sonlarında ölü yaratık ödenmez (eksik ödeme, ürün çağrısı yok) | money | L4B T2 G3 ve park, HO | Dilim 4 sonu | Bu sonları üreten ürün yolu eklenince | açık |
-| D-008 | G4: elle düzenlenmiş kayıtta `monster_combat` sözlük değil, `surrendered_in` hata verir | save | L4B T2 G4, HO | Düşük | Elle düzenlenmiş kayıt şikâyeti | açık |
+| D-008 | G4: elle düzenlenmiş kayıtta `monster_combat` sözlük değil, `surrendered_in` hata verir | save | L4B T2 G4, HO | Düşük | Elle düzenlenmiş kayıt şikâyeti | tamamlandı (66cfc523: `surrendered_in` sözlük olmayan `monster_combat`/`actors` için False) |
 | D-009 | F1: stat bloğu CR'ı XP tablosu dışındaysa ödül rol tablosuna düşer (henüz canavar yok) | money | L4B T1 F1, HO | Canavar eklenince | CR'ı tablo dışı ilk canavar | açık |
 | D-010 | F2 (INFO): `models._identity` boşluk ve 120 karakter kabul eder, makbuz regex'i reddeder (ürün kimlikleri hash'li) | save | L4B T4 F2, HO | Düşük | Kimlik üreten yeni yol | açık |
 | D-011 | T3 F5: `_trim_history(world=None)` varsayılanı; `_thread_gate` sessiz yutma (önceden var) | process | L4B T3, HO | Dilim 4 sonu | Dilim sonu listesi | açık |
@@ -49,5 +49,6 @@ Kaynak kısaltmaları: L4A = `.superpowers/sdd/DILIM4A_PLAN_20261111/progress.md
 | D-032 | Dodge saldırı dezavantajı (Dilim 3 parkı) | ux | HO (Dilim 3) | Dilim 4A | 4A Görev 3 | tamamlandı (6e5157ab) |
 | D-033 | Sokaktan iş haberi senaryosu (Dilim 3 parkı) | test | HO (Dilim 3) | Dilim 4A Görev 1 | 4A Görev 1 | tamamlandı (19ed20cf; kalan hâli D-020) |
 | D-034 | Katip yeniden adlandırması | ux | Kadir kararı 2026-11-11 | Yalnız Kadir | Kadir isterse | açık (yalnız Kadir) |
-| D-035 | Savaş panelinde katılımcı durumu "surrendered" çevrilmeden görünür (`combatStatusLabel` ve oyun tarayıcısı etiketi) | display | 4C.0 (UI'ye dokunulmadı) | UI görevi (Dilim 4 / UI yeniden tasarımı) | İlk UI dokunuşu | açık |
-| D-036 | Teslim olmuş yaratığa büyü (`spell_scope` yolu) ve sınırlı karşılaşma komutu sorulmadan uygulanır; yalnız silah saldırısı sorulur | ux | 4C.0 | Dilim 4C büyü görevleri | 4C büyü hedeflemesi | açık |
+| D-035 | Savaş panelinde katılımcı durumu "surrendered" çevrilmeden görünür (`combatStatusLabel` ve oyun tarayıcısı etiketi) | display | 4C.0 (UI'ye dokunulmadı) | 4C.0 düzeltme turu | 4C.0 incelemesi | tamamlandı (dd707730: 'Teslim oldu') |
+| D-036 | Teslim olmuş yaratığa büyü (`spell_scope` yolu) ve sınırlı karşılaşma komutu sorulmadan uygulanır; yalnız silah saldırısı sorulur | ux | 4C.0 | Dilim 4C büyü görevleri | 4C büyü hedeflemesi; **4C.4a'dan önce düzeltilmeli** | açık (4C.4a öncesi zorunlu) |
+| D-037 | Teslim olmuş yaratıktan uzaklaşan bir canavar rotası `monster_routes` içinde hâlâ fırsat saldırısı varsayar (Disengage ister); oyuncu yürüyüşü bu yoldan geçmez, teslim olan tepki veremez (`can_act`) | ux | 4C.0 inceleme (non-blocking) | Dilim 4 sonu | Canavar müttefikli savaş ya da oyuncu rota modeli | açık |
