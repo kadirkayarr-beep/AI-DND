@@ -868,8 +868,9 @@ class ContractParityTests(unittest.TestCase):
         self.assertEqual(runtime_routes, documented_routes)
         # 42 earlier routes + the three canonical-only action-intent routes (unresolved, status, abandon)
         # + GET and POST level-up in both alias families
-        # + the canonical-only read of the counter offer (GET shop).
-        self.assertEqual(len(documented_routes), 50)
+        # + the canonical-only read of the counter offer (GET shop)
+        # + the canonical-only spell preparation window (GET and POST spellcasting/prepare, 4C.2).
+        self.assertEqual(len(documented_routes), 52)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -1244,6 +1245,35 @@ class ContractParityTests(unittest.TestCase):
             _schema_references(published), expected,
             "CampaignDetail.campaign reference target",
         )
+
+    def test_spell_prepare_schemas_match_runtime_models(self):
+        from api.schemas import (SpellPrepareCommandResult, SpellPrepareDropped, SpellPrepareRequest,
+                                 SpellPrepareResult, SpellPrepareViewResponse)
+        models = {"SpellPrepareInput": SpellPrepareRequest, "SpellPrepareDropped": SpellPrepareDropped,
+                  "SpellPrepareViewResponse": SpellPrepareViewResponse, "SpellPrepareResult": SpellPrepareResult,
+                  "SpellPrepareCommandResult": SpellPrepareCommandResult}
+        for schema_name, model in models.items():
+            published, runtime = _schema(schema_name), model.model_json_schema()
+            with self.subTest(schema=schema_name):
+                self.assertEqual(_property_names(schema_name), _runtime_field_names(model))
+                self.assertEqual(set(published.get("required", [])), set(runtime.get("required", [])))
+                self.assertIs(published.get("additionalProperties"), False)
+                self.assertIs(runtime.get("additionalProperties"), False)
+            for field_name, runtime_field in runtime["properties"].items():
+                if field_name in {"state", "result", "dropped"} and schema_name != "SpellPrepareDropped":
+                    continue  # references, checked below
+                with self.subTest(schema=schema_name, field=field_name):
+                    published_field = _property(schema_name, field_name)
+                    self.assertEqual(_schema_types(published_field), _schema_types(runtime_field))
+                    self.assertEqual(_is_nullable(published_field), _is_nullable(runtime_field))
+                    self.assertEqual(_schema_enum(published_field), _schema_enum(runtime_field))
+        self.assertEqual(_property("SpellPrepareCommandResult", "state").get("$ref"), "#/components/schemas/GameState")
+        self.assertEqual(_property("SpellPrepareCommandResult", "result").get("$ref"),
+                         "#/components/schemas/SpellPrepareResult")
+        self.assertEqual(_property("SpellPrepareResult", "dropped")["items"].get("$ref"),
+                         "#/components/schemas/SpellPrepareDropped")
+        self.assertEqual(_property("SpellPrepareInput", "prepared").get("maxItems"),
+                         SpellPrepareRequest.model_json_schema()["properties"]["prepared"].get("maxItems"))
 
     def test_species_action_schemas_match_runtime_models(self):
         models = {

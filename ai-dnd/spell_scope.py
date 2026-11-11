@@ -28,6 +28,41 @@ def fail(code, message):
     attacks.fail(code, message)
 
 
+_V1_KEYS = frozenset({"version", "class", "cantrips", "prepared", "slots", "slot_turn"})
+_V2_KEYS = _V1_KEYS | {"spellbook", "prepare_window"}  # 4C.2: state version 2
+PREPARING = frozenset({"Wizard", "Cleric"})  # prepare from a window (4C.2); Druid keeps the version-1 rule (no prepared list)
+WINDOW_REASONS = frozenset({"creation", "long_rest", "migration"})
+
+
+def clock_second(world):
+    """The campaign second; a world without a clock yet is at 0, where the clock starts (campaign_time.initialize)."""
+    return world.get("campaign_time", {}).get("elapsed_seconds", 0)
+
+
+def _book_from(character):
+    """The Wizard's creation selections, kept only where the spellbook may hold them (unique, Wizard level-1 list)."""
+    allowed = {s["id"] for s in SPELLS_CATALOG["Wizard"]["spells_level_1"]}
+    book = []
+    for spell in character.get("spells") or []:
+        if isinstance(spell, str) and spell in allowed and spell not in book:
+            book.append(spell)
+    return book
+
+
+def prepare_limit(character):
+    """How many level-1+ spells a preparing class may hold: the applied level's sourced table row.
+
+    Until 4C.3 moves the Wizard/Cleric tables into `classes/`, the row is read from the verified class_tables oracle
+    (same file, no copy); afterwards `character_progression.capacity` gives the same cell."""
+    import character_progression
+    sourced = character_progression.capacity(character)
+    if sourced:
+        return sourced["prepared_spells"]
+    import class_tables
+    row = class_tables.table(character["class"])["levels"][str(character_progression.applied_level(character))]
+    return row["prepared_spells"]
+
+
 def initialize(session):
     """Only character creation may grant access and initial resources."""
     session.world_state.pop("sorcery_points_v1", None)
@@ -39,21 +74,45 @@ def initialize(session):
         return
     # Wizard selections are a spellbook. Cleric/Druid select two in the existing
     # creation model, whereas the uploaded 2024 feature requires four prepared.
-    # Do not manufacture a prepared list or change those class features here.
+    # Do not manufacture a prepared list or change those class features here:
+    # Wizard and Cleric prepare in the window creation opens (4C.2).
     session.world_state["spellcasting_v1"] = {
-        "version": 1, "class": cls,
+        "version": 2, "class": cls,
         "cantrips": list(character.get("cantrips", [])),
         "prepared": [] if cls in {"Wizard", "Cleric", "Druid"} else list(character.get("spells", [])),
         "slots": copy.deepcopy(definition["spell_slots"]), "slot_turn": None,
+        "spellbook": _book_from(character) if cls == "Wizard" else None,
+        "prepare_window": ({"opened_second": clock_second(session.world_state), "reason": "creation"}
+                           if cls in PREPARING else None),
     }
+
+
+def upgrade(world, character):
+    """Version 1 -> 2 in place for a preparing class (old Wizard/Cleric saves). Idempotent; never chooses a spell.
+
+    Other classes keep a version-1 state byte for byte: for them version 2 adds nothing (no spellbook, no window), and
+    old campaigns must resume to exactly the state they saved. A Wizard's spellbook is built from the creation selections
+    already saved in `character["spells"]`; a Wizard or Cleric gets a migration window at the current second (none during
+    an active fight, which would close it)."""
+    state = world.get("spellcasting_v1")
+    if not isinstance(state, dict) or state.get("version") != 1 or state.get("class") not in PREPARING:
+        return
+    validate(state, character)
+    cls = state["class"]
+    fighting = world.get("combat", {}).get("active")
+    migrated = {**copy.deepcopy(state), "version": 2,
+                "spellbook": _book_from(character) if cls == "Wizard" else None,
+                "prepare_window": ({"opened_second": clock_second(world), "reason": "migration"}
+                                   if cls in PREPARING and not fighting else None)}
+    validate(migrated, character)
+    world["spellcasting_v1"] = migrated
 
 
 def validate(state, character):
     if state is None:
         return
-    if (not isinstance(state, dict) or set(state) != {
-        "version", "class", "cantrips", "prepared", "slots", "slot_turn"
-    } or type(state["version"]) is not int or state["version"] != 1 or state["class"] != character["class"]):
+    if (not isinstance(state, dict) or type(state.get("version")) is not int
+            or set(state) != {1: _V1_KEYS, 2: _V2_KEYS}.get(state["version"]) or state["class"] != character["class"]):
         raise ValueError("Invalid saved spell state.")
     cls = state["class"]
     definition = CLASS_DEFINITIONS[cls]
@@ -62,9 +121,11 @@ def validate(state, character):
     catalog = SPELLS_CATALOG.get(cls, {})
     import character_progression
     sourced = character_progression.capacity(character)  # the applied level's table row (C06), or None: the legacy level-1 definition
+    preparing = state["version"] == 2 and cls in PREPARING
     for field, source, limit in (
         ("cantrips", "cantrips", sourced["cantrips"] if sourced else definition["cantrips_count"]),
         ("prepared", "spells_level_1", sourced["prepared_spells"] if sourced
+         else prepare_limit(character) if preparing
          else 0 if cls in {"Wizard", "Cleric", "Druid"} else definition["spells_count"]),
     ):
         selected = state[field]
@@ -85,6 +146,26 @@ def validate(state, character):
         or any(type(n) is not int or n < 1 for n in marker[1:])
     ):
         raise ValueError("Invalid spell-slot turn marker.")
+    if state["version"] == 2:
+        _validate_v2(state, character)
+
+
+def _validate_v2(state, character):
+    cls, book, window = state["class"], state["spellbook"], state["prepare_window"]
+    if cls == "Wizard":
+        allowed = {s["id"] for s in SPELLS_CATALOG["Wizard"]["spells_level_1"]}
+        if (not isinstance(book, list) or any(not isinstance(s, str) for s in book)
+                or len(book) != len(set(book)) or not set(book) <= allowed
+                or not set(state["prepared"]) <= set(book)):
+            raise ValueError("Invalid saved spellbook.")
+    elif book is not None:
+        raise ValueError("Only a Wizard keeps a spellbook.")
+    if window is None:
+        return
+    if (cls not in PREPARING or not isinstance(window, dict) or set(window) != {"opened_second", "reason"}
+            or type(window["opened_second"]) is not int or window["opened_second"] < 0
+            or not isinstance(window["reason"], str) or window["reason"] not in WINDOW_REASONS):
+        raise ValueError("Invalid saved spell preparation window.")
 
 
 def restore_slots(session):

@@ -788,6 +788,60 @@ class SpeciesTraitCommandResult(BaseModel):
     result: SpeciesTraitActionResult
 
 
+class SpellPrepareRequest(BaseModel):
+    """4C.2: the player's own preparation list; the engine keeps the valid names and never adds one."""
+    model_config = ConfigDict(extra="forbid")
+
+    prepared: list[StrictStr] = Field(max_length=32)
+    close: StrictBool = False
+    action_id: UUID | None = None
+
+
+class SpellPrepareDropped(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    spell_id: str
+    reason: Literal["duplicate", "cantrip", "not_in_spellbook", "not_on_class_list"]
+
+
+class SpellPrepareView(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    supported: bool
+    class_name: str | None = None
+    open: bool
+    reason: Literal["creation", "long_rest", "migration"] | None = None
+    limit: int
+    candidates: list[str]
+    prepared: list[str]
+    spellbook: list[str] | None = None
+
+
+class SpellPrepareViewResponse(SpellPrepareView):
+    session_id: str
+
+
+class SpellPrepareResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["prepared", "too_many"]
+    prepared: list[str]
+    dropped: list[SpellPrepareDropped]
+    limit: int
+    excess: int
+    open: bool
+    message: str
+
+
+class SpellPrepareCommandResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str
+    action_id: str | None = None
+    state: dict[str, Any]
+    result: SpellPrepareResult
+
+
 class LevelUpConIncrease(BaseModel):
     model_config = ConfigDict(extra="forbid")
     constitution: int = Field(strict=True, ge=2, le=2)

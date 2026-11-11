@@ -148,6 +148,64 @@ paths:
           $ref: '#/components/responses/RequestValidationError'
         '500':
           $ref: '#/components/responses/ApiError'
+  /game/sessions/{session_id}/spellcasting/prepare:
+    parameters:
+    - in: path
+      name: session_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      operationId: getGameSessionSpellPreparation
+      tags:
+      - game
+      summary: Read the spell preparation window, its limit and candidate spells
+      responses:
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '200':
+          description: The preparation window as Python owns it; nothing is written
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpellPrepareViewResponse'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+    post:
+      operationId: prepareGameSessionSpells
+      tags:
+      - game
+      summary: Save the player's spell preparation list while the window is open
+      description: Valid names are kept, invalid ones are dropped with a reason; a list over the limit saves
+        nothing and asks which to leave out. The engine never chooses a spell.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpellPrepareInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '200':
+          description: Saved preparation (or the question for a list over the limit) and the canonical state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpellPrepareCommandResult'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+        '500':
+          $ref: '#/components/responses/ApiError'
   /sessions/{session_id}/species-actions:
     parameters:
     - in: path
@@ -3299,6 +3357,141 @@ components:
           $ref: '#/components/schemas/GameState'
         result:
           $ref: '#/components/schemas/SpeciesTraitActionResult'
+      required:
+      - session_id
+      - state
+      - result
+    SpellPrepareInput:
+      type: object
+      additionalProperties: false
+      properties:
+        prepared:
+          type: array
+          maxItems: 32
+          items:
+            type: string
+        close:
+          type: boolean
+          default: false
+        action_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+      required:
+      - prepared
+    SpellPrepareDropped:
+      type: object
+      additionalProperties: false
+      properties:
+        spell_id:
+          type: string
+        reason:
+          type: string
+          enum:
+          - duplicate
+          - cantrip
+          - not_in_spellbook
+          - not_on_class_list
+      required:
+      - spell_id
+      - reason
+    SpellPrepareViewResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        supported:
+          type: boolean
+        class_name:
+          type:
+          - string
+          - 'null'
+        open:
+          type: boolean
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - creation
+          - long_rest
+          - migration
+          - null
+        limit:
+          type: integer
+        candidates:
+          type: array
+          items:
+            type: string
+        prepared:
+          type: array
+          items:
+            type: string
+        spellbook:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+      required:
+      - session_id
+      - supported
+      - open
+      - limit
+      - candidates
+      - prepared
+    SpellPrepareResult:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+          - prepared
+          - too_many
+        prepared:
+          type: array
+          items:
+            type: string
+        dropped:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpellPrepareDropped'
+        limit:
+          type: integer
+        excess:
+          type: integer
+        open:
+          type: boolean
+        message:
+          type: string
+      required:
+      - status
+      - prepared
+      - dropped
+      - limit
+      - excess
+      - open
+      - message
+    SpellPrepareCommandResult:
+      type: object
+      additionalProperties: false
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        action_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        state:
+          $ref: '#/components/schemas/GameState'
+        result:
+          $ref: '#/components/schemas/SpellPrepareResult'
       required:
       - session_id
       - state

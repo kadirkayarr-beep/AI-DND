@@ -3014,6 +3014,8 @@ def load_game(path):
         recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
         _normalize_ground_items()
         ensure_combat_state()
+        import spell_scope
+        spell_scope.upgrade(world_state, character)  # 4C.2: spell state version 1 -> 2; chooses no spell
         # Keep the file's own version. The current default is v4, and a v1–v3
         # file must still be written back as that same version.
         _session()._persisted_engine_format = payload["version"]
@@ -5111,6 +5113,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                    "healing": long_rest_healing, "heal_source": "rest"}
         import spell_scope
         spell_scope.restore_slots(_session())
+        import spell_preparation
+        spell_preparation.open_window(_session(), "long_rest")  # 4C.2: Wizard/Cleric choose again after a finished Long Rest
         import sorcery_points
         sorcery_points.restore(_session())
         import barbarian_rage
@@ -5497,6 +5501,8 @@ def _start_combat_with_initiative(player_target_npc):
         "target_id": target_id,
         "end_reason": None,
     })
+    import spell_preparation
+    spell_preparation.close_window(_session())  # 4C.2: a fight ends the preparation window for good
     _clear_active_interlocutor("combat")
     for npc in enemies:
         # People in one room see the one who just hit them; no scenario has to say so.

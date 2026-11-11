@@ -118,6 +118,10 @@ from api.schemas import (
     SpeciesTraitActionRequest,
     SpeciesTraitActionResult,
     SpeciesTraitCommandResult,
+    SpellPrepareCommandResult,
+    SpellPrepareRequest,
+    SpellPrepareResult,
+    SpellPrepareViewResponse,
 )
 from api.serializers import (
     CombatResultSerializationError,
@@ -2358,6 +2362,109 @@ def create_app(
         request: SpeciesTraitActionRequest,
     ) -> dict[str, Any]:
         return resolve_species_trait_action(session_id, request)
+
+    @application.get("/api/game/sessions/{session_id}/spellcasting/prepare", response_model=SpellPrepareViewResponse,
+                     operation_id="getGameSessionSpellPreparation")
+    def read_spell_preparation(session_id: str) -> dict[str, Any]:
+        """4C.2: the preparation window, its limit and candidates. Writes nothing."""
+        import spell_preparation
+        record = get_record(session_id)
+        with record.turn_lock:
+            record = get_record(session_id)
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            require_current(record)
+            view = spell_preparation.view(record.game_session)
+            return SpellPrepareViewResponse.model_validate({"session_id": session_id, **view}).model_dump(mode="json")
+
+    @application.post("/api/game/sessions/{session_id}/spellcasting/prepare", response_model=SpellPrepareCommandResult,
+                      operation_id="prepareGameSessionSpells")
+    def prepare_spells(session_id: str, request: SpellPrepareRequest) -> dict[str, Any]:
+        """4C.2: save the player's preparation list (same receipt, replay and rollback contract as species actions)."""
+        import spell_preparation
+        record = get_record(session_id)
+        action_id = str(request.action_id or uuid4())
+        request_hash = hashlib.sha256(json.dumps(
+            {"command": "spell_prepare", **request.model_dump(mode="json", exclude={"action_id"})},
+            sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
+        with record.turn_lock:
+            ensure_usable(record)
+            session = record.game_session
+            try:
+                previous = manager.get_turn_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            get_record(session_id)
+            if previous is not None:
+                if previous["request_hash"] != request_hash:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different action.",
+                    })
+                return replay_action_response(previous["response"], SpellPrepareCommandResult, session_id)
+            try:
+                refused = manager.get_refused_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if refused is not None:
+                if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
+                    raise HTTPException(status_code=409, detail={
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different action.",
+                    })
+                raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
+            require_current(record)
+            window = spell_preparation.view(session)
+            if not window["supported"]:
+                raise HTTPException(status_code=409, detail={
+                    "code": "prepare_not_supported", "message": "Bu sınıf büyü hazırlamaz."})
+            if not window["open"]:
+                raise HTTPException(status_code=409, detail={
+                    "code": "prepare_window_closed",
+                    "message": "Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş olmalısın."})
+            snapshot = _capture_session(session)
+            metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
+            journal_snapshot = copy.deepcopy(record.journal)
+            memory_snapshot = copy.deepcopy(record.narrative_memory)
+            lore_snapshot = record.lore_authority
+
+            def restore_command():
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = memory_snapshot
+                record.lore_authority = lore_snapshot
+
+            response_payload = None
+            try:
+                result = spell_preparation.prepare(session, list(request.prepared), close=request.close)
+                response = SpellPrepareCommandResult(
+                    session_id=session_id, action_id=action_id,
+                    state=serialize_session_state(session, record.journal, record.lore_authority),
+                    result=SpellPrepareResult.model_validate(result),
+                )
+                response_payload = redact_sensitive_values(response.model_dump(mode="json"))
+                if result["status"] == "too_many":
+                    return response_payload  # a question: nothing changed, so nothing is saved and no receipt is kept
+                manager.autosave_turn(
+                    record, "spell_prepare", result["message"],
+                    turn_action_receipt={"action_id": action_id, "request_hash": request_hash,
+                                         "response": response_payload},
+                )
+                return response_payload
+            except ValueError as error:
+                restore_command()
+                raise HTTPException(status_code=409, detail={
+                    "code": "prepare_unavailable", "message": str(error)}) from None
+            except CampaignError as error:
+                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
+                restore_command()
+                raise campaign_http_exception(error) from None
+            except Exception as error:
+                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
+                restore_command()
+                raise
 
     @application.post(
         "/api/game/sessions/{session_id}/ambient-events/"
