@@ -30,12 +30,12 @@ class AwardLine(unittest.TestCase):
                          "+10 deneyim puanı.")
         self.assertEqual(xp.award_line({"previous_level": 3, "new_level": 4, "xp_gained": 25, "hit_points_gained": 8}),
                          "+25 deneyim puanı. Seviye 4 oldun; en yüksek canın 8 arttı. "
-                         "Yeni seviyenin seçimleri karakter ekranında seni bekliyor.")
+                         "Yeni seviyenin seçimleri hikâyenin üstündeki \"Kazanılmış seviye seçimlerini kontrol et\" düğmesinde seni bekliyor.")
 
     def test_a_jump_over_two_levels_names_the_last_one_and_the_whole_gain(self):
         self.assertEqual(xp.award_line({"previous_level": 3, "new_level": 5, "xp_gained": 3610, "hit_points_gained": 16}),
                          "+3610 deneyim puanı. Seviye 5 oldun; en yüksek canın 16 arttı. "
-                         "Yeni seviyenin seçimleri karakter ekranında seni bekliyor.")
+                         "Yeni seviyenin seçimleri hikâyenin üstündeki \"Kazanılmış seviye seçimlerini kontrol et\" düğmesinde seni bekliyor.")
 
     def test_thresholds_are_the_srd_ones_and_equality_reaches_the_level(self):
         self.assertEqual(xp.LEVEL_THRESHOLDS, ((1, 0), (2, 300), (3, 900), (4, 2700), (5, 6500)))

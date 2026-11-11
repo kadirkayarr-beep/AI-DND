@@ -197,7 +197,7 @@ def award_line(summary: Mapping[str, Any]) -> str:
     line = f"+{summary['xp_gained']} deneyim puanı."
     if summary["new_level"] > summary["previous_level"]:
         line += (f" Seviye {summary['new_level']} oldun; en yüksek canın {summary['hit_points_gained']} arttı."
-                 " Yeni seviyenin seçimleri karakter ekranında seni bekliyor.")
+                 " Yeni seviyenin seçimleri hikâyenin üstündeki \"Kazanılmış seviye seçimlerini kontrol et\" düğmesinde seni bekliyor.")
     return line
 
 
