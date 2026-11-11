@@ -51,7 +51,8 @@
   to { opacity: 1; }
 }
 
-/* The waiting quill tip: a small nib after the last word that breathes while the story waits for the reader. */
+/* The waiting quill tip: a small nib after the last word that breathes while the story waits for the reader.
+   The breathing is bounded (three breaths, about 8 s) and then the nib rests, so an idle page never animates forever. */
 .ink-tip {
   display: inline-block;
   width: 0.4em;
@@ -63,7 +64,7 @@
   opacity: 0;
   animation:
     ink-tip-in 0.4s ease forwards var(--ink-delay, 0s),
-    ink-tip-wait 2.8s ease-in-out infinite calc(var(--ink-delay, 0s) + 0.4s);
+    ink-tip-wait 2.8s ease-in-out 3 calc(var(--ink-delay, 0s) + 0.4s);
 }
 .ink-tip.ink-tip-still { opacity: 0.9; animation: none; }
 @keyframes ink-tip-in { to { opacity: 0.9; } }
@@ -88,8 +89,8 @@
 }
 .design-preview.play-shell .story-reading-column .command-form > button[type="submit"]:disabled { opacity: 0.55; }
 
-/* Day theme: the scene-context column beside the story still holds legacy panels (combat strip, economy, shop,
-   level-up) that are styled for a dark surface. It keeps night tokens (index.css) and gets its own dark card. */
+/* The scene-context column beside the story (combat strip, economy, shop, level-up) is on the tokens now, so it
+   follows the theme like the page. In day it sits on a light card; in night it stays flat. */
 :root[data-unw-theme="day"] .design-preview.play-shell .story-scene-context {
   padding: var(--unw-space-3);
   border: 1px solid var(--unw-border);

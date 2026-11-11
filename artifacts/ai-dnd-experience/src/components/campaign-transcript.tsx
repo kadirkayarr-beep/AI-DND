@@ -18,6 +18,8 @@ export type TranscriptEntry = {
   undone?: boolean;
   undoNote?: boolean;
   undoTargetUnknown?: boolean;
+  /** Set only on narration this screen just produced (a turn answer, the opening of a new adventure): an empty transcript may write it out in ink. Never saved, never set on loaded history. */
+  live?: boolean;
 };
 
 /** Display only: the stored text stays the command; the player sees a sentence, not the raw slash line. */
@@ -39,9 +41,9 @@ function PlayerEntry({ entry, index }: { entry: TranscriptEntry; index: number }
   return <div className={className} data-testid={`transcript-player-${index}`}><div className="player-label">{entry.mode === 'say' ? <MessageCircle size={12} aria-hidden="true" /> : entry.mode === 'ask_dm' ? <CircleHelp size={12} aria-hidden="true" /> : <Swords size={12} aria-hidden="true" />}{entry.mode === 'say' ? 'Söyledin' : entry.mode === 'ask_dm' ? 'Anlatıcıya sordun' : entry.mode === 'do' ? 'Hamlen' : 'Önceki sözün'}{undoneLabel(entry, index)}</div><p className="player-text">{playerDisplayText(entry.text)}</p></div>;
 }
 
-function NarrationEntry({ entry, index, fresh, quill, still }: { entry: TranscriptEntry; index: number; fresh: boolean; quill: boolean; still: boolean }) {
+function NarrationEntry({ entry, index, fresh, quill, still, level }: { entry: TranscriptEntry; index: number; fresh: boolean; quill: boolean; still: boolean; level: 'low' | 'full' }) {
   const { settings } = useAppearance();
-  return <div className={entry.undone ? 'story-entry transcript-undone' : 'story-entry'} data-testid={`transcript-narration-${index}`}>{undoneLabel(entry, index)}<InkText text={entry.text} speed={settings.inkRevealSpeed} animate={fresh && !still} quill={quill} still={still} />{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>;
+  return <div className={entry.undone ? 'story-entry transcript-undone' : 'story-entry'} data-testid={`transcript-narration-${index}`}>{undoneLabel(entry, index)}<InkText text={entry.text} speed={settings.inkRevealSpeed} animate={fresh && !still} quill={quill} still={still} level={level} />{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>;
 }
 
 export function Transcript({
@@ -64,7 +66,8 @@ export function Transcript({
   const { effectsLevel } = useAppearance();
   const still = effectsLevel === 'off';
   // Derived while rendering (no effect, no flash): which entry just arrived. Same length keeps the answer, any other change clears it.
-  const [arrival, setArrival] = useState<{ entries: TranscriptEntry[]; fresh: number | null }>({ entries, fresh: null });
+  // A live opening (or first turn) mounts with its text already there, so the first state is computed from an empty list.
+  const [arrival, setArrival] = useState<{ entries: TranscriptEntry[]; fresh: number | null }>(() => ({ entries, fresh: freshInkIndex([], entries) }));
   if (arrival.entries !== entries) {
     setArrival({ entries, fresh: entries.length === arrival.entries.length ? arrival.fresh : freshInkIndex(arrival.entries, entries) });
   }
@@ -76,5 +79,5 @@ export function Transcript({
     ...(readingPreferences.lineHeight === null ? {} : { '--story-line-height': String(readingPreferences.lineHeight) }),
   } as CSSProperties;
   if (!entries.length) return <div className="transcript-region"><div className="transcript-scroll empty-line mt-4" data-testid="empty-transcript">İlk hamleni yaz. Dünya seçiminin ardından karşılık verecek.{cue}</div></div>;
-  return <div className="transcript-region"><div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı" aria-description="Anlatı ve oyuncunun özgün sözleri tek akışta">{cue}<div className="mt-2" data-testid="transcript-local" style={readingStyle}>{entries.map((entry, index) => entry.kind === 'player' ? <PlayerEntry key={`${entry.kind}-${index}`} entry={entry} index={index} /> : <NarrationEntry key={`${entry.kind}-${index}`} entry={entry} index={index} fresh={index === freshIndex} quill={index === lastIndex} still={still} />)}</div></div>{newResponseEntryIndex !== null && <button type="button" className="new-response-button" data-testid="button-new-response" aria-label="Yeni yanıta git" onMouseDown={(event) => event.preventDefault()} onClick={(event) => onJumpToNewResponse(event.detail === 0)}>↓ Yeni yanıt</button>}</div>;
+  return <div className="transcript-region"><div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı" aria-description="Anlatı ve oyuncunun özgün sözleri tek akışta">{cue}<div className="mt-2" data-testid="transcript-local" style={readingStyle}>{entries.map((entry, index) => entry.kind === 'player' ? <PlayerEntry key={`${entry.kind}-${index}`} entry={entry} index={index} /> : <NarrationEntry key={`${entry.kind}-${index}`} entry={entry} index={index} fresh={index === freshIndex} quill={index === lastIndex} still={still} level={effectsLevel === 'low' ? 'low' : 'full'} />)}</div></div>{newResponseEntryIndex !== null && <button type="button" className="new-response-button" data-testid="button-new-response" aria-label="Yeni yanıta git" onMouseDown={(event) => event.preventDefault()} onClick={(event) => onJumpToNewResponse(event.detail === 0)}>↓ Yeni yanıt</button>}</div>;
 }

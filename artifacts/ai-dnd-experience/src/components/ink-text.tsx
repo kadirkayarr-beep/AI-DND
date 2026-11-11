@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { inkStepMs, splitInkPieces } from '@/lib/ink-reveal';
-import type { InkRevealSpeed } from '@/lib/appearance-settings';
+import type { EffectsLevel, InkRevealSpeed } from '@/lib/appearance-settings';
 
 type InkVars = CSSProperties & Record<`--${string}`, string | number>;
 
@@ -10,17 +10,19 @@ type InkVars = CSSProperties & Record<`--${string}`, string | number>;
  * words in one after another with CSS. Atmosphere never touches this text. `quill` adds the waiting
  * pen tip after the last word: an empty decorative span, so the text content stays exactly the story.
  */
-export function InkText({ text, speed, animate, quill, still }: {
+export function InkText({ text, speed, animate, quill, still, level = 'full' }: {
   text: string;
   speed: InkRevealSpeed;
   animate: boolean;
   quill: boolean;
   /** No motion at all (effects off or reduced motion): the tip is drawn but does not pulse. */
   still: boolean;
+  /** 'low' (Az) plays the shorter reveal; 'full' is the speed setting as is. */
+  level?: Exclude<EffectsLevel, 'off'>;
 }) {
   const pieces = splitInkPieces(text);
   const wordCount = pieces.filter((piece) => piece.word).length;
-  const step = animate ? inkStepMs(speed, wordCount) : 0;
+  const step = animate ? inkStepMs(speed, wordCount, level) : 0;
   const reveal = step > 0;
   let index = 0;
   const tipStyle: InkVars | undefined = reveal ? { '--ink-delay': `${Math.round(step * wordCount + 300)}ms` } : undefined;
