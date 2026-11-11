@@ -69,6 +69,7 @@ import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail,
 import { type TranscriptEntry } from '@/components/campaign-transcript';
 import { readReadingPreferences, writeReadingPreferences } from '@/lib/reading-preferences';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
+import { EnvironmentAtmosphere } from '@/components/environment-atmosphere';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
 import { playGateSound, primeGateSound } from '@/lib/gate-sound';
@@ -1266,6 +1267,7 @@ export default function GameBrowser() {
   return (
     <EnvironmentThemeProvider state={state}>
       <div className="design-preview dnd-app play-shell" data-testid="app-session">
+        <EnvironmentAtmosphere />
         <div className="preview-background">
         <div className="preview-banner"><span>GERÇEK KAMPANYA</span><span>{sessionLabel} · Defter numarası: {campaignId}</span></div>
         {state && <SessionHeader state={state} campaignId={campaignId} onSave={handleSave} saving={saveCampaign.isPending} onReset={reset} onDrawer={(next, opener) => { setPanelOpener(opener); setDrawer(next); }} onOpenCombat={(opener) => { setPanelOpener(opener); setActiveTab('combat'); setDrawer('world'); }} />}

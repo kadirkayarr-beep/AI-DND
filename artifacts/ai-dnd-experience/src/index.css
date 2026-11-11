@@ -326,43 +326,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .command-help { align-items: flex-start; flex-direction: column; }
 }
 
-/* Atmosphere follows the world, time, and weather carried in the adventure state. */
+/* Atmosphere follows the world: the SceneAtmosphereLayer (src/lib/scene-atmosphere.ts table) paints the
+   tint, light and weather. The wrapper keeps only a neutral base wash and the ribbon line colour. */
 .environment-theme {
   min-height: 100dvh;
-  --theme-wash: rgba(86, 78, 64, .11);
-  --time-wash: transparent;
-  --weather-wash: transparent;
   --theme-line: rgba(117, 108, 91, .62);
 }
-.environment-theme[data-environment="tavern"] { --theme-wash: rgba(153, 99, 45, .12); --theme-line: rgba(117, 86, 50, .82); }
-.environment-theme[data-environment="forest"] { --theme-wash: rgba(52, 99, 62, .2); --theme-line: rgba(104, 132, 94, .7); }
-.environment-theme[data-environment="city"] { --theme-wash: rgba(75, 90, 115, .19); --theme-line: rgba(139, 130, 103, .72); }
-.environment-theme[data-environment="village"] { --theme-wash: rgba(139, 103, 51, .17); --theme-line: rgba(153, 122, 77, .72); }
-.environment-theme[data-environment="road"] { --theme-wash: rgba(147, 97, 44, .17); --theme-line: rgba(164, 125, 73, .72); }
-.environment-theme[data-environment="wilderness"] { --theme-wash: rgba(47, 88, 61, .23); --theme-line: rgba(106, 127, 93, .72); }
-.environment-theme[data-environment="dungeon"] { --theme-wash: rgba(76, 62, 91, .23); --theme-line: rgba(122, 111, 127, .68); }
-.environment-theme[data-environment="cave"] { --theme-wash: rgba(60, 80, 98, .23); --theme-line: rgba(111, 123, 132, .68); }
-.environment-theme[data-environment="castle"] { --theme-wash: rgba(98, 79, 51, .19); --theme-line: rgba(154, 132, 94, .72); }
-.environment-theme[data-environment="temple"] { --theme-wash: rgba(138, 106, 59, .17); --theme-line: rgba(162, 137, 93, .72); }
-.environment-theme[data-environment="ruins"] { --theme-wash: rgba(91, 82, 63, .21); --theme-line: rgba(132, 119, 94, .68); }
-.environment-theme[data-time="dawn"] { --time-wash: rgba(221, 151, 81, .17); }
-.environment-theme[data-time="day"] { --time-wash: rgba(199, 181, 107, .12); }
-.environment-theme[data-time="evening"] { --time-wash: rgba(158, 79, 43, .19); }
-.environment-theme[data-time="night"] { --time-wash: rgba(46, 70, 111, .25); }
-.environment-theme[data-weather="clear"] { --weather-wash: rgba(235, 198, 116, .07); }
-.environment-theme[data-weather="rain"] { --weather-wash: rgba(91, 128, 158, .1); }
-.environment-theme[data-weather="fog"] { --weather-wash: rgba(176, 190, 184, .11); }
-.environment-theme[data-weather="snow"] { --weather-wash: rgba(170, 199, 218, .09); }
-.environment-theme[data-weather="storm"] { --weather-wash: rgba(52, 69, 100, .15); }
-.environment-theme[data-weather="rain"]::before,
-.environment-theme[data-weather="storm"]::before { content: ''; position: fixed; z-index: 10; inset: 0; pointer-events: none; opacity: .13; background: repeating-linear-gradient(108deg, transparent 0 27px, rgba(183, 199, 211, .25) 28px, transparent 30px); }
-.environment-theme[data-weather="fog"]::before { content: ''; position: fixed; z-index: 10; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 40%, rgba(196, 205, 194, .16), transparent 68%), linear-gradient(180deg, rgba(170, 184, 180, .035), transparent 75%); }
-.environment-theme[data-weather="snow"]::before { content: ''; position: fixed; z-index: 10; inset: 0; pointer-events: none; opacity: .15; background-image: radial-gradient(circle at 18% 23%, rgba(226, 232, 238, .85) 0 1px, transparent 2px), radial-gradient(circle at 74% 38%, rgba(226, 232, 238, .72) 0 1px, transparent 2px), radial-gradient(circle at 44% 78%, rgba(226, 232, 238, .6) 0 1px, transparent 2px); background-size: 97px 113px, 141px 157px, 177px 191px; }
 .dnd-app {
+  position: relative;
+  isolation: isolate;
   background:
-    radial-gradient(ellipse at 12% 8%, var(--theme-wash), transparent 42rem),
-    radial-gradient(ellipse at 88% 5%, var(--time-wash), transparent 48rem),
-    radial-gradient(ellipse at 50% 0%, var(--weather-wash), transparent 56rem),
+    radial-gradient(ellipse at 12% 8%, rgba(86, 78, 64, .11), transparent 42rem),
     transparent;
 }
 .combat-panel.combat-panel-active {
