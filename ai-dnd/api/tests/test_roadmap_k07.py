@@ -80,7 +80,8 @@ class NumericRuleOracleTests(unittest.TestCase):
             with self.subTest(case_id=case_id):
                 result = rule_oracles.evaluate_rule_case(case_id, ORACLES)
                 self.assertTrue(result["match"], result)
-                self.assertEqual(result["source_ref"]["pdf_page"], 28)
+                # Massive Damage (cases 15-17) is on PDF page 27; Stabilizing a Character stays on 28.
+                self.assertEqual(result["source_ref"]["pdf_page"], 27 if 15 <= case_number <= 17 else 28)
 
     def test_a_wrong_expectation_is_detected_not_absorbed(self):
         broken = {**ORACLES, "leaves": [

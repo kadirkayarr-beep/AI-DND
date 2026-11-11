@@ -15,6 +15,7 @@ Ana ilke: kalite ve güvenlik kaybına müsamaha göstermeden hız. Çelişkide 
 - (e) Oyuncuya gösterilen metin o durumda doğru mu (yalan gerekçe yok)?
 - (f) Önce kırmızı test; gevşetilen test yok.
 - (g) Para ve envanter yalnız doğrulanmış bir kartla değişir; görev ve iz yalnız motor kaydıyla değişir (model tek başına değiştirmez).
+- (h) Yeniden kullanım merdiveni: yeni kod yazmadan önce sırayla bak: (1) repoda bunu zaten yapan bir işlev ya da modül var mı (`graphify query`), (2) standart kütüphane, (3) ancak sonra en az yeni kod. Raporda tek satırla yaz: neyi yeniden kullandın ya da yeni kod neden gerekti. Bu madde para, kayıt ve Geri Al kodunda doğrulamayı, hata işlemeyi, makbuzu/tekrar güvenliğini (idempotency), kayıt ve Geri Al denetimlerini ve testleri ASLA azaltmaz; başka hiçbir kontrol listesi maddesini de geçersiz kılmaz. Kod azaltma kalite ve güvenliğin altında kalır.
 
 ## Karar
 Belirsizlikte dur ve sorma: karar ver, raporda `Ruling: <karar> — <neden> — <yanlışsa maliyeti>` yaz. Yalnız geri alınamaz işlem, güvenlik açısından hassas işlem, worktree dışı yan etki ya da bozuk plan durdurur.
