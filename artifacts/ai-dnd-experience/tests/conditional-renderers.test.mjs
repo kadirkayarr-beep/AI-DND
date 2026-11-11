@@ -44,8 +44,8 @@ let vite, cases, reveal, traits;
 before(async()=>{
  cases=JSON.parse(execFileSync(python,['-B','-c',fixtureProgram],{cwd:path.resolve('../../ai-dnd'),encoding:'utf8',env:{...process.env,PYTHONUTF8:'1'}}));
  const { createServer }=await import('vite');
- vite=await createServer({configFile:path.resolve('vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent',plugins:[{name:'test-only-reveal-export',enforce:'pre',transform(code,id){if(id.replaceAll('\\','/').endsWith('/src/pages/game-browser.tsx'))return code+'\nexport { CharacterReveal as TestCharacterReveal };';}}]});
- const { TestCharacterReveal }=await vite.ssrLoadModule('/src/pages/game-browser.tsx');
+ vite=await createServer({configFile:path.resolve('vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent',plugins:[{name:'test-only-reveal-export',enforce:'pre',transform(code,id){if(id.replaceAll('\\','/').endsWith('/src/pages/game/character-reveal.tsx'))return code+'\nexport { CharacterReveal as TestCharacterReveal };';}}]});
+ const { TestCharacterReveal }=await vite.ssrLoadModule('/src/pages/game/character-reveal.tsx');
  const { SpeciesTraitControls }=await vite.ssrLoadModule('/src/components/species-trait-controls.tsx');
  const React=await import('react');const {renderToStaticMarkup}=await import('react-dom/server');
  const { QueryClient,QueryClientProvider }=await import('@tanstack/react-query');

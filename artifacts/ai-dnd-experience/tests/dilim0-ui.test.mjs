@@ -467,7 +467,7 @@ test('rage duration is a value without developer prose or a client countdown', a
   assert.doesNotMatch(source,/Sunucunun bildirdiği kalan süre|Bu bir canlı geri sayım/);
 });
 test('welcome and creation display skills without changing submitted skill identifiers', async () => {
-  const game=await readFile('src/pages/game-browser.tsx','utf8');
+  const game=readGameBrowserSource();
   const creation=await readFile('src/components/character-creation-screen.tsx','utf8');
   assert.doesNotMatch(game,/LVL \{/);
   assert.match(game,/Sv\. \{character\.level\}/);
@@ -492,7 +492,7 @@ test('specialized origin feats keep the catalog name and localized class', async
   const feats={'Magic Initiate':{name_tr:'Büyüye Giriş'},'Savage Attacker':{name_tr:'Vahşi Saldırgan'}};
   assert.equal(labels.originFeatLabel(feats,'Magic Initiate (Wizard)'), 'Büyüye Giriş (Sihirbaz)');
   assert.equal(labels.originFeatLabel(feats,'Savage Attacker'),'Vahşi Saldırgan');
-  const source=await readFile('src/pages/game-browser.tsx','utf8');
+  const source=readGameBrowserSource();
   assert.match(source,/originFeatLabel\([^;]*character\.species_bonus_feat/);
 });
 test('inventory preserves terminal unrelated brackets and labels without proven generated identity', async () => {
@@ -543,7 +543,7 @@ test('known subclass catalog names survive the real character panel and welcome 
   const state = { ...makeState(), character, wallet: { total_cp: 100 } };
   const before = JSON.stringify(state);
   assert.match(render(panel.CharacterPanel, { character, catalog: subclassCatalog }), /Alt sınıf: Şampiyon/);
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const declaration = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'CharacterReveal');
   assert.ok(declaration, 'production welcome component exists');
