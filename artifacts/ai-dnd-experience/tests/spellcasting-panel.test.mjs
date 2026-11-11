@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { before, after, test } from 'node:test';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
@@ -62,7 +63,7 @@ test('rerenders new authoritative slots without mutation or casting controls', (
 test('panel has no local state, requests, legality calculation or resource consumption', async () => {
   const source = await readFile('src/components/spellcasting-panel.tsx', 'utf8');
   assert.doesNotMatch(source, /useState|useReducer|localStorage|fetch\(|\.mutate|slots\s*\[.*\]\s*=|CLASS_DEFINITIONS/);
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   assert.match(page, /drawer === 'character' \? <LeftColumn state=\{state\} catalog=\{catalog\} decisionScope=\{decisionScope\} conversionBlocked=\{conversionBlocked\} onCommand=\{onEconomyCommand\} \/>/);
   assert.match(page, /<SpellcastingPanel spellcasting=\{state\.spellcasting\} \/>/);
   assert.doesNotMatch(page, /spellcasting=\{\{|spell_slots_remaining|CLASS_DEFINITIONS|slots\s*\[.*\]\s*=/);
