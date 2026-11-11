@@ -1,0 +1,7 @@
+.appearance-settings { display: grid; gap: 12px; color: inherit; }
+.appearance-settings fieldset { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; min-width: 0; }
+.appearance-settings legend { padding: 0; margin-bottom: 6px; font-weight: 600; }
+.appearance-settings .appearance-option { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 10px; border: 1px solid rgba(115, 88, 54, .6); cursor: pointer; }
+.appearance-settings .appearance-option:has(input:checked) { border-color: #d2aa92; }
+.appearance-settings .appearance-option:has(input:focus-visible) { outline: 2px solid #d2aa92; outline-offset: 2px; }
+.appearance-settings .appearance-note { margin: 0; font-size: 12px; opacity: .8; }
