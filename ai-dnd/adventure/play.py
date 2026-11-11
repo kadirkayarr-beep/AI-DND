@@ -120,8 +120,16 @@ def settle_session(session):
         if quest.get("status") not in {"COMPLETED", "FAILED"}:
             continue
         if quest.get("reward_application_id") is None:
-            paid = rewards.apply_plan(session.character, world, quest, lore_state=lore)
-            if isinstance(paid, dict) and paid.get("lore_state") is not None:
+            paid = {}
+
+            def pay(quest=quest, lore=lore, paid=paid):
+                paid.update(rewards.apply_plan(session.character, world, quest, lore_state=lore) or {})
+                return paid.get("xp_summary")
+
+            # One boundary for gold, item, XP and receipt: a refusal (a crossing to level 5 included) puts them all
+            # back. The lore is not in that snapshot, so it is taken only after the award is admitted.
+            session._receive_xp_award(pay)
+            if paid.get("lore_state") is not None:
                 session.campaign_lore_state = paid["lore_state"]
                 lore = paid["lore_state"]
         if not str(quest.get("creation_evidence") or "").startswith("thread-job:"):

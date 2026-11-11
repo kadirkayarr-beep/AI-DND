@@ -456,6 +456,13 @@ class _FixedDie:
     def randint(self, _start, _stop):
         return self.face
 
+    # The session's XP boundary snapshots the die like a real random.Random (adventure rewards pay through it).
+    def getstate(self):
+        return self.face
+
+    def setstate(self, face):
+        self.face = face
+
 
 class HideoutTurnTests(unittest.TestCase):
     def setUp(self):
