@@ -1,9 +1,7 @@
 import { originFeatLabel } from '@/lib/catalog-display';
-import { CombatStatusStrip, CombatTransitionBanner } from '@/components/combat-status-strip';
 import { showsCounter } from '@/lib/play-panels';
-import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
-import { TacticalMindControl, tacticalMindAvailable } from '@/components/fighter-controls';
+import { tacticalMindAvailable } from '@/components/fighter-controls';
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
 import { PurseLine, StoredProgressionChoices } from '@/components/character-panel';
 import { LevelUpControls, levelUpEarned, type LevelUpRequest } from '@/components/level-up-controls';
@@ -11,19 +9,16 @@ import { ECONOMIC_MESSAGES, EconomicOfferCard, EconomicPrepareControls, ShopCont
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved } from '@/lib/pending-action';
 import { askServer, findUnresolvedOnServer, RecoveryTimeoutError, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { type CombatLogEntry } from '@/components/combat-panel';
-import { DeathEndNotice, DeathRecoveryControls } from '@/components/death-recovery-controls';
 import { mergeCombatHistory } from '@/lib/combat-history';
 import { retainCombatTarget } from '@/lib/combat-ui-contract';
 import { clippedControlOverflow, focusReturnTarget, keyboardInset, transcriptFollowsBottom } from '@/lib/play-viewport';
 import { removeAdvisoryCache, writeAdvisoryCache } from '@/lib/advisory-cache';
 import {
-  AmbientEventActionPanel,
   ambientFollowUpMove,
   createAmbientEventActionRequest,
-  findPersistedAmbientEventResult,
   isActiveBlueAmbientEvent,
   type AmbientEventActionRequest,
 } from '@/components/ambient-event-actions';
@@ -33,18 +28,14 @@ import {
   ArrowRight,
   BookOpen,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Feather,
   Heart,
   Map,
   MapPinned,
   Menu,
-  MessageCircle,
   Plus,
   RefreshCw,
   Save,
-  Send,
   Shield,
   Swords,
   Users,
@@ -78,7 +69,7 @@ import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-f
 import type { EconomicAction, TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar } from '@/components/last-turn-bar';
-import { NoticeBanner, type Notice, type RecoveryState } from '@/components/notice-banner';
+import { type Notice, type RecoveryState } from '@/components/notice-banner';
 import { skillLabel } from '@/lib/skill-label';
 import { historyToEntries } from '@/lib/transcript-history';
 import { resumeComposerMode } from '@/lib/resume-mode';
@@ -87,13 +78,11 @@ import { applyGameState, gameStateScope, nextRevision } from '@/lib/game-state-g
 import { ActionDeadlineError, startDeadline, withActionDeadline } from '@/lib/action-deadline';
 import { gatedStateRead, stateStructuralSharing } from '@/lib/state-envelope';
 import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignStartSelection, CharacterCreateInput, GameState } from '@workspace/api-client-react';
-import { Transcript, type TranscriptEntry } from '@/components/campaign-transcript';
-import { ReadingSettings } from '@/components/reading-settings';
-import { readReadingPreferences, writeReadingPreferences, type ReadingPreferences } from '@/lib/reading-preferences';
+import { type TranscriptEntry } from '@/components/campaign-transcript';
+import { readReadingPreferences, writeReadingPreferences } from '@/lib/reading-preferences';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
-import { ActionEconomyPanel } from '@/components/action-economy-panel';
 import { SpellcastingPanel } from '@/components/spellcasting-panel';
 import { CampaignDate } from '@/components/campaign-context-panel';
 import { classLabel, speciesLabel } from '@/lib/campaign-presentation';
@@ -107,7 +96,9 @@ import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.
 import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
 import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
 import { LOCAL_OWNER, statusCode, friendlyError, Brand, Kicker, Rule, OpeningScreen, StateSkeleton } from '@/pages/game/shell-parts';
-import { WorldTab, SceneIdeas, RailPanelId, RailSummary, LeftColumn, WorldTabs } from '@/pages/game/world-panels';
+import { WorldTab, RailPanelId, RailSummary, DetailsPanel, LeftColumn, WorldTabs } from '@/pages/game/world-panels';
+import { StoryColumn } from '@/pages/game/story-column';
+
 export { DetailsPanel } from '@/pages/game/world-panels';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
@@ -121,262 +112,6 @@ const PENDING_TURN_NOTICE: Notice = {
   title: 'Önceki hamle henüz doğrulanamadı',
   detail: 'Yeni hamle göndermeden önce önceki hamleyi aynı kimlikle yeniden dene. Yazdığın metin taslakta korunuyor.',
 };type Drawer = 'character' | 'world' | null;
-const PREVIOUS_INTERACTION_MODE: Record<InteractionMode, InteractionMode> = { do: 'ask_dm', say: 'do', ask_dm: 'say' };
-const NEXT_INTERACTION_MODE: Record<InteractionMode, InteractionMode> = { do: 'say', say: 'ask_dm', ask_dm: 'do' };
-
-function StoryColumn({
-  topControls,
-  state,
-  entries,
-  readingPreferences,
-  setReadingPreferences,
-  composerOpen,
-  setComposerOpen,
-  message,
-  setMessage,
-  interactionMode,
-  setInteractionMode,
-  conversationTargetId,
-  setConversationTargetId,
-  onEndConversation,
-  onNewAdventure,
-  onDeathMove,
-  sessionId,
-  campaignId,
-  primalKnowledgeOptIn,
-  onPrimalKnowledgeChange,
-  tacticalMindOptIn,
-  onTacticalMindChange,
-  onSubmit,
-  onKeyboardSubmit,
-  onEconomyCommand,
-  decisionScope,
-  sending,
-  notice,
-  scrollRef,
-  onScroll,
-  resultCue,
-  newResponseEntryIndex,
-  onJumpToNewResponse,
-  combatEndNotice,
-  combatStartNotice,
-  combatTargetId,
-  setCombatTargetId,
-  ambientActionResult,
-  ambientActionRequest,
-  ambientActionSending,
-  ambientActionError,
-  onAmbientAction,
-  onRetryAmbientAction,
-}: {
-  topControls?: ReactNode;
-  state: GameState;
-  decisionScope: string;
-  entries: TranscriptEntry[];
-  readingPreferences: ReadingPreferences;
-  setReadingPreferences: (next: ReadingPreferences) => void;
-  composerOpen: boolean;
-  setComposerOpen: (open: boolean) => void;
-  message: string;
-  setMessage: (value: string) => void;
-  interactionMode: InteractionMode;
-  setInteractionMode: (value: InteractionMode) => void;
-  conversationTargetId: string;
-  setConversationTargetId: (value: string) => void;
-  onEndConversation: () => void;
-  onNewAdventure: () => void;
-  onDeathMove: (message: string) => void;
-  sessionId: string;
-  campaignId: string;
-  primalKnowledgeOptIn: boolean;
-  onPrimalKnowledgeChange: (checked: boolean) => void;
-  tacticalMindOptIn: boolean;
-  onTacticalMindChange: (checked: boolean) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onKeyboardSubmit: () => void;
-  onEconomyCommand: (message: string, command: CombatActionInput) => void;
-  sending: boolean;
-  notice: Notice | null;
-  scrollRef: RefObject<HTMLDivElement | null>;
-  onScroll: () => void;
-  resultCue: string;
-  newResponseEntryIndex: number | null;
-  onJumpToNewResponse: (focusTarget?: boolean) => void;
-  combatEndNotice: string | null;
-  combatStartNotice: string | null;
-  combatTargetId: string;
-  setCombatTargetId: (value: string) => void;
-  ambientActionResult: AmbientEventResult | null;
-  ambientActionRequest: AmbientEventActionRequest | null;
-  ambientActionSending: boolean;
-  ambientActionError: boolean;
-  onAmbientAction: (action: AmbientEventActionInputAction) => void;
-  onRetryAmbientAction: () => void;
-}) {
-  const ambientEvent = state.scene?.ambient_event ?? null;
-  const currentAmbientResult = ambientActionResult?.event_instance_id === ambientEvent?.instance_id
-    ? ambientActionResult
-    : ambientEvent
-      ? findPersistedAmbientEventResult(state, ambientEvent.instance_id)
-      : null;
-  const combatTargets = state.combat.participant_records.filter(
-    (participant) => participant.kind === 'npc'
-      && participant.status === 'active'
-      && participant.current_hp > 0,
-  );
-  const conversationTargets = (state.scene?.npcs ?? []).filter(
-    (npc) => typeof npc.id === 'string' && typeof npc.name === 'string' && npc.name.trim().length > 0,
-  );
-  const currentActor = state.combat.participant_records.find(
-    (participant) => participant.id === state.combat.current_actor_id,
-  );
-  const modePrompt = interactionMode === 'say'
-    ? 'Ne söylüyorsun?'
-    : interactionMode === 'ask_dm'
-      ? 'Anlatıcıya ne sormak istiyorsun?'
-      : 'Ne yapmak istiyorsun?';
-  const messageInputRef = useRef<HTMLTextAreaElement>(null);
-  const composerTriggerRef = useRef<HTMLButtonElement>(null);
-  const wasComposerOpen = useRef(composerOpen);
-  const desktopEnterSupported = typeof window !== 'undefined'
-    && typeof navigator !== 'undefined'
-    && !(window.matchMedia?.('(pointer: coarse)').matches
-      || window.matchMedia?.('(max-width: 760px)').matches
-      || navigator.maxTouchPoints > 0);
-  useEffect(() => {
-    if (composerOpen && !wasComposerOpen.current) messageInputRef.current?.focus();
-    else if (wasComposerOpen.current) composerTriggerRef.current?.focus({ preventScroll: true });
-    wasComposerOpen.current = composerOpen;
-  }, [composerOpen]);
-  const wasSending = useRef(sending);
-  useEffect(() => {
-    // The input is disabled while a move is sent, which drops focus; give it back on a keyboard device.
-    if (wasSending.current && !sending && desktopEnterSupported && document.activeElement === document.body) {
-      messageInputRef.current?.focus({ preventScroll: true });
-    }
-    wasSending.current = sending;
-  }, [sending, desktopEnterSupported]);
-  const handleMessageKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== 'Enter' || event.shiftKey) return;
-    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
-    if (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(max-width: 760px)').matches || navigator.maxTouchPoints > 0) return;
-    event.preventDefault();
-    if (event.repeat || sending || !message.trim()) return;
-    onKeyboardSubmit();
-  };
-  return (
-    <section className="story-column workspace-story" data-testid="panel-story">
-      <div className="story-scene-context" role="region" aria-label="Sahne bilgileri" tabIndex={0}>
-        <div className="story-heading">
-          <div className="story-icon"><Feather size={15} strokeWidth={1.25} /></div>
-          <div><Kicker>Anlatıcı</Kicker><div className="story-meta mt-1">Sahnenin sözü burada yankılanır</div></div>
-          <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
-          <ReadingSettings value={readingPreferences} onChange={setReadingPreferences} />
-        </div>
-        {topControls}
-        <CombatStatusStrip combat={state.combat} />
-        <ActionEconomyPanel decisionScope={decisionScope} state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
-        <AmbientEventActionPanel
-          event={ambientEvent}
-          referents={state.scene?.referents ?? []}
-          result={currentAmbientResult}
-          retryRequest={ambientActionRequest}
-          sending={ambientActionSending}
-          hasError={ambientActionError}
-          onAction={onAmbientAction}
-          onRetry={onRetryAmbientAction}
-        />
-        {combatStartNotice && <CombatTransitionBanner kind="start" text={combatStartNotice} />}
-        {combatEndNotice && <CombatTransitionBanner kind="end" text={combatEndNotice} />}
-        {state.combat.active && currentActor && currentActor.id !== 'player' && (
-          <div className="command-combat-turn-note" role="status" data-testid="status-combat-turn-owner">
-            Sıra {currentActor.name}'de. Önce bu anı tamamlayacak bir söz gönder; ardından kendi hamleni anlat.
-          </div>
-        )}
-      {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
-      {state.conversation.active && state.conversation.interlocutor && (
-          <div className="active-interlocutor" role="status" data-testid="active-interlocutor">
-            <MessageCircle size={13} aria-hidden="true" />
-            <span>Konuşuyorsun: <strong>{state.conversation.interlocutor.name}</strong></span>
-            <button className="action-suggestion" type="button" disabled={sending} onClick={onEndConversation} data-testid="button-end-conversation">Konuşmayı bitir</button>
-          </div>
-      )}
-      <DeathEndNotice state={state} onNewAdventure={onNewAdventure} />
-      {state.character.current_hp === 0 && <DeathRecoveryControls state={state} sessionId={sessionId} campaignId={campaignId} onSend={onDeathMove} sending={sending} />}
-      <SceneIdeas state={state} recentText={entries.at(-1)?.text ?? ''} sending={sending} onDraft={(text, mode = 'do', targetId) => {
-        setInteractionMode(mode);
-        setConversationTargetId(mode === 'say' ? targetId ?? '' : '');
-        if (state.combat.active && targetId) setCombatTargetId(targetId);
-        setMessage(text);
-        setComposerOpen(true);
-        messageInputRef.current?.focus();
-      }} />
-      </div>
-      <div className="story-reading-column">
-      <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} readingPreferences={readingPreferences} resultCue={resultCue} newResponseEntryIndex={newResponseEntryIndex} onJumpToNewResponse={onJumpToNewResponse} />
-      {!composerOpen && <button ref={composerTriggerRef} className="dnd-button turn-open-button" type="button" disabled={sending} data-testid="button-open-composer" onClick={() => setComposerOpen(true)}><Send size={15} aria-hidden="true" /> Hamle yap</button>}
-      {composerOpen && <div className="command-box" data-testid="command-box">
-        <div className="composer-heading">
-          <span>Hamleni anlat</span>
-          <button className="composer-close" type="button" disabled={sending} data-testid="button-close-composer" onClick={() => setComposerOpen(false)}>Kapat</button>
-        </div>
-        <form className="command-form" onSubmit={onSubmit}>
-          <div className="command-toolbar">
-            <div className="interaction-mode-picker" data-testid="interaction-mode-picker">
-              <button type="button" aria-label="Önceki hamle türü" disabled={sending || state.combat.active} onClick={() => setInteractionMode(PREVIOUS_INTERACTION_MODE[interactionMode])}><ChevronLeft size={15} /></button>
-              <label className="sr-only" htmlFor="interaction-mode">Hamle türü</label>
-              <select id="interaction-mode" value={interactionMode} disabled={sending || state.combat.active} aria-label="Hamle türü" data-testid="select-interaction-mode" onChange={(event) => setInteractionMode(event.target.value as InteractionMode)}>
-                <option value="do">Yap</option><option value="say">Söyle</option><option value="ask_dm">Anlatıcıya Sor</option>
-              </select>
-              <button type="button" aria-label="Sonraki hamle türü" disabled={sending || state.combat.active} onClick={() => setInteractionMode(NEXT_INTERACTION_MODE[interactionMode])}><ChevronRight size={15} /></button>
-            </div>
-          {state.combat.active && combatTargets.length > 0 && (
-            <label className="command-target-label" htmlFor="combat-target-select">
-              <span>Hedef seç <small>· isteğe bağlı</small></span>
-              <select
-                id="combat-target-select"
-                className="command-target-select"
-                value={combatTargetId}
-                onChange={(event) => setCombatTargetId(event.target.value)}
-                disabled={sending}
-                data-testid="select-combat-target"
-              >
-                <option value="">Hamlemde belirteceğim</option>
-                {combatTargets.map((participant) => (
-                  <option value={participant.id} key={participant.id}>{participant.name}</option>
-                ))}
-              </select>
-            </label>
-          )}
-            {interactionMode === 'say' && conversationTargets.length > 1 && (
-              <label className="command-target-label compact-target" htmlFor="conversation-target-select">
-                <span>Konuşma hedefi</span>
-                <select id="conversation-target-select" className="command-target-select" value={conversationTargetId} onChange={(event) => setConversationTargetId(event.target.value)} disabled={sending} data-testid="select-conversation-target">
-                  <option value="">Sözlerimde belirteceğim</option>
-                  {conversationTargets.map((npc) => <option value={npc.id} key={npc.id}>{npc.name}</option>)}
-                </select>
-              </label>
-            )}
-            <PrimalKnowledgeControl state={state} mode={interactionMode} targetId={getTurnInteractionMetadata(state, interactionMode, conversationTargetId, combatTargetId).target_id} checked={primalKnowledgeOptIn} blocked={sending} onChange={onPrimalKnowledgeChange} />
-            <TacticalMindControl state={state} mode={interactionMode} targetId={getTurnInteractionMetadata(state, interactionMode, conversationTargetId, combatTargetId).target_id} checked={tacticalMindOptIn} blocked={sending} onChange={onTacticalMindChange} />
-          </div>
-          <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
-          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleMessageKeyDown} placeholder={modePrompt} data-testid="input-player-message" aria-describedby="player-message-help" disabled={sending} />
-          <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
-            {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
-            {sending ? 'İşleniyor' : 'Gönder'}
-          </button>
-        </form>
-        {sending && <div className="pending-turn-status" data-testid="pending-turn-status" role="status" aria-live="polite" aria-atomic="true">
-          <span className="pending-turn-mark"><OuroborosMark /></span>
-          <span>Hamlen işleniyor</span>
-        </div>}
-        <div className="command-help" id="player-message-help"><span>Sözlerinle anlat · 1–4000 karakter</span>{desktopEnterSupported && <span className="desktop-enter-hint" data-testid="desktop-enter-hint"><kbd>Enter</kbd> gönder · <kbd>Shift+Enter</kbd> yeni satır</span>}<span data-testid="text-message-count">{message.length} / 4000</span></div>
-      </div>}
-      </div>
-    </section>
-  );
-}
 
 function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, onOpenCombat }: { state: GameState; campaignId: string; onSave: () => void; saving: boolean; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>, opener: HTMLElement) => void; onOpenCombat: (opener: HTMLElement) => void }) {
   return (

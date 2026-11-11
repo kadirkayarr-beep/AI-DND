@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { after, before, test } from 'node:test';
@@ -121,7 +122,7 @@ test('the probe key names the people here, so a counter is looked for only where
 });
 
 test('the play screen mounts one counter in the auxiliary pane, outside the drawer, and confirms through the turn submit', async () => {
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   const mount = page.indexOf('<ShopControls');
   assert.ok(mount > 0);
   const ts = await import('typescript');

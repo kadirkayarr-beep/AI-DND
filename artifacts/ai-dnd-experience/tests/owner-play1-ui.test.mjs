@@ -1,5 +1,6 @@
 // The owner's first browser play (31 Oct 2026): the UI items, rendered from the real components.
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
@@ -73,6 +74,6 @@ test('the input is simply there: open at the start and still open after a turn',
 });
 
 test('the composer does not grab focus when the page loads, so a phone keyboard stays down', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /if \(composerOpen && !wasComposerOpen\.current\) messageInputRef\.current\?\.focus\(\);/);
 });

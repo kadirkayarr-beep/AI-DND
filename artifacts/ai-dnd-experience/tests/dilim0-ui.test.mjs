@@ -262,7 +262,7 @@ test('the strip shows the round and every side hit points, player first', async 
 });
 test('the start notice comes from combat_started and the generic end is said once', async () => {
   const strip = await vite.ssrLoadModule('/src/components/combat-status-strip.tsx');
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /combat_started === true/);
   assert.match(source, /<CombatTransitionBanner kind="start"/);
   assert.match(source, /<CombatTransitionBanner kind="end"/);

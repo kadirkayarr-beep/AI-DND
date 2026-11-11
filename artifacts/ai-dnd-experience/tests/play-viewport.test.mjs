@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
@@ -145,7 +146,7 @@ test('the play screen fixture renders GameBrowser and does not touch auth', asyn
 });
 
 test('this package keeps the mode buttons and the existing turn submission path', async () => {
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   assert.match(page, /data-testid="interaction-mode-picker"/);
   assert.match(page, /data-testid="select-interaction-mode"/);
   assert.match(page, /<option value="do">Yap<\/option>/);
@@ -169,7 +170,7 @@ test('the final composer rule cannot cover the bounded story and scene regions',
   const positions = [...rules.at(-1)[1].matchAll(/(?:^|;)\s*position\s*:\s*([^;]+)/g)];
   assert.equal(positions.at(-1)?.[1].trim(), 'static');
   assert.match(css, /\.play-shell \.story-scene-context\s*\{[^}]*overflow-y:\s*auto/s);
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   assert.match(page, /className="story-scene-context"[^>]*aria-label="Sahne bilgileri"/);
 });
 
