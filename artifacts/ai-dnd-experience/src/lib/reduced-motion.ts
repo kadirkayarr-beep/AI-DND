@@ -11,9 +11,9 @@ export type ReducedMotionQuery = {
 
 export type ReducedMotionWindow = { matchMedia?: (query: string) => ReducedMotionQuery };
 
-function queryOf(win: ReducedMotionWindow | null | undefined): ReducedMotionQuery | null {
+function queryOf(win: ReducedMotionWindow | null | undefined, query = REDUCED_MOTION_QUERY): ReducedMotionQuery | null {
   try {
-    return win?.matchMedia?.(REDUCED_MOTION_QUERY) ?? null;
+    return win?.matchMedia?.(query) ?? null;
   } catch {
     return null;
   }
@@ -21,12 +21,21 @@ function queryOf(win: ReducedMotionWindow | null | undefined): ReducedMotionQuer
 
 /** Current system preference; false when the browser cannot tell. */
 export function readPrefersReducedMotion(win: ReducedMotionWindow | null | undefined): boolean {
-  return queryOf(win)?.matches === true;
+  return readMediaMatch(win, REDUCED_MOTION_QUERY);
+}
+
+/** Same reading for any media query (the dark colour scheme uses it); false when the browser cannot tell. */
+export function readMediaMatch(win: ReducedMotionWindow | null | undefined, query: string): boolean {
+  return queryOf(win, query)?.matches === true;
 }
 
 /** Calls onChange when the system preference changes; returns the unsubscribe. Never throws. */
 export function subscribePrefersReducedMotion(win: ReducedMotionWindow | null | undefined, onChange: () => void): () => void {
-  const query = queryOf(win);
+  return subscribeMediaMatch(win, REDUCED_MOTION_QUERY, onChange);
+}
+
+export function subscribeMediaMatch(win: ReducedMotionWindow | null | undefined, mediaQuery: string, onChange: () => void): () => void {
+  const query = queryOf(win, mediaQuery);
   if (!query) return () => {};
   try {
     if (typeof query.addEventListener === 'function') {

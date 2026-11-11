@@ -46,17 +46,43 @@ function withWindow(fakeWindow, run) {
 const renderPanel = () => renderToStaticMarkup(
   React.createElement(AppearanceProvider, null, React.createElement(AppearanceSettingsPanel)),
 );
-const checkedValue = (html) => /value="(\w+)"[^>]*checked/.exec(html)?.[1] ?? /checked=""[^>]*value="(\w+)"/.exec(html)?.[1];
+const inputTags = (html) => [...html.matchAll(/<input[^>]*>/g)].map((m) => m[0]);
+const checkedIn = (html, name) => inputTags(html)
+  .filter((tag) => tag.includes(`name="${name}"`) && /checked=""/.test(tag))
+  .map((tag) => /value="(\w+)"/.exec(tag)?.[1]);
+const checkedValue = (html) => { const found = checkedIn(html, 'appearance-effects-level'); assert.equal(found.length, 1, 'exactly one effects level is checked'); return found[0]; };
 
-test('panel renders the three levels in Turkish, an accessible radio group, and the reduced-motion note', () => {
+test('panel renders theme, effects level, ink speed and readability controls in Turkish, as accessible groups, and no control for a setting without a consumer', () => {
   const html = renderPanel();
   assert.match(html, /data-testid="appearance-settings-panel"/);
-  assert.match(html, /role="radiogroup"/);
-  assert.match(html, /<legend>Efekt seviyesi<\/legend>/);
-  for (const label of ['Kapalı', 'Az', 'Tam']) assert.match(html, new RegExp(`<span>${label}</span>`));
-  assert.equal((html.match(/type="radio"/g) ?? []).length, 3);
+  assert.equal((html.match(/role="radiogroup"/g) ?? []).length, 3);
+  for (const legend of ['Okuma teması', 'Efekt seviyesi', 'Mürekkep belirme hızı', 'Okunabilirlik']) assert.match(html, new RegExp(`<legend>${legend}</legend>`));
+  for (const label of ['Gece', 'Gündüz', 'Sistem', 'Kapalı', 'Az', 'Tam', 'Yavaş', 'Normal', 'Hızlı', 'Anında', 'Yüksek kontrast', 'Disleksi dostu yazı tipi']) {
+    assert.match(html, new RegExp(`<span>${label}</span>`), label);
+  }
+  assert.equal(inputTags(html).filter((tag) => tag.includes('type="radio"')).length, 3 + 3 + 4);
+  assert.equal(inputTags(html).filter((tag) => tag.includes('type="checkbox"')).length, 2);
   assert.match(html, /Hareketi azalt ayarı sistemden okunur/);
-  assert.doesNotMatch(html, /zar|can göstergesi|tema|yazı tipi/i);
+  // Dice set, health gauge, spell-slot style and font scale are stored but nothing reads them yet: no control.
+  assert.doesNotMatch(html, /zar|can göstergesi|büyü yuvası|yazı boyutu/i);
+});
+
+test('defaults are checked per group: night, full effects, normal ink speed, both readability boxes off', () => {
+  const html = renderPanel();
+  assert.deepEqual(checkedIn(html, 'appearance-theme'), ['night']);
+  assert.deepEqual(checkedIn(html, 'appearance-effects-level'), ['full']);
+  assert.deepEqual(checkedIn(html, 'appearance-ink-speed'), ['normal']);
+  assert.equal(inputTags(html).filter((tag) => tag.includes('type="checkbox"') && /checked=""/.test(tag)).length, 0);
+});
+
+test('stored theme, ink speed and readability flags come back through the provider', () => {
+  const store = { localStorage: { getItem: () => JSON.stringify({ theme: 'day', inkRevealSpeed: 'fast', highContrast: true, dyslexiaFont: true }), setItem() {} } };
+  const html = withWindow(store, renderPanel);
+  assert.deepEqual(checkedIn(html, 'appearance-theme'), ['day']);
+  assert.deepEqual(checkedIn(html, 'appearance-ink-speed'), ['fast']);
+  const boxes = inputTags(html).filter((tag) => tag.includes('type="checkbox"'));
+  assert.equal(boxes.length, 2);
+  assert.ok(boxes.every((tag) => /checked=""/.test(tag)));
 });
 
 test('with storage unavailable the panel shows the default level, where a readable store would show the stored one', () => {
@@ -74,7 +100,8 @@ test('the stored level is restored through the provider and marked as current', 
     const store = { localStorage: { getItem: () => JSON.stringify({ effectsLevel: level }), setItem() {} } };
     const html = withWindow(store, renderPanel);
     assert.equal(checkedValue(html), level);
-    assert.equal((html.match(/checked=""/g) ?? []).length, 1);
+    assert.deepEqual(checkedIn(html, 'appearance-effects-level'), [level]);
+    assert.equal((html.match(/checked=""/g) ?? []).length, 3, 'one checked radio in each of the three groups, no checked box');
   }
 });
 

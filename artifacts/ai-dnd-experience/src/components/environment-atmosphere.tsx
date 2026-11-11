@@ -11,7 +11,7 @@ import { resolveAtmosphere } from '@/lib/scene-atmosphere';
  */
 export function EnvironmentAtmosphere() {
   const { family, time, weather, clock } = useEnvironmentTheme();
-  const { effectsLevel } = useAppearance();
+  const { effectsLevel, resolvedTheme } = useAppearance();
   const atmosphere = resolveAtmosphere({ environment: family, timeOfDay: time, weather, clock }, effectsLevel);
-  return <SceneAtmosphereLayer atmosphere={atmosphere} theme="night" fade={shouldPlayEffects(effectsLevel)} />;
+  return <SceneAtmosphereLayer atmosphere={atmosphere} theme={resolvedTheme} fade={shouldPlayEffects(effectsLevel)} />;
 }

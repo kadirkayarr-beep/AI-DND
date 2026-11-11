@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
-import { UNW_THEME_COLORS } from '../src/lib/unw-theme.ts';
+import { UNW_HIGH_CONTRAST_COLORS, UNW_THEME_COLORS } from '../src/lib/unw-theme.ts';
 import { MAX_ACTIVE_EFFECTS, createEffectRegistry } from '../src/lib/effect-registry.ts';
 import {
   ATMOSPHERE_ANIMATED_MAX,
@@ -248,9 +248,8 @@ test('Ruling: the layer budget is subtracted from the event-effect cap', () => {
  * composited over the background AND over the text colour (page first, then the veil on both) before
  * the ratio is taken. Motes and snow flakes are 1-3 px dots: left out of the full-layer rule and
  * checked separately for body text only (>= 4.5).
- * Stacks: the two theme token pairs, and the REAL play screen: flat #171a1a page plus the top gradient
- * rgba(93,91,78,.14) of .design-preview (src/components/unwritten-play.css), with every text colour
- * that file really sets (parsed from the CSS, so a new colour cannot slip in unchecked).
+ * Stacks: the two theme token pairs, and the REAL play screen: the --unw-page token plus the top gradient of .design-preview (text colour at 6%, src/components/unwritten-play.css), for night,
+ * day and both high-contrast sets, with every hex text colour that file still sets (parsed from the CSS, so a new colour cannot slip in unchecked).
  */
 const rgbOf = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const lin = (v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
@@ -275,10 +274,19 @@ function worst(layers, veils, pageRgb, textHex) {
   return worstRatio;
 }
 
-const PLAY_GRADIENT_PEAK = [93, 91, 78, 0.14];
-const PLAY_PAGE = over(rgbOf('#171a1a'), PLAY_GRADIENT_PEAK);
-const PLAY_BODY = ['#e5e4dc', '#deddd4']; // --preview-text and the narration paragraph need 7; every other play-screen colour is soft text (4.5).
+// The play screen is painted from the --unw-* tokens: page colour plus a top gradient of the text colour at 6%.
+const playPage = (colours) => over(rgbOf(colours.page), [...rgbOf(colours.text), 0.06]);
+const PLAY_STACKS = {
+  night: [UNW_THEME_COLORS.night, 'night'],
+  day: [UNW_THEME_COLORS.day, 'day'],
+  'night high contrast': [UNW_HIGH_CONTRAST_COLORS.night, 'night'],
+  'day high contrast': [UNW_HIGH_CONTRAST_COLORS.day, 'day'],
+};
+const PLAY_BODY_TOKENS = ['text'];
+const PLAY_SOFT_TOKENS = ['textSoft', 'accentLight', 'patinaText', 'dangerText'];
 const PLAY_NOT_ON_PAGE = ['#201d19']; // dark label on the light primary-button fill (.unwritten-entry), never on the page.
+// Hex text colours left in unwritten-play.css all sit inside the night islands (opening, creation, drawers); they are tested on the night play page anyway.
+const NIGHT_PLAY_PAGE = playPage(UNW_THEME_COLORS.night);
 
 async function playScreenColours() {
   const css = await readFile(new URL('../src/components/unwritten-play.css', import.meta.url), 'utf8');
@@ -287,40 +295,9 @@ async function playScreenColours() {
 }
 
 /*
- * [GEVŞETME OLABİLİR] KNOWN_BELOW_THRESHOLD_S3_PARK: play-screen text colours that are already weak under the real stack and
- * fall further under the atmosphere layer plus the fog veil. Measured with this model (worst = lowest
- * ratio over every family x period x weather, all layers stacked at peak; base = page + gradient, no
- * atmosphere). They are NOT hidden or tuned in the layer: S3 fixes the muted text colour with tokens
- * and these entries then disappear. Every value is pinned from below, so any worsening fails; an
- * entry that rises over its threshold must be removed (stale-entry check).
+ * S3 closed the old allowlist: the 23 soft colours and the narration colour now come from tokens that hold the
+ * thresholds in both themes. Nothing is parked any more: every colour is strict, so any new weak colour fails.
  */
-const KNOWN_BELOW_THRESHOLD_S3_PARK = {
-  '#77766d': { base: 3.462, worst: 2.558 },
-  '#737a73': { base: 3.585, worst: 2.628 },
-  '#787f78': { base: 3.845, worst: 2.773 },
-  '#7e857e': { base: 4.175, worst: 2.954 },
-  '#888c83': { base: 4.613, worst: 3.191 },
-  '#888f88': { base: 4.768, worst: 3.274 },
-  '#9e8b7a': { base: 4.841, worst: 3.308 },
-  '#c78355': { base: 5.126, worst: 3.421 },
-  '#8e948b': { base: 5.090, worst: 3.444 },
-  '#979588': { base: 5.249, worst: 3.527 },
-  '#92978e': { base: 5.301, worst: 3.555 },
-  '#92978f': { base: 5.306, worst: 3.558 },
-  '#93998f': { base: 5.417, worst: 3.616 },
-  '#9d9b8e': { base: 5.658, worst: 3.740 },
-  '#999d94': { base: 5.727, worst: 3.777 },
-  '#b99b86': { base: 6.097, worst: 3.958 },
-  '#c29a7b': { base: 6.177, worst: 3.993 },
-  '#9fa49c': { base: 6.224, worst: 4.032 },
-  '#a1a69c': { base: 6.364, worst: 4.103 },
-  '#a9a697': { base: 6.468, worst: 4.156 },
-  '#c6a15a': { base: 6.512, worst: 4.157 },
-  '#c4a184': { base: 6.611, worst: 4.217 },
-  '#d1a58a': { base: 7.124, worst: 4.471 },
-  '#deddd4': { base: 11.597, worst: 6.657 }, // narration paragraph (24 px serif): under the project's own body 7, far over the large-text 3
-};
-
 function worstOverWorld(theme, page, textHex, { includeSpecks = false } = {}) {
   let low = Infinity;
   for (const family of ATMOSPHERE_FAMILIES) {
@@ -342,59 +319,38 @@ function worstOverWorld(theme, page, textHex, { includeSpecks = false } = {}) {
   return low;
 }
 
-/*
- * Day theme (dark text on a light page): the fog veil is a light colour and also lies over the text,
- * which costs contrast. Not reachable today (no consumer for the theme setting yet); measured and pinned
- * from below so it cannot worsen, parked for S3 with the colour tokens. Night theme is strict.
- */
-const KNOWN_DAY_FOG_S3_PARK = { body: 6.104, soft: 3.961 };
-
-test('token themes: body >= 7 and soft >= 4.5 under every layer and the veil over the text (day pinned, S3 park)', () => {
-  for (const theme of ['night', 'day']) {
-    const { page, text, textSoft } = UNW_THEME_COLORS[theme];
-    const body = worstOverWorld(theme, rgbOf(page), text.toLowerCase());
-    const soft = worstOverWorld(theme, rgbOf(page), textSoft.toLowerCase());
-    const speck = worstOverWorld(theme, rgbOf(page), text.toLowerCase(), { includeSpecks: true });
-    if (theme === 'night') {
-      assert.ok(body >= 7 && soft >= 4.5 && speck >= 4.5, `night ${body} ${soft} ${speck}`);
-    } else {
-      assert.ok(speck >= 4.5, `day body under a mote or flake ${speck}`);
-      assert.ok(body >= KNOWN_DAY_FOG_S3_PARK.body - 0.002 && body < 7, `day body ${body}`);
-      assert.ok(soft >= KNOWN_DAY_FOG_S3_PARK.soft - 0.002 && soft < 4.5, `day soft ${soft}`);
+test('token themes: body >= 7 and soft >= 4.5 under every layer and the veil over the text, night, day and high contrast', () => {
+  for (const [name, [colours, atmosphereTheme]] of Object.entries(PLAY_STACKS)) {
+    for (const page of [rgbOf(colours.page), playPage(colours)]) {
+      for (const token of PLAY_BODY_TOKENS) {
+        const text = colours[token].toLowerCase();
+        const low = worstOverWorld(atmosphereTheme, page, text, { includeSpecks: true });
+        assert.ok(low >= 4.5, `${name} ${token} under a mote or flake ${low}`);
+        const veiled = worstOverWorld(atmosphereTheme, page, text);
+        assert.ok(veiled >= 7, `${name} ${token} ${veiled}`);
+      }
+      for (const token of PLAY_SOFT_TOKENS) {
+        const low = worstOverWorld(atmosphereTheme, page, colours[token].toLowerCase());
+        assert.ok(low >= 4.5, `${name} ${token} ${low}`);
+      }
     }
   }
 });
 
-test('play screen: flat page plus the real top gradient, every text colour the screen sets', async () => {
+test('play screen: every hex text colour left in unwritten-play.css holds its threshold on the night page under every layer', async () => {
   const colours = await playScreenColours();
-  assert.ok(colours.length >= 60, `parsed ${colours.length} colours`);
-  for (const body of PLAY_BODY) assert.ok(colours.includes(body), body);
-  const failing = [];
+  assert.ok(colours.length >= 10, `parsed ${colours.length} colours`);
   for (const colour of colours) {
-    const threshold = PLAY_BODY.includes(colour) ? 7 : 4.5;
-    const low = worstOverWorld('night', PLAY_PAGE, colour);
-    const known = KNOWN_BELOW_THRESHOLD_S3_PARK[colour];
-    if (low >= threshold) { assert.equal(known, undefined, `${colour} now passes (${low.toFixed(3)}): remove it from the S3 park list`); continue; }
-    failing.push(colour);
-    assert.ok(known, `${colour} is below ${threshold}: ${low.toFixed(3)} (new, not in the S3 park list)`);
-    assert.ok(low >= known.worst - 0.002, `${colour} got worse: ${low.toFixed(3)} < ${known.worst}`);
-    assert.ok(Math.abs(ratio(lum(rgbOf(colour)), lum(PLAY_PAGE)) - known.base) < 0.002, `${colour} base ratio changed`);
+    assert.ok(worstOverWorld('night', NIGHT_PLAY_PAGE, colour) >= 4.5, `${colour}`);
   }
-  assert.deepEqual(failing.sort(), Object.keys(KNOWN_BELOW_THRESHOLD_S3_PARK).sort());
-  // Body text with a mote or a snow flake on top holds 4.5, except the narration colour in the single worst stack (S3 park, same list as above).
-  const SPECK_PARK = { "#deddd4": 4.344 };
-  for (const body of PLAY_BODY) {
-    const low = worstOverWorld("night", PLAY_PAGE, body, { includeSpecks: true });
-    if (SPECK_PARK[body]) assert.ok(low >= SPECK_PARK[body] - 0.002 && low < 4.5, `${body} under a mote or flake: ${low.toFixed(3)}`);
-    else assert.ok(low >= 4.5, `${body} under a mote or flake: ${low.toFixed(3)}`);
-  }
+  assert.equal(colours.includes('#deddd4'), false, 'the narration colour is a token now');
 });
 
 test('the fog veil keeps its old core strength .16 and is modelled above the text, not only the page', () => {
   const core = WEATHER_TABLE.fog.veil.peaks[0];
   assert.equal(core[3], 0.16);
-  const pageOnly = ratio(lum(rgbOf('#e5e4dc')), lum(over(PLAY_PAGE, core)));
-  assert.ok(worst([], [core], PLAY_PAGE, '#e5e4dc') < pageOnly, 'compositing over the text as well lowers the ratio');
+  const pageOnly = ratio(lum(rgbOf('#e5e4dc')), lum(over(NIGHT_PLAY_PAGE, core)));
+  assert.ok(worst([], [core], NIGHT_PLAY_PAGE, '#e5e4dc') < pageOnly, 'compositing over the text as well lowers the ratio');
 });
 
 test('neutral atmosphere leaves the page colour untouched', () => {
