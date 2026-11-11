@@ -1,8 +1,9 @@
 // node:test + node:assert, as the other .test.mjs files
 import test from "node:test";
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-const browser = readFileSync(new URL("../src/pages/game-browser.tsx", import.meta.url), "utf8");
+const browser = readGameBrowserSource();
 const journal = readFileSync(new URL("../src/components/quest-journal-section.tsx", import.meta.url), "utf8");
 test("the top bar counts quest_log.active_count", () => {
   assert.match(browser, /quest_log\?\.active_count/);

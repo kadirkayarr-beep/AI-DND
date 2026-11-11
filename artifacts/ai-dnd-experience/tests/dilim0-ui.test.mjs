@@ -227,7 +227,7 @@ test('the quest section never says no quests while an adventure runs', () => {
   assert.match(empty, /<span class="character-badge">00<\/span>/);
 });
 test('the rail summary says Süren görevler from the same count', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /Süren görevler \{state\.quest_log\?\.active_count \?\? 0\}/);
   assert.doesNotMatch(source, /Görevler \{state\.quests\?\.length/);
 });
@@ -577,7 +577,7 @@ test('subclass display uses only the matching class catalog and hides missing or
 });
 
 test('the live character drawer forwards the real catalog at every production boundary', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const openings = [];
   function visit(node) {
