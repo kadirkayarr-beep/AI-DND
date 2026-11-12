@@ -130,7 +130,7 @@ class EngineAgreementTests(unittest.TestCase):
                 self.assertIn(max_range, (0, 5), name)
             else:
                 self.assertEqual(spell["range"], f"{max_range} feet", name)
-            self.assertEqual(spell["casting_time"], "Action", name)
+            self.assertEqual(spell["casting_time"], "Bonus Action" if name in spell_scope.BONUS_ACTION_SPELLS else "Action", name)
 
     def test_creation_spell_catalog_matches_levels_and_classes_except_the_documented_legacy_spell(self):
         missing = set()
