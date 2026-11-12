@@ -1,4 +1,5 @@
 import { combatStartInjection } from './support/combat-start-env.mjs';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 // B3: bounded recovery and panel reconciliation in the REAL GameBrowser source. serverRecovery, blockingMutation and their
 // helpers are selected from src/pages/game-browser.tsx by AST and run in a vm; only hooks, view setters and the transport
 // are replaced. Timers are node:test fake timers, so no test waits on a real clock and nothing touches the network.
@@ -17,7 +18,7 @@ import * as pending from '../src/lib/pending-action.ts';
 import * as recovery from '../src/lib/action-recovery.ts';
 import { historyToEntries } from '../src/lib/transcript-history.ts';
 
-const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+const source = readGameBrowserSource();
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const component = ast.statements.find((n) => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
 const pick = (name) => {

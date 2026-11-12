@@ -2,6 +2,7 @@
 // Order is the client-observed order (a read is as old as the moment it was issued, a mutation as old as the
 // moment its reply arrived); the server exposes no state revision to the page yet.
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
@@ -102,10 +103,10 @@ test('the query cache path (structural sharing) refuses an older fetch result an
 // Every writer of the visible state goes through the gate: no component may call setQueryData on a state key.
 test('no mutation path writes the game state cache without the gate', () => {
   for (const file of ['../src/pages/game-browser.tsx', '../src/components/species-trait-controls.tsx', '../src/components/death-recovery-controls.tsx']) {
-    const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+    const source = file === '../src/pages/game-browser.tsx' ? readGameBrowserSource() : readFileSync(new URL(file, import.meta.url), 'utf8');
     assert.ok(!/queryClient\.setQueryData\(/.test(source), `${file} still writes the cache directly`);
   }
-  const browser = readFileSync(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+  const browser = readGameBrowserSource();
   const uses = browser.match(/applyGameState\(/g) ?? [];
   assert.ok(uses.length >= 8, `expected the quest, ambient, turn, undo, create and resume paths to use the gate, found ${uses.length}`);
   assert.match(browser, /stateStructuralSharing\(/);
@@ -125,7 +126,7 @@ test('a mutation reply is as old as its issue: a turn applied meanwhile is not o
 });
 
 test('production mutation paths stamp the reply at issue time, not at arrival', () => {
-  const browser = readFileSync(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+  const browser = readGameBrowserSource();
   assert.equal((browser.match(/onMutate: \(\) => \(\{ issued: nextRevision\(\) \}\)/g) ?? []).length, 2);
   assert.match(browser, /revision: context\?\.issued/);
   assert.match(browser, /const issued = nextRevision\(\);\s+resolveAmbientEventAction\.mutate\(/);

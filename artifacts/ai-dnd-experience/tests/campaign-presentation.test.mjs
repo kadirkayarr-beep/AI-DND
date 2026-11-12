@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { before, after, test } from 'node:test';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
@@ -166,7 +167,7 @@ test('library empty and populated surfaces use player language and preserve dele
 test('presentation sources contain no fixed date, client clock, gameplay commands or spell reconstruction', async () => {
   const helper = await readFile('src/lib/campaign-presentation.ts', 'utf8');
   assert.doesNotMatch(helper, /Date\.now|new Date|fetch\(|useState|localStorage/);
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   assert.doesNotMatch(page, /\b(?:1492|1501)\s*DR/);
   const panel = await readFile('src/components/campaign-context-panel.tsx', 'utf8');
   assert.doesNotMatch(panel, /mutate|fetch\(|useState|localStorage|spellcasting_v1/);

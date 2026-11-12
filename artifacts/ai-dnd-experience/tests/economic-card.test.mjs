@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { after, before, test } from 'node:test';
@@ -176,7 +177,7 @@ test('test_prepare_controls_room_tip_and_dependency', () => {
 });
 
 test('the play screen mounts the card and the controls and sends them through the turn submit', async () => {
-  const page = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const page = readGameBrowserSource();
   assert.match(page, /<EconomicOfferCard/);
   assert.match(page, /<EconomicPrepareControls/);
   assert.match(page, /economic_action: economicAction/);

@@ -1,4 +1,5 @@
 import { combatStartInjection } from './support/combat-start-env.mjs';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
 import { gateInjection } from './support/state-gate-env.mjs';
 import assert from 'node:assert/strict';
@@ -14,7 +15,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
 import { historyToEntries } from '../src/lib/transcript-history.ts';
 // Execute production AST-selected bodies; replace only hook, transport and view boundaries.
-const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+const source = readGameBrowserSource();
 const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const component = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
 const submit = component.body.statements.find(n => ts.isVariableStatement(n) && n.declarationList.declarations.some(d => d.name.getText(ast) === 'submitTurn'));

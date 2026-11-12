@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import { after, before, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -42,7 +43,7 @@ test('help is absent without the current observable living encounter', () => {
     assert.equal(Help({state:s, disabled:false, onDraft(){throw Error('must not act');}}), null); }
 });
 test('courtyard draft callback is connected to the experimental world control, with browser outcome covered separately', async () => {
-  const source = await readFile('src/pages/game-browser.tsx', 'utf8');
+  const source = readGameBrowserSource();
   assert.match(source, /<CourtyardHelp state=\{state\} disabled=\{sending\} onDraft=\{\(text\) => onDraft\(text, 'do'\)\} \/>/);
   assert.match(source, /setComposerOpen\(true\)/);
 });

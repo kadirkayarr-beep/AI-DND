@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
 
@@ -194,7 +195,7 @@ test('active combat and structured actions keep the existing action route', () =
 
 test('suggestions live beside the composer in a closed control, not in the drawer', async () => {
   const { readFile } = await import('node:fs/promises');
-  const page = await readFile(path.join(process.cwd(), 'src/pages/game-browser.tsx'), 'utf8');
+  const page = readGameBrowserSource();
   const ideas = page.match(/<details className="scene-ideas"[^>]*>/)?.[0];
   assert.ok(ideas, 'scene ideas control exists');
   assert.ok(!/\bopen\b/.test(ideas), 'closed by default');

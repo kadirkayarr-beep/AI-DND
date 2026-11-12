@@ -1,4 +1,6 @@
+import { combatStartInjection } from './support/combat-start-env.mjs';
 import { primalKnowledgeInjection } from './support/primal-knowledge-env.mjs';
+import { readGameBrowserSource } from './helpers/read-game-browser-source.mjs';
 // R02: a technical retry (same action id) is separate from a deliberate new action with identical text.
 // The server here is a test double of the receipt rule (owner + campaign + id); the real backend's
 // ownership and replay rules stay covered by the Python campaign/turn tests.
@@ -159,7 +161,7 @@ import { createActionLifetime, reconcileState, RETRY_MESSAGE, ReconciliationErro
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
 import { historyToEntries } from '../src/lib/transcript-history.ts';
 
-const gameSource = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+const gameSource = readGameBrowserSource();
 const gameAst = ts.createSourceFile('game-browser.tsx', gameSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const gameComponent = gameAst.statements.find((n) => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
 const submitDeclaration = gameComponent.body.statements.find((n) => ts.isVariableStatement(n)
@@ -201,7 +203,7 @@ function harness({ sessionStorage = memoryStorage(), localStorage = memoryStorag
   const messages = [];
   const entries = [];
   const life = createActionLifetime();
-  const env = {
+  const env = { ...combatStartInjection(),
     reconcileState, RETRY_MESSAGE, ReconciliationError, turnLifetime: life,
     closePending: pending.closePending, createIntentKey: pending.createIntentKey, readPending: pending.readPending, resumePending: pending.resumePending,
     speciesActionUnresolved: pending.speciesActionUnresolved, pendingAmbientActionRef: { current: null }, notice: null,

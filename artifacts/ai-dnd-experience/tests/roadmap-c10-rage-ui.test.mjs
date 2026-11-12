@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {before,after,test} from 'node:test';
 import path from 'node:path';
 let vite,ui;
-before(async()=>{process.env.PORT||='4184';process.env.BASE_PATH||='/';const {createServer}=await import('vite');vite=await createServer({configFile:path.join(process.cwd(),'vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent',plugins:[{name:'rage-test-surface',enforce:'pre',transform(code,id){if(id.replaceAll('\\','/').endsWith('/src/pages/game-browser.tsx'))return code+'\nexport {CharacterPanel as TestCharacterPanel};';}}]});ui=await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');});
+before(async()=>{process.env.PORT||='4184';process.env.BASE_PATH||='/';const {createServer}=await import('vite');vite=await createServer({configFile:path.join(process.cwd(),'vite.config.ts'),server:{middlewareMode:true},appType:'custom',logLevel:'silent',plugins:[{name:'rage-test-surface',enforce:'pre',transform(code,id){if(id.replaceAll('\\','/').endsWith('/src/pages/game/world-panels.tsx'))return code+'\nexport {CharacterPanel as TestCharacterPanel};';}}]});ui=await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');});
 after(async()=>await vite?.close());
 function nodes(e){return Array.isArray(e)?e.flatMap(nodes):e&&typeof e==='object'?[e,...nodes(e.props?.children)]:[];}
 const find=(tree,id)=>tree.find(n=>n.props?.['data-testid']===id);
@@ -31,4 +31,4 @@ test('actual action panel routes explicit Rage through shared command guard and 
  const bonus=render().find(n=>n.type==='span'&&n.props.children[0]==='Bonus eylem: ');assert.equal(bonus.props.children[1],'hazır');
  control().props.onChange(true);const c=control();const command={steps:[{kind:'activate_rage',resource:'bonus'}]};c.props.onCommand('rage',command);c.props.onCommand('rage',command);assert.equal(sends.length,1);assert.deepEqual(JSON.parse(JSON.stringify(sends[0])),command);assert.equal(control().props.confirmed,false);
 });
-test('actual character panel retains active authoritative Rage after combat cleanup',async()=>{const {TestCharacterPanel}=await vite.ssrLoadModule('/src/pages/game-browser.tsx');const tree=nodes(TestCharacterPanel({character:{rage:active,name:'Barbarian',level:2,max_hp:24,current_hp:24,proficient_skills:[]}}));const status=tree.find(n=>n.type?.name==='RageStatus');assert.ok(status);assert.equal(status.props.rage,active);});
+test('actual character panel retains active authoritative Rage after combat cleanup',async()=>{const {TestCharacterPanel}=await vite.ssrLoadModule('/src/pages/game/world-panels.tsx');const tree=nodes(TestCharacterPanel({character:{rage:active,name:'Barbarian',level:2,max_hp:24,current_hp:24,proficient_skills:[]}}));const status=tree.find(n=>n.type?.name==='RageStatus');assert.ok(status);assert.equal(status.props.rage,active);});
