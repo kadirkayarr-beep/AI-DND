@@ -46,6 +46,15 @@ SHOCKING_GRASP_EFFECT = "shocking_grasp"  # no Opportunity Attacks until the sta
 RIDERS = frozenset({RAY_OF_FROST_EFFECT, SHOCKING_GRASP_EFFECT})
 _END_CONCENTRATION = re.compile(r"konsantrasyon\w*\s+(?:bırak|birak|bitir|kes|sonlandır|sonlandir)"
                                 r"|(?:end|drop|stop|break)\s+(?:my\s+)?concentrat")
+# "bırakmıyorum", "bırakmadan geri çekiliyorum", "I will not drop", "don't break": a negated line never drops it.
+_KEEP_CONCENTRATION = re.compile(
+    r"(?:bırak|birak|sonlandır|sonlandir)m(?:ıyor|iyor|am\b|az\b|adan|a\b|ayaca|ıyaca|iyaca)"
+    r"|(?:kes|bitir)m(?:iyor|em\b|ez\b|eden|e\b|eyece|iyece)|\bdeğil\b|\bdegil\b"
+    r"|\b(?:not|never|without|keep|keeping|maintain)\b|\b(?:don't|dont|won't|wont|can't|cant|do not|will not)\b")
+
+
+def _drops_concentration(text):
+    return bool(_END_CONCENTRATION.search(text)) and "?" not in text and not _KEEP_CONCENTRATION.search(text)
 
 
 def harmful(spell_id):
@@ -209,8 +218,10 @@ def restore_slots(session):
 def natural_command(message, target_id):
     """Explicit deterministic proposals only; never choose an implicit target."""
     text = str(message).casefold()
-    if _END_CONCENTRATION.search(text) and "?" not in text:
+    if _drops_concentration(text):
         return {"steps": [{"kind": "end_concentration"}]}
+    if _END_CONCENTRATION.search(text):
+        return None  # a negated or asked drop is no command
     names = {name.casefold(): name for name in CATALOG} | ALIASES
     selected = [name for alias, name in names.items() if alias in text]
     casting = bool(re.search(r"\b(cast|casting|büyü|buyu|büyüsünü|buyusunu)\b", text))
@@ -309,7 +320,7 @@ def explicit_request(message, command=None):
     if "?" in text or re.search(r"\b(nedir|describe|what|anlat)\b", text):
         return False
     return bool(re.search(r"\b(cast|casting|büyüsünü|buyusunu)\b", text)
-                or _END_CONCENTRATION.search(text)  # dropping Concentration is a typed engine step (no model)
+                or _drops_concentration(text)  # dropping Concentration is a typed engine step (no model)
                 or (any(name.casefold() in text for name in CATALOG)
                     and "?" not in text and not re.search(r"\b(nedir|describe|what|anlat)\b", text)))
 
