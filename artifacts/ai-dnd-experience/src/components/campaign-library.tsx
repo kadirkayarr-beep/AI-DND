@@ -86,7 +86,7 @@ export function CampaignLibrary({
           <button className="text-button" type="button" onClick={onBack} data-testid="button-back-opening">
             <ArrowLeft size={13} /> Geri dön
           </button>
-          <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[.18em] text-(color:--unw-text-soft)">
+          <div className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-[.18em] text-(color:--unw-text-soft)">
             <ScrollText size={14} /> Macera defteri
           </div>
         </header>
