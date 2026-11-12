@@ -180,6 +180,15 @@ class D038CantripLeavesTheWindows(unittest.TestCase):
         spell_effects.resolve(s, ("narrative", "Mage Hand"))
         self.assertEqual(s.world_state["spellcasting_v1"]["prepare_window"], window)
 
+    def test_a_refused_cast_leaves_the_window(self):
+        s = rested("Wizard")
+        s.world_state["equipment"] = {"main_hand": "Quarterstaff", "off_hand": "Shield"}
+        before = copy.deepcopy((s.world_state, s.character))
+        cast = spell_effects.resolve(s, ("narrative", "Mage Hand"))
+        self.assertEqual(cast["action_result"]["reason"], "spell_components_unavailable")
+        self.assertTrue(spell_preparation.window_open(s))
+        self.assertEqual(copy.deepcopy((s.world_state, s.character)), before)  # window, slots and facts untouched
+
 
 class SavedFacts(unittest.TestCase):
     def fact(self, **change):
