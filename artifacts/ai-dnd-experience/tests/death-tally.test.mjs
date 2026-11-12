@@ -19,3 +19,14 @@ test('the tally appears only while the character is unconscious or stable', () =
 test('the end-of-character card is a themed card with a heading, not a bare data row', () => {
   assert.match(source, /className="death-card /);
 });
+
+// Plan part L: at the death moment the writing box closes; one clear communication remains.
+test('a dead character gets no writing box, except the final call into the dark', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const column = await readFile('src/pages/game/story-column.tsx', 'utf8');
+  assert.match(column, /const lastCall = state\.death_state\?\.status === 'dead' && Boolean\(state\.death_state\.last_call_open\)/);
+  assert.match(column, /const writingClosed = state\.death_state\?\.status === 'dead' && !lastCall/);
+  assert.match(column, /\{!composerOpen && !writingClosed && <button/);
+  assert.match(column, /\{composerOpen && !writingClosed && <div className="command-box"/);
+  assert.match(column, /lastCall \? 'Karanlığa seslen' : 'Hamle yap'/);
+});

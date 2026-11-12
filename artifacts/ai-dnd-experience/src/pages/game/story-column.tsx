@@ -146,6 +146,9 @@ export function StoryColumn({
       : 'Ne yapmak istiyorsun?';
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const composerTriggerRef = useRef<HTMLButtonElement>(null);
+  // Plan part L: once the character is dead the writing box closes; only the final call into the dark may still be written.
+  const lastCall = state.death_state?.status === 'dead' && Boolean(state.death_state.last_call_open);
+  const writingClosed = state.death_state?.status === 'dead' && !lastCall;
   const wasComposerOpen = useRef(composerOpen);
   const desktopEnterSupported = typeof window !== 'undefined'
     && typeof navigator !== 'undefined'
@@ -224,8 +227,8 @@ export function StoryColumn({
       </div>
       <div className="story-reading-column">
       <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} readingPreferences={readingPreferences} resultCue={resultCue} newResponseEntryIndex={newResponseEntryIndex} onJumpToNewResponse={onJumpToNewResponse} />
-      {!composerOpen && <button ref={composerTriggerRef} className="dnd-button turn-open-button" type="button" disabled={sending} data-testid="button-open-composer" onClick={() => setComposerOpen(true)}><Send size={15} aria-hidden="true" /> Hamle yap</button>}
-      {composerOpen && <div className="command-box" data-testid="command-box">
+      {!composerOpen && !writingClosed && <button ref={composerTriggerRef} className="dnd-button turn-open-button" type="button" disabled={sending} data-testid="button-open-composer" onClick={() => setComposerOpen(true)}><Send size={15} aria-hidden="true" /> {lastCall ? 'Karanlığa seslen' : 'Hamle yap'}</button>}
+      {composerOpen && !writingClosed && <div className="command-box" data-testid="command-box">
         <div className="composer-heading">
           <span>Hamleni anlat</span>
           <button className="composer-close" type="button" disabled={sending} data-testid="button-close-composer" onClick={() => setComposerOpen(false)}>Kapat</button>
