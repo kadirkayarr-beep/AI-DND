@@ -468,7 +468,7 @@ export default function GameBrowser() {
   }, [sessionId, campaignId]);
 
   useEffect(() => {
-    setCombatEndNotice(null); setLevelUpCard(null);
+    setCombatEndNotice(null);
     setCombatTargetId('');
     if (!sessionId) { setEntries([]); return; }
     // Persisted campaigns restore their transcript from the authenticated API.
