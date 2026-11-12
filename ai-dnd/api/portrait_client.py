@@ -196,6 +196,7 @@ class PortraitClient:
         headers = {"Authorization": "Bearer " + self.__key, "HTTP-Referer": "http://localhost", "X-Title": "ai-dnd"}
         body = {"model": model, "prompt": prompt, "aspect_ratio": "1:1", "n": 1}
         timeout = httpx.Timeout(limit, connect=min(CONNECT_TIMEOUT_SECONDS, limit))
+        status = None
         try:
             with self._http.stream("POST", OPENROUTER_URL, json=body, headers=headers, timeout=timeout) as response:
                 status = response.status_code
@@ -203,6 +204,8 @@ class PortraitClient:
                 raw = _read_capped(response)
         except httpx.TransportError:
             return _Outcome(None, "failed", retry=True, wait=DEFAULT_RETRY_WAIT_SECONDS)
+        except httpx.HTTPError:  # e.g. DecodingError on a corrupt encoded body: never leaves as a raw exception
+            return _Outcome(status, "failed")
         if status == 429 or status >= 500:
             return _Outcome(status, "failed", retry=True, wait=wait)
         if raw is None:
@@ -215,7 +218,7 @@ class PortraitClient:
         parsed, usd = _parse(raw)
         value = _image_value(parsed) if parsed else None
         if value is None:
-            return _Outcome(status, "refused" if refused else "failed", usd=usd)
+            return _Outcome(status, "failed", usd=usd)
         try:
             return _Outcome(status, "image", usd=usd, image=decode_image(value))
         except ImageRejected:
@@ -224,4 +227,5 @@ class PortraitClient:
 
 def client_from_environment() -> PortraitClient | None:
     key = os.environ.get(KEY_ENV, "").strip()
-    return PortraitClient(key) if key else None
+    # A non-ASCII key cannot be a header value and would put the key into an encoding error's repr.
+    return PortraitClient(key) if key and key.isascii() else None

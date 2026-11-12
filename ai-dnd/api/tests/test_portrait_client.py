@@ -143,6 +143,29 @@ class Validation(ClientCase):
         self.make(httpx.Response(200, stream=Endless()))
         self.fails()
 
+    def test_corrupt_encoded_body_is_failed_without_retry(self):
+        class Corrupt(httpx.SyncByteStream):
+            def __iter__(self):
+                yield b"not gzip at all"
+        self.make(httpx.Response(200, stream=Corrupt(), headers={"Content-Encoding": "gzip"}),
+                  reply(200, ok_body(b64(PNG))))
+        error = self.fails()
+        self.assertEqual(len(self.rec.requests), 1)
+        self.assertEqual([a.outcome for a in error.attempts], ["failed"])
+
+    def test_200_without_image_is_failed_never_refused(self):
+        body = {"data": [], "error": {"message": "upstream provider timeout", "metadata": {"safety_tolerance": 2}},
+                "usage": {"cost": 0.004}}
+        self.make(reply(200, body))
+        error = self.fails("portrait_service_failed")
+        self.assertEqual(error.attempts[0].outcome, "failed")
+        self.assertEqual(error.attempts[0].usd, 0.004)
+
+    def test_usd_kept_when_billed_image_fails_validation(self):
+        self.make(reply(200, ok_body(b64(b"<html>"), usage={"cost": 0.009})))
+        error = self.fails()
+        self.assertEqual(error.attempts[0].usd, 0.009)
+
     def test_remote_url_never_downloaded(self):
         self.make(reply(200, ok_body("https://evil.example/x.png", "url")))
         self.fails()
@@ -235,6 +258,8 @@ class KeyHandling(ClientCase):
                 mock.patch.object(Path, "read_text", side_effect=AssertionError("file read")):
             client = client_from_environment()
         self.assertIsInstance(client, PortraitClient)
+        with mock.patch.dict(os.environ, {pc.KEY_ENV: "sk-or-TESTç"}):
+            self.assertIsNone(client_from_environment())
         self.assertNotIn(KEY, repr(client))
 
 
