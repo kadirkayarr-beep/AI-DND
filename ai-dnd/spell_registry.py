@@ -51,6 +51,10 @@ def _changes(level: int, result: dict[str, Any]) -> list[dict[str, Any]]:
     if result.get("healing"):
         changes.append({"kind": "healing", "target_id": result["target_id"], "amount": result["healing"],
                         "heal_source": result.get("heal_source")})
+    if result.get("rider"):  # Ray of Frost / Shocking Grasp: a timed effect on the target (4C.4b)
+        changes.append({"kind": "spell_rider", "target_id": result["target_id"], "rider": result["rider"]})
+    if result.get("concentration"):  # Bless (4C.4b)
+        changes.append({"kind": "concentration", **result["concentration"]})
     if result.get("hit") is False:  # a miss / successful save is an explicit receipt, not an empty list
         changes.append({"kind": "no_effect", "target_id": result["target_id"], "reason": "miss_or_save_succeeded"})
     return changes
@@ -65,7 +69,7 @@ def cast_spell(spell_id: Any, context: dict[str, Any], slot_level: int | None, c
         return _result("unsupported", spell_id, None, "spell_resolver_missing")
     level = spell_scope.CATALOG[spell_id][0]
     reported = level or None  # a cantrip has no slot
-    if spell_id == "Magic Missile" and type(slot_level) is int and slot_level in (2, 3):
+    if type(slot_level) is int and slot_level in spell_scope.UPCASTS.get(spell_id, ()):
         reported = slot_level
     session = context.get("session") if isinstance(context, dict) else None
     if session is None:

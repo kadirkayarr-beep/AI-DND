@@ -2540,6 +2540,10 @@ def _validate_save_payload(payload):
     weapon_attack.validate_saved_reckless(saved_world, player)
     import monk_features
     monk_features.validate_saved_effects(saved_world, player)
+    import spell_concentration
+    spell_concentration.validate_saved(saved_world, player)
+    import spell_scope
+    spell_scope.validate_saved_riders(saved_world)
     _validate_saved_multilevel_slots(player, saved_world)
     species = player.get("species", player["race"])
     if species not in RACES:
@@ -5679,6 +5683,10 @@ def _apply_attack_damage_to_player(damage, critical, hit):
         player_status_after = world_state["player_combat_status"]
     if endurance_used:
         player_status_after = "active"
+    concentration_check = None
+    if endurance_used or hit:
+        import spell_concentration
+        concentration_check = spell_concentration.after_damage(_session(), damage)  # one save per damage instance (4C.4b)
     return {"damage": damage, "target_hp_before": player_hp_before,
             "target_hp_after": player_hp_after, "target_status": player_status_after,
             "hp_damage": hp_damage,
@@ -5686,7 +5694,8 @@ def _apply_attack_damage_to_player(damage, critical, hit):
             "temporary_hp_absorbed": temporary_hp_absorbed,
             "temporary_hp_after": trait_state["temporary_hit_points"],
             "species_effects": species_effects,
-            "death_resolution": death_resolution}
+            "death_resolution": death_resolution,
+            **({"concentration_check": concentration_check} if concentration_check is not None else {})}
 
 
 def end_combat(reason="combat_ended"):
@@ -5705,6 +5714,8 @@ def end_combat(reason="combat_ended"):
     barbarian_rage.settle(_session(), combat_active=True)
     import rogue_features
     rogue_features.combat_ended(_session())
+    import spell_concentration
+    spell_concentration.end(_session(), "combat_ended")  # a first-cut spell belongs to its fight (4C.4b)
     identity = combat["combat_id"]
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
@@ -5724,6 +5735,8 @@ def _begin_combat_actor_turn(participant_id):
     combat["current_turn_index"] = combat["initiative_order"].index(participant_id)
     combat["current_actor_id"] = participant_id
     action_economy.begin_turn(_session(), participant_id)
+    import spell_concentration
+    spell_concentration.settle(_session())  # Incapacitated or its minute is over (4C.4b)
     import monster_combat
     monster_combat.begin_turn(_session(), participant_id)
     _sync_combat_participant_records(combat)
@@ -5948,6 +5961,12 @@ def _enemy_exchange_text(enemies, named=None):
             text += (f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın." if subject
                      else f" {first} karşı saldırıya geçer; {kind and 'kritik bir vuruşla '}sana isabet eder; "
                           f"{enemy['damage']} hasar alırsın.")
+        check = enemy.get("concentration_check")  # 4C.4b: the engine's Constitution save, told as it fell
+        if isinstance(check, dict) and check.get("kept"):
+            text += (f" Konsantrasyonunu korursun ({check['spell_id']}; Dayanıklılık kurtarması "
+                     f"{check['total']}, ZS {check['dc']}).")
+        elif isinstance(check, dict):
+            text += f" Konsantrasyonun bozulur; {check['spell_id']} sona erer."
         said = (enemy.get("actor_id") or enemy.get("actor"), enemy.get("outcome"))
         if said not in announced:
             announced.add(said)

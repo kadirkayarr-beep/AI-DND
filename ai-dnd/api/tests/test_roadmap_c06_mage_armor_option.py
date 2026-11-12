@@ -46,7 +46,9 @@ class MageArmorOptionTests(unittest.TestCase):
         self.assertEqual(header['level'], 1)
         self.assertIn('Sorcerer', header['classes'])
         self.assertEqual(spell_registry.spell_state('Mage Armor'), 'catalog_only')
-        self.assertEqual(spell_registry.resolvers(), {'Fire Bolt': 0, 'Magic Missile': 1, 'Cure Wounds': 1, 'Sacred Flame': 0})
+        self.assertEqual(spell_registry.resolvers(), {'Fire Bolt': 0, 'Magic Missile': 1, 'Cure Wounds': 1, 'Sacred Flame': 0,
+                                                      'Ray of Frost': 0, 'Shocking Grasp': 0, 'Toll the Dead': 0,
+                                                      'Healing Word': 1, 'Bless': 1})  # 4C.4b first cut; Mage Armor stays catalog-only
 
     def test_actual_level_three_selection_and_fresh_restore(self):
         session = selected_three(self)

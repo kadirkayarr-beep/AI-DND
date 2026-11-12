@@ -2050,32 +2050,12 @@
           "expected": ["SUCCESS", "SUCCESS"]
         }
       ]
-    }
-  ],
-  "open_leaves": [
-    {"family": "save", "rule": "skill_proficiency_choices_and_save_total_in_play", "status": "OPEN", "reason": "class skill-choice counts/options, background skills, and the saving-throw total applied during play (saving_bonus, feat/species adders, exhaustion) are not oracle-covered; the creation save modifiers cover only the level-1 Proficiency Bonus of 2 (higher levels belong to C06); Sorcerer saves were read in C06 and are also run here"},
-    {"family": "d20_test", "rule": "advantage_disadvantage_source_aggregation", "status": "OPEN", "reason": "eligible weapon/Initiative source aggregation covered by K07.advantage_disadvantage_source_aggregation.weapon_and_initiative; skill/save/spell source routing and source eligibility remain OPEN"},
-    {"family": "hit_points", "rule": "heal_cap_and_temp_hp_no_stack_choice", "status": "OPEN", "reason": "PHB lets the player choose between two Temporary Hit Point amounts; the engine keeps the higher automatically"},
-    {"family": "combat_order", "rule": "initiative_surprise", "status": "OPEN"},
-    {"family": "state", "rule": "long_rest_ability_scores_and_spacing", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: no ability-score restoration; 16-hour start spacing covered by K07.long_rest_start_spacing (PDF369), legacy absent completion history is unknown; Hit Point Dice are covered by K07.hit_dice_short_and_long_rest"},
-    {"family": "state", "rule": "short_rest_other_benefits", "status": "OPEN", "reason": "not covered: features that recharge on a Short Rest (species Short Rest features are not given after an interrupted Long Rest), damage after the rest other than via the HP guard, a level applied between the rest and the spend, Hit Dice display in the UI, interruptions by walking/exertion (PDF 370); Hit Point Dice spending is covered by K07.hit_dice_short_and_long_rest"},
-    {"family": "state", "rule": "feature_recharge_by_rest", "status": "OPEN", "reason": "species uses and spell slots are restored by Long Rest in the engine; per-feature recharge rules are not oracle-covered. ENGINE DIVERGENCE (untested): with supplies tracking on and a missing food/water record the engine skips the Exhaustion reduction, the glossary always reduces it by 1; rest interrupted by a time event and the interruptions in the glossary (rolling Initiative, casting a non-cantrip spell) are only partly covered"},
-    {"family": "conditions", "rule": "conditions_other_effects", "status": "OPEN", "reason": "not oracle-covered: Charmed effects beyond attacks against known canonical charmer (K07.charmed_attack_charmer), Deafened, Frightened (movement and line of sight), Invisible effects beyond Initiative advantage and explicit directed sight attack exception (covered by K07.initiative_invisible and K07.invisible_attack_explicit_sight_exception); special-sense sight production remains OPEN, Blinded auto-fail on sight checks, Prone crawling and standing cost, Unconscious dropping items, Exhaustion D20 penalties beyond Initiative (covered by K07.initiative_exhaustion_penalty) and death at level 6, Concentration broken by Incapacitated, Dehydration/Malnutrition exhaustion removal, outside-combat movement still blocked for Incapacitated/Stunned by exploration._busy (Speed is correct there, journeys are not), a Grapple ending when the grappler is Incapacitated (not modelled); sources: K07 release_v2 (scope_and_exceptions.json unsupported list applies)"},
-    {"family": "combat_order", "rule": "bonus_action_and_reaction_sources", "status": "OPEN", "reason": "which features grant Bonus Actions/Reactions (Cunning Action, Opportunity Attack triggers, Shield and other reaction spells, Action Surge) belong to the class/spell tasks (C05, C10-C21) and K05; free object interaction and the 'one thing at a time' rule are not oracle-covered; the dispatcher sets reaction_spent directly because the only engine reaction path needs a Ready opportunity, so 'a spent Reaction refuses a second one' and 'Incapacitated prevents a Reaction' are UNVERIFIED; Dodge benefits/loss are covered by K07.dodge_benefits_loss; its activation/expiry and the effects of Disengage, Help, Hide, Ready, Search, Study are not oracle-covered (the leaf checks only the 12 names); not covered: Action Surge/extra actions, bonus grants of quantity > 1, out_of_turn refusals, double Dash, speed 0, prone/difficult-terrain movement cost, exhaustion/grapple speed reduction; the former Incapacitated Speed 0 divergence is fixed (K07.conditions_speed_actions_attacks_saves)"},
-    {"family": "spell", "rule": "spell_ray_of_frost", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
-    {"family": "spell", "rule": "spell_shocking_grasp", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
-    {"family": "spell", "rule": "spell_toll_the_dead", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
-    {"family": "spell", "rule": "spell_healing_word", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
-    {"family": "spell", "rule": "spell_bless", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"},
-    {"family": "concentration", "rule": "concentration", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: page-cited leaf in pending_leaves (4C.4a); resolver in 4C.4b"}
-  ],
-  "pending_leaves": [
+    },
     {
       "leaf_id": "4C.spell.ray_of_frost",
       "family": "spell",
-      "status": "PENDING_RESOLVER",
-      "resolver_task": "4C.4b",
-      "open_rule": "spell_ray_of_frost",
+      "engine_resolvers": ["spell_scope.cast", "action_economy.speed", "weapon_attack.boundary"],
+      "resolved_in": "4C.4b",
       "source_ref": {
         "pdf_page": 310,
         "printed_page": 311,
@@ -2193,9 +2173,8 @@
     {
       "leaf_id": "4C.spell.shocking_grasp",
       "family": "spell",
-      "status": "PENDING_RESOLVER",
-      "resolver_task": "4C.4b",
-      "open_rule": "spell_shocking_grasp",
+      "engine_resolvers": ["spell_scope.cast", "spell_scope.opportunity_attacks_blocked", "weapon_attack.boundary"],
+      "resolved_in": "4C.4b",
       "source_ref": {
         "pdf_page": 315,
         "printed_page": 316,
@@ -2293,9 +2272,8 @@
     {
       "leaf_id": "4C.spell.toll_the_dead",
       "family": "spell",
-      "status": "PENDING_RESOLVER",
-      "resolver_task": "4C.4b",
-      "open_rule": "spell_toll_the_dead",
+      "engine_resolvers": ["spell_scope.cast", "weapon_attack.save"],
+      "resolved_in": "4C.4b",
       "source_ref": {
         "pdf_page": 333,
         "printed_page": 334,
@@ -2419,9 +2397,8 @@
     {
       "leaf_id": "4C.spell.healing_word",
       "family": "spell",
-      "status": "PENDING_RESOLVER",
-      "resolver_task": "4C.4b",
-      "open_rule": "spell_healing_word",
+      "engine_resolvers": ["spell_scope.cast", "action_economy.execute"],
+      "resolved_in": "4C.4b",
       "source_ref": {
         "pdf_page": 283,
         "printed_page": 284,
@@ -2512,9 +2489,8 @@
     {
       "leaf_id": "4C.spell.bless",
       "family": "spell",
-      "status": "PENDING_RESOLVER",
-      "resolver_task": "4C.4b",
-      "open_rule": "spell_bless",
+      "engine_resolvers": ["spell_scope.cast", "weapon_attack.resolve", "weapon_attack.save", "spell_concentration.bless_max_targets"],
+      "resolved_in": "4C.4b",
       "source_ref": {
         "pdf_page": 246,
         "printed_page": 247,
@@ -2625,9 +2601,8 @@
     {
       "leaf_id": "4C.concentration",
       "family": "concentration",
-      "status": "PENDING_RESOLVER",
-      "resolver_task": "4C.4b",
-      "open_rule": "concentration",
+      "engine_resolvers": ["spell_concentration.save_dc", "spell_concentration.after_damage", "spell_concentration.settle", "spell_scope.cast", "spell_scope.end_concentration"],
+      "resolved_in": "4C.4b",
       "source_ref": {
         "pdf_page": 362,
         "printed_page": 363,
@@ -2820,5 +2795,17 @@
       ],
       "not_covered": "several damage instances in one turn (one save per instance is not stated on this page: UNVERIFIED, no case written)"
     }
-  ]
+  ],
+  "open_leaves": [
+    {"family": "save", "rule": "skill_proficiency_choices_and_save_total_in_play", "status": "OPEN", "reason": "class skill-choice counts/options, background skills, and the saving-throw total applied during play (saving_bonus, feat/species adders, exhaustion) are not oracle-covered; the creation save modifiers cover only the level-1 Proficiency Bonus of 2 (higher levels belong to C06); Sorcerer saves were read in C06 and are also run here"},
+    {"family": "d20_test", "rule": "advantage_disadvantage_source_aggregation", "status": "OPEN", "reason": "eligible weapon/Initiative source aggregation covered by K07.advantage_disadvantage_source_aggregation.weapon_and_initiative; skill/save/spell source routing and source eligibility remain OPEN"},
+    {"family": "hit_points", "rule": "heal_cap_and_temp_hp_no_stack_choice", "status": "OPEN", "reason": "PHB lets the player choose between two Temporary Hit Point amounts; the engine keeps the higher automatically"},
+    {"family": "combat_order", "rule": "initiative_surprise", "status": "OPEN"},
+    {"family": "state", "rule": "long_rest_ability_scores_and_spacing", "status": "OPEN", "reason": "NO_ENGINE_RESOLVER: no ability-score restoration; 16-hour start spacing covered by K07.long_rest_start_spacing (PDF369), legacy absent completion history is unknown; Hit Point Dice are covered by K07.hit_dice_short_and_long_rest"},
+    {"family": "state", "rule": "short_rest_other_benefits", "status": "OPEN", "reason": "not covered: features that recharge on a Short Rest (species Short Rest features are not given after an interrupted Long Rest), damage after the rest other than via the HP guard, a level applied between the rest and the spend, Hit Dice display in the UI, interruptions by walking/exertion (PDF 370); Hit Point Dice spending is covered by K07.hit_dice_short_and_long_rest"},
+    {"family": "state", "rule": "feature_recharge_by_rest", "status": "OPEN", "reason": "species uses and spell slots are restored by Long Rest in the engine; per-feature recharge rules are not oracle-covered. ENGINE DIVERGENCE (untested): with supplies tracking on and a missing food/water record the engine skips the Exhaustion reduction, the glossary always reduces it by 1; rest interrupted by a time event and the interruptions in the glossary (rolling Initiative, casting a non-cantrip spell) are only partly covered"},
+    {"family": "conditions", "rule": "conditions_other_effects", "status": "OPEN", "reason": "not oracle-covered: Charmed effects beyond attacks against known canonical charmer (K07.charmed_attack_charmer), Deafened, Frightened (movement and line of sight), Invisible effects beyond Initiative advantage and explicit directed sight attack exception (covered by K07.initiative_invisible and K07.invisible_attack_explicit_sight_exception); special-sense sight production remains OPEN, Blinded auto-fail on sight checks, Prone crawling and standing cost, Unconscious dropping items, Exhaustion D20 penalties beyond Initiative (covered by K07.initiative_exhaustion_penalty) and death at level 6, Dehydration/Malnutrition exhaustion removal, outside-combat movement still blocked for Incapacitated/Stunned by exploration._busy (Speed is correct there, journeys are not), a Grapple ending when the grappler is Incapacitated (not modelled); sources: K07 release_v2 (scope_and_exceptions.json unsupported list applies)"},
+    {"family": "combat_order", "rule": "bonus_action_and_reaction_sources", "status": "OPEN", "reason": "which features grant Bonus Actions/Reactions (Cunning Action, Opportunity Attack triggers, Shield and other reaction spells, Action Surge) belong to the class/spell tasks (C05, C10-C21) and K05; free object interaction and the 'one thing at a time' rule are not oracle-covered; the dispatcher sets reaction_spent directly because the only engine reaction path needs a Ready opportunity, so 'a spent Reaction refuses a second one' and 'Incapacitated prevents a Reaction' are UNVERIFIED; Dodge benefits/loss are covered by K07.dodge_benefits_loss; its activation/expiry and the effects of Disengage, Help, Hide, Ready, Search, Study are not oracle-covered (the leaf checks only the 12 names); not covered: Action Surge/extra actions, bonus grants of quantity > 1, out_of_turn refusals, double Dash, speed 0, prone/difficult-terrain movement cost, exhaustion/grapple speed reduction; the former Incapacitated Speed 0 divergence is fixed (K07.conditions_speed_actions_attacks_saves)"}
+  ],
+  "pending_leaves": []
 }

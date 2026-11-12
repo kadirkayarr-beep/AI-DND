@@ -772,10 +772,15 @@ def _save(session, target, abilities, dc, chosen=None, *, effect_context=None):
             modifier, adjustment = saving_bonus(defender, ability)
         else:
             adjustment = total - modifier - 2 * exhaustion(defender)
+        import spell_concentration
+        bless = spell_concentration.bless_roll(session, target)  # Bless: +1d4 to the saving throw (4C.4b)
+        adjustment += bless or 0
         result = resolve_saving_throw(roll_fn=session.roll_d20, ability=ability, dc=dc,
                                     ability_modifier=modifier, circumstantial_modifier=adjustment,
                                     advantage=bool(dodging or danger_sense or barbarian_rage.strength_advantage(session, target, ability)),
                                     disadvantage=ability == "dexterity" and "restrained" in status)
+        if bless is not None:
+            result["bless_roll"] = bless
     block = defender.get("monster_stat_block") or {}
     if (target != "player" and result["outcome"] == "FAILURE" and effect_context
             and session.world_state.get("combat", {}).get("active")
@@ -842,7 +847,9 @@ def boundary(session, actor, event):
             resources[actor]["attack_turn_counter"] = counter
     rogue_features.turn_boundary(session, actor, event, counter)
     effects = session.world_state.get("attack_effects", [])
-    ending = [e for e in effects if e["source_actor"] == actor and e["expires_boundary"] == event and counter >= e["expires_turn"]]
+    # A spell rider that lasts to its target's turn names that target in `expires_actor` (Shocking Grasp, 4C.4b).
+    ending = [e for e in effects if e.get("expires_actor", e["source_actor"]) == actor
+              and e["expires_boundary"] == event and counter >= e["expires_turn"]]
     effects[:] = [e for e in effects if e not in ending]
     for entry in ending:
         monk_features.effect_ended(session, entry)
@@ -888,11 +895,15 @@ def _resolve(session, c):
             if (actor == "player" and character_progression.berserker_eligible(attacker, session.world_state)
                     and barbarian_rage.active(session)):
                 turn_state(session, actor)["frenzy_eligible"] = True
+        import spell_concentration
+        bless = spell_concentration.bless_roll(session, actor)  # Bless: +1d4 to the attack roll (4C.4b)
         resolution = resolve_attack_roll(
             roll_fn=session.roll_attack if actor == "player" else session.roll_d20,
-            attack_bonus=c["attack_bonus"], target_ac=c["target_ac"],
+            attack_bonus=c["attack_bonus"] + (bless or 0), target_ac=c["target_ac"],
             advantage=bool(c["advantage_sources"]), disadvantage=bool(c["disadvantage_sources"]),
             actor_id=actor, target_id=target)
+        if bless is not None:
+            resolution["bless_roll"] = bless
         hit = resolution["outcome"] != "MISS" and not c["auto_miss"]
         if actor == "player":
             rogue_features.spend_steady_aim(session)

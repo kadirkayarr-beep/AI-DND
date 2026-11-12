@@ -502,7 +502,200 @@ def _charmed_attack(case):
     return {"status": "allowed", "unchanged": (session.world_state, session.character, session.rng.getstate()) == before}
 
 
+# 4C.4b: the first-cut spell leaves (page-cited in 4C.4a) run the real spell owner in a fight on the test_spell_scope
+# fixture. Only dice and d20s are fixed (patched); every number reported is the engine's own.
+
+def _spell_fight(cls, level=1, *, cantrips=(), prepared=(), table=False, ability_score=16):
+    import copy
+    import character_progression
+    import spell_scope
+    from api.dnd_2024_rules import CLASS_DEFINITIONS, proficiency_bonus_for_level
+    from api.tests.test_spell_scope import caster
+    session, enemy = caster(cls=cls)
+    character = session.character
+    character.update(level=level, proficiency_bonus=proficiency_bonus_for_level(level),
+                     **({"progression_level": level} if table else {}))
+    character[CLASS_DEFINITIONS[cls]["spellcasting_ability"]] = ability_score
+    state = session.world_state["spellcasting_v1"]
+    if cantrips:
+        state["cantrips"] = list(cantrips)
+        character["cantrips"] = list(cantrips)
+    if prepared:
+        state["prepared"] = list(prepared)
+    state["slots"] = character_progression.slot_capacity(character) or copy.deepcopy(CLASS_DEFINITIONS[cls]["spell_slots"])
+    spell_scope.validate(state, character)
+    enemy["speed_ft"] = 30
+    return session, enemy
+
+
+def _cast_with(session, spell, target, *, d20=None, dice=(), slot_level=None):
+    from unittest.mock import patch
+    import spell_scope
+    with patch("game.roll_d20", return_value=d20 if d20 is not None else 10), \
+            patch.object(session.rng, "randint", side_effect=list(dice) or [1] * 8):
+        return spell_scope.cast(session, spell, target, slot_level)
+
+
+def _until_next(session, actor):
+    """Advance initiative until `actor` begins its next turn (no creature acts)."""
+    for _ in range(12):
+        session.advance_combat_turn()
+        if session.world_state["combat"]["current_actor_id"] == actor:
+            return
+    raise AssertionError(f"{actor} never began a turn")
+
+
+def _ray_of_frost(case):
+    import action_economy
+    import spell_scope
+    given = case["input"]
+    session, enemy = _spell_fight("Wizard", given["caster_level"], cantrips=["Ray of Frost"])
+    before = action_economy.speed(session, enemy["id"])
+    result = _cast_with(session, "Ray of Frost", enemy["id"], d20=19 if given["attack"] == "hit" else 1,
+                        dice=given.get("dice_rolled", ()))
+    penalty = before - action_economy.speed(session, enemy["id"])
+    if not result["hit"]:
+        return {"damage": result["damage"], "target_speed_penalty_ft": penalty}
+    _until_next(session, enemy["id"])
+    during_target_turn = spell_scope.speed_penalty(session, enemy["id"])
+    _until_next(session, "player")
+    until = ("start_of_caster_next_turn" if during_target_turn and not spell_scope.speed_penalty(session, enemy["id"])
+             else "other")
+    return {"damage": result["damage"], "damage_type": result["damage_type"], "target_speed_penalty_ft": penalty,
+            "penalty_until": until}
+
+
+def _shocking_grasp(case):
+    import action_economy
+    import spell_scope
+    given = case["input"]
+    session, enemy = _spell_fight("Wizard", given["caster_level"], cantrips=["Shocking Grasp"])
+    enemy["distance_ft"] = 5
+    session.world_state["attack_environment"]["pairs"][f"player|{enemy['id']}"]["distance_ft"] = 5
+    result = _cast_with(session, "Shocking Grasp", enemy["id"], d20=19 if given["attack"] == "hit" else 1,
+                        dice=given.get("dice_rolled", ()))
+    can_oa = not spell_scope.opportunity_attacks_blocked(session, enemy["id"])
+    if not result["hit"]:
+        return {"damage": result["damage"], "target_can_make_opportunity_attacks": can_oa}
+    if given.get("target_reaction") == "other_than_opportunity_attack":
+        reacts = (action_economy.can_act(session, enemy["id"])
+                  and not action_economy.ensure(session)[enemy["id"]]["reaction_spent"])
+        return {"damage": result["damage"], "target_reaction_blocked": not reacts}
+    _until_next(session, enemy["id"])
+    until = "start_of_target_next_turn" if not spell_scope.opportunity_attacks_blocked(session, enemy["id"]) else "other"
+    return {"damage": result["damage"], "damage_type": result["damage_type"],
+            "target_can_make_opportunity_attacks": can_oa, "rider_until": until}
+
+
+def _toll_the_dead(case):
+    given = case["input"]
+    session, enemy = _spell_fight("Cleric", given["caster_level"], cantrips=["Toll the Dead"])
+    enemy.update(current_hp=given["target_hp"], max_hp=given["target_max_hp"])
+    result = _cast_with(session, "Toll the Dead", enemy["id"], d20=2 if given["save"] == "fail" else 19,
+                        dice=given.get("dice_rolled", ()))
+    if not result["hit"]:
+        return {"damage": result["damage"]}
+    return {"die": result["damage_die"], "damage": result["damage"], "damage_type": result["damage_type"]}
+
+
+def _healing_word(case):
+    import action_economy
+    given = case["input"]
+    level = 3 if given["slot_level"] > 1 else 1
+    session, _ = _spell_fight("Cleric", level, prepared=["Healing Word"], table=level > 1,
+                              ability_score=10 + 2 * given["spellcasting_modifier"])
+    session.character.update(max_hp=60, current_hp=10)
+    result = _cast_with(session, "Healing Word", "player", dice=given["dice_rolled"], slot_level=given["slot_level"])
+    economy = action_economy.ensure(session)["player"]
+    resource = ("bonus_action" if economy["bonus_action_spent"] and not economy["base_action_spent"] else "other")
+    return {"healing": result["healing"], "heal_source": result["heal_source"],
+            "slot_spent": result["slot_level"] if result["slot_spent"] else 0, "resource": resource}
+
+
+def _blessed_fight(bless=True):
+    session, enemy = _spell_fight("Cleric", 1, prepared=["Bless", "Healing Word"])
+    if bless:
+        _cast_with(session, "Bless", "player")
+    from weapon_catalog import lookup
+    session.world_state["inventory"] = ["Mace"]
+    session.world_state["equipment"] = {"main_hand": lookup("Mace")["weapon_id"], "off_hand": None}
+    session.character.update(weapon_proficiencies=["simple"], conditions=[], current_hp=30, max_hp=30)
+    enemy.update(distance_ft=5, armor_class=12)
+    session.world_state["attack_environment"]["pairs"][f"player|{enemy['id']}"]["distance_ft"] = 5
+    _until_next(session, "player")  # a fresh Action for the roll (Bless spent this turn's)
+    return session, enemy
+
+
+def _bless_total(session, enemy, roll, bless_die):
+    """The engine's total for one roll of this kind with a fixed d20 and Bless d4."""
+    from unittest.mock import patch
+    import weapon_attack
+    with patch("game.roll_d20", return_value=10), patch.object(session.rng, "randint", return_value=bless_die):
+        if roll == "attack_roll":
+            return weapon_attack.resolve(session, "player", enemy["id"], "Mace")["attack_total"]
+        if roll == "saving_throw":
+            return weapon_attack.save(session, "player", ["wisdom"], 10)["total"]
+        modifiers = {name: (session.character.get(name, 10) - 10) // 2 for name in
+                     ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")}
+        result = session.perform_skill_check("Athletics", 10, modifiers, [], session.character["proficiency_bonus"])
+        return result["resolution"]["total"]
+
+
+def _bless(case):
+    import spell_concentration
+    given = case["input"]
+    if given.get("op") == "max_targets":
+        return {"targets": spell_concentration.bless_max_targets(given["slot_level"])}
+    with_bless = _blessed_fight()
+    if given.get("concentration") == "lost":
+        import spell_scope
+        spell_scope.end_concentration(with_bless[0])
+    added = (_bless_total(*with_bless, given["roll"], given["bless_die"])
+             - _bless_total(*_blessed_fight(bless=False), given["roll"], given["bless_die"]))
+    return {"total": given["d20_total"] + added}
+
+
+def _concentration(case):
+    from unittest.mock import patch
+    import action_economy
+    import spell_concentration
+    given = case["input"]
+    if given["op"] == "save_dc":
+        return {"dc": spell_concentration.save_dc(given["damage"])}
+    session, enemy = _blessed_fight()
+    held = spell_concentration.current(session.world_state)
+    if given["op"] == "damage_save":
+        session.character.setdefault("modifiers", {})["constitution"] = 0
+        session.character.setdefault("saving_throw_mods", {})["constitution"] = 0
+        # The held spell is Bless: its d4 (fixed at 1) is part of this save's total.
+        with patch("game.roll_d20", return_value=given["save_total"] - 1), patch.object(session.rng, "randint", return_value=1):
+            check = session._apply_attack_damage_to_player(given["damage"], False, True)["concentration_check"]
+        if check["total"] != given["save_total"]:
+            raise AssertionError("the save total is not the case's total")
+        return {"kept": check["kept"]}
+    if given["op"] == "start_casting":
+        _until_next(session, "player")
+        _cast_with(session, given["holding"] if given["casting_requires_concentration"] else "Healing Word", "player")
+    elif given["op"] == "condition":
+        session.character["conditions"] = [given["condition"]]
+        spell_concentration.settle(session)
+    elif given["op"] == "dies":
+        session._apply_attack_damage_to_player(1000, False, True)
+    elif given["op"] == "end_voluntarily":
+        before = dict(action_economy.ensure(session)["player"])
+        action_economy.execute(session, {"steps": [{"kind": "end_concentration"}]})
+        after = action_economy.ensure(session)["player"]
+        spent = any(after[key] != before[key] for key in ("base_action_spent", "bonus_action_spent", "reaction_spent"))
+        return {"kept": spell_concentration.current(session.world_state) == held, "action_spent": spent}
+    return {"kept": spell_concentration.current(session.world_state) == held}
+
 DISPATCH = {
+    "4C.spell.ray_of_frost": _ray_of_frost,
+    "4C.spell.shocking_grasp": _shocking_grasp,
+    "4C.spell.toll_the_dead": _toll_the_dead,
+    "4C.spell.healing_word": _healing_word,
+    "4C.spell.bless": _bless,
+    "4C.concentration": _concentration,
     "K07.charmed_attack_charmer": _charmed_attack,
     "K07.invisible_attack_explicit_sight_exception": _invisible_sight,
     "K07.advantage_disadvantage_source_aggregation.weapon_and_initiative": _eligible_source_aggregation,

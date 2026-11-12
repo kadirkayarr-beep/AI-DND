@@ -179,7 +179,8 @@ class SpellKernelHasNoProductCaller(unittest.TestCase):
                 continue
             if re.search(r"\bspell_scope\.cast\s*\(", path.read_text(encoding="utf-8", errors="replace")):
                 callers.append(relative)
-        self.assertEqual(callers, ["action_economy.py"])
+        # rule_oracles runs the real cast for the K07 spell leaves (an oracle harness on test fixtures, never a turn).
+        self.assertEqual(sorted(callers), ["action_economy.py", "rule_oracles.py"])
 
 
 class D038HasNoReachableCast(unittest.TestCase):

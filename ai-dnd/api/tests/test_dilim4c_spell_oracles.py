@@ -1,9 +1,10 @@
-"""Dilim 4C Task 4a part 2: page-cited oracle leaves for the five first-cut spells and Concentration (data only).
+"""Dilim 4C Task 4a part 2 / 4b: page-cited oracle leaves for the five first-cut spells and Concentration.
 
-The leaves sit in `content/manifest/rule-oracles.json` under `pending_leaves`: hand-written from the cited PHB 2024 page
-scans, never read back from an engine. No resolver exists yet (4C.4b), so each pending rule is also an OPEN
-`open_leaves` row and is never reported complete; when a resolver lands, its leaf moves to `leaves` with a DISPATCH entry.
-These tests pin the data's shape and its agreement with the page-cited `spells.json` catalog row of the same spell.
+The leaves were written in 4C.4a from the cited PHB 2024 page scans (never read back from an engine) and sat in
+`pending_leaves` as OPEN rules. 4C.4b added the resolvers and moved each leaf to the covered K07 `leaves` with a
+DISPATCH entry; no OPEN row is left for them. These tests pin the data's shape, its agreement with the page-cited
+`spells.json` catalog row of the same spell, and that every case runs the real engine and matches.
+(Rewritten in 4C.4b, equally strict: the "still OPEN, no resolver" tripwire became "covered, resolver runs, matches".)
 """
 from __future__ import annotations
 
@@ -21,7 +22,8 @@ FIRST_CUT = {"Ray of Frost", "Shocking Grasp", "Toll the Dead", "Healing Word", 
 
 
 def pending():
-    return {leaf["leaf_id"]: leaf for leaf in ORACLES.get("pending_leaves", [])}
+    """The 4C first-cut leaves (name kept from 4C.4a): covered K07 leaves since 4C.4b."""
+    return {leaf["leaf_id"]: leaf for leaf in ORACLES["leaves"] if leaf["leaf_id"].startswith("4C.")}
 
 
 def spell_leaves():
@@ -42,8 +44,9 @@ class PendingSpellOracleLeaves(unittest.TestCase):
                 self.assertIn("page scan image", ref["verified_from"])
                 self.assertIn("boundary", {case["kind"] for case in leaf["cases"]})
                 self.assertEqual(len({case["id"] for case in leaf["cases"]}), len(leaf["cases"]))
-                self.assertEqual(leaf["status"], "PENDING_RESOLVER")
-                self.assertEqual(leaf["resolver_task"], "4C.4b")
+                self.assertEqual(leaf["resolved_in"], "4C.4b")
+                self.assertNotIn("status", leaf)  # no PENDING/OPEN marker left on a covered leaf
+                self.assertTrue(leaf["engine_resolvers"])
                 self.assertNotIn("UNVERIFIED", json.dumps(leaf["cases"]))  # an unverified value never becomes a case
 
     def test_spell_leaves_agree_with_the_page_cited_catalog_row(self):
@@ -79,15 +82,28 @@ class PendingSpellOracleLeaves(unittest.TestCase):
         self.assertEqual(min(dcs.values()), 10)
         self.assertEqual(max(dcs.values()), 30)
 
-    def test_pending_rules_stay_open_and_have_no_resolver_yet(self):
-        open_rules = {row["rule"]: row for row in ORACLES["open_leaves"]}
+    def test_covered_rules_run_the_engine_and_left_open_and_pending(self):
+        self.assertEqual(len(pending()), 6)
+        self.assertEqual(ORACLES["pending_leaves"], [])
+        open_rules = {row["rule"] for row in ORACLES["open_leaves"]}
+        for rule in ("spell_ray_of_frost", "spell_shocking_grasp", "spell_toll_the_dead", "spell_healing_word",
+                     "spell_bless", "concentration"):
+            self.assertNotIn(rule, open_rules)
         for leaf_id, leaf in pending().items():
-            with self.subTest(leaf_id):
-                self.assertEqual(open_rules[leaf["open_rule"]]["status"], "OPEN")
-                self.assertNotIn(leaf_id, rule_oracles.DISPATCH)  # a resolver moves the leaf to `leaves` (4C.4b)
-                self.assertNotIn(leaf_id, {covered["leaf_id"] for covered in ORACLES["leaves"]})
+            self.assertIn(leaf_id, rule_oracles.DISPATCH)
+            for case in leaf["cases"]:
+                with self.subTest(leaf=leaf_id, case=case["id"]):
+                    result = rule_oracles.evaluate_rule_case(f"{leaf_id}#{case['id']}", ORACLES)
+                    self.assertTrue(result["match"], result)
+                    self.assertEqual(result["source_ref"]["pdf_page"], leaf["source_ref"]["pdf_page"])
         for leaf in spell_leaves():
-            self.assertNotIn(leaf["spell"]["name"], spell_scope.CATALOG)  # no resolver in 4C.4a
+            self.assertIn(leaf["spell"]["name"], spell_scope.CATALOG)  # the resolver is the spell owner's
+
+    def test_a_wrong_expectation_in_a_spell_leaf_is_detected(self):
+        broken = json.loads(json.dumps(ORACLES))
+        leaf = next(leaf for leaf in broken["leaves"] if leaf["leaf_id"] == "4C.spell.toll_the_dead")
+        leaf["cases"][1]["expected"]["die"] = 8  # the book's d12 for a wounded target, written wrong
+        self.assertFalse(rule_oracles.evaluate_rule_case("4C.spell.toll_the_dead#02", broken)["match"])
 
 
 if __name__ == "__main__":

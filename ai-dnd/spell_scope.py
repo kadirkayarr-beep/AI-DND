@@ -12,16 +12,40 @@ import weapon_attack as attacks
 from api.core_resolution import resolve_attack_roll
 from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG, proficiency_bonus_for_level
 
+# (level, range ft, die, damage type). 4C.4b first cut, page-cited K07 leaves in content/manifest/rule-oracles.json:
+# Ray of Frost PDF 310, Shocking Grasp 315 (Touch = 5 ft reach), Toll the Dead 333, Healing Word 283, Bless 246.
 CATALOG = {
     "Fire Bolt": (0, 120, 10, "fire"),
     "Magic Missile": (1, 120, 4, "force"),
     "Cure Wounds": (1, 0, 8, None),
     "Sacred Flame": (0, 60, 8, "radiant"),
+    "Ray of Frost": (0, 60, 8, "cold"),
+    "Shocking Grasp": (0, 5, 8, "lightning"),
+    "Toll the Dead": (0, 60, 8, "necrotic"),
+    "Healing Word": (1, 60, 4, None),
+    "Bless": (1, 30, 4, None),
 }
 ALIASES = {"ateş oku": "Fire Bolt", "ates oku": "Fire Bolt",
            "sihirli füze": "Magic Missile", "sihirli fuze": "Magic Missile",
            "yara iyileştirme": "Cure Wounds", "yara iyilestirme": "Cure Wounds",
-           "kutsal alev": "Sacred Flame"}
+           "kutsal alev": "Sacred Flame",
+           "buz ışını": "Ray of Frost", "buz isini": "Ray of Frost",
+           "şok dokunuşu": "Shocking Grasp", "sok dokunusu": "Shocking Grasp",
+           "ölüm çanı": "Toll the Dead", "olum cani": "Toll the Dead",
+           "şifa sözü": "Healing Word", "sifa sozu": "Healing Word",
+           "kutsama": "Bless"}
+SELF_SPELLS = frozenset({"Cure Wounds", "Healing Word", "Bless"})  # the player is the only target with a healing/buff owner
+SPELL_ATTACKS = {"Fire Bolt": "ranged", "Ray of Frost": "ranged", "Shocking Grasp": "melee"}
+SAVE_SPELLS = {"Sacred Flame": "dexterity", "Toll the Dead": "wisdom"}
+UPCASTS = {"Magic Missile": (2, 3), "Healing Word": (2, 3)}  # slot levels above the spell's own that have an owner
+BONUS_ACTION_SPELLS = frozenset({"Healing Word"})
+VERBAL_ONLY = frozenset({"Healing Word"})  # V only (PDF 283): no free hand needed
+# Spell riders kept in the attack owner's `attack_effects` (they modify no attack roll).
+RAY_OF_FROST_EFFECT = "ray_of_frost"  # Speed -10 ft until the start of the caster's next turn
+SHOCKING_GRASP_EFFECT = "shocking_grasp"  # no Opportunity Attacks until the start of the target's next turn
+RIDERS = frozenset({RAY_OF_FROST_EFFECT, SHOCKING_GRASP_EFFECT})
+_END_CONCENTRATION = re.compile(r"konsantrasyon\w*\s+(?:bırak|birak|bitir|kes|sonlandır|sonlandir)"
+                                r"|(?:end|drop|stop|break)\s+(?:my\s+)?concentrat")
 
 
 def harmful(spell_id):
@@ -185,6 +209,8 @@ def restore_slots(session):
 def natural_command(message, target_id):
     """Explicit deterministic proposals only; never choose an implicit target."""
     text = str(message).casefold()
+    if _END_CONCENTRATION.search(text) and "?" not in text:
+        return {"steps": [{"kind": "end_concentration"}]}
     names = {name.casefold(): name for name in CATALOG} | ALIASES
     selected = [name for alias, name in names.items() if alias in text]
     casting = bool(re.search(r"\b(cast|casting|büyü|buyu|büyüsünü|buyusunu)\b", text))
@@ -197,22 +223,83 @@ def natural_command(message, target_id):
         return None
     if len(set(selected)) != 1:
         fail("unsupported_spell", "Name exactly one supported V1 spell.")
-    if re.search(r"\b(split|divide|upcast|ritual|reaction|bonus|object|nesne|böl|bol)\b"
+    name = selected[0]
+    # "bonus" is the spell's own casting time for a Bonus Action spell, not a mode (Healing Word).
+    bonus_word = "" if name in BONUS_ACTION_SPELLS else "|bonus"
+    if re.search(r"\b(split|divide|upcast|ritual|reaction|object|nesne|böl|bol" + bonus_word + r")\b"
                  r"|\b(and|or|then|ve|veya|sonra|distribute|targets|enemies|free|without|slot|slots)\b"
                  r"|[,;]|\b\d+\s*(?:level|seviye)|yüksek|yuksek|harcamadan|hedeflere", text):
         fail("unsupported_spell_mode", "This requested spell mode is outside V1.")
-    name = selected[0]
-    if target_id is None and name == "Cure Wounds" and re.search(r"\b(self|myself|kendime)\b", text):
+    if target_id is None and name in SELF_SPELLS and re.search(r"\b(self|myself|kendime|kendimi)\b", text):
         target_id = "player"
     return {"steps": [{"kind": "magic", "ability": name, "target_id": target_id}]}
 
 
 def narration(result):
-    if result["spell_id"] == "Cure Wounds":
-        return f"Cure Wounds ile {result['healing']} canın yenilenir."
+    if result["spell_id"] in {"Cure Wounds", "Healing Word"}:
+        return f"{result['spell_id']} ile {result['healing']} canın yenilenir."
+    if result["spell_id"] == "Bless":
+        ended = result.get("concentration_ended")
+        before = f"{ended['spell_id']} üzerindeki konsantrasyonun biter. " if ended else ""
+        return (f"{before}Bless ile kutsanırsın: konsantrasyonun sürdükçe saldırı zarlarına ve kurtarma zarlarına "
+                "1d4 eklenir.")
     if not result["hit"]:
         return f"{result['spell_id']} hedefe hasar vermez."
-    return f"{result['spell_id']} hedefe {result['damage']} hasar verir."
+    line = f"{result['spell_id']} hedefe {result['damage']} hasar verir."
+    if result.get("rider") == RAY_OF_FROST_EFFECT:
+        line += " Hedefin hızı senin sıradaki turunun başına dek 10 fit düşer."
+    elif result.get("rider") == SHOCKING_GRASP_EFFECT:
+        line += " Hedef kendi sıradaki turunun başına dek Fırsat Saldırısı yapamaz."
+    return line
+
+
+def end_concentration(session):
+    """The caster drops Concentration at will: no action, nothing rolled (PDF 362)."""
+    import spell_concentration
+    session.require_player_can_act()
+    ended = spell_concentration.end(session, "dropped")
+    if ended is None:
+        fail("concentration_not_held", "There is no spell Concentration to end.")
+    return ended
+
+
+def speed_penalty(session, actor):
+    """Ray of Frost: the target's Speed drops by 10 ft (one spell; a second ray refreshes it, never stacks)."""
+    return 10 if any(isinstance(e, dict) and e.get("kind") == RAY_OF_FROST_EFFECT and e.get("target_id") == actor
+                     for e in session.world_state.get("attack_effects", [])) else 0
+
+
+def opportunity_attacks_blocked(session, actor):
+    """Shocking Grasp: this creature can't make Opportunity Attacks (only those; its other Reactions stay)."""
+    return any(isinstance(e, dict) and e.get("kind") == SHOCKING_GRASP_EFFECT and e.get("target_id") == actor
+               for e in session.world_state.get("attack_effects", []))
+
+
+def validate_saved_riders(world):
+    """The spell riders this owner writes, with the exact shape and fight it wrote them in."""
+    combat = world.get("combat", {})
+    effects = world.get("attack_effects", [])
+    for entry in effects if isinstance(effects, list) else []:
+        if not isinstance(entry, dict) or entry.get("kind") not in RIDERS:
+            continue
+        fields = {"kind", "source_actor", "target_id", "expires_turn", "expires_boundary"}
+        if entry["kind"] == SHOCKING_GRASP_EFFECT:
+            fields = fields | {"expires_actor"}
+        if (set(entry) != fields or not combat.get("active") or entry["source_actor"] != "player"
+                or not isinstance(entry["target_id"], str) or entry["target_id"] not in combat.get("participants", [])
+                or entry["expires_boundary"] != "begin" or type(entry["expires_turn"]) is not int or entry["expires_turn"] < 1
+                or (entry["kind"] == SHOCKING_GRASP_EFFECT and entry["expires_actor"] != entry["target_id"])):
+            raise ValueError("Invalid saved spell rider.")
+
+
+def _save_bonus_known(target, ability):
+    """Never accept the save owner's legacy zero fallback without source evidence."""
+    bonus = target.get(f"{ability}_save_bonus", target.get(f"{ability}_mod"))
+    if type(bonus) is not int:
+        block = target.get("monster_stat_block", {})
+        sourced = block.get("ability_modifiers", {}).get(ability)
+        if sourced != 0 or type(sourced) is not int or block.get("saving_throws"):
+            fail("spell_save_modifier_unknown", f"Authoritative target {ability.title()} save is required.")
 
 
 def explicit_request(message, command=None):
@@ -222,6 +309,7 @@ def explicit_request(message, command=None):
     if "?" in text or re.search(r"\b(nedir|describe|what|anlat)\b", text):
         return False
     return bool(re.search(r"\b(cast|casting|büyüsünü|buyusunu)\b", text)
+                or _END_CONCENTRATION.search(text)  # dropping Concentration is a typed engine step (no model)
                 or (any(name.casefold() in text for name in CATALOG)
                     and "?" not in text and not re.search(r"\b(nedir|describe|what|anlat)\b", text)))
 
@@ -249,8 +337,8 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
     if state is None or spell_id not in state["prepared" if level else "cantrips"]:
         fail("spell_not_available", "This spell is not available/prepared through this caster's feature.")
     if slot_level is not None and (type(slot_level) is not int or
-            (slot_level != level and not (spell_id == "Magic Missile" and slot_level in (2, 3)))):
-        fail("unsupported_spell_mode", "Only Magic Missile with a level-two or level-three slot supports upcasting.")
+            (slot_level != level and slot_level not in UPCASTS.get(spell_id, ()))):
+        fail("unsupported_spell_mode", "Only Magic Missile and Healing Word with a level-two or level-three slot support upcasting.")
     selected_level = level if slot_level is None else slot_level
     character = session.character
     character_level = character["level"]
@@ -268,17 +356,26 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
     combat = session.world_state.get("combat", {})
     if not combat.get("active"):
         fail("unsupported_spell_mode", "V1 spells use an existing active combat turn.")
-    resource = "bonus" if metamagic == "quickened_spell" else "action"
-    economy.action_slot(session, "player", "magic", resource=resource)
+    if spell_id in BONUS_ACTION_SPELLS:
+        if metamagic is not None:
+            fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
+        economy.validate_actor(session)
+        if economy.ensure(session)["player"]["bonus_action_spent"]:
+            fail("bonus_action_spent", "The Bonus Action was already taken.")
+        resource = "bonus"
+    else:
+        resource = "bonus" if metamagic == "quickened_spell" else "action"
+        economy.action_slot(session, "player", "magic", resource=resource)
     hands = attacks.equipment(session, "player", character)
     actor_conditions = attacks.conditions(session, "player", character)
-    if not any(value is None for value in hands.values()) or actor_conditions & {"silenced", "silence", "cannot_speak", "petrified"}:
+    free_hand = spell_id in VERBAL_ONLY or any(value is None for value in hands.values())
+    if not free_hand or actor_conditions & {"silenced", "silence", "cannot_speak", "petrified"}:
         fail("spell_components_unavailable", "Required V/S components are unavailable.")
     if not isinstance(target_id, str) or not target_id:
         fail("spell_target_required", "Choose an explicit canonical creature target.")
-    if spell_id == "Cure Wounds":
+    if spell_id in SELF_SPELLS:
         if target_id != "player":
-            fail("unsupported_spell_mode", "Only player self-healing has an existing healing owner.")
+            fail("unsupported_spell_mode", "Only the player has an existing healing/Bless target owner.")
         target = character
         target_conditions = actor_conditions
         spatial = {"distance_ft": 0}
@@ -304,34 +401,35 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
             fail("spell_visibility_unknown", "V1 requires an explicitly visible target.")
         if spatial.get("cover", "none") == "total" or spatial.get("clear_path") is False:
             fail("spell_path_blocked", "The target has no clear spell path.")
-    if spell_id == "Fire Bolt":
+    if spell_id in SPELL_ATTACKS:
         # Restricted modes are rejected, not resolved with missing advantage rules.
         traits = character.get("species_trait_state") or {}
         if actor_conditions or target_conditions or traits.get("giant_ancestry_armed") or traits.get("celestial_revelation_turns_remaining"):
             fail("unsupported_spell_attack_mode", "Condition/rider-modified spell attacks are deferred.")
-        if economy.ensure(session).get(target_id, {}).get("dodging") or session.world_state.get("attack_effects"):
+        if (economy.ensure(session).get(target_id, {}).get("dodging")
+                or any(not isinstance(e, dict) or e.get("kind") not in RIDERS
+                       for e in session.world_state.get("attack_effects", []))):
             fail("unsupported_spell_attack_mode", "Tracked attack modifiers require their spell-compatible owner.")
-        for npc_id in combat["participants"]:
-            if npc_id == "player":
-                continue
-            npc = attacks.actor_data(session, npc_id)
-            if attacks.conditions(session, npc_id, npc) & {"dead", "unconscious", "incapacitated"}:
-                continue
-            if attacks.pair(session, "player", npc_id)["distance_ft"] <= 5:
-                fail("unsupported_spell_attack_mode", "Close-hostile ranged spell modes are deferred.")
+        if SPELL_ATTACKS[spell_id] == "ranged":
+            for npc_id in combat["participants"]:
+                if npc_id == "player":
+                    continue
+                npc = attacks.actor_data(session, npc_id)
+                if attacks.conditions(session, npc_id, npc) & {"dead", "unconscious", "incapacitated"}:
+                    continue
+                if attacks.pair(session, "player", npc_id)["distance_ft"] <= 5:
+                    fail("unsupported_spell_attack_mode", "Close-hostile ranged spell modes are deferred.")
         cover = spatial.get("cover", "none")
         if cover not in {"none", "half", "three_quarters"} or type(target.get("armor_class")) is not int:
             fail("invalid_spell_target", "Target AC/cover is not authoritative.")
-    if spell_id == "Sacred Flame":
-        if target_conditions & {"restrained"}:
+    if spell_id in SAVE_SPELLS:
+        if SAVE_SPELLS[spell_id] == "dexterity" and target_conditions & {"restrained"}:
             fail("unsupported_spell_save_mode", "Modified Dexterity save modes are deferred.")
-        # Never accept the save owner's legacy zero fallback without source evidence.
-        bonus = target.get("dexterity_save_bonus", target.get("dexterity_mod"))
-        if type(bonus) is not int:
-            block = target.get("monster_stat_block", {})
-            sourced = block.get("ability_modifiers", {}).get("dexterity")
-            if sourced != 0 or type(sourced) is not int or block.get("saving_throws"):
-                fail("spell_save_modifier_unknown", "Authoritative target Dexterity save is required.")
+        _save_bonus_known(target, SAVE_SPELLS[spell_id])
+    if spell_id == "Toll the Dead" and (type(target.get("current_hp")) is not int or type(target.get("max_hp")) is not int):
+        fail("invalid_spell_target", "Target Hit Points are not authoritative.")
+    if spell_id == "Bless" and selected_level != level:
+        fail("unsupported_spell_mode", "Bless's extra targets for a higher slot have no target owner yet.")
     marker = [combat["combat_id"], combat["round"],
               economy.ensure(session)["player"]["attack_turn_counter"]]
     if level:
@@ -340,7 +438,10 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         if state["slot_turn"] == marker:
             fail("spell_slot_turn_limit", "Only one spell slot may be expended on this turn.")
     # No canonical cast starts until every supported-mode prerequisite passes.
-    economy.consume_action(session, "player", "magic", resource=resource)
+    if spell_id in BONUS_ACTION_SPELLS:
+        economy.consume_feature_bonus(session)
+    else:
+        economy.consume_action(session, "player", "magic", resource=resource)
     if metamagic is not None:
         import sorcery_points
         sorcery_points.spend_quickened(session)
@@ -352,31 +453,41 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
               "damage": 0, "healing": 0, "resolution": None,
               # Event fields (4C.1): read by the public result, never saved.
               "damage_type": damage_type, "slot_spent": bool(level), "casting_ability": ability}
-    if spell_id == "Cure Wounds":
+    import spell_concentration
+    if spell_id in {"Cure Wounds", "Healing Word"}:
         before = character["current_hp"]
-        amount = max(0, session.roll_damage(8, 2, modifier))
+        # Cure Wounds 2d8 + mod; Healing Word 2d4 + mod, +2d4 a slot level above 1 (PDF 283). A negative total heals 0
+        # (Cure Wounds' existing reading; the page names no minimum: UNVERIFIED for a negative modifier).
+        count = 2 if spell_id == "Cure Wounds" else 2 * selected_level
+        amount = max(0, session.roll_damage(sides, count, modifier))
         session.heal_player(amount)
         result.update(healing=character["current_hp"] - before, rolled_healing=amount, heal_source="spell")
+    elif spell_id == "Bless":
+        ended = spell_concentration.start(session, "Bless", selected_level, ["player"])
+        result.update(concentration={"spell_id": "Bless", "targets": ["player"]}, concentration_ended=ended)
     else:
         dice = 1 + sum(character_level >= threshold for threshold in (5, 11, 17))
         critical = False
         hits = True
-        if spell_id == "Fire Bolt":
+        if spell_id in SPELL_ATTACKS:
+            bless = spell_concentration.bless_roll(session, "player")  # Bless: +1d4 to the attack roll
             resolution = resolve_attack_roll(
-                roll_fn=session.roll_d20, attack_bonus=modifier + pb,
+                roll_fn=session.roll_d20, attack_bonus=modifier + pb + (bless or 0),
                 target_ac=target["armor_class"] + spatial_rules.COVER_AC[cover],
                 actor_id="player", target_id=target_id,
             )
+            if bless is not None:
+                resolution["bless_roll"] = bless
             result["resolution"] = resolution
             result["attack_or_save"] = "attack"
             hits = resolution["outcome"] != "MISS"
             critical = resolution["outcome"] == "CRITICAL_HIT"
-        elif spell_id == "Sacred Flame":
-            resolution = attacks.save(session, target_id, ["dexterity"], 8 + modifier + pb,
-                                      effect_context={"source": "Sacred Flame", "severity": "harmful"})
+        elif spell_id in SAVE_SPELLS:
+            resolution = attacks.save(session, target_id, [SAVE_SPELLS[spell_id]], 8 + modifier + pb,
+                                      effect_context={"source": spell_id, "severity": "harmful"})
             result["resolution"] = resolution
             result.update(attack_or_save="save", save_roll=resolution.get("selected_roll"))
-            hits = resolution["outcome"] == "FAILURE"
+            hits = resolution["outcome"] == "FAILURE"  # Toll the Dead: a success takes no damage (PDF 333)
         if hits:
             if spell_id == "Magic Missile":
                 # One recipient, simultaneous darts; mitigate each damage instance.
@@ -384,12 +495,27 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
                 damage = sum(attacks.mitigate(session, target_id, "force", n)["final_damage"] for n in darts)
                 result["darts"] = darts
             else:
-                raw = session.roll_damage(sides, dice * (2 if critical else 1), 0)
+                die = sides
+                if spell_id == "Toll the Dead" and target["current_hp"] < target["max_hp"]:
+                    die = 12  # the target is missing any of its Hit Points
+                raw = session.roll_damage(die, dice * (2 if critical else 1), 0)
                 damage = attacks.mitigate(session, target_id, damage_type, raw)["final_damage"]
                 result["raw_damage"] = raw
+                if spell_id == "Toll the Dead":
+                    result["damage_die"] = die
             before = target["current_hp"]
             session.apply_npc_damage(target, damage)
             result.update(damage=damage, hp_before=before, hp_after=target["current_hp"])
+            if spell_id == "Ray of Frost":
+                attacks.effect(session, RAY_OF_FROST_EFFECT, "player", target_id)
+                result["rider"] = RAY_OF_FROST_EFFECT
+            elif spell_id == "Shocking Grasp":
+                counter = economy.ensure(session).get(target_id, {}).get("attack_turn_counter", 0)
+                effects = session.world_state.setdefault("attack_effects", [])
+                effects[:] = [e for e in effects if not (e.get("kind") == SHOCKING_GRASP_EFFECT and e.get("target_id") == target_id)]
+                effects.append({"kind": SHOCKING_GRASP_EFFECT, "source_actor": "player", "target_id": target_id,
+                                "expires_turn": counter + 1, "expires_boundary": "begin", "expires_actor": target_id})
+                result["rider"] = SHOCKING_GRASP_EFFECT
             session._combat_end_if_decided()
         result["hit"] = hits
     return result

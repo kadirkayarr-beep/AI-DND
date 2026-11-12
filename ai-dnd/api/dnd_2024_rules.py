@@ -853,7 +853,7 @@ SPELLS_CATALOG = {
             {"id": "Mage Hand", "name_tr": "Büyücü Eli (Mage Hand)", "desc": "30 fit menzilde 10 pounda kadar nesneleri taşıyan hayalet el oluşturur."},
             {"id": "Light", "name_tr": "Işık (Light)", "desc": "Dokunulan bir nesneye 20 fit parlak, 20 fit loş ışık saçtırır."},
             {"id": "Prestidigitation", "name_tr": "Hokkabazlık (Prestidigitation)", "desc": "Işık, koku, tat veya temizlik gibi küçük büyü hileleri yapar."},
-            {"id": "Shocking Grasp", "name_tr": "Şok Dokunuşu (Shocking Grasp)", "desc": "Yakın dövüşte 1d8 yıldırım hasarı verir ve hedefin tepkisini engeller."},
+            {"id": "Shocking Grasp", "name_tr": "Şok Dokunuşu (Shocking Grasp)", "desc": "Dokunarak 1d8 yıldırım hasarı verir; hedef kendi sıradaki turuna dek Fırsat Saldırısı yapamaz."},
             {"id": "Minor Illusion", "name_tr": "Küçük Yanılsama (Minor Illusion)", "desc": "Görsel veya işitsel yanılsama yaratır."},
         ],
         "spells_level_1": [
@@ -953,7 +953,7 @@ SPELLS_CATALOG = {
             {"id": "Ray of Frost", "name_tr": "Buz Işını (Ray of Frost)", "desc": "1d8 soğuk hasarı verir ve yavaşlatır."},
             {"id": "Mage Hand", "name_tr": "Büyücü Eli (Mage Hand)", "desc": "Görünmez büyü eli yaratır."},
             {"id": "Minor Illusion", "name_tr": "Küçük Yanılsama", "desc": "Görsel/ses yanılsaması üretir."},
-            {"id": "Shocking Grasp", "name_tr": "Şok Dokunuşu", "desc": "1d8 yıldırım hasarı ve tepkiyi kilitler."},
+            {"id": "Shocking Grasp", "name_tr": "Şok Dokunuşu", "desc": "1d8 yıldırım hasarı; hedef sıradaki turuna dek Fırsat Saldırısı yapamaz."},
             {"id": "Prestidigitation", "name_tr": "Hokkabazlık", "desc": "Küçük büyü efektleri üretir."},
         ],
         "spells_level_1": [

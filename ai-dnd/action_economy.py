@@ -96,6 +96,8 @@ def speed(session, actor):
     value -= int(data.get("speed_penalty_ft", 0))
     value -= 5 * weapon_attack.exhaustion(data)
     value -= weapon_attack.slow_penalty(session, actor)
+    import spell_scope
+    value -= spell_scope.speed_penalty(session, actor)  # Ray of Frost (4C.4b)
     if weapon_attack.speed_halved(session, actor):
         value //= 2
     return max(0, value)
@@ -1035,6 +1037,11 @@ def _execute(session, command, action_id=None, session_id=None):
                 results.append({"kind": kind, "result": spell_scope.cast(
                     session, step.get("ability"), step.get("target_id"), step.get("slot_level"), metamagic=step.get("metamagic"),
                 )})
+            elif kind == "end_concentration":
+                import spell_scope
+                if any(field != "kind" and value is not None for field, value in step.items()):
+                    fail("unsupported_action", "Ending Concentration takes no other choice.")
+                results.append({"kind": kind, "result": spell_scope.end_concentration(session)})
             elif kind == "end_turn":
                 if (not session.world_state["combat"]["active"]
                     or session.world_state["combat"]["current_actor_id"] != "player"
@@ -1093,6 +1100,9 @@ def resolved_narration(session, results):
     for step in results:
         if step["kind"] == "magic":
             narration_parts.append(spell_scope.narration(step["result"]))
+        elif step["kind"] == "end_concentration":
+            narration_parts.append(f"Konsantrasyonu bırakırsın; {step['result']['spell_id']} sona erer. "
+                                   "Eylem harcanmaz.")
         elif step["kind"] in {"activate_rage", "extend_rage"}:
             result = step.get("result")
             if (isinstance(result, dict) and result.get("active") is True
