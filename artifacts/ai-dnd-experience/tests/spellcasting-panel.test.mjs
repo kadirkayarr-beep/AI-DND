@@ -40,17 +40,24 @@ test('missing and null legacy projections grant nothing and render no invented s
 });
 test('renders exact supplied lists, zero slots and turn values without technical identity', () => {
   const html = render(supplied());
-  assert.match(html, /Fire Bolt/);
-  assert.match(html, /Magic Missile/);
+  // Plan part L (decision 15): the Turkish table shows Turkish names; the ids stay English in the state.
+  assert.match(html, /Ateş Oku/);
+  assert.match(html, /Sihirli Füze/);
+  assert.doesNotMatch(html, /Fire Bolt|Magic Missile/);
   assert.match(html, /data-testid="spell-slots-1">0</);
   assert.match(html, /Raunt 3 · Sıra 2/);
   assert.doesNotMatch(html, /hidden-combat-id|Python|API|Qwen|backend/);
+});
+test('a spell without a Turkish entry shows its original name marked lang="en"', () => {
+  const html = render({ ...supplied(), cantrips: ['Zzz Unlisted Spell'] });
+  assert.match(html, /<li class="status-pill" lang="en">Zzz Unlisted Spell<\/li>/);
+  assert.doesNotMatch(render(supplied()), /lang="en"/);
 });
 test('empty prepared list stays empty and does not infer from cantrips', () => {
   const value = supplied(); value.prepared = []; value.slot_turn = null;
   const html = render(value);
   assert.match(html, /Hazırlanmış büyü yok/);
-  assert.doesNotMatch(html, /Magic Missile|spell-slot-turn/);
+  assert.doesNotMatch(html, /Magic Missile|Sihirli Füze|spell-slot-turn/);
 });
 test('rerenders new authoritative slots without mutation or casting controls', () => {
   const value = supplied(); const before = JSON.stringify(value);
@@ -103,8 +110,9 @@ test('open character panel and reveal each show one supplied spell panel', () =>
   for (const html of [panel, reveal]) {
     assert.equal(spellPanels(html).length, 1);
     assert.equal((html.match(/aria-label="Büyüler ve büyü yuvaları"/g) ?? []).length, 1);
-    assert.match(html, /Fire Bolt/);
-    assert.match(html, /Magic Missile/);
+    assert.match(html, /Ateş Oku/);
+    assert.match(html, /Sihirli Füze/);
+    assert.doesNotMatch(html, /Fire Bolt|Magic Missile/);
     assert.match(html, /data-testid="spell-slots-1">2</);
     assert.match(html, /Raunt 3 · Sıra 2/);
     assert.doesNotMatch(html, /hidden-combat-id/);

@@ -24,6 +24,7 @@ import { MonkStatus } from '@/components/monk-controls';
 import { skillLabel } from '@/lib/skill-label';
 import { TOP_LEVEL_LABEL, xpProgress } from '@/lib/xp-progress';
 import { inventoryDisplay } from '@/lib/inventory-display';
+import { trName } from '@/lib/tr-names';
 import { CharacterIdentityNotes } from '@/components/character-identity-notes';
 import { classLabel, speciesLabel } from '@/lib/campaign-presentation';
 import { coinText } from '@/lib/coins';
@@ -70,5 +71,5 @@ export function CharacterPanel({ character, compact = false, walletTotalCp, cata
 }
 
 export function InventoryPanel({ items }: { items: string[] }) {
-  return <section className="state-panel" data-testid="panel-inventory"><div className="flex items-end justify-between"><div><Kicker>Üzerinde</Kicker><h2>Envanter</h2></div><span className="character-badge">{String(items.length).padStart(2, '0')}</span></div>{items.length ? <div className="list-stack">{items.map((item, index) => { const display = inventoryDisplay(item); return <div className="list-row" key={`${item}-${index}`} data-testid={`item-inventory-${index}`}><span className="list-icon"><Backpack size={14} /></span><span>{display.name}</span>{display.equipped && <small className="status-pill">kuşanılmış</small>}</div>; })}</div> : <div className="empty-line mt-4">Çantada kaydedilmiş eşya yok.</div>}</section>;
+  return <section className="state-panel" data-testid="panel-inventory"><div className="flex items-end justify-between"><div><Kicker>Üzerinde</Kicker><h2>Envanter</h2></div><span className="character-badge">{String(items.length).padStart(2, '0')}</span></div>{items.length ? <div className="list-stack">{items.map((item, index) => { const display = inventoryDisplay(item); return <div className="list-row" key={`${item}-${index}`} data-testid={`item-inventory-${index}`}><span className="list-icon"><Backpack size={14} /></span><span>{trName(display.name, 'items')}</span>{display.equipped && <small className="status-pill">kuşanılmış</small>}</div>; })}</div> : <div className="empty-line mt-4">Çantada kaydedilmiş eşya yok.</div>}</section>;
 }
