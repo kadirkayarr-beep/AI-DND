@@ -65,7 +65,11 @@ def _expired(session: Any, held: dict[str, Any]) -> str | None:
         return "combat_ended"
     if _incapacitated(session):
         return "incapacitated"
-    if combat.get("round", 1) >= held["started_round"] + DURATION_ROUNDS[held["spell_id"]]:
+    # Ten full rounds from the cast: it ends at the start of the caster's own turn ten rounds on (wherever the caster
+    # stands in initiative), or in the round after that if the caster lost that turn.
+    last = held["started_round"] + DURATION_ROUNDS[held["spell_id"]]
+    round_now = combat.get("round", 1)
+    if round_now > last or (round_now == last and combat.get("current_actor_id") == "player"):
         return "duration_ended"
     return None
 
@@ -96,7 +100,9 @@ def settle(session: Any) -> dict[str, Any] | None:
 
 def start(session: Any, spell_id: str, slot_level: int, targets: list[str]) -> dict[str, Any] | None:
     """Begin Concentration on a cast spell; the one held before ends. Returns what ended, or None."""
-    ended = end(session, "new_concentration_spell")
+    # A record that no longer holds (a finished fight's) is replaced silently: nothing the player held ends here.
+    ended = end(session, "new_concentration_spell") if holds(session) is not None else end(session, "stale")
+    ended = ended if ended is not None and ended["reason"] == "new_concentration_spell" else None
     combat = session.world_state["combat"]
     session.world_state[KEY] = {"spell_id": spell_id, "combat_id": combat["combat_id"], "started_round": combat["round"],
                                 "slot_level": slot_level, "targets": list(targets)}

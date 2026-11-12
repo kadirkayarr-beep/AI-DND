@@ -268,10 +268,9 @@ def end_concentration(session):
     """The caster drops Concentration at will: no action, nothing rolled (PDF 362)."""
     import spell_concentration
     session.require_player_can_act()
-    ended = spell_concentration.end(session, "dropped")
-    if ended is None:
+    if spell_concentration.holds(session) is None:  # none held, or a finished fight's record: nothing to drop
         fail("concentration_not_held", "There is no spell Concentration to end.")
-    return ended
+    return spell_concentration.end(session, "dropped")
 
 
 def speed_penalty(session, actor):
@@ -439,8 +438,6 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         _save_bonus_known(target, SAVE_SPELLS[spell_id])
     if spell_id == "Toll the Dead" and (type(target.get("current_hp")) is not int or type(target.get("max_hp")) is not int):
         fail("invalid_spell_target", "Target Hit Points are not authoritative.")
-    if spell_id == "Bless" and selected_level != level:
-        fail("unsupported_spell_mode", "Bless's extra targets for a higher slot have no target owner yet.")
     marker = [combat["combat_id"], combat["round"],
               economy.ensure(session)["player"]["attack_turn_counter"]]
     if level:
