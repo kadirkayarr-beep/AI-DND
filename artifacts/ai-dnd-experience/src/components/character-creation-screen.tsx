@@ -2449,7 +2449,7 @@ export function CharacterCreationScreen({
             {/* Stepper Footer Controls */}
             <div className="cc-wizard-footer">
               <div>
-                {currentStep !== 'class' && (
+                {currentStep !== STEPS[0].id && (
                   <button
                     type="button"
                     className="cc-nav-btn cc-nav-prev"

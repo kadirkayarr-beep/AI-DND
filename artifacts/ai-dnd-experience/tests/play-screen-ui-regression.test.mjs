@@ -685,9 +685,10 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await creation.page.evaluate("document.querySelector('.cc-portrait-grid .cc-choice-card').click()");
     assert.equal(await creation.page.evaluate("!!document.querySelector('.cc-portrait-grid .cc-choice-card.selected')"), true);
     await creation.page.evaluate("document.querySelector('.cc-nav-next').click()");
-    assert.equal(await creation.page.evaluate("document.querySelector('.cc-step-title-text')?.innerText"), "Geçmişini Seç");
-    await creation.page.evaluate("document.querySelector('.cc-nav-prev').click()");
+    // Plan part B (owner decision, 2026-11-12): the first step is Tür, the next is Sınıf. Same checks, new order.
     assert.equal(await creation.page.evaluate("document.querySelector('.cc-step-title-text')?.innerText"), "Sınıfını Seç");
+    await creation.page.evaluate("document.querySelector('.cc-nav-prev').click()");
+    assert.equal(await creation.page.evaluate("document.querySelector('.cc-step-title-text')?.innerText"), "Türünü Seç");
     assert.equal(await creation.page.evaluate("!!document.querySelector('.cc-portrait-grid .cc-choice-card.selected')"), true);
     await creation.page.evaluate("document.querySelector('[data-testid=\"button-back-character-creation\"]').click()");
     assert.equal(await creation.page.evaluate("window.__creationFixture.backCount"), 1);

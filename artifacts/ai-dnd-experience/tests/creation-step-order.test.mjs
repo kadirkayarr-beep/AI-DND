@@ -64,3 +64,9 @@ test('the creation payload is assembled from state at submit time, so step order
   assert.match(submit, /species_bonus_feat: speciesBonusFeat \|\| undefined/);
   assert.doesNotMatch(submit, /currentStep/);
 });
+
+test('the Previous button is hidden on the first step (Tür) and shown from the second (Sınıf)', () => {
+  const footer = between('Stepper Footer Controls', 'cc-nav-prev');
+  assert.match(footer, /currentStep !== STEPS\[0\]\.id/);
+  assert.doesNotMatch(footer, /currentStep !== 'class'/);
+});
