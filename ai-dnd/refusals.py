@@ -135,6 +135,17 @@ REFUSAL_TEXT: dict[str, str] = {
     "coin_below_price": "{item} {price} bakır; uzattığın {coin} bakır bunu karşılamıyor.",
     # A turn the engine could not finish safely (HTTP 500, Dilim 3 Task 37): it was taken back whole.
     "engine_error": "Bu hamlenin sonucu oyunda doğrulanamadı; hiçbir şey değişmedi. Aynı şeyi yeniden ya da başka sözlerle dene.",
+    # Character portrait (P1); owner approval list.
+    "portrait_disabled": "Portre oluşturma şu an kapalı; oyun bundan etkilenmez.",
+    "portrait_text_refused": "Bu tarif kullanılamadı. Görünüş tarifini değiştirip yeniden deneyebilirsin.",
+    "portrait_limit_reached": "Bu macera için üç portre hakkının hepsini kullandın.",
+    "portrait_daily_cap": "Bugünkü portre bütçesi doldu; yarın yeniden deneyebilirsin.",
+    "portrait_budget_unavailable": "Portre bütçesi şu an doğrulanamadı; bu yüzden portre oluşturulmadı.",
+    "portrait_service_refused": "Resim hizmeti bu tarifi çizmedi. Görünüş tarifini değiştirip yeniden deneyebilirsin.",
+    "portrait_service_failed": "Portre şu an oluşturulamadı; hakkından düşülmedi ve oyun etkilenmedi. Daha sonra yeniden dene.",
+    "portrait_busy": "Bu macera için bir portre zaten hazırlanıyor; biraz bekle.",
+    "portrait_not_found": "Bu portre bulunamadı.",
+    "portrait_storage_failed": "Portre kaydı şu an okunamadı; oyun etkilenmedi.",
 }
 
 

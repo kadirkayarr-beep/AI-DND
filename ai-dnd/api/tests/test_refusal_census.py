@@ -59,6 +59,12 @@ class RefusalCensus(unittest.TestCase):
         self.assertEqual(refusals.text_for("weapon_not_owned", weapon="Kılıç"), "Kılıç yok; yumrukla vuruyorsun.")
         self.assertEqual(refusals.text_for("which_enemy", names="Haydut mu, Okçu mu"), "Hangisine yaklaşıyorsun: Haydut mu, Okçu mu?")
 
+    def test_every_portrait_code_has_turkish_text(self):
+        from api.portrait_prompt import PORTRAIT_ERROR_CODES
+        self.assertLessEqual(set(PORTRAIT_ERROR_CODES), set(refusals.REFUSAL_TEXT))
+        self.assertEqual([code for code in PORTRAIT_ERROR_CODES if not refusals.REFUSAL_TEXT[code].strip()], [])
+        self.assertTrue(refusals.REFUSAL_TEXT["portrait_text_refused"].startswith("Bu tarif kullanılamadı."))
+
 
 if __name__ == "__main__":
     unittest.main()
