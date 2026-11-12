@@ -3,6 +3,7 @@ import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { TacticalMindControl } from '@/components/fighter-controls';
 import { useEffect, useRef, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { DeathEndNotice, DeathRecoveryControls } from '@/components/death-recovery-controls';
+import { RestControls } from '@/components/rest-controls';
 import {
   AmbientEventActionPanel,
   findPersistedAmbientEventResult,
@@ -210,6 +211,7 @@ export function StoryColumn({
           </div>
       )}
       <DeathEndNotice state={state} onNewAdventure={onNewAdventure} />
+      <RestControls state={state} onSend={onDeathMove} sending={sending} />
       {state.character.current_hp === 0 && <DeathRecoveryControls state={state} sessionId={sessionId} campaignId={campaignId} onSend={onDeathMove} sending={sending} />}
       <SceneIdeas state={state} recentText={entries.at(-1)?.text ?? ''} sending={sending} onDraft={(text, mode = 'do', targetId) => {
         setInteractionMode(mode);
