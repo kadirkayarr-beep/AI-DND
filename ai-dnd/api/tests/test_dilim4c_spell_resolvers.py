@@ -265,7 +265,7 @@ class Bless(unittest.TestCase):
         self.assertTrue(action_economy.ensure(s)["player"]["base_action_spent"])
         self.assertIn("1d4", result["narration"])
 
-    def test_a_blessed_save_adds_the_d4_and_an_ability_check_does_not(self):
+    def test_a_blessed_save_adds_the_d4(self):  # the ability-check negative: test_dilim4c_4b_fix1_dice
         s, enemy, _ = self.blessed()
         with patch("game.roll_d20", return_value=10), patch.object(s.rng, "randint", return_value=4):
             save = weapon_attack.save(s, "player", ["wisdom"], 10)

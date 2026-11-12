@@ -24,16 +24,20 @@ class SpellResolversHttp(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = campaign_fixtures.CampaignApiTests.asyncSetUp
     asyncTearDown = campaign_fixtures.CampaignApiTests.asyncTearDown
 
-    async def fight(self, seed):
+    async def fight(self, seed, cls="Cleric"):
         with fixed_town(self, seed):
             created = await self.http.post("/api/game/campaigns", json={"death_mode": "NORMAL"})
         self.assertEqual(created.status_code, 200, created.text)
         campaign = created.json()
         record = self.manager.get(campaign["session_id"])
         s = record.game_session
-        prepper("Cleric", s)
+        prepper(cls, s)
         state = s.world_state["spellcasting_v1"]
-        state.update(prepared=["Bless", "Healing Word"], prepare_window=None)
+        if cls == "Cleric":
+            state.update(prepared=["Bless", "Healing Word"], prepare_window=None)
+        else:  # a Paladin does not prepare from a window: its creation list is what it prepared
+            self.assertEqual((state["prepare_window"], state["spellbook"]), (None, None))
+            self.assertIn("Bless", state["prepared"])
         s.character.update(max_hp=40, current_hp=40, conditions=[])
         s.commit_location_change("tavern")
         npc = s.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})
@@ -102,6 +106,45 @@ class SpellResolversHttp(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({k: result[k] for k in ("spell", "healing", "heal_source", "damage_type")},
                          {"spell": "Healing Word", "healing": 7, "heal_source": "spell", "damage_type": None})
         self.assertEqual(s.character["current_hp"], 17)
+
+
+    async def test_a_paladin_casts_bless_over_http(self):
+        campaign, record = await self.fight(4403, "Paladin")
+        s = record.game_session
+        before = dict(s.world_state["spellcasting_v1"]["slots"])
+        spells = list(s.world_state["spellcasting_v1"]["prepared"])
+        cast = await self.post(campaign, {"message": "Hamle.", "action_id": str(uuid4()), "combat_action": {"steps": [
+            {"kind": "magic", "ability": "Bless", "target_id": "player"}]}})
+        self.assertEqual(cast.status_code, 200, cast.text)
+        self.assertEqual(cast.json()["combat_result"]["spell"], "Bless")
+        self.assertEqual(s.world_state[KEY]["spell_id"], "Bless")
+        self.assertEqual(s.world_state["spellcasting_v1"]["prepared"], spells)  # Concentration is not in this state
+        self.assertEqual(s.world_state["spellcasting_v1"]["slots"]["1"], before["1"] - 1)
+        self.assertEqual(self.stored(campaign)[KEY], s.world_state[KEY])
+
+    async def test_undo_of_an_enemy_turn_that_broke_concentration(self):
+        campaign, record = await self.fight(4404)
+        s = record.game_session
+        npc = next(n for n in s.world_state["npcs"] if n.get("hostile"))
+        npc["distance_ft"] = 5
+        bless = await self.post(campaign, {"message": "Hamle.", "action_id": str(uuid4()), "combat_action": {"steps": [
+            {"kind": "magic", "ability": "Bless", "target_id": "player"}]}})
+        self.assertEqual(bless.status_code, 200, bless.text)
+        held, hp = dict(s.world_state[KEY]), s.character["current_hp"]
+        rolls = iter([19] + [2] * 20)  # the guard hits; the Constitution save fails
+        end = {"message": "Hamle.", "action_id": str(uuid4()), "combat_action": {"steps": [{"kind": "end_turn"}]}}
+        with patch("game.roll_d20", side_effect=lambda *a, **k: next(rolls)), patch.object(s.rng, "randint", return_value=1):
+            ended = await self.post(campaign, end)
+        self.assertEqual(ended.status_code, 200, ended.text)
+        self.assertIn("Konsantrasyonun bozulur", ended.json()["narration"])
+        self.assertIsNone(s.world_state[KEY])
+        self.assertLess(s.character["current_hp"], hp)
+        undone = await self.http.post(f"/api/game/sessions/{campaign['session_id']}/undo",
+                                      json={"action_id": str(uuid4()), "target_action_id": end["action_id"]})
+        self.assertEqual(undone.status_code, 200, undone.text)
+        s = record.game_session
+        self.assertEqual((s.world_state[KEY], s.character["current_hp"]), (held, hp))
+        self.assertEqual(self.stored(campaign)[KEY], held)
 
 
 if __name__ == "__main__":
