@@ -105,6 +105,23 @@ class IdentitySuggestionTests(unittest.TestCase):
         finally:
             _MODEL_CALLS.reset(token)
 
+    def test_model_intro_line_and_markdown_are_stripped_server_side(self):
+        # Gemma: intro line + '**Alan: Koken.**' + body. The player gets plain text only.
+        cases = (
+            ("İşte istediğin kriterlere uygun, sadece \"Köken\" alanına odaklanan kısa bir taslak:\n\n**Alan: Köken.**\nNeverwinter'ın dar sokaklarında doğdu.",
+             "Neverwinter'ın dar sokaklarında doğdu."),
+            ("**Kuzeyli** bir *çiftçi* çocuğu, `Kılıç` taşır.", "Kuzeyli bir çiftçi çocuğu, Kılıç taşır."),
+            ("## Köken\n- Limandan gelen bir yetim.", "Limandan gelen bir yetim."),
+            ("Sakin ve ölçülü bir taslak.", "Sakin ve ölçülü bir taslak."),
+        )
+        for number, (raw, expected) in enumerate(cases):
+            with self.subTest(number=number):
+                service = OwnedService(RecordingProvider(raw), timeout_seconds=2)
+                service.submit(request(field="origin", request_id=f"clean-{number}"))
+                job = _wait_job(service, f"clean-{number}")
+                self.assertEqual(job.status, "ready")
+                self.assertEqual(job.suggestion, expected)
+
     def test_locked_field_is_not_a_target_but_can_be_context(self):
         provider = RecordingProvider("Yeni kişilik taslağı.")
         service = OwnedService(provider, timeout_seconds=2)
