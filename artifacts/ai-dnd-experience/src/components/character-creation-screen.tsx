@@ -1140,7 +1140,6 @@ export function CharacterCreationScreen({
 
                 {characterClass && (
                   <div className="cc-starting-level" data-testid="starting-level-block">
-                    <p>Yeni bir maceracı 1. seviyede başlar; deneyimli başlamak istersen seviyeni buradan seç.</p>
                     {characterClass === 'Sorcerer' && <StartingLevelControl draft={startingDraft} metadata={startingMetadata}
                       disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
                     {characterClass === 'Paladin' && <PaladinStartingLevelControl draft={startingDraft} metadata={paladinStartingMetadata}
