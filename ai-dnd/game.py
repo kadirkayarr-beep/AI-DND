@@ -5708,7 +5708,7 @@ def end_combat(reason="combat_ended"):
     _session()._surrender_strike_asked = None  # a question about a surrendered foe ends with its fight
     if reason in ("target_defeated", "parley_accepted", "opponents_relocated"):
         import xp
-        _session()._receive_xp_award(
+        _session()._forfeit_unrecordable_xp(  # a refused award never keeps the fight going (B1, D-013)
             xp.award_defeated_combat, combat, _session().world_state, _session().character,
             person_kind=person_fight_kind,
         )
@@ -18630,8 +18630,10 @@ def _run_player_turn_keyed(
     import xp
     if xp.job_grants_due(_session().world_state):
         # A job finished in this turn (by any route, direct ones included) is paid here, before the turn is answered.
-        # A refused grant raises: the turn's own boundary then puts back the job's close and its money with it.
-        _session()._receive_xp_award(xp.award_finished_jobs, _session().world_state, _session().character)
+        # A grant that cannot be recorded is forfeited (B1): the job keeps its close and its wage, and its thread is
+        # marked so no later turn owes it again.
+        _session()._forfeit_unrecordable_xp(xp.award_finished_jobs, _session().world_state, _session().character)
+        xp.forfeit_jobs(_session().world_state, xp.job_grants_due(_session().world_state))
     if isinstance(result, dict) and isinstance(action_result, dict):
         _session()._publish_level_up(action_result)
         local_dialogue.remember_native_reply(
@@ -23691,16 +23693,7 @@ class GameSession:
         had_format = "_persisted_engine_format" in self.__dict__
         old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
         try:
-            summary = award_owner(*args, **kwargs)
-            crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
-                        and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
-            if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in _SUPPORTED_SAVE_VERSIONS:
-                raise ValueError("Numeric advancement requires a supported save format.")
-            self._remember_xp_award(summary)
-            if crossing:
-                # Read through the real production admission owner before commit.
-                self._validate_save_payload(self.serialize_game_state())
-            return summary
+            return self._admit_xp_award(award_owner, *args, **kwargs)
         except Exception:
             self._restore_runtime_snapshot(snapshot)
             if had_format:
@@ -23708,6 +23701,54 @@ class GameSession:
             else:
                 self.__dict__.pop("_persisted_engine_format", None)
             raise
+
+    def _admit_xp_award(self, award_owner, *args, **kwargs):
+        summary = award_owner(*args, **kwargs)
+        crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
+                    and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
+        if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in _SUPPORTED_SAVE_VERSIONS:
+            raise ValueError("Numeric advancement requires a supported save format.")
+        self._remember_xp_award(summary)
+        if crossing:
+            # Read through the real production admission owner before commit.
+            self._validate_save_payload(self.serialize_game_state())
+        return summary
+
+    def _forfeit_unrecordable_xp(self, award_owner, *args, **kwargs):
+        """B1 (D-001, D-013): the product's XP boundary. An award that cannot be recorded (a full receipt list, the XP
+        cap, an unknown class at a level step, a level-5 crossing the save admission refuses) is put back and logged,
+        and play goes on without it instead of being refused on every later turn. Returns the summary, or None.
+
+        Only for owners that write nothing but the character and the receipt list (the ``xp.award_*`` owners): those,
+        the pending announcement and the save format are put back in place, so a caller holding world references (the
+        fight being ended, the creature just knocked out) keeps live ones. A non-ValueError is a bug: put back, raised.
+        """
+        character = copy.deepcopy(self.character)
+        had_receipts = "xp_awarded_event_ids" in self.world_state
+        receipts = copy.deepcopy(self.world_state.get("xp_awarded_event_ids"))
+        pending = copy.deepcopy(self._xp_level_up)
+        had_format = "_persisted_engine_format" in self.__dict__
+        old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
+        try:
+            return self._admit_xp_award(award_owner, *args, **kwargs)
+        except Exception as error:
+            self.character.clear()
+            self.character.update(character)
+            if had_receipts:
+                self.world_state["xp_awarded_event_ids"] = receipts
+            else:
+                self.world_state.pop("xp_awarded_event_ids", None)
+            self._xp_level_up = pending
+            if had_format:
+                self._persisted_engine_format = old_format
+            else:
+                self.__dict__.pop("_persisted_engine_format", None)
+            if not isinstance(error, ValueError):
+                raise
+            import logging
+            logging.getLogger(__name__).warning("An experience award could not be recorded and is forfeited (B1): %s",
+                                                error)
+            return None
 
     def _remember_xp_award(self, summary):
         """Fold another award into the single announcement for this turn."""

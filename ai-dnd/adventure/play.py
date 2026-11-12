@@ -13,6 +13,7 @@ import adventure.dungeon as dungeon
 import adventure.encounters as encounters
 import adventure.followup as followup
 import adventure.rewards as rewards
+import xp
 from adventure.transitions import TransitionError
 
 _WORK_TOKENS = ("iş var", "is var", "söylenti", "soylenti", "görev", "gorev", "duydun")
@@ -120,18 +121,15 @@ def settle_session(session):
         if quest.get("status") not in {"COMPLETED", "FAILED"}:
             continue
         if quest.get("reward_application_id") is None:
-            paid = {}
-
-            def pay(quest=quest, lore=lore, paid=paid):
-                paid.update(rewards.apply_plan(session.character, world, quest, lore_state=lore) or {})
-                return paid.get("xp_summary")
-
-            # One boundary for gold, item, XP and receipt: a refusal (a crossing to level 5 included) puts them all
-            # back. The lore is not in that snapshot, so it is taken only after the award is admitted.
-            session._receive_xp_award(pay)
+            # Gold, item, standing and the marker first (all or nothing); then the XP through the session's boundary,
+            # where a grant that cannot be recorded is forfeited alone instead of being refused on every turn (B1).
+            paid = rewards.apply_plan(session.character, world, quest, lore_state=lore) or {}
             if paid.get("lore_state") is not None:
                 session.campaign_lore_state = paid["lore_state"]
                 lore = paid["lore_state"]
+            if paid.get("xp_due", 0) > 0:
+                session._forfeit_unrecordable_xp(xp.award_reward_branch, session.character, world,
+                                                 paid["xp_due"], paid["marker"])
         if not str(quest.get("creation_evidence") or "").startswith("thread-job:"):
             _follow(session, quest, lore)
 

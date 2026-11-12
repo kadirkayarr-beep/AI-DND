@@ -100,12 +100,14 @@ def settle(session: Any) -> dict[str, Any] | None:
 
 def start(session: Any, spell_id: str, slot_level: int, targets: list[str]) -> dict[str, Any] | None:
     """Begin Concentration on a cast spell; the one held before ends. Returns what ended, or None."""
+    combat = session.world_state["combat"]
+    record = {"spell_id": spell_id, "combat_id": combat["combat_id"], "started_round": combat["round"],
+              "slot_level": slot_level, "targets": list(targets)}
+    validate_saved({KEY: record}, session.character)  # copy, validate, then write (design §8: no B1-class record)
     # A record that no longer holds (a finished fight's) is replaced silently: nothing the player held ends here.
     ended = end(session, "new_concentration_spell") if holds(session) is not None else end(session, "stale")
     ended = ended if ended is not None and ended["reason"] == "new_concentration_spell" else None
-    combat = session.world_state["combat"]
-    session.world_state[KEY] = {"spell_id": spell_id, "combat_id": combat["combat_id"], "started_round": combat["round"],
-                                "slot_level": slot_level, "targets": list(targets)}
+    session.world_state[KEY] = record
     return ended
 
 

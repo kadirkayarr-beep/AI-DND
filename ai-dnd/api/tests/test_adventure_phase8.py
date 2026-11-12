@@ -13,6 +13,7 @@ import adventure.projection as projection
 import adventure.rewards as rewards
 import adventure.templates as templates
 import game
+import xp
 from api.serializers import serialize_session_state
 from api.tests.test_phase7_package import bound_state
 
@@ -237,10 +238,16 @@ class AdventurePhase8Tests(unittest.TestCase):
 
         lore = bound_state()
         paid = rewards.apply_plan(session.character, session.world_state, quest, lore_state=lore)
+        # YENİDEN YAZIM (4C.6, B1): apply_plan hands the branch XP (``xp_due``) to the session's XP boundary, which
+        # pays it last under the marker as receipt; the same 50 XP, once, is pinned through that owner.
+        self.assertEqual((paid["xp_due"], session.character.get("xp", 0)), (50, before_xp))
+        xp.award_reward_branch(session.character, session.world_state, paid["xp_due"], paid["marker"])
         again = rewards.apply_plan(session.character, session.world_state, quest, lore_state=lore)
         self.assertFalse(paid["replayed"])
         self.assertTrue(again["replayed"])
+        self.assertEqual(again["xp_due"], 0)
         self.assertEqual(session.character["xp"], before_xp + 50)
+        self.assertEqual(session.world_state["xp_awarded_event_ids"].count("quest:adv.bounty:success"), 1)
         self.assertEqual(paid["lore_state"].faction_standings[0].standing, 1)
         self.assertEqual(quest["reward_application_id"], "quest:adv.bounty:success")
 
@@ -476,6 +483,9 @@ class AdventurePhase8Tests(unittest.TestCase):
         before_xp = session.character.get("xp", 0)
         paid = rewards.apply_plan(session.character, session.world_state, partial)
         self.assertEqual(paid["marker"], "quest:adv.combat:partial_success")
+        # YENİDEN YAZIM (4C.6, B1): the branch XP is paid by its own owner after the plan (see above).
+        self.assertEqual((paid["xp_due"], session.character.get("xp", 0)), (40, before_xp))
+        xp.award_reward_branch(session.character, session.world_state, paid["xp_due"], paid["marker"])
         self.assertEqual(session.character["xp"], before_xp + 40)
 
     def test_settlement_arrival_offers_once_and_stays_hidden(self):
