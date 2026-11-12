@@ -808,3 +808,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --unw-read-letter-spacing: 0.02em;
   --unw-read-word-spacing: 0.08em;
 }
+
+/* Part A: one themed thin scrollbar everywhere (setup, character sheet, dialogs); no white browser default. */
+* { scrollbar-width: thin; scrollbar-color: var(--unw-border) transparent; }
