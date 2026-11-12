@@ -1050,10 +1050,6 @@ export function CharacterCreationScreen({
             </span>
           </div>
 
-          <div className="cc-header-caption">
-            <span /> <span>D&D 2024 Kuralları ile Karakter Yaratımı</span>
-          </div>
-
           <button
             type="button"
             className="cc-back"
@@ -1068,7 +1064,7 @@ export function CharacterCreationScreen({
         <section className="cc-content">
           <div className="cc-intro">
             <div>
-              <div className="cc-label">Karakter Defteri · Seviye {startingDraft.startingLevel}</div>
+              <div className="cc-label">Karakter Defteri</div>
               <h1 className="cc-display">Karakterini Yarat.</h1>
               <p className="cc-literary">Her karar sana ait; kurallar ve zarlar yolunu belirleyecek.</p>
             </div>

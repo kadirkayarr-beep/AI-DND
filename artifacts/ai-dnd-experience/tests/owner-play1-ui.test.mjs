@@ -61,9 +61,14 @@ test('the starting level sits above the class cards in its own marked block, not
   assert.match(css, /\.cc-starting-level select[^}]*min-height:\s*44px/);
 });
 
-test('the wizard heading follows the chosen level', async () => {
+// Replaced by plan part A (owner decision, 2026-11-12): the "Seviye N" label and the header caption are gone.
+// Boundary change, same strictness: the level is chosen in the start step, not repeated in the heading.
+test('the wizard heading carries no level label or header caption', async () => {
   const source = await readFile('src/components/character-creation-screen.tsx', 'utf8');
-  assert.match(source, /Karakter Defteri · Seviye \{startingDraft\.startingLevel\}/);
+  assert.match(source, /<div className="cc-label">Karakter Defteri<\/div>/);
+  assert.doesNotMatch(source, /Karakter Defteri · Seviye/);
+  assert.doesNotMatch(source, /cc-header-caption/);
+  assert.doesNotMatch(source, /D&D 2024 Kuralları ile Karakter Yaratımı/);
 });
 
 test('the input is simply there: open at the start and still open after a turn', async () => {
