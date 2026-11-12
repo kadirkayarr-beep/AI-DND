@@ -1,6 +1,6 @@
 import { StepDice } from '@/components/step-dice';
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
-import { packageGoods } from '@/lib/starting-purse';
+import { backgroundGoods, packageGoods } from '@/lib/starting-purse';
 import { asiChoiceLabel, sourceAsiChoice } from '@/lib/asi-choices';
 import { BarbarianStartingChoices, BarbarianStartingLevelControl, BarbarianStartingSummary } from '@/components/barbarian-starting-creation';
 import { FighterStartingChoices, FighterStartingLevelControl, FighterStartingSummary } from '@/components/fighter-starting-creation';
@@ -2349,7 +2349,8 @@ export function CharacterCreationScreen({
                       <ul className="cc-sheet-items">
                         {(() => {
                           const selected = classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage);
-                          return selected?.items ? packageGoods(selected).map((it: string) => <li key={it}>{it}</li>) : <li>Standart Başlangıç Teçhizatı</li>;
+                          const goods = [...(selected?.items ? packageGoods(selected) : []), ...backgroundGoods(propCatalog, background, backgroundEquipmentOption)];
+                          return goods.length ? goods.map((it: string) => <li key={it}>{it}</li>) : <li>Standart Başlangıç Teçhizatı</li>;
                         })()}
                       </ul>
                     </div>
@@ -2361,19 +2362,19 @@ export function CharacterCreationScreen({
                     <div className="cc-sheet-identity-grid">
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Köken:</span>
-                        <p>{origin.trim() || 'Belirtilmedi'}</p>
+                        <p>{origin.trim() || 'Kayıtta yok'}</p>
                       </div>
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Görünüş:</span>
-                        <p>{appearance.trim() || 'Belirtilmedi'}</p>
+                        <p>{appearance.trim() || 'Kayıtta yok'}</p>
                       </div>
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Kişilik:</span>
-                        <p>{personality.trim() || 'Belirtilmedi'}</p>
+                        <p>{personality.trim() || 'Kayıtta yok'}</p>
                       </div>
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Hikaye:</span>
-                        <p>{backstory.trim() || 'Belirtilmedi'}</p>
+                        <p>{backstory.trim() || 'Kayıtta yok'}</p>
                       </div>
                     </div>
                   </div>
