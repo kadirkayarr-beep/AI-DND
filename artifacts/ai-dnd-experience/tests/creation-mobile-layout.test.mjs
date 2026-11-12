@@ -12,7 +12,6 @@ test('stepper is a single horizontally scrollable row at phone width', () => {
   assert.match(phone, /\.cc-step-btn\s*\{[^}]*flex:\s*0 0 auto[^}]*white-space:\s*nowrap/);
   assert.match(phone, /\.cc-step-desc\s*\{[^}]*display:\s*none/);
 });
-test('random-character block stacks full width at phone width', () => {
-  assert.match(phone, /\.cc-quick-actions\s*\{[^}]*flex-direction:\s*column[^}]*align-items:\s*stretch/);
-  assert.match(phone, /\.cc-quick-actions p\s*\{[^}]*font-size:\s*14px/);
+test('step dice keeps a 44 px tap target and leaves room beside the step title at phone width', () => {
+  assert.match(phone, /\.cc-step-header\s*\{[^}]*padding-right:\s*52px/);
 });

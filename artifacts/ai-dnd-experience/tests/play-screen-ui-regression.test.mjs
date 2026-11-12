@@ -692,13 +692,8 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.equal(await creation.page.evaluate("!!document.querySelector('.cc-portrait-grid .cc-choice-card.selected')"), true);
     await creation.page.evaluate("document.querySelector('[data-testid=\"button-back-character-creation\"]').click()");
     assert.equal(await creation.page.evaluate("window.__creationFixture.backCount"), 1);
-    await creation.page.evaluate("document.querySelector('[data-testid=\"button-mode-random\"]').click()");
-    const created = await creation.page.evaluate("window.__creationFixture.created");
-    assert.equal(created?.character?.mode, "random");
-    assert.equal(created?.campaignStart?.starting_location_id, "waterdeep");
-    assert.equal(created?.deathMode, "PERMADEATH");
     assert.deepEqual(creation.page.exceptions, []);
-    metrics.push({ viewport, characterCreation: "selection, next/back, return and random-create callback verified" });
+    metrics.push({ viewport, characterCreation: "selection, next/back and return verified" });
     creation.page.close();
     await fetch(`http://127.0.0.1:${browserPort}/json/close/${creation.targetId}`);
   }

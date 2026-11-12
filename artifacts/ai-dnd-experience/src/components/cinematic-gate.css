@@ -464,8 +464,7 @@
   background: linear-gradient(180deg, color-mix(in srgb, var(--unw-surface-sunken) 0%, transparent), var(--unw-surface-sunken) 30%);
 }
 .character-creation-screen.cinematic-create .cc-nav-btn,
-.character-creation-screen.cinematic-create .cc-entry,
-.character-creation-screen.cinematic-create .cc-random-btn {
+.character-creation-screen.cinematic-create .cc-entry {
   color: var(--unw-accent-light);
   background: color-mix(in srgb, var(--unw-surface-sunken) 90%, transparent);
   border-color: color-mix(in srgb, var(--unw-accent-light) 38%, transparent);

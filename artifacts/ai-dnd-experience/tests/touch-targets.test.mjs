@@ -15,8 +15,8 @@ test('point-buy +/- buttons are 44 px', () => {
   const block = rule('.cc-calc-btn');
   assert.ok(px(block, 'width') >= 44 && px(block, 'height') >= 44);
 });
-test('text inputs and the random button are at least 44 px tall', () => {
+test('text inputs and the step dice are at least 44 px tall', () => {
   assert.ok(px(rule('.cc-input'), 'min-height') >= 44);
   assert.ok(px(rule('.cc-start-fields .cc-input'), 'min-height') >= 44);
-  assert.ok(px(rule('.character-creation-screen.cinematic-create .cc-random-btn'), 'min-height') >= 44);
+  assert.ok(px(rule('.cc-step-dice'), 'height') >= 44);
 });

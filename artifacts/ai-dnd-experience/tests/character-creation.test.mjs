@@ -180,8 +180,10 @@ test('presents genuine player choices for class, species, background, and alignm
   assert.ok(html.includes('value="Fighter"'));
   assert.ok(html.includes('value="Wizard"'));
   assert.ok(html.includes('d10 Can Zarı'));
-  assert.ok(html.includes('data-testid="button-mode-random"'));
-  assert.ok(html.includes('Rastgele Karakterle Macera Oluştur'));
+  // Plan part C: the old whole-character "Rastgele" button is gone; each step has its own die.
+  assert.ok(!html.includes('button-mode-random'));
+  assert.ok(!html.includes('Rastgele Karakterle Macera Oluştur'));
+  assert.ok(html.includes('data-testid="button-dice-class"'));
 });
 
 test('species cards render API-shaped trait objects without passing objects to React', () => {
@@ -534,11 +536,10 @@ test('Half-Elf uses its own portrait while other species keep atlas and unknown 
   assert.ok(portraitPrefix('Unknown portrait fixture').includes('cc-portrait-neutral'));
 });
 
- test('random creation visibly explains immediate campaign saving, not preview', () => {
+test('no whole-character random start remains on the creation screen', () => {
   const html = renderCreationScreen();
-  assert.match(html, /Rastgele bir karakter seçilir ve yeni macera kaydedilir/);
-  assert.match(html, /aria-describedby="random-creation-help"/);
-  assert.doesNotMatch(html, /önizlemeye aç/);
+  assert.doesNotMatch(html, /Rastgele bir karakter seçilir ve yeni macera kaydedilir/);
+  assert.doesNotMatch(html, /random-creation-help/);
 });
 
 test('class cards use shared presentation labels and keep class ids', () => {

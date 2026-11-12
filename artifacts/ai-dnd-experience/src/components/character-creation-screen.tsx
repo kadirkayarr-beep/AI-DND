@@ -1,3 +1,4 @@
+import { StepDice } from '@/components/step-dice';
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
 import { packageGoods } from '@/lib/starting-purse';
 import { asiChoiceLabel, sourceAsiChoice } from '@/lib/asi-choices';
@@ -21,7 +22,6 @@ import {
   Check,
   ChevronDown,
   Compass,
-  Dice5,
   Feather,
   Heart,
   RefreshCw,
@@ -788,20 +788,6 @@ export function CharacterCreationScreen({
     hasCampaignStart
   );
 
-  // Authoritative Random Character Creation (delegates roll and mechanics authority to Python engine)
-  const handleRandomizeCharacter = () => {
-    if (!selectedSetting || !selectedRegion || !selectedLocation || creating) return;
-
-    const campaignStart: CampaignStartSelection = {
-      setting_id: selectedSetting.setting_id,
-      region_pack_id: selectedRegion.region_pack_id,
-      region_id: selectedRegion.region_id,
-      starting_location_id: selectedLocation.entity_id,
-    };
-
-    onCreate({ mode: 'random' }, campaignStart, deathMode);
-  };
-
   // Submit final character to start campaign
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -1069,19 +1055,6 @@ export function CharacterCreationScreen({
               <h1 className="cc-display">Karakterini Yarat.</h1>
               <p className="cc-literary">Her karar sana ait; kurallar ve zarlar yolunu belirleyecek.</p>
             </div>
-
-            <div className="cc-quick-actions">
-              <button
-                type="button"
-                className="cc-random-btn"
-                onClick={handleRandomizeCharacter}
-                data-testid="button-mode-random"
-                aria-describedby="random-creation-help"
-              >
-                <Dice5 size={14} /> Rastgele Karakterle Macera Oluştur
-              </button>
-              <p id="random-creation-help">Rastgele bir karakter seçilir ve yeni macera kaydedilir. Başlangıç seviyesi: 1.</p>
-            </div>
           </div>
 
           {/* Stepper Navigation */}
@@ -1136,6 +1109,8 @@ export function CharacterCreationScreen({
                 <div className="cc-step-header">
                   <div className="cc-label">Adım 2</div>
                   <h2 className="cc-step-title-text">Sınıfını Seç</h2>
+                  <StepDice label="Sınıf için zar at" testId="button-dice-class" current={characterClass}
+                    keys={Object.keys((catalog?.classes ?? {}) as Record<string, unknown>)} onPick={setCharacterClass} />
                   <p className="cc-literary">Sınıfın, karakterinin dövüş tarzını, can zarını ve temel yeteneklerini belirler.</p>
                 </div>
 
@@ -1197,6 +1172,8 @@ export function CharacterCreationScreen({
                 <div className="cc-step-header">
                   <div className="cc-label">Adım 3</div>
                   <h2 className="cc-step-title-text">Geçmişini Seç</h2>
+                  <StepDice label="Geçmiş için zar at" testId="button-dice-background" current={background}
+                    keys={Object.keys((catalog?.backgrounds ?? {}) as Record<string, unknown>)} onPick={setBackground} />
                   <p className="cc-literary">Geçmişin; kazandığın 2 beceriyi, köken hünerini ve nitelik bonusu alabileceğin 3 alanı belirler.</p>
                 </div>
 
@@ -1285,6 +1262,9 @@ export function CharacterCreationScreen({
                 <div className="cc-step-header">
                   <div className="cc-label">Adım 1</div>
                   <h2 className="cc-step-title-text">Türünü Seç</h2>
+                  <StepDice label="Tür için zar at" testId="button-dice-species" current={species}
+                    keys={Object.keys((catalog?.races ?? {}) as Record<string, unknown>)}
+                    onPick={key => { if (key !== species) setGiantAncestry(''); setSpecies(key); }} />
                   <p className="cc-literary">Türün hareket hızını, duyularını ve doğuştan gelen ırksal özelliklerini belirler.</p>
                 </div>
 
