@@ -1447,7 +1447,11 @@
   .character-creation-screen.cinematic-create .cc-steps-nav { gap: 4px; }
   .character-creation-screen.cinematic-create .cc-step-btn { padding: 6px 5px; }
   .character-creation-screen.cinematic-create .cc-step-title { font-size: 12px; }
-  .character-creation-screen.cinematic-create .cc-step-desc { font-size: 12px; }
+  .character-creation-screen.cinematic-create .cc-steps-nav { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+  .character-creation-screen.cinematic-create .cc-step-btn { flex: 0 0 auto; white-space: nowrap; padding: 10px 12px; min-height: 44px; }
+  .character-creation-screen.cinematic-create .cc-step-desc { display: none; }
+  .character-creation-screen.cinematic-create .cc-quick-actions { flex-direction: column; align-items: stretch; }
+  .character-creation-screen.cinematic-create .cc-quick-actions p { font-size: 14px; }
   .character-creation-screen.cinematic-create .cc-main-form { padding: 14px 12px 10px; }
   .character-creation-screen.cinematic-create .cc-cards-grid.cc-portrait-grid {
     grid-template-columns: 1fr;
