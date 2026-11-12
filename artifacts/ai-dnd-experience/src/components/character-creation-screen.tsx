@@ -2349,8 +2349,10 @@ export function CharacterCreationScreen({
                       <ul className="cc-sheet-items">
                         {(() => {
                           const selected = classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage);
-                          const goods = [...(selected?.items ? packageGoods(selected) : []), ...backgroundGoods(propCatalog, background, backgroundEquipmentOption)];
-                          return goods.length ? goods.map((it: string) => <li key={it}>{it}</li>) : <li>Standart Başlangıç Teçhizatı</li>;
+                          return <>
+                            {selected?.items ? packageGoods(selected).map((it: string) => <li key={it}>{it}</li>) : <li>Standart Başlangıç Teçhizatı</li>}
+                            {backgroundGoods(propCatalog, background, backgroundEquipmentOption).map((it: string) => <li key={`background-${it}`}>{it}</li>)}
+                          </>;
                         })()}
                       </ul>
                     </div>
