@@ -2,6 +2,8 @@ import { showsCounter } from '@/lib/play-panels';
 import { createPrimalKnowledgeIntent, primalKnowledgeAvailable } from '@/lib/primal-knowledge';
 import { tacticalMindAvailable } from '@/components/fighter-controls';
 import { LevelUpControls, levelUpEarned, type LevelUpRequest } from '@/components/level-up-controls';
+import { SpellPreparationControls } from '@/components/spell-preparation-screen';
+import { preparesSpells } from '@/lib/spell-preparation';
 import { ECONOMIC_MESSAGES, EconomicOfferCard, EconomicPrepareControls, ShopControls, shopProbeKey } from '@/components/shop-panel';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved } from '@/lib/pending-action';
@@ -1318,6 +1320,8 @@ export default function GameBrowser() {
                 topControls={<>
       {campaignId && levelUpEarned(state.character) && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} onConfirm={submitLevelUp} />}
+      {campaignId && preparesSpells(state) && <SpellPreparationControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} state={state} sessionId={sessionId} campaignId={campaignId} catalog={characterCatalogQuery.data}
+        disabled={turnSending || undoBusy || Boolean(blockingMutation())} />}
       {state.economic_offer && <EconomicOfferCard key={state.economic_offer.offer_id} offer={state.economic_offer}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())}
         onConfirm={async (offerId, digest) => { submitTurn(ECONOMIC_MESSAGES.confirm, undefined, 'do', false, { kind: 'confirm', offer_id: offerId, confirmation_digest: digest }); }}

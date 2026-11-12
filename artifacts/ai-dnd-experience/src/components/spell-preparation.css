@@ -1,0 +1,30 @@
+/* Hazırlık (spell preparation) screen: Unwritten tokens only, so night, day and high contrast follow the theme. */
+.spell-prep { margin-bottom: 12px; padding: 14px 16px; color: var(--unw-text); min-width: 0; }
+.spell-prep-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.spell-prep-head h2 { margin: 0; color: var(--unw-text); font-family: var(--unw-font-display, 'Cormorant Garamond', serif); font-size: 20px; letter-spacing: .04em; }
+.spell-prep-head .dnd-button { min-height: 40px; padding: 0 14px; }
+.spell-status-rows { margin: 10px 0 0; display: grid; gap: 6px; }
+.spell-status-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-top: 1px solid var(--unw-border); padding-top: 6px; }
+.spell-status-row dt { color: var(--unw-text-soft); font-size: 13px; }
+.spell-status-row dd { margin: 0; color: var(--unw-text); font-size: 14px; text-align: right; }
+.spell-status-book { flex-direction: column; align-items: stretch; }
+.spell-status-book dd { text-align: left; }
+.spell-status-book ul { margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--unw-text); font-family: var(--unw-font-read, serif); font-size: 15px; }
+.spell-prep-body { margin-top: 10px; }
+.spell-prep-reason { margin: 0 0 10px; color: var(--unw-text); font-family: var(--unw-font-read, serif); font-size: 16px; line-height: 1.45; }
+.spell-prep fieldset { margin: 0; border: 1px solid var(--unw-border); padding: 10px 12px; min-width: 0; }
+.spell-prep legend { padding: 0 6px; color: var(--unw-accent-light); font-size: 13px; letter-spacing: .06em; }
+.spell-prep-count { margin: 0 0 6px; color: var(--unw-accent-light); font-size: 15px; }
+.spell-prep-note { margin: 6px 0; color: var(--unw-text-soft); font-size: 14px; line-height: 1.4; }
+.spell-prep-list { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 6px; }
+.spell-prep-choice { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 44px; border: 1px solid var(--unw-border); padding: 6px 10px; color: var(--unw-text); font-family: var(--unw-font-read, serif); font-size: 16px; cursor: pointer; overflow-wrap: anywhere; }
+.spell-prep-choice input { width: 20px; height: 20px; accent-color: var(--unw-accent-light); flex: none; }
+.spell-prep-choice:has(input:checked) { border-color: var(--unw-accent-light); }
+.spell-prep-choice:has(input:focus-visible) { outline: 2px solid var(--unw-accent-light); outline-offset: 2px; }
+.spell-prep-choice:has(input:disabled) { cursor: not-allowed; }
+.spell-prep-choice small { flex-basis: 100%; color: var(--unw-text-soft); font-family: inherit; font-size: 13px; }
+.spell-prep-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.spell-prep-feedback { margin: 10px 0 0; border: 1px solid var(--unw-border); padding: 8px 10px; color: var(--unw-text); font-size: 15px; line-height: 1.4; }
+.spell-prep-feedback[data-tone="success"] { border-color: var(--unw-patina); color: var(--unw-patina-text); }
+.spell-prep-feedback[data-tone="error"] { border-color: var(--unw-danger); color: var(--unw-danger-text); }
+.spell-prep-feedback[data-tone="warning"] { border-color: var(--unw-accent-light); color: var(--unw-accent-light); }
