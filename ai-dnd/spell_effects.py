@@ -56,6 +56,8 @@ _TRANSFER = re.compile(
 _DURATION = {"1 minute": 60, "1 hour": 3600, "Up to 1 hour": 3600}
 _DURATION_TR = {"1 minute": "bir dakika sürer", "1 hour": "bir saat sürer", "Up to 1 hour": "en çok bir saat sürer"}
 _FIELDS = {"id", "spell_id", "kind", "location_id", "cast_second", "until_second"}
+_MAX_SECOND = 10 ** 10  # about 300 campaign years: a saved second beyond it is forged
+_MAX_LOCATION = 200
 
 
 def _fold(text: Any) -> str:
@@ -150,12 +152,17 @@ def validate_saved(world: dict[str, Any]) -> None:
     for fact in facts:
         if (not isinstance(fact, dict) or set(fact) != _FIELDS or fact["spell_id"] not in NARRATIVE
                 or fact["spell_id"] in seen or fact["kind"] != "narrative"
-                or not isinstance(fact["id"], str) or not fact["id"]
-                or not isinstance(fact["location_id"], str) or not fact["location_id"]
-                or type(fact["cast_second"]) is not int or fact["cast_second"] < 0
-                or type(fact["until_second"]) is not int or fact["until_second"] <= fact["cast_second"]):
+                or not isinstance(fact["location_id"], str) or not 0 < len(fact["location_id"]) <= _MAX_LOCATION
+                or type(fact["cast_second"]) is not int or not 0 <= fact["cast_second"] <= _MAX_SECOND
+                or fact["id"] != _fact_id(fact["spell_id"], fact["cast_second"])
+                or type(fact["until_second"]) is not int
+                or fact["until_second"] - fact["cast_second"] != _DURATION[_source(fact["spell_id"])["duration"]]):
             raise ValueError("Invalid saved spell effects.")
         seen.add(fact["spell_id"])
+
+
+def _fact_id(spell_id: str, second: int) -> str:
+    return f"{spell_id.casefold().replace(' ', '_')}-{second}"
 
 
 def _not_cast(line: str, spell_id: str, reason: str) -> dict[str, Any]:
@@ -192,16 +199,24 @@ def resolve(session: Any, reading: tuple[str, str]) -> dict[str, Any]:
     if parts["v"] and conditions & {"silenced", "silence", "cannot_speak", "petrified"}:
         return _not_cast(f"{tr} ({spell_id}) için konuşabilmen gerekir; büyü yapılmadı.", spell_id,
                          "spell_components_unavailable")
-    if parts["s"] and not any(value is None for value in attacks.equipment(session, "player", session.character).values()):
+    if parts["s"]:
+        try:
+            hands = attacks.equipment(session, "player", session.character)
+        except combat_lifecycle.CombatRequestError:
+            return _not_cast(f"Ellerinin durumu bilinmiyor; {tr} ({spell_id}) yapılmadı.", spell_id,
+                             "equipment_unknown")
+    if parts["s"] and not any(value is None for value in hands.values()):
         return _not_cast(f"{tr} ({spell_id}) için bir elinin boş olması gerekir; büyü yapılmadı.", spell_id,
                          "spell_components_unavailable")
     now = spell_scope.clock_second(world)
-    fact = {"id": f"{spell_id.casefold().replace(' ', '_')}-{now}", "spell_id": spell_id, "kind": "narrative",
+    validate_saved(world)  # an unreadable saved list is never overwritten
+    fact = {"id": _fact_id(spell_id, now), "spell_id": spell_id, "kind": "narrative",
             "location_id": str(world.get("location") or "unknown"), "cast_second": now,
             "until_second": now + _DURATION[source["duration"]]}
     # A new cast of the same spell replaces the earlier one; finished facts are dropped.
-    world[KEY] = [entry for entry in active(world) if entry["spell_id"] != spell_id] + [fact]
-    validate_saved(world)
+    facts = copy.deepcopy([entry for entry in active(world) if entry["spell_id"] != spell_id] + [fact])
+    validate_saved({KEY: facts})  # copy, validate, then write
+    world[KEY] = facts
     # D-038 concerns slot spells: a cantrip needs no prepared list, so a narrative cast leaves every preparation window
     # as it is (closing it would silently cost the player the Long Rest choice and gain nothing).
     where = _range_tr(source["range"])
