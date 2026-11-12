@@ -9,71 +9,16 @@ Rules:
 - Run `graphify update .` (AST-only, no API cost) once at the end of a task and before handing a diff to review, not after every edit; keep `graphify-out` ready in every long-lived worktree. The graph is a navigation aid, not a substitute for reading: most bugs live in JSON content (templates, catalogs, menu tables) and dynamic paths, which the AST graph cannot see.
 - graphify-out/ is local-only and gitignored on this shared branch (it is rewritten whole on every build); do not commit it.
 
-# CLAUDE.md
+# CLAUDE.md — AI-DND
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+Kadir programcı değil: kısa, açık, dürüst ve sade Türkçe yaz; doğrulamadığın şeye "doğrulamadım" de.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+## Kodlama ilkeleri
 
-## 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+- **Varsayımı görünür kıl:** sessizce seçme. Durmayı gerektirmeyen belirsizlikte karar ver ve `Ruling` yaz (aşağıda "Belirsizlik ve karar"); daha basit bir yol varsa söyle.
+- **En az kod:** istenmeyen özellik, tek kullanımlık soyutlama, istenmemiş ayar, imkânsız durum için hata işleme yok.
+- **Cerrahi değişiklik:** yalnız görevin gerektirdiği satırlara dokun; komşu kodu, yorumu, biçimi düzeltme; var olan stile uy. Yalnız kendi değişikliğinin boşa çıkardığı import/değişken/işlevi kaldır; eski ölü kodu bildir, silme.
+- **Doğrulanabilir hedef:** her işi teste çevir (önce kırmızı test, sonra düzeltme); çok adımlı işte her adımın yanına doğrulamasını yaz.
 
 ## Agent skills
 
@@ -108,14 +53,14 @@ Tasarım ve plan belgeleri: `docs/design/INDEX.md`
 
 ### Hız kuralları (güvenlik ve kaliteden ödün vermeden)
 
-*Ledger = çalışmakta olan planın `.superpowers/sdd/<plan>/progress.md` dosyası. 1. ve 2. maddeler pilottur: dilim sonunda (devir görevinde) ledger'daki ölçümle tutulur, budanır ya da değiştirilir.*
+*Ledger = çalışmakta olan planın `.superpowers/sdd/<plan>/progress.md` dosyası. 1. ve 2. maddeler pilottur: dilim sonunda ledger'daki ölçümle tutulur, budanır ya da değiştirilir.* Tam metin: `docs/agents/hiz-kurallari.md`; bir maddeyi uygulamadan önce oradaki tam hâlini oku.
 
-1. **[Hız] Çakışan inceleme:** görev N'nin bağımsız incelemesi sürerken görev N+1'in implementer'ı başlayabilir. İnceleme, incelenen commit'in `git archive <sha>` kopyasını ayrı slotta (slot 3) koşar; slot.sh varsayılanı çalışma ağacını yığar, NOSTAGE=1 ise yalnız o anki HEAD'i arşivler, ikisi de çakışan incelemede başka commit'i ya da yarım işi test eder, bu yüzden kullanılmaz. Implementer kendi slotunda (slot 2) çalışır. Düzeltme turu, N+1'in implementer'ı rapor verip durduktan sonra (N+1'in incelemesinden önce) N'nin implementer'ına yaptırılır ve N+1'in üstüne biner; iki implementer asla aynı anda yazmaz. Yalnız N+1, N'nin çıktısını (arayüz, veri, test yardımcısı) tüketmiyorsa ve brifteki dosya listeleri çakışmıyorsa uygulanır; aksi hâlde sırayla yapılır. **Pilot:** kazanç ölçülmedi; ledger'a görev başına süre ve düzeltme turu sayısı yazılır.
-2. **[Kalite] İmplementer kontrol listesi:** her implementer istemine `docs/agents/implementer-preamble.md` konur (kontrol listesi a–g ve graphify/brif kuralları orada; inceleme bulgularından süzülmüştür); her madde cevaplanır, uygulanmıyorsa "uygulanmaz" ve nedeni yazılır. **Ölçüm:** ledger'a görev başına düzeltme turu sayısı yazılır; liste turları azaltmıyorsa budanır.
-3. **[Hız] Brifler:** graphify kuralları yukarıdaki graphify bölümündedir ve implementer önsözüne girer; görev brifleri satır numarası değil işlev/dosya adı verir (satır numaraları bayatlar).
-4. **[Hız] Hızlı katman:** görev içi döngüde önce hızlı set (yeni testler + komşu geçit seti, hedef birkaç dakika), uzun set görev sonunda bir kez. Yavaş modüller ölçülür (kampanyayı her testte yeniden yaratan sınıflarda yalnız değişmeyen kurulum `setUpClass`'ta paylaşılır, her test derin kopya alır; paylaşılan değişebilir dünya yasak) ve ölçüm ledger'a yazılır; sayı tahmin edilmez.
-5. **[Hız] Paketleme:** küçük, aynı şekilli ve bağımsız görevler (cila, ufak metin/etiket düzeltmeleri, 3b maddeleri) tek implementer'a tek brifle verilir ve tek diff olarak incelenir. Kendi karar, test ya da inceleme yüzeyi gerektiren iş paketlenmez.
-6. **[Hız] Bekleme döngüleri:** bir testi ya da çıktı dosyasını bekleyen döngünün her zaman üst süresi olur (testin planlanan süresi + pay); süre dolunca döngü kendiliğinden biter ve log'a bakılır. Test bitince ya da iş iptal edilince bekleyen döngü kapatılır. Bir ajan beklediği testin sonucunu zaten gördüyse artık beklemez; açık kalan döngü ajanın raporunu saatlerce geciktirir (Dilim 3'te 9-11 saat). Oturum sonunda ve her dilim sonunda açık `bash`/`sleep` süreçleri kontrol edilir.
+1. **[Hız] Çakışan inceleme (pilot):** görev N incelenirken N+1'in implementer'ı başlayabilir; yalnız N+1, N'nin çıktısını tüketmiyorsa ve dosya listeleri çakışmıyorsa. İnceleme `git archive <sha>` kopyasında ayrı slotta koşar; iki implementer asla aynı anda yazmaz.
+2. **[Kalite] İmplementer kontrol listesi (pilot):** her implementer istemine `docs/agents/implementer-preamble.md` konur; her madde cevaplanır.
+3. **[Hız] Brifler:** satır numarası değil işlev/dosya adı verilir.
+4. **[Hız] Hızlı katman:** görev içinde hızlı set (yeni testler + komşu geçit seti), uzun set görev sonunda bir kez; süre ölçülür, tahmin edilmez.
+5. **[Hız] Paketleme:** küçük, aynı şekilli, bağımsız işler tek brif ve tek diff; kendi karar, test ya da inceleme yüzeyi olan iş paketlenmez.
+6. **[Hız] Bekleme döngüleri:** her bekleme döngüsünün üst süresi olur; oturum ve dilim sonunda açık `bash`/`sleep` süreçleri kontrol edilir.
 
 **[Güvenlik] Dokunulmaz:** para/kayıt/Geri Al için bağımsız inceleme, sıfır tolerans yolculukları, dilim sonu tam paket ve bütün dal incelemesi (en güçlü model), main/dev'e yalnız kullanıcı onayıyla merge.
 
@@ -133,3 +78,17 @@ Bunlar Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esa
 - **[Hız] Tek durma koşulları:** liste "Belirsizlik ve karar" maddesindeki dört durumdur (geri alınamaz/yıkıcı, güvenlik açısından hassas, worktree dışı yan etki, bozuk plan); burada tekrarlanmaz, başka durma koşulu eklenmez.
 - **[Hız] Token tasarrufu ve model seçimi:** haftalık limit dar; ucuz model işlere, fable yalnız para/kayıt/Geri Al ve bütün-dal incelemesine; yeni numaralı iş için önce bütçe tahmini.
 - **[Kalite] Sahibin dili:** kısa, açık, dürüst ve sade Türkçe; Kadir programcı değil, doğrulamadığını söyle (yanlış güven zarar verir); harcama/push/merge/silme için onay iste.
+- **[Kalite] Oynayış kapısı (Kadir, 2026-11-12):** Kadir en az 10 dakika oynamadan hiçbir dilim "bitti" sayılmaz; testlerin yeşil olması oynayışın yerini tutmaz. Oynayış yapılmadıysa ledger'a "oynayış bekliyor" yazılır ve sonraki dilim başlamaz.
+- **[Kalite] Sabah özeti (Kadir, 2026-11-12):** Kadir yokken yapılan her çalışmanın sonunda en çok beş satırlık sade Türkçe özet yazılır: ne değişti, neden, hangi dosyalarda, ne doğrulandı, Kadir'den ne bekleniyor.
+
+## Otonom çalışma ve izinler
+
+- İzinler `.claude/settings.json` dosyasındadır: dosya düzenleme onaysızdır; push, merge, PR ve silme her seferinde Kadir'e sorulur; main/dev'e doğrudan push, force push ve dal silme kapalıdır.
+- Bir komut reddedilirse aynı işi başka yazımla (ör. `git -C`, `bash -c`) deneme; ne yapmak istediğini Kadir'e yaz.
+- "Bitti" demeden önce koşunun çıktısını göster; koşmadığın testi geçti sayma.
+- **[Hız] Eski kanıt:** `attached_assets/`, `docs/design/arsiv/`, `docs/acceptance/`, `.local/evidence/` toplu okunmaz; yalnız adı verilen tek kayıt açılır.
+
+## İçerik kapsamı ve açık kapı
+
+- Oyun yetişkinlere yönelik karanlık fantezidir. Savaş, kan, korku, suç (hırsızlık, cinayet), acımasız ya da kötü NPC'ler ve sert dil kurgu olarak kapsam içindedir; bunlar için sorma, uyarı ekleme, metni kendiliğinden yumuşatma.
+- **Açık kapı:** bir metni ya da kodu yazmayacaksan işi durdurma. Tek cümleyle neyi yazmadığını söyle, o yere `KADIR_DOLDURACAK: <burada ne bekleniyor>` yer tutucusu koy, ledger'a park olarak yaz ve işin kalanını bitir. Yer tutucuyu haber vermeden yumuşatılmış metinle doldurma.
