@@ -5,7 +5,6 @@ import {
   ArrowRight,
   BookOpen,
   RefreshCw,
-  Shield,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -79,11 +78,11 @@ export function Rule() {
 function EngineHealth() {
   const health = useGetGameHealth({ query: { queryKey: getGetGameHealthQueryKey(), staleTime: 30_000, retry: 1 } });
   const ready = Boolean(health.data && ['ok', 'healthy', 'ready'].includes(health.data.status.toLowerCase()));
-  return (
+  return ready || health.isLoading ? null : (
     <aside className="gate-health" data-testid="panel-engine-health">
-      {health.isLoading ? <span data-testid="health-loading">Dünya uyanıyor.</span> : health.isError ? (
+      {health.isError ? (
         <span data-testid="error-health">Dünyaya şu an ulaşılamıyor. <button type="button" data-testid="button-retry-health" onClick={() => void health.refetch()}>Tekrar dene</button></span>
-      ) : <span data-testid="status-health">{ready ? 'Yol açık.' : 'Dünya sessiz.'}</span>}
+      ) : <span data-testid="status-health">Dünya sessiz.</span>}
     </aside>
   );
 }
@@ -91,7 +90,6 @@ function EngineHealth() {
 export function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaigns, hasCampaigns, showNoCampaigns }: { onCreate: () => void; onContinue: () => void; creating: boolean; notice: Notice | null; loadingCampaigns: boolean; hasCampaigns: boolean; showNoCampaigns: boolean }) {
   return (
     <main className="design-preview unwritten-entry" data-testid="app-start">
-      <div className="entry-ribbon"><span className="ribbon-dot" /><strong>GERÇEK OYUN</strong><span>/</span><span>{import.meta.env.VITE_AI_DND_LOCAL_PLAY === '1' ? 'Yerel oyun; kampanyaların bu bilgisayarda kayıtlı kalır' : 'Hesabınla giriş yap; kampanyaların kayıtlı kalır'}</span></div>
       <header className="entry-header">
         <div className="entry-brand"><span className="entry-brand-icon"><OuroborosMark /></span><span><strong>UNWRITTEN</strong><small>GERÇEK OYUN</small></span></div>
         <GateSoundControl />
@@ -103,7 +101,6 @@ export function OpeningScreen({ onCreate, onContinue, creating, notice, loadingC
           </div>
           <div className="entry-copy">
             <h1>UNWRITTEN</h1>
-            <p className="entry-lede">Bir hikâyeye sessizce adım at.</p>
             <nav className="entry-actions" aria-label="Kampanya işlemleri">
               <button className="button-primary" type="button" data-testid="button-continue-session" disabled={loadingCampaigns} onClick={() => { primeGateSound(); playGateSound('menu'); onContinue(); }}>
                 {loadingCampaigns ? <RefreshCw size={16} className="animate-spin" aria-hidden="true" /> : <BookOpen size={16} aria-hidden="true" />}
@@ -115,17 +112,9 @@ export function OpeningScreen({ onCreate, onContinue, creating, notice, loadingC
             </nav>
             {showNoCampaigns && !hasCampaigns && <div className="continue-note" data-testid="text-no-session">Henüz bir macera yok. İlk yolculuğunu başlat.</div>}
             {notice && <div className="entry-notice"><NoticeBanner notice={notice} /></div>}
-            <div className="entry-safety" role="note" data-testid="status-real-game-safety">
-              <span className="safety-mark" aria-hidden="true">i</span>
-              <p>Bu giriş ekranında kayıtlı kampanyanı sürdürebilir veya yeni macera oluşturabilirsin. İlerlemen hesabındaki kampanyaya kaydedilir.</p>
-            </div>
           </div>
         </div>
-        <aside className="real-entry-card">
-          <div className="real-card-mark"><Shield size={17} aria-hidden="true" /></div>
-          <div className="real-card-copy"><span className="eyebrow">HESABIN VE KAMPANYALARIN</span>{' '}<strong>Gerçek oyun, güvenli oturumunla açılır.</strong></div>
-          <span className="entry-health"><EngineHealth /></span>
-        </aside>
+        <EngineHealth />
       </section>
     </main>
   );

@@ -481,9 +481,16 @@ test('welcome and creation display skills without changing submitted skill ident
   assert.match(creation,/allSkills\.map\(skillLabel\)\.join/);
   assert.match(creation,/proficient_skills: derivedStats\.allSkills/);
 });
-test('account card separates its heading from its description', async () => {
-  const source=readGameBrowserSource();
-  assert.match(source,/HESABIN VE KAMPANYALARIN<\/span>\{' '\}<strong>/);
+// Replaced by plan part A (owner decision, 2026-11-12): the home screen shows only the logo and the two buttons.
+// The old test pinned the account card; the new one pins its absence and keeps the same strictness (not a loosening).
+test('home screen has no tagline, ribbon, info box or account card', async () => {
+  const source=await readFile('src/pages/game/shell-parts.tsx','utf8');
+  for (const gone of [/HESABIN VE KAMPANYALARIN/,/entry-lede/,/entry-ribbon/,/status-real-game-safety/,/safety-mark/,/real-entry-card/,/Bir hikâyeye sessizce/]) assert.doesNotMatch(source,gone);
+  for (const kept of [/button-continue-session/,/button-create-session/,/Maceraya devam et/,/Yeni macera/]) assert.match(source,kept);
+});
+test('home screen shows the engine status only when something is wrong', async () => {
+  const source=await readFile('src/pages/game/shell-parts.tsx','utf8');
+  assert.match(source,/ready \|\| health\.isLoading \? null/);
 });
 
 test('offline catalog keeps localized feature and trait descriptions without changing identity', async () => {
