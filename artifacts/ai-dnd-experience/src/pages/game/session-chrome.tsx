@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { type CombatLogEntry } from '@/components/combat-panel';
+import { tabStops, trapWrapTarget } from '@/lib/focus-trap';
 import { focusReturnTarget } from '@/lib/play-viewport';
 import {
   Feather,
   Heart,
   MapPinned,
   Menu,
+  Palette,
   Plus,
   RefreshCw,
   Save,
@@ -18,9 +20,10 @@ import { CampaignDate } from '@/components/campaign-context-panel';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { type InteractionMode } from '@/lib/action-suggestions';
 import { Kicker } from '@/pages/game/shell-parts';
+import { AppearanceSettingsPanel } from '@/components/appearance-settings-panel';
 import { type WorldTab, LeftColumn, WorldTabs } from '@/pages/game/world-panels';
 
-export type Drawer = 'character' | 'world' | null;
+export type Drawer = 'character' | 'world' | 'settings' | null;
 
 export function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, onOpenCombat }: { state: GameState; campaignId: string; onSave: () => void; saving: boolean; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>, opener: HTMLElement) => void; onOpenCombat: (opener: HTMLElement) => void }) {
   return (
@@ -46,6 +49,7 @@ export function SessionHeader({ state, campaignId, onSave, saving, onReset, onDr
         <div className="header-actions">
           <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={(event) => onDrawer('character', event.currentTarget)}><Shield size={14} /> Karakter</button>
           <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={(event) => onDrawer('world', event.currentTarget)}><Menu size={14} /> Dünya</button>
+          <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-settings" onClick={(event) => onDrawer('settings', event.currentTarget)}><Palette size={14} /> Görünüm</button>
           <div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span></div>
           <button className="dnd-button secondary" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span>Kaydet</span></button>
           <button className="dnd-button secondary !px-3" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Ana ekrana dön</button>
@@ -81,8 +85,8 @@ export function DrawerSheet({ drawer, state, catalog, decisionScope, conversionB
       if (dialog && event.target instanceof Node && !dialog.contains(event.target)) event.preventDefault();
     };
     document.addEventListener('touchmove', stopBackgroundTouch, { capture: true, passive: false });
-    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [tabindex]') ?? [])
-      .filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden');
+    const focusable = () => tabStops(Array.from(dialog?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [tabindex]') ?? [])
+      .filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden'));
     focusable()[0]?.focus();
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -93,10 +97,8 @@ export function DrawerSheet({ drawer, state, catalog, decisionScope, conversionB
       if (event.key !== 'Tab') return;
       const elements = focusable();
       if (!elements.length) { event.preventDefault(); return; }
-      const first = elements[0];
-      const last = elements[elements.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      const wrap = trapWrapTarget(elements, document.activeElement, event.shiftKey);
+      if (wrap) { event.preventDefault(); wrap.focus(); }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -117,5 +119,5 @@ export function DrawerSheet({ drawer, state, catalog, decisionScope, conversionB
     };
   }, [drawer, focusAfterCloseRef]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} catalog={catalog} decisionScope={decisionScope} conversionBlocked={conversionBlocked} onCommand={onEconomyCommand} /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : drawer === 'settings' ? 'Görünüm ayarları' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : drawer === 'settings' ? 'Görünüm' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <LeftColumn state={state} catalog={catalog} decisionScope={decisionScope} conversionBlocked={conversionBlocked} onCommand={onEconomyCommand} /> : drawer === 'settings' ? <AppearanceSettingsPanel /> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} sending={sending} onExplorationCommand={onExplorationCommand} onDraft={(message, mode, targetId) => { focusAfterCloseRef.current = 'composer'; onDraft(message, mode, targetId); onClose(); }} onSetCombatTarget={onSetCombatTarget} />}</section></div>;
 }

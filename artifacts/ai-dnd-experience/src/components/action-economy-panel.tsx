@@ -165,7 +165,7 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
   const recklessControl = <RecklessAttackControl available={intent.available} active={intent.active} selected={intent.selected}
     disabled={sending || !(attackEnabled || continueEnabled || reactionEnabled)} onChange={value => { intent.choose(value); redrawIntent(n => n + 1); }} />;
   return (
-    <section className="px-4 py-3 border-t border-amber-100/10" aria-label="Tur kaynakları" data-testid="action-economy-panel">
+    <section className="px-4 py-3 border-t border-(color:--unw-border)" aria-label="Tur kaynakları" data-testid="action-economy-panel">
       <div className="story-meta flex flex-wrap gap-x-4 gap-y-1" data-testid="action-economy-resources">
         <span title={termTitle('action')}>Eylem: {resources.base_action_spent ? 'kullanıldı' : 'hazır'}</span>
         <span title={termTitle('bonus_action')}>Bonus eylem: {resources.bonus_action_spent ? 'kullanıldı' : (resources.bonus_action_available || quickenedProjection(state)?.available || rageAvailable) ? 'hazır' : 'uygun yetenek yok'}</span>
@@ -215,16 +215,16 @@ export function ActionEconomyPanel({ state, targetId, sending, decisionScope = '
           <details data-testid="combat-more-actions">
             <summary>Diğer eylemler</summary>
           <div className="flex flex-wrap items-center gap-2 mt-3 story-meta">
-            <label title={termTitle('feet')}>Mesafe (fit) <input aria-label="Hareket mesafesi" type="number" min="1" step="1" className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={distance} onChange={(event) => setDistance(event.target.value)} /></label>
+            <label title={termTitle('feet')}>Mesafe (fit) <input aria-label="Hareket mesafesi" type="number" min="1" step="1" className="w-16 bg-transparent border border-(color:--unw-border) rounded px-1" value={distance} onChange={(event) => setDistance(event.target.value)} /></label>
             <button type="button" className="action-suggestion" disabled={blocked || !distanceValid || resources.movement_remaining <= 0}
               onClick={() => send(moveSentence(distanceValue), { kind: 'move', distance_ft: distanceValue })}>Hareket et</button>
-            <label>Tetikleyici <select aria-label="Hazırlık tetikleyicisi" className="bg-stone-900 border border-amber-100/20 rounded" value={triggerEvent} onChange={(event) => setTriggerEvent(event.target.value as typeof triggerEvent)}>
+            <label>Tetikleyici <select aria-label="Hazırlık tetikleyicisi" className="bg-(--unw-surface-sunken) border border-(color:--unw-border) rounded" value={triggerEvent} onChange={(event) => setTriggerEvent(event.target.value as typeof triggerEvent)}>
               <option value="actor_attacks">Saldırı tamamlandığında</option><option value="actor_moves">Hareket tamamlandığında</option>
             </select></label>
-            <select aria-label="Tetikleyen" className="bg-stone-900 border border-amber-100/20 rounded" value={triggerActor} onChange={(event) => setTriggerActor(event.target.value)}>
+            <select aria-label="Tetikleyen" className="bg-(--unw-surface-sunken) border border-(color:--unw-border) rounded" value={triggerActor} onChange={(event) => setTriggerActor(event.target.value)}>
               <option value="target">Seçili hedef</option><option value="player">Ben</option>
             </select>
-            <select aria-label="Hazırlık yanıtı" className="bg-stone-900 border border-amber-100/20 rounded" value={readyKind} onChange={(event) => setReadyKind(event.target.value as typeof readyKind)}>
+            <select aria-label="Hazırlık yanıtı" className="bg-(--unw-surface-sunken) border border-(color:--unw-border) rounded" value={readyKind} onChange={(event) => setReadyKind(event.target.value as typeof readyKind)}>
               <option value="attack">Saldırı</option><option value="move">Hareket</option>
             </select>
             <button title={termTitle('ready')} type="button" className="action-suggestion" disabled={blocked || !legal('ready') || (triggerActor === 'target' && !targetId) || (readyKind === 'attack' && !targetId) || (readyKind === 'move' && !distanceValid)}

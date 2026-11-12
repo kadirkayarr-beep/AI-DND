@@ -1,0 +1,100 @@
+/*
+ * The reading page of the play screen on the --unw-* tokens (S3): book-page frame, reading faces, fresh ink
+ * and the waiting quill tip. Colours come only from the theme tokens, so night, day and high contrast all
+ * reach this screen. The atmosphere layer paints behind this page; nothing here reads or changes story text.
+ */
+
+/* Book page: the page colour is the paper (the atmosphere shows through), so the page only gets a frame,
+   a soft inner edge and room around the text. */
+.design-preview.play-shell .story-reading-column {
+  padding: var(--unw-space-4) var(--unw-space-5);
+  border: 1px solid var(--unw-border);
+  border-radius: var(--unw-radius-md);
+  box-shadow: inset 0 0 28px rgb(var(--unw-shadow-color)), var(--unw-shadow-md);
+}
+@media (max-width: 1100px) {
+  .design-preview.play-shell .story-reading-column { padding: var(--unw-space-2); }
+}
+
+/* Reading faces. Sizes stay with the existing reading controls (--story-font-size, --story-line-height). */
+.design-preview.play-shell .story-column .story-text,
+.design-preview.play-shell .story-column .player-text,
+.design-preview.play-shell .story-column .command-input {
+  font-family: var(--unw-font-read);
+  letter-spacing: var(--unw-read-letter-spacing);
+  word-spacing: var(--unw-read-word-spacing);
+}
+.design-preview.play-shell .story-column .story-text { color: var(--unw-text); }
+.design-preview.play-shell .story-column .command-input::placeholder { color: var(--unw-text-soft); }
+
+/* Narration is plain paragraphs on the page; the old timeline rule and diamond belong to the dark skin. */
+.design-preview.play-shell .story-column .story-entry { padding-left: 0; }
+.design-preview.play-shell .story-column .story-entry::before,
+.design-preview.play-shell .story-column .story-entry::after { content: none; }
+.design-preview.play-shell .story-column .player-entry {
+  border-left-color: color-mix(in srgb, var(--unw-accent-light) 55%, var(--unw-border));
+  color: var(--unw-text-soft);
+}
+.design-preview.play-shell .story-column .player-text { font-style: italic; }
+.design-preview.play-shell .story-column .player-label { color: var(--unw-text-soft); }
+
+/* Fresh ink: the words of a newly arrived entry fade in one after another (wet, in the accent colour, then dry).
+   Every word is in the DOM from the first frame. */
+.ink-fresh .ink-word {
+  opacity: 0;
+  animation: ink-dry 0.9s ease-out forwards;
+  animation-delay: calc(var(--ink-i) * var(--ink-step));
+}
+@keyframes ink-dry {
+  from { opacity: 0; color: var(--unw-accent-light); }
+  35% { opacity: 1; color: var(--unw-accent-light); }
+  to { opacity: 1; }
+}
+
+/* The waiting quill tip: a small nib after the last word that breathes while the story waits for the reader.
+   The breathing is bounded (three breaths, about 8 s) and then the nib rests, so an idle page never animates forever. */
+.ink-tip {
+  display: inline-block;
+  width: 0.4em;
+  height: 0.85em;
+  margin-left: 0.3em;
+  vertical-align: -0.1em;
+  background: var(--unw-accent-light);
+  clip-path: polygon(50% 0, 100% 60%, 72% 100%, 28% 100%, 0 60%);
+  opacity: 0;
+  animation:
+    ink-tip-in 0.4s ease forwards var(--ink-delay, 0s),
+    ink-tip-wait 2.8s ease-in-out 3 calc(var(--ink-delay, 0s) + 0.4s);
+}
+.ink-tip.ink-tip-still { opacity: 0.9; animation: none; }
+@keyframes ink-tip-in { to { opacity: 0.9; } }
+@keyframes ink-tip-wait { 0%, 100% { opacity: 0.9; } 50% { opacity: 0.35; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-fresh .ink-word { opacity: 1; animation: none; }
+  .ink-tip { opacity: 0.9; animation: none; }
+}
+
+/* Session chrome on the tokens: header band, scrollbar and the composer's send button. */
+.design-preview.play-shell .app-header {
+  border-bottom-color: var(--unw-border);
+  background: color-mix(in srgb, var(--unw-surface) 72%, transparent);
+}
+.design-preview.play-shell .transcript-scroll { scrollbar-color: var(--unw-border) transparent; }
+.design-preview.play-shell .story-reading-column .command-box { background: var(--unw-surface); }
+.design-preview.play-shell .story-reading-column .command-form > button[type="submit"] {
+  border-color: var(--unw-accent-light);
+  background: var(--unw-accent-light);
+  color: var(--unw-page);
+}
+.design-preview.play-shell .story-reading-column .command-form > button[type="submit"]:disabled { opacity: 0.55; }
+
+/* The scene-context column beside the story (combat strip, economy, shop, level-up) is on the tokens now, so it
+   follows the theme like the page. In day it sits on a light card; in night it stays flat. */
+:root[data-unw-theme="day"] .design-preview.play-shell .story-scene-context {
+  padding: var(--unw-space-3);
+  border: 1px solid var(--unw-border);
+  border-radius: var(--unw-radius-md);
+  background: var(--unw-surface);
+  color: var(--unw-text);
+}

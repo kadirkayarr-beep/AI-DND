@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/toaster";
+import { AppearanceProvider } from "@/components/appearance-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import GameBrowser from "@/pages/game-browser";
@@ -30,11 +31,13 @@ function routerBase(baseUrl: string): string {
 
 export default function AppShell() {
   return (
+    <AppearanceProvider>
     <TooltipProvider>
       <WouterRouter base={routerBase(import.meta.env.BASE_URL)}>
         <Router />
       </WouterRouter>
       <Toaster />
     </TooltipProvider>
+    </AppearanceProvider>
   );
 }

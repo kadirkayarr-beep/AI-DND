@@ -49,7 +49,7 @@ export function LastTurnBar({
   if (!summary && !canUndo && !recoveringUndo && !combatActive && !justUndone) return null;
   return (
     <div className="last-turn-bar mt-2 flex flex-wrap items-center gap-2 text-sm" data-testid="last-turn-bar">
-      {summary && <span className="text-[#a99a80]" data-testid="text-turn-outcome">Sonuç: {summary}</span>}
+      {summary && <span className="text-(color:--unw-text-soft)" data-testid="text-turn-outcome">Sonuç: {summary}</span>}
       {recoveringUndo && (
         <button type="button" className="dnd-button secondary" disabled={busy}
           onClick={onUndo} data-testid="button-retry-undo">
@@ -71,10 +71,10 @@ export function LastTurnBar({
         </button>
       )}
       {combatActive && (
-        <span className="text-[#a99a80]" data-testid="text-undo-combat">Savaş sürerken son tur geri alınamaz.</span>
+        <span className="text-(color:--unw-text-soft)" data-testid="text-undo-combat">Savaş sürerken son tur geri alınamaz.</span>
       )}
       {justUndone && !canUndo && !combatActive && (
-        <span className="text-[#a99a80]" data-testid="text-undo-once">Yalnız son tur geri alınır; yeni bir tur oynayınca Geri al yeniden açılır.</span>
+        <span className="text-(color:--unw-text-soft)" data-testid="text-undo-once">Yalnız son tur geri alınır; yeni bir tur oynayınca Geri al yeniden açılır.</span>
       )}
       {canUndo && confirming && (
         <span role="group" aria-label="Geri alma onayı" className="flex items-center gap-2" data-testid="confirm-undo">

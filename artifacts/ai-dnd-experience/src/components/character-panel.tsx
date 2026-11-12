@@ -43,7 +43,7 @@ export function CharacterPanel({ character, compact = false, walletTotalCp, cata
       <div className="data-row mt-3" data-testid="text-character-xp">Deneyim: {character.xp}</div>
       <PurseLine totalCp={walletTotalCp} />
       {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
-      {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skillLabel(skill)}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
+      {!compact && <div className="mt-5 border-t border-(color:--unw-border) pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skillLabel(skill)}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
       <RageStatus rage={character.rage} />
       <FighterStatus fighter={character.fighter} />
       <PaladinStatus paladin={character.paladin} />

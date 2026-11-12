@@ -30,10 +30,13 @@ function moteStyle(i: number): Var {
 
 /**
  * Page-material atmosphere behind the story text. Paints only the resolved preset (engine facts
- * resolved by resolveAtmosphere); it never reads or produces story text. Mount inside a
- * position: relative container with the text layered above.
+ * resolved by resolveAtmosphere); it never reads or produces story text. Mount as the first child
+ * of an isolated (stacking-context) container: the layer sits at z-index -1 under the text.
+ * `fade` is the effects-level decision (not 'off'): it enables the crossfade between presets,
+ * including neutral <-> preset, whether or not the preset has moving elements. The weather veil is
+ * a separate fixed, pointer-events-none sibling above the page, as the old overlays were.
  */
-export function SceneAtmosphereLayer({ atmosphere, theme }: { atmosphere: ResolvedAtmosphere; theme: AtmosphereTheme }) {
+export function SceneAtmosphereLayer({ atmosphere, theme, fade }: { atmosphere: ResolvedAtmosphere; theme: AtmosphereTheme; fade: boolean }) {
   const [hidden, setHidden] = useState(false);
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
@@ -46,6 +49,8 @@ export function SceneAtmosphereLayer({ atmosphere, theme }: { atmosphere: Resolv
   const colours = themedAtmosphere(atmosphere, theme);
   const motion = atmosphere.motion;
   const style: Var = {
+    '--sc-hue': rgbaCss(colours.hue),
+    '--sc-wx': rgbaCss(colours.wash),
     '--sc-tint': rgbaCss(colours.tint),
     '--sc-bloom': rgbaCss(colours.bloom),
     '--sc-win': rgbaCss(colours.win),
@@ -59,16 +64,23 @@ export function SceneAtmosphereLayer({ atmosphere, theme }: { atmosphere: Resolv
   const fogY = ['18%', '56%'];
   const fogH = ['46%', '52%'];
 
+  const veil = atmosphere.weather?.preset.veil ?? null;
+
   return (
+    <>
     <div
       className="unw-atmo"
       aria-hidden="true"
-      data-atmosphere={atmosphere.kind}
+      data-atmosphere={atmosphere.family}
       data-period={atmosphere.period ?? undefined}
+      data-weather={atmosphere.weather?.name}
       data-motion={motion ? '1' : '0'}
+      data-fade={fade ? '1' : '0'}
       data-hidden={hidden ? '1' : '0'}
       style={style}
     >
+      <i className="unw-atmo-hue" />
+      <i className="unw-atmo-wx" />
       <i className="unw-atmo-tint" />
       <i className="unw-atmo-bloom" />
       <i className="unw-atmo-win" />
@@ -88,5 +100,14 @@ export function SceneAtmosphereLayer({ atmosphere, theme }: { atmosphere: Resolv
         : null}
       <i className="unw-atmo-vig" />
     </div>
+    {veil ? (
+      <div
+        className="unw-atmo-veil"
+        aria-hidden="true"
+        data-weather={atmosphere.weather?.name}
+        style={{ background: veil.background, backgroundSize: veil.backgroundSize, opacity: veil.opacity }}
+      />
+    ) : null}
+    </>
   );
 }

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import { setAuthTokenGetter } from "@workspace/api-client-react/custom-fetch";
 import GameBrowser from "@/pages/game-browser";
+import { AppearanceProvider } from "@/components/appearance-provider";
 import "@/index.css";
 
 const CAMPAIGN_ID = "fixture-campaign";
@@ -316,7 +317,9 @@ setAuthTokenGetter(() => "fixture-ui-token");
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-    <GameBrowser />
+    <AppearanceProvider>
+      <GameBrowser />
+    </AppearanceProvider>
   </QueryClientProvider>,
 );
 

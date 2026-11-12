@@ -25,7 +25,7 @@ export function CunningStrikeControl({ rogue, targetId, option, distance, disabl
   const strike = value?.cunning_strike;
   if (!value || !strike || value.sneak_attack.used_this_turn) return null;
   return <div className="story-meta mt-2" data-testid="cunning-strike-control">
-    <label>Cunning Strike <select aria-label="Cunning Strike" data-testid="cunning-strike-option" className="bg-stone-900 border border-amber-100/20 rounded"
+    <label>Cunning Strike <select aria-label="Cunning Strike" data-testid="cunning-strike-option" className="bg-(--unw-surface-sunken) border border-(color:--unw-border) rounded"
       value={option} disabled={disabled} onChange={event => onOptionChange(event.target.value)}>
       <option value="">Yok</option>
       {strike.options.map(item => {
@@ -36,7 +36,7 @@ export function CunningStrikeControl({ rogue, targetId, option, distance, disabl
     </select></label>
     {tripRefused(value, option, targetId) && <p role="status" data-testid="cunning-strike-refused">Bu hedefe Trip uygulanamaz: hedef Large boyutundan büyük.</p>}
     {option === 'withdraw' && <label>{' '}Mesafe (<span title={termTitle('feet')}>{term('feet')}</span>, en çok {strike.withdraw_max_ft}) <input aria-label="Withdraw mesafesi" data-testid="cunning-strike-distance" type="number" min="1" step="1"
-      className="w-16 bg-transparent border border-amber-100/20 rounded px-1" value={distance} disabled={disabled} onChange={event => onDistanceChange(event.target.value)} /></label>}
+      className="w-16 bg-transparent border border-(color:--unw-border) rounded px-1" value={distance} disabled={disabled} onChange={event => onDistanceChange(event.target.value)} /></label>}
     <p>Saldırıdan önce seçilir. <span title={termTitle('sneak_attack')}>{term('sneak_attack')}</span> gerçekleşirse zar düşülür ve etki hasardan hemen sonra olur; gerçekleşmezse bir şey harcanmaz.</p>
   </div>;
 }

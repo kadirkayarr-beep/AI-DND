@@ -35,7 +35,7 @@ export function ExplorationControls({ state, disabled, onCommand }: { state: Gam
       <div className="data-row-meta">Bugünkü yürüyüş: {formatDuration(expedition.walking_seconds)} · Ek saat: {expedition.hours_beyond_eight} · Tükenmişlik: {expedition.exhaustion}/6</div>
       <div className="data-row-meta">Erzak takibi: {expedition.supplies_enabled ? 'Açık' : 'Kapalı — tüketim yok'}</div>
       {(expedition.extended_travel_saves ?? []).map((save, index) => (
-        <div className="mt-2 border-l border-[#866942] pl-3 text-sm" key={index} data-testid={`extended-travel-save-${index}`}>
+        <div className="mt-2 border-l border-[color-mix(in_srgb,var(--unw-accent-light)_55%,var(--unw-border))] pl-3 text-sm" key={index} data-testid={`extended-travel-save-${index}`}>
           <div>Uzun yürüyüş · CON kurtarışı · DC {save.dc} · {save.outcome === 'SUCCESS' ? 'Başarılı' : 'Başarısız'}</div>
           <div className="data-row-meta">d20: {save.raw_rolls.join(', ')} · Seçilen: {save.selected_roll} · Değiştirici: {save.total_modifier} · Toplam: {save.total}</div>
           <div className="data-row-meta">Yetenek: {save.modifier_breakdown.ability_modifier} · Yeterlilik: {save.modifier_breakdown.proficiency_modifier} · Durumsal: {save.modifier_breakdown.circumstantial_modifier}</div>

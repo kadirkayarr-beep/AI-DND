@@ -69,6 +69,7 @@ import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail,
 import { type TranscriptEntry } from '@/components/campaign-transcript';
 import { readReadingPreferences, writeReadingPreferences } from '@/lib/reading-preferences';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
+import { EnvironmentAtmosphere } from '@/components/environment-atmosphere';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
 import { playGateSound, primeGateSound } from '@/lib/gate-sound';
@@ -702,12 +703,12 @@ export default function GameBrowser() {
   const handleRevealContinue = () => {
     const opening = state?.scene?.opening;
     if (typeof opening === 'string' && opening.trim()) {
-      const transcript: TranscriptEntry[] = [{ kind: 'narration', text: opening }];
+      const transcript: TranscriptEntry[] = [{ kind: 'narration', text: opening, live: true }];
       setEntries(transcript);
       if (sessionId) {
         writeAdvisoryCache(
           `${TRANSCRIPT_KEY}${sessionId}`,
-          JSON.stringify(transcript),
+          JSON.stringify(transcript.map(({ kind, text }) => ({ kind, text }))),
         );
       }
     }
@@ -928,6 +929,7 @@ export default function GameBrowser() {
             kind: 'narration' as const,
             text: result.narration,
             skillCheckResult: result.skill_check_result ?? undefined,
+            live: true,
           },
         ];
         const wasFollowingResponse = transcriptFollowsBottom(wasAtBottom.current);
@@ -1266,6 +1268,7 @@ export default function GameBrowser() {
   return (
     <EnvironmentThemeProvider state={state}>
       <div className="design-preview dnd-app play-shell" data-testid="app-session">
+        <EnvironmentAtmosphere />
         <div className="preview-background">
         <div className="preview-banner"><span>GERÇEK KAMPANYA</span><span>{sessionLabel} · Defter numarası: {campaignId}</span></div>
         {state && <SessionHeader state={state} campaignId={campaignId} onSave={handleSave} saving={saveCampaign.isPending} onReset={reset} onDrawer={(next, opener) => { setPanelOpener(opener); setDrawer(next); }} onOpenCombat={(opener) => { setPanelOpener(opener); setActiveTab('combat'); setDrawer('world'); }} />}
@@ -1301,10 +1304,10 @@ export default function GameBrowser() {
             </>
           ) : stateQuery.isError ? (
             <div className="dnd-card p-7 workspace-error" data-testid="error-session-state">
-              <div className="flex items-center gap-2 text-[#dca49b]">
+              <div className="flex items-center gap-2 text-(color:--unw-danger-text)">
                 <AlertTriangle size={16} /> {statusCode(stateQuery.error) === 503 ? 'Dünya şu an sessiz.' : 'Yolculuğun izleri görünmüyor.'}
               </div>
-              <p className="dnd-serif mt-3 text-lg text-[#a99a80]">{friendlyError(stateQuery.error, 'Dünya şu an görünmüyor.')}</p>
+              <p className="dnd-serif mt-3 text-lg text-(color:--unw-text-soft)">{friendlyError(stateQuery.error, 'Dünya şu an görünmüyor.')}</p>
               <button className="dnd-button secondary mt-5" type="button" data-testid="button-retry-session-state" onClick={() => void stateQuery.refetch()}>
                 <RefreshCw size={14} /> Tekrar dene
               </button>

@@ -1,7 +1,7 @@
 .reading-settings {
   position: relative;
   flex: 0 0 auto;
-  color: #d8c8a9;
+  color: var(--unw-accent-light);
   font-family: inherit;
   font-size: 0.72rem;
 }
@@ -14,10 +14,10 @@
   justify-content: center;
   gap: 0.25rem;
   padding: 0.25rem 0.55rem;
-  border: 1px solid rgba(190, 143, 91, 0.4);
+  border: 1px solid color-mix(in srgb, var(--unw-accent-light) 28%, transparent);
   border-radius: 0.35rem;
-  color: #d8c8a9;
-  background: rgba(24, 20, 16, 0.86);
+  color: var(--unw-accent-light);
+  background: color-mix(in srgb, var(--unw-surface-sunken) 86%, transparent);
   cursor: pointer;
   list-style: none;
 }
@@ -27,7 +27,7 @@
 .reading-settings > summary:focus-visible,
 .reading-settings__reset:focus-visible,
 .reading-settings__control input:focus-visible {
-  outline: 2px solid #d8b47b;
+  outline: 2px solid color-mix(in srgb, var(--unw-accent-light) 55%, var(--unw-border));
   outline-offset: 2px;
 }
 
@@ -38,8 +38,8 @@
 }
 
 .reading-settings[open] > summary {
-  border-color: rgba(213, 167, 105, 0.72);
-  color: #f0dfbe;
+  border-color: color-mix(in srgb, var(--unw-accent-light) 50%, transparent);
+  color: var(--unw-accent-light);
 }
 
 .reading-settings__panel {
@@ -49,9 +49,9 @@
   gap: 0.85rem;
   margin-top: 0.55rem;
   padding: 0.85rem;
-  border: 1px solid rgba(190, 143, 91, 0.42);
+  border: 1px solid color-mix(in srgb, var(--unw-accent-light) 29%, transparent);
   border-radius: 0.45rem;
-  background: #171513;
+  background: var(--unw-surface-sunken);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
@@ -63,13 +63,13 @@
 }
 
 .reading-settings__label {
-  color: #e3d6bd;
+  color: var(--unw-text);
   font-size: 0.75rem;
   font-weight: 600;
 }
 
 .reading-settings__control output {
-  color: #d2b77f;
+  color: var(--unw-accent-light);
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
 }
@@ -79,7 +79,7 @@
   width: 100%;
   min-height: 2rem;
   margin: 0;
-  accent-color: #bc8955;
+  accent-color: var(--unw-accent-light);
   cursor: pointer;
 }
 
@@ -90,15 +90,15 @@
   justify-content: center;
   gap: 0.45rem;
   padding: 0.45rem 0.65rem;
-  border: 1px solid rgba(190, 143, 91, 0.32);
+  border: 1px solid color-mix(in srgb, var(--unw-accent-light) 22%, transparent);
   border-radius: 0.35rem;
-  color: #d8c8a9;
-  background: rgba(126, 83, 47, 0.12);
+  color: var(--unw-accent-light);
+  background: color-mix(in srgb, var(--unw-surface) 12%, transparent);
   cursor: pointer;
 }
 
 .reading-settings__reset:disabled {
-  color: rgba(216, 200, 169, 0.5);
+  color: color-mix(in srgb, var(--unw-accent-light) 50%, transparent);
   cursor: default;
 }
 

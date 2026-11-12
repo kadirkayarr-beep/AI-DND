@@ -187,12 +187,12 @@ export function DetailsPanel({ state }: { state: GameState }) {
   return <section className="state-panel" data-testid="panel-details">
     <Kicker><DoorOpen size={12} className="mr-1 inline" /> İncelenebilir</Kicker><h2>Ayrıntılar</h2>
     <div className="mt-4">{doors.length ? doors.map((door: GameDoor) => <div className="data-row" key={door.id} data-testid={`door-${door.id}`}>
-      <div className="data-row-head"><span className="flex items-center gap-2">{door.locked ? <LockKeyhole size={14} className="text-[#bc7062]" /> : <KeyRound size={14} className="text-[#c09a61]" />}{door.name}</span><span className="status-pill">{door.broken ? 'kırık' : door.open ? 'açık' : door.locked ? 'kilitli' : 'kapalı'}</span></div>
+      <div className="data-row-head"><span className="flex items-center gap-2">{door.locked ? <LockKeyhole size={14} className="text-(color:--unw-danger-text)" /> : <KeyRound size={14} className="text-(color:--unw-accent-light)" />}{door.name}</span><span className="status-pill">{door.broken ? 'kırık' : door.open ? 'açık' : door.locked ? 'kilitli' : 'kapalı'}</span></div>
       <div className="data-row-desc">{door.description}</div>
     </div>) : <div className="empty-line">{wayOut ? `Çıkış: ${wayOut.name}` : 'Bu bölgede kapı veya geçit görünmüyor.'}</div>}</div>
     <Rule />
-    <div className="mt-4"><Kicker>Çevredeki özellikler</Kicker><div className="mt-3">{features.length ? features.map((feature) => <div className="border-l border-[#866942] pl-3" key={feature.id} data-testid={`feature-${feature.id}`}>
-      <div className="font-serif text-[17px] text-[#d1c2a6]">{feature.name}</div><div className="subtle-text mt-1">{feature.description}</div>
+    <div className="mt-4"><Kicker>Çevredeki özellikler</Kicker><div className="mt-3">{features.length ? features.map((feature) => <div className="border-l border-[color-mix(in_srgb,var(--unw-accent-light)_55%,var(--unw-border))] pl-3" key={feature.id} data-testid={`feature-${feature.id}`}>
+      <div className="font-serif text-[17px] text-(color:--unw-text)">{feature.name}</div><div className="subtle-text mt-1">{feature.description}</div>
     </div>) : <div className="empty-line">{state.exploration ? 'Bilinen keşif bulguları ve geçitler keşif panelinde gösterilir.' : 'Burada belirgin bir çevre ayrıntısı görünmüyor.'}</div>}</div></div>
   </section>;
 }

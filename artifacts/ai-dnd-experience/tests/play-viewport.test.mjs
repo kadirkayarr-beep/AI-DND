@@ -132,7 +132,7 @@ test('play shell locks desktop viewports and allows scroll for narrow, short, an
   assert.doesNotMatch(viewport, /maximum-scale|user-scalable\s*=\s*no/);
   assert.doesNotMatch(play, /cc-point-buy|cc-method-tab|opening-screen|reveal-screen/);
   const creation = await readFile('src/components/character-creation-screen.css', 'utf8');
-  assert.match(creation, /\.cc-point-buy-bar,\s*\.cc-roll-bar \{[^}]*background: rgba\(238, 228, 204, \.65\)/s);
+  assert.match(creation, /\.cc-point-buy-bar,\s*\.cc-roll-bar \{[^}]*background: color-mix\(in srgb, var\(--unw-accent-light\) 14%, var\(--unw-surface\)\)/s);
 });
 
 test('the play screen fixture renders GameBrowser and does not touch auth', async () => {
@@ -191,7 +191,8 @@ test('transcript follow-bottom ends at the answer rather than a decorative tail'
   assert.match(html, /aria-description="Anlatı ve oyuncunun özgün sözleri tek akışta"/);
   assert.doesNotMatch(html, /class="reader-note"/,
     'a trailing note must not push a short answer above the small transcript viewport');
-  assert.match(html, /Son cevap tamamen okunmalı\.<\/p><\/div><\/div><\/div><button/);
+  // S3: the only thing after the answer text is the inline, empty, aria-hidden quill tip inside the same paragraph (no block, no height).
+  assert.match(html, /Son cevap tamamen okunmalı\.<span class="ink-tip" data-testid="ink-tip" aria-hidden="true"><\/span><\/p><\/div><\/div><\/div><button/);
 });
 
 
