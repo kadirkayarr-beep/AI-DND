@@ -159,15 +159,16 @@ class AdventureXp(_Money, unittest.IsolatedAsyncioTestCase):
         self.assert_paid_once(before)
         quest = copy.deepcopy(self.quest())
         again = rewards.apply_plan(self.session.character, self.world, quest)
-        self.assertEqual((again["replayed"], again["marker"], again.get("xp_summary")), (True, MARKER, None))
+        # YENİDEN YAZIM (4C.6 fix 1): the plan hands XP over as ``xp_due``; a replay owes none (was the renamed key)
+        self.assertEqual((again["replayed"], again["marker"], again["xp_due"]), (True, MARKER, 0))
         reply = await self.turn()
         self.assertIsNone(reply["level_up"])
         self.assert_paid_once(before)
 
 
 class AdventureXpEngine(_Money, unittest.TestCase):
-    """The session boundary itself: rollback of gold, XP, receipts and quest together; the lore stays local until
-    the award is admitted (J-099 finding 4: the runtime snapshot does not hold `campaign_lore_state`)."""
+    """The settle path: the plan's own rollback puts back gold, item, standing and the marker together; the branch XP is
+    paid last through the forfeiting boundary, so a refused XP never takes the gold or the standing back (4C.6, B1)."""
 
     def setUp(self):
         self.session = game.create_session(seed=4831)
