@@ -8,6 +8,7 @@ Kurallar için tek kaynak `CLAUDE.md`'dir ("Çalışma ve test disiplini", "Sahi
 - Her iş kendi worktree'sinde yapılır, aynı klasörde tek yazıcı çalışır. Açık worktree'ler: `git worktree list`.
 - Push, merge ve PR yalnızca Kadir'in o işlem için taze onayıyla yapılır; force push ve dal silme yoktur. İzinler `.claude/settings.json` dosyasındadır.
 - Plan, kapsam ve harcama değişikliklerini Kadir onaylar. Güncel plan ve devir belgeleri: `docs/design/INDEX.md`.
+- Güncel yol haritası `YOL_HARITASI_20261112.md` (Kadir onayladı, 2026-11-12). Şu an Faz 0: Kadir 30 dakika oynayana kadar yeni dilim (4D, Dilim 5) başlamaz; yalnız oynayış hazırlığı ve Kadir'in onayladığı düzeltmeler yapılır.
 - Açık parklar için tek defter: `docs/agents/debt-register.md`.
 
 ## Test
@@ -29,4 +30,4 @@ Kurallar için tek kaynak `CLAUDE.md`'dir ("Çalışma ve test disiplini", "Sahi
 
 ## Eski kayıtlar
 
-Cursor ve Replit dönemine ait kurallar (ortak dal `dev/ai-dnd`, `AI-DND-c-merge` klasörü, "main'e asla push/merge yok") 12 Kasım 2026'da bu dosyadan çıkarıldı; eski metin git geçmişindedir. `attached_assets/` tarihsel istem arşividir, güncel şartname değildir.
+Cursor ve Replit dönemine ait kurallar (ortak dal `dev/ai-dnd`, `AI-DND-c-merge` klasörü, "main'e asla push/merge yok") 12 Kasım 2026'da bu dosyadan çıkarıldı; eski metin git geçmişindedir. `attached_assets/` tarihsel istem arşividir, güncel şartname değildir. `replit.md`, `DEVELOPER_RECOMMENDATIONS.md` ve Cursor kural dosyası `docs/design/arsiv/eski-donem/` altına taşındı.

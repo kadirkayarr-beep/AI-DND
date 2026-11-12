@@ -78,6 +78,8 @@ Bunlar Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esa
 - **[Hız] Tek durma koşulları:** liste "Belirsizlik ve karar" maddesindeki dört durumdur (geri alınamaz/yıkıcı, güvenlik açısından hassas, worktree dışı yan etki, bozuk plan); burada tekrarlanmaz, başka durma koşulu eklenmez.
 - **[Hız] Token tasarrufu ve model seçimi:** haftalık limit dar; ucuz model işlere, fable yalnız para/kayıt/Geri Al ve bütün-dal incelemesine; yeni numaralı iş için önce bütçe tahmini.
 - **[Kalite] Sahibin dili:** kısa, açık, dürüst ve sade Türkçe; Kadir programcı değil, doğrulamadığını söyle (yanlış güven zarar verir); harcama/push/merge/silme için onay iste.
+- **[Kalite] Oynayış kapısı (Kadir, 2026-11-12):** Kadir en az 10 dakika oynamadan hiçbir dilim "bitti" sayılmaz; testlerin yeşil olması oynayışın yerini tutmaz. Oynayış yapılmadıysa ledger'a "oynayış bekliyor" yazılır ve sonraki dilim başlamaz.
+- **[Kalite] Sabah özeti (Kadir, 2026-11-12):** Kadir yokken yapılan her çalışmanın sonunda en çok beş satırlık sade Türkçe özet yazılır: ne değişti, neden, hangi dosyalarda, ne doğrulandı, Kadir'den ne bekleniyor.
 
 ## Otonom çalışma ve izinler
 
