@@ -50,9 +50,11 @@ _END_CONCENTRATION = re.compile(r"konsantrasyon\w*\s+(?:bırak|birak|bitir|kes|s
 # bırakıyorum", "konsantrasyonumu bitirdim", "I drop my concentration", "end concentration". Anything else that names it
 # (negated, asked, wished, conditional, said to someone, retracted after a comma) keeps it; the player can rephrase.
 # Only a later " and / then / ve / sonra " clause is cut off ("I drop concentration and do not attack" drops).
-_DROP_EN = re.compile(r"(?:i\s+)?(?:(?:will|now)\s+)?(?:end|drop|stop|break)\s+(?:my\s+)?concentration(?:\s+now)?")
-_DROP_TR = re.compile(r"(?:(?:artik|simdi)\s+)?konsantrasyon(?:u|umu)\s+(?:birak|bitir|kes|sonlandir)"
-                      r"(?:iyorum|tim|dim)?(?:\s+(?:artik|simdi))?")
+_DROP_EN = re.compile(r"(?:i\s+)?(?:(?:will|now)\s+)?(?:(?:end|drop|stop|break)\s+(?:my\s+)?concentration"
+                      r"|(?:stop|quit)\s+concentrating)(?:\s+now)?")
+_DROP_TR = re.compile(r"(?:(?:artik|simdi)\s+)?(?:konsantrasyon(?:u|umu)\s+(?:birak|bitir|kes|sonlandir)(?:iyorum|tim|dim)?"
+                      r"|(?:birak|bitir|kes|sonlandir)(?:iyorum|tim|dim)?\s+konsantrasyon(?:u|umu))"
+                      r"(?:\s+(?:artik|simdi))?")  # object-first or verb-first ("bırakıyorum konsantrasyonu")
 _LATER_CLAUSE = re.compile(r"\s(?:and|then|ve|sonra)\s")
 
 
