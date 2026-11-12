@@ -105,6 +105,22 @@ def named(message: Any) -> tuple[str, str] | None:
     return None
 
 
+# What a narrative cast never does (the engine wrote only the fact): coin, an item in the player's hand/bag/pocket,
+# finding or winning something, healing, damage. A narrator line that says so is replaced by the Python line.
+_STATE_CLAIM = re.compile(
+    r"\b(?:altin\w*|gumus\w*|bakir\w*|sikke\w*|para\w*|kese\w*|coin\w*|gold|silver|copper|purse\w*)\b"
+    r"|\b(?:cebin\w*|cebe|cantan\w*|avucun\w*|kesene|senin\w*dir|senin\s+olur\w*|yours|pocket\w*)\b"
+    r"|\belinde\s+kal\w*|\beline\s+(?:gec|al|dus)\w*|\bele\s+gecir\w*|\byour\s+(?:palm|hand|hands|bag|pack|pouch)\b"
+    r"|\b(?:bul(?:ur|up|dun|ursun|uyorsun)|kazan\w*|alirsin|edinirsin)\b|\b(?:find|found|gain\w*|receive\w*|earn\w*)\b"
+    r"|\byara\w*\s+(?:kapan|iyiles|gec)\w*|\biyiles\w*|\bcan\w*\s+(?:dol|art|yenilen)\w*|\bcan\s+puan\w*"
+    r"|\b(?:heal\w*|wound\w*|hit\s+points?)\b|\bhasar\w*|\bdamage\w*")
+
+
+def claims_state_change(text: Any) -> bool:
+    """True when a narrator line for a narrative cast claims coin, an item taken, healing or damage (none happened)."""
+    return isinstance(text, str) and bool(_STATE_CLAIM.search(_fold(text)))
+
+
 def _manifest_names() -> frozenset[str]:
     import spell_registry
     return frozenset(name for name in spell_registry._manifest_spells()

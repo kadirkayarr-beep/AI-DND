@@ -20750,6 +20750,13 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             resolved_turn.fallback_response if narration_only else None
         ),
     )
+    import spell_effects
+    if (resolved_turn.action_result.get("action") == "narrative_spell"
+            and spell_effects.claims_state_change(finalized_narration)):
+        # 4C.5: the engine wrote only the spell fact; a line claiming coin, an item, healing or damage is not shown.
+        packet["valid_response"] = False
+        packet["fallback_reason_code"] = "NARRATIVE_SPELL_STATE_CLAIM"
+        finalized_narration = resolved_turn.fallback_response
     if _narrated_money_can_lie(resolved_turn.action_result) and isinstance(packet.get("item_claims"), list):
         # Settled on the line the player will read: a sentence the safety pass took leaves no item behind.
         import pocket
