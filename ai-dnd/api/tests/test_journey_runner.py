@@ -436,6 +436,7 @@ class TheRunnerSortsEveryStep(JourneyCase):
         fresh = read_observed(self, campaign["session_id"])
         self.assertEqual((fresh["xp"], fresh["saat"], fresh["gorev"]), (0, 0, {"aktif": 0, "kayit": []}))
         self.assertIsNone(fresh["yuva"])  # the default character casts no spells (scenario 21 reads a caster's)
+        self.assertEqual(fresh["buyu_olgusu"], [])  # no narrative spell fact until one is cast (scenario 49)
         casting = {"slots": {"1": 2}}
         slots = runner._spell_slots({"spellcasting_v1": casting})
         self.assertEqual(slots, {"1": 2})

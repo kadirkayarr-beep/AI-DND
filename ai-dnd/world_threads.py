@@ -609,7 +609,7 @@ def _split_closed(threads):
 
 def _unpaid(world, thread):
     """A finished job whose experience the turn has not paid yet (no ``job:`` receipt): it must not be trimmed away."""
-    if world is None or thread.get("xp_due") is None:
+    if world is None or thread.get("xp_due") is None or thread.get("xp_forfeited") is True:
         return False
     import xp
     held = world.get("xp_awarded_event_ids")
@@ -1936,6 +1936,7 @@ def validate(state: Any) -> None:
     if not isinstance(state, dict) or state.get("version") != SCHEMA_VERSION:
         raise ValueError("World thread state is invalid.")
     import world_happenings
+    import xp
     world_happenings.validate(state.get("happenings"))
     world_happenings._validate_links(state.get(world_happenings.LINKS))
     threads, history = state.get("threads"), state.get("history")
@@ -1958,8 +1959,10 @@ def validate(state: Any) -> None:
         if thread["status"] in TERMINAL and any(
                 thread.get(name) is not None and type(thread.get(name)) is not int for name in _OPTIONAL_INTS):
             raise ValueError("World thread record is invalid.")
-        if "xp_due" in thread and (type(thread["xp_due"]) is not int or not 0 < thread["xp_due"] <= 100_000
+        if "xp_due" in thread and (type(thread["xp_due"]) is not int or not 0 < thread["xp_due"] <= xp.MAX_GRANT
                                    or thread["status"] != "done"):  # owed only for a finished job, and never nothing
             raise ValueError("World thread record is invalid.")
+        if "xp_forfeited" in thread and (thread["xp_forfeited"] is not True or "xp_due" not in thread):
+            raise ValueError("World thread record is invalid.")  # B1: a due grant that could not be recorded
         if any(thread.get(name) is not None and not isinstance(thread.get(name), str) for name in _OPTIONAL_TEXTS):
             raise ValueError("World thread record is invalid.")

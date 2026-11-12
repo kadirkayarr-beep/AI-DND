@@ -64,7 +64,7 @@ class AsiProjectionTests(unittest.TestCase):
     def test_rejected_and_unsupported_inputs_preserve_character(self):
         session = create(3)
         for changes, target, choice in (
-            ({'class': 'Wizard'}, 4, {'increase': {'constitution': 2}}),
+            ({'class': 'Bard'}, 4, {'increase': {'constitution': 2}}),
             ({'level': 6}, 4, {'increase': {'constitution': 2}}),
             ({'progression_level': 2}, 4, {'increase': {'constitution': 2}}),
             ({'level': True}, 4, {'increase': {'constitution': 2}}),

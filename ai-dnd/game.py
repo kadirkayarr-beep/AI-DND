@@ -2345,7 +2345,7 @@ def _validate_combat_v3_payload(combat):
             or max_hp < 1
             or current_hp > max_hp
             or armor_class < 0
-            or participant_status not in ("active", "unconscious", "defeated", "dead", "inactive")
+            or participant_status not in ("active", "unconscious", "defeated", "dead", "inactive", "surrendered")
             or type(action_available) is not bool
             or action_available != (participant_id not in actions_used)
         ):
@@ -2540,6 +2540,12 @@ def _validate_save_payload(payload):
     weapon_attack.validate_saved_reckless(saved_world, player)
     import monk_features
     monk_features.validate_saved_effects(saved_world, player)
+    import spell_concentration
+    spell_concentration.validate_saved(saved_world, player)
+    import spell_scope
+    spell_scope.validate_saved_riders(saved_world)
+    import spell_effects
+    spell_effects.validate_saved(saved_world)
     _validate_saved_multilevel_slots(player, saved_world)
     species = player.get("species", player["race"])
     if species not in RACES:
@@ -3014,6 +3020,8 @@ def load_game(path):
         recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
         _normalize_ground_items()
         ensure_combat_state()
+        import spell_scope
+        spell_scope.upgrade(world_state, character)  # 4C.2: spell state version 1 -> 2; chooses no spell
         # Keep the file's own version. The current default is v4, and a v1–v3
         # file must still be written back as that same version.
         _session()._persisted_engine_format = payload["version"]
@@ -3667,6 +3675,8 @@ def _combat_record_for_actor(participant_id, initiative=None, actions_used=()):
         raise ValueError("Active combat participant has an invalid status.")
     if npc.get("location") != session.world_state.get("location"):
         status = "inactive"  # Real authoritative relocation, not a fabricated turn.
+    elif status == "active" and action_economy._surrendered(session, participant_id):
+        status = "surrendered"  # the fight's own accepted surrender: out of the fight, no longer an enemy
     return {
         "id": participant_id,
         "kind": "npc",
@@ -4888,7 +4898,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         healing = min(sum(rolls), character["max_hp"] - character["current_hp"])
         heal_player(healing)
         state["healing_hands_uses_remaining"] -= 1
-        effects = {"dice": rolls, "healing": healing, "current_hp": character["current_hp"]}
+        effects = {"dice": rolls, "healing": healing, "heal_source": "species", "current_hp": character["current_hp"]}
         message = f"Şifa Veren Eller {healing} can puanı yeniledi."
         if combat["active"]:
             _mark_combat_action_used("player", "feature")
@@ -5090,7 +5100,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             "adrenaline_rush": max(0, (character.get("proficiency_bonus", 2) if species == "Orc" else 0) - old_state["adrenaline_rush_uses_remaining"]),
             "relentless_endurance": not old_state["relentless_endurance_available"] and species in {"Orc", "Half-Orc"},
         }
-        heal_player(character["max_hp"] - character["current_hp"])
+        long_rest_healing = heal_player(character["max_hp"] - character["current_hp"])
         import hit_dice
         hit_dice.restore_all(character)  # PHB 2024 Long Rest: ALL spent Hit Point Dice return
         _session().world_state["player_combat_status"] = "active"
@@ -5105,9 +5115,12 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 npc.pop("speed_penalty_turns_remaining", None)
                 npc.pop("prone", None)
         state = character["species_trait_state"]
-        effects = {"refreshed": refreshed, "current_hp": character["current_hp"]}
+        effects = {"refreshed": refreshed, "current_hp": character["current_hp"],
+                   "healing": long_rest_healing, "heal_source": "rest"}
         import spell_scope
         spell_scope.restore_slots(_session())
+        import spell_preparation
+        spell_preparation.open_window(_session(), "long_rest")  # 4C.2: Wizard/Cleric choose again after a finished Long Rest
         import sorcery_points
         sorcery_points.restore(_session())
         import barbarian_rage
@@ -5494,6 +5507,8 @@ def _start_combat_with_initiative(player_target_npc):
         "target_id": target_id,
         "end_reason": None,
     })
+    import spell_preparation
+    spell_preparation.close_window(_session())  # 4C.2: a fight ends the preparation window for good
     _clear_active_interlocutor("combat")
     for npc in enemies:
         # People in one room see the one who just hit them; no scenario has to say so.
@@ -5670,6 +5685,10 @@ def _apply_attack_damage_to_player(damage, critical, hit):
         player_status_after = world_state["player_combat_status"]
     if endurance_used:
         player_status_after = "active"
+    concentration_check = None
+    if endurance_used or hit:
+        import spell_concentration
+        concentration_check = spell_concentration.after_damage(_session(), damage)  # one save per damage instance (4C.4b)
     return {"damage": damage, "target_hp_before": player_hp_before,
             "target_hp_after": player_hp_after, "target_status": player_status_after,
             "hp_damage": hp_damage,
@@ -5677,7 +5696,8 @@ def _apply_attack_damage_to_player(damage, critical, hit):
             "temporary_hp_absorbed": temporary_hp_absorbed,
             "temporary_hp_after": trait_state["temporary_hit_points"],
             "species_effects": species_effects,
-            "death_resolution": death_resolution}
+            "death_resolution": death_resolution,
+            **({"concentration_check": concentration_check} if concentration_check is not None else {})}
 
 
 def end_combat(reason="combat_ended"):
@@ -5685,9 +5705,10 @@ def end_combat(reason="combat_ended"):
     combat = ensure_combat_state()
     if not combat["active"]:
         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
+    _session()._surrender_strike_asked = None  # a question about a surrendered foe ends with its fight
     if reason in ("target_defeated", "parley_accepted", "opponents_relocated"):
         import xp
-        _session()._receive_xp_award(
+        _session()._forfeit_unrecordable_xp(  # a refused award never keeps the fight going (B1, D-013)
             xp.award_defeated_combat, combat, _session().world_state, _session().character,
             person_kind=person_fight_kind,
         )
@@ -5695,6 +5716,8 @@ def end_combat(reason="combat_ended"):
     barbarian_rage.settle(_session(), combat_active=True)
     import rogue_features
     rogue_features.combat_ended(_session())
+    import spell_concentration
+    spell_concentration.end(_session(), "combat_ended")  # a first-cut spell belongs to its fight (4C.4b)
     identity = combat["combat_id"]
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
@@ -5714,6 +5737,8 @@ def _begin_combat_actor_turn(participant_id):
     combat["current_turn_index"] = combat["initiative_order"].index(participant_id)
     combat["current_actor_id"] = participant_id
     action_economy.begin_turn(_session(), participant_id)
+    import spell_concentration
+    spell_concentration.settle(_session())  # Incapacitated or its minute is over (4C.4b)
     import monster_combat
     monster_combat.begin_turn(_session(), participant_id)
     _sync_combat_participant_records(combat)
@@ -5938,6 +5963,12 @@ def _enemy_exchange_text(enemies, named=None):
             text += (f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın." if subject
                      else f" {first} karşı saldırıya geçer; {kind and 'kritik bir vuruşla '}sana isabet eder; "
                           f"{enemy['damage']} hasar alırsın.")
+        check = enemy.get("concentration_check")  # 4C.4b: the engine's Constitution save, told as it fell
+        if isinstance(check, dict) and check.get("kept"):
+            text += (f" Konsantrasyonunu korursun ({check['spell_id']}; Dayanıklılık kurtarması "
+                     f"{check['total']}, ZS {check['dc']}).")
+        elif isinstance(check, dict):
+            text += f" Konsantrasyonun bozulur; {check['spell_id']} sona erer."
         said = (enemy.get("actor_id") or enemy.get("actor"), enemy.get("outcome"))
         if said not in announced:
             announced.add(said)
@@ -18599,8 +18630,10 @@ def _run_player_turn_keyed(
     import xp
     if xp.job_grants_due(_session().world_state):
         # A job finished in this turn (by any route, direct ones included) is paid here, before the turn is answered.
-        # A refused grant raises: the turn's own boundary then puts back the job's close and its money with it.
-        _session()._receive_xp_award(xp.award_finished_jobs, _session().world_state, _session().character)
+        # A grant that cannot be recorded is forfeited (B1): the job keeps its close and its wage, and its thread is
+        # marked so no later turn owes it again.
+        _session()._forfeit_unrecordable_xp(xp.award_finished_jobs, _session().world_state, _session().character)
+        xp.forfeit_jobs(_session().world_state, xp.job_grants_due(_session().world_state))
     if isinstance(result, dict) and isinstance(action_result, dict):
         _session()._publish_level_up(action_result)
         local_dialogue.remember_native_reply(
@@ -18944,6 +18977,7 @@ def player_cannot_act_turn():
         "action_result": {
             "action": "narrative", "status": status, "success": False,
             "state_changes": [], "direct_response": narration,
+            **({"healing": 1, "heal_source": "death_save"} if status == "player_rescued" else {}),
         },
     }
 
@@ -19832,6 +19866,10 @@ def _dispatch_player_turn(
                                              "do", action_id)
     _reopen_public_doors()
     player_input = combat_lifecycle.answered_attack_question(_session(), player_input)
+    surrender_answer = (combat_lifecycle.answered_surrender_question(_session(), player_input)
+                        if combat_action is None else None)
+    if surrender_answer is not None:
+        player_input, combat_action, target_id = surrender_answer  # the asked blow, at the asked foe only
     if getattr(_session(), "_which_move", None):
         return _ask_which_move(_session()._which_move)
     owner_reply = _owner_module_reply(player_input, interaction_mode)
@@ -19896,6 +19934,13 @@ def _dispatch_player_turn(
         _session()._front_ahead = True
     if getattr(_session(), "_front_strike", None):
         target_id, interaction_mode = _session()._front_strike["id"], "do"
+    import spell_effects
+    if (combat_action is None and interaction_mode not in {"say", "ask_dm"}
+            and not getattr(_session(), "_front_strike", None) and spell_effects.named(player_input) is not None):
+        # 4C.5: a narrative spell (or one not in the engine yet) is the spell owner's, never a walk, a knock or an item
+        # move; the engine answers it inside the turn and the narrator tells the fact.
+        return _dispatch_turn_body(player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                                   session_id, check_feature, check_evidence)
     if combat_action is None:
         import fallen
         body = fallen.addressed_body(_session(), player_input) if not combat_lifecycle.is_attack_decision(_session(), player_input) else None
@@ -20177,6 +20222,10 @@ def _dispatch_player_turn(
     spell_command = (spell_scope.natural_command(player_input, target_id)
                      if combat_action is None and not planning else None)
     if spell_command is not None:
+        surrender_question = combat_lifecycle.surrendered_strike_question(
+            _session(), player_input, target_id, spell_command)  # a harmful spell is asked like a blow (D-036)
+        if surrender_question is not None:
+            return surrender_question
         return action_economy.execute(_session(), spell_command, action_id, session_id)
     import bounded_encounter
     if not planning:
@@ -20203,6 +20252,9 @@ def _dispatch_player_turn(
             return fled
     command = combat_action or (None if planning else
                                action_economy.natural_command(_session(), player_input, target_id))
+    surrender_question = combat_lifecycle.surrendered_strike_question(_session(), player_input, target_id, command)
+    if surrender_question is not None:
+        return surrender_question
     if command:
         return action_economy.execute(_session(), command, action_id, session_id)
     if action_economy.pending_reaction(_session()):
@@ -20700,6 +20752,13 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             resolved_turn.fallback_response if narration_only else None
         ),
     )
+    import spell_effects
+    if (resolved_turn.action_result.get("action") == "narrative_spell"
+            and spell_effects.claims_state_change(finalized_narration)):
+        # 4C.5: the engine wrote only the spell fact; a line claiming coin, an item, healing or damage is not shown.
+        packet["valid_response"] = False
+        packet["fallback_reason_code"] = "NARRATIVE_SPELL_STATE_CLAIM"
+        finalized_narration = resolved_turn.fallback_response
     if _narrated_money_can_lie(resolved_turn.action_result) and isinstance(packet.get("item_claims"), list):
         # Settled on the line the player will read: a sentence the safety pass took leaves no item behind.
         import pocket
@@ -21205,6 +21264,16 @@ def _run_player_turn_internal(
             quest_world_before=quest_world_before,
         )
         raise TurnResolved(result, resolved)
+
+    import spell_effects
+    spell_reading = (spell_effects.named(player_input)
+                     if interaction_mode not in {"say", "ask_dm"} and isinstance(player_input, str)
+                     and _session().character.get("current_hp", 0) > 0 else None)  # a body on the ground saves
+    if spell_reading is not None:
+        # 4C.5: the engine decides and commits (a fact, or a truthful line that nothing was cast); a resolved fact goes
+        # to the turn narrator (narration only, the line is its fallback), a refusal is told as it is.
+        cast = spell_effects.resolve(_session(), spell_reading)
+        return finish_turn(cast["action_result"], cast["narration"])
 
     def finish_conversation_rejection(target):
         action_result = {
@@ -23592,6 +23661,32 @@ _DEFAULT_SESSION = None
 _ENGINE_NAMESPACE = globals()
 
 
+def _restore_in_place(live, saved):
+    """Make ``live`` equal ``saved`` while keeping every container both still hold the live object (B1 forfeit).
+
+    ``saved`` is a private deep copy the caller gives up. Dicts lose keys ``saved`` lacks; lists are matched by position
+    (surplus items dropped, missing ones appended); a value of another type is replaced.
+    """
+    if isinstance(live, dict):
+        for key in [key for key in live if key not in saved]:
+            del live[key]
+        for key, value in saved.items():
+            current = live.get(key)
+            if key in live and type(current) is type(value) and isinstance(value, (dict, list)):
+                _restore_in_place(current, value)
+            else:
+                live[key] = value
+    else:
+        del live[len(saved):]
+        for index, value in enumerate(saved):
+            if index >= len(live):
+                live.append(value)
+            elif type(live[index]) is type(value) and isinstance(value, (dict, list)):
+                _restore_in_place(live[index], value)
+            else:
+                live[index] = value
+
+
 class GameSession:
     """Independent player, world, narration history, conversation and dice."""
 
@@ -23624,16 +23719,7 @@ class GameSession:
         had_format = "_persisted_engine_format" in self.__dict__
         old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
         try:
-            summary = award_owner(*args, **kwargs)
-            crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
-                        and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
-            if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in _SUPPORTED_SAVE_VERSIONS:
-                raise ValueError("Numeric advancement requires a supported save format.")
-            self._remember_xp_award(summary)
-            if crossing:
-                # Read through the real production admission owner before commit.
-                self._validate_save_payload(self.serialize_game_state())
-            return summary
+            return self._admit_xp_award(award_owner, *args, **kwargs)
         except Exception:
             self._restore_runtime_snapshot(snapshot)
             if had_format:
@@ -23641,6 +23727,52 @@ class GameSession:
             else:
                 self.__dict__.pop("_persisted_engine_format", None)
             raise
+
+    def _admit_xp_award(self, award_owner, *args, **kwargs):
+        summary = award_owner(*args, **kwargs)
+        crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
+                    and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
+        if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in _SUPPORTED_SAVE_VERSIONS:
+            raise ValueError("Numeric advancement requires a supported save format.")
+        self._remember_xp_award(summary)
+        if crossing:
+            # Read through the real production admission owner before commit.
+            self._validate_save_payload(self.serialize_game_state())
+        return summary
+
+    def _forfeit_unrecordable_xp(self, award_owner, *args, **kwargs):
+        """B1 (D-001, D-013): the product's XP boundary. An award that cannot be recorded (a full receipt list, the XP
+        cap, an unknown class at a level step, a level-5 crossing the save admission refuses) is put back and logged,
+        and play goes on without it instead of being refused on every later turn. Returns the summary, or None.
+
+        Character and world are put back to their exact earlier values *in place* (`_restore_in_place`): every nested
+        container a caller holds (the fight being ended, the creature just knocked out, ``saving_throw_mods``) stays
+        the live object, and whatever the award or the save check wrote (receipts, level, the save check's
+        ``scene_state`` default-fill) is undone. The pending announcement and the save format are put back too. The RNG
+        and the narration history are not touched by an award and are not restored. A non-ValueError is a bug: put
+        back, raised.
+        """
+        character = copy.deepcopy(self.character)
+        world = copy.deepcopy(self.world_state)
+        pending = copy.deepcopy(self._xp_level_up)
+        had_format = "_persisted_engine_format" in self.__dict__
+        old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
+        try:
+            return self._admit_xp_award(award_owner, *args, **kwargs)
+        except Exception as error:
+            _restore_in_place(self.character, character)
+            _restore_in_place(self.world_state, world)
+            self._xp_level_up = pending
+            if had_format:
+                self._persisted_engine_format = old_format
+            else:
+                self.__dict__.pop("_persisted_engine_format", None)
+            if not isinstance(error, ValueError):
+                raise
+            import logging
+            logging.getLogger(__name__).warning("An experience award could not be recorded and is forfeited (B1): %s",
+                                                error)
+            return None
 
     def _remember_xp_award(self, summary):
         """Fold another award into the single announcement for this turn."""

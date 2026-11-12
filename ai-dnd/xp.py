@@ -330,7 +330,7 @@ def award_downed(npc: Mapping[str, Any], world: dict[str, Any], character: dict[
 
 
 class JobXpRefused(ValueError):
-    """A finished job's experience is due and could not be recorded: the turn that finished it must not stand."""
+    """A finished job's experience is due and could not be recorded (the session forfeits it: ``forfeit_jobs``)."""
 
 
 def _job_award_id(thread_id: str) -> str:
@@ -353,7 +353,7 @@ def job_grants_due(world: Mapping[str, Any]) -> list[tuple[str, int]]:
         if not isinstance(thread, dict) or thread.get("status") != "done" or not isinstance(thread.get("thread_id"), str):
             continue
         due = thread.get("xp_due")
-        if type(due) is not int or due <= 0:
+        if type(due) is not int or due <= 0 or thread.get("xp_forfeited") is True:
             continue
         event_id = _job_award_id(thread["thread_id"])
         if event_id not in held and all(event_id != listed for listed, _ in grants):
@@ -375,6 +375,28 @@ def award_finished_jobs(world: dict[str, Any], character: dict[str, Any]):
     summary = apply_xp_grants(character, world, grants)
     if summary is None:
         raise JobXpRefused("A finished job's experience could not be recorded.")
+    return summary
+
+
+def forfeit_jobs(world: dict[str, Any], grants: Sequence[tuple[str, int]]) -> None:
+    """B1: these finished jobs' XP could not be recorded. Each thread keeps ``xp_due`` and gets ``xp_forfeited: True``,
+    so no later turn owes it again (and the history may trim it); there is still no ``job:`` receipt."""
+    import world_threads
+    if not grants:
+        return
+    forfeited = {event_id for event_id, _ in grants}
+    state = world_threads.view(world) or {}
+    for thread in (*state.get("threads", []), *state.get("history", [])):
+        if (isinstance(thread, dict) and isinstance(thread.get("thread_id"), str)
+                and _job_award_id(thread["thread_id"]) in forfeited):
+            thread["xp_forfeited"] = True
+
+
+def award_reward_branch(character: dict[str, Any], world: dict[str, Any], amount: int, marker: str):
+    """An adventure branch's XP under its ``quest:<id>:<outcome>`` receipt; a grant that cannot be recorded raises."""
+    summary = apply_xp(character, world, amount, marker)
+    if summary is None:
+        raise ValueError("Deneyim ödülü uygulanamadı.")
     return summary
 
 

@@ -5,16 +5,17 @@ from __future__ import annotations
 import copy
 
 import equipment_economy
-import xp
 
 REWARD_MARKER = "quest:{quest_id}:{outcome}"
 
 
 def apply_plan(character, world, quest, lore_state=None):
-    """Pay one branch once. A failed owner call restores the snapshots.
+    """Pay one branch's gold, item and standing once, under its marker. A failed owner call restores the snapshots.
 
-    ``xp_summary`` is the XP owner's summary (None when the branch pays no XP);
-    the session boundary announces it and admits a crossing to level 5.
+    The branch's XP is not paid here: ``xp_due`` (0 when none) is paid last by the session's XP boundary under the
+    same marker as its receipt, so an XP grant that cannot be recorded is forfeited alone (B1) and never takes the
+    gold back or keeps the branch unpaid. A marker lost from a save whose receipt exists is put back and nothing is
+    paid again: the receipt is only ever written after the rest of the branch.
     """
     if quest.get("record_kind") != "dynamic":
         return None
@@ -25,17 +26,15 @@ def apply_plan(character, world, quest, lore_state=None):
         return None
     marker = REWARD_MARKER.format(quest_id=quest["quest_id"], outcome=outcome)
     if quest.get("reward_application_id") == marker:
-        return {"replayed": True, "marker": marker, "xp_summary": None}
+        return {"replayed": True, "marker": marker, "xp_due": 0}
+    receipts = world.get("xp_awarded_event_ids")
+    if branch.get("xp", 0) > 0 and isinstance(receipts, list) and marker in receipts:
+        quest["reward_application_id"] = marker  # B1: the branch was paid in full before its marker was lost
+        return {"replayed": True, "marker": marker, "xp_due": 0}
     before_character = copy.deepcopy(character)
     before_world = copy.deepcopy(world)
     before_quest = copy.deepcopy(quest)
-    summary = None
     try:
-        if branch.get("xp", 0) > 0:
-            paid = xp.apply_xp(character, world, branch["xp"], marker)
-            if paid is None:
-                raise ValueError("Deneyim ödülü uygulanamadı.")
-            summary = paid
         gold = branch.get("gold", 0)
         if gold > 0:
             pool = f"adventure-pool:{quest['quest_id']}"
@@ -78,4 +77,4 @@ def apply_plan(character, world, quest, lore_state=None):
         quest.clear()
         quest.update(before_quest)
         raise
-    return {"replayed": False, "marker": marker, "lore_state": lore_state, "xp_summary": summary}
+    return {"replayed": False, "marker": marker, "lore_state": lore_state, "xp_due": branch.get("xp", 0)}

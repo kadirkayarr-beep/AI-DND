@@ -626,7 +626,9 @@ def _is_beaten(session, actor):
 
 def surrendered_in(world, combat_id, actor_id):
     """True when the foe's accepted SURRENDER proposal belongs to this fight (a parley is not a surrender)."""
-    memory = (world.get("monster_combat", {}).get("actors", {}) or {}).get(actor_id)
+    root = world.get("monster_combat")
+    actors = root.get("actors") if isinstance(root, dict) else None
+    memory = actors.get(actor_id) if isinstance(actors, dict) else None
     if not isinstance(memory, dict) or not isinstance(combat_id, str) or not combat_id:
         return False
     return any(
@@ -682,6 +684,8 @@ def player_response(session, text, target_id=None):
                    and not _is_beaten(session, a)]
         if all(any(p["status"] == "accepted" for p in root.get(a, {}).get("proposals", [])) for a in enemies):
             session.end_combat("parley_accepted")
+        elif combat["active"]:
+            session._sync_combat_participant_records(combat)  # an accepted surrender is written as 'surrendered' now
     return {"messages": session.messages, "model_calls": 0,
             "narration": "Teklifi kabul ettin." if accepted else "Teklifi reddettin; çatışma sürüyor.",
             "action_result": {"action": "monster_proposal_response", "status": "resolved",

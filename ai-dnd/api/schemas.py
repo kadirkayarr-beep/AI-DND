@@ -454,6 +454,10 @@ class CombatAttackResult(BaseModel):
     )
 
 
+HEAL_SOURCES = ("spell", "rest", "class_feature", "species", "death_save", "potion")  # "potion": reserved, no engine path yet
+HealSource = Literal["spell", "rest", "class_feature", "species", "death_save", "potion"]
+
+
 class CombatTurnResult(CombatAttackResult):
     economy_steps: list[dict[str, Any]] | None = None
     combat_id: str | None = None
@@ -466,6 +470,8 @@ class CombatTurnResult(CombatAttackResult):
     save_roll: int | None = None
     save_dc: int | None = None
     healing: int | None = None
+    # Left out when absent, so a receipt stored before 4C.1 replays byte for byte.
+    heal_source: HealSource | None = Field(default=None, exclude_if=lambda value: value is None)
     slot_spent: bool | None = None
     combat_started: bool | None = None
     combat_ended: bool | None = None
@@ -680,6 +686,9 @@ class TurnOutcome(BaseModel):
     # Only a counter trade or offer names its engine reason (offer_stale, price_changed, ...), so the panel can ask again.
     # Left out when absent, so a receipt stored before this field replays byte for byte.
     reason: str | None = Field(default=None, max_length=48, exclude_if=lambda value: value is None)
+    # A healing turn outside a fight (the last call's one Hit Point); left out when absent.
+    healing: int | None = Field(default=None, ge=0, exclude_if=lambda value: value is None)
+    heal_source: HealSource | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class TurnResponse(BaseModel):
@@ -778,6 +787,63 @@ class SpeciesTraitCommandResult(BaseModel):
     action_id: str | None = None
     state: dict[str, Any]
     result: SpeciesTraitActionResult
+
+
+class SpellPrepareRequest(BaseModel):
+    """4C.2: the player's own preparation list; the engine keeps the valid names and never adds one."""
+    model_config = ConfigDict(extra="forbid")
+
+    # Omitted keeps today's list (a plain "done" with close); [] is an explicit empty list. Names and the list are capped
+    # so an oversized value is refused before it can reach a stored receipt through `dropped`.
+    prepared: Annotated[list[Annotated[StrictStr, Field(max_length=64)]], Field(max_length=32)] | None = None
+    close: StrictBool = False
+    action_id: UUID | None = None
+
+
+class SpellPrepareDropped(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    spell_id: str
+    reason: Literal["duplicate", "cantrip", "not_in_spellbook", "not_on_class_list"]
+
+
+class SpellPrepareView(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    supported: bool
+    blocked_reason: Literal["not_preparing_class", "spellbook_missing"] | None = None
+    class_name: str | None = None
+    open: bool
+    reason: Literal["creation", "long_rest", "migration", "level_up"] | None = None
+    limit: int
+    candidates: list[str]
+    prepared: list[str]
+    spellbook: list[str] | None = None
+
+
+class SpellPrepareViewResponse(SpellPrepareView):
+    session_id: str
+
+
+class SpellPrepareResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["prepared", "too_many"]
+    prepared: list[str]
+    dropped: list[SpellPrepareDropped]
+    limit: int
+    excess: int
+    open: bool
+    message: str
+
+
+class SpellPrepareCommandResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str
+    action_id: str | None = None
+    state: dict[str, Any]
+    result: SpellPrepareResult
 
 
 class LevelUpConIncrease(BaseModel):
@@ -1034,6 +1100,36 @@ class PaladinLevelChoices(BaseModel):
     level_3: PaladinLevel3Choices = Field(default_factory=lambda: None, alias="3", exclude_if=lambda value: value is None)
     level_4: PaladinLevel4Choices = Field(default_factory=lambda: None, alias="4", exclude_if=lambda value: value is None)
     level_5: PaladinLevel5Choices = Field(default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None)
+
+
+class WizardSpellbookChoices(BaseModel):
+    """Wizard levels 2 and 5: two spells for the spellbook (PHB PDF 164); the step owner checks them against the slotted Wizard lists."""
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+
+
+class WizardLevel3Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+    subclass_id: Literal["evoker"]
+
+
+class WizardLevel4Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spells: list[StrictStr] = Field(min_length=2, max_length=2)
+    cantrips: list[StrictStr] = Field(min_length=1, max_length=1)
+    asi: LevelUpAsiChoice
+
+
+class ClericLevel3Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    subclass_id: Literal["life_domain"]
+
+
+class ClericLevel4Choices(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    cantrips: list[StrictStr] = Field(min_length=1, max_length=1)
+    asi: LevelUpAsiChoice
 
 
 class RogueLevel3Choices(BaseModel):
@@ -1573,12 +1669,14 @@ class LevelUpApplyRequest(BaseModel):
     campaign_id: UUID
     expected_revision: int = Field(strict=True, ge=0)
     target_level: int = Field(strict=True, ge=2, le=5)
-    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices
+    choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices | WizardSpellbookChoices | WizardLevel3Choices | WizardLevel4Choices | ClericLevel3Choices | ClericLevel4Choices
 
     @model_validator(mode="after")
     def choices_match_target(self):
-        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices, PaladinLevel2Choices), 3: (SorcererLevel3Choices, BarbarianLevel3Choices, FighterLevel3Choices, MonkLevel3Choices, RogueLevel3Choices, PaladinLevel3Choices),
-                    4: (LevelUpChoices, BarbarianLevel4Choices, PaladinLevel4Choices), 5: (LevelUpFiveChoices, BarbarianLevel2Choices, PaladinLevel5Choices)}[self.target_level]
+        expected = {2: (SorcererLevel2Choices, BarbarianLevel2Choices, PaladinLevel2Choices, WizardSpellbookChoices),
+                    3: (SorcererLevel3Choices, BarbarianLevel3Choices, FighterLevel3Choices, MonkLevel3Choices, RogueLevel3Choices, PaladinLevel3Choices, WizardLevel3Choices, ClericLevel3Choices),
+                    4: (LevelUpChoices, BarbarianLevel4Choices, PaladinLevel4Choices, WizardLevel4Choices, ClericLevel4Choices),
+                    5: (LevelUpFiveChoices, BarbarianLevel2Choices, PaladinLevel5Choices, WizardSpellbookChoices)}[self.target_level]
         if not isinstance(self.choices, expected):
             raise ValueError("Level-up choice shape does not match target level.")
         return self
@@ -1604,6 +1702,7 @@ class LevelUpPreviewResponse(BaseModel):
     subclass_options: list[SorcererSubclassOption] = Field(default_factory=list)
     primal_knowledge_skill_options: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
     fighting_style_options: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
+    spellbook_spell_ids: list[str] | None = Field(default=None, exclude_if=lambda value: value is None)
     effects_supported: list[str] = Field(default_factory=list)
     choices_required: dict[str, int] = Field(default_factory=dict)
     cantrip_ids: list[str] = Field(default_factory=list)

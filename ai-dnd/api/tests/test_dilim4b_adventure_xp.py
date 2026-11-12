@@ -1,4 +1,5 @@
-"""Dilim 4B Task 4: an adventure quest's reward-plan XP goes through the session boundary (`_receive_xp_award`).
+"""Dilim 4B Task 4: an adventure quest's reward-plan XP goes through the session boundary (since 4C.6 the forfeiting
+one, `_forfeit_unrecordable_xp`, after the branch's gold, item and standing).
 
 Route tests play real HTTP turns on a fixed town (4831) with a finished DELIVERY quest planted the way the engine
 leaves one (COMPLETED, outcome success, not yet paid); `adventure.play.settle_session` pays it at the turn's end.
@@ -158,15 +159,16 @@ class AdventureXp(_Money, unittest.IsolatedAsyncioTestCase):
         self.assert_paid_once(before)
         quest = copy.deepcopy(self.quest())
         again = rewards.apply_plan(self.session.character, self.world, quest)
-        self.assertEqual((again["replayed"], again["marker"], again.get("xp_summary")), (True, MARKER, None))
+        # YENİDEN YAZIM (4C.6 fix 1): the plan hands XP over as ``xp_due``; a replay owes none (was the renamed key)
+        self.assertEqual((again["replayed"], again["marker"], again["xp_due"]), (True, MARKER, 0))
         reply = await self.turn()
         self.assertIsNone(reply["level_up"])
         self.assert_paid_once(before)
 
 
 class AdventureXpEngine(_Money, unittest.TestCase):
-    """The session boundary itself: rollback of gold, XP, receipts and quest together; the lore stays local until
-    the award is admitted (J-099 finding 4: the runtime snapshot does not hold `campaign_lore_state`)."""
+    """The settle path: the plan's own rollback puts back gold, item, standing and the marker together; the branch XP is
+    paid last through the forfeiting boundary, so a refused XP never takes the gold or the standing back (4C.6, B1)."""
 
     def setUp(self):
         self.session = game.create_session(seed=4831)
@@ -182,18 +184,23 @@ class AdventureXpEngine(_Money, unittest.TestCase):
     def plant(self, **kwargs):
         return plant(self.session, "tavern", "npc.source", "npc.target", **kwargs)
 
-    def test_apply_plan_returns_its_xp_summary(self):
+    # YENİDEN YAZIM (4C.6, B1): apply_plan pays gold, item and standing under the marker and hands the XP to the
+    # session's boundary (``xp_due``), which pays it last; it no longer writes XP or a receipt itself.
+    def test_apply_plan_returns_its_xp_due(self):
         quest = self.plant()
+        before = (self.purse(), self.xp(), self.receipts())
         paid = rewards.apply_plan(self.session.character, self.world, quest)
-        self.assertEqual(paid["xp_summary"]["xp_gained"], 40)
-        self.assertEqual(set(paid), {"replayed", "marker", "lore_state", "xp_summary"})
+        self.assertEqual((paid["xp_due"], paid["marker"], paid["replayed"]), (40, MARKER, False))
+        self.assertEqual(set(paid), {"replayed", "marker", "lore_state", "xp_due"})
+        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25, before[1], before[2]))
+        self.assertEqual(quest["reward_application_id"], MARKER)
 
-    def test_a_gold_only_plan_has_no_xp_summary(self):
+    def test_a_gold_only_plan_has_no_xp_due(self):
         quest = self.plant()
         quest["reward_plan"]["success"]["xp"] = 0
         before = (self.purse(), self.xp(), self.receipts())
         paid = rewards.apply_plan(self.session.character, self.world, quest)
-        self.assertIsNone(paid["xp_summary"])
+        self.assertEqual(paid["xp_due"], 0)
         self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25, before[1], before[2]))
         play.settle_session(self.session)
         self.assertIsNone(self.session._xp_level_up)
@@ -218,26 +225,24 @@ class AdventureXpEngine(_Money, unittest.TestCase):
         self.assertIsNone(self.session._xp_level_up)
         self.assertIs(self.session.campaign_lore_state, lore)
 
-    def test_faction_reward_with_a_refused_level_five_admission_keeps_the_old_lore(self):
-        """J-099 finding 4, verified: a refused 4→5 admission rolls money/XP back; the lore must stay the old one."""
+    # YENİDEN YAZIM (4C.6, B1) [GEVŞETME OLABİLİR]: was "a refused 4→5 admission rolls gold/XP back and keeps the old
+    # lore; a later settle pays all" (J-099 finding 4). The refusal repeated on every turn (B1); now gold, standing and
+    # marker stand, only the XP is forfeited (no receipt, level 4, format unchanged), a later settle pays nothing more.
+    def test_faction_reward_with_a_refused_level_five_admission_forfeits_only_the_xp(self):
         to_level_four(self.session)
         self.plant(faction={"id": "faction:watch", "standing": 1})
-        before = self.state()
-        lore = self.session.campaign_lore_state
-        self.assertEqual(lore.faction_standings, ())
+        purse, gained, receipts, *_ = self.state()
+        self.assertEqual(self.session.campaign_lore_state.faction_standings, ())
         with patch.object(game, "_validate_save_payload", refused_admission):
-            with self.assertRaises(ValueError):
-                play.settle_session(self.session)
-        self.assertEqual(self.state(), before)
-        self.assertEqual(self.session.character["level"], 4)
+            play.settle_session(self.session)
+        settled = (purse + 25, gained, receipts, 4, MARKER, False)
+        self.assertEqual(self.state(), settled)
         self.assertEqual(self.session._persisted_engine_format, game.SAVE_FORMAT_VERSION)
         self.assertIsNone(self.session._xp_level_up)
-        self.assertIs(self.session.campaign_lore_state, lore)
-        self.assertEqual(self.session.campaign_lore_state.faction_standings, ())
-        play.settle_session(self.session)                           # admitted: lore, gold and XP land together
-        self.assert_paid_once(before)
-        self.assertEqual(self.session.character["level"], 5)
         self.assertEqual(self.session.campaign_lore_state.faction_standings[0].standing, 1)
+        play.settle_session(self.session)                           # settled: nothing more, no refusal
+        self.assertEqual(self.state(), settled)
+        self.assertEqual(len(self.session.campaign_lore_state.faction_standings), 1)
 
     def test_faction_reward_without_a_campaign_bond_pays_nothing(self):
         self.session.campaign_lore_state = None

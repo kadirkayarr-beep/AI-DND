@@ -63,7 +63,20 @@ def present(session, actor):
 
 def can_act(session, actor):
     return (present(session, actor)
-            and not conditions(session, actor) & {"incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"})
+            and not conditions(session, actor) & {"incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"}
+            and not (actor != "player" and _surrendered(session, actor)))  # no action, bonus or reaction
+
+
+def _surrendered(session, actor):
+    """The active fight's accepted surrender took this foe out of it (the same reading as its participant record).
+
+    A surrendered foe that has since gone down (dead, out, defeated) is no longer 'surrendered' but beaten (D-045).
+    """
+    import monster_combat
+    combat = session.world_state.get("combat")
+    return (isinstance(combat, dict) and combat.get("active") is True
+            and monster_combat.surrendered_in(session.world_state, combat.get("combat_id"), actor)
+            and not monster_combat._is_beaten(session, actor))
 
 
 def speed(session, actor):
@@ -83,6 +96,8 @@ def speed(session, actor):
     value -= int(data.get("speed_penalty_ft", 0))
     value -= 5 * weapon_attack.exhaustion(data)
     value -= weapon_attack.slow_penalty(session, actor)
+    import spell_scope
+    value -= spell_scope.speed_penalty(session, actor)  # Ray of Frost (4C.4b)
     if weapon_attack.speed_halved(session, actor):
         value //= 2
     return max(0, value)
@@ -1022,6 +1037,11 @@ def _execute(session, command, action_id=None, session_id=None):
                 results.append({"kind": kind, "result": spell_scope.cast(
                     session, step.get("ability"), step.get("target_id"), step.get("slot_level"), metamagic=step.get("metamagic"),
                 )})
+            elif kind == "end_concentration":
+                import spell_scope
+                if any(field != "kind" and value is not None for field, value in step.items()):
+                    fail("unsupported_action", "Ending Concentration takes no other choice.")
+                results.append({"kind": kind, "result": spell_scope.end_concentration(session)})
             elif kind == "end_turn":
                 if (not session.world_state["combat"]["active"]
                     or session.world_state["combat"]["current_actor_id"] != "player"
@@ -1041,10 +1061,35 @@ def _execute(session, command, action_id=None, session_id=None):
         "messages": session.messages,
         "narration": resolved_narration(session, results),
         "action_result": {"action": "action_economy", "status": "resolved", "success": True,
-                          "combat_id": combat_id, "economy_steps": results},
+                          "combat_id": combat_id, "economy_steps": results, **event_fields(results)},
         "action_economy_result": {"combat_id": combat_id, "steps": results, "state": projection(session)},
         "model_calls": 0,
     }
+
+
+def event_fields(results):
+    """The turn-level event fields the UI reads (4C.1): a spell step names its spell, damage type and roll; healing steps name their source.
+
+    Read from the finished step results only; nothing here rolls, spends or is saved. Several healing steps with different
+    sources leave the turn level empty: each step result still carries its own heal_source.
+    """
+    fields = {}
+    magic = next((step["result"] for step in results if step["kind"] == "magic"), None)
+    if magic is not None:
+        fields.update(spell=magic["spell_id"], slot_spent=magic["slot_spent"], casting_ability=magic.get("casting_ability"),
+                      damage_type=magic["damage_type"], attack_or_save=magic.get("attack_or_save"),
+                      target_id=magic["target_id"])
+        if magic.get("attack_or_save") == "save":
+            fields.update(save_dc=magic["spell_save_dc"], save_roll=magic.get("save_roll"))
+        if "hp_before" in magic:
+            fields.update(damage=magic["damage"], target_hp_before=magic["hp_before"], target_hp_after=magic["hp_after"])
+        elif magic.get("hit") is False:
+            fields["damage"] = 0
+    healed = [step["result"] for step in results
+              if isinstance(step.get("result"), dict) and step["result"].get("heal_source")]
+    if healed and len({entry["heal_source"] for entry in healed}) == 1:
+        fields.update(healing=sum(entry["healing"] for entry in healed), heal_source=healed[0]["heal_source"])
+    return fields
 
 
 def resolved_narration(session, results):
@@ -1055,6 +1100,9 @@ def resolved_narration(session, results):
     for step in results:
         if step["kind"] == "magic":
             narration_parts.append(spell_scope.narration(step["result"]))
+        elif step["kind"] == "end_concentration":
+            narration_parts.append(f"Konsantrasyonu bırakırsın; {step['result']['spell_id']} sona erer. "
+                                   "Eylem harcanmaz.")
         elif step["kind"] in {"activate_rage", "extend_rage"}:
             result = step.get("result")
             if (isinstance(result, dict) and result.get("active") is True

@@ -397,6 +397,51 @@ export interface PaladinLevel5Choices {
   prepared_spells: string[];
 }
 
+export interface WizardSpellbookChoices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  spellbook_spells: string[];
+}
+
+export interface WizardLevel3Choices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  spellbook_spells: string[];
+  subclass_id: 'evoker';
+}
+
+export interface WizardLevel4Choices {
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  spellbook_spells: string[];
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  cantrips: string[];
+  asi: LevelUpAsiChoice;
+}
+
+export const ClericLevel3ChoicesValue = {
+  subclass_id: 'life_domain',
+} as const;
+export type ClericLevel3Choices = typeof ClericLevel3ChoicesValue;
+
+export interface ClericLevel4Choices {
+  /**
+     * @minItems 1
+     * @maxItems 1
+     */
+  cantrips: string[];
+  asi: LevelUpAsiChoice;
+}
+
 export interface LevelUpApplyRequest {
   action_id: string;
   campaign_id: string;
@@ -407,7 +452,7 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices | WizardSpellbookChoices | WizardLevel3Choices | WizardLevel4Choices | ClericLevel3Choices | ClericLevel4Choices;
 }
 
 export type LevelUpCommandResultState = { [key: string]: unknown };
@@ -511,6 +556,7 @@ export interface SorcererSubclassOption {
 export interface LevelUpPreviewResponse {
   primal_knowledge_skill_options?: string[] | null;
   fighting_style_options?: string[] | null;
+  spellbook_spell_ids?: string[] | null;
   session_id: string;
   campaign_id: string | null;
   revision: number | null;
@@ -2909,6 +2955,21 @@ export const GameActionStatusState = {
  */
 export type GameActionStatusDetail = { [key: string]: unknown } | null;
 
+/**
+ * Where a healing event came from; potion is reserved (no engine path yet).
+ */
+export type CombatTurnResultHealSource = typeof CombatTurnResultHealSource[keyof typeof CombatTurnResultHealSource] | null;
+
+
+export const CombatTurnResultHealSource = {
+  spell: 'spell',
+  rest: 'rest',
+  class_feature: 'class_feature',
+  species: 'species',
+  death_save: 'death_save',
+  potion: 'potion',
+} as const;
+
 export type CombatAttackResultSpeciesEffectsItem = { [key: string]: unknown };
 
 export type CombatAttackResultResolution = { [key: string]: unknown } | null;
@@ -3103,6 +3164,8 @@ export interface CombatTurnResult {
   save_dc?: number | null;
   /** @nullable */
   healing?: number | null;
+  /** Where a healing event came from; potion is reserved (no engine path yet). */
+  heal_source?: CombatTurnResultHealSource;
   /** @nullable */
   slot_spent?: boolean | null;
   /** @nullable */
@@ -3268,6 +3331,21 @@ export interface LevelUpResult {
   hit_points_gained: number;
 }
 
+/**
+ * Where that healing came from; left out otherwise.
+ */
+export type TurnOutcomeHealSource = typeof TurnOutcomeHealSource[keyof typeof TurnOutcomeHealSource];
+
+
+export const TurnOutcomeHealSource = {
+  spell: 'spell',
+  rest: 'rest',
+  class_feature: 'class_feature',
+  species: 'species',
+  death_save: 'death_save',
+  potion: 'potion',
+} as const;
+
 export interface TurnOutcome {
   action?: string | null;
   status?: string | null;
@@ -3277,6 +3355,13 @@ export interface TurnOutcome {
   place_created?: boolean | null;
   /** Engine reason code of a counter trade or offer only (offer_stale, price_changed, insufficient_funds, ...); null for every other action. */
   reason?: string | null;
+  /**
+     * Hit Points a healing turn outside a fight restored (the last call's one Hit Point); left out otherwise.
+     * @minimum 0
+     */
+  healing?: number;
+  /** Where that healing came from; left out otherwise. */
+  heal_source?: TurnOutcomeHealSource;
 }
 
 export interface GameTurnResult {
@@ -3471,6 +3556,103 @@ export interface SpeciesTraitCommandResult {
   action_id?: string | null;
   state: GameState;
   result: SpeciesTraitActionResult;
+}
+
+/**
+ * Omitted (or null) prepared keeps today's list; an explicit empty list is an explicit empty list.
+ */
+export interface SpellPrepareInput {
+  /**
+     * @maxItems 32
+     * @nullable
+     * @items.maxLength 64
+     */
+  prepared?: string[] | null;
+  close?: boolean;
+  /** @nullable */
+  action_id?: string | null;
+}
+
+export type SpellPrepareDroppedReason = typeof SpellPrepareDroppedReason[keyof typeof SpellPrepareDroppedReason];
+
+
+export const SpellPrepareDroppedReason = {
+  duplicate: 'duplicate',
+  cantrip: 'cantrip',
+  not_in_spellbook: 'not_in_spellbook',
+  not_on_class_list: 'not_on_class_list',
+} as const;
+
+export interface SpellPrepareDropped {
+  spell_id: string;
+  reason: SpellPrepareDroppedReason;
+}
+
+/**
+ * @nullable
+ */
+export type SpellPrepareViewResponseBlockedReason = typeof SpellPrepareViewResponseBlockedReason[keyof typeof SpellPrepareViewResponseBlockedReason] | null;
+
+
+export const SpellPrepareViewResponseBlockedReason = {
+  not_preparing_class: 'not_preparing_class',
+  spellbook_missing: 'spellbook_missing',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SpellPrepareViewResponseReason = typeof SpellPrepareViewResponseReason[keyof typeof SpellPrepareViewResponseReason] | null;
+
+
+export const SpellPrepareViewResponseReason = {
+  creation: 'creation',
+  long_rest: 'long_rest',
+  migration: 'migration',
+  level_up: 'level_up',
+} as const;
+
+export interface SpellPrepareViewResponse {
+  session_id: string;
+  supported: boolean;
+  /** @nullable */
+  blocked_reason?: SpellPrepareViewResponseBlockedReason;
+  /** @nullable */
+  class_name?: string | null;
+  open: boolean;
+  /** @nullable */
+  reason?: SpellPrepareViewResponseReason;
+  limit: number;
+  candidates: string[];
+  prepared: string[];
+  /** @nullable */
+  spellbook?: string[] | null;
+}
+
+export type SpellPrepareResultStatus = typeof SpellPrepareResultStatus[keyof typeof SpellPrepareResultStatus];
+
+
+export const SpellPrepareResultStatus = {
+  prepared: 'prepared',
+  too_many: 'too_many',
+} as const;
+
+export interface SpellPrepareResult {
+  status: SpellPrepareResultStatus;
+  prepared: string[];
+  dropped: SpellPrepareDropped[];
+  limit: number;
+  excess: number;
+  open: boolean;
+  message: string;
+}
+
+export interface SpellPrepareCommandResult {
+  session_id: string;
+  /** @nullable */
+  action_id?: string | null;
+  state: GameState;
+  result: SpellPrepareResult;
 }
 
 export type CampaignCreateInputDeathMode = typeof CampaignCreateInputDeathMode[keyof typeof CampaignCreateInputDeathMode];

@@ -1,5 +1,6 @@
 """Read-only request guards for the existing Python combat scheduler."""
 
+import copy
 import re
 from dataclasses import dataclass
 from typing import Literal
@@ -396,6 +397,107 @@ def answered_attack_question(session, message):
     if not asked or len(str(message).split()) > 4:
         return message
     return f"{message} saldırıyorum" if pointed_targets(session, message) else message
+
+
+def answered_surrender_question(session, message):
+    """"...teslim olmuş birine saldırıyorsun. Yine de vuruyor musun?" - "evet": the asked blow, not the bare yes.
+
+    Returns the (line, command, target id) to play, or ``None``; anything but a yes or the same blow again forgets
+    the question, and so does a yes once none of the asked foes' surrender holds (the fight it belonged to is over).
+    """
+    asked = getattr(session, "_surrender_strike_asked", None)
+    if not asked:
+        return None
+    standing = _still_surrendered(session, asked)
+    if not standing:
+        session._surrender_strike_asked = None
+        return None
+    if _says_yes(session, message, standing[0]):
+        return asked["said"], copy.deepcopy(asked["command"]), standing[0]
+    if not (is_attack_decision(session, message) or _names_one_spell(message)):
+        session._surrender_strike_asked = None
+    return None
+
+
+def _still_surrendered(session, asked):
+    import action_economy
+    return [identity for identity in asked["ids"] if action_economy._surrendered(session, identity)]
+
+
+def surrender_yes(session, message):
+    """Read only: this line is a yes to the engine's own surrendered-foe question, so it needs no model (D-036)."""
+    asked = getattr(session, "_surrender_strike_asked", None)
+    if not asked:
+        return False
+    standing = _still_surrendered(session, asked)
+    return bool(standing) and _says_yes(session, message, standing[0])
+
+
+def _names_one_spell(message):
+    """The same harmful spell typed again is the same blow again (the spell owner's own reading, never a cast)."""
+    import spell_scope
+    try:
+        return spell_scope.natural_command(message, None) is not None
+    except CombatRequestError:
+        return False
+
+
+def _aimed(command):
+    """(target id, blow) for every step that harms: a weapon blow, or a spell whose owner says it harms (D-036)."""
+    import spell_scope
+    aimed = []
+    for step in command.get("steps", []):
+        if not isinstance(step, dict):
+            continue
+        if step.get("kind") in {"attack", "continue_attack"}:
+            aimed.append((step.get("target_id"), "attack"))
+        elif step.get("kind") == "magic" and spell_scope.harmful(step.get("ability")):
+            aimed.append((step.get("target_id"), f"magic:{step.get('ability')}"))  # healing is never asked
+    return aimed
+
+
+def surrendered_strike_question(session, message, target_id, command):
+    """A blow at a foe whose surrender was accepted in this fight is asked about first (repair, never a refusal).
+
+    The question is for this sitting only (like "kavga mı başlatıyorsun?"). It names every surrendered foe the blow
+    reaches and is bound to them and to that blow: a yes, or the same blow again at the asked foes only, strikes; a
+    different blow (another spell, a weapon after a spell) or a blow that also reaches a foe not asked about is asked
+    again.
+    """
+    combat = session.world_state.get("combat", {})
+    if not combat.get("active") or session.character.get("current_hp", 0) <= 0:
+        return None
+    if command:
+        aimed = _aimed(command)
+    elif is_attack_decision(session, message):
+        targets = _attack_targets(session, message, target_id)
+        aimed = [(targets[0].get("id"), "attack")] if len(targets) == 1 else []
+    else:
+        return None
+    import action_economy
+    out = []
+    for identity, _ in aimed:
+        if isinstance(identity, str) and identity not in out and action_economy._surrendered(session, identity):
+            out.append(identity)
+    blow = sorted({kind for identity, kind in aimed if identity in out})
+    asked = getattr(session, "_surrender_strike_asked", None)
+    session._surrender_strike_asked = None
+    if not out or (asked and set(out) <= set(asked["ids"]) and asked["blow"] == blow):
+        return None  # not at a surrendered one, or the player said yes / struck the same way again: the blow stands
+    session._surrender_strike_asked = {"ids": out, "blow": blow, "said": str(message or ""),
+                                       "command": copy.deepcopy(command)}
+    names = [living_world.public_npc_name(next(
+        (n for n in session.world_state.get("npcs", []) if isinstance(n, dict) and n.get("id") == identity), {}))
+        for identity in out]
+    if len(names) == 1:
+        line = f"{names[0]} teslim oldu; teslim olmuş birine saldırıyorsun. Yine de vuruyor musun?"
+    else:
+        line = (f"{', '.join(names[:-1])} ve {names[-1]} teslim oldu; teslim olmuş kişilere saldırıyorsun. "
+                "Yine de vuruyor musun?")
+    return {"messages": session.messages, "narration": line, "model_calls": 0,
+            "action_result": {"action": "attack", "status": "clarification", "success": False,
+                              "outcome": "surrendered_target", "target_id": out[0], "state_changes": [],
+                              "direct_response": line}}
 
 
 def strike_the_fallen(session, message, target_id=None):

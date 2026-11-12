@@ -3,7 +3,8 @@
 The job's own money path does not change (the errand's wage by its journal row, the hired day's wage by the entitlement
 ledger, a trouble pays nothing). The experience is written at the job's close as ``xp_due`` and paid at the end of the
 same turn under one ``job:<thread_id>`` receipt, through the session's XP boundary. A due grant the receipt list or the
-XP cap refuses fails the whole turn, so the wage, the parcel, the job's close and the XP stand or fall together.
+XP cap refuses is forfeited (4C.6, B1): the turn stands with its wage, parcel and close, the thread is marked
+``xp_forfeited`` and no later turn owes it (before 4C.6 the whole turn was refused, on every later turn too).
 Every test holds the MONEY invariant: the purse moves by exactly the job's own wage, or not at all.
 """
 
@@ -282,21 +283,32 @@ class JobXp(_JobCase):
         await self.deliver_turn(action_id=action_id)
         self.assert_paid_once(purse)
 
-    async def test_a_full_receipt_list_refuses_the_whole_delivery(self):
+    def assert_paid_without_xp(self, purse, receipts):
+        thread = self.delivered_thread()
+        self.assertEqual((thread["status"], thread["xp_due"], thread["xp_forfeited"]), ("done", 25, True))
+        self.assertEqual((self.xp(), self.receipts()), (0, []))
+        self.assertEqual(self.world.get("xp_awarded_event_ids", []), receipts)
+        self.assertEqual(self.purse() - purse, WAGE)
+
+    # YENİDEN YAZIM (4C.6, B1) [GEVŞETME OLABİLİR]: was "refuses the whole delivery" (500, nothing changed). The refusal
+    # locked every later turn; now the delivery stands (one wage, done), the XP alone is forfeited and marked.
+    async def test_a_full_receipt_list_forfeits_only_the_xp_of_the_delivery(self):
         purse = self.purse()
         await self.ready_to_deliver()
         self.world["xp_awarded_event_ids"] = _filler_ids(xp.MAX_AWARD_IDS)
+        receipts = list(self.world["xp_awarded_event_ids"])
         self.save()
-        await self.deliver_turn(expect=500)
-        self.assert_untouched(purse)
+        await self.deliver_turn()
+        self.assert_paid_without_xp(purse, receipts)
         self.assertEqual(len(self.world["xp_awarded_event_ids"]), xp.MAX_AWARD_IDS)
 
-    async def test_the_xp_cap_refuses_the_whole_delivery(self):
+    # YENİDEN YAZIM (4C.6, B1) [GEVŞETME OLABİLİR]: was "the XP cap refuses the whole delivery" (500, nothing changed).
+    async def test_the_xp_cap_forfeits_only_the_xp_of_the_delivery(self):
         purse = self.purse()
         await self.ready_to_deliver()
         with patch.object(xp, "MAX_STORED_XP", 10):
-            await self.deliver_turn(expect=500)
-        self.assert_untouched(purse)
+            await self.deliver_turn()
+        self.assert_paid_without_xp(purse, [])
 
     async def test_old_save_done_job_pays_nothing(self):
         """A save from before 4B holds a finished job with no ``xp_due``: loading it and playing on pays nothing."""

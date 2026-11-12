@@ -163,6 +163,7 @@ _COMBAT_TURN_FIELDS = (
     "save_roll",
     "save_dc",
     "healing",
+    "heal_source",
     "slot_spent",
     "combat_started",
     "combat_ended",
@@ -330,6 +331,10 @@ def serialize_combat_result(action_result: Any, session: Any = None) -> dict[str
             for item in enemy_actions
             if isinstance(item, Mapping)
         ]
+    death_save = projected.get("death_save")
+    if isinstance(death_save, dict) and death_save.get("outcome") == "revived":
+        projected.setdefault("healing", 1)  # a natural 20 on a death save: one Hit Point, read from the outcome, never saved
+        projected.setdefault("heal_source", "death_save")
     try:
         validated = CombatTurnResult.model_validate(projected, strict=True)
     except ValidationError:
@@ -678,7 +683,8 @@ def serialize_session_state(
     monk = monk_features.projection(session) if isinstance(session, game.GameSession) else None
     if monk is not None:
         character["monk"] = monk
-    if player.get("class") in ("Barbarian", "Fighter", "Monk", "Paladin", "Rogue") or (player.get("class") == "Sorcerer" and "progression_level" in player):
+    if player.get("class") in ("Barbarian", "Fighter", "Monk", "Paladin", "Rogue") or (
+            player.get("class") in ("Sorcerer", "Wizard", "Cleric") and "progression_level" in player):
         disclosure = character_progression.progression_disclosure(
             player["class"], character_progression.applied_level(player),
             rage_adopted=rage is not None, points_adopted=points is not None,

@@ -148,6 +148,64 @@ paths:
           $ref: '#/components/responses/RequestValidationError'
         '500':
           $ref: '#/components/responses/ApiError'
+  /game/sessions/{session_id}/spellcasting/prepare:
+    parameters:
+    - in: path
+      name: session_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      operationId: getGameSessionSpellPreparation
+      tags:
+      - game
+      summary: Read the spell preparation window, its limit and candidate spells
+      responses:
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '200':
+          description: The preparation window as Python owns it; nothing is written
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpellPrepareViewResponse'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+    post:
+      operationId: prepareGameSessionSpells
+      tags:
+      - game
+      summary: Save the player's spell preparation list while the window is open
+      description: Valid names are kept, invalid ones are dropped with a reason; a list over the limit saves
+        nothing and asks which to leave out. The engine never chooses a spell.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpellPrepareInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '200':
+          description: Saved preparation (or the question for a list over the limit) and the canonical state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpellPrepareCommandResult'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/ApiError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+        '500':
+          $ref: '#/components/responses/ApiError'
   /sessions/{session_id}/species-actions:
     parameters:
     - in: path
@@ -1413,6 +1471,11 @@ components:
           - $ref: '#/components/schemas/PaladinLevel3Choices'
           - $ref: '#/components/schemas/PaladinLevel4Choices'
           - $ref: '#/components/schemas/PaladinLevel5Choices'
+          - $ref: '#/components/schemas/WizardSpellbookChoices'
+          - $ref: '#/components/schemas/WizardLevel3Choices'
+          - $ref: '#/components/schemas/WizardLevel4Choices'
+          - $ref: '#/components/schemas/ClericLevel3Choices'
+          - $ref: '#/components/schemas/ClericLevel4Choices'
           title: Choices
       additionalProperties: false
       type: object
@@ -1923,6 +1986,12 @@ components:
               type: string
           - type: 'null'
         fighting_style_options:
+          anyOf:
+          - type: array
+            items:
+              type: string
+          - type: 'null'
+        spellbook_spell_ids:
           anyOf:
           - type: array
             items:
@@ -2880,6 +2949,20 @@ components:
           - type: string
             maxLength: 48
           - type: 'null'
+        healing:
+          description: Hit Points a healing turn outside a fight restored (the last call's one Hit Point); left out otherwise.
+          type: integer
+          minimum: 0
+        heal_source:
+          description: Where that healing came from; left out otherwise.
+          type: string
+          enum:
+          - spell
+          - rest
+          - class_feature
+          - species
+          - death_save
+          - potion
     GameTurnUndoInput:
       type: object
       additionalProperties: false
@@ -3285,6 +3368,152 @@ components:
           $ref: '#/components/schemas/GameState'
         result:
           $ref: '#/components/schemas/SpeciesTraitActionResult'
+      required:
+      - session_id
+      - state
+      - result
+    SpellPrepareInput:
+      type: object
+      additionalProperties: false
+      description: Omitted (or null) prepared keeps today's list; an explicit empty list is an explicit empty list.
+      properties:
+        prepared:
+          type:
+          - array
+          - 'null'
+          maxItems: 32
+          items:
+            type: string
+            maxLength: 64
+        close:
+          type: boolean
+          default: false
+        action_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+    SpellPrepareDropped:
+      type: object
+      additionalProperties: false
+      properties:
+        spell_id:
+          type: string
+        reason:
+          type: string
+          enum:
+          - duplicate
+          - cantrip
+          - not_in_spellbook
+          - not_on_class_list
+      required:
+      - spell_id
+      - reason
+    SpellPrepareViewResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        supported:
+          type: boolean
+        blocked_reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - not_preparing_class
+          - spellbook_missing
+          - null
+        class_name:
+          type:
+          - string
+          - 'null'
+        open:
+          type: boolean
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - creation
+          - long_rest
+          - migration
+          - level_up
+          - null
+        limit:
+          type: integer
+        candidates:
+          type: array
+          items:
+            type: string
+        prepared:
+          type: array
+          items:
+            type: string
+        spellbook:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+      required:
+      - session_id
+      - supported
+      - open
+      - limit
+      - candidates
+      - prepared
+    SpellPrepareResult:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+          - prepared
+          - too_many
+        prepared:
+          type: array
+          items:
+            type: string
+        dropped:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpellPrepareDropped'
+        limit:
+          type: integer
+        excess:
+          type: integer
+        open:
+          type: boolean
+        message:
+          type: string
+      required:
+      - status
+      - prepared
+      - dropped
+      - limit
+      - excess
+      - open
+      - message
+    SpellPrepareCommandResult:
+      type: object
+      additionalProperties: false
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        action_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        state:
+          $ref: '#/components/schemas/GameState'
+        result:
+          $ref: '#/components/schemas/SpellPrepareResult'
       required:
       - session_id
       - state
@@ -3805,6 +4034,18 @@ components:
           type:
           - integer
           - 'null'
+        heal_source:
+          description: Where a healing event came from; potion is reserved (no engine path yet).
+          anyOf:
+          - type: string
+            enum:
+            - spell
+            - rest
+            - class_feature
+            - species
+            - death_save
+            - potion
+          - type: 'null'
         slot_spent:
           type:
           - boolean
@@ -7650,6 +7891,71 @@ components:
       - supported_starting_levels
       - level_2
       title: FighterStartingCreationOptions
+    WizardSpellbookChoices:
+      type: object
+      additionalProperties: false
+      properties:
+        spellbook_spells:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 2
+      required: [spellbook_spells]
+    WizardLevel3Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        spellbook_spells:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 2
+        subclass_id:
+          type: string
+          const: evoker
+      required: [spellbook_spells, subclass_id]
+    WizardLevel4Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        spellbook_spells:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 2
+        cantrips:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+        asi:
+          $ref: '#/components/schemas/LevelUpAsiChoice'
+      required: [spellbook_spells, cantrips, asi]
+    ClericLevel3Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        subclass_id:
+          type: string
+          const: life_domain
+      required: [subclass_id]
+    ClericLevel4Choices:
+      type: object
+      additionalProperties: false
+      properties:
+        cantrips:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1
+        asi:
+          $ref: '#/components/schemas/LevelUpAsiChoice'
+      required: [cantrips, asi]
     RogueLevel3Choices:
       type: object
       additionalProperties: false

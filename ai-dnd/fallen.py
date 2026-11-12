@@ -28,8 +28,9 @@ def knock_out(session, npc: dict[str, Any]) -> None:
     bold_acts.put_down(session.world_state, npc)
     import game
     import xp
-    session._receive_xp_award(xp.award_downed, npc, session.world_state, session.character,
-                              person_kind=game.person_fight_kind(npc))
+    # A refused award leaves the knock-out standing and pays nothing (B1); the fight's ending may still pay it.
+    session._forfeit_unrecordable_xp(xp.award_downed, npc, session.world_state, session.character,
+                                     person_kind=game.person_fight_kind(npc))
 
 
 def wake(session) -> None:

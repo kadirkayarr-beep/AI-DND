@@ -136,11 +136,13 @@ class HonestCoverageTests(unittest.TestCase):
         self.assertEqual((unknown["status"], unknown["reason"]), ("unsupported", "unknown_spell"))
         self.assertEqual(spell_registry.cast_spell(None, {"session": s}, None, {})["reason"], "unknown_spell")
 
-    def test_registry_lists_exactly_the_four_real_resolvers_and_completes_none(self):
-        self.assertEqual(spell_registry.resolvers(), {"Fire Bolt": 0, "Magic Missile": 1, "Cure Wounds": 1, "Sacred Flame": 0})
+    def test_registry_lists_exactly_the_real_resolvers_and_completes_none(self):
+        self.assertEqual(spell_registry.resolvers(), {"Fire Bolt": 0, "Magic Missile": 1, "Cure Wounds": 1, "Sacred Flame": 0,
+                          # 4C.4b first cut (page-cited K07 leaves)
+                          "Ray of Frost": 0, "Shocking Grasp": 0, "Toll the Dead": 0, "Healing Word": 1, "Bless": 1})
         rows = [r for r in manifest_rows() if r["category"] == "spell"]
         states = [spell_registry.spell_state(r["name"]) for r in rows]
-        self.assertEqual((states.count("resolver"), states.count("catalog_only"), len(rows)), (4, len(rows) - 4, 391))
+        self.assertEqual((states.count("resolver"), states.count("catalog_only"), len(rows)), (9, len(rows) - 9, 391))
         for row in rows:
             self.assertNotEqual(capability_status(row["id"], {})["status"], "COMPLETE", row["name"])
 

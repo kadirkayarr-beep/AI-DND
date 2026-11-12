@@ -174,7 +174,7 @@ function PeoplePanel({ state }: { state: GameState }) {
     {otherPeople.length > 0 && <div className="mt-4">
       <Kicker>Diğer karşılaştıkların</Kicker>
       {otherPeople.map((npc) => <div className="data-row mt-2" key={npc.id} data-testid={`npc-${npc.id}`}>
-        <div className="data-row-head"><span>{npc.name}</span>{npc.combat_status && <span className="status-pill">{npc.combat_status === 'active' ? 'Ayakta' : npc.combat_status === 'unconscious' ? 'Bilinçsiz' : npc.combat_status === 'defeated' ? 'Etkisiz' : npc.combat_status}</span>}</div>
+        <div className="data-row-head"><span>{npc.name}</span>{npc.combat_status && <span className="status-pill">{npc.combat_status === 'active' ? 'Ayakta' : npc.combat_status === 'unconscious' ? 'Bilinçsiz' : npc.combat_status === 'defeated' ? 'Etkisiz' : npc.combat_status === 'surrendered' ? 'Teslim oldu' : npc.combat_status}</span>}</div>
         <div className="data-row-meta">{npc.role ? `${npc.role} · ` : ''}{state.locations[npc.location]?.name ?? npc.location}</div>
         {npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}
       </div>)}

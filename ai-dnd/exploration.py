@@ -285,7 +285,8 @@ def _damage(session, definition):
     import weapon_attack
     mitigation = weapon_attack.mitigate(session, "player", definition["damage_type"], definition["damage"])
     # Includes temporary HP, species endurance, massive damage and death policy.
-    return session._apply_attack_damage_to_player(mitigation["final_damage"], False, True)
+    return {**session._apply_attack_damage_to_player(mitigation["final_damage"], False, True),
+            "damage_type": definition["damage_type"]}
 
 
 def _trigger(session, identity):

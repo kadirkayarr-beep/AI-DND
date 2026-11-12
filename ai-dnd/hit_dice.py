@@ -80,7 +80,7 @@ def spend(session: Any, heal: Any) -> dict[str, Any]:
     heal(healing)
     character["hit_dice"] = {"spent": spent(character) + 1, "window_second": _state(character)["window_second"],
                              "hp": character["current_hp"]}
-    return {"dice": [roll], "healing": healing, "current_hp": character["current_hp"],
+    return {"dice": [roll], "healing": healing, "heal_source": "rest", "current_hp": character["current_hp"],
             "remaining": remaining(character), "hit_dice": summary(session)}
 
 

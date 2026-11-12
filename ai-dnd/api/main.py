@@ -118,6 +118,10 @@ from api.schemas import (
     SpeciesTraitActionRequest,
     SpeciesTraitActionResult,
     SpeciesTraitCommandResult,
+    SpellPrepareCommandResult,
+    SpellPrepareRequest,
+    SpellPrepareResult,
+    SpellPrepareViewResponse,
 )
 from api.serializers import (
     CombatResultSerializationError,
@@ -248,6 +252,8 @@ def _turn_outcome(action_result: Any) -> TurnOutcome | None:
         place_created=place.get("created") if isinstance(place.get("created"), bool) else None,
         reason=short(action_result.get("reason"), 48)
         if action_result.get("action") in {"equipment_transaction", "shop_offer"} else None,
+        healing=action_result.get("healing") if action_result.get("action") == "narrative" else None,
+        heal_source=action_result.get("heal_source") if action_result.get("action") == "narrative" else None,
     )
 
 
@@ -1375,7 +1381,8 @@ def create_app(
                 or (
                     request.combat_action is None
                     and (authored_dungeon.native_request(request.message, session)
-                         or exploration.native_request(request.message, session))
+                         or exploration.native_request(request.message, session)
+                         or combat_lifecycle.surrender_yes(session, request.message))
                 )
             ):
                 active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
@@ -2357,6 +2364,136 @@ def create_app(
     ) -> dict[str, Any]:
         return resolve_species_trait_action(session_id, request)
 
+    @application.get("/api/game/sessions/{session_id}/spellcasting/prepare", response_model=SpellPrepareViewResponse,
+                     operation_id="getGameSessionSpellPreparation")
+    def read_spell_preparation(session_id: str) -> dict[str, Any]:
+        """4C.2: the preparation window, its limit and candidates. Writes nothing."""
+        import spell_preparation
+        record = get_record(session_id)
+        with record.turn_lock:
+            record = get_record(session_id)
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
+            require_current(record)
+            try:
+                view = spell_preparation.view(record.game_session)
+            except (ValueError, KeyError, TypeError):  # the POST route's guard: an unreadable saved state is a 409, never a 500
+                raise HTTPException(status_code=409, detail={
+                    "code": "prepare_unavailable", "message": "Kayıtlı büyü durumu okunamadı."}) from None
+            return SpellPrepareViewResponse.model_validate({"session_id": session_id, **view}).model_dump(mode="json")
+
+    @application.post("/api/game/sessions/{session_id}/spellcasting/prepare", response_model=SpellPrepareCommandResult,
+                      operation_id="prepareGameSessionSpells")
+    def prepare_spells(session_id: str, request: SpellPrepareRequest) -> dict[str, Any]:
+        """4C.2: save the player's preparation list (same receipt, replay and rollback contract as species actions)."""
+        import spell_preparation
+        record = get_record(session_id)
+        action_id = str(request.action_id or uuid4())
+        request_hash = hashlib.sha256(json.dumps(
+            {"command": "spell_prepare", **request.model_dump(mode="json", exclude={"action_id"})},
+            sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
+        with record.turn_lock:
+            ensure_usable(record)
+            session = record.game_session
+            try:
+                previous = manager.get_turn_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            get_record(session_id)
+            if previous is not None:
+                if previous["request_hash"] != request_hash:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different action.",
+                    })
+                return replay_action_response(previous["response"], SpellPrepareCommandResult, session_id)
+            try:
+                refused = manager.get_refused_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if refused is not None:
+                if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
+                    raise HTTPException(status_code=409, detail={
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different action.",
+                    })
+                raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
+            require_current(record)
+            snapshot = _capture_session(session)
+            metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
+            journal_snapshot = copy.deepcopy(record.journal)
+            memory_snapshot = copy.deepcopy(record.narrative_memory)
+            lore_snapshot = record.lore_authority
+
+            def restore_command():
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = memory_snapshot
+                record.lore_authority = lore_snapshot
+
+            response_payload = None
+            try:
+                try:
+                    window = spell_preparation.view(session)
+                except (ValueError, KeyError, TypeError):
+                    raise HTTPException(status_code=409, detail={
+                        "code": "prepare_unavailable", "message": "Kayıtlı büyü durumu okunamadı."}) from None
+                if window["blocked_reason"] == "spellbook_missing":
+                    raise HTTPException(status_code=409, detail={
+                        "code": "prepare_spellbook_missing",
+                        "message": "Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor."})
+                if not window["supported"]:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "prepare_not_supported", "message": "Bu sınıf büyü hazırlamaz."})
+                if not window["open"]:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "prepare_window_closed",
+                        "message": "Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş ya da yeni bir seviyeye geçmiş olmalısın."})
+                prepared = None if request.prepared is None else list(request.prepared)
+                result = spell_preparation.prepare(session, prepared, close=request.close)
+                response = SpellPrepareCommandResult(
+                    session_id=session_id, action_id=action_id,
+                    state=serialize_session_state(session, record.journal, record.lore_authority),
+                    result=SpellPrepareResult.model_validate(result),
+                )
+                response_payload = redact_sensitive_values(response.model_dump(mode="json"))
+                if result["status"] == "too_many":
+                    return response_payload  # a question: nothing changed, so nothing is saved and no receipt is kept
+                manager.autosave_turn(
+                    record, "spell_prepare", result["message"],
+                    turn_action_receipt={"action_id": action_id, "request_hash": request_hash,
+                                         "response": response_payload},
+                )
+                return response_payload
+            except HTTPException:
+                restore_command()
+                raise
+            except ValueError as error:
+                restore_command()
+                raise HTTPException(status_code=409, detail={
+                    "code": getattr(error, "code", "prepare_unavailable"), "message": str(error)}) from None
+            except CampaignError as error:
+                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
+                restore_command()
+                if isinstance(error, CampaignStaleError):
+                    # Same as species actions: the winning receipt may only become visible at save time.
+                    try:
+                        previous = manager.get_turn_action(record, action_id)
+                    except CampaignError as receipt_error:
+                        raise campaign_http_exception(receipt_error) from None
+                    if previous is not None and previous["request_hash"] != request_hash:
+                        raise HTTPException(status_code=409, detail={
+                            "code": "action_id_conflict",
+                            "message": "This action ID was already used for a different action.",
+                        }) from None
+                raise campaign_http_exception(error) from None
+            except Exception as error:
+                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
+                restore_command()
+                raise
+
     @application.post(
         "/api/game/sessions/{session_id}/ambient-events/"
         "{event_instance_id}/actions",
@@ -2611,7 +2748,7 @@ def create_app(
         import spell_scope
         cls = character.get("class")
         applied = character.get("progression_level", 1)
-        ceiling = {"Sorcerer": 5, "Barbarian": 5, "Fighter": 5, "Monk": 5, "Paladin": 5, "Rogue": 5}.get(cls, 2)
+        ceiling = {"Sorcerer": 5, "Barbarian": 5, "Cleric": 5, "Fighter": 5, "Monk": 5, "Paladin": 5, "Rogue": 5, "Wizard": 5}.get(cls, 2)
         valid_applied = type(applied) is int and 1 <= applied <= ceiling
         target = min(applied + 1, ceiling) if valid_applied else ceiling
         result = dict(session_id=session_id, campaign_id=record.campaign_id,
@@ -2620,7 +2757,7 @@ def create_app(
                       class_name=cls, from_level=applied if valid_applied else None)
         if record.campaign_id is None:
             result["reason"] = "campaign_persistence_required"
-        elif cls not in {"Sorcerer", "Barbarian", "Fighter", "Monk", "Paladin", "Rogue"}:
+        elif cls not in {"Sorcerer", "Barbarian", "Cleric", "Fighter", "Monk", "Paladin", "Rogue", "Wizard"}:
             result["reason"] = "selected_progression_not_supported"
         elif not valid_applied:
             result["reason"] = "previous_progression_state_invalid"
@@ -2672,6 +2809,10 @@ def create_app(
                         result["subclass_options"] = preview.get("subclass_options", [])
                         if cls == "Barbarian":
                             result["primal_knowledge_skill_options"] = preview.get("primal_knowledge_skill_options", [])
+                    if cls in ("Wizard", "Cleric"):
+                        result["cantrip_ids"] = preview.get("cantrip_ids", [])
+                        if cls == "Wizard":
+                            result["spellbook_spell_ids"] = preview.get("spellbook_spell_ids", [])
                     if cls == "Paladin":
                         result["prepared_spell_ids"] = preview.get("prepared_spell_ids", [])
                         if target == 2:
@@ -2776,12 +2917,16 @@ def create_app(
             choices = request.choices.model_dump(mode="json")
             if request.target_level in (3, 4, 5):
                 from api.schemas import (BarbarianLevel2Choices, BarbarianLevel3Choices, FighterLevel3Choices, MonkLevel3Choices, PaladinLevel3Choices, RogueLevel3Choices, SorcererLevel3Choices,
-                                         BarbarianLevel4Choices, LevelUpChoices, LevelUpFiveChoices, PaladinLevel4Choices, PaladinLevel5Choices)
+                                         BarbarianLevel4Choices, LevelUpChoices, LevelUpFiveChoices, PaladinLevel4Choices, PaladinLevel5Choices,
+                                         ClericLevel3Choices, ClericLevel4Choices, WizardLevel3Choices, WizardLevel4Choices, WizardSpellbookChoices)
                 expected_choices = {
-                    3: {"Barbarian": BarbarianLevel3Choices, "Fighter": FighterLevel3Choices, "Monk": MonkLevel3Choices, "Paladin": PaladinLevel3Choices, "Rogue": RogueLevel3Choices, "Sorcerer": SorcererLevel3Choices},
-                    4: {"Barbarian": BarbarianLevel4Choices, "Fighter": BarbarianLevel4Choices, "Monk": BarbarianLevel4Choices, "Paladin": PaladinLevel4Choices, "Rogue": BarbarianLevel4Choices, "Sorcerer": LevelUpChoices},
+                    3: {"Barbarian": BarbarianLevel3Choices, "Fighter": FighterLevel3Choices, "Monk": MonkLevel3Choices, "Paladin": PaladinLevel3Choices, "Rogue": RogueLevel3Choices, "Sorcerer": SorcererLevel3Choices,
+                        "Wizard": WizardLevel3Choices, "Cleric": ClericLevel3Choices},
+                    4: {"Barbarian": BarbarianLevel4Choices, "Fighter": BarbarianLevel4Choices, "Monk": BarbarianLevel4Choices, "Paladin": PaladinLevel4Choices, "Rogue": BarbarianLevel4Choices, "Sorcerer": LevelUpChoices,
+                        "Wizard": WizardLevel4Choices, "Cleric": ClericLevel4Choices},
                     # Barbarian 5 has no choices: the same empty strict object as Barbarian 2 (no new schema).
-                    5: {"Barbarian": BarbarianLevel2Choices, "Fighter": BarbarianLevel2Choices, "Monk": BarbarianLevel2Choices, "Paladin": PaladinLevel5Choices, "Rogue": BarbarianLevel2Choices, "Sorcerer": LevelUpFiveChoices},
+                    5: {"Barbarian": BarbarianLevel2Choices, "Fighter": BarbarianLevel2Choices, "Monk": BarbarianLevel2Choices, "Paladin": PaladinLevel5Choices, "Rogue": BarbarianLevel2Choices, "Sorcerer": LevelUpFiveChoices,
+                        "Wizard": WizardSpellbookChoices, "Cleric": BarbarianLevel2Choices},
                 }[request.target_level][session.character["class"]]
                 if not isinstance(request.choices, expected_choices):
                     raise refusal(409, "level_up_choice_class_mismatch")

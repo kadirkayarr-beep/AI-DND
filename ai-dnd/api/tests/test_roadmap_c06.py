@@ -106,7 +106,7 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(cp.preview_level_up(session, 1)["reason"], "target_not_above_applied_level")
         self.assertEqual(cp.preview_level_up(session, 21)["reason"], "invalid_target_level")
         other = game.create_session(seed=3)
-        other.character["class"] = "Wizard"
+        other.character["class"] = "Bard"  # Wizard gained a table in 4C.3; Bard still has none
         self.assertEqual(cp.preview_level_up(other, 2)["reason"], "class_table_not_available")
 
 

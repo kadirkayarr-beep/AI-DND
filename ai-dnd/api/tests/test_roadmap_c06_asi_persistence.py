@@ -115,7 +115,7 @@ class DetachedFutureAsiConsistencyTests(unittest.TestCase):
 
     def test_detached_rejects_missing_invalid_baseline_types_and_double_delta(self):
         variants = []
-        for field, value in (('class_name', 'Wizard'), ('level', True), ('applied_level', 3),
+        for field, value in (('class_name', 'Bard'), ('level', True), ('applied_level', 3),
                              ('ability_score_method', 'rolled'), ('background', 'unknown'),
                              ('base_scores', {}), ('background_bonuses', {'constitution': 3}),
                              ('asi_choices', []), ('asi_choices', [RECORD, RECORD])):

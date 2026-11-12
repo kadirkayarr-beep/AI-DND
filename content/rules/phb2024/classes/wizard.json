@@ -20,7 +20,21 @@
    "normalisation": "em dash cells are stored as null (or omitted from slots); typographic apostrophes are stored as ASCII"
   },
   "unverified_cells": [],
-  "scope": "progression table only; no feature effects, spell lists or choices"
+  "scope": "Wizard 1-5 (4C.3): table slots, cantrip and prepared counts, the spellbook (six at creation, two per level), the level-3 subclass choice (Evoker only, effects pending) and the level-4 ASI. Other features are pending; effects and disclosures are owned by class_progression/wizard.py.",
+  "class_rules": {
+   "spellcasting_spellbook": {
+    "pdf_page": 164,
+    "level": "accepted release text transfer (C06 Fighter-Rogue-Wizard check, kaynak_bolumleri/wizard_pdf164.md) read 2026-11-12; not re-read on the render"
+   },
+   "prepared_spells_ritual_adept_arcane_recovery_scholar": {
+    "pdf_page": 165,
+    "level": "accepted release text transfer (wizard_pdf165.md) read 2026-11-12; not re-read on the render"
+   },
+   "subclass_asi_memorize_spell": {
+    "pdf_page": 166,
+    "level": "accepted release text transfer (wizard_pdf166.md) read 2026-11-12; not re-read on the render"
+   }
+  }
  },
  "levels": {
   "1": {

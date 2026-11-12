@@ -125,8 +125,12 @@ class EngineAgreementTests(unittest.TestCase):
         for name, (level, max_range, _sides, _kind) in spell_scope.CATALOG.items():
             spell = ORACLE[name]
             self.assertEqual(spell["level"], level, name)
-            self.assertEqual(spell["range"], "Touch" if max_range == 0 else f"{max_range} feet", name)
-            self.assertEqual(spell["casting_time"], "Action", name)
+            # Touch is the rules' 5 ft reach: the engine stores it as 5 (Shocking Grasp) or 0; every other range is exact.
+            if spell["range"] == "Touch":
+                self.assertIn(max_range, (0, 5), name)
+            else:
+                self.assertEqual(spell["range"], f"{max_range} feet", name)
+            self.assertEqual(spell["casting_time"], "Bonus Action" if name in spell_scope.BONUS_ACTION_SPELLS else "Action", name)
 
     def test_creation_spell_catalog_matches_levels_and_classes_except_the_documented_legacy_spell(self):
         missing = set()

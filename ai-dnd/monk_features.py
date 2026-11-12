@@ -520,7 +520,7 @@ def _uncanny_metabolism(session: Any, step: dict[str, Any]) -> dict[str, Any]:
     state = state_of(character)
     state.update(focus_spent=0, metabolism_spent=True)
     character[KEY] = state
-    return {"roll": roll, "healing": healing, "current_hp": character["current_hp"]}
+    return {"roll": roll, "healing": healing, "heal_source": "class_feature", "current_hp": character["current_hp"]}
 
 
 def _set_deflect(session: Any, step: dict[str, Any]) -> dict[str, Any]:

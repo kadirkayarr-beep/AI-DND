@@ -634,22 +634,26 @@ class SharedOwners(unittest.TestCase):
         session.world_state["equipment"] = {"main_hand": None, "off_hand": None}
         before = session._capture_runtime_snapshot()
         with self.assertRaises(CombatRequestError) as caught:
-            spell_scope.cast(session, "Bless", "player")
+            spell_scope.cast(session, "Command", "player")
         self.assertEqual(caught.exception.code, "unsupported_spell")
         self.assertEqual(session._capture_runtime_snapshot(), before)
         rows = {row["id"]: row["castable"] for row in features.projection(session)["prepared_spells"]}
-        self.assertEqual(rows, {"Cure Wounds": True, "Command": False, "Bless": False})
+        # 4C.4b: Bless has a resolver (self, Concentration); Command stays catalog-only.
+        self.assertEqual(rows, {"Cure Wounds": True, "Command": False, "Bless": True})
 
     def test_the_catalog_note_says_exactly_which_spells_cast_and_how(self):
-        for words in ("Cure Wounds on yourself, in combat, with a level-1 slot", "Divine Smite", "catalog-only"):
+        for words in ("Cure Wounds on yourself, in combat, with a level-1 slot",
+                      "Bless on yourself, in combat, with a level-1 slot", "Divine Smite", "catalog-only"):
             self.assertIn(words, CATALOG_ONLY_NOTE)
         session, npc = fight(5)
         session.world_state["equipment"] = {"main_hand": None, "off_hand": None}
         wound(session)
-        self.assertEqual(sorted(row["id"] for row in features.projection(session)["prepared_spells"] if row["castable"]), ["Cure Wounds"])
+        self.assertEqual(sorted(row["id"] for row in features.projection(session)["prepared_spells"] if row["castable"]),
+                         ["Bless", "Cure Wounds"])
         spells(session)["prepared"][-1] = "Divine Smite"
         session.character["spells"] = list(spells(session)["prepared"])
-        self.assertEqual(sorted(row["id"] for row in features.projection(session)["prepared_spells"] if row["castable"]), ["Cure Wounds", "Divine Smite"])
+        self.assertEqual(sorted(row["id"] for row in features.projection(session)["prepared_spells"] if row["castable"]),
+                         ["Bless", "Cure Wounds", "Divine Smite"])
         for target, slot in ((npc["id"], None), ("player", 2)):
             with self.assertRaises(CombatRequestError) as caught:
                 spell_scope.cast(session, "Cure Wounds", target, slot)

@@ -246,7 +246,7 @@ def _lay_on_hands(session: Any, amount: Any, remove_poisoned: Any, *, on_turn: b
     spent = healing + (LAY_ON_HANDS_POISON_COST if remove_poisoned else 0)  # only restored points leave the pool
     uses["lay_on_hands_spent"] += spent
     _store(character, uses)
-    return {"healing": healing, "poisoned_removed": remove_poisoned, "pool_spent": spent, "current_hp": character["current_hp"],
+    return {"healing": healing, "heal_source": "class_feature", "poisoned_removed": remove_poisoned, "pool_spent": spent, "current_hp": character["current_hp"],
             "pool_remaining": pool_maximum(level) - uses["lay_on_hands_spent"]}
 
 

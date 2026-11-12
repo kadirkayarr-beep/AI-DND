@@ -8,6 +8,8 @@
 import type { BarbarianLevel2Choices } from './barbarianLevel2Choices';
 import type { BarbarianLevel3Choices } from './barbarianLevel3Choices';
 import type { BarbarianLevel4Choices } from './barbarianLevel4Choices';
+import type { ClericLevel3Choices } from './clericLevel3Choices';
+import type { ClericLevel4Choices } from './clericLevel4Choices';
 import type { FighterLevel3Choices } from './fighterLevel3Choices';
 import type { LevelUpChoices } from './levelUpChoices';
 import type { LevelUpFiveChoices } from './levelUpFiveChoices';
@@ -19,6 +21,9 @@ import type { PaladinLevel5Choices } from './paladinLevel5Choices';
 import type { RogueLevel3Choices } from './rogueLevel3Choices';
 import type { SorcererLevel2Choices } from './sorcererLevel2Choices';
 import type { SorcererLevel3Choices } from './sorcererLevel3Choices';
+import type { WizardLevel3Choices } from './wizardLevel3Choices';
+import type { WizardLevel4Choices } from './wizardLevel4Choices';
+import type { WizardSpellbookChoices } from './wizardSpellbookChoices';
 
 export interface LevelUpApplyRequest {
   action_id: string;
@@ -30,5 +35,5 @@ export interface LevelUpApplyRequest {
      * @maximum 5
      */
   target_level: number;
-  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices;
+  choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices | WizardSpellbookChoices | WizardLevel3Choices | WizardLevel4Choices | ClericLevel3Choices | ClericLevel4Choices;
 }

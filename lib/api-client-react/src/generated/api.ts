@@ -51,6 +51,9 @@ import type {
   ShopCounterResponse,
   SpeciesTraitActionInput,
   SpeciesTraitCommandResult,
+  SpellPrepareCommandResult,
+  SpellPrepareInput,
+  SpellPrepareViewResponse,
   UnresolvedGameAction
 } from './api.schemas';
 
@@ -562,6 +565,173 @@ export const useResolveSpeciesTraitAction = <TError = ErrorType<AuthenticationRe
         TContext
       > => {
       return useMutation(getResolveSpeciesTraitActionMutationOptions(options));
+    }
+
+export const getGetGameSessionSpellPreparationUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/spellcasting/prepare`
+}
+
+/**
+ * @summary Read the spell preparation window, its limit and candidate spells
+ */
+export const getGameSessionSpellPreparation = async (sessionId: string, options?: Parameters<typeof customFetch>[1]): Promise<SpellPrepareViewResponse> => {
+
+  return customFetch<SpellPrepareViewResponse>(getGetGameSessionSpellPreparationUrl(sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGameSessionSpellPreparationQueryKey = (sessionId: string,) => {
+    return [
+    `/api/game/sessions/${sessionId}/spellcasting/prepare`
+    ] as const;
+    }
+
+
+export const getGetGameSessionSpellPreparationQueryOptions = <TData = Awaited<ReturnType<typeof getGameSessionSpellPreparation>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionSpellPreparation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGameSessionSpellPreparationQueryKey(sessionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGameSessionSpellPreparation>>> = ({ signal }) => getGameSessionSpellPreparation(sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: sessionId !== null && sessionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGameSessionSpellPreparation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGameSessionSpellPreparationQueryResult = NonNullable<Awaited<ReturnType<typeof getGameSessionSpellPreparation>>>
+export type GetGameSessionSpellPreparationQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+
+
+/**
+ * @summary Read the spell preparation window, its limit and candidate spells
+ */
+
+export function useGetGameSessionSpellPreparation<TData = Awaited<ReturnType<typeof getGameSessionSpellPreparation>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(
+ sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionSpellPreparation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGameSessionSpellPreparationQueryOptions(sessionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPrepareGameSessionSpellsUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/spellcasting/prepare`
+}
+
+/**
+ * Valid names are kept, invalid ones are dropped with a reason; a list over the limit saves nothing and asks which to leave out. The engine never chooses a spell.
+ * @summary Save the player's spell preparation list while the window is open
+ */
+export const prepareGameSessionSpells = async (sessionId: string,
+    spellPrepareInput: SpellPrepareInput, options?: Parameters<typeof customFetch>[1]): Promise<SpellPrepareCommandResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SpellPrepareCommandResult>(getPrepareGameSessionSpellsUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(spellPrepareInput)
+  }
+);}
+
+
+
+
+
+export const getPrepareGameSessionSpellsMutationKey = () => ['prepareGameSessionSpells'] as const;
+
+export const getPrepareGameSessionSpellsMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareGameSessionSpells>>, TError,PrepareGameSessionSpellsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof prepareGameSessionSpells>>, TError,PrepareGameSessionSpellsMutationVariables, TContext> => {
+
+const mutationKey = getPrepareGameSessionSpellsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof prepareGameSessionSpells>>, PrepareGameSessionSpellsMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  prepareGameSessionSpells(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PrepareGameSessionSpellsMutationResult = NonNullable<Awaited<ReturnType<typeof prepareGameSessionSpells>>>
+    export type PrepareGameSessionSpellsMutationBody = BodyType<SpellPrepareInput>
+    export type PrepareGameSessionSpellsMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+    export type PrepareGameSessionSpellsMutationVariables = {sessionId: string;data: BodyType<SpellPrepareInput>}
+
+    /**
+ * @summary Save the player's spell preparation list while the window is open
+ */
+export const usePrepareGameSessionSpells = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareGameSessionSpells>>, TError,PrepareGameSessionSpellsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof prepareGameSessionSpells>>,
+        TError,
+        PrepareGameSessionSpellsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPrepareGameSessionSpellsMutationOptions(options));
     }
 
 export const getResolveSpeciesTraitActionCompatUrl = (sessionId: string,) => {
