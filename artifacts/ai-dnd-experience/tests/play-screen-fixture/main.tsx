@@ -33,6 +33,15 @@ const prepFixture = {
   prepared: casterClass === "Cleric" ? ["Bless"] : ["Magic Missile"],
   refuseNext: null as string | null,
 };
+// ?levelup=1 with a caster: an earned level 2 waiting for its Wizard/Cleric choices (server offer shape, api/main.py).
+const levelUpFixture = casterClass !== null && new URLSearchParams(window.location.search).get("levelup") === "1";
+const levelUpPreview = () => ({
+  session_id: "fixture-session", campaign_id: "fixture-campaign", revision: 3, status: "ready", reason: null, class_name: casterClass,
+  from_level: 1, target_level: 2, choices_required: casterClass === "Wizard" ? { spellbook_spells: 2 } : {},
+  capacity: { cantrips: 3, prepared_spells: 5, slots: { 1: 3 } },
+  spellbook_spell_ids: casterClass === "Wizard" ? ["Shield", "Sleep", "Mage Armor", "Detect Magic", "Misty Step"] : null,
+  effects_supported: ["Spellcasting"], effects_pending: ["Arcane Recovery pending"],
+});
 const prepView = () => ({
   session_id: "fixture-session", supported: true, blocked_reason: null, class_name: casterClass, open: prepFixture.open,
   reason: prepFixture.open ? prepFixture.reason : null, limit: prepFixture.limit, candidates: prepFixture.candidates,
@@ -131,7 +140,8 @@ const state = () => ({
     strength: 10, dexterity: 14, constitution: 12, intelligence: 11, wisdom: 13, charisma: 10,
     proficient_skills: ["Stealth"],
     expertise_skills: [],
-    level: 1,
+    level: levelUpFixture ? 2 : 1,
+    ...(levelUpFixture ? { progression_level: 1 } : {}),
     proficiency_bonus: 2,
     max_hp: 12,
     current_hp: fixtureHp,
@@ -288,6 +298,7 @@ window.fetch = async (input, init) => {
       level_up: null,
     });
   }
+  if (levelUpFixture && path === `/api/game/sessions/${SESSION_ID}/level-up` && (!init?.method || init.method === "GET")) return json(levelUpPreview());
   if (casterClass && path === `/api/game/sessions/${SESSION_ID}/spellcasting/prepare` && (!init?.method || init.method === "GET")) return json(prepView());
   if (casterClass && path === `/api/game/sessions/${SESSION_ID}/spellcasting/prepare` && init?.method === "POST") {
     const body = JSON.parse(String(init.body ?? "{}")) as { prepared?: string[]; action_id?: string; close?: boolean };

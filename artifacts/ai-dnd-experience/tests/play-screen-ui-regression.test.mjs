@@ -940,3 +940,30 @@ test("Hazırlık screen: fits 375px, is keyboard reachable, saves the player's o
   assert.deepEqual(desk.page.exceptions, []);
   await desk.close();
 });
+
+// ---- UI slice 3 S2: Wizard/Cleric level-up controls rendered on the play page ----
+test("Wizard and Cleric level-up: the earned step is offered (not 'henüz desteklenmiyor'), says the preparation window opens, fits 375px and holds contrast", async (t) => {
+  const env = await startFixtureEnv(t);
+  for (const [caster, width] of [["wizard", 375], ["cleric", 1280]]) {
+    const play = await env.open(`${fixturePath}?screen=play&caster=${caster}&levelup=1`, width, 900);
+    await waitForSelector(play.page, '[data-testid="button-open-level-up"]');
+    await play.page.evaluate(`document.querySelector('[data-testid="button-open-level-up"]').click()`);
+    await waitForSelector(play.page, '[data-testid="level-up-choices"]');
+    const form = await play.page.evaluate(`document.querySelector('[data-testid="level-up-choices"]').textContent`);
+    assert.doesNotMatch(form, /henüz desteklenmiyor/, caster);
+    assert.match(form, /büyü hazırlama penceresi açık olur ve hazırlık sınırın 5 olur/, caster);
+    assert.equal(await play.page.evaluate(`document.querySelector('[data-testid="button-confirm-level-up"]').disabled`), true, `${caster}: nothing confirmed yet`);
+    if (caster === "wizard") {
+      for (const [index, value] of [[1, "Shield"], [2, "Misty Step"]]) {
+        await play.page.evaluate(`(() => { const s = document.querySelector('[data-testid="level-up-spellbook-${index}"]'); const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, ${JSON.stringify(value)}); s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+      }
+    }
+    await play.page.evaluate(`document.querySelector('[data-testid="level-up-confirm-caster"]').click()`);
+    await waitForValue(play.page, `!document.querySelector('[data-testid="button-confirm-level-up"]').disabled`);
+    const fit = await play.page.evaluate("({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth })");
+    assert.ok(fit.scrollWidth <= fit.width, `${caster}: page overflows ${JSON.stringify(fit)}`);
+    await sweepAllStates(play.page, `level-up ${caster} ${width}`);
+    assert.deepEqual(play.page.exceptions, []);
+    await play.close();
+  }
+});
