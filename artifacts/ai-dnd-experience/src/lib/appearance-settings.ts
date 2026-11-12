@@ -16,6 +16,8 @@ export type AppearanceSettings = {
   dyslexiaFont: boolean;
   highContrast: boolean;
   inkRevealSpeed: InkRevealSpeed;
+  /** Main-menu music (plan part D). On by default, remembered in this browser, never part of a saved game. */
+  menuMusic: boolean;
 };
 
 export type AppearanceStorage = Pick<Storage, 'getItem' | 'setItem'>;
@@ -30,6 +32,7 @@ export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
   dyslexiaFont: false,
   highContrast: false,
   inkRevealSpeed: 'normal',
+  menuMusic: true,
 };
 
 export const FONT_SCALE_MIN = 0.85;
@@ -73,6 +76,7 @@ function sanitize(values: Record<string, unknown>): AppearanceSettings {
     dyslexiaFont: flag(values.dyslexiaFont, d.dyslexiaFont),
     highContrast: flag(values.highContrast, d.highContrast),
     inkRevealSpeed: oneOf(values.inkRevealSpeed, ['slow', 'normal', 'fast', 'instant'], d.inkRevealSpeed),
+    menuMusic: flag(values.menuMusic, d.menuMusic),
   };
 }
 

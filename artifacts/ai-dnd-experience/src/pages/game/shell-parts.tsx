@@ -13,6 +13,8 @@ import {
 } from '@workspace/api-client-react';
 import { NoticeBanner, type Notice } from '@/components/notice-banner';
 import { OuroborosMark } from '@/components/ouroboros-mark';
+import { OuroborosLogo } from '@/components/ouroboros-logo';
+import { MenuMusicButton } from '@/components/menu-music';
 import { gateSoundMuted, gateSoundVolume, playGateSound, primeGateSound, setGateSoundMuted, setGateSoundVolume } from '@/lib/gate-sound';
 
 // Without a resolved Clerk owner (local fixture) the slot still separates campaigns; the server decides access.
@@ -92,12 +94,12 @@ export function OpeningScreen({ onCreate, onContinue, creating, notice, loadingC
     <main className="design-preview unwritten-entry" data-testid="app-start">
       <header className="entry-header">
         <div className="entry-brand"><span className="entry-brand-icon"><OuroborosMark /></span><span><strong>UNWRITTEN</strong><small>GERÇEK OYUN</small></span></div>
-        <GateSoundControl />
+        <div className="entry-header-controls"><MenuMusicButton /><GateSoundControl /></div>
       </header>
       <section className="entry-page">
         <div className="entry-main">
           <div className="entry-art">
-            <img className="ouroboros-art" src={`${import.meta.env.BASE_URL}ouroboros-approved.jpg`} alt="UNWRITTEN amblemi: zümrüt ve altın renkli dairesel ejderha" data-testid="image-approved-ouroboros" />
+            <OuroborosLogo loading={creating || loadingCampaigns} />
           </div>
           <div className="entry-copy">
             <h1>UNWRITTEN</h1>

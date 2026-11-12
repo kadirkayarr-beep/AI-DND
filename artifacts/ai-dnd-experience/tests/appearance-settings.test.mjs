@@ -28,7 +28,7 @@ test('valid settings round trip and unknown keys are dropped', () => {
   const storage = memoryStorage();
   const settings = {
     diceSet: 'obsidian', hpGauge: 'ink', spellSlots: 'inkwells', theme: 'system',
-    effectsLevel: 'low', fontScale: 1.25, dyslexiaFont: true, highContrast: true, inkRevealSpeed: 'instant',
+    effectsLevel: 'low', fontScale: 1.25, dyslexiaFont: true, highContrast: true, inkRevealSpeed: 'instant', menuMusic: false,
   };
   writeAppearanceSettings({ ...settings, campaignId: 'x' }, storage);
   assert.deepEqual(JSON.parse(storage.read()), settings);

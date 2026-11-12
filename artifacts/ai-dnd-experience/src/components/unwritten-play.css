@@ -406,9 +406,17 @@
 .unwritten-entry .entry-page { width:min(920px,calc(100% - 40px)); margin:0 auto; padding:clamp(22px,3.5vh,38px) 0 26px; }
 .unwritten-entry .entry-main { display:flex; min-height:0; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; }
 .unwritten-entry .entry-art { width:min(100%,430px); margin:0 auto; }
-.unwritten-entry .ouroboros-art { display:block; width:100%; height:auto; max-height:min(31vh,300px); object-fit:contain; mix-blend-mode:screen; }
-/* The art is a glow on black, made to be screened over a dark page. On the day page it is inverted (dark linework, same hues) and multiplied in. */
-:root[data-unw-theme="day"] .unwritten-entry .ouroboros-art { mix-blend-mode:multiply; filter:invert(1) hue-rotate(180deg); }
+.unwritten-entry .ouroboros-art { position:relative; display:block; width:100%; max-width:min(100%,300px); aspect-ratio:1; margin:0 auto; max-height:min(31vh,300px); mix-blend-mode:screen; }
+/* Night art is warm line on flat black, screened in; day art is dark line on flat white, multiplied in. Neither needs an alpha channel. */
+:root[data-unw-theme="day"] .unwritten-entry .ouroboros-art { mix-blend-mode:multiply; }
+.unwritten-entry .ouroboros-still,.unwritten-entry .ouroboros-video { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:contain; }
+.unwritten-entry .ouroboros-video { opacity:0; transition:opacity .25s ease; }
+.unwritten-entry .ouroboros-art.is-playing .ouroboros-video { opacity:1; }
+@media (prefers-reduced-motion: reduce) { .unwritten-entry .ouroboros-video { display:none; } }
+.entry-header-controls { display:flex; align-items:center; gap:4px; }
+.menu-music-button { display:grid; width:44px; height:44px; place-items:center; border:0; background:transparent; color:var(--unw-text-soft); cursor:pointer; }
+.menu-music-button:hover { color:var(--unw-accent-light); }
+.menu-music-button:focus-visible { outline:2px solid var(--unw-accent-light); outline-offset:2px; }
 .unwritten-entry .entry-copy { display:flex; flex-direction:column; align-items:center; padding:0; }
 .unwritten-entry .entry-copy h1 { margin:9px 0 4px; color:var(--unw-text); font:500 clamp(38px,5.2vw,58px)/1.04 'Cormorant Garamond',Georgia,serif; letter-spacing:.12em; }
 .unwritten-entry .entry-lede { margin:0; color:var(--unw-text-soft); font:400 18px/1.4 'Cormorant Garamond',Georgia,serif; }

@@ -56,23 +56,24 @@ test('panel renders theme, effects level, ink speed and readability controls in 
   const html = renderPanel();
   assert.match(html, /data-testid="appearance-settings-panel"/);
   assert.equal((html.match(/role="radiogroup"/g) ?? []).length, 3);
-  for (const legend of ['Okuma teması', 'Efekt seviyesi', 'Mürekkep belirme hızı', 'Okunabilirlik']) assert.match(html, new RegExp(`<legend>${legend}</legend>`));
-  for (const label of ['Gece', 'Gündüz', 'Sistem', 'Kapalı', 'Az', 'Tam', 'Yavaş', 'Normal', 'Hızlı', 'Anında', 'Yüksek kontrast', 'Disleksi dostu yazı tipi']) {
+  for (const legend of ['Okuma teması', 'Efekt seviyesi', 'Mürekkep belirme hızı', 'Ses', 'Okunabilirlik']) assert.match(html, new RegExp(`<legend>${legend}</legend>`));
+  for (const label of ['Gece', 'Gündüz', 'Sistem', 'Kapalı', 'Az', 'Tam', 'Yavaş', 'Normal', 'Hızlı', 'Anında', 'Ana menü müziği', 'Yüksek kontrast', 'Disleksi dostu yazı tipi']) {
     assert.match(html, new RegExp(`<span>${label}</span>`), label);
   }
   assert.equal(inputTags(html).filter((tag) => tag.includes('type="radio"')).length, 3 + 3 + 4);
-  assert.equal(inputTags(html).filter((tag) => tag.includes('type="checkbox"')).length, 2);
+  assert.equal(inputTags(html).filter((tag) => tag.includes('type="checkbox"')).length, 3);
   assert.match(html, /Hareketi azalt ayarı sistemden okunur/);
   // Dice set, health gauge, spell-slot style and font scale are stored but nothing reads them yet: no control.
   assert.doesNotMatch(html, /zar|can göstergesi|büyü yuvası|yazı boyutu/i);
 });
 
-test('defaults are checked per group: night, full effects, normal ink speed, both readability boxes off', () => {
+test('defaults are checked per group: night, full effects, normal ink speed, both readability boxes off, menu music on', () => {
   const html = renderPanel();
   assert.deepEqual(checkedIn(html, 'appearance-theme'), ['night']);
   assert.deepEqual(checkedIn(html, 'appearance-effects-level'), ['full']);
   assert.deepEqual(checkedIn(html, 'appearance-ink-speed'), ['normal']);
-  assert.equal(inputTags(html).filter((tag) => tag.includes('type="checkbox"') && /checked=""/.test(tag)).length, 0);
+  assert.equal(inputTags(html).filter((tag) => tag.includes('type="checkbox"') && /checked=""/.test(tag)).length, 1);
+  assert.ok(inputTags(html).some((tag) => tag.includes('checkbox-menu-music') && /checked=""/.test(tag)));
 });
 
 test('stored theme, ink speed and readability flags come back through the provider', () => {
@@ -81,7 +82,7 @@ test('stored theme, ink speed and readability flags come back through the provid
   assert.deepEqual(checkedIn(html, 'appearance-theme'), ['day']);
   assert.deepEqual(checkedIn(html, 'appearance-ink-speed'), ['fast']);
   const boxes = inputTags(html).filter((tag) => tag.includes('type="checkbox"'));
-  assert.equal(boxes.length, 2);
+  assert.equal(boxes.length, 3);
   assert.ok(boxes.every((tag) => /checked=""/.test(tag)));
 });
 
@@ -101,7 +102,7 @@ test('the stored level is restored through the provider and marked as current', 
     const html = withWindow(store, renderPanel);
     assert.equal(checkedValue(html), level);
     assert.deepEqual(checkedIn(html, 'appearance-effects-level'), [level]);
-    assert.equal((html.match(/checked=""/g) ?? []).length, 3, 'one checked radio in each of the three groups, no checked box');
+    assert.equal((html.match(/checked=""/g) ?? []).length, 4, 'one checked radio in each of the three groups, plus the menu-music box (on by default)');
   }
 });
 

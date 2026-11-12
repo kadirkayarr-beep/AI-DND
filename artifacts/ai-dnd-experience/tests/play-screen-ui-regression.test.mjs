@@ -194,7 +194,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await waitForSelector(menu.page, '[data-testid="app-start"]');
     const menuMeasure = await menu.page.evaluate(`(() => { const image=document.querySelector('[data-testid="image-approved-ouroboros"]'); return { width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,approvedImage:Boolean(image&&image.complete&&image.naturalWidth>0),imageAlt:image?.alt,create:Boolean(document.querySelector('[data-testid="button-create-session"]')),continue:Boolean(document.querySelector('[data-testid="button-continue-session"]')),heading:document.querySelector('h1')?.innerText }; })()`);
     assert.equal(menuMeasure.approvedImage, true, `approved entry art missing at ${viewport.width}px`);
-    assert.match(menuMeasure.imageAlt, /ejderha/i);
+    assert.match(menuMeasure.imageAlt, /yılan/i);
     assert.equal(menuMeasure.create, true);
     assert.equal(menuMeasure.continue, true);
     assert.equal(menuMeasure.heading, "UNWRITTEN");
