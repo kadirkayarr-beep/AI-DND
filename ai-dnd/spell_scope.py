@@ -8,6 +8,7 @@ import action_economy as economy
 import barbarian_rage
 import initiative
 import spatial_rules
+import tr_names
 import weapon_attack as attacks
 from api.core_resolution import resolve_attack_roll
 from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG, proficiency_bonus_for_level
@@ -34,6 +35,7 @@ ALIASES = {"ateş oku": "Fire Bolt", "ates oku": "Fire Bolt",
            "ölüm çanı": "Toll the Dead", "olum cani": "Toll the Dead",
            "şifa sözü": "Healing Word", "sifa sozu": "Healing Word",
            "kutsama": "Bless"}
+ALIASES = {**tr_names.spellings_for(CATALOG), **ALIASES}  # the one Turkish name table; the lines above stay as written
 SELF_SPELLS = frozenset({"Cure Wounds", "Healing Word", "Bless"})  # the player is the only target with a healing/buff owner
 SPELL_ATTACKS = {"Fire Bolt": "ranged", "Ray of Frost": "ranged", "Shocking Grasp": "melee"}
 SAVE_SPELLS = {"Sacred Flame": "dexterity", "Toll the Dead": "wisdom"}
@@ -336,6 +338,8 @@ def explicit_request(message, command=None):
     return bool(re.search(r"\b(cast|casting|büyüsünü|buyusunu)\b", text)
                 or spell_effects.named(text) is not None  # 4C.5: the engine answers it; the narrator only tells it
                 or _drops_concentration(text)  # dropping Concentration is a typed engine step (no model)
+                or (any(alias in text for alias in ALIASES)  # a Turkish name from the table, with a casting word beside it
+                    and re.search(r"kullan|yap[ıi]yorum|at[ıi]yorum|f[ıi]rlat|büyü|buyu", text))
                 or (any(name.casefold() in text for name in CATALOG)
                     and "?" not in text and not re.search(r"\b(nedir|describe|what|anlat)\b", text)))
 
