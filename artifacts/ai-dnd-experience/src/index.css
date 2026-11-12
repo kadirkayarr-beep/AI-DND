@@ -814,3 +814,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 .rest-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 .rest-controls .action-suggestion { min-height: 44px; }
+
+.level-up-card { display: grid; gap: 6px; margin: 8px 0; padding: 12px 14px; border: 1px solid var(--unw-accent-light); background: var(--unw-surface); color: var(--unw-text); }
+.level-up-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.level-up-card-actions .action-suggestion { min-height: 44px; }
