@@ -89,6 +89,8 @@ Varsayılan beş etiket: needs-triage, needs-info, ready-for-agent, ready-for-hu
 
 Tek bağlam (single-context): kökte `GLOSSARY.md` ve `docs/adr/`. Bkz. `docs/agents/domain.md`.
 
+Tasarım ve plan belgeleri: `docs/design/INDEX.md`
+
 ## Çalışma ve test disiplini (Dilim 3 dersleri)
 
 **Ana ilke:** kalite ve güvenlik kaybına müsamaha göstermeden işi hızlandırmak. Bir kural hız için kaliteyi ya da güvenliği zayıflatıyorsa uygulanmaz ve kullanıcıya bildirilir; kaliteye ya da güvenliğe katkısı olmayan bir adım hızı yavaşlatıyorsa budanır. Çelişkide kalite ve güvenlik kazanır.
@@ -116,3 +118,18 @@ Tek bağlam (single-context): kökte `GLOSSARY.md` ve `docs/adr/`. Bkz. `docs/ag
 6. **[Hız] Bekleme döngüleri:** bir testi ya da çıktı dosyasını bekleyen döngünün her zaman üst süresi olur (testin planlanan süresi + pay); süre dolunca döngü kendiliğinden biter ve log'a bakılır. Test bitince ya da iş iptal edilince bekleyen döngü kapatılır. Bir ajan beklediği testin sonucunu zaten gördüyse artık beklemez; açık kalan döngü ajanın raporunu saatlerce geciktirir (Dilim 3'te 9-11 saat). Oturum sonunda ve her dilim sonunda açık `bash`/`sleep` süreçleri kontrol edilir.
 
 **[Güvenlik] Dokunulmaz:** para/kayıt/Geri Al için bağımsız inceleme, sıfır tolerans yolculukları, dilim sonu tam paket ve bütün dal incelemesi (en güçlü model), main/dev'e yalnız kullanıcı onayıyla merge.
+
+## Sahibin kuralları (tek kaynak)
+
+Bunlar Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esastır. Yukarıdaki "Çalışma ve test disiplini" ile çelişirse güvenlik ve kalite kazanır.
+
+- **[Güvenlik] Push/merge/yayın:** yalnız Kadir'in o işlem için taze onayıyla; force push yok (geri alınamaz, başkasının işini siler).
+- **[Güvenlik] CI kontrolü:** her push/merge sonrası `gh run list --repo kadirkayarr-beep/AI-DND` ile 'AI-DND bounded verification' bakılır (CI yalnız main push ve pull_request'te çalışır); kırmızıyı hemen bildir, sonra düzelt, yeşil olmadan "bitti" deme (yerel yeşil CI'ın yerini tutmaz).
+- **[Güvenlik] Commit kaybı:** birleştirmeden/push'tan önce dal ve commitlerin başka yerde olup olmadığına bak (hedef uç atası mı); eski Ekim dallarına dokunulmaz (iş kaybı geri alınamaz).
+- **[Güvenlik] Anahtarlar:** anahtar/API dosyaları okunmaz, yazdırılmaz, commit edilmez; anahtarları yalnız sahibi girer (sızıntı geri alınamaz).
+- **[Güvenlik] Dış kod ve veri:** doğrulanmamış skill, hook, npx kurulmaz; önce repo okunur, yalnız markdown içerenler kurulur; ekran görüntüsü ya da veri dış servise sorulmadan gönderilmez (gizlilik, gizli hook riski).
+- **[Güvenlik] Silme koruması:** silmeden önce hedefe bak (kirli dosya, uzak dalda olmayan commit); dallar silinmez (kayıp geri alınamaz).
+- **[Hız] Paralel çalışma:** güvenlik ve kaliteden ödün vermeden mümkünse bağımsız işler aynı anda yürütülür: ayrı worktree, tek yazıcı, ayrı test yuvası (bkz. Hız kuralı 1).
+- **[Hız] Tek durma koşulları:** liste "Belirsizlik ve karar" maddesindeki dört durumdur (geri alınamaz/yıkıcı, güvenlik açısından hassas, worktree dışı yan etki, bozuk plan); burada tekrarlanmaz, başka durma koşulu eklenmez.
+- **[Hız] Token tasarrufu ve model seçimi:** haftalık limit dar; ucuz model işlere, fable yalnız para/kayıt/Geri Al ve bütün-dal incelemesine; yeni numaralı iş için önce bütçe tahmini.
+- **[Kalite] Sahibin dili:** kısa, açık, dürüst ve sade Türkçe; Kadir programcı değil, doğrulamadığını söyle (yanlış güven zarar verir); harcama/push/merge/silme için onay iste.
