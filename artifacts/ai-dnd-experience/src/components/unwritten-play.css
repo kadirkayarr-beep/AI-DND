@@ -370,7 +370,7 @@
 .design-preview.play-shell .rail-summary strong { color:var(--unw-text); font-weight:500; }
 .design-preview.play-shell .drawer-backdrop { z-index:90; }
 .design-preview.play-shell .drawer-sheet { min-width:0; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; }
-.design-preview.play-shell .drawer-heading { position:sticky; top:0; z-index:2; background:var(--unw-surface); padding-top:8px; }
+.design-preview.play-shell .drawer-heading { position:sticky; top:0; z-index:2; background:var(--unw-surface-sunken); padding-top:8px; }
 .design-preview.play-shell .drawer-sheet .identity-notes { width:100%; max-width:100%; max-height:none; overflow:visible; }
 .design-preview.play-shell .drawer-sheet .identity-note-text { overflow-wrap:anywhere; }
 @media (max-width:760px) {
