@@ -135,7 +135,7 @@
 .skill-check-result__roll-context {
   margin: 0.2rem 0 0.6rem;
   color: var(--unw-text-soft);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .skill-check-result__roll {
