@@ -184,7 +184,9 @@ class SpellKernelHasNoProductCaller(unittest.TestCase):
 
 
 class D038HasNoReachableCast(unittest.TestCase):
-    """(g) D-038: re-preparing after a cast while the clock stands still needs a cast outside a fight; there is none."""
+    """(g) D-038: re-preparing after a cast while the clock stands still needs a cast outside a fight. A slot spell outside
+    a fight is still refused (below); the narrative cantrips of 4C.5 cast outside a fight and close a Long Rest window
+    (test_dilim4c_5_narrative_spells.D038CastClosesTheLongRestWindow)."""
 
     def test_a_cast_outside_combat_is_refused_and_the_long_rest_window_stands(self):
         s, enemy = scope_fixtures.caster(cls="Cleric")

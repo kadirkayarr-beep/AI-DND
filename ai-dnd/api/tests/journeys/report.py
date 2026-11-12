@@ -49,6 +49,8 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Anlatı biçimi", ("35", "38")),
     # The way to a person someone named: their place, and where the town says they are.
     ("Yol ve hedef", ("37", "40")),
+    # A spell the engine does not resolve with dice: a narrative fact, or the "not in the engine yet" line (4C.5).
+    ("Büyü anlatısı", ("49",)),
 )
 _OTHER_KIND = "Diğer"
 _NUMBER = re.compile(r"^(\d+[a-z]?)_")

@@ -245,6 +245,10 @@ def natural_command(message, target_id):
     casting = bool(re.search(r"\b(cast|casting|büyü|buyu|büyüsünü|buyusunu)\b", text))
     if not selected and not casting:
         return None
+    import spell_effects
+    if not selected and any(re.search(rf"(?<![a-z0-9]){alias}(?![a-z0-9])", spell_effects._fold(text))
+                            for alias, _ in spell_effects._ALIASES):
+        return None  # a narrative spell line the narrative owner did not take (K2: money/item) goes on to today's paths
     # Questions about spells are never player authorization to cast.
     if "?" in text or re.search(r"\b(nedir|what|describe|anlat)\b", text):
         return None
@@ -336,7 +340,9 @@ def explicit_request(message, command=None):
     text = str(message).casefold()
     if "?" in text or re.search(r"\b(nedir|describe|what|anlat)\b", text):
         return False
+    import spell_effects
     return bool(re.search(r"\b(cast|casting|büyüsünü|buyusunu)\b", text)
+                or spell_effects.named(text) is not None  # 4C.5: the engine answers it; the narrator only tells it
                 or _drops_concentration(text)  # dropping Concentration is a typed engine step (no model)
                 or (any(name.casefold() in text for name in CATALOG)
                     and "?" not in text and not re.search(r"\b(nedir|describe|what|anlat)\b", text)))

@@ -2544,6 +2544,8 @@ def _validate_save_payload(payload):
     spell_concentration.validate_saved(saved_world, player)
     import spell_scope
     spell_scope.validate_saved_riders(saved_world)
+    import spell_effects
+    spell_effects.validate_saved(saved_world)
     _validate_saved_multilevel_slots(player, saved_world)
     species = player.get("species", player["race"])
     if species not in RACES:
@@ -19930,6 +19932,13 @@ def _dispatch_player_turn(
         _session()._front_ahead = True
     if getattr(_session(), "_front_strike", None):
         target_id, interaction_mode = _session()._front_strike["id"], "do"
+    import spell_effects
+    if (combat_action is None and interaction_mode not in {"say", "ask_dm"}
+            and not getattr(_session(), "_front_strike", None) and spell_effects.named(player_input) is not None):
+        # 4C.5: a narrative spell (or one not in the engine yet) is the spell owner's, never a walk, a knock or an item
+        # move; the engine answers it inside the turn and the narrator tells the fact.
+        return _dispatch_turn_body(player_input, messages, target_id, scene_plan, interaction_mode, action_id,
+                                   session_id, check_feature, check_evidence)
     if combat_action is None:
         import fallen
         body = fallen.addressed_body(_session(), player_input) if not combat_lifecycle.is_attack_decision(_session(), player_input) else None
@@ -21246,6 +21255,16 @@ def _run_player_turn_internal(
             quest_world_before=quest_world_before,
         )
         raise TurnResolved(result, resolved)
+
+    import spell_effects
+    spell_reading = (spell_effects.named(player_input)
+                     if interaction_mode not in {"say", "ask_dm"} and isinstance(player_input, str)
+                     and _session().character.get("current_hp", 0) > 0 else None)  # a body on the ground saves
+    if spell_reading is not None:
+        # 4C.5: the engine decides and commits (a fact, or a truthful line that nothing was cast); a resolved fact goes
+        # to the turn narrator (narration only, the line is its fallback), a refusal is told as it is.
+        cast = spell_effects.resolve(_session(), spell_reading)
+        return finish_turn(cast["action_result"], cast["narration"])
 
     def finish_conversation_rejection(target):
         action_result = {

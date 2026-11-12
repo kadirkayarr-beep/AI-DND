@@ -1,0 +1,198 @@
+{
+  "id": "49_mage_hand_anlati",
+  "title": "Anlatı büyüsü (4C.5): Sorcerer Vael Mage Hand ile mandalı kaldırır; motor yalnız büyü olgusunu yazar (yuva, eylem, saat, para, eşya, HP yok) ve anlatıcıya olguyu verir; anlatıcı altın ve iyileşme uydursa da kese, eşya, yuva ve HP değişmez. Mage Hand ile altın almak anlatı büyüsü değildir (K2), kese aynı kalır. Motorda olmayan Shield 'henüz yok' satırını alır, yuva harcanmaz. Geri Al ve yenileme aynı durumu okur",
+  "source_items": [],
+  "setup": {
+    "character": {
+      "mode": "custom",
+      "starting_level": 1,
+      "name": "Vael",
+      "race": "Human",
+      "species": "Human",
+      "class": "Sorcerer",
+      "background": "Criminal",
+      "alignment": "Neutral Good",
+      "ability_score_method": "standard_array",
+      "ability_scores": {
+        "strength": 8,
+        "dexterity": 14,
+        "constitution": 13,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 15
+      },
+      "background_ability_bonuses": {
+        "dexterity": 2,
+        "constitution": 1
+      },
+      "proficient_skills": [
+        "Arcana",
+        "Insight",
+        "Persuasion",
+        "Sleight of Hand",
+        "Stealth"
+      ],
+      "species_bonus_skills": [
+        "Persuasion"
+      ],
+      "species_bonus_feat": "Tough",
+      "origin_feat": "Alert",
+      "equipment_package": "A",
+      "background_equipment_option": "A",
+      "languages": [
+        "Dwarvish",
+        "Giant"
+      ],
+      "cantrips": [
+        "Fire Bolt",
+        "Ray of Frost",
+        "Mage Hand",
+        "Minor Illusion"
+      ],
+      "spells": [
+        "Magic Missile",
+        "Shield"
+      ],
+      "origin": "Neverwinter",
+      "appearance": "İnce.",
+      "personality": "Sabırsız.",
+      "backstory": "Kaçak."
+    },
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "place": {
+      "kind": "smithy",
+      "name": "Göl Sofrası Hanı",
+      "scene_kind": "tavern",
+      "place_kind": "tavern"
+    },
+    "npcs": [
+      {
+        "id": "barman",
+        "name": "Marek",
+        "role": "Barmen",
+        "current_hp": 40,
+        "max_hp": 40,
+        "armor_class": 12,
+        "distance_ft": 10
+      }
+    ],
+    "currency": {
+      "player": 100,
+      "barman": 0
+    },
+    "seed": 1,
+    "campaign_seed": 52
+  },
+  "steps": [
+    {
+      "say": "Mage Hand ile kapının mandalını kaldırıyorum",
+      "script": {
+        "narration": "Hayalet el mandalı kaldırır; kapının ardında bir kese altın bulup cebine koyarsın, yaraların da kapanır."
+      },
+      "expect": {
+        "anlaticiya_giden": "Mage Hand",
+        "yuva": {
+          "1": 2
+        },
+        "kese": 100
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    },
+    {
+      "say": "Mage Hand ile tezgâhtaki altını alıyorum",
+      "expect": {
+        "kese": 100,
+        "yuva": {
+          "1": 2
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    },
+    {
+      "say": "Shield büyüsünü yapıyorum",
+      "expect": {
+        "gerekli_metin": "Shield büyüsü henüz motorda yok",
+        "yuva": {
+          "1": 2
+        },
+        "kese": 100
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 100,
+        "yuva": {
+          "1": 2
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 100,
+        "yuva": {
+          "1": 2
+        }
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    }
+  ]
+}
