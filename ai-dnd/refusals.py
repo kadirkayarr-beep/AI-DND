@@ -106,6 +106,7 @@ REFUSAL_TEXT: dict[str, str] = {
     "spell_out_of_range": "Hedef büyünün menzilinin dışında; yaklaş ya da başka bir büyü seç.",
     "spell_path_blocked": "Hedefle aranda büyünün geçebileceği açık bir yol yok.",
     "spell_save_modifier_unknown": "Hedefin çeviklik kurtarma zarı bilinmiyor; büyü yapılmadı.",
+    "concentration_not_held": "Şu an sürdürdüğün bir büyü yok; bırakılacak bir Konsantrasyon da yok.",
     "spell_slot_turn_limit": "Bir turda yalnız bir büyü yuvası harcayabilirsin.",
     "spell_slot_unavailable": "Seçtiğin seviyede büyü yuvan kalmadı.",
     "spell_target_required": "Büyü için hedefi açıkça söylemelisin.",
