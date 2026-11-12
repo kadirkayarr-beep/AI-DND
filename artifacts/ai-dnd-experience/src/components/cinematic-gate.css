@@ -457,7 +457,6 @@
   outline-offset: 2px;
 }
 .character-creation-screen.cinematic-create .cc-wizard-footer {
-  position: sticky;
   bottom: 0;
   z-index: 2;
   margin-top: 8px;
@@ -564,7 +563,6 @@
 }
 .reveal-screen.gate-fade .portrait-empty { min-height: 0; }
 .reveal-screen.gate-fade .reveal-actions {
-  position: sticky;
   bottom: 0;
   background: color-mix(in srgb, var(--unw-accent-light) 96%, transparent);
   padding-bottom: 8px;
@@ -914,8 +912,6 @@
 }
 .cinematic-reveal .reveal-data .state-panel h2 { color: var(--unw-text); }
 .cinematic-reveal .reveal-actions {
-  position: sticky;
-  bottom: -1px;
   display: flex;
   align-items: center;
   justify-content: space-between;
