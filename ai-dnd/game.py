@@ -23661,6 +23661,32 @@ _DEFAULT_SESSION = None
 _ENGINE_NAMESPACE = globals()
 
 
+def _restore_in_place(live, saved):
+    """Make ``live`` equal ``saved`` while keeping every container both still hold the live object (B1 forfeit).
+
+    ``saved`` is a private deep copy the caller gives up. Dicts lose keys ``saved`` lacks; lists are matched by position
+    (surplus items dropped, missing ones appended); a value of another type is replaced.
+    """
+    if isinstance(live, dict):
+        for key in [key for key in live if key not in saved]:
+            del live[key]
+        for key, value in saved.items():
+            current = live.get(key)
+            if key in live and type(current) is type(value) and isinstance(value, (dict, list)):
+                _restore_in_place(current, value)
+            else:
+                live[key] = value
+    else:
+        del live[len(saved):]
+        for index, value in enumerate(saved):
+            if index >= len(live):
+                live.append(value)
+            elif type(live[index]) is type(value) and isinstance(value, (dict, list)):
+                _restore_in_place(live[index], value)
+            else:
+                live[index] = value
+
+
 class GameSession:
     """Independent player, world, narration history, conversation and dice."""
 
@@ -23719,25 +23745,23 @@ class GameSession:
         cap, an unknown class at a level step, a level-5 crossing the save admission refuses) is put back and logged,
         and play goes on without it instead of being refused on every later turn. Returns the summary, or None.
 
-        Only for owners that write nothing but the character and the receipt list (the ``xp.award_*`` owners): those,
-        the pending announcement and the save format are put back in place, so a caller holding world references (the
-        fight being ended, the creature just knocked out) keeps live ones. A non-ValueError is a bug: put back, raised.
+        Character and world are put back to their exact earlier values *in place* (`_restore_in_place`): every nested
+        container a caller holds (the fight being ended, the creature just knocked out, ``saving_throw_mods``) stays
+        the live object, and whatever the award or the save check wrote (receipts, level, the save check's
+        ``scene_state`` default-fill) is undone. The pending announcement and the save format are put back too. The RNG
+        and the narration history are not touched by an award and are not restored. A non-ValueError is a bug: put
+        back, raised.
         """
         character = copy.deepcopy(self.character)
-        had_receipts = "xp_awarded_event_ids" in self.world_state
-        receipts = copy.deepcopy(self.world_state.get("xp_awarded_event_ids"))
+        world = copy.deepcopy(self.world_state)
         pending = copy.deepcopy(self._xp_level_up)
         had_format = "_persisted_engine_format" in self.__dict__
         old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
         try:
             return self._admit_xp_award(award_owner, *args, **kwargs)
         except Exception as error:
-            self.character.clear()
-            self.character.update(character)
-            if had_receipts:
-                self.world_state["xp_awarded_event_ids"] = receipts
-            else:
-                self.world_state.pop("xp_awarded_event_ids", None)
+            _restore_in_place(self.character, character)
+            _restore_in_place(self.world_state, world)
             self._xp_level_up = pending
             if had_format:
                 self._persisted_engine_format = old_format

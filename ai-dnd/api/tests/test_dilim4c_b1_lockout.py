@@ -280,6 +280,57 @@ class JobAwardRefused(jobs._JobCase):
             world_threads.validate(done)
 
 
+def _containers(value, path=()):
+    """Every dict/list inside ``value`` by path, with its object identity."""
+    found = {path: id(value)}
+    items = value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, list) else ()
+    for key, item in items:
+        if isinstance(item, (dict, list)):
+            found.update(_containers(item, (*path, key)))
+    return found
+
+
+class ForfeitPutsBackInPlace(unittest.TestCase):
+    """4C.6 fix 2: a forfeited award leaves character and world exactly as they were, every nested container the same
+    live object (a caller holding ``saving_throw_mods`` or ``spell_slots_remaining`` keeps it), and the save check's own
+    default-fill (``scene_state``) is put back too."""
+
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.session = legacy_save(3, directory.name)              # 6490 XP, level 4: +10 crosses to 5 (PB 2 -> 3)
+
+    def forfeit(self):
+        with patch.object(game, "_validate_save_payload", _refused):
+            return self.session._forfeit_unrecordable_xp(xp.apply_xp, self.session.character,
+                                                         self.session.world_state, 10, "quest:refused-five")
+
+    def test_nested_character_and_world_containers_stay_the_live_objects(self):
+        session = self.session
+        session.character.setdefault("spell_slots_remaining", {"1": 0})
+        saves = session.character["saving_throw_mods"]
+        character, world = copy.deepcopy(session.character), copy.deepcopy(session.world_state)
+        ids = (_containers(session.character), _containers(session.world_state))
+        self.assertIsNone(self.forfeit())
+        self.assertEqual((session.character, session.world_state), (character, world))
+        self.assertEqual((_containers(session.character), _containers(session.world_state)), ids)
+        self.assertIs(session.character["saving_throw_mods"], saves)
+        self.assertEqual((session.character["level"], session._persisted_engine_format, session._xp_level_up),
+                         (4, 3, None))
+
+    def test_the_save_checks_scene_default_fill_is_put_back(self):
+        session = self.session
+        session.world_state.pop("scene_state", None)
+        self.assertIsNone(self.forfeit())
+        self.assertNotIn("scene_state", session.world_state)
+        game.living_world.ensure_scene_state(session.world_state)
+        scene = session.world_state["scene_state"]
+        scene.pop("ambient_event_counts")
+        self.assertIsNone(self.forfeit())
+        self.assertIs(session.world_state["scene_state"], scene)
+        self.assertNotIn("ambient_event_counts", scene)
+
+
 class ConcentrationIsCheckedBeforeItIsWritten(unittest.TestCase):
     """Design §8: a new 4C field is tried on a copy before it is written, so a bad record never reaches a save."""
 
