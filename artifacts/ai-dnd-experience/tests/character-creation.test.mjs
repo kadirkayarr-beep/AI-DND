@@ -158,9 +158,10 @@ after(async () => {
 test('character creation screen renders all 8 progression steps and navigation controls', () => {
   const html = renderCreationScreen();
   assert.ok(html.includes('data-testid="screen-character-creation"'));
-  assert.ok(html.includes('1. Sınıf'));
-  assert.ok(html.includes('2. Geçmiş'));
-  assert.ok(html.includes('3. Tür'));
+  // Plan part B (owner decision, 2026-11-12): order is Tür, Sınıf, Geçmiş. Same strictness: every label still asserted.
+  assert.ok(html.includes('1. Tür'));
+  assert.ok(html.includes('2. Sınıf'));
+  assert.ok(html.includes('3. Geçmiş'));
   assert.ok(html.includes('4. Yetenekler'));
   assert.ok(html.includes('5. Beceriler &amp; Büyü') || html.includes('5. Beceriler & Büyü'));
   assert.ok(html.includes('6. Ekipman'));
@@ -170,7 +171,8 @@ test('character creation screen renders all 8 progression steps and navigation c
 });
 
 test('presents genuine player choices for class, species, background, and alignment', () => {
-  const html = renderCreationScreen();
+  // The first step is now species; the class cards are asserted on the class step (plan part B).
+  const html = renderCreationScreen({ initialStep: 'class' });
   assert.ok(html.includes('>Savaşçı<'));
   assert.ok(html.includes('>Sihirbaz<'));
   assert.ok(!html.includes('Savaşçı (Fighter)'));
@@ -432,13 +434,17 @@ test('starting location options are bound to canonical verified regions', () => 
 });
 
 test('initial state contains zero silent preselected choices and blocks progression', () => {
-  const html = renderCreationScreen();
+  const html = renderCreationScreen({ initialStep: 'class' });
   // No preselected character name or defaults
   assert.ok(!html.includes('value="Cedric"'));
   assert.ok(!html.includes('cc-choice-card selected'));
   // Forward progression button is disabled and displays player-facing guidance
   assert.ok(html.includes('disabled=""') || html.includes('disabled'));
   assert.ok(html.includes('İlerlemek için bir sınıf seçin.'));
+  // The new first step blocks the same way: nothing preselected, guidance shown.
+  const first = renderCreationScreen();
+  assert.ok(!first.includes('cc-choice-card selected'));
+  assert.ok(first.includes('İlerlemek için bir tür seçin.'));
 });
 
 test('identity step exposes player-owned appearance, personality, and backstory fields', () => {
@@ -537,6 +543,7 @@ test('Half-Elf uses its own portrait while other species keep atlas and unknown 
 
 test('class cards use shared presentation labels and keep class ids', () => {
   const html = renderCreationScreen({
+    initialStep: 'class',
     catalog: {
       ...mockCatalog,
       classes: {
