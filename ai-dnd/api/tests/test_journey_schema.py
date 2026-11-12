@@ -128,7 +128,7 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
                 "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
-                "olay", "zirh", "varis", "seviye",
+                "olay", "zirh", "varis", "seviye", "buyu_olgusu",
             },
         )
 
@@ -316,6 +316,7 @@ class TheLoaderIsStrict(unittest.TestCase):
             ("konum", ""), ("konum", 5), ("olu", 0),
             ("yasak_metin", ""), ("yasak_metin", []), ("yasak_metin", 5), ("yasak_metin", [""]),
             ("yasak_metin", None), ("gerekli_metin", ["bira", 3]), ("anlaticiya_giden", []),
+            ("buyu_olgusu", "Mage Hand"), ("buyu_olgusu", [""]), ("buyu_olgusu", None),
         ):
             with self.subTest(key=key, value=value), self.assertRaises(ScenarioError) as raised:
                 load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {key: value}}])))
@@ -324,7 +325,7 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kisi_kese": {"barman": 4}, "gorev": {"aktif": 0, "kayit": []}, "kip": {"active": True},
                 "kart": None, "tezgah": {"key": "bira"}, "yuva": None, "konum": None, "olu": "alive",
                 "yasak_metin": "kılıç", "gerekli_metin": ["bira", "Marek"], "anlaticiya_giden": ["oda tutuldu"],
-                "karsi_saldiri": 1, "esya_sayisi": 1, "xp": 10, "saat": 0, "savas": True}
+                "karsi_saldiri": 1, "esya_sayisi": 1, "xp": 10, "saat": 0, "savas": True, "buyu_olgusu": []}
         (step,) = load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": good}]))).steps
         self.assertEqual(step.expect, good)
 

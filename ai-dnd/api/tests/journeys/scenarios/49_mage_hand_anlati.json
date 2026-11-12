@@ -1,6 +1,6 @@
 {
   "id": "49_mage_hand_anlati",
-  "title": "Anlatı büyüsü (4C.5): Sorcerer Vael Mage Hand ile mandalı kaldırır; motor yalnız büyü olgusunu yazar (yuva, eylem, saat, para, eşya, HP yok) ve anlatıcıya olguyu verir; anlatıcı altın ve iyileşme uydursa da kese, eşya, yuva ve HP değişmez. Mage Hand ile altın almak anlatı büyüsü değildir (K2), kese aynı kalır. Motorda olmayan Shield 'henüz yok' satırını alır, yuva harcanmaz. Geri Al ve yenileme aynı durumu okur",
+  "title": "Anlatı büyüsü (4C.5): Sorcerer Vael Mage Hand ile mandalı kaldırır; motor yalnız büyü olgusunu yazar (yuva, eylem, saat, para, eşya, HP yok) ve anlatıcıya olguyu verir; anlatıcı altın ve iyileşme uydursa da kese, eşya, yuva ve HP değişmez. Mage Hand ile altın almak anlatı büyüsü değildir (K2), kese aynı kalır. Motorda olmayan Shield 'henüz yok' satırını alır, yuva harcanmaz. Geri Al büyü olgusunu siler, yeniden atış bir olgu yazar, yenileme aynısını okur; anlatıcının para/eşya/iyileşme iddiası oyuncuya gitmez (Python satırına düşer)",
   "source_items": [],
   "setup": {
     "character": {
@@ -95,52 +95,20 @@
         "narration": "Hayalet el mandalı kaldırır; kapının ardında bir kese altın bulup cebine koyarsın, yaraların da kapanır."
       },
       "expect": {
-        "anlaticiya_giden": "Mage Hand",
         "yuva": {
           "1": 2
         },
-        "kese": 100
-      },
-      "sifir_tolerans": [
-        {
-          "kese": 100,
-          "yuva": {
-            "1": 2
-          },
-          "hp": 10,
-          "esya_sayisi": 6,
-          "savas": false
-        }
-      ]
-    },
-    {
-      "say": "Mage Hand ile tezgâhtaki altını alıyorum",
-      "expect": {
         "kese": 100,
-        "yuva": {
-          "1": 2
-        }
-      },
-      "sifir_tolerans": [
-        {
-          "kese": 100,
-          "yuva": {
-            "1": 2
-          },
-          "hp": 10,
-          "esya_sayisi": 6,
-          "savas": false
-        }
-      ]
-    },
-    {
-      "say": "Shield büyüsünü yapıyorum",
-      "expect": {
-        "gerekli_metin": "Shield büyüsü henüz motorda yok",
-        "yuva": {
-          "1": 2
-        },
-        "kese": 100
+        "buyu_olgusu": [
+          "Mage Hand"
+        ],
+        "yasak_metin": [
+          "cebine koyarsın",
+          "yaraların da kapanır",
+          "altın"
+        ],
+        "gerekli_metin": "Büyücü Eli (Mage Hand): 30 fit içinde",
+        "anlaticiya_giden": "Mage Hand"
       },
       "sifir_tolerans": [
         {
@@ -157,10 +125,88 @@
     {
       "undo": true,
       "expect": {
-        "kese": 100,
         "yuva": {
           "1": 2
+        },
+        "kese": 100,
+        "buyu_olgusu": []
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
         }
+      ]
+    },
+    {
+      "say": "Mage Hand ile kapının mandalını kaldırıyorum",
+      "script": {
+        "narration": "Yüzük avucuna düşer, artık senindir."
+      },
+      "expect": {
+        "yuva": {
+          "1": 2
+        },
+        "kese": 100,
+        "buyu_olgusu": [
+          "Mage Hand"
+        ],
+        "yasak_metin": [
+          "avucuna düşer",
+          "senindir"
+        ]
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    },
+    {
+      "say": "Mage Hand ile tezgâhtaki altını alıyorum",
+      "expect": {
+        "yuva": {
+          "1": 2
+        },
+        "kese": 100,
+        "buyu_olgusu": [
+          "Mage Hand"
+        ]
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    },
+    {
+      "say": "Shield büyüsünü yapıyorum",
+      "expect": {
+        "yuva": {
+          "1": 2
+        },
+        "kese": 100,
+        "buyu_olgusu": [
+          "Mage Hand"
+        ],
+        "gerekli_metin": "Shield büyüsü henüz motorda yok"
       },
       "sifir_tolerans": [
         {
@@ -177,10 +223,13 @@
     {
       "reload": true,
       "expect": {
-        "kese": 100,
         "yuva": {
           "1": 2
-        }
+        },
+        "kese": 100,
+        "buyu_olgusu": [
+          "Mage Hand"
+        ]
       },
       "sifir_tolerans": [
         {

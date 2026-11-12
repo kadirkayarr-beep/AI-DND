@@ -1,6 +1,6 @@
 {
   "id": "rc18_mage_hand_real",
-  "title": "Gerçek zincir, anlatı büyüsünün ikizi (49'un satırları, gerçek modelde, betiksiz): Sorcerer Vael Mage Hand ile mandalı kaldırır, motor yalnız büyü olgusunu yazar ve anlatıcı onu anlatır; Mage Hand ile altın almak anlatı büyüsü değildir (K2); motorda olmayan Shield 'henüz yok' satırını alır. Sıfır tolerans: model hasar, para, eşya ya da HP uyduramaz; kese, eşya, yuva ve HP her adımda aynı. Beklenti yalnız durum; modelin söylediği hiçbir şey keseyi, eşyayı, yuvayı ya da HP'yi değiştirmez",
+  "title": "Gerçek zincir, anlatı büyüsünün ikizi (49'un satırları, gerçek modelde, betiksiz): Sorcerer Vael Mage Hand ile mandalı kaldırır, motor yalnız büyü olgusunu yazar ve anlatıcı onu anlatır; Mage Hand ile altın almak anlatı büyüsü değildir (K2); motorda olmayan Shield 'henüz yok' satırını alır. Sıfır tolerans: model hasar, para, eşya ya da HP uyduramaz; kese, eşya, yuva ve HP her adımda aynı. Beklenti yalnız durum; modelin söylediği hiçbir şey keseyi, eşyayı, yuvayı ya da HP'yi değiştirmez; Geri Al olguyu siler, anlatı para/eşya/iyileşme iddia etmez",
   "source_items": [],
   "setup": {
     "character": {
@@ -91,32 +91,22 @@
   "steps": [
     {
       "say": "Mage Hand ile kapının mandalını kaldırıyorum",
+      "real_chain": true,
       "expect": {
         "yuva": {
           "1": 2
         },
-        "kese": 100
-      },
-      "sifir_tolerans": [
-        {
-          "kese": 100,
-          "yuva": {
-            "1": 2
-          },
-          "hp": 10,
-          "esya_sayisi": 6,
-          "savas": false
-        }
-      ],
-      "real_chain": true
-    },
-    {
-      "say": "Mage Hand ile tezgâhtaki altını alıyorum",
-      "expect": {
         "kese": 100,
-        "yuva": {
-          "1": 2
-        }
+        "buyu_olgusu": [
+          "Mage Hand"
+        ],
+        "yasak_metin": [
+          "cebine",
+          "yaraların",
+          "senindir",
+          "altın"
+        ],
+        "gerekli_metin": "Mage Hand"
       },
       "sifir_tolerans": [
         {
@@ -128,39 +118,96 @@
           "esya_sayisi": 6,
           "savas": false
         }
-      ],
-      "real_chain": true
-    },
-    {
-      "say": "Shield büyüsünü yapıyorum",
-      "expect": {
-        "gerekli_metin": "Shield büyüsü henüz motorda yok",
-        "yuva": {
-          "1": 2
-        },
-        "kese": 100
-      },
-      "sifir_tolerans": [
-        {
-          "kese": 100,
-          "yuva": {
-            "1": 2
-          },
-          "hp": 10,
-          "esya_sayisi": 6,
-          "savas": false
-        }
-      ],
-      "real_chain": true
+      ]
     },
     {
       "undo": true,
       "real_chain": true,
       "expect": {
-        "kese": 100,
         "yuva": {
           "1": 2
+        },
+        "kese": 100,
+        "buyu_olgusu": []
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
         }
+      ]
+    },
+    {
+      "say": "Mage Hand ile kapının mandalını kaldırıyorum",
+      "real_chain": true,
+      "expect": {
+        "yuva": {
+          "1": 2
+        },
+        "kese": 100,
+        "buyu_olgusu": [
+          "Mage Hand"
+        ],
+        "yasak_metin": [
+          "cebine",
+          "yaraların",
+          "senindir",
+          "altın"
+        ]
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    },
+    {
+      "say": "Mage Hand ile tezgâhtaki altını alıyorum",
+      "real_chain": true,
+      "expect": {
+        "yuva": {
+          "1": 2
+        },
+        "kese": 100,
+        "buyu_olgusu": [
+          "Mage Hand"
+        ]
+      },
+      "sifir_tolerans": [
+        {
+          "kese": 100,
+          "yuva": {
+            "1": 2
+          },
+          "hp": 10,
+          "esya_sayisi": 6,
+          "savas": false
+        }
+      ]
+    },
+    {
+      "say": "Shield büyüsünü yapıyorum",
+      "real_chain": true,
+      "expect": {
+        "yuva": {
+          "1": 2
+        },
+        "kese": 100,
+        "buyu_olgusu": [
+          "Mage Hand"
+        ],
+        "gerekli_metin": "Shield büyüsü henüz motorda yok"
       },
       "sifir_tolerans": [
         {
@@ -178,10 +225,13 @@
       "reload": true,
       "real_chain": true,
       "expect": {
-        "kese": 100,
         "yuva": {
           "1": 2
-        }
+        },
+        "kese": 100,
+        "buyu_olgusu": [
+          "Mage Hand"
+        ]
       },
       "sifir_tolerans": [
         {

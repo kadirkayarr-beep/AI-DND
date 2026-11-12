@@ -18,6 +18,7 @@ from typing import Any
 EXPECT_KEYS = frozenset(
     {
         "kese",
+        "buyu_olgusu",
         "envanter",
         "oda",
         "kip",
@@ -111,6 +112,8 @@ EXPECT_VALUE_RULES = {
     "saat": (_integer, "tam sayı"),
     "karsi_saldiri": (_integer, "tam sayı"),
     "esya_sayisi": (_integer, "tam sayı"),
+    "buyu_olgusu": (lambda value: isinstance(value, list) and all(isinstance(spell, str) and spell for spell in value),
+                    "büyü adları listesi (boş olabilir)"),
     "hareket": (_or_none(_integer), "tam sayı ya da null"),
     "oda": (lambda value: isinstance(value, bool), "true ya da false"),
     "savas": (lambda value: isinstance(value, bool), "true ya da false"),

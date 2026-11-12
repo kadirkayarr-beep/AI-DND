@@ -732,6 +732,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     counter-attack being a swing resolved after the player's own (see ``counter_attacks``).
     ``yuva`` is the player's spell slots left, by level (``world.spellcasting_v1.slots``; None without spells).
     ``esya_sayisi`` is every item the player holds, whatever its name (a duplicate shows even under another name).
+    ``buyu_olgusu`` names the narrative spell facts saved (``world.spell_effects_v1``, 4C.5), in saved order.
 
     ``anlatilan`` is what each person keeps of the player's own words (``world.npc_told_v1``: person to the kept
     texts), a state a reload compares. ``konusmaya_giden`` is every message the step's last speech call was sent (None:
@@ -773,6 +774,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "gorev": _open_quests(world.get("quests") or []),
         "karsi_saldiri": counter_attacks(getattr(case, "last_combat_result", None)),
         "yuva": _spell_slots(world),
+        "buyu_olgusu": [fact.get("spell_id") for fact in world.get("spell_effects_v1") or [] if isinstance(fact, dict)],
         "anlatilan": _told(world),
         "narration": getattr(case, "last_narration", ""),
         "anlaticiya_giden": getattr(case, "last_narrator_input", None),
