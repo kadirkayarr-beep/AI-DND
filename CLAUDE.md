@@ -88,6 +88,19 @@ Bunlar Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esa
 - "Bitti" demeden önce koşunun çıktısını göster; koşmadığın testi geçti sayma.
 - **[Hız] Eski kanıt:** `attached_assets/`, `docs/design/arsiv/`, `docs/acceptance/`, `.local/evidence/` toplu okunmaz; yalnız adı verilen tek kayıt açılır.
 
+## Arayüz işi (Kadir, 2026-11-13)
+
+Bu bölüm `artifacts/ai-dnd-experience` altındaki her görsel değişiklik için geçerlidir. "En az kod" kuralı burada gereksiz soyutlama yazmamak demektir; eksik durum, ham tarayıcı bileşeni ya da yarım görsel bırakmak demek değildir.
+
+- **[Kalite] Hedef resimdir:** her ekran işi bir hedefle başlar: onaylı prototip (`UI_PROTOTIP_V4_20261111`), `PROTOTIP_ENVANTERI_20261113.md` satırı ya da Kadir'in ekran görüntüsü. Hedef yoksa önce Kadir'e taslak gösterilir, kod yazılmaz.
+- **[Kalite] Gör, sonra "bitti" de:** iş, çalışan oyunun 1440 ve 390 piksel genişlikte ekran görüntüsü alınıp hedefin yanına konmadan bitmez. Görüntüler rapora dosya adıyla yazılır. Ekran görüntüsü alınamıyorsa durulur ve Kadir'e söylenir; görmeden "bitti" denmez.
+- **[Kalite] Bitti tanımı:** (1) hedefle yan yana karşılaştırma ve kalan farkların listesi; (2) boş, yükleniyor, hata ve uzun içerik durumları; (3) gece ve gündüz teması; (4) 390 pikselde yatay kaydırma yok; (5) klavyeyle gezinme ve odak görünür; (6) renk, yazı tipi ve boşluk yalnız `src/index.css` değişkenlerinden gelir, elle renk kodu yazılmaz; (7) ham tarayıcı `select`, `checkbox`, `alert` kullanılmaz, depodaki hazır bileşenler (`src/components/ui`) kullanılır; (8) bütün arayüz testleri yeşil.
+- **[Kalite] Kısayolu söyle:** bir şey basit yoldan yapıldıysa ya da bırakıldıysa raporun ilk satırına "Kısayol: <ne, neden>" yazılır. Söylenmemiş kısayol, işaretsiz gevşetme sayılır ve işi durdurur.
+- **[Kalite] Tek ekran, tek oturum:** bir oturum bir ekranı (ya da bir paneli) bitirir. Sıradaki ekran yeni oturumda başlar.
+- **[Kalite] Ayrı göz:** ekran görüntüleri, kodu yazmamış ayrı bir oturumda `ui-design-review:review` ile incelenir. Bulgular önem sırasıyla Kadir'e gider; hangilerinin düzeltileceğine Kadir karar verir.
+- **[Kalite] Model:** tasarım dilini kuran iş (ilk ekran, ortak görsel kurallar, yeni gösterge) en güçlü modelle yapılır. O kurallara uyan tekrar işleri ucuz modelle yapılabilir. Bu, "Token tasarrufu ve model seçimi" kuralının arayüz istisnasıdır.
+- **[Kalite] Kabul:** bir ekranı yalnız Kadir kabul eder. Test yeşili ve inceleme raporu kabul değildir.
+
 ## İçerik kapsamı ve açık kapı
 
 - Oyun yetişkinlere yönelik karanlık fantezidir. Savaş, kan, korku, suç (hırsızlık, cinayet), acımasız ya da kötü NPC'ler ve sert dil kurgu olarak kapsam içindedir; bunlar için sorma, uyarı ekleme, metni kendiliğinden yumuşatma.
