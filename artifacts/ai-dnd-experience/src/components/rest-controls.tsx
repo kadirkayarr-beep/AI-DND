@@ -1,7 +1,7 @@
 import type { GameState } from '@workspace/api-client-react';
 
-const SHORT_REST = 'Kısa dinlenme yapıyorum.';
-const LONG_REST = 'Uzun dinlenme yapıyorum.';
+const SHORT_REST = 'Bir saat kısa dinleniyorum.';
+const LONG_REST = '8 saat uyuyarak uzun dinlenme yapıyorum.';
 
 /**
  * Short and long rest as buttons. They send the same words a player may type, so the engine path is unchanged

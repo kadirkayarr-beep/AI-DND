@@ -7,8 +7,10 @@ const controls = await readFile('src/components/rest-controls.tsx', 'utf8');
 const column = await readFile('src/pages/game/story-column.tsx', 'utf8');
 
 test('rest controls send the spoken rest phrases through the normal move path', () => {
-  assert.match(controls, /Kısa dinlenme yapıyorum\./);
-  assert.match(controls, /Uzun dinlenme yapıyorum\./);
+  // The engine's timed owner reads a rest only when the line names how long it lasts (probed against
+  // timed_gameplay.resolve_input: "Kısa dinlenme yapıyorum." alone returns None and no rest happens).
+  assert.match(controls, /const SHORT_REST = 'Bir saat kısa dinleniyorum\.'/);
+  assert.match(controls, /const LONG_REST = '8 saat uyuyarak uzun dinlenme yapıyorum\.'/);
   assert.match(controls, /data-testid="button-rest-short"/);
   assert.match(controls, /data-testid="button-rest-long"/);
   assert.match(controls, /onSend\(/);
