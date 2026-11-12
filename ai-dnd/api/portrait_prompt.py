@@ -24,22 +24,45 @@ PORTRAIT_ERROR_CODES = (
     "portrait_busy", "portrait_not_found", "portrait_storage_failed",
 )
 
+# Matched on folded text (NFKC, Turkish case, combining marks dropped, Turkish letters to ascii), word by word.
+# Beyond this it is a keyword list: the fixed "adult (18+)" line and the provider's own filter are the backstop.
 PREFIX_STEMS = (  # a word starting with one of these refuses
     "cocu", "bebe", "ergen", "loli", "shota", "teen", "underage", "infant", "toddler", "schoolgirl", "schoolboy",
-    "ciplak", "cinsel", "seks", "sex", "erotik", "erotic", "mustehcen", "porn", "nud", "naked", "nsfw",
+    "child", "oglan", "adolescent", "juvenile", "preteen", "prepubescent", "kiddo",
+    "ciplak", "cinsel", "erotik", "erotic", "mustehcen", "porn", "naked", "nsfw",
     "topless", "lingerie", "fetis", "fetish", "sehvet", "orgy",
-    "disney", "marvel", "pixar", "pokemon", "nike", "adidas", "mcdonald", "celebrit", "unlu",
+    "disney", "pixar", "pokemon", "adidas", "mcdonald", "celebrit",
 )
-EXACT_WORDS = ("kid", "kids", "child", "children", "minor", "minors", "baby", "meme", "memeler", "memeleri")
+EXACT_WORDS = (
+    "kid", "kids", "minor", "minors", "baby", "meme", "memeler", "memeleri",
+    "sex", "sexy", "sexual", "seks", "seksi", "seksuel", "seksual", "nude", "nudes", "nudity", "nudist",
+    "breast", "breasts", "boobs", "tits", "underwear", "bikini", "striptiz", "penis", "hentai", "bdsm",
+    "marvel", "nike",
+)
+ALLOWED_WORDS = ("ergenekon",)   # starts with a stem but is a place name
 PHRASES = ("resit olmayan", "kucuk kiz", "kucuk oglan", "kucuk cocuk", "yasi kucuk", "ic camasir",
+           "little girl", "young girl", "genc kiz", "not an adult", "not adult",
+           "unlu bir akt", "unlu akt", "unlu oyuncu", "unlu bir oyuncu", "unlu sarkici", "unlu bir sarkici",
            "star wars", "harry potter", "dc comics", "coca cola")
-UNDER_AGE = r"\b([0-9]|1[0-7])\s*(yas|yasinda|yasindaki|year|years|yo)\b|\b(yas|age)\s*:?\s*([0-9]|1[0-7])\b"
+_EN_NUMBERS = ("one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|"
+               "seventeen")
+_NUM = (r"(?<![a-z0-9])(?:1[0-7]|[0-9]|" + _EN_NUMBERS +
+        r"|bir|iki|uc|dort|bes|alti|yedi|sekiz|dokuz|on\s+(?:bir|iki|uc|dort|bes|alti|yedi)|on)(?![a-z0-9])")
+_UNIT = r"(?:y\s*/\s*o|yo|yrs?|years?|yil\w*|yas\w*)(?![a-z])"
+UNDER_AGE = (_NUM + r"[\s\-./]*" + _UNIT                                  # 12 years old, on iki yasinda, 12-year-old, 12 y/o
+             + r"|(?<![a-z])(?:yas|aged?)\s*[:=]?\s*" + _NUM                 # yas: 12, age twelve
+             + r"|(?<![a-z])(?:under|below)\s+(?:the\s+age\s+of\s+)?(?:18|eighteen)(?![a-z0-9])"
+             + r"|(?<![a-z])not\s+(?:an?\s+)?adult|yasindan\s+kucuk"
+             + r"|(?<![a-z])looks?\s+(?:like\s+)?(?:an?\s+|about\s+)?(?:" + _EN_NUMBERS + r")(?![a-z])")
 PRIVATE = r"https?://|www\.|\S+@\S+\.\S+|\d{6,}"   # matched on the cleaned (not folded) text
 
 _UNDER_AGE_RE = re.compile(UNDER_AGE)
 _PRIVATE_RE = re.compile(PRIVATE, re.IGNORECASE)
 _WORD_RE = re.compile(r"[a-z0-9]+")
 _TR_ASCII = str.maketrans("çğıöşü", "cgiosu")
+_LEET = str.maketrans("01345", "oieas")
+_LOOKALIKE = str.maketrans("асеорхуіјкмтѕοα", "aceopxyijkmtsoa")   # Cyrillic/Greek lookalikes, for the check only
+_JOIN_RE = re.compile(r"(?<![a-z0-9])[a-z0-9](?:[\s.\-_*]+[a-z0-9])+(?![a-z0-9])")
 
 
 @dataclass(frozen=True)
@@ -63,20 +86,53 @@ def clean_text(text: str) -> str:
     return " ".join("".join(out).split())
 
 
+def _fold_char(ch: str) -> str:
+    ch = ch.replace("İ", "i").replace("I", "ı").lower()
+    ch = "".join(c for c in unicodedata.normalize("NFD", ch) if unicodedata.category(c) != "Mn")
+    return ch.translate(_TR_ASCII)
+
+
 def _fold(text: str) -> str:
-    text = unicodedata.normalize("NFKC", text).replace("İ", "i").replace("I", "ı").lower()
-    return text.translate(_TR_ASCII)
+    return "".join(_fold_char(ch) for ch in text)
+
+
+def _word_hit(folded: str) -> bool:
+    words = [w for w in _WORD_RE.findall(folded) if w not in ALLOWED_WORDS]
+    if any(w.startswith(PREFIX_STEMS) or w in EXACT_WORDS for w in words):
+        return True
+    padded = " " + " ".join(words)
+    return any(" " + p in padded for p in PHRASES)
 
 
 def is_forbidden(text: str) -> bool:
     folded = _fold(clean_text(text))
-    words = _WORD_RE.findall(folded)
-    if any(w.startswith(PREFIX_STEMS) or w in EXACT_WORDS for w in words):
+    joined = _JOIN_RE.sub(lambda m: re.sub(r"[\s.\-_*]+", "", m.group()), folded)
+    if _UNDER_AGE_RE.search(folded) or _UNDER_AGE_RE.search(joined):
         return True
-    joined = " ".join(words)
-    if any(p in joined for p in PHRASES):
-        return True
-    return bool(_UNDER_AGE_RE.search(folded))
+    for variant in (folded, joined):
+        looked = variant.translate(_LOOKALIKE)
+        if _word_hit(looked) or _word_hit(looked.translate(_LEET)):
+            return True
+    return False
+
+
+def _replace_name(text: str, name: str) -> str:
+    """Replace the character name, also when it was typed without diacritics or in another case (checked on folded text)."""
+    fname = _fold(name)
+    if len(fname) < 3:   # Ruling: 1-2 letter names are not replaced; they would mangle ordinary words
+        return text
+    pieces = [_fold_char(ch) for ch in text]
+    starts, folded = [], ""
+    for i, piece in enumerate(pieces):
+        starts.extend([i] * len(piece))
+        folded += piece
+    out, last = [], 0
+    for m in re.finditer(re.escape(fname), folded):
+        first, end = starts[m.start()], starts[m.end() - 1] + 1
+        if first >= last:
+            out.append(text[last:first] + "the character")
+            last = end
+    return "".join(out) + text[last:]
 
 
 def _cap_on_word(text: str, cap: int) -> str:
@@ -96,8 +152,7 @@ def build_portrait_prompt(*, species: str | None, character_class: str | None, a
                           character_name: str | None) -> PortraitPrompt | PromptRefusal:
     text = clean_text(appearance or "")
     name = clean_text(character_name or "")
-    if len(name) >= 3:
-        text = re.sub(re.escape(name), "the character", text, flags=re.IGNORECASE)
+    text = _replace_name(text, name)
     if _PRIVATE_RE.search(text) or is_forbidden(text):
         return PromptRefusal("portrait_text_refused")
     text = _cap_on_word(text, APPEARANCE_CAP).rstrip(" .,;:") or EMPTY_APPEARANCE

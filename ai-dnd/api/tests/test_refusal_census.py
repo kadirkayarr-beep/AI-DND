@@ -65,6 +65,10 @@ class RefusalCensus(unittest.TestCase):
         self.assertEqual([code for code in PORTRAIT_ERROR_CODES if not refusals.REFUSAL_TEXT[code].strip()], [])
         self.assertTrue(refusals.REFUSAL_TEXT["portrait_text_refused"].startswith("Bu tarif kullanılamadı."))
 
+    def test_no_portrait_text_contains_a_forbidden_word(self):
+        from api.portrait_prompt import PORTRAIT_ERROR_CODES, is_forbidden
+        self.assertEqual([code for code in PORTRAIT_ERROR_CODES if is_forbidden(refusals.REFUSAL_TEXT[code])], [])
+
 
 if __name__ == "__main__":
     unittest.main()

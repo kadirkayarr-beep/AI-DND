@@ -74,6 +74,41 @@ class PortraitPromptForbidden(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertIsInstance(build(text), PortraitPrompt)
 
+    def test_age_spellings_and_spelled_numbers_refused(self):
+        self.assertRefused(["twelve years old", "looks sixteen", "on iki yaşında", "under 18", "18 yaşından küçük",
+                            "not an adult", "12-year-old", "12 yo", "12 y/o", "12 yrs", "12 yıl", "10 yaşında", "age: 9",
+                            "age twelve", "yedi yaşındaki", "9 years  old", "8.yaş"])
+
+    def test_more_minor_words_refused(self):
+        self.assertRefused(["childlike face", "a child", "childish grin", "children", "little girl", "young girl",
+                            "genç kız", "oğlan", "adolescent", "juvenile", "preteen", "prepubescent", "kiddo"])
+
+    def test_combining_marks_cannot_bypass(self):
+        self.assertRefused(["na" + "ḱ" + "ed", "ċocuk", "Çocuk", "nüde"])
+
+    def test_obfuscation_refused(self):
+        self.assertRefused(["c o c u k", "ç.o.c.u.k", "n u d e", "c0cuk", "n4ked", "cоcuk", "n-u-d-e", "1 2 years old"])
+
+    def test_more_sexual_terms_refused(self):
+        self.assertRefused(["breasts", "boobs", "tits", "underwear", "bikini", "striptiz", "penis", "hentai", "bdsm",
+                            "sexy", "seksi", "seksüel", "sex", "seks"])
+
+    def test_false_positives_allowed(self):
+        for text in ["Seksen yaşında bir cüce", "genç görünümlü bir elf", "Marek", "kız kardeş", "göğüs zırhı",
+                     "18 yaşında", "marvelous armor", "a nudge", "Ergenekon dağı", "ünlü bir kılıç ustası", "breastplate",
+                     "young man", "a girl in armor", "boy", "seven hundred years old", "iki yüz yaşında",
+                     "looks on the world", "yoga", "kalça zırhı"]:
+            with self.subTest(text=text):
+                self.assertIsInstance(build(text), PortraitPrompt)
+
+    def test_name_replaced_on_folded_text(self):
+        result = build("Cagri'nin saçı kızıl", name="Çağrı")
+        self.assertIsInstance(result, PortraitPrompt)
+        self.assertNotIn("agri", result.text)
+        self.assertIn("the character", result.text)
+        # Ruling: a name shorter than 3 letters is not replaced (a 1-2 letter name would mangle ordinary words)
+        self.assertIn("Al'in", build("Al'in saçı kızıl", name="Al").text)
+
     def test_private_data_refused(self):
         self.assertRefused(["bkz https://x.y", "mail a@b.co", "tel 5551234567"])
 
