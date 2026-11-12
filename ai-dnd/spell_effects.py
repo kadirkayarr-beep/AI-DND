@@ -46,11 +46,11 @@ _NEGATED = re.compile(
 _TRANSFER = re.compile(
     r"\b(?:para\w*|kese\w*|altin\w*|gumus\w*|bakir\w*|sikke\w*|cuzdan\w*|cep\w*|ceb\w*|bozuk\w*|coin\w*|purse\w*"
     r"|gold|silver|copper|wallet\w*|pocket\w*|pouch\w*|bag|bags)\b"
-    r"|\b(?:mucevher\w*|yuzu\w*|hancer\w*|esya\w*|anahtar\w*|sandik\w*|hazine\w*|ganimet\w*|cant\w*|avuc\w*"
+    r"|\b(?:mucevher\w*|yuzu\w*|hancer\w*|esya\w*|anahtar\w*|sandik\w*|hazine\w*|ganimet\w*|cant(?!rip)\w*|avuc\w*"
     r"|ring|rings|jewel\w*|gem|gems|item\w*|key|keys|dagger\w*|loot\w*|treasure\w*|chest\w*)\b"
     r"|\b(?:kendime|bana|elime|ustume)\b|\b(?:to|toward|towards)\s+me\b|\binto\s+my\b|\bmy\s+hand\b"
     r"|\b(?:cal(?:ar|iyor|ip|mak|acag|dim)\w*|asir\w*|yuru(?:t|d)\w*|al(?:iyor|ip|ir|mak|acag|dim)\w*|getir\w*"
-    r"|ver(?:iyor|ir|mek)\w*|kap(?:iyor|ar|ip|mak|tim|acag)\w*|cek(?:iyor|ip|er|mek|tim)\w*"
+    r"|ver(?:iyor|ir|mek)\w*|kap(?:iyor|ar|ip|mak|tim|acag)\w*"
     r"|koy(?:uyor|ar|up|mak|dum)\w*|topla\w*|steal\w*|stole|pickpocket\w*|pilfer\w*|snatch\w*|grab\w*"
     r"|take|takes|taking|took|fetch\w*|bring\w*|give|giving|carry\w*|carries)\b|\bpick(?:s|ing|ed)?\s+up\b")
 _DURATION = {"1 minute": 60, "1 hour": 3600, "Up to 1 hour": 3600}
@@ -112,8 +112,8 @@ def named(message: Any) -> tuple[str, str] | None:
 # finding or winning something, healing, damage. A narrator line that says so is replaced by the Python line.
 _STATE_CLAIM = re.compile(
     r"\b(?:altin\w*|gumus\w*|bakir\w*|sikke\w*|para\w*|kese\w*|coin\w*|gold|silver|copper|purse\w*)\b"
-    r"|\b(?:cebin\w*|cebe|cantan\w*|avucun\w*|kesene|senin\w*dir|senin\s+olur\w*|yours|pocket\w*)\b"
-    r"|\belinde\s+kal\w*|\beline\s+(?:gec|al|dus)\w*|\bele\s+gecir\w*|\byour\s+(?:palm|hand|hands|bag|pack|pouch)\b"
+    r"|\b(?:cebin\w*|cebe|cant(?!rip)\w*|avucun\w*|kesene|senin\w*dir|senin\s+olur\w*|yours|pocket\w*)\b"
+    r"|\belinde(?:\s+\S+){0,4}?\s+kal\w*|\beline\s+(?:gec|al|dus)\w*|\bele\s+gecir\w*|\byour\s+(?:palm|hand|hands|bag|pack|pouch)\b"
     r"|\b(?:bul(?:ur|up|dun|ursun|uyorsun)|kazan\w*|alirsin|edinirsin)\b|\b(?:find|found|gain\w*|receive\w*|earn\w*)\b"
     r"|\byara\w*\s+(?:kapan|iyiles|gec)\w*|\biyiles\w*|\bcan\w*\s+(?:dol|art|yenilen)\w*|\bcan\s+puan\w*"
     r"|\b(?:heal\w*|wound\w*|hit\s+points?)\b|\bhasar\w*|\bdamage\w*")
