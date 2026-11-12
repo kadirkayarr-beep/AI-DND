@@ -46,33 +46,23 @@ SHOCKING_GRASP_EFFECT = "shocking_grasp"  # no Opportunity Attacks until the sta
 RIDERS = frozenset({RAY_OF_FROST_EFFECT, SHOCKING_GRASP_EFFECT})
 _END_CONCENTRATION = re.compile(r"konsantrasyon\w*\s+(?:bırak|birak|bitir|kes|sonlandır|sonlandir)"
                                 r"|(?:end|drop|stop|break)\s+(?:my\s+)?concentrat")
-# "bırakmıyorum", "bırakmadım", "bırakmak istemiyorum", "niyetim yok", "vazgeçtim", "I refuse to drop", "didn't":
-# a negated, refused or regretted line never drops it (keeping it is the safe side: the player can rephrase).
-_KEEP_CONCENTRATION = re.compile(
-    r"(?:bırak|birak|sonlandır|sonlandir)m(?:ıyor|iyor|am\b|az\b|adan|a\b|ayaca|ıyaca|iyaca|adı|adi|amış|amis)"
-    r"|(?:kes|bitir)m(?:iyor|em\b|ez\b|eden|e\b|eyece|iyece|edi|emiş|emis)|\bdeğil\b|\bdegil\b"
-    r"|istem(?:iyor|em\b|ez\b|edi|eyece)|\byok\b|vazge[çc]"
-    r"|\b(?:not|never|without|keep|keeping|maintain)\b|\b(?:don't|dont|won't|wont|can't|cant|do not|will not)\b"
-    r"|\brefus|n't\b")
-# A finite positive drop ("bırakıyorum", "bıraktım"): Turkish negates inside the verb, so a later "ve" clause is its own.
-_FINITE_DROP = re.compile(r"(?:bırak|birak|bitir|kes|sonlandır|sonlandir)(?:ıyor|iyor|tı|ti|dı|di)")
+# A drop is read only from a short first-person present/past or imperative drop line (positive match): "Konsantrasyonu
+# bırakıyorum", "konsantrasyonumu bitirdim", "I drop my concentration", "end concentration". Anything else that names it
+# (negated, asked, wished, conditional, said to someone, retracted after a comma) keeps it; the player can rephrase.
+# Only a later " and / then / ve / sonra " clause is cut off ("I drop concentration and do not attack" drops).
+_DROP_EN = re.compile(r"(?:i\s+)?(?:(?:will|now)\s+)?(?:end|drop|stop|break)\s+(?:my\s+)?concentration(?:\s+now)?")
+_DROP_TR = re.compile(r"(?:(?:artik|simdi)\s+)?konsantrasyon(?:u|umu)\s+(?:birak|bitir|kes|sonlandir)"
+                      r"(?:iyorum|tim|dim)?(?:\s+(?:artik|simdi))?")
 _LATER_CLAUSE = re.compile(r"\s(?:and|then|ve|sonra)\s")
 
 
 def _drops_concentration(text):
-    """The negation scope is the text up to the drop's own clause. English negates before the verb and Turkish inside
-    it, so a later "and"/"ve" clause ("... and do not attack") cannot cancel the drop. A Turkish infinitive or anything
-    after "ama"/"but"/commas stays in scope (a retraction keeps Concentration)."""
-    match = _END_CONCENTRATION.search(text)
-    if match is None or "?" in text:
+    from spells import fold_text
+    folded = fold_text(text).strip()
+    if "?" in folded:
         return False
-    scope = text
-    verb_start = match.end() - len(match.group().split()[-1])
-    verb = re.match(r"\S+", text[verb_start:]).group()  # the whole Turkish verb word ("bırakıyorum", "bırakmak")
-    if not match.group().startswith("konsantrasyon") or _FINITE_DROP.match(verb):
-        later = _LATER_CLAUSE.search(text, match.end())
-        scope = text[:later.start()] if later else text
-    return not _KEEP_CONCENTRATION.search(scope)
+    first = _LATER_CLAUSE.split(folded, maxsplit=1)[0].strip().rstrip(".!")
+    return bool(_DROP_EN.fullmatch(first) or _DROP_TR.fullmatch(first))
 
 
 def harmful(spell_id):
