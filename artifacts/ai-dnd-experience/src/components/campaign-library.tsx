@@ -65,8 +65,9 @@ export function CampaignLibrary({
   const queryClient = useQueryClient();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
+  const [pendingDelete, setPendingDelete] = useState<CampaignSummary | null>(null);
   const deleteSelected = (campaign: CampaignSummary) => {
-    if (!window.confirm(`“${campaign.name}” macerasını kalıcı olarak silmek istiyor musun? Bu maceranın tüm geçmişi silinecek. Geri alınamaz.`)) return;
+    setPendingDelete(null);
     setDeleteError(null);
     deletion.mutate({ campaignId: campaign.campaign_id }, {
       onSuccess: () => {
@@ -160,10 +161,29 @@ export function CampaignLibrary({
                         </div>
                       </div>
 
+                      {pendingDelete?.campaign_id === campaign.campaign_id && (
+                        <div
+                          role="alertdialog"
+                          aria-labelledby={`delete-title-${campaign.campaign_id}`}
+                          className="mt-6 border border-(color:--unw-danger-text) p-4"
+                          data-testid="delete-confirm"
+                          onKeyDown={(event) => { if (event.key === 'Escape') setPendingDelete(null); }}
+                        >
+                          <p id={`delete-title-${campaign.campaign_id}`} className="dnd-serif text-lg text-(color:--unw-text)">
+                            “{campaign.name}” kalıcı olarak silinecek. Bu maceranın tüm geçmişi gider. Geri alınamaz.
+                          </p>
+                          <div className="mt-4 flex justify-end gap-3">
+                            <button type="button" className="dnd-button secondary" autoFocus
+                              data-testid="button-delete-cancel" onClick={() => setPendingDelete(null)}>Vazgeç</button>
+                            <button type="button" className="dnd-button" disabled={deletion.isPending}
+                              data-testid="button-delete-confirm" onClick={() => deleteSelected(campaign)}>Sil</button>
+                          </div>
+                        </div>
+                      )}
                       <div className="mt-6 flex justify-end gap-3">
                         <button type="button" className="text-button" disabled={resuming || deletion.isPending}
                           data-testid={`button-delete-${campaign.campaign_id}`}
-                          onClick={() => deleteSelected(campaign)}>Macerayı sil</button>
+                          onClick={() => setPendingDelete(campaign)}>Macerayı sil</button>
                         <button
                           className="dnd-button"
                           type="button"
