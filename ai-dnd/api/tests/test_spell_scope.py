@@ -75,6 +75,27 @@ class SpellEngineTests(unittest.TestCase):
                 self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 2})
                 self.assertTrue(action_economy.ensure(s)["player"]["base_action_spent"])
 
+    def test_magic_missile_without_pair_visibility_fact_resolves(self):
+        # Journey 21 / item 112: an ordinary fight (no bounded-encounter pair fact) carries only npc distance_ft.
+        # Visibility is then derived (nobody blinded/invisible/hidden), not "unknown".
+        s, e = caster()
+        s.world_state["attack_environment"] = {"pairs": {}}
+        e["distance_ft"] = 5
+        spell_scope.cast(s, "Magic Missile", e["id"])
+        self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 1})
+
+    def test_magic_missile_without_pair_fact_still_refused_when_target_invisible_or_caster_blind(self):
+        for mode in ("invisible", "blinded"):
+            with self.subTest(mode=mode):
+                s, e = caster()
+                s.world_state["attack_environment"] = {"pairs": {}}
+                e["distance_ft"] = 5
+                if mode == "invisible": e["conditions"] = ["invisible"]
+                else: s.character["conditions"] = ["blinded"]
+                with self.assertRaises(ValueError) as ctx:
+                    spell_scope.cast(s, "Magic Missile", e["id"])
+                self.assertIn("spell_visibility_unknown", str(ctx.exception) + getattr(ctx.exception, "code", ""))
+
     def test_cantrip_scaling_at_source_thresholds(self):
         for level, count in ((4, 1), (5, 2), (11, 3), (17, 4)):
             for cls, spell, d20 in (("Sorcerer", "Fire Bolt", 12), ("Cleric", "Sacred Flame", 1)):

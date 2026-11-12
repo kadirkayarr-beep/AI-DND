@@ -423,7 +423,12 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         spatial = attacks.pair(session, "player", target_id)
         if spatial["distance_ft"] > maximum_range:
             fail("spell_out_of_range", "Target is outside the sourced spell range.")
-        if spatial.get("attacker_sees_target") is not True:
+        sees = spatial.get("attacker_sees_target")
+        if sees is None:
+            # No pair fact (ordinary fight): derive it, as weapon attacks do. Explicit True/False still wins.
+            sees = not (attacks.conditions(session, "player", character) & {"blinded"}
+                        or target_conditions & {"invisible"} or target.get("hidden") is True)
+        if sees is not True:
             fail("spell_visibility_unknown", "V1 requires an explicitly visible target.")
         if spatial.get("cover", "none") == "total" or spatial.get("clear_path") is False:
             fail("spell_path_blocked", "The target has no clear spell path.")
