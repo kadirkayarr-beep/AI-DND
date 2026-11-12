@@ -4,7 +4,7 @@ The engine decides and commits: a known cantrip with its components, outside a f
 (`world_state["spell_effects_v1"]`: spell, place, from/until second; range and duration from the PHB index); no slot, no
 action budget, no time, no money, no item. A money/item line is no narrative cast (K2). A spell the PHB names with no
 owner, or a narrative spell in a fight, gets a truthful line and nothing changes. The fact is validated on load and lives
-in the Undo snapshot; a cast ends a Long Rest preparation window (D-038).
+in the Undo snapshot; a cantrip leaves every preparation window open (D-038 is about slot spells).
 
 Engine fixtures: test_spell_preparation_4c2.prepper/rested (real initializer, no campaign town). HTTP: CampaignApiTests
 with `fixed_town`."""
@@ -161,17 +161,17 @@ class NarrativeCast(unittest.TestCase):
         self.assertEqual(frozen(s), before)
 
 
-class D038CastClosesTheLongRestWindow(unittest.TestCase):
-    """D-038 resolved: casting outside a fight now exists (narrative cantrips), so the first cast ends a Long Rest window
-    (the list cannot be re-prepared after casting while the clock stands still); creation windows wait for their list."""
+class D038CantripLeavesTheWindows(unittest.TestCase):
+    """D-038 is about slot spells (still refused outside a fight: test_dilim4c_4b_review_fixes.D038HasNoReachableCast).
+    A narrative cantrip needs no prepared list, so it closes no preparation window (fix round 1, Ruling)."""
 
-    def test_a_cast_closes_a_long_rest_window(self):
+    def test_a_long_rest_window_stays_open(self):
         s = rested("Wizard")
         s.world_state["equipment"] = {"main_hand": None, "off_hand": None}
-        self.assertTrue(spell_preparation.window_open(s))
+        window = copy.deepcopy(s.world_state["spellcasting_v1"]["prepare_window"])
         spell_effects.resolve(s, ("narrative", "Mage Hand"))
-        self.assertIsNone(s.world_state["spellcasting_v1"]["prepare_window"])
-        self.assertFalse(spell_preparation.window_open(s))
+        self.assertEqual(s.world_state["spellcasting_v1"]["prepare_window"], window)
+        self.assertTrue(spell_preparation.window_open(s))
 
     def test_a_creation_window_waits_for_its_list(self):
         s = wizard()
@@ -179,12 +179,6 @@ class D038CastClosesTheLongRestWindow(unittest.TestCase):
         self.assertEqual(window["reason"], "creation")
         spell_effects.resolve(s, ("narrative", "Mage Hand"))
         self.assertEqual(s.world_state["spellcasting_v1"]["prepare_window"], window)
-
-    def test_a_refused_cast_leaves_the_window(self):
-        s = rested("Wizard")
-        s.world_state["equipment"] = {"main_hand": "Quarterstaff", "off_hand": "Shield"}
-        spell_effects.resolve(s, ("narrative", "Mage Hand"))
-        self.assertTrue(spell_preparation.window_open(s))
 
 
 class SavedFacts(unittest.TestCase):

@@ -2,7 +2,8 @@
 
 Layer 2, first cut: Mage Hand, Minor Illusion, Light, Prestidigitation, cast outside a fight. Python decides and commits:
 the spell is one of the caster's cantrips, its components can be given (V: can speak; S: a free hand), no fight is on.
-It spends no slot, no action budget and no time, moves no money and no item, and writes one fact
+It spends no slot, no action budget and no time, moves no money and no item, leaves a preparation window open, and writes
+one fact
 (`world_state["spell_effects_v1"]`: which spell, where, from when until when). The turn narrator tells the fact; it never
 rolls, spends or moves anything. Range, components, duration and page come from the PHB 2024 spell index
 (`content/rules/phb2024/spells.json`, read by `class_progression.prepared_caster`), never from a model.
@@ -166,7 +167,6 @@ def _not_cast(line: str, spell_id: str, reason: str) -> dict[str, Any]:
 
 def resolve(session: Any, reading: tuple[str, str]) -> dict[str, Any]:
     """The engine's answer to a `named` reading: a committed fact, or a truthful line that nothing was cast."""
-    import spell_preparation
     import spell_scope
     import weapon_attack as attacks
     kind, spell_id = reading
@@ -202,9 +202,8 @@ def resolve(session: Any, reading: tuple[str, str]) -> dict[str, Any]:
     # A new cast of the same spell replaces the earlier one; finished facts are dropped.
     world[KEY] = [entry for entry in active(world) if entry["spell_id"] != spell_id] + [fact]
     validate_saved(world)
-    # D-038: casting ends a Long Rest preparation window (combat start does the same); creation/migration/level-up
-    # windows wait for their list, as before.
-    spell_preparation.close_window(session)
+    # D-038 concerns slot spells: a cantrip needs no prepared list, so a narrative cast leaves every preparation window
+    # as it is (closing it would silently cost the player the Long Rest choice and gain nothing).
     where = _range_tr(source["range"])
     line = (f"{tr} ({spell_id}): {where + ' ' if where else ''}{NARRATIVE[spell_id][1]}; büyü "
             f"{_DURATION_TR[source['duration']]}. Yuva harcanmaz.")
