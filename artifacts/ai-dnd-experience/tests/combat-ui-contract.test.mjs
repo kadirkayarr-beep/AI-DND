@@ -39,3 +39,12 @@ test('known combat API errors become specific player-facing guidance', () => {
   assert.equal(combatErrorMessage({ data: { detail: { code: 'internal_error' } } }), null);
   assert.equal(combatErrorMessage(null), null);
 });
+
+test('D-070: Concentration, Bonus Action and one-slot-per-turn refusals have Turkish guidance, not the English engine message', () => {
+  const said = code => combatErrorMessage({ data: { detail: { code, message: 'The Bonus Action was already taken.' } } });
+  assert.match(said('concentration_not_held'), /Konsantrasyon/);
+  assert.match(said('concentration_not_held'), /sürdürdüğün bir büyü yok/);
+  assert.match(said('bonus_action_spent'), /ek eylemini zaten kullandın/);
+  assert.match(said('spell_slot_turn_limit'), /Bir turda yalnız bir büyü yuvası/);
+  for (const code of ['concentration_not_held', 'bonus_action_spent', 'spell_slot_turn_limit']) assert.doesNotMatch(said(code), /Bonus Action|already|[A-Z][a-z]+ [a-z]+ was/);
+});

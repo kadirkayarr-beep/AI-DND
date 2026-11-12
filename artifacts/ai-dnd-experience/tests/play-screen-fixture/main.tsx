@@ -19,6 +19,34 @@ if (new URLSearchParams(window.location.search).get("touch") === "1") {
   Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, value: 1 });
 }
 let fixtureHp = 12;
+// UI slice 3: a preparing caster (Wizard/Cleric) and its preparation window, only with ?caster=wizard|cleric.
+const casterParam = new URLSearchParams(window.location.search).get("caster");
+const casterClass = casterParam === "wizard" ? "Wizard" : casterParam === "cleric" ? "Cleric" : null;
+const STANDING = ["creation", "migration", "level_up"];
+const prepFixture = {
+  reason: new URLSearchParams(window.location.search).get("prep") ?? "long_rest",
+  open: true,
+  limit: 4,
+  candidates: casterClass === "Cleric"
+    ? ["Bless", "Cure Wounds", "Healing Word", "Guiding Bolt", "Shield of Faith", "Command", "Aid"]
+    : ["Magic Missile", "Shield", "Sleep", "Mage Armor", "Detect Magic", "Misty Step"],
+  prepared: casterClass === "Cleric" ? ["Bless"] : ["Magic Missile"],
+  refuseNext: null as string | null,
+};
+// ?levelup=1 with a caster: an earned level 2 waiting for its Wizard/Cleric choices (server offer shape, api/main.py).
+const levelUpFixture = casterClass !== null && new URLSearchParams(window.location.search).get("levelup") === "1";
+const levelUpPreview = () => ({
+  session_id: "fixture-session", campaign_id: "fixture-campaign", revision: 3, status: "ready", reason: null, class_name: casterClass,
+  from_level: 1, target_level: 2, choices_required: casterClass === "Wizard" ? { spellbook_spells: 2 } : {},
+  capacity: { cantrips: 3, prepared_spells: 5, slots: { 1: 3 } },
+  spellbook_spell_ids: casterClass === "Wizard" ? ["Shield", "Sleep", "Mage Armor", "Detect Magic", "Misty Step"] : null,
+  effects_supported: ["Spellcasting"], effects_pending: ["Arcane Recovery pending"],
+});
+const prepView = () => ({
+  session_id: "fixture-session", supported: true, blocked_reason: null, class_name: casterClass, open: prepFixture.open,
+  reason: prepFixture.open ? prepFixture.reason : null, limit: prepFixture.limit, candidates: prepFixture.candidates,
+  prepared: [...prepFixture.prepared], spellbook: casterClass === "Wizard" ? prepFixture.candidates : null,
+});
 
 // This override is scoped to this disposable fixture page, never the app.
 if (cacheFailureFixture) {
@@ -108,11 +136,12 @@ const state = () => ({
   character: {
     name: "Riven",
     race: "human",
-    class: "rogue",
+    class: casterClass ?? "rogue",
     strength: 10, dexterity: 14, constitution: 12, intelligence: 11, wisdom: 13, charisma: 10,
     proficient_skills: ["Stealth"],
     expertise_skills: [],
-    level: 1,
+    level: levelUpFixture ? 2 : 1,
+    ...(levelUpFixture ? { progression_level: 1 } : {}),
     proficiency_bonus: 2,
     max_hp: 12,
     current_hp: fixtureHp,
@@ -124,7 +153,7 @@ const state = () => ({
   },
   spellcasting: {
     cantrips: ["Fire Bolt"],
-    prepared: ["Magic Missile"],
+    prepared: casterClass ? [...prepFixture.prepared] : ["Magic Missile"],
     slots: { "1": 2 },
     slot_turn: ["fixture-slot-marker", 2, 1],
   },
@@ -269,6 +298,24 @@ window.fetch = async (input, init) => {
       level_up: null,
     });
   }
+  if (levelUpFixture && path === `/api/game/sessions/${SESSION_ID}/level-up` && (!init?.method || init.method === "GET")) return json(levelUpPreview());
+  if (casterClass && path === `/api/game/sessions/${SESSION_ID}/spellcasting/prepare` && (!init?.method || init.method === "GET")) return json(prepView());
+  if (casterClass && path === `/api/game/sessions/${SESSION_ID}/spellcasting/prepare` && init?.method === "POST") {
+    const body = JSON.parse(String(init.body ?? "{}")) as { prepared?: string[]; action_id?: string; close?: boolean };
+    (window as FixtureWindow).__playFixture.lastPrepare = body;
+    const refuse = (code: string) => json({ detail: { code, message: "engine text" } }, 409);
+    if (prepFixture.refuseNext) { const code = prepFixture.refuseNext; prepFixture.refuseNext = null; return refuse(code); }
+    if (!prepFixture.open) return refuse("prepare_window_closed");
+    const requested = body.prepared ?? prepFixture.prepared;
+    if (prepFixture.reason === "level_up" && prepFixture.prepared.some((id) => !requested.includes(id))) return refuse("prepare_level_up_additive_only");
+    const result = (status: string, extra = {}) => ({ status, prepared: [...requested], dropped: [], limit: prepFixture.limit, excess: 0, open: prepFixture.open, message: "engine text", ...extra });
+    if (requested.length > prepFixture.limit) {
+      return json({ session_id: SESSION_ID, action_id: body.action_id, state: state(), result: result("too_many", { excess: requested.length - prepFixture.limit, open: true }) });
+    }
+    prepFixture.prepared = [...requested];
+    if (STANDING.includes(prepFixture.reason)) prepFixture.open = false;
+    return json({ session_id: SESSION_ID, action_id: body.action_id, state: state(), result: result("prepared", { open: prepFixture.open }) });
+  }
   return json({ detail: { code: "campaign_error", message: `UI fixture has no response for ${path}` } }, 404);
 };
 
@@ -276,6 +323,8 @@ type FixtureWindow = Window & {
   __playFixture: {
     label: "ui-fixture-not-backend";
     lastTurn: { message?: string; action_id?: string; interaction_mode?: string } | null;
+    lastPrepare?: { prepared?: string[]; action_id?: string; close?: boolean } | null;
+    refusePrepare?: (code: string) => void;
     holdNext: () => void;
     release: () => void;
     failNext: () => void;
@@ -288,6 +337,8 @@ const fixtureWindow = window as FixtureWindow;
 fixtureWindow.__playFixture = {
   label: "ui-fixture-not-backend",
   lastTurn: null,
+  lastPrepare: null,
+  refusePrepare: (code: string) => { prepFixture.refuseNext = code; },
   holdNext: () => {
     holdArmed = true;
   },

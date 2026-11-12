@@ -1,7 +1,21 @@
 import { term, termTitle } from '@/lib/tr-terms';
 import { SpellSlotConversionControl } from './spell-slot-conversion';
 export { SpellSlotConversionChoice, createConversionDraft } from './spell-slot-conversion';
-import type { CombatActionInput, GameState } from '@workspace/api-client-react';
+import type { CombatActionInput, GameState, SpellPrepareViewResponse } from '@workspace/api-client-react';
+import { WINDOW_SHORT } from '@/lib/spell-preparation';
+
+/** Read-only rows from the server's preparation view (D-065): window, prepared count and the Wizard spellbook. */
+export function SpellStatusRows({ view, combatActive, label }: { view: SpellPrepareViewResponse; combatActive: boolean; label: (id: string) => string }) {
+  const windowText = !view.supported ? 'Kullanılamıyor' : view.open ? WINDOW_SHORT[view.reason ?? ''] ?? 'Açık' : combatActive ? 'Kapalı · çatışma' : 'Kapalı';
+  return <dl className="spell-status-rows" data-testid="spell-status-rows">
+    <div className="spell-status-row"><dt>Hazırlık penceresi</dt><dd data-testid="spell-window-row">{windowText}</dd></div>
+    <div className="spell-status-row"><dt>Hazırlanan büyüler</dt><dd data-testid="spell-prepared-count-row">{view.prepared.length} / {view.limit}</dd></div>
+    {view.spellbook && <div className="spell-status-row spell-status-book"><dt>Büyü kitabı</dt><dd data-testid="spell-spellbook-row">
+      <span>{view.spellbook.length} büyü</span>
+      <ul>{view.spellbook.map(id => <li key={id}>{label(id)}</li>)}</ul>
+    </dd></div>}
+  </dl>;
+}
 
 /** Read-only character information; preparation, resources and legality stay in Python. */
 export function SpellcastingPanel({ spellcasting, decisionScope = '', conversionBlocked = true, onCommand }: { spellcasting: GameState['spellcasting']; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {

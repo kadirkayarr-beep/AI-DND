@@ -6,9 +6,10 @@ import { useActionLifetime } from '@/lib/action-reconciliation';
 import { currentAccountOwner } from '@/lib/account-session';
 import { ProgressionEffectsNotice } from './sorcerer-starting-creation';
 import { PaladinLevelChoices } from './paladin-level-up';
+import { CasterLevelChoices } from './caster-level-up';
 
 export type LevelUpRequest = Omit<LevelUpApplyRequest, 'action_id'>;
-type Draft = { asi?: AsiChoice; cantrip: string; preparedSpell: string; preparedSpells?: string[]; metamagic?: string[]; subclassId?: string; primalKnowledgeSkill?: string; fightingStyle?: string; blessedCantrips?: string[]; confirmed: boolean };
+type Draft = { asi?: AsiChoice; cantrip: string; preparedSpell: string; preparedSpells?: string[]; metamagic?: string[]; subclassId?: string; primalKnowledgeSkill?: string; fightingStyle?: string; blessedCantrips?: string[]; spellbookSpells?: string[]; confirmed: boolean };
 const EMPTY: Draft = { cantrip: '', preparedSpell: '', confirmed: false };
 type SubclassPick = (FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices)['subclass_id'];
 const SUBCLASS_PICKS: readonly SubclassPick[] = ['champion', 'open_hand', 'assassin'];  // the generated contract's ids: an offered id outside them cannot be sent
@@ -30,6 +31,7 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
 }) {
   if (preview.status !== 'ready') return <div role="status" data-testid="level-up-blocked"><p>{BLOCKED_REASONS[preview.reason ?? ''] ?? 'Seviye seçimi şu anda kullanılamıyor.'}</p><button type="button" className="dnd-button secondary" onClick={onCancel}>Kapat</button></div>;
   if (preview.class_name === 'Paladin') return <PaladinLevelChoices preview={preview} draft={draft} onChange={next => onChange({ ...draft, ...next })} onConfirm={onConfirm} onCancel={onCancel} disabled={disabled} />;
+  if (preview.class_name === 'Wizard' || preview.class_name === 'Cleric') return <CasterLevelChoices preview={preview} draft={draft} onChange={next => onChange({ ...draft, ...next })} onConfirm={onConfirm} onCancel={onCancel} disabled={disabled} />;
   const counts = preview.choices_required;
   const preparedCount = counts?.prepared_spells ?? 0;
   const needsCantrip = counts?.cantrips === 1;

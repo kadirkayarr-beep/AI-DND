@@ -43,6 +43,10 @@ const COMBAT_ERRORS: Record<string, string> = {
   combat_travel: 'Çatışma sürerken normal yolculuğa çıkamazsın.',
   unconfirmed_combat: 'Saldırmak için hedefini ve niyetini açıkça belirt.',
   reaction_pending: 'Önce bekleyen tepki kararını tamamla.',
+  // D-070: the engine's own message for these is English.
+  concentration_not_held: 'Şu an sürdürdüğün bir büyü yok; bırakılacak bir Konsantrasyon da yok.',
+  bonus_action_spent: 'Bu turdaki ek eylemini zaten kullandın; sıradaki turu bekle.',
+  spell_slot_turn_limit: 'Bir turda yalnız bir büyü yuvası harcayabilirsin.',
 };
 
 export function combatErrorMessage(error: unknown): string | null {

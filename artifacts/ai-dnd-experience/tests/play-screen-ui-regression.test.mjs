@@ -890,3 +890,80 @@ async function waitForValue(page, expression) {
   const state = await page.evaluate(`(() => ({ button: document.querySelector('[data-testid="button-send-turn"]')?.outerHTML, draft: document.querySelector('[data-testid="input-player-message"]')?.value, error: document.querySelector('[data-testid="status-error"]')?.innerText, lastTurn: window.__playFixture?.lastTurn }))()`);
   throw new Error(`Timed out waiting for ${expression}; value=${JSON.stringify(finalValue)}; state=${JSON.stringify(state)}`);
 }
+
+// ---- UI slice 3 S1: Hazırlık (spell preparation) screen against the fixture's preparing caster ----
+async function pressSpace(page) {
+  await page.send("Input.dispatchKeyEvent", { type: "keyDown", key: " ", code: "Space", windowsVirtualKeyCode: 32, text: " ", unmodifiedText: " " });
+  await page.send("Input.dispatchKeyEvent", { type: "keyUp", key: " ", code: "Space", windowsVirtualKeyCode: 32 });
+}
+
+test("Hazırlık screen: fits 375px, is keyboard reachable, saves the player's own list, explains refusals and holds contrast in every reading state", async (t) => {
+  const env = await startFixtureEnv(t);
+  const phone = await env.open(`${fixturePath}?screen=play&caster=wizard`, 375, 800);
+  await waitForSelector(phone.page, '[data-testid="spell-preparation"] input[value="Shield"]');
+  const fit = await phone.page.evaluate(`(() => { const r = document.querySelector('[data-testid="spell-preparation"]').getBoundingClientRect(); return { left: r.left, right: r.right, width: innerWidth, scrollWidth: document.documentElement.scrollWidth }; })()`);
+  assert.ok(fit.scrollWidth <= fit.width, `page overflows at 375px ${JSON.stringify(fit)}`);
+  assert.ok(fit.left >= 0 && fit.right <= fit.width, `card leaves the screen ${JSON.stringify(fit)}`);
+  assert.match(await phone.page.evaluate(`document.querySelector('[data-testid="spell-prepare-reason"]').textContent`), /Uzun dinlenmeyi bitirdin/);
+  assert.match(await phone.page.evaluate(`document.querySelector('[data-testid="spell-window-row"]').textContent`), /Açık · uzun dinlenme/);
+  await tabTo(phone.page, '[data-testid="spell-preparation"] input[value="Shield"]', 120);
+  await pressSpace(phone.page);
+  await waitForValue(phone.page, `document.querySelector('[data-testid="spell-preparation"] input[value="Shield"]').checked`);
+  assert.match(await phone.page.evaluate(`document.querySelector('[data-testid="spell-prepare-count"]').textContent`), /^2 \/ 4 hazır$/);
+  await tabTo(phone.page, '[data-testid="button-save-prepared"]', 40);
+  await phone.page.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, text: "\r", unmodifiedText: "\r" });
+  await phone.page.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  await waitForSelector(phone.page, '[data-testid="spell-prepare-feedback"][data-tone="success"]');
+  const sent = await phone.page.evaluate("window.__playFixture.lastPrepare");
+  assert.deepEqual(sent.prepared, ["Magic Missile", "Shield"]);
+  assert.match(sent.action_id, /^[0-9a-f-]{36}$/);
+  assert.equal(Object.keys(sent).sort().join(","), "action_id,prepared");
+  const said = await phone.page.evaluate(`document.querySelector('[data-testid="spell-prepare-feedback"]').textContent`);
+  assert.match(said, /^Hazırlanan büyüler: .*\(Magic Missile\), .*\(Shield\)\. 2 boş yerin kaldı\.$/);
+  assert.doesNotMatch(said, /engine text/);
+  await sweepAllStates(phone.page, "hazırlık 375");
+  assert.deepEqual(phone.page.exceptions, []);
+  await phone.close();
+
+  const desk = await env.open(`${fixturePath}?screen=play&caster=wizard&prep=level_up`, 1280, 900);
+  await waitForSelector(desk.page, '[data-testid="spell-preparation"] input[value="Shield"]');
+  assert.equal(await desk.page.evaluate(`document.querySelector('[data-testid="spell-preparation"] input[value="Magic Missile"]').disabled`), true, "a level step cannot take a spell out");
+  assert.match(await desk.page.evaluate(`document.querySelector('[data-testid="spell-prepare-reason"]').textContent`), /yalnız büyü ekleyebilirsin/);
+  await desk.page.evaluate(`document.querySelector('[data-testid="spell-preparation"] input[value="Sleep"]').click()`);
+  await desk.page.evaluate("window.__playFixture.refusePrepare('prepare_window_closed')");
+  await desk.page.evaluate(`document.querySelector('[data-testid="button-save-prepared"]').click()`);
+  await waitForSelector(desk.page, '[data-testid="spell-prepare-feedback"][data-tone="error"]');
+  const refusal = await desk.page.evaluate(`(() => { const n = document.querySelector('[data-testid="spell-prepare-feedback"]'); return { role: n.getAttribute('role'), text: n.textContent }; })()`);
+  assert.equal(refusal.role, "alert");
+  assert.match(refusal.text, /Hazırlık penceresi kapalı.*kaydedilmedi/);
+  await sweepAllStates(desk.page, "hazırlık level_up desktop");
+  assert.deepEqual(desk.page.exceptions, []);
+  await desk.close();
+});
+
+// ---- UI slice 3 S2: Wizard/Cleric level-up controls rendered on the play page ----
+test("Wizard and Cleric level-up: the earned step is offered (not 'henüz desteklenmiyor'), says the preparation window opens, fits 375px and holds contrast", async (t) => {
+  const env = await startFixtureEnv(t);
+  for (const [caster, width] of [["wizard", 375], ["cleric", 1280]]) {
+    const play = await env.open(`${fixturePath}?screen=play&caster=${caster}&levelup=1`, width, 900);
+    await waitForSelector(play.page, '[data-testid="button-open-level-up"]');
+    await play.page.evaluate(`document.querySelector('[data-testid="button-open-level-up"]').click()`);
+    await waitForSelector(play.page, '[data-testid="level-up-choices"]');
+    const form = await play.page.evaluate(`document.querySelector('[data-testid="level-up-choices"]').textContent`);
+    assert.doesNotMatch(form, /henüz desteklenmiyor/, caster);
+    assert.match(form, /büyü hazırlama penceresi açık olur ve hazırlık sınırın 5 olur/, caster);
+    assert.equal(await play.page.evaluate(`document.querySelector('[data-testid="button-confirm-level-up"]').disabled`), true, `${caster}: nothing confirmed yet`);
+    if (caster === "wizard") {
+      for (const [index, value] of [[1, "Shield"], [2, "Misty Step"]]) {
+        await play.page.evaluate(`(() => { const s = document.querySelector('[data-testid="level-up-spellbook-${index}"]'); const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, ${JSON.stringify(value)}); s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+      }
+    }
+    await play.page.evaluate(`document.querySelector('[data-testid="level-up-confirm-caster"]').click()`);
+    await waitForValue(play.page, `!document.querySelector('[data-testid="button-confirm-level-up"]').disabled`);
+    const fit = await play.page.evaluate("({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth })");
+    assert.ok(fit.scrollWidth <= fit.width, `${caster}: page overflows ${JSON.stringify(fit)}`);
+    await sweepAllStates(play.page, `level-up ${caster} ${width}`);
+    assert.deepEqual(play.page.exceptions, []);
+    await play.close();
+  }
+});
