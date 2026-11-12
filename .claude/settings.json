@@ -24,6 +24,7 @@
     ]
   },
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
       "mcp__ccd_turn__update_plan",
       "mcp__ccd_turn__wrap_up",
@@ -41,7 +42,56 @@
       "Bash(node --check *)",
       "Bash(curl -s -m 5 http://127.0.0.1:11434/api/tags*)",
       "Bash(wsl.exe -l -v*)",
-      "Bash(npx tsc --noEmit -p .)"
+      "Bash(npx tsc --noEmit -p .)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git checkout -b *)",
+      "Bash(git fetch *)",
+      "Bash(git worktree add *)",
+      "Bash(git worktree list*)",
+      "Bash(git archive *)",
+      "Bash(graphify query *)",
+      "Bash(graphify path *)",
+      "Bash(graphify explain *)",
+      "Bash(graphify update .)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr checks *)",
+      "Bash(bash /c/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean *)",
+      "Bash(git worktree remove *)",
+      "Bash(rm -r *)",
+      "Bash(rm -rf *)",
+      "PowerShell(Remove-Item *)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push * --force*)",
+      "Bash(git push origin main*)",
+      "Bash(git push -u origin main*)",
+      "Bash(git push * HEAD:main*)",
+      "Bash(git push origin dev/ai-dnd*)",
+      "Bash(git push -u origin dev/ai-dnd*)",
+      "Bash(git push * HEAD:dev/ai-dnd*)",
+      "Bash(git push * --delete *)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Read(//**/.env)",
+      "Read(//**/.env.local)",
+      "Read(//**/*.pem)",
+      "Read(/pnpm-lock.yaml)",
+      "Read(/uv.lock)"
     ]
   }
 }
