@@ -427,14 +427,23 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         spatial = attacks.pair(session, "player", target_id)
         if spatial["distance_ft"] > maximum_range:
             fail("spell_out_of_range", "Target is outside the sourced spell range.")
+        # attacks.pair() reads only the player->target fact. A fixture or owner that wrote only the reverse fact
+        # (target->player) still counts: line of sight and cover are mutual, so a reverse "no" refuses too.
+        pairs = session.world_state.get("attack_environment", {}).get("pairs", {})
+        reverse = pairs.get(f"{target_id}|player") if f"player|{target_id}" not in pairs else None
+        reverse = reverse if isinstance(reverse, dict) else {}
         sees = spatial.get("attacker_sees_target")
+        if reverse.get("attacker_sees_target") is False or reverse.get("target_sees_attacker") is False:
+            sees = False
         if sees is None:
-            # No pair fact (ordinary fight): derive it, as weapon attacks do. Explicit True/False still wins.
+            # No visibility fact in an ordinary fight: derive it from conditions. An explicit True/False wins.
             sees = not (attacks.conditions(session, "player", character) & {"blinded"}
                         or target_conditions & {"invisible"} or target.get("hidden") is True)
         if sees is not True:
             fail("spell_visibility_unknown", "V1 requires an explicitly visible target.")
-        if spatial.get("cover", "none") == "total" or spatial.get("clear_path") is False:
+        cover = reverse.get("cover", "none") if "cover" not in spatial else spatial["cover"]
+        clear_path = reverse.get("clear_path") if "clear_path" not in spatial else spatial["clear_path"]
+        if cover == "total" or clear_path is False:
             fail("spell_path_blocked", "The target has no clear spell path.")
     if spell_id in SPELL_ATTACKS:
         # Restricted modes are rejected, not resolved with missing advantage rules.
