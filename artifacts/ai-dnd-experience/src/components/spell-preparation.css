@@ -22,6 +22,7 @@
 .spell-prep-choice:has(input:checked) { border-color: var(--unw-accent-light); }
 .spell-prep-choice:has(input:focus-visible) { outline: 2px solid var(--unw-accent-light); outline-offset: 2px; }
 .spell-prep-choice:has(input:disabled) { cursor: not-allowed; }
+.spell-prep-choice span { flex: 1 1 0; min-width: 0; }
 .spell-prep-choice small { flex-basis: 100%; color: var(--unw-text-soft); font-family: inherit; font-size: 13px; }
 .spell-prep-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .spell-prep-feedback { margin: 10px 0 0; border: 1px solid var(--unw-border); padding: 8px 10px; color: var(--unw-text); font-size: 15px; line-height: 1.4; }
