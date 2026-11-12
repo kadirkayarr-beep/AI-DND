@@ -576,9 +576,13 @@
 /* Phones: six header buttons share one row. Icons drop out and labels stay on one line, so 'Ana ekrana dön'
    cannot wrap onto three lines and KARAKTER keeps clear of the border. */
 @media (max-width:420px) {
- .design-preview.play-shell .header-actions { gap:3px; }
- .design-preview.play-shell .header-actions > button { padding:0 4px; white-space:nowrap; }
+ .design-preview.play-shell .header-actions { gap:2px; }
+ .design-preview.play-shell .header-actions > button { padding:0 3px; white-space:nowrap; }
  .design-preview.play-shell .header-actions > button svg { display:none; }
+ /* 12 px text no longer fits six full labels at 360 px: the back button reads 'Ana ekrana' there. */
+ .design-preview.play-shell .header-actions > button { letter-spacing:0; }
+ .design-preview.play-shell .header-actions .hide-narrow { display:none; }
+ .design-preview.play-shell .header-actions > button.dnd-button { padding-inline:4px !important; }
 }
 /* Size follows the existing keyboard inset, including browsers whose layout
    viewport does not resize when the visual viewport shrinks. */

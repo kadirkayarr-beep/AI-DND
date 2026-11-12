@@ -52,7 +52,7 @@ export function SessionHeader({ state, campaignId, onSave, saving, onReset, onDr
           <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-settings" onClick={(event) => onDrawer('settings', event.currentTarget)}><Palette size={14} /> Görünüm</button>
           <div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span></div>
           <button className="dnd-button secondary" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span>Kaydet</span></button>
-          <button className="dnd-button secondary !px-3" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Ana ekrana dön</button>
+          <button className="dnd-button secondary !px-3" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Ana ekrana<span className="hide-narrow"> dön</span></button>
         </div>
       </div>
     </header>
