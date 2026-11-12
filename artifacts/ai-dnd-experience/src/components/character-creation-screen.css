@@ -448,8 +448,8 @@
   gap: 8px;
 }
 .cc-calc-btn {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--unw-accent-light) 35%, transparent);
@@ -656,7 +656,7 @@
 .cc-input {
   display: block;
   width: 100%;
-  min-height: 37px;
+  min-height: 44px;
   margin-top: 3px;
   padding: 0 0 1px;
   border: 0;
@@ -711,7 +711,7 @@
   gap: 14px 18px;
   margin-top: 14px;
 }
-.cc-start-fields .cc-input { min-height: 32px; font-size: 16px; }
+.cc-start-fields .cc-input { min-height: 44px; font-size: 16px; }
 
 /* Review Sheet */
 .cc-sheet-preview {
@@ -1077,7 +1077,7 @@
   font-size: 17px;
 }
 .character-creation-screen.cinematic-create .cc-random-btn {
-  min-height: 38px;
+  min-height: 44px;
   padding: 7px 12px;
   border-color: color-mix(in srgb, var(--unw-accent-light) 28%, transparent);
   background: color-mix(in srgb, var(--unw-surface) 88%, transparent);
@@ -1443,7 +1443,7 @@
     flex-direction: column;
     gap: 8px;
   }
-  .character-creation-screen.cinematic-create .cc-random-btn { min-height: 36px; }
+  .character-creation-screen.cinematic-create .cc-random-btn { min-height: 44px; }
   .character-creation-screen.cinematic-create .cc-steps-nav { gap: 4px; }
   .character-creation-screen.cinematic-create .cc-step-btn { padding: 6px 5px; }
   .character-creation-screen.cinematic-create .cc-step-title { font-size: 12px; }
