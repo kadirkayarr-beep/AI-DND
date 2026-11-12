@@ -96,6 +96,18 @@ class SpellEngineTests(unittest.TestCase):
                     spell_scope.cast(s, "Magic Missile", e["id"])
                 self.assertIn("spell_visibility_unknown", str(ctx.exception) + getattr(ctx.exception, "code", ""))
 
+    def test_derived_visibility_does_not_open_a_blocked_path(self):
+        # Pair fact has distance and cover/line but no attacker_sees_target: visibility is derived,
+        # the blocked line still refuses the spell and no slot is spent.
+        for field, value in (("cover", "total"), ("clear_path", False)):
+            with self.subTest(field=field):
+                s, e = caster()
+                s.world_state["attack_environment"] = {"pairs": {"player|" + e["id"]: {"distance_ft": 5, field: value}}}
+                with self.assertRaises(ValueError) as ctx:
+                    spell_scope.cast(s, "Magic Missile", e["id"])
+                self.assertEqual(ctx.exception.code, "spell_path_blocked")
+                self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 2})
+
     def test_cantrip_scaling_at_source_thresholds(self):
         for level, count in ((4, 1), (5, 2), (11, 3), (17, 4)):
             for cls, spell, d20 in (("Sorcerer", "Fire Bolt", 12), ("Cleric", "Sacred Flame", 1)):
