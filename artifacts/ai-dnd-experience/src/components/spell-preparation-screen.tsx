@@ -14,7 +14,8 @@ import { currentAccountOwner } from '@/lib/account-session';
 import { readPending } from '@/lib/pending-action';
 import { spellLabel } from '@/lib/spell-names';
 import {
-  droppedText, isPrepareRefusal, lockedSpells, prepareRefusalText, prepareRequest, resultText, spellChoices, toggleSpell, windowReasonText,
+  droppedText, isActionArchived, isPrepareRefusal, lockedSpells, prepareActionSignature, prepareRefusalText, prepareRequest, resultText, sameSpellList, spellChoices, toggleSpell,
+  UNVERIFIED_SAVE, windowReasonText,
 } from '@/lib/spell-preparation';
 import { SpellStatusRows } from './spellcasting-panel';
 import './spell-preparation.css';
@@ -117,10 +118,17 @@ export function SpellPreparationControls({ state, sessionId, campaignId, catalog
     if (readPending(owner, campaignId || sessionId)) { setFeedback({ tone: 'error', text: PENDING }); return; }
     const scope = `prepare:${campaignId || sessionId}`;
     let actionId: string;
-    try { actionId = stableTurnActionId(scope, JSON.stringify(body)); }
+    try { actionId = stableTurnActionId(scope, prepareActionSignature(view, body, state.campaign_time)); }
     catch { setFeedback({ tone: 'error', text: 'Güvenli işlem kimliği üretilemedi; liste gönderilmedi.' }); return; }
     const operation = lifetime.begin(); if (!operation) return;
     busy.current = true; setSending(true); setFeedback(null);
+    const refreshState = async () => {
+      const readRevision = nextRevision();
+      const fresh = await reconcileState(queryClient, getGetGameSessionStateQueryKey(sessionId), operation, signal => getGameSessionState(sessionId, { signal }));
+      if (!operation.isCurrent()) return null;
+      if (!applyGameState(queryClient, sessionId, fresh, { revision: readRevision, isCurrent: operation.isCurrent })) throw new ReconciliationError();
+      return fresh;
+    };
     void (async () => {
       const response = await prepareGameSessionSpells(sessionId, { ...body, action_id: actionId }, { signal: operation.signal });
       if (!operation.isCurrent()) return;
@@ -131,15 +139,22 @@ export function SpellPreparationControls({ state, sessionId, campaignId, catalog
         return;
       }
       if (response.action_id !== actionId) throw new ReconciliationError();
-      const readRevision = nextRevision();
-      const fresh = await reconcileState(queryClient, getGetGameSessionStateQueryKey(sessionId), operation, signal => getGameSessionState(sessionId, { signal }));
-      if (!operation.isCurrent()) return;
-      if (!applyGameState(queryClient, sessionId, fresh, { revision: readRevision, isCurrent: operation.isCurrent })) throw new ReconciliationError();
+      const fresh = await refreshState();
+      if (!fresh) return;
       clearPendingTurnAction(scope, actionId);
+      if (!sameSpellList(fresh.spellcasting?.prepared, response.result.prepared)) {  // never claim a save the re-read does not show
+        setFeedback({ tone: 'warning', text: UNVERIFIED_SAVE });
+        return 'settled';
+      }
       setFeedback({ tone: 'success', text: [resultText(response.result, label), droppedText(response.result.dropped, label)].filter(Boolean).join(' ') });
       return 'settled';
     })().catch((error: unknown) => {
       if (!operation.isCurrent()) return 'stale';
+      if (isActionArchived(error)) {  // the list WAS applied; only its reply is gone: re-read, never say "not saved"
+        clearPendingTurnAction(scope, actionId);
+        setFeedback({ tone: 'warning', text: prepareRefusalText(error) });
+        return refreshState().then(() => 'settled', () => 'settled');
+      }
       if (isPrepareRefusal(error)) {  // an answer: nothing was saved, a new list gets a new id
         clearPendingTurnAction(scope, actionId);
         setFeedback({ tone: 'error', text: prepareRefusalText(error) });

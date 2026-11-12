@@ -203,3 +203,62 @@ test('the screen is mounted once in the play page, gated to preparing classes, a
   assert.match(source, /readPending\(/, 'an unresolved play move blocks the save');
   assert.match(source, /applyGameState\(/);
 });
+
+// Review fix round (s5-fix): action id keyed by saved state, archived reply, verified success, too_many saves nothing.
+test('the action id signature follows the saved window state, not only the chosen list', () => {
+  const v1 = view({ prepared: ['Magic Missile'] });
+  const a = lib.prepareRequest(v1, ['Shield']);
+  const sig = (v, body, time = 'T1') => lib.prepareActionSignature(v, body, time);
+  assert.equal(sig(v1, a), sig(v1, a), 'same list, same saved state: same id (safe retry after an unknown outcome)');
+  assert.notEqual(sig(v1, a), sig(view({ prepared: ['Sleep'] }), a), 'saved list changed in between: new id');
+  assert.notEqual(sig(v1, a), sig(view({ prepared: ['Magic Missile'], reason: 'level_up' }), a), 'window reason changed: new id');
+  assert.notEqual(sig(v1, a), sig(v1, a, 'T2'), 'campaign time moved: new id');
+  assert.notEqual(sig(v1, a), sig(v1, lib.prepareRequest(v1, ['Sleep'])), 'different list: new id');
+});
+
+test('A (ack lost) then B saved then A again gets a fresh id, so the server cannot replay the old receipt', async () => {
+  const store = new Map();
+  globalThis.window = { sessionStorage: { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) }, crypto: globalThis.crypto };
+  try {
+    const recon = await vite.ssrLoadModule('/src/lib/action-reconciliation.ts');
+    const listA = ['Shield'], listB = ['Sleep'];
+    const id = (v, list) => recon.stableTurnActionId('prepare:c', lib.prepareActionSignature(v, lib.prepareRequest(v, list), 'T'));
+    const a1 = id(view({ prepared: ['Magic Missile'] }), listA);   // A sent, ack lost: id stays in storage
+    assert.equal(id(view({ prepared: ['Magic Missile'] }), listA), a1, 'unchanged state: the same id is resent');
+    const b = id(view({ prepared: ['Shield'] }), listB);           // server now holds A; B saved
+    const a2 = id(view({ prepared: ['Sleep'] }), listA);           // A again, saved list is B
+    assert.notEqual(a2, a1, 'not the stale receipt id');
+    assert.notEqual(a2, b);
+  } finally { delete globalThis.window; }
+});
+
+test('success is only shown when the re-read saved list equals what the server returned', () => {
+  assert.equal(lib.sameSpellList(['A', 'B'], ['A', 'B']), true);
+  assert.equal(lib.sameSpellList(['A', 'B'], ['B', 'A']), false, 'order is the saved order');
+  assert.equal(lib.sameSpellList(['A'], ['B']), false);
+  assert.equal(lib.sameSpellList(['A'], undefined), false);
+  assert.match(lib.UNVERIFIED_SAVE, /kaydedilmemiş olabilir/);
+  assert.match(lib.UNVERIFIED_SAVE, /yenile/);
+});
+
+test('HTTP 409 action_archived says the list WAS applied and asks for a refresh, not "kaydedilmedi"', () => {
+  const err = { status: 409, data: { detail: { code: 'action_archived', message: 'English' } } };
+  const text = lib.prepareRefusalText(err);
+  assert.match(text, /zaten uygulandı/);
+  assert.match(text, /yenile/);
+  assert.doesNotMatch(text, /kaydedilmedi/);
+  assert.equal(lib.isActionArchived(err), true);
+  assert.equal(lib.isActionArchived({ status: 409, data: { detail: { code: 'action_id_conflict' } } }), false);
+  assert.equal(lib.isActionArchived(new TypeError('x')), false);
+});
+
+test('screen source: id keyed by saved state, success verified, archived re-reads state, too_many saves nothing', async () => {
+  const source = await readFile('src/components/spell-preparation-screen.tsx', 'utf8');
+  assert.match(source, /stableTurnActionId\(scope, prepareActionSignature\(view, body, state\.campaign_time\)\)/);
+  assert.match(source, /sameSpellList\(fresh\.spellcasting\?\.prepared, response\.result\.prepared\)/);
+  assert.match(source, /isActionArchived\(error\)/);
+  const tooMany = source.slice(source.indexOf("status === 'too_many'"), source.indexOf('action_id !== actionId'));
+  assert.match(tooMany, /clearPendingTurnAction/);
+  assert.doesNotMatch(tooMany, /reconcileState|applyGameState|setDraft|load\(/, 'too_many saves nothing and re-reads nothing');
+  assert.match(lib.resultText({ status: 'too_many', prepared: [], dropped: [], limit: 2, excess: 1, open: true, message: '' }, plainLabel), /Liste kaydedilmedi/);
+});

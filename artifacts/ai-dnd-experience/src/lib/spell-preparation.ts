@@ -80,7 +80,20 @@ const REFUSALS: Record<string, string> = {
   prepare_unavailable: 'Kayıtlı büyü durumu okunamadı. Listen kaydedilmedi.',
   prepare_level_up_additive_only: 'Yeni seviyede yalnız büyü ekleyebilirsin; hazırladığın büyüleri çıkarmak için uzun dinlenme gerekir. Listen kaydedilmedi.',
   action_id_conflict: 'Bu işlem kimliği başka bir listeyle kullanılmış. Listen kaydedilmedi; durumu yenileyip yeniden dene.',
+  // The action WAS applied; only its stored reply was archived (never "not saved").
+  action_archived: 'Bu liste zaten uygulandı; sunucu yanıtı arşivlendiği için tekrar çalıştırılmadı. Güncel durumu yenile ve kayıtlı listeni kontrol et.',
 };
+
+/** The id follows the saved window, not just the chosen list: a list saved in between must not replay an older receipt. */
+export function prepareActionSignature(view: SpellPrepareViewResponse, body: { prepared: string[] }, campaignTime: unknown): string {
+  return JSON.stringify([body, view.prepared, view.reason, campaignTime ?? null]);
+}
+
+export function sameSpellList(a: readonly string[] | null | undefined, b: readonly string[] | null | undefined): boolean {
+  return !!a && !!b && a.length === b.length && a.every((id, index) => b[index] === id);
+}
+
+export const UNVERIFIED_SAVE = 'Kayıtlı liste, sunucunun döndürdüğü listeyle uyuşmuyor; liste kaydedilmemiş olabilir. Durumu yenile ve kayıtlı listeni kontrol et.';
 
 export function errorStatus(error: unknown): number | undefined {
   const status = error && typeof error === 'object' ? (error as { status?: unknown }).status : undefined;
@@ -92,10 +105,19 @@ export function isPrepareRefusal(error: unknown): boolean {
   return [400, 404, 409, 422].includes(errorStatus(error) ?? 0);
 }
 
-export function prepareRefusalText(error: unknown): string {
+function errorCode(error: unknown): unknown {
   const data = error && typeof error === 'object' ? (error as { data?: unknown }).data : undefined;
   const detail = data && typeof data === 'object' ? (data as { detail?: unknown }).detail : undefined;
-  const code = detail && typeof detail === 'object' && !Array.isArray(detail) ? (detail as { code?: unknown }).code : undefined;
+  return detail && typeof detail === 'object' && !Array.isArray(detail) ? (detail as { code?: unknown }).code : undefined;
+}
+
+/** HTTP 409 action_archived: the list WAS applied, only the stored reply is gone. */
+export function isActionArchived(error: unknown): boolean {
+  return errorStatus(error) === 409 && errorCode(error) === 'action_archived';
+}
+
+export function prepareRefusalText(error: unknown): string {
+  const code = errorCode(error);
   if (typeof code === 'string' && REFUSALS[code]) return REFUSALS[code];
   if (errorStatus(error) === 422) return 'Liste geçersiz sayıldı. Listen kaydedilmedi.';
   return 'Liste kaydedilmedi. Güncel durumu yenileyip yeniden dene.';
