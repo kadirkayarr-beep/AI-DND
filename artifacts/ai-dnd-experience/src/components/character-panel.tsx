@@ -1,3 +1,16 @@
+function XpBar({ xp, level }: { xp: number; level: number }) {
+  const progress = xpProgress(xp, level);
+  if (progress.atTop) return <div className="data-row mt-3" data-testid="text-character-xp">Deneyim: {xp} · {TOP_LEVEL_LABEL}</div>;
+  return (
+    <div className="xp-bar mt-3" data-testid="text-character-xp">
+      <div className="health-row"><span>Deneyim</span><span>{xp} / {progress.next} · Seviye {progress.nextLevel}'e</span></div>
+      <div className="health-track" role="progressbar" aria-label="Sonraki seviyeye deneyim" aria-valuemin={0} aria-valuemax={progress.next} aria-valuenow={xp}>
+        <div className="health-fill" style={{ width: `${progress.percent}%` }} />
+      </div>
+    </div>
+  );
+}
+
 const METAMAGIC_LABELS: Record<string, string> = {"Careful Spell": "Özenli Büyü", "Distant Spell": "Uzak Büyü", "Empowered Spell": "Güçlendirilmiş Büyü", "Extended Spell": "Uzatılmış Büyü", "Heightened Spell": "Yoğunlaştırılmış Büyü", "Quickened Spell": "Hızlandırılmış Büyü", "Seeking Spell": "Arayıcı Büyü", "Subtle Spell": "Gizli Büyü", "Transmuted Spell": "Dönüştürülmüş Büyü", "Twinned Spell": "İkiz Büyü"};
 
 import type { ReactNode } from 'react';
@@ -9,6 +22,7 @@ import { PaladinStatus } from '@/components/paladin-controls';
 import { RogueStatus } from '@/components/rogue-controls';
 import { MonkStatus } from '@/components/monk-controls';
 import { skillLabel } from '@/lib/skill-label';
+import { TOP_LEVEL_LABEL, xpProgress } from '@/lib/xp-progress';
 import { inventoryDisplay } from '@/lib/inventory-display';
 import { CharacterIdentityNotes } from '@/components/character-identity-notes';
 import { classLabel, speciesLabel } from '@/lib/campaign-presentation';
@@ -40,7 +54,7 @@ export function CharacterPanel({ character, compact = false, walletTotalCp, cata
       <div className="health-row"><span className="flex items-center gap-2"><Heart size={13} /> Can durumu</span><span data-testid="text-character-hp">{character.current_hp} / {character.max_hp}</span></div>
       <div className="health-track"><div className="health-fill" style={{ width: `${hp}%` }} data-testid="meter-health" /></div>
       <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div></div>
-      <div className="data-row mt-3" data-testid="text-character-xp">Deneyim: {character.xp}</div>
+      <XpBar xp={character.xp} level={character.level} />
       <PurseLine totalCp={walletTotalCp} />
       {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
       {!compact && <div className="mt-5 border-t border-(color:--unw-border) pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skillLabel(skill)}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
