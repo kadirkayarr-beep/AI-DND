@@ -15,3 +15,12 @@ for (const file of files) {
     assert.deepEqual(small, []);
   });
 }
+
+// Rem-sized text counts too (16 px root): 0.75rem is the floor.
+for (const file of ['src/components/reading-settings.css', 'src/components/skill-check-result.css', 'src/index.css', 'src/components/unwritten-play.css', 'src/components/unwritten-reading.css']) {
+  test(`${file} has no rem text smaller than 0.75rem`, async () => {
+    const source = await readFile(file, 'utf8');
+    const small = [...source.matchAll(/font-size:\s*(\d*\.?\d+)rem/g)].filter(m => Number(m[1]) < 0.75).map(m => m[0]);
+    assert.deepEqual(small, []);
+  });
+}

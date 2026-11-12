@@ -56,7 +56,7 @@ export default function ClerkAccess({ children }: { children: ReactNode }) {
             >
               <p
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   letterSpacing: "0.22em",
                   textTransform: "uppercase",
                   color: "#b39461",

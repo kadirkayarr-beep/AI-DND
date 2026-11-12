@@ -3,7 +3,7 @@
   flex: 0 0 auto;
   color: var(--unw-accent-light);
   font-family: inherit;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
 .reading-settings > summary {
@@ -70,7 +70,7 @@
 
 .reading-settings__control output {
   color: var(--unw-accent-light);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
 
