@@ -818,3 +818,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .level-up-card { display: grid; gap: 6px; margin: 8px 0; padding: 12px 14px; border: 1px solid var(--unw-accent-light); background: var(--unw-surface); color: var(--unw-text); }
 .level-up-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .level-up-card-actions .action-suggestion { min-height: 44px; }
+
+.death-tally { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 8px; color: var(--unw-text); }
+.death-pips { display: inline-flex; gap: 4px; vertical-align: middle; }
+.death-pips i { width: 12px; height: 12px; border: 1px solid var(--unw-border); border-radius: 50%; display: inline-block; }
+.death-pips-success i.on { background: var(--unw-accent-light); border-color: var(--unw-accent-light); }
+.death-pips-failure i.on { background: var(--unw-danger-text); border-color: var(--unw-danger-text); }
+.death-card { padding: 18px 16px; border: 1px solid var(--unw-danger-text); background: var(--unw-surface); color: var(--unw-text); }
+.death-card-title { margin: 0 0 8px; font-size: 24px; color: var(--unw-danger-text); }

@@ -99,7 +99,7 @@ function harness() {
     setNotice(value) { env.notice = value; },
     setInFlightSessions() {},
     setCombatEntries() {},
-    setCombatEndNotice() {},
+    setCombatEndNotice() {}, setLevelUpCard() {},
     setCombatTargetId() {},
     setConversationTargetId() {},
     setComposerOpen() {},

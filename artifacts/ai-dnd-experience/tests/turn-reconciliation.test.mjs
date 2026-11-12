@@ -57,7 +57,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
   getGetCampaignsQueryKey: () => ['campaigns'], entries: [], TRANSCRIPT_KEY: 'transcript-',
    setEntries: v => { env.entries = typeof v === 'function' ? v(env.entries) : v; shown.push(env.entries); },
    setNewResponseEntryIndex: value => { env.newResponseEntryIndex = value; },
-   setCombatEntries() {}, setCombatEndNotice() {}, setCombatTargetId() {}, setConversationTargetId() {}, setMessage() {}, setComposerOpen() {},
+   setCombatEntries() {}, setCombatEndNotice() {}, setLevelUpCard() {}, setCombatTargetId() {}, setConversationTargetId() {}, setMessage() {}, setComposerOpen() {},
    statusCode: e => e.status, friendlyError: e => e?.message ?? 'Synthetic error',
  };
   for (const name of ['setInFlightSessions', 'setNotice', 'setEntries', 'setCombatEntries', 'setCombatStartNotice', 'setCombatEndNotice', 'setCombatTargetId', 'setConversationTargetId', 'setMessage', 'setComposerOpen']) {
@@ -569,7 +569,7 @@ test('resume history cannot be overwritten by stale local text cache on session-
   sessionId:'session-resumed',campaignId:'campaign-authoritative',
   TRANSCRIPT_KEY:'ai-dnd-transcript-',
   window:{localStorage:{getItem:()=>JSON.stringify([{kind:'player',text:'Stale local copy'}])}},
-  setEntries:v=>changes.push(v), setCombatEndNotice:()=>{}, setCombatTargetId:()=>{},
+  setEntries:v=>changes.push(v), setCombatEndNotice:()=>{}, setLevelUpCard:()=>{}, setCombatTargetId:()=>{},
  };
  vm.runInNewContext(js,ctx);
  ctx.restoreTranscript();
