@@ -27,13 +27,13 @@ export function SpellcastingPanel({ spellcasting, decisionScope = '', conversion
       <div className="mt-4">
         <h3 className="dnd-kicker">Hileler</h3>
         {spellcasting.cantrips.length ? <ul className="mt-2 flex flex-wrap gap-2" data-testid="spell-cantrips">
-          {spellcasting.cantrips.map((spell) => <li className="status-pill" key={spell}>{spell}</li>)}
+          {spellcasting.cantrips.map((spell) => <li className="status-pill" lang="en" key={spell}>{spell}</li>)}
         </ul> : <p className="subtle-text mt-2">Bilinen hile yok.</p>}
       </div>
       <div className="mt-4">
         <h3 className="dnd-kicker">Hazırlanmış büyüler</h3>
         {spellcasting.prepared.length ? <ul className="mt-2 flex flex-wrap gap-2" data-testid="spell-prepared">
-          {spellcasting.prepared.map((spell) => <li className="status-pill" key={spell}>{spell}</li>)}
+          {spellcasting.prepared.map((spell) => <li className="status-pill" lang="en" key={spell}>{spell}</li>)}
         </ul> : <p className="subtle-text mt-2" data-testid="spell-prepared-empty">Hazırlanmış büyü yok.</p>}
       </div>
       <div className="mt-4">
