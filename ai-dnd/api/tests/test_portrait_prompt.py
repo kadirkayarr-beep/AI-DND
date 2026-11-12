@@ -79,6 +79,19 @@ class PortraitPromptForbidden(unittest.TestCase):
                             "not an adult", "12-year-old", "12 yo", "12 y/o", "12 yrs", "12 yıl", "10 yaşında", "age: 9",
                             "age twelve", "yedi yaşındaki", "9 years  old", "8.yaş"])
 
+    def test_glued_number_and_unit_refused(self):
+        self.assertRefused(["12yaşında", "12yo", "12yrs", "15yo", "12years old", "yaşı on", "yaşı on beş"])
+
+    def test_leet_l_variant_and_pubescent_refused(self):
+        self.assertRefused(["chi1d", "pubescent"])
+
+    def test_spelled_compound_adult_ages_allowed(self):
+        for text in ["otuz beş yaşında", "yirmi iki yaşında bir kadın", "kırk üç yaşında", "elli yedi yaşında",
+                     "on sekiz yaşında", "on dokuz yaşında", "yüz on iki yaşında", "twenty-five years old",
+                     "thirty five years old", "forty five year old man", "18 years old", "5000years old"]:
+            with self.subTest(text=text):
+                self.assertIsInstance(build(text), PortraitPrompt)
+
     def test_more_minor_words_refused(self):
         self.assertRefused(["childlike face", "a child", "childish grin", "children", "little girl", "young girl",
                             "genç kız", "oğlan", "adolescent", "juvenile", "preteen", "prepubescent", "kiddo"])

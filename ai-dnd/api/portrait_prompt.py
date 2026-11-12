@@ -28,7 +28,7 @@ PORTRAIT_ERROR_CODES = (
 # Beyond this it is a keyword list: the fixed "adult (18+)" line and the provider's own filter are the backstop.
 PREFIX_STEMS = (  # a word starting with one of these refuses
     "cocu", "bebe", "ergen", "loli", "shota", "teen", "underage", "infant", "toddler", "schoolgirl", "schoolboy",
-    "child", "oglan", "adolescent", "juvenile", "preteen", "prepubescent", "kiddo",
+    "child", "pubescent", "oglan", "adolescent", "juvenile", "preteen", "prepubescent", "kiddo",
     "ciplak", "cinsel", "erotik", "erotic", "mustehcen", "porn", "naked", "nsfw",
     "topless", "lingerie", "fetis", "fetish", "sehvet", "orgy",
     "disney", "pixar", "pokemon", "adidas", "mcdonald", "celebrit",
@@ -46,11 +46,16 @@ PHRASES = ("resit olmayan", "kucuk kiz", "kucuk oglan", "kucuk cocuk", "yasi kuc
            "star wars", "harry potter", "dc comics", "coca cola")
 _EN_NUMBERS = ("one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|"
                "seventeen")
-_NUM = (r"(?<![a-z0-9])(?:1[0-7]|[0-9]|" + _EN_NUMBERS +
-        r"|bir|iki|uc|dort|bes|alti|yedi|sekiz|dokuz|on\s+(?:bir|iki|uc|dort|bes|alti|yedi)|on)(?![a-z0-9])")
+_NUM = (r"(?:(?<![0-9])(?:1[0-7]|[0-9])(?![0-9])|(?<![a-z0-9])(?:" + _EN_NUMBERS +
+        r"|bir|iki|uc|dort|bes|alti|yedi|sekiz|dokuz|on\s+(?:bir|iki|uc|dort|bes|alti|yedi)|on)(?![a-z0-9]))")
+# A tens/hundred word before the unit digit word ("otuz bes", "twenty five", "yuz on iki") and "on sekiz"/"on dokuz" are adult ages.
+_ADULT_COMPOUND_RE = re.compile(
+    r"(?<![a-z])(?:(?:yirmi|otuz|kirk|elli|altmis|yetmis|seksen|doksan|yuz|twenty|thirty|forty|fifty|sixty|seventy|eighty|"
+    r"ninety|hundred)[\s\-]+(?:on[\s\-]+)?(?:" + _EN_NUMBERS + r"|bir|iki|uc|dort|bes|alti|yedi|sekiz|dokuz)"
+    r"|on\s+(?:sekiz|dokuz))(?![a-z])")
 _UNIT = r"(?:y\s*/\s*o|yo|yrs?|years?|yil\w*|yas\w*)(?![a-z])"
 UNDER_AGE = (_NUM + r"[\s\-./]*" + _UNIT                                  # 12 years old, on iki yasinda, 12-year-old, 12 y/o
-             + r"|(?<![a-z])(?:yas|aged?)\s*[:=]?\s*" + _NUM                 # yas: 12, age twelve
+             + r"|(?<![a-z])(?:yasi|yas|aged?)\s*[:=]?\s*" + _NUM                 # yas: 12, age twelve
              + r"|(?<![a-z])(?:under|below)\s+(?:the\s+age\s+of\s+)?(?:18|eighteen)(?![a-z0-9])"
              + r"|(?<![a-z])not\s+(?:an?\s+)?adult|yasindan\s+kucuk"
              + r"|(?<![a-z])looks?\s+(?:like\s+)?(?:an?\s+|about\s+)?(?:" + _EN_NUMBERS + r")(?![a-z])")
@@ -61,6 +66,7 @@ _PRIVATE_RE = re.compile(PRIVATE, re.IGNORECASE)
 _WORD_RE = re.compile(r"[a-z0-9]+")
 _TR_ASCII = str.maketrans("çğıöşü", "cgiosu")
 _LEET = str.maketrans("01345", "oieas")
+_LEET_L = str.maketrans("01345", "oleas")   # 1 can stand for i or l
 _LOOKALIKE = str.maketrans("асеорхуіјкмтѕοα", "aceopxyijkmtsoa")   # Cyrillic/Greek lookalikes, for the check only
 _JOIN_RE = re.compile(r"(?<![a-z0-9])[a-z0-9](?:[\s.\-_*]+[a-z0-9])+(?![a-z0-9])")
 
@@ -107,11 +113,12 @@ def _word_hit(folded: str) -> bool:
 def is_forbidden(text: str) -> bool:
     folded = _fold(clean_text(text))
     joined = _JOIN_RE.sub(lambda m: re.sub(r"[\s.\-_*]+", "", m.group()), folded)
-    if _UNDER_AGE_RE.search(folded) or _UNDER_AGE_RE.search(joined):
-        return True
+    for variant in (folded, joined):
+        if _UNDER_AGE_RE.search(_ADULT_COMPOUND_RE.sub("xx", variant)):
+            return True
     for variant in (folded, joined):
         looked = variant.translate(_LOOKALIKE)
-        if _word_hit(looked) or _word_hit(looked.translate(_LEET)):
+        if _word_hit(looked) or _word_hit(looked.translate(_LEET)) or _word_hit(looked.translate(_LEET_L)):
             return True
     return False
 
