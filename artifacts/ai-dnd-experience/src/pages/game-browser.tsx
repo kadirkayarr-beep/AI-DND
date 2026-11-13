@@ -446,9 +446,6 @@ export default function GameBrowser() {
       ? node.scrollHeight - node.scrollTop - node.clientHeight < 80
       : node.getBoundingClientRect().bottom <= window.innerHeight + 80;
   };
-  // A layout scroll only clamps to the bottom; one that moves up and ends away from it is the reader's.
-  const readerLeftStoryBottom = (previous: { top: number } | null, current: { top: number }, node: HTMLDivElement) =>
-    previous !== null && current.top < previous.top && !isStoryNearBottom(node);
   const scrollStoryToBottom = (node: HTMLDivElement) => {
     const hasOwnScroll = node.scrollHeight > node.clientHeight + 2
       && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY);
@@ -543,8 +540,6 @@ export default function GameBrowser() {
         // A resize can clamp scrollTop and queue scroll after this callback.
         if (previous.top !== current.top) storyLayoutScrollTopRef.current = current.top;
       }
-      // The reader's scroll event can still be queued when the content grows.
-      if (readerLeftStoryBottom(previous, current, node)) wasAtBottom.current = false;
       storyLayoutRef.current = current;
       if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
     });
@@ -599,8 +594,8 @@ export default function GameBrowser() {
     storyLayoutScrollTopRef.current = null;
     // Layout can dispatch scroll before ResizeObserver. Keep the preference
     // from before that resize; genuine same-layout scrolling still updates it.
-    if (!readerLeftStoryBottom(previous, current, node) && ((previous && (previous.width !== current.width || previous.height !== current.height
-      || previous.contentHeight !== current.contentHeight)) || layoutScrollTop === node.scrollTop)) {
+    if ((previous && (previous.width !== current.width || previous.height !== current.height
+      || previous.contentHeight !== current.contentHeight)) || layoutScrollTop === node.scrollTop) {
       if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
       return;
     }
