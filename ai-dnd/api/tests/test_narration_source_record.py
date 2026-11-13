@@ -7,19 +7,24 @@ sidecar row and comes back without the key. Temporary SQLite only.
 
 from __future__ import annotations
 
+import ast
 import copy
 import sqlite3
 import unittest
 import uuid
 from functools import wraps
+from pathlib import Path
 from unittest.mock import patch
 
 import httpx
 
+import game
 from api.auth import FixedAuthenticator
 from api.history_view import UNDO_HISTORY_MARKER
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
+from api.persistence import campaign_store
+from api.persistence.campaign_models import CampaignStaleError, CampaignValidationError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_ambient_actions as ambient
@@ -131,12 +136,27 @@ class TypedTurnSource(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(detail.json()["history"][-1]["narration_source"], reported)
 
     async def test_a_turn_the_engine_reports_no_source_for_saves_none(self):
-        # Some engine routes (this move among them) hand back no telemetry; nothing is guessed for them.
+        # Some engine routes (this walk among them) hand back no telemetry; nothing is guessed for them.
         _, played, reported = await self.turn("Tapınağa gidiyorum.")
+        self.assertIsNone(reported)
         row = self.history()[-1]
         self.assertEqual(row["narration"], played["narration"])
-        self.assertEqual(row.get("narration_source"), reported if reported in ENGINE_SOURCES else None)
-        self.assertEqual("narration_source" in row, reported in ENGINE_SOURCES)
+        self.assertNotIn("narration_source", row)
+        self.assertIsNone(saved_rows(self.store.path, self.campaign_id)[-1][2])
+
+    async def test_a_replayed_action_answers_alike_and_another_body_is_refused_with_rows_unchanged(self):
+        action_id, played, reported = await self.turn()
+        rows = saved_rows(self.store.path, self.campaign_id)
+        self.assertEqual(rows[-1][2], reported)
+        replay = await self.http.post(self.turn_url, json={"message": "Etrafıma bakıyorum.", "action_id": action_id})
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), played)
+        self.assertEqual(saved_rows(self.store.path, self.campaign_id), rows)
+        other = await self.http.post(self.turn_url, json={"message": "Tapınağa gidiyorum.", "action_id": action_id})
+        self.assertEqual(other.status_code, 409, other.text)
+        self.assertEqual(other.json()["detail"]["code"], "action_id_conflict")
+        self.assertEqual(saved_rows(self.store.path, self.campaign_id), rows)
+        self.assertEqual(self.history()[-1]["narration_source"], reported)
 
     async def test_each_engine_value_is_kept_as_reported(self):
         for source in sorted(ENGINE_SOURCES):
@@ -389,6 +409,48 @@ class WriterBoundary(unittest.IsolatedAsyncioTestCase):
             self.manager.autosave_turn(record, "eski çağrı", "anlatı")
         self.assertEqual(saved_rows(self.store.path, created["campaign_id"])[-1][1:], ("eski çağrı", None))
 
+    async def started(self, seed):
+        with fixed_town(self, seed):
+            created = (await self.http.post("/api/game/campaigns", json={"death_mode": "NORMAL"})).json()
+        return created["campaign_id"], self.manager.get(created["session_id"])
+
+    def receipt(self, action_id=None):
+        action_id = action_id or str(uuid.uuid4())
+        return {"action_id": action_id, "request_hash": "a" * 64, "response": {"action_id": action_id}}
+
+    async def test_a_save_refused_after_both_rows_were_written_keeps_them_in_step(self):
+        campaign_id, record = await self.started(4312)
+        with record.turn_lock:
+            self.manager.autosave_turn(record, "ilk", "anlatı", narration_source="qwen")
+        before = saved_rows(self.store.path, campaign_id)
+        revision = self.store.get_campaign(campaign_id).metadata["revision"]
+        # A durably refused action id is only seen after the history row and its source row are written.
+        refused = self.receipt()
+        self.assertTrue(self.store.record_refused_action(
+            campaign_id, refused["action_id"], refused["request_hash"], 409, {"code": "x", "message": "x"}))
+        with record.turn_lock, self.assertRaises(CampaignStaleError):
+            self.manager.autosave_turn(record, "reddedilen", "anlatı", turn_action_receipt=refused,
+                                       narration_source="python_memory_response")
+        self.assertEqual(saved_rows(self.store.path, campaign_id), before)
+        self.assertEqual(self.store.get_campaign(campaign_id).metadata["revision"], revision)
+        with record.turn_lock:
+            self.manager.autosave_turn(record, "sonraki", "anlatı", narration_source="deterministic_fallback")
+        self.assertEqual(saved_rows(self.store.path, campaign_id),
+                         [*before, (before[-1][0] + 1, "sonraki", "deterministic_fallback")])
+
+    async def test_a_second_save_under_a_committed_action_id_writes_nothing(self):
+        campaign_id, record = await self.started(4313)
+        receipt = self.receipt()
+        with record.turn_lock:
+            self.manager.autosave_turn(record, "ilk", "anlatı", turn_action_receipt=receipt, narration_source="qwen")
+        before = saved_rows(self.store.path, campaign_id)
+        self.assertEqual(before[-1][1:], ("ilk", "qwen"))
+        with record.turn_lock, self.assertRaises(CampaignValidationError):
+            self.manager.autosave_turn(record, "ikinci", "anlatı",
+                                       turn_action_receipt=self.receipt(receipt["action_id"]),
+                                       narration_source="deterministic_system")
+        self.assertEqual(saved_rows(self.store.path, campaign_id), before)
+
     async def test_a_session_without_a_campaign_keeps_working(self):
         response = await self.http.post("/api/sessions")
         self.assertEqual(response.status_code, 200, response.text)
@@ -396,6 +458,79 @@ class WriterBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(record.campaign_id)
         with record.turn_lock:
             self.assertIsNone(self.manager.autosave_turn(record, "satır", "anlatı", narration_source="qwen"))
+
+
+def reported_sources(source):
+    """Every string literal a module gives `narration_source`: assigned to a name `narration_source` or
+    `narration_src`, set under the dict key "narration_source", or passed as that keyword."""
+    names = {"narration_source", "narration_src"}
+    found = set()
+    for node in ast.walk(ast.parse(source)):
+        values = []
+        if isinstance(node, ast.Assign):
+            if any(isinstance(target, ast.Name) and target.id in names for target in node.targets):
+                values.append(node.value)
+        elif isinstance(node, ast.AnnAssign):
+            if isinstance(node.target, ast.Name) and node.target.id in names and node.value is not None:
+                values.append(node.value)
+        elif isinstance(node, ast.Dict):
+            values.extend(value for key, value in zip(node.keys, node.values)
+                          if isinstance(key, ast.Constant) and key.value == "narration_source")
+        elif isinstance(node, ast.keyword) and node.arg in names:
+            values.append(node.value)
+        for value in values:
+            # A conditional expression gives either arm; a name (the variable itself) is read at its own assignment.
+            for part in ast.walk(value):
+                if isinstance(part, ast.Constant) and isinstance(part.value, str):
+                    found.add(part.value)
+    return found
+
+
+ENGINE_ROOT = Path(game.__file__).resolve().parent
+# The two engine modules that write turn telemetry (`_engine_event_evidence`): game.py sets the source in
+# `_narrate_resolved_turn` and `_run_player_turn_internal`, dialogue_runtime.py in its free-dialogue result.
+# Scanned: literals assigned to `narration_source` / `narration_src`, the dict key "narration_source", and
+# that keyword argument. `test_no_other_engine_module_reports_a_source` keeps this pair complete.
+ENGINE_REPORTERS = ("game.py", "dialogue_runtime.py")
+
+
+class TheListIsTheEngines(unittest.TestCase):
+    """The store keeps exactly the values the engine can report: a new engine value must be decided here first."""
+
+    def engine_values(self, extra_source=""):
+        found = set()
+        for name in ENGINE_REPORTERS:
+            found |= reported_sources((ENGINE_ROOT / name).read_text(encoding="utf-8"))
+        return found | reported_sources(extra_source)
+
+    def test_the_store_list_equals_what_the_engine_reports(self):
+        self.assertEqual(self.engine_values(), set(campaign_store._NARRATION_SOURCES))
+        self.assertEqual(ENGINE_SOURCES, set(campaign_store._NARRATION_SOURCES))
+
+    def test_the_scan_sees_each_way_a_value_is_written(self):
+        for line in ('narration_source = "x"', 'narration_src = "x"', 'narration_source: str = "x"',
+                     't = {"narration_source": "x"}', 'f(narration_source="x")',
+                     'narration_source = "x" if a else "y"'):
+            with self.subTest(line=line):
+                self.assertIn("x", reported_sources(line))
+        self.assertEqual(reported_sources('narration_source = "x" if a else "y"'), {"x", "y"})
+        self.assertEqual(reported_sources('other = "x"\nt = {"intent_source": "x"}'), set())
+        # A value the engine does not report today would break the equality above.
+        self.assertNotEqual(self.engine_values('narration_source = "a_new_engine_value"'),
+                            set(campaign_store._NARRATION_SOURCES))
+
+    def test_no_other_engine_module_reports_a_source(self):
+        # Engine code only (the API layer passes the engine's values on; tests and evidence scripts read them).
+        skipped = {"api", "docs", "scripts", "reports", "legacy_debug", "saves"}
+        mentioning = set()
+        for path in ENGINE_ROOT.rglob("*.py"):
+            relative = path.relative_to(ENGINE_ROOT)
+            if relative.parts[0] in skipped or path.name.startswith(("test_", "live_")) or "tests" in relative.parts:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if "narration_source" in text or "narration_src" in text:
+                mentioning.add(relative.as_posix())
+        self.assertEqual(mentioning, set(ENGINE_REPORTERS))
 
 
 if __name__ == "__main__":
