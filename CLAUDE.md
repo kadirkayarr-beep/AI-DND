@@ -69,7 +69,7 @@ Tasarım ve plan belgeleri: `docs/design/INDEX.md`
 Bunlar Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esastır. Yukarıdaki "Çalışma ve test disiplini" ile çelişirse güvenlik ve kalite kazanır.
 
 - **[Güvenlik] Push/merge/yayın:** yalnız Kadir'in o işlem için taze onayıyla; force push yok (geri alınamaz, başkasının işini siler).
-- **[Güvenlik] CI kontrolü:** her push/merge sonrası `gh run list --repo kadirkayarr-beep/AI-DND` ile 'AI-DND bounded verification' bakılır (CI yalnız main push ve pull_request'te çalışır); kırmızıyı hemen bildir, sonra düzelt, yeşil olmadan "bitti" deme (yerel yeşil CI'ın yerini tutmaz).
+- **[Güvenlik] CI kontrolü:** her push/merge sonrası `gh run list --repo kadirkayarr-beep/AI-DND` ile 'AI-DND bounded verification' bakılır (CI yalnız main push ve pull_request'te çalışır); kırmızıyı hemen bildir, sonra düzelt, yeşil olmadan "bitti" deme (yerel yeşil CI'ın yerini tutmaz). Merge'den hemen önce main'in son koşusuna yeniden bakılır; kırmızıysa ya da sürüyorsa merge edilmez, Kadir'e yazılır (Kadir, 2026-11-13).
 - **[Güvenlik] Commit kaybı:** birleştirmeden/push'tan önce dal ve commitlerin başka yerde olup olmadığına bak (hedef uç atası mı); eski Ekim dallarına dokunulmaz (iş kaybı geri alınamaz).
 - **[Güvenlik] Anahtarlar:** anahtar/API dosyaları okunmaz, yazdırılmaz, commit edilmez; anahtarları yalnız sahibi girer (sızıntı geri alınamaz).
 - **[Güvenlik] Dış kod ve veri:** doğrulanmamış skill, hook, npx kurulmaz; önce repo okunur, yalnız markdown içerenler kurulur; ekran görüntüsü ya da veri dış servise sorulmadan gönderilmez (gizlilik, gizli hook riski).
