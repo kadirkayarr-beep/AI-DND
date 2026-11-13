@@ -781,6 +781,9 @@ class CampaignStore:
                         ),
                     )
                     if narration_source is not None:
+                        # The file under an open store may predate the table (an older file put in its place):
+                        # made here, inside this save's transaction, so a refused save leaves no table behind.
+                        connection.execute(_HISTORY_SOURCES_DDL)
                         connection.execute(
                             """
                             INSERT INTO campaign_history_sources (
@@ -1757,7 +1760,10 @@ class CampaignStore:
                     if history_row["sequence"] in accepted and history_row["sequence"] not in ambiguous:
                         history[index]["skill_check_result"] = accepted[history_row["sequence"]]
                 # Read-only projection of the recorded narration source; a row saved without one keeps no key.
-                sources = {
+                # A file without the table (see save_campaign) recorded no source: the story loads without them.
+                sources = {} if connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'campaign_history_sources'"
+                ).fetchone() is None else {
                     source_row["sequence"]: source_row["narration_source"]
                     for source_row in connection.execute(
                         "SELECT sequence, narration_source FROM campaign_history_sources WHERE campaign_id = ?",

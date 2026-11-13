@@ -460,6 +460,95 @@ class WriterBoundary(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(self.manager.autosave_turn(record, "satır", "anlatı", narration_source="qwen"))
 
 
+def drop_source_table(path):
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute(f"DROP TABLE {SIDECAR}")
+        connection.commit()
+    finally:
+        connection.close()
+
+
+class FileWithoutTheSourceTable(unittest.IsolatedAsyncioTestCase):
+    """The file under an already open store has no source table (an older file put in its place while the server
+    runs): the adventure still loads, without sources, and the next save still lands."""
+
+    asyncSetUp = TypedTurnSource.asyncSetUp
+    asyncTearDown = TypedTurnSource.asyncTearDown
+    history = TypedTurnSource.history
+    turn = TypedTurnSource.turn
+
+    def plain_rows(self):
+        return saved_rows_without_sidecar(self.store.path, self.campaign_id)
+
+    async def test_the_adventure_loads_without_sources(self):
+        _, played, reported = await self.turn()
+        self.assertEqual(self.history()[-1]["narration_source"], reported)
+        drop_source_table(self.store.path)
+        self.assertNotIn(SIDECAR, tables(self.store.path))
+        # The same open store, the normal read path.
+        stored = self.store.get_campaign(self.campaign_id)
+        self.assertEqual([(row["player_message"], row["narration"]) for row in stored.history],
+                         [(message, narration) for _, message, narration in self.plain_rows()])
+        self.assertEqual(stored.history[-1]["narration"], played["narration"])
+        for row in stored.history:
+            self.assertNotIn("narration_source", row)
+        # The HTTP history route and a resume.
+        detail = await self.http.get(f"/api/game/campaigns/{self.campaign_id}")
+        self.assertEqual(detail.status_code, 200, detail.text)
+        self.assertEqual(len(detail.json()["history"]), len(stored.history))
+        for row in detail.json()["history"]:
+            self.assertNotIn("narration_source", row)
+        resumed = await self.http.post(f"/api/game/campaigns/{self.campaign_id}/resume")
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        self.assertEqual(len(resumed.json()["history"]), len(stored.history))
+        # Reading wrote nothing: the table is still absent.
+        self.assertNotIn(SIDECAR, tables(self.store.path))
+
+    async def test_a_turn_still_saves_and_its_source_is_kept_from_then_on(self):
+        await self.turn()
+        drop_source_table(self.store.path)
+        old = self.plain_rows()
+        _, played, reported = await self.turn()
+        self.assertIn(reported, ENGINE_SOURCES)
+        self.assertEqual(len(self.plain_rows()), len(old) + 1)
+        self.assertEqual(saved_rows(self.store.path, self.campaign_id),
+                         [*((sequence, message, None) for sequence, message, _ in old),
+                          (old[-1][0] + 1, "Etrafıma bakıyorum.", reported)])
+        history = self.history()
+        self.assertEqual(history[-1]["narration"], played["narration"])
+        self.assertEqual(history[-1]["narration_source"], reported)
+        for row in history[:-1]:
+            self.assertNotIn("narration_source", row)
+
+    async def test_a_save_without_a_source_lands_and_leaves_the_file_as_it_was(self):
+        await self.turn()
+        drop_source_table(self.store.path)
+        before = len(self.plain_rows())
+        record = self.manager.get(self.session_id)
+        with record.turn_lock:
+            self.manager.autosave_turn(record, "satır", "anlatı")
+        self.assertEqual(len(self.plain_rows()), before + 1)
+        self.assertNotIn(SIDECAR, tables(self.store.path))
+        self.assertNotIn("narration_source", self.history()[-1])
+
+    async def test_a_refused_save_does_not_leave_the_table_behind(self):
+        await self.turn()
+        drop_source_table(self.store.path)
+        before = self.plain_rows()
+        record = self.manager.get(self.session_id)
+        action_id = str(uuid.uuid4())
+        self.assertTrue(self.store.record_refused_action(
+            self.campaign_id, action_id, "a" * 64, 409, {"code": "x", "message": "x"}))
+        with record.turn_lock, self.assertRaises(CampaignStaleError):
+            self.manager.autosave_turn(
+                record, "reddedilen", "anlatı", narration_source="qwen",
+                turn_action_receipt={"action_id": action_id, "request_hash": "a" * 64,
+                                     "response": {"action_id": action_id}})
+        self.assertEqual(self.plain_rows(), before)
+        self.assertNotIn(SIDECAR, tables(self.store.path))
+
+
 def reported_sources(source):
     """Every string literal a module gives `narration_source`: assigned to a name `narration_source` or
     `narration_src`, set under the dict key "narration_source", or passed as that keyword."""
