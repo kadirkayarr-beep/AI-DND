@@ -224,7 +224,7 @@ async function storyFollowHarness({ following = true } = {}) {
     window, getComputedStyle: () => ({ overflowY: 'auto' }), transcriptFollowsBottom,
     setNewResponseEntryIndex() {}, setResultCue() {},
     ResizeObserver: class { constructor(callback) { resizeCallback = callback; } observe(target) { observed.add(target); } disconnect() { observed.clear(); } } };
-  const names = ['readStoryLayout', 'isStoryNearBottom', 'readerLeftStoryBottom', 'scrollStoryToBottom', 'handleStoryScroll'];
+  const names = ['readStoryLayout', 'isStoryNearBottom', 'scrollStoryToBottom', 'handleStoryScroll'];
   const code = names.filter(name => declarations.has(name)).map(name => `const ${name} = ${declarations.get(name)};`).join('\n')
     + `\n(${resizeEffect})(); (${windowEffect})(); globalThis.scroll = handleStoryScroll;`;
   runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, context);
@@ -286,28 +286,6 @@ test('browser scroll clamping after ResizeObserver preserves history intent unti
   h.userScroll(200); assert.equal(h.context.wasAtBottom.current, true);
 });
 
-// D-082: a late web font re-wraps the story in the same frame as the reader's scroll.
-test("a reader's scroll away from the bottom that lands with a content-height change is not undone", async () => {
-  const h = await storyFollowHarness();
-  h.node.scrollHeight = 427; // the content grew 7 px and ResizeObserver has not run yet
-  h.userScroll(20);
-  assert.equal(h.node.scrollTop, 20, 'the reader stays where they scrolled');
-  assert.equal(h.context.wasAtBottom.current, false);
-  h.resize(220, 375, 592); // a result card opens later: 165 px more content
-  assert.equal(h.node.scrollTop, 20, 'opening details must not drag the reader to the bottom');
-});
-
-test("content growth that ResizeObserver sees before the reader's scroll event does not drag them back", async () => {
-  const h = await storyFollowHarness();
-  h.node.scrollTop = 20; // the reader scrolled up; the scroll event is still queued
-  h.resize(220, 375, 585); // a result card opens: ResizeObserver runs first
-  assert.equal(h.node.scrollTop, 20, 'the reader stays where they scrolled');
-  assert.equal(h.context.wasAtBottom.current, false);
-  h.context.scroll({ currentTarget: h.node }); // the queued scroll event arrives
-  assert.equal(h.node.scrollTop, 20);
-  assert.equal(h.context.wasAtBottom.current, false);
-});
-
 test('a growing transcript box that clamps a following reader up to the bottom keeps following', async () => {
   const h = await storyFollowHarness();
   h.resize(375); // the box grows: scrollTop is clamped from 200 up to 45, which is the bottom
@@ -318,3 +296,19 @@ test('a growing transcript box that clamps a following reader up to the bottom k
   h.resize(375, 375, 600); // a new answer arrives
   assert.equal(h.node.scrollTop, 225, 'the new answer is still followed');
 });
+
+// D-082, PR #39 revert. Recorded in Chrome when the viewport changed after the play screen was drawn
+// (764x485 -> 390x844): the browser left the view 202 px above the bottom and the reader touched nothing.
+for (const scrollFirst of [false, true]) {
+  test(`a viewport resize that leaves a following reader above the bottom keeps following (${scrollFirst ? 'scroll event' : 'ResizeObserver'} first)`, async () => {
+    const h = await storyFollowHarness();
+    h.resize(154, 178, 8715); h.context.scroll({ currentTarget: h.node }); // drawn in the small window and followed
+    assert.equal(h.node.scrollTop, 8561);
+    h.node.clientHeight = 359; h.node.clientWidth = 352; h.node.scrollHeight = 3772;
+    h.node.scrollTop = 3211; // the browser's own move during the resize
+    h.resize(359, 352, 3772, scrollFirst);
+    h.context.scroll({ currentTarget: h.node }); // the queued scroll event
+    assert.equal(h.context.wasAtBottom.current, true, 'a layout move is not the reader leaving the bottom');
+    assert.equal(h.node.scrollTop, 3413, 'the latest narration stays in view');
+  });
+}
