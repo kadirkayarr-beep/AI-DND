@@ -30,15 +30,25 @@ async function freePort() {
   return address.port;
 }
 
-async function waitFor(url, parseJson = false) {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+async function waitFor(url, parseJson = false, attempts = 100, timeoutNote = () => "") {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const response = await fetch(url);
       if (response.ok) return parseJson ? response.json() : response;
     } catch {}
     await delay(100);
   }
-  throw new Error(`Timed out waiting for ${url}`);
+  throw new Error(`Timed out waiting for ${url}${timeoutNote()}`);
+}
+
+// D-087: on CI the browser has taken longer than the general wait (about 10 s) to open its debugging port,
+// so only the browser start waits about 30 s; the timeout message says whether the Chrome process had exited.
+function waitForBrowser(browser, browserPort) {
+  return waitFor(`http://127.0.0.1:${browserPort}/json/version`, true, 300, () => (
+    browser.exitCode === null && browser.signalCode === null
+      ? " (Chrome process still running)"
+      : ` (Chrome process had exited: code ${browser.exitCode}, signal ${browser.signalCode})`
+  ));
 }
 
 class CdpPage {
@@ -186,7 +196,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
 
   const baseUrl = `http://127.0.0.1:${vitePort}`;
   await waitFor(`${baseUrl}${fixturePath}`);
-  await waitFor(`http://127.0.0.1:${browserPort}/json/version`, true);
+  await waitForBrowser(browser, browserPort);
   const metrics = [];
 
   for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 360, height: 640 }, { width: 800, height: 900 }, { width: 768, height: 1024 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
@@ -728,7 +738,7 @@ async function startFixtureEnv(t) {
   });
   const baseUrl = `http://127.0.0.1:${vitePort}`;
   await waitFor(`${baseUrl}${fixturePath}`);
-  await waitFor(`http://127.0.0.1:${browserPort}/json/version`, true);
+  await waitForBrowser(browser, browserPort);
   const open = async (route, width, height) => {
     const { page, targetId } = await createPage(browserPort, `${baseUrl}${route}`, width, height);
     return { page, close: async () => { page.close(); await fetch(`http://127.0.0.1:${browserPort}/json/close/${targetId}`); } };
