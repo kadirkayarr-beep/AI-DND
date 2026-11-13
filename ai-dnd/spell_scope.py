@@ -8,6 +8,7 @@ import action_economy as economy
 import barbarian_rage
 import initiative
 import spatial_rules
+import tr_names
 import weapon_attack as attacks
 from api.core_resolution import resolve_attack_roll
 from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG, proficiency_bonus_for_level
@@ -34,6 +35,7 @@ ALIASES = {"ateş oku": "Fire Bolt", "ates oku": "Fire Bolt",
            "ölüm çanı": "Toll the Dead", "olum cani": "Toll the Dead",
            "şifa sözü": "Healing Word", "sifa sozu": "Healing Word",
            "kutsama": "Bless"}
+ALIASES = {**tr_names.spellings_for(CATALOG), **ALIASES}  # the one Turkish name table; the lines above stay as written
 SELF_SPELLS = frozenset({"Cure Wounds", "Healing Word", "Bless"})  # the player is the only target with a healing/buff owner
 SPELL_ATTACKS = {"Fire Bolt": "ranged", "Ray of Frost": "ranged", "Shocking Grasp": "melee"}
 SAVE_SPELLS = {"Sacred Flame": "dexterity", "Toll the Dead": "wisdom"}
@@ -336,6 +338,8 @@ def explicit_request(message, command=None):
     return bool(re.search(r"\b(cast|casting|büyüsünü|buyusunu)\b", text)
                 or spell_effects.named(text) is not None  # 4C.5: the engine answers it; the narrator only tells it
                 or _drops_concentration(text)  # dropping Concentration is a typed engine step (no model)
+                or (any(alias in text for alias in ALIASES)  # a Turkish name from the table, with a casting word beside it
+                    and re.search(r"kullan|yap[ıi]yorum|at[ıi]yorum|f[ıi]rlat|büyü|buyu", text))
                 or (any(name.casefold() in text for name in CATALOG)
                     and "?" not in text and not re.search(r"\b(nedir|describe|what|anlat)\b", text)))
 
@@ -423,9 +427,23 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         spatial = attacks.pair(session, "player", target_id)
         if spatial["distance_ft"] > maximum_range:
             fail("spell_out_of_range", "Target is outside the sourced spell range.")
-        if spatial.get("attacker_sees_target") is not True:
+        # attacks.pair() reads only the player->target fact. A fixture or owner that wrote only the reverse fact
+        # (target->player) still counts: line of sight and cover are mutual, so a reverse "no" refuses too.
+        pairs = session.world_state.get("attack_environment", {}).get("pairs", {})
+        reverse = pairs.get(f"{target_id}|player") if f"player|{target_id}" not in pairs else None
+        reverse = reverse if isinstance(reverse, dict) else {}
+        sees = spatial.get("attacker_sees_target")
+        if reverse.get("attacker_sees_target") is False or reverse.get("target_sees_attacker") is False:
+            sees = False
+        if sees is None:
+            # No visibility fact in an ordinary fight: derive it from conditions. An explicit True/False wins.
+            sees = not (attacks.conditions(session, "player", character) & {"blinded"}
+                        or target_conditions & {"invisible"} or target.get("hidden") is True)
+        if sees is not True:
             fail("spell_visibility_unknown", "V1 requires an explicitly visible target.")
-        if spatial.get("cover", "none") == "total" or spatial.get("clear_path") is False:
+        cover = reverse.get("cover", "none") if "cover" not in spatial else spatial["cover"]
+        clear_path = reverse.get("clear_path") if "clear_path" not in spatial else spatial["clear_path"]
+        if cover == "total" or clear_path is False:
             fail("spell_path_blocked", "The target has no clear spell path.")
     if spell_id in SPELL_ATTACKS:
         # Restricted modes are rejected, not resolved with missing advantage rules.
