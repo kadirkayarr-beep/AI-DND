@@ -307,3 +307,14 @@ test("content growth that ResizeObserver sees before the reader's scroll event d
   assert.equal(h.node.scrollTop, 20);
   assert.equal(h.context.wasAtBottom.current, false);
 });
+
+test('a growing transcript box that clamps a following reader up to the bottom keeps following', async () => {
+  const h = await storyFollowHarness();
+  h.resize(375); // the box grows: scrollTop is clamped from 200 up to 45, which is the bottom
+  assert.equal(h.node.scrollTop, 45);
+  assert.equal(h.context.wasAtBottom.current, true, 'a clamp is not the reader leaving the bottom');
+  h.context.scroll({ currentTarget: h.node }); // the clamp's own scroll event
+  assert.equal(h.context.wasAtBottom.current, true);
+  h.resize(375, 375, 600); // a new answer arrives
+  assert.equal(h.node.scrollTop, 225, 'the new answer is still followed');
+});
