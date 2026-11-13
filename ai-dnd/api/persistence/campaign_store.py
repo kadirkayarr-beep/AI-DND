@@ -44,6 +44,20 @@ from api.persistence.campaign_validation import (
 _DATABASE_SCHEMA_VERSION = 6
 MAX_COMBAT_HISTORY_ENTRIES = 50
 
+# Which source wrote a history row's narration, as the engine's own telemetry names it ("qwen" is the engine's
+# name for any model). Kept beside campaign_history by sequence; a row without a source row was never recorded.
+_NARRATION_SOURCES = frozenset({
+    "qwen", "python_memory_response", "deterministic_fallback", "deterministic_system",
+})
+_HISTORY_SOURCES_DDL = """
+    CREATE TABLE IF NOT EXISTS campaign_history_sources (
+        campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,
+        sequence INTEGER NOT NULL,
+        narration_source TEXT NOT NULL,
+        PRIMARY KEY (campaign_id, sequence)
+    )
+"""
+
 # Operational generation receipts. Not campaign canon. The primary key is the
 # cross-process guarantee that one trigger gets at most one proposal attempt.
 _EMERGENCE_ATTEMPT_COLUMNS = (
@@ -339,6 +353,7 @@ class CampaignStore:
                 connection.execute(self._REFUSED_ACTIONS_DDL)
                 connection.execute(self._INTENTS_DDL)
                 connection.execute(receipt_archive.ARCHIVE_DDL)
+                connection.execute(_HISTORY_SOURCES_DDL)
                 # R04: each receipt row records the revision step and digest of the commit that wrote it (legacy rows stay NULL).
                 receipt_columns = {str(row["name"]) for row in connection.execute("PRAGMA table_info(campaign_turn_actions)")}
                 for column, kind in (("base_revision", "INTEGER"), ("committed_revision", "INTEGER"), ("result_digest", "TEXT")):
@@ -426,6 +441,7 @@ class CampaignStore:
             ("campaign_turn_actions_archive", receipt_archive.ARCHIVE_COLUMNS),
             ("campaign_refused_actions", {"campaign_id", "action_id", "request_hash", "status_code", "detail_json", "created_at"}),
             ("campaign_action_intents", {"campaign_id", "action_id", "request_hash", "created_at"}),
+            ("campaign_history_sources", {"campaign_id", "sequence", "narration_source"}),
         ):
             present = {str(row["name"]) for row in connection.execute(f"PRAGMA table_info({table})").fetchall()}
             if not required.issubset(present):
@@ -644,7 +660,12 @@ class CampaignStore:
             narrative_memory,
             lore_authority,
         )
+        narration_source = None
         if turn_entry is not None:
+            # Not part of the strict history entry: only a listed engine value is kept, anything else is no record.
+            narration_source = turn_entry.get("narration_source")
+            if not isinstance(narration_source, str) or narration_source not in _NARRATION_SOURCES:
+                narration_source = None
             turn_entry = serialize_history_entry(
                 turn_entry.get("player_message"),
                 turn_entry.get("narration"),
@@ -759,6 +780,18 @@ class CampaignStore:
                             now,
                         ),
                     )
+                    if narration_source is not None:
+                        # The file under an open store may predate the table (an older file put in its place):
+                        # made here, inside this save's transaction, so a refused save leaves no table behind.
+                        connection.execute(_HISTORY_SOURCES_DDL)
+                        connection.execute(
+                            """
+                            INSERT INTO campaign_history_sources (
+                                campaign_id, sequence, narration_source
+                            ) VALUES (?, ?, ?)
+                            """,
+                            (campaign_id, next_sequence, narration_source),
+                        )
                 if combat_history_entry is not None:
                     next_sequence = int(
                         connection.execute(
@@ -1726,6 +1759,20 @@ class CampaignStore:
                 for index, history_row in enumerate(history_rows):
                     if history_row["sequence"] in accepted and history_row["sequence"] not in ambiguous:
                         history[index]["skill_check_result"] = accepted[history_row["sequence"]]
+                # Read-only projection of the recorded narration source; a row saved without one keeps no key.
+                # A file without the table (see save_campaign) recorded no source: the story loads without them.
+                sources = {} if connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'campaign_history_sources'"
+                ).fetchone() is None else {
+                    source_row["sequence"]: source_row["narration_source"]
+                    for source_row in connection.execute(
+                        "SELECT sequence, narration_source FROM campaign_history_sources WHERE campaign_id = ?",
+                        (campaign_id,),
+                    ).fetchall()
+                }
+                for index, history_row in enumerate(history_rows):
+                    if sources.get(history_row["sequence"]) in _NARRATION_SOURCES:
+                        history[index]["narration_source"] = sources[history_row["sequence"]]
                 # Read-only undo flags from the live receipts' own link (decision 31): never saved, never
                 # inferred from adjacency or from the marker text alone. Archived receipts keep no link, so
                 # they prove nothing here (decision 37).

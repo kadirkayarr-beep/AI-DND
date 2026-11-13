@@ -18,6 +18,12 @@ Kural: önce bu dizine bak. Güncel belgeler depo kökünde durur (çalışan aj
 | UI_TEMEL_PLAN_20261111.md | UI temeli planı, bitti ve main'de (PR #26, #27) |
 | UI_DILIM1_PLAN_20261111.md | UI dilim 2 planı (S1, S2 bitti; S3 sırada) |
 | UI_BILINEN_KIRIKLAR_20261111.md | iki eski testin kökeni |
+| YENIDEN_TASARIM_PLANI_20261113.md | yeniden tasarım üst planı (arayüz hattı, motor hattı, Kapı 1 sonrası Hat C), onaylı (Kadir, 2026-11-13); iş sırasında çelişki olursa bu belge geçerli |
+| ANA_ENVANTER_20261113.md | onaylanan ya da istenen her işin tek listesi; üst planın girdisi |
+| KESME_SONRASI_TASARIM_20261112.md | aşamalar, kapılar ve oyuncu yolculuğu tablosu, onaylı (Kadir, 2026-11-12); bölüm 10 13 Kasım güncellemesi |
+| MOTOR_HAKEM_MODEL_YAZAR_TASARIM_20261113.md | "motor hakem, model yazar" tasarımı (dilimler, öneri şeritleri), onaylı (Kadir, 2026-11-13) |
+| PROTOTIP_ENVANTERI_20261113.md | onaylı prototipin 33 öğesi ve gerçek arayüzdeki durumu |
+| ARAYUZ_KALITE_KURALLARI_20261113.md | arayüz kalite kuralları ve hazır istemler; bölüm 1 `CLAUDE.md` "Arayüz işi" bölümüdür |
 
 ## Arşiv (`arsiv/`)
 ADIM0-4, DILIM0-3 plan/tasarım/devir, Jarvis devirleri, yol haritaları, ölçüm ve inceleme raporları, canlı oyun notları. Hepsi bitmiş ya da değiştirilmiş işlerin kaydıdır.

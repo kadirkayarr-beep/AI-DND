@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from typing import Any, Callable
 
+import tr_names
 from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
 
 
@@ -184,7 +185,7 @@ _V1_ALIASES = sorted(
     (
         (fold_text(alias), spell_id)
         for spell_id, spell in SPELLS.items()
-        for alias in (spell_id, *spell["aliases"])
+        for alias in (spell_id, *spell["aliases"], *tr_names.spellings_for([spell_id]))
     ),
     key=lambda item: len(item[0]),
     reverse=True,

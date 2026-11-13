@@ -8,6 +8,7 @@ import copy
 import equipment_economy
 import refusals
 import tr_case
+import tr_names
 from pathlib import Path
 import hashlib
 import os
@@ -8873,6 +8874,12 @@ def _bag_note(names):
     return f"Oyuncunun üstünde gerçekten olanlar: {listed}. Başka bir şey onun elinde değildir."
 
 
+def _dm_prompt_note(character, bag_names):
+    """Turkish spell and item names for the narrator (ids and mechanics stay English)."""
+    note = tr_names.narrator_note([*(character.get("cantrips") or []), *(character.get("spells") or [])], bag_names)
+    return note + "\n" if note else ""
+
+
 def _claim_denial_quotes():
     return tuple(line.split("“", 1)[-1].rstrip("”") for line in _CLAIM_DENIAL_LINES)
 
@@ -14183,6 +14190,7 @@ def ask_dungeon_master(
         "birine veriyorsa item_claims alanında yalın adıyla bildir (to: player veya person); oyun onaylamazsa o cümle düşer.\n\n"
         + truth_card.narrator_view(world_state, npc=npc_target, this_turn=getattr(_session(), "_turn_notes", ())) + "\n"
         + _REFUSED_MOVE_RULE + "\n\n"
+        + _dm_prompt_note(_session().character, pocket.bag_names(world_state))
         + f"NARRATION FACTS (anlatılabilir olgular; boş alan gerçekleşmiş değildir):\n"
         f"{json.dumps(_narrator_fact_view(_narration_fact_packet(action_result), action_result), ensure_ascii=False, separators=(',', ':'))}\n\n"
         f"CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n{living_scene_context}\n\n"

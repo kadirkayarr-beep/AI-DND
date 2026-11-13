@@ -241,14 +241,14 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     const openedRollCard = await play.page.evaluate("(() => { const area=document.querySelector('[data-testid=\"transcript-scroll\"]'); const card=document.querySelector('[data-testid=\"skill-check-result\"]'); return {position:0,text:card.innerText}; })()");
     openedRollCard.position = await cardTopOf();
     if (viewport.width === 390 || viewport.width === 1440) await saveScreenshot(play.page, `skill-check-card-${viewport.width}-open.jpg`);
-    assert.ok(Math.abs(openedRollCard.position - readingPositionBeforeCardToggle) <= 2, "expanding result details must not jump the story");
+    assert.ok(Math.abs(openedRollCard.position - readingPositionBeforeCardToggle) <= 2, `expanding result details must not jump the story (${viewport.width}x${viewport.height}: card top ${readingPositionBeforeCardToggle} -> ${openedRollCard.position}, moved ${openedRollCard.position - readingPositionBeforeCardToggle}px)`);
     assert.match(openedRollCard.text, /Atılan zarlar|Kullanılan D20/);
     assert.match(openedRollCard.text, /Orta/);
     assert.doesNotMatch(openedRollCard.text, /DC\s*\d/i);
     await press(play.page, " ", "Space", 32);
     await waitForValue(play.page, "document.querySelector('[data-testid=\"skill-check-result\"]')?.open === false");
     const closedRollPosition = await cardTopOf();
-    assert.ok(Math.abs(closedRollPosition - readingPositionBeforeCardToggle) <= 2, "closing result details must not jump the story");
+    assert.ok(Math.abs(closedRollPosition - readingPositionBeforeCardToggle) <= 2, `closing result details must not jump the story (${viewport.width}x${viewport.height}: card top ${readingPositionBeforeCardToggle} -> ${closedRollPosition}, moved ${closedRollPosition - readingPositionBeforeCardToggle}px)`);
     const readingSettings = await play.page.evaluate("Boolean(document.querySelector('[data-testid=\"reading-settings\"]'))");
     assert.ok(readingSettings, "small reading settings control should be available");
     assert.equal(await play.page.evaluate("document.querySelector('[data-testid=\"reading-settings\"]').open"), false);

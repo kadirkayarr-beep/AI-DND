@@ -128,11 +128,7 @@
         "yuva": {
           "1": 1
         }
-      },
-      "known_broken": [
-        112
-      ],
-      "broken_because": ["spell_visibility_unknown", "yuva: beklenen {'1': 1}, gözlenen {'1': 2}"]
+      }
     }
   ]
 }

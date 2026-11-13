@@ -75,6 +75,72 @@ class SpellEngineTests(unittest.TestCase):
                 self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 2})
                 self.assertTrue(action_economy.ensure(s)["player"]["base_action_spent"])
 
+    def test_magic_missile_without_pair_visibility_fact_resolves(self):
+        # Journey 21 / item 112: an ordinary fight (no bounded-encounter pair fact) carries only npc distance_ft.
+        # Visibility is then derived (nobody blinded/invisible/hidden), not "unknown".
+        s, e = caster()
+        s.world_state["attack_environment"] = {"pairs": {}}
+        e["distance_ft"] = 5
+        spell_scope.cast(s, "Magic Missile", e["id"])
+        self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 1})
+
+    def test_magic_missile_without_pair_fact_still_refused_when_target_invisible_or_caster_blind(self):
+        for mode in ("invisible", "blinded"):
+            with self.subTest(mode=mode):
+                s, e = caster()
+                s.world_state["attack_environment"] = {"pairs": {}}
+                e["distance_ft"] = 5
+                if mode == "invisible": e["conditions"] = ["invisible"]
+                else: s.character["conditions"] = ["blinded"]
+                with self.assertRaises(ValueError) as ctx:
+                    spell_scope.cast(s, "Magic Missile", e["id"])
+                self.assertIn("spell_visibility_unknown", str(ctx.exception) + getattr(ctx.exception, "code", ""))
+
+    def test_derived_visibility_does_not_open_a_blocked_path(self):
+        # Pair fact has distance and cover/line but no attacker_sees_target: visibility is derived,
+        # the blocked line still refuses the spell and no slot is spent.
+        for field, value in (("cover", "total"), ("clear_path", False)):
+            with self.subTest(field=field):
+                s, e = caster()
+                s.world_state["attack_environment"] = {"pairs": {"player|" + e["id"]: {"distance_ft": 5, field: value}}}
+                with self.assertRaises(ValueError) as ctx:
+                    spell_scope.cast(s, "Magic Missile", e["id"])
+                self.assertEqual(ctx.exception.code, "spell_path_blocked")
+                self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 2})
+
+    def test_reverse_only_pair_fact_still_refuses(self):
+        # Only "target|player" exists (the bounded encounter writes both ways; a fixture may write one).
+        for fact in ({"attacker_sees_target": False}, {"target_sees_attacker": False}, {"cover": "total"}, {"clear_path": False}):
+            with self.subTest(fact=fact):
+                s, e = caster()
+                s.world_state["attack_environment"] = {"pairs": {e["id"] + "|player": {"distance_ft": 5, **fact}}}
+                with self.assertRaises(ValueError) as ctx:
+                    spell_scope.cast(s, "Magic Missile", e["id"])
+                self.assertIn(ctx.exception.code, {"spell_visibility_unknown", "spell_path_blocked"})
+                self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 2})
+
+    def test_no_pair_fact_refuses_dict_conditions_hidden_and_far_targets(self):
+        for mode, code in (("invisible_dict", "spell_visibility_unknown"), ("hidden", "spell_visibility_unknown"),
+                           ("far", "spell_out_of_range")):
+            with self.subTest(mode=mode):
+                s, e = caster()
+                s.world_state["attack_environment"] = {"pairs": {}}
+                e["distance_ft"] = 500 if mode == "far" else 5
+                if mode == "invisible_dict": e["conditions"] = {"invisible": True}
+                if mode == "hidden": e["hidden"] = True
+                with self.assertRaises(ValueError) as ctx:
+                    spell_scope.cast(s, "Magic Missile", e["id"])
+                self.assertEqual(ctx.exception.code, code)
+                self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 2})
+
+    def test_no_pair_fact_unconscious_target_is_still_a_legal_target(self):
+        # Intentional: an unconscious creature is not dead and is not unseen; only "dead" is refused.
+        s, e = caster()
+        s.world_state["attack_environment"] = {"pairs": {}}
+        e.update(distance_ft=5, combat_status="unconscious")
+        spell_scope.cast(s, "Magic Missile", e["id"])
+        self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 1})
+
     def test_cantrip_scaling_at_source_thresholds(self):
         for level, count in ((4, 1), (5, 2), (11, 3), (17, 4)):
             for cls, spell, d20 in (("Sorcerer", "Fire Bolt", 12), ("Cleric", "Sacred Flame", 1)):

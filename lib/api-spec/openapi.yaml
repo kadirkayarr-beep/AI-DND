@@ -7472,6 +7472,9 @@ components:
           type: boolean
         undo_target_unknown:
           type: boolean
+        narration_source:
+          type: string
+          description: Which source wrote the narration, as the engine reported it. Absent on rows saved without one.
         player_message:
           type: string
         narration:

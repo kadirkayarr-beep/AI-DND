@@ -26,6 +26,7 @@ Limits, all configurable on the service:
 from __future__ import annotations
 
 import os
+import re
 import threading
 import time
 from queue import Empty, Queue
@@ -124,10 +125,32 @@ class _Job:
         )
 
 
+_MARKDOWN_LINE_START = re.compile(r"^\s*(?:#{1,6}\s+|[-*+]\s+|>\s*)")
+_INTRO_PREFIX = re.compile(r"^(?:İşte|Tabii|Elbette|Tamam)\b[^:\n]*:\s*", re.IGNORECASE)
+_LABEL_ECHO = re.compile(r"^(?:Alan\s*:\s*)?(?:" + "|".join(LABELS.values()) + r")\.?\s*:?$", re.IGNORECASE)
+
+
+def _plain(text: str) -> str:
+    """Model output to plain player text: no intro sentence, no label echo, no markdown marks."""
+    lines = []
+    for raw in text.splitlines():
+        line = _MARKDOWN_LINE_START.sub("", raw)
+        line = re.sub(r"(\*\*|__)(.+?)\1", r"\2", line)
+        line = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"\1", line)
+        line = line.replace("`", "").replace("**", "").strip()
+        if line:
+            lines.append(line)
+    if lines:
+        lines[0] = _INTRO_PREFIX.sub("", lines[0])
+        if len(lines) > 1 and lines[0].endswith(":") and not lines[0][:-1].count("."):
+            lines.pop(0)
+    return "\n".join(line for line in lines if line and not _LABEL_ECHO.match(line))
+
+
 def _clean(text: object, field: str) -> str:
     if not isinstance(text, str):
         return ""
-    cleaned = text.strip()
+    cleaned = _plain(text).strip()
     limit = LIMITS[field]
     if len(cleaned) > limit:
         cleaned = cleaned[:limit].rstrip()

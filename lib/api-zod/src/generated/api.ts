@@ -23163,6 +23163,7 @@ export const CreateCampaignResponse = zod.object({
   "undone": zod.boolean().optional(),
   "undo_note": zod.boolean().optional(),
   "undo_target_unknown": zod.boolean().optional(),
+  "narration_source": zod.string().optional().describe('Which source wrote the narration, as the engine reported it. Absent on rows saved without one.'),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.date()
@@ -24578,6 +24579,7 @@ export const GetCampaignResponse = zod.object({
   "undone": zod.boolean().optional(),
   "undo_note": zod.boolean().optional(),
   "undo_target_unknown": zod.boolean().optional(),
+  "narration_source": zod.string().optional().describe('Which source wrote the narration, as the engine reported it. Absent on rows saved without one.'),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -25970,6 +25972,7 @@ export const ResumeCampaignResponse = zod.object({
   "undone": zod.boolean().optional(),
   "undo_note": zod.boolean().optional(),
   "undo_target_unknown": zod.boolean().optional(),
+  "narration_source": zod.string().optional().describe('Which source wrote the narration, as the engine reported it. Absent on rows saved without one.'),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -35652,6 +35655,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "undone": zod.boolean().optional(),
   "undo_note": zod.boolean().optional(),
   "undo_target_unknown": zod.boolean().optional(),
+  "narration_source": zod.string().optional().describe('Which source wrote the narration, as the engine reported it. Absent on rows saved without one.'),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.date()
@@ -37069,6 +37073,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "undone": zod.boolean().optional(),
   "undo_note": zod.boolean().optional(),
   "undo_target_unknown": zod.boolean().optional(),
+  "narration_source": zod.string().optional().describe('Which source wrote the narration, as the engine reported it. Absent on rows saved without one.'),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -38462,6 +38467,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "undone": zod.boolean().optional(),
   "undo_note": zod.boolean().optional(),
   "undo_target_unknown": zod.boolean().optional(),
+  "narration_source": zod.string().optional().describe('Which source wrote the narration, as the engine reported it. Absent on rows saved without one.'),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
