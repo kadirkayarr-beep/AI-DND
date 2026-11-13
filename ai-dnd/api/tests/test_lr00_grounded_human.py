@@ -24,11 +24,13 @@ import npc_statements
 from api.tests import test_campaign_api
 from api.tests.test_campaign_api import create_city_with_locked_tavern
 from api.tests.test_lr00_p1_intent import ProbeShapedClient
+from api.tests.town_seed import fixed_town
 
 FIXTURE = Path(__file__).parent / "fixtures" / "lr00_p6_human_world.json"
 CITY = "fr:city:neverwinter"
 GARRICK = "location_001"
 GARRICK_DOOR = "venue-door:location_001"
+TOWN_SEED = 4901
 
 
 def human_world():
@@ -49,7 +51,8 @@ class HumanP6Regressions(unittest.IsolatedAsyncioTestCase):
             return outcome
 
         self.enterContext(patch.object(game, "_dispatch_player_turn", recording))
-        _, self.session_id, self.session, self.turn_url, _, _ = await create_city_with_locked_tavern(self)
+        with fixed_town(self, TOWN_SEED):
+            _, self.session_id, self.session, self.turn_url, _, _ = await create_city_with_locked_tavern(self)
         world = self.session.world_state
         campaign_id = world.get("campaign_id")
         world.clear()
@@ -77,6 +80,10 @@ class HumanP6Regressions(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post(self.turn_url, json=body)
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()["narration"], (self.receipts[-1] if self.receipts else None)
+
+    async def test_the_campaign_id_is_pinned_so_the_town_is_the_same_on_every_run(self):
+        # every turn seeds the town from the campaign id; a random id named the pointed shop "Garrick" once in a hundred
+        self.assertEqual(self.world["campaign_id"], f"00000000-0000-4000-8000-{TOWN_SEED:012d}")
 
     # --- records 35 and 37: approaching a building is not a person search ----
     async def test_approaching_the_inn_by_name_reaches_its_door(self):
