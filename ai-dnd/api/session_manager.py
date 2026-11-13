@@ -655,6 +655,7 @@ class SessionManager:
         combat_history_entry: dict[str, Any] | None = None,
         narrative_memory: dict[str, Any] | None = None,
         turn_action_receipt: dict[str, Any] | None = None,
+        narration_source: str | None = None,
     ) -> dict[str, Any] | None:
         """Persist a successful turn; caller holds record.turn_lock.
 
@@ -695,6 +696,8 @@ class SessionManager:
             turn_entry={
                 "player_message": player_message,
                 "narration": narration,
+                # Who wrote the narration (engine telemetry); None is "not recorded". Never part of the history row.
+                **({"narration_source": narration_source} if narration_source is not None else {}),
             },
             journal=record.journal,
             combat_history_entry=combat_history_entry,
