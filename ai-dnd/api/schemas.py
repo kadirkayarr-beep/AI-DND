@@ -1645,6 +1645,8 @@ class CampaignHistoryEntry(BaseModel):
     undone: bool | None = Field(default=None, exclude_if=lambda value: value is None)
     undo_note: bool | None = Field(default=None, exclude_if=lambda value: value is None)
     undo_target_unknown: bool | None = Field(default=None, exclude_if=lambda value: value is None)
+    # Which source wrote the narration (engine telemetry, kept beside the row); absent on rows saved without one.
+    narration_source: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class CampaignDetailResponse(BaseModel):

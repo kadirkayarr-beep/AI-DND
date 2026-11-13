@@ -4139,6 +4139,8 @@ export interface CampaignHistoryEntry {
   undone?: boolean;
   undo_note?: boolean;
   undo_target_unknown?: boolean;
+  /** Which source wrote the narration, as the engine reported it. Absent on rows saved without one. */
+  narration_source?: string;
   player_message: string;
   narration: string;
   created_at: string;

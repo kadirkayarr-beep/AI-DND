@@ -1158,6 +1158,7 @@ def create_app(
                 record, request.message, narration,
                 turn_action_receipt={"action_id": action_id, "request_hash": request_hash,
                                      "response": response_payload},
+                narration_source="deterministic_system",  # every card line is economic_actions' own text
             )
         except Exception as error:
             _raise_if_commit_unconfirmed(
@@ -1640,6 +1641,10 @@ def create_app(
                 if isinstance(result, dict)
                 else None
             )
+            # Who wrote this turn's narration, as the engine reported it; saved beside the history row. A turn
+            # the engine reports nothing for stays unrecorded (None): nothing is guessed here.
+            engine_telemetry = engine_evidence.get("telemetry") if isinstance(engine_evidence, dict) else None
+            narration_source = engine_telemetry.get("narration_source") if isinstance(engine_telemetry, dict) else None
             if isinstance(engine_evidence, dict):
                 # The API's rollback snapshot is the commit boundary. Derive
                 # entity additions from those exact before/after states so
@@ -1892,6 +1897,7 @@ def create_app(
                         "request_hash": request_hash,
                         "response": response_payload,
                     },
+                    narration_source=narration_source,
                 )
             except CampaignError as error:
                 _raise_if_commit_unconfirmed(
@@ -2098,6 +2104,7 @@ def create_app(
                         "request_hash": request_hash,
                         "response": payload,
                     },
+                    narration_source="deterministic_system",  # undo_narration is a fixed Python sentence
                 )
             except CampaignError as error:
                 _raise_if_commit_unconfirmed(
@@ -2321,6 +2328,7 @@ def create_app(
                         "action_id": action_id, "request_hash": request_hash,
                         "response": response_payload,
                     },
+                    narration_source="deterministic_system",  # the engine's own result message
                 )
                 return response_payload
             except ValueError as error:
@@ -2465,6 +2473,7 @@ def create_app(
                     record, "spell_prepare", result["message"],
                     turn_action_receipt={"action_id": action_id, "request_hash": request_hash,
                                          "response": response_payload},
+                    narration_source="deterministic_system",  # spell_preparation's own result message
                 )
                 return response_payload
             except HTTPException:
@@ -2701,6 +2710,7 @@ def create_app(
                 }, turn_entry={
                     "player_message": transition["player_message"],
                     "narration": transition["narration"],
+                    "narration_source": "deterministic_system",  # ambient_actions builds this line itself
                 })
                 # V5: a joined event is undone like a typed turn, with the same fields as the turn route.
                 record.undo_checkpoint = {
