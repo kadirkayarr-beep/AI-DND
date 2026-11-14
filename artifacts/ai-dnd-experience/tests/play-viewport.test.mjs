@@ -218,13 +218,16 @@ async function storyFollowHarness({ following = true } = {}) {
   const node = { clientHeight: 220, clientWidth: 375, scrollHeight: 420,
     get scrollTop() { return top; },
     set scrollTop(value) { top = Math.max(0, Math.min(value, this.scrollHeight - this.clientHeight)); trace.push(['follow', top]); },
-    querySelector() { return content; }, getBoundingClientRect() { return { bottom: 420 }; } };
+    querySelector() { return content; }, getBoundingClientRect() { return { bottom: 420 }; },
+    listeners: {}, addEventListener(type, callback) { this.listeners[type] = callback; }, removeEventListener() {} };
+  const clock = { now: 10_000 };
   const window = { innerHeight: 812, addEventListener(_, callback) { this.scroll = callback; }, removeEventListener() {} };
   const context = { storyScrollRef: { current: node }, wasAtBottom: { current: following }, storyLayoutRef: { current: null }, storyLayoutScrollTopRef: { current: null },
+    readerInputAt: { current: -Infinity }, performance: { now: () => clock.now },
     window, getComputedStyle: () => ({ overflowY: 'auto' }), transcriptFollowsBottom,
     setNewResponseEntryIndex() {}, setResultCue() {},
     ResizeObserver: class { constructor(callback) { resizeCallback = callback; } observe(target) { observed.add(target); } disconnect() { observed.clear(); } } };
-  const names = ['readStoryLayout', 'isStoryNearBottom', 'scrollStoryToBottom', 'handleStoryScroll'];
+  const names = ['readStoryLayout', 'readerIsScrolling', 'isStoryNearBottom', 'scrollStoryToBottom', 'handleStoryScroll'];
   const code = names.filter(name => declarations.has(name)).map(name => `const ${name} = ${declarations.get(name)};`).join('\n')
     + `\n(${resizeEffect})(); (${windowEffect})(); globalThis.scroll = handleStoryScroll;`;
   runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, context);
@@ -237,6 +240,8 @@ async function storyFollowHarness({ following = true } = {}) {
       if (observed.has(node) || (contentHeight !== 420 && observed.has(content))) { trace.push(['observer']); resizeCallback([]); }
     },
     userScroll(top) { node.scrollTop = top; context.scroll({ currentTarget: node }); },
+    readerInput(type = 'wheel') { node.listeners[type](); },
+    wait(ms) { clock.now += ms; },
     documentScroll() { window.scroll({ currentTarget: window }); },
   };
 }
@@ -312,3 +317,32 @@ for (const scrollFirst of [false, true]) {
     assert.equal(h.node.scrollTop, 3413, 'the latest narration stays in view');
   });
 }
+
+// D-082 part 2: the reader's own scroll is theirs even when layout changes in the same frame.
+test('a reader wheel scroll away from the bottom that lands with a one-pixel layout change is not undone', async () => {
+  const h = await storyFollowHarness();
+  h.resize(220, 375, 4075); h.context.scroll({ currentTarget: h.node }); // followed to the bottom
+  assert.equal(h.node.scrollTop, 3855);
+  h.readerInput('wheel'); h.node.clientHeight = 219; h.node.scrollTop = 160; // header grew 1 px while the reader scrolled up
+  h.context.scroll({ currentTarget: h.node });
+  assert.equal(h.context.wasAtBottom.current, false, 'the reader left the bottom');
+  assert.equal(h.node.scrollTop, 160, 'the story is not thrown back to the bottom');
+  h.resize(219, 375, 4240); // a result card opens
+  assert.equal(h.node.scrollTop, 160, 'opening a card does not move the reader');
+});
+test('the same move without any reader input is still layout and keeps following', async () => {
+  const h = await storyFollowHarness();
+  h.resize(220, 375, 4075); h.context.scroll({ currentTarget: h.node });
+  h.node.clientHeight = 219; h.node.scrollTop = 160;
+  h.context.scroll({ currentTarget: h.node });
+  assert.equal(h.context.wasAtBottom.current, true);
+  assert.equal(h.node.scrollTop, 3856);
+});
+test('reader input that is long past does not claim a later layout scroll', async () => {
+  const h = await storyFollowHarness();
+  h.resize(220, 375, 4075); h.context.scroll({ currentTarget: h.node });
+  h.readerInput('touchmove'); h.wait(2000);
+  h.node.clientHeight = 219; h.node.scrollTop = 160;
+  h.context.scroll({ currentTarget: h.node });
+  assert.equal(h.context.wasAtBottom.current, true);
+});
