@@ -197,3 +197,12 @@ test('the gallery route exists only in development and is loaded lazily', () => 
   assert.match(shell, /lazy\(\(\) => import\(["']\.\/pages\/kitap-galerisi["']\)\)/);
   assert.match(shell, /path="\/galeri"/);
 });
+
+test('the A1 book faces never swap in late: font-display optional, so story text cannot jump when a font arrives late', () => {
+  const fontCss = read('fonts/fonts.css');
+  const faces = [...fontCss.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, body]) => ({
+    family: /font-family:\s*'([^']+)'/.exec(body)?.[1], display: /font-display:\s*(\w+)/.exec(body)?.[1] }));
+  const book = faces.filter((f) => ['Literata', 'Kalam', 'Charm', 'Bad Script'].includes(f.family));
+  assert.equal(book.length, 12);
+  for (const f of book) assert.equal(f.display, 'optional', `${f.family} must not swap`);
+});

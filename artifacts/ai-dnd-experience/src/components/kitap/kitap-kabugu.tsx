@@ -46,11 +46,13 @@ export interface Ayrac { deger: string; etiket: string }
 /**
  * Bookmark tabs sticking out over the top edge of the page (T2), on tabs.tsx: arrow keys move between them
  * (Radix roving focus) and the open one is announced as selected. The book goes in as children so the
- * matching TabsContent can sit on its page.
+ * matching TabsContent can sit on its page. With tabs, the desk row goes in here (masa) so focus order follows the eye.
  */
-export function Ayraclar({ deger, degisince, ayraclar, children }: { deger: string; degisince: (deger: string) => void; ayraclar: ReadonlyArray<Ayrac>; children?: ReactNode }) {
+export function Ayraclar({ deger, degisince, ayraclar, masa, children }: { deger: string; degisince: (deger: string) => void; ayraclar: ReadonlyArray<Ayrac>; masa?: ReactNode; children?: ReactNode }) {
   return (
     <Tabs value={deger} onValueChange={degisince} className="kitap-ayrac-kok" activationMode="automatic">
+      {/* The desk buttons sit top left, before the tabs in reading and focus order. */}
+      {masa ? <div className="kitap-masa-ust">{masa}</div> : null}
       <TabsList className="kitap-ayraclar" aria-label="Defter ayraçları">
         {ayraclar.map((a) => (
           <TabsTrigger key={a.deger} value={a.deger} className="kitap-ayrac">{a.etiket}</TabsTrigger>

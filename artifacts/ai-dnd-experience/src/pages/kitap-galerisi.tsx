@@ -132,9 +132,9 @@ export default function KitapGalerisi() {
   return (
     <div className="kitap-galeri" data-kitap-tema={tema} data-kitap-el={ayar.el} data-kitap-boy={ayar.boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'}>
       <h1 className="kitap-gizli">Unwritten kitap teması: galeri</h1>
-      <Ayraclar deger={ayrac} degisince={setAyrac} ayraclar={AYRACLAR}>
-        <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi="sag"
-          masa={<>{saatDugmesi}<span className="kitap-dar-yok"><AyarCarki deger={ayar} degisince={setAyar} /></span></>} />
+      <Ayraclar deger={ayrac} degisince={setAyrac} ayraclar={AYRACLAR}
+        masa={<>{saatDugmesi}<span className="kitap-dar-yok"><AyarCarki deger={ayar} degisince={setAyar} /></span></>}>
+        <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi="sag" />
       </Ayraclar>
 
       <div className="kitap-galeri-set">
@@ -147,7 +147,10 @@ export default function KitapGalerisi() {
             <SeciciGrup etiket="Yazı boyu, devre dışı" deger="normal" degisince={() => {}} disabled secenekler={[{ deger: 'normal', etiket: 'Normal' }, { deger: 'buyuk', etiket: 'Büyük' }]} />
           </Ornek>
           <Ornek ad="odak">
-            <SeciciGrup etiket="Sayfa düzeni, odak örneği" deger="iki-sayfa" degisince={() => {}} className="kitap-odak-goster" secenekler={[{ deger: 'iki-sayfa', etiket: 'İki sayfa hikâye' }, { deger: 'karakter-acik', etiket: 'Karakter açık' }]} />
+            {/* Radix puts an inline outline: none on the group root, so the shown ring sits on a wrapper. */}
+            <div className="kitap-odak-goster">
+              <SeciciGrup etiket="Sayfa düzeni, odak örneği" deger="iki-sayfa" degisince={() => {}} secenekler={[{ deger: 'iki-sayfa', etiket: 'İki sayfa hikâye' }, { deger: 'karakter-acik', etiket: 'Karakter açık' }]} />
+            </div>
           </Ornek>
           <Ornek ad="efekt">
             <Anahtar etiket="Kâğıt dokusu (efekt seviyesi Kapalı ise düz renk)" acik={!efektKapali} degisince={(v) => setEfektKapali(!v)} />
@@ -186,7 +189,7 @@ export default function KitapGalerisi() {
           <Ornek ad="en az"><Sayac etiket="Meşale" deger={0} min={0} max={3} degisince={() => {}} /></Ornek>
           <Ornek ad="devre dışı"><Sayac etiket="Ok" deger={12} disabled degisince={() => {}} /></Ornek>
           <Ornek ad="rozet"><Rozet>Taşınıyor</Rozet> <Rozet tur="yeni">Yeni</Rozet> <Rozet tur="hakem">Kural</Rozet></Ornek>
-          <Ornek ad="bölüm başlığı"><BolumBasligi yan="Taşıdığın her şey">Çanta</BolumBasligi><BolumBasligi duzey={3}>Üstünde</BolumBasligi></Ornek>
+          <Ornek ad="bölüm başlığı"><div className="kitap-ornek-sutun"><BolumBasligi yan="Taşıdığın her şey">Çanta</BolumBasligi><BolumBasligi duzey={3}>Üstünde</BolumBasligi></div></Ornek>
         </Parca>
 
         <Parca baslik="Sayı kutusu">

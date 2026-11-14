@@ -162,6 +162,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   box-shadow: none;
 }
 .kitap-dugme-masa:focus-visible, .kitap-masa-ust .kitap-odak-goster { outline-color: var(--masa-yazi); }
+/* Tabs stand on the dark desk: the ring goes inside the tab, on its paper. */
+.kitap-ayrac:focus-visible { outline-offset: -5px; }
 
 /* ---------- Choice groups ---------- */
 .kitap-secici-kutu { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; justify-content: stretch; }
@@ -238,6 +240,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-onay-kutu { width: 22px; height: 22px; border: 1.5px solid var(--murekkep); border-radius: var(--kose); background: none; color: var(--sayfa); box-shadow: none; }
 .kitap-onay-kutu[data-state='checked'] { background: var(--murekkep); color: var(--sayfa); }
 .kitap-onay-kutu:disabled, .kitap-anahtar:disabled { opacity: 1; border-style: dashed; border-color: var(--soluk); }
+.kitap-onay-kutu:disabled[data-state='checked'] { background: var(--soluk); }
 .kitap-onay-kutu:disabled + label, .kitap-anahtar:disabled + label { color: var(--soluk); cursor: not-allowed; }
 .kitap-anahtar { width: 46px; height: 26px; border: 1.5px solid var(--soluk); background: none; box-shadow: none; }
 .kitap-anahtar > span { width: 18px; height: 18px; background: var(--soluk); box-shadow: none; }
@@ -407,6 +410,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-ornek .kitap-kartlar { width: 340px; max-width: 100%; }
 .kitap-ornek .kitap-yaz { width: 560px; max-width: 100%; }
 .kitap-ornek .kitap-bos { width: 320px; max-width: 100%; }
+.kitap-ornek-sutun { display: flex; flex-direction: column; gap: var(--bosluk-4); width: 360px; max-width: 100%; }
 @media (max-width: 760px) {
   .kitap-dar-yok { display: none; }
   .kitap-galeri .kitap-galeri-set { margin: var(--bosluk-4) 5px var(--bosluk-6); padding: var(--bosluk-4) var(--bosluk-4) var(--bosluk-6); }
