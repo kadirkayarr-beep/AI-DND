@@ -61,20 +61,20 @@ export function AcilirListe({ etiket, deger, degisince, secenekler, disabled }: 
 export function OnayKutusu({ etiket, isaretli, degisince, disabled }: { etiket: string; isaretli: boolean; degisince: (v: boolean) => void; disabled?: boolean }) {
   const id = useId();
   return (
-    <div className="kitap-onay">
+    <label className="kitap-onay" htmlFor={id}>
       <Checkbox id={id} checked={isaretli} onCheckedChange={(v) => degisince(v === true)} disabled={disabled} className="kitap-onay-kutu" />
-      <label htmlFor={id}>{etiket}</label>
-    </div>
+      <span>{etiket}</span>
+    </label>
   );
 }
 
 export function Anahtar({ etiket, acik, degisince, disabled }: { etiket: string; acik: boolean; degisince: (v: boolean) => void; disabled?: boolean }) {
   const id = useId();
   return (
-    <div className="kitap-onay">
+    <label className="kitap-onay" htmlFor={id}>
       <Switch id={id} checked={acik} onCheckedChange={degisince} disabled={disabled} className="kitap-anahtar" />
-      <label htmlFor={id}>{etiket}</label>
-    </div>
+      <span>{etiket}</span>
+    </label>
   );
 }
 

@@ -3,7 +3,7 @@
 // ?gorunum=gunduz|gece|karanlik|saat, ?saat=gunduz|gece.
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Moon, Plus, Sun } from 'lucide-react';
+import { Clock, Moon, Plus, Sun } from 'lucide-react';
 import { TabsContent } from '@/components/ui/tabs';
 import { Ayraclar, KitapKabugu } from '@/components/kitap/kitap-kabugu';
 import { ArayuzAyarlari, AyarCarki, type ArayuzDegeri } from '@/components/kitap/arayuz-ayarlari';
@@ -82,10 +82,17 @@ export default function KitapGalerisi() {
     return () => { for (const ad of Object.keys(nitelikler)) kok.removeAttribute(ad); };
   }, [tema, ayar.el, ayar.boy, efektKapali]);
 
-  const saatDugmesi = (
+  // The fake story clock only drives the look while "Hikâyedeki saati izle" is chosen; a hand-picked look offers the
+  // way back to the clock instead (review 15).
+  const saatDugmesi = ayar.gorunum === 'saat' ? (
     <KitapDugme tur="masa" onClick={() => setSaat(saat === 'gece' ? 'gunduz' : 'gece')} aria-label={saat === 'gece' ? 'Gündüze çevir' : 'Geceye çevir'}>
       {saat === 'gece' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
       <span className="kitap-dar-gizli">{saat === 'gece' ? 'Gündüze çevir' : 'Geceye çevir'}</span>
+    </KitapDugme>
+  ) : (
+    <KitapDugme tur="masa" onClick={() => setAyar({ ...ayar, gorunum: 'saat' })} aria-label="Saate dön">
+      <Clock aria-hidden="true" />
+      <span className="kitap-dar-gizli">Saate dön</span>
     </KitapDugme>
   );
 

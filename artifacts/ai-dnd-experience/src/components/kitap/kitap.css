@@ -26,6 +26,19 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   background-image: var(--isik-cilt), var(--cilt-dokuma);
   box-shadow: var(--golge-cilt), var(--golge-temas), inset 0 0 0 1px var(--bez-kenar), inset 0 1px 0 1px var(--cilt-parlama), var(--cilt-kenar-golge);
 }
+/* Paper-like grain over the cloth weave, so the weave is not a perfect grid (review 8). Under the pages. */
+.kitap-cilt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background-image: var(--tane);
+  background-size: 256px 256px;
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+  pointer-events: none;
+}
 .kitap-cilt::before {
   content: '';
   position: absolute;
@@ -35,7 +48,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   opacity: 0.7;
   pointer-events: none;
 }
-.kitap-sayfalar { position: relative; display: flex; height: 100%; }
+.kitap-sayfalar { position: relative; z-index: 1; display: flex; height: 100%; }
 .kitap-sayfa {
   position: relative;
   flex: 1 1 0;
@@ -72,27 +85,25 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-sayfa-ic { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: var(--sayfa-ic); }
 .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-sag); }
 /* Ribbon: the body stretches with the book (an S-curve with one twist), the tail hangs below it; centred on the spine. */
-.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 40px); width: 28px; transform: translateX(-12px); z-index: 3; pointer-events: none; display: flex; flex-direction: column; }
-.kitap-kurdele-govde { display: block; flex: 1 1 auto; min-height: 0; }
-.kitap-kurdele-uc { display: block; flex: 0 0 auto; margin-top: -1px; }
-.kitap-kapitalbant { position: absolute; left: -5px; top: -6px; }
+.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 40px); width: var(--kurdele-en); transform: translateX(calc(var(--kurdele-en) * -0.5)); z-index: 3; pointer-events: none; display: flex; flex-direction: column; }
+.kitap-kurdele-govde { display: block; width: 100%; flex: 1 1 auto; min-height: 0; }
+.kitap-kurdele-uc { display: block; width: 100%; height: auto; flex: 0 0 auto; margin-top: -1px; }
+.kitap-kapitalbant { position: absolute; left: calc(var(--kurdele-en) * 0.5 - 17px); top: -6px; }
 
-/* Reading lamp (T7) clamped on the top edge over the spine; its halo brightens what is under it, it breathes slowly. */
-.kitap-lamba { position: absolute; top: 0; left: calc(50% - 49px); width: 64px; height: 80px; z-index: 6; pointer-events: none; }
-.kitap-lamba-cizim { position: relative; display: block; }
+/* Reading lamp (T7) clamped on the top edge over the spine; it grows with the book (--lamba-en). Its light is still
+   (review 11) and its halo sits under the shade, since a shaded bulb throws its light down (review 13). */
+.kitap-lamba { position: absolute; top: 0; left: calc(50% - var(--lamba-en) * 0.766); width: var(--lamba-en); height: calc(var(--lamba-en) * 1.25); z-index: 6; pointer-events: none; }
+.kitap-lamba-cizim { position: relative; display: block; width: 100%; height: 100%; }
 .kitap-lamba-hale {
   position: absolute;
-  left: calc(48.8px - 150px);
-  top: calc(42.7px - 150px);
-  width: 300px;
-  height: 300px;
+  left: calc(var(--lamba-en) * 0.7625 - var(--lamba-en) * 2.2);
+  top: calc(var(--lamba-en) * 0.9 - var(--lamba-en) * 1.8);
+  width: calc(var(--lamba-en) * 4.4);
+  height: calc(var(--lamba-en) * 3.6);
   border-radius: 50%;
   background: var(--lamba-hale);
   mix-blend-mode: screen;
-  animation: kitap-lamba-nefes 5s ease-in-out infinite;
 }
-@keyframes kitap-lamba-nefes { 0%, 100% { opacity: 0.86; } 50% { opacity: 1; } }
-[data-kitap-efekt="kapali"] .kitap-lamba-hale { animation: none; }
 .kitap-sayfa-no { position: absolute; bottom: 11px; margin: 0; font-size: 13px; color: var(--soluk); }
 .kitap-sayfa-sol .kitap-sayfa-no { left: 48px; }
 .kitap-sayfa-sag .kitap-sayfa-no { right: 48px; }
@@ -267,20 +278,20 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-liste-icerik { background: var(--sayfa); color: var(--murekkep); border: 1px solid var(--cizgi); border-radius: var(--kose); box-shadow: var(--golge-pencere); font-family: var(--kitap-yazi); }
 .kitap-liste-oge { min-height: var(--dokunma); font-size: var(--kenar-boy); color: var(--murekkep); }
 .kitap-liste-oge[data-highlighted] { background: var(--sayfa2); color: var(--murekkep); }
-.kitap-onay { display: flex; align-items: center; gap: var(--bosluk-3); min-height: var(--dokunma); font-size: var(--kenar-boy); }
-.kitap-onay label { cursor: pointer; }
+/* The whole row is the touch target (review 9): the label wraps the control. */
+.kitap-onay { display: inline-flex; align-items: center; gap: var(--bosluk-3); min-height: var(--dokunma); padding-right: var(--bosluk-2); font-size: var(--kenar-boy); cursor: pointer; }
 .kitap-onay-kutu { width: 22px; height: 22px; border: 1.5px solid var(--murekkep); border-radius: var(--kose); background: none; color: var(--sayfa); box-shadow: none; }
 .kitap-onay-kutu[data-state='checked'] { background: var(--murekkep); color: var(--sayfa); }
 .kitap-onay-kutu:disabled, .kitap-anahtar:disabled { opacity: 1; border-style: dashed; border-color: var(--soluk); }
 .kitap-onay-kutu:disabled[data-state='checked'] { background: none; color: var(--soluk); }
-.kitap-onay-kutu:disabled + label, .kitap-anahtar:disabled + label { color: var(--soluk); cursor: not-allowed; }
+.kitap-onay-kutu:disabled + span, .kitap-anahtar:disabled + span { color: var(--soluk); cursor: not-allowed; }
 .kitap-anahtar { width: 46px; height: 26px; border: 1.5px solid var(--soluk); background: none; box-shadow: none; }
 .kitap-anahtar > span { width: 18px; height: 18px; background: var(--soluk); box-shadow: none; }
 .kitap-anahtar[data-state='checked'] { background: var(--murekkep); border-color: var(--murekkep); }
 .kitap-anahtar[data-state='checked'] > span { background: var(--sayfa); }
 .kitap-sayi-girdi {
   width: 72px;
-  height: 40px;
+  height: var(--dokunma);
   padding: 0 2px;
   font-family: var(--el-aile);
   font-size: calc(var(--el) * 1.35);
@@ -402,7 +413,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
     background-image: linear-gradient(to left, var(--saydam) 0, var(--saydam) 86%, var(--oluk1) 95%, var(--oluk2) 100%), var(--isik-sag);
   }
   .kitap-sayfa-ic, .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-tek); }
-  .kitap-kurdele { left: 4px; top: auto; bottom: -6px; height: 70px; transform: none; }
+  /* Phone (review 1): only a short straight tail peeks out from under the page. */
+  .kitap-kurdele { left: 4px; top: auto; bottom: -10px; height: auto; transform: none; }
+  .kitap-kurdele-govde { display: none; }
   .kitap-kapitalbant { display: none; }
   /* G6 (Kadir's call): no lamp on the phone yet. */
   .kitap-lamba { display: none; }
@@ -420,7 +433,13 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 
 @media (prefers-reduced-motion: reduce) {
   .kitap-yukleniyor-isaret { animation: none; }
-  .kitap-lamba-hale { animation: none; }
+}
+
+/* Narrow desktop (review 2): no room for the lamp between the desk buttons and the tabs; the tabs move in a little. */
+@media (min-width: 768px) and (max-width: 1179px) {
+  .kitap-lamba { display: none; }
+  .kitap-ayraclar { right: 40px; }
+  .kitap-ayrac { padding: 0 10px; }
 }
 
 /* ---------- Gallery page (development only) ---------- */
