@@ -5,6 +5,7 @@ Kural: önce bu dizine bak. Güncel belgeler depo kökünde durur (çalışan aj
 ## Güncel (kökte)
 | Belge | Durum |
 |---|---|
+| docs/design/ZAR_KURALLARI_DND2024_20261114.md (depoda) | zar kuralları rehberi, D&D 2024 / SRD 5.2.1; bağlayıcı (Kadir, 2026-11-14): oyundaki her zar, test, kurtarma ve saldırı buna uyar |
 | YOL_HARITASI_20261112.md | güncel yol haritası, onaylı (Kadir, 2026-11-12); şu an Faz 0 |
 | KARAR_LISTESI_20261112.md | Kadir'i bekleyen onay ve kararlar |
 | HANDOFF.md | canlı devir notu (4B ve 4A bölümleri; eskisi HANDOFF_ARSIV_20261112.md) |
