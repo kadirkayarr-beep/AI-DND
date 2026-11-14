@@ -285,3 +285,29 @@ test('realism layers are tokens, each one switched off with effects off', () => 
   assert.match(kural(css, '.kitap-p'), /text-shadow:\s*var\(--murekkep-golge\)/);
   assert.doesNotMatch(css, /(^|[;{\s])(filter|backdrop-filter)\s*:/m);
 });
+
+// Kadir, 14 Nov 2026: a far more realistic ribbon (a new design is allowed) and the reading lamp of the draft with
+// realistic light. Lamp rules: lit at night only (T7: not by day), dark theme only when asked (G10 is Kadir's call).
+test('ribbon: satin body with a woven rib, a headband at the spine top and a V-cut tail hanging below', () => {
+  const html = render(kitap.KitapKabugu, { tema: 'gece', sol: 'SOL', sag: 'SAG' });
+  assert.match(html, /role="img" aria-label="Kurdele ayraç"/);
+  assert.match(html, /<pattern id="kurdele-dokuma-[^"]+"/);
+  assert.match(html, /class="kitap-kurdele-uc"/);
+  assert.match(html, /class="kitap-kapitalbant"/);
+});
+
+test('reading lamp: drawn at night, never by day, in the dark theme only when asked; its light lives in tokens', () => {
+  const gece = render(kitap.KitapKabugu, { tema: 'gece', sol: 'SOL', sag: 'SAG' });
+  assert.match(gece, /class="kitap-lamba"/);
+  assert.match(gece, /aria-label="Okuma ışığı yanıyor"/);
+  assert.match(gece, /class="kitap-lamba-hale"/);
+  assert.doesNotMatch(render(kitap.KitapKabugu, { tema: 'gunduz', sol: 'SOL', sag: 'SAG' }), /kitap-lamba/);
+  assert.doesNotMatch(render(kitap.KitapKabugu, { tema: 'karanlik', sol: 'SOL', sag: 'SAG' }), /kitap-lamba/);
+  assert.match(render(kitap.KitapKabugu, { tema: 'karanlik', sol: 'SOL', sag: 'SAG', lambaKaranlikta: true }), /class="kitap-lamba"/);
+  for (const name of ['--isik-cilt', '--lamba-hale', '--lamba-havuz']) assert.ok(token(block('[data-kitap-tema="gece"]'), name), `${name} is missing at night`);
+  assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /animation:/);
+  assert.match(kitapCss(), /prefers-reduced-motion: reduce\)\s*\{[^}]*\.kitap-lamba-hale\s*\{\s*animation:\s*none/);
+  const dir = path.join(root, 'components', 'kitap', 'cizimler');
+  assert.ok(statSync(path.join(dir, 'okuma-lambasi.tsx')).isFile());
+  assert.match(readFileSync(path.join(dir, 'KAYNAK.md'), 'utf8'), /okuma-lambasi\.tsx/);
+});
