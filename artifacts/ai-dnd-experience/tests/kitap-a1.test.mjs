@@ -271,3 +271,17 @@ test('findings 7 and 8: a disabled checked box loses its fill; an error is a dou
 test('finding 9: setting labels carry no explanation text in brackets (T12)', () => {
   assert.doesNotMatch(read('pages/kitap-galerisi.tsx'), /etiket="[^"]*\(/);
 });
+
+// Realism pass (Kadir, 14 Nov 2026, after approving f22bc5ba): cloth weave, page block, page bulge light, ink and
+// depth come from tokens; effects off turns every added layer flat, and no layer is a filter.
+test('realism layers are tokens, each one switched off with effects off', () => {
+  const base = block('[data-kitap-tema]');
+  for (const name of ['--cilt-dokuma', '--kabarma', '--murekkep-golge', '--golge-temas']) assert.ok(token(base, name), `${name} is missing`);
+  const off = block('[data-kitap-tema][data-kitap-efekt="kapali"]');
+  for (const name of ['--tane', '--cilt-dokuma', '--murekkep-golge']) assert.equal(token(off, name), 'none', `${name} stays on with effects off`);
+  assert.equal(token(off, '--kabarma'), 'transparent');
+  const css = kitapCss();
+  assert.match(kural(css, '.kitap-cilt'), /var\(--cilt-dokuma\)/);
+  assert.match(kural(css, '.kitap-p'), /text-shadow:\s*var\(--murekkep-golge\)/);
+  assert.doesNotMatch(css, /(^|[;{\s])(filter|backdrop-filter)\s*:/m);
+});
