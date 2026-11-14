@@ -40,6 +40,15 @@ _NOT_NOW = re.compile(
 # quiet approach does not.
 _FIRST_DEED = re.compile(
     r"\b(?!(?:yaklasip|karisip|sokulup|carpip|itip|egilip|uzanip|yanasip|sinsip)\b)\w{2,}(?:ip|up|arak|erek)\b")
+# The end of a line that is no try this turn: past ("çaldım", "çalıştım"), refused ("çalmıyorum"), future
+# ("çalacağım"), wished ("çalsam"). A reading's steal or check is no theft on such a line.
+_NOT_THIS_TURN_END = re.compile(r"(?:d[iu]m|t[iu]m|m[iu]yorum|acag[iu]m|ecegim|s[ae]m)$")
+_PAST_OR_LATER = re.compile(r"\b(?:dun|yarin)\b")
+# Something a person carries, named in the line ("kesesini", "cebinden", "yüzüğünü"); a reading's pickpocket needs one.
+_CARRIED_WORD = re.compile(
+    r"\b(?:kese\w*|cebi\w*|cep(?:te|ten|teki)?|cuzdan\w*|yuzu[kg]\w*|kolye\w*|bica[kg]\w*|hancer\w*|anahtar\w*|"
+    r"parasi\w*)\b")
+_ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\b")
 _NOT_A_TRY = re.compile(
     r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"
     r"kaval|boru|alarm|kalp|dikkat)\w*\s+cal(?:mak|maya)"
@@ -1129,7 +1138,28 @@ def _steals(session, text: Any, deed: str | None) -> bool:
         return False
     if _NOT_STOLEN.search(fold(session, text)):
         return False
-    return deed == "steal" or (deed == "" and _tries_to_steal(session, text))
+    if deed == "steal":  # the reading's own deed, still never on a past, refused or later line (live run 2026-11-15)
+        bare = _bare(session, text)
+        return ":" not in text and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
+    return deed == "" and (_tries_to_steal(session, text) or _reads_a_pickpocket(session, text))
+
+
+def _reads_a_pickpocket(session, text: str) -> bool:
+    """D-094: the reading named Sleight of Hand for a try it did not call a deed ("kesesini almaya çalışıyorum"); the
+    theft route rolls it and alone moves the coin. The same guards as a word-found try hold: speech, somebody's
+    "Name:" line, a blow or a deed first, a past, refused, future, wished or dreamed line, another's or one's own
+    purse, a whistle or a bell, and a line naming nothing a person carries are no theft, whatever the reading said."""
+    if (getattr(session, "_front_check", "") != "Sleight of Hand"
+            or getattr(session, "_front_kind", None) not in {"attempt", "unclear", "grab"} or ":" in text):
+        return False
+    import game
+    import living_world
+    if game._has_explicit_attack_verb(living_world._text_outside_quotes(text)):
+        return False
+    bare = _bare(session, text)
+    return bool(_CARRIED_WORD.search(bare) and bare.endswith("yorum") and not _NOT_THIS_TURN_END.search(bare)
+                and not _PAST_OR_LATER.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_A_TRY.search(bare)
+                and not _NOT_NOW.search(bare) and not _FIRST_DEED.search(bare))
 
 
 # "Muhafızın üstünü inceliyorum": a present, first-person, finished sentence; "... söylüyorum", "... dedim", a wish or a
@@ -1158,6 +1188,9 @@ def is_act_not_talk(session, text: Any) -> bool:
     import game
     if not isinstance(text, str) or "?" in text:
         return False
+    if (getattr(session, "_front_check", "") in {"Intimidation", "Deception", "Persuasion", "Insight"}
+            and getattr(session, "_front_kind", None) in {"attempt", "unclear", "grab"}):
+        return True  # D-094: the reading named a social try it did not hear as speech; the dice answer, not a stock line
     return game.open_scare_try(text) or looks_person_over(session, text)
 
 

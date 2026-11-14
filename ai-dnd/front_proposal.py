@@ -22,6 +22,13 @@ ROUTE_LOG = "AI_DND_ROUTE_LOG"
 KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit",
          "grab", "wait", "consume", "wield", "unclear")
 DEEDS = ("steal", "burn", "yield")
+# D-094: the checks a reading may name for a risky try; each needs no world precondition (a lock, a wall, cover).
+# The engine still sets the DC and rolls; Sleight of Hand goes through its own theft route, which alone moves coin.
+CHECKS = ("Sleight of Hand", "Intimidation", "Deception", "Persuasion", "Insight")
+CHECK_KINDS = ("attempt", "speak_to", "unclear", "grab")
+_NOT_THIS_TURN = re.compile(
+    r"\b(?:dun|yarin|keske|belki|sanki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*)\b"
+    r"|(?:d[iu]m|t[iu]m|m[iu]yorum|acag[iu]m|ecegim|s[ae]m)$")
 DEALS = ("goods", "room", "tip", "gift", "paid_before")  # what the line's money is for; money_owner checks it
 NONE = "none"
 WAY_OUT = "way_out"  # the list's one word for leaving town: Python decides where that really leads
@@ -134,6 +141,7 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             # Early on purpose: a small model fills a long object's last fields with none, whatever the line says.
             "threat_to": {"type": "string", "enum": _ids(listed["people"])},
             "strike_to": {"type": "string", "enum": _ids(listed["people"])},
+            "check": {"type": "string", "enum": [*CHECKS, NONE]},
             "deed": {"type": "string", "enum": [*DEEDS, NONE]},
             "coin_cp": {"type": "integer", "minimum": 0},
             "also_says": {"type": "string", "maxLength": 160},
@@ -150,7 +158,7 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "want": {"type": "string", "enum": _ids(listed["wants"])},
         },
         "required": ["kind", "deal", "deal_goods", "keep_change", "economic_intent", "person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
-                     "threat_to", "strike_to", "deed", "coin_cp", "also_says"],
+                     "threat_to", "strike_to", "check", "deed", "coin_cp", "also_says"],
         "additionalProperties": False,
     }
 
@@ -226,6 +234,7 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "strike_to: oyuncu şu anda birine vuruyorsa, yumruk, tekme, tokat atıyor, suratına ya da kafasına bir şey geçiriyor, bir şey fırlatıyor, silah savuruyorsa, hangi kelimeyle söylerse söylesin vurduğu kişinin kimliği; satırda kişi geçmese de 'savuruyorum', 'indiriyorum' gibi bir darbe varsa speaking_with kişisi (bir eşyayla vuruyorsa thing_word o eşyanın adı); soru, tehdit, 'vururum' gibi söz, olumsuz ya da koşullu cümlede none. "
         "found: oyuncu bir şeyi inceliyor, okuyor, açıp bakıyor ya da arıyorsa, zar tutarsa orada ne gördüğünü söyleyen yeni bir tam cümle yaz: tek somut ayrıntı, sonu 'var', 'duruyor', 'görünüyor' gibi bir fiille bitsin. Oyuncunun sözünü tekrar etme, 'bir şey yok' yazma, para, anahtar, kişi adı, sır ekleme; inceleme yoksa boş. "
         "person_word: oyuncu people listesinde olmayan birine yöneliyor ya da sesleniyorsa, son anlatımda geçtiyse anlatımdaki kelimeyle onun yalın adı (oyuncu 'dede' diyor, anlatımda 'yaşlı adam' varsa yaşlı adam; ör. nöbetçi, yerliler); o zaman person_id none olmalı; yoksa boş. "
+        "check: oyuncu şu anda, bu satırda, sonucu belirsiz ve başarısızlığın bir bedeli olan bir şey deniyorsa hangi beceri, nasıl söylerse söylesin: birinin kesesinden, cebinden ya da üstünden bir şey almaya, aşırmaya çalışıyorsa Sleight of Hand; korkutuyor, tehdit ediyor, gözdağı veriyorsa Intimidation; kandırıyor, yalan söylüyor, kendini başka biri gibi gösteriyorsa Deception; ikna etmeye, razı etmeye çalışıyorsa Persuasion; karşısındakinin yalan söyleyip söylemediğini ya da niyetini sezmeye çalışıyorsa Insight. Soru, istek, plan, koşul, olumsuz cümle, geçmişte olan, alıntı, sıradan sohbet, satın alma ve savaşta vuruş none. "
         "deed: oyuncu şu anda birinin malını gizlice alıyorsa steal; bir yeri, binayı ya da başkasının malını şu anda ateşe veriyorsa burn; "
         "kandil, fener, meşale, ocak yakmak ya da bunları söylemekle tehdit etmek none; şu anda teslim oluyor, silahını bırakıp tutuklanmayı kabul ediyorsa yield. "
         "coin_cp: oyuncu şu anda birine ya da bir yere para veriyor, uzatıyor, bırakıyor, fırlatıyorsa kaç bakır ettiği (1 altın 100, 1 gümüş 10 bakır; yarım gümüş 5); söz, teklif, soru ya da pazarlıkta 0. "
@@ -247,6 +256,23 @@ def threat_in(reply: Any, listed: Mapping[str, Any]) -> str | None:
     front = reply.get("front") if isinstance(reply, dict) else None
     person = front.get("threat_to") if isinstance(front, dict) else None
     return person if person in [row["id"] for row in listed["people"]] else None
+
+
+def check_in(reply: Any, player_input: Any) -> str:
+    """D-094: the check the reading named for a present try, or the empty text. A question, a reading of another kind
+    and a skill outside ``CHECKS`` name none; the engine still sets the DC and rolls."""
+    front = reply.get("front") if isinstance(reply, dict) else None
+    if not isinstance(front, dict) or not isinstance(player_input, str) or "?" in player_input:
+        return ""
+    check = front.get("check")
+    if check not in CHECKS or front.get("kind") not in CHECK_KINDS:
+        return ""
+    import bold_acts
+    import game
+    import living_world
+    folded = game._normalize_turkish_typos(player_input)
+    bare = " ".join(re.findall(r"\w+", game._normalize_turkish_typos(living_world._text_outside_quotes(player_input))))
+    return "" if bold_acts._ASKS.search(folded) or _NOT_THIS_TURN.search(bare) else check
 
 
 def deed_in(reply: Any) -> str:
@@ -506,6 +532,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_reply = None
     session._front_deed = None
     session._front_kind = None
+    session._front_check = ""
     session._front_coin = 0
     session._bribe_held_out = 0
     session._coin_paid = None
@@ -531,6 +558,7 @@ def begin(session, *, typed: bool = False) -> None:
 
 def end(session) -> None:
     session._named_word = None
+    session._front_check = ""  # D-094: a check is this turn's only
     session._front_reply = None
     session._front_economic_none = False
     session._front_read = None
