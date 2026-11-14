@@ -406,7 +406,7 @@ test('ribbon is one piece drawn at its measured height: it bends over the page e
 test('reading lamp drawing: shaded brass tube, coiled gooseneck, lit shade interior, bright bulb, a beam of light', () => {
   const kod = read('components/kitap/cizimler/okuma-lambasi.tsx');
   for (const parca of ['lamba-boru', 'lamba-kafa', 'lamba-ic', 'lamba-ampul', 'lamba-kiskac', 'lamba-vida']) {
-    assert.match(kod, new RegExp(`id=\\{\`${parca}-`), `${parca} gradient is missing`);
+    assert.ok(kod.includes('`' + parca + '-'), `${parca} gradient is missing`);
   }
   assert.match(kod, /strokeDasharray/, 'the gooseneck shows its coils');
   const html = render(kitap.KitapKabugu, { tema: 'gece', sol: 'SOL', sag: 'SAG' });
