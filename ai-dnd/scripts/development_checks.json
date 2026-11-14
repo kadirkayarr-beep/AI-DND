@@ -77,9 +77,13 @@
     "api.tests.test_f04_greeting_agency_quality.F04GreetingAndAgencyTests.test_turkish_noun_substring_does_not_authorize_invented_movement",
     "api.tests.test_f04_greeting_agency_quality.F04GreetingAndAgencyTests.test_genuinely_reported_player_movement_remains_valid",
     "api.tests.test_f04_greeting_agency_quality.F04GreetingAndAgencyTests.test_repaired_npc_answer_keeps_safe_text_after_invented_feeling",
-    "api.tests.test_f04_greeting_agency_quality.F04GreetingAndAgencyTests.test_repair_rejects_a_second_invented_claim_in_the_remainder"
+    "api.tests.test_f04_greeting_agency_quality.F04GreetingAndAgencyTests.test_repair_rejects_a_second_invented_claim_in_the_remainder",
+    "api.tests.test_journey_runner",
+    "api.tests.test_journey_report",
+    "api.tests.test_journey_schema",
+    "api.tests.test_journeys"
   ],
-  "regression_group_sizes": [31, 18, 1, 3, 5],
+  "regression_group_sizes": [31, 18, 1, 3, 5, 4],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
     {"name": "frontend_libraries", "argv": ["pnpm", "run", "typecheck:libs"]},
