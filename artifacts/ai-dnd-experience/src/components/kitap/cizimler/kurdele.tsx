@@ -44,12 +44,12 @@ function cizgi(en: number, boy: number): Nokta[] {
     const burgu = Math.exp(-(((t - BURGU) / 0.075) ** 2));
     noktalar.push({ x: orta + GENLIK * s * Math.sin(t * Math.PI * 2) + 2.2 * s * Math.sin(t * Math.PI * 5), y, w: (11 - 7 * burgu) * s, t });
   }
-  // Over the page block and the cover edge, then lying on the desk: the centre line leaves the vertical smoothly
-  // (t squared) and swings out to the side, so the tail reads longer than the room below the book.
+  // Over the page block and the cover edge, then onto the desk: nearly straight, with a slight lean (Kadir's
+  // screenshot, 14 Nov 2026: a tail swung to the side with a level cut left one fork as a loose sliver).
   const uc = boy - 1 - alt;
   for (let i = 1; i <= 14; i++) {
     const t = i / 14;
-    noktalar.push({ x: orta + 18 * s * t * t, y: alt + uc * t, w: 11 * s, t: 1 + t });
+    noktalar.push({ x: orta + 2.5 * s * t, y: alt + uc * t, w: 11 * s, t: 1 + t });
   }
   return noktalar;
 }
@@ -67,7 +67,8 @@ function yollar(en: number, boy: number) {
   const sol = n.map((p) => `${(p.x - p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`);
   const sag = n.map((p) => `${(p.x + p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`).reverse();
   const son = n[n.length - 1];
-  const centik = `${son.x.toFixed(2)} ${(son.y - 7 * s).toFixed(2)}`;
+  // A symmetric V cut: the tail is nearly straight, so a level cut meets it square and both forks are equal.
+  const centik = `${son.x.toFixed(2)} ${(son.y - 6 * s).toFixed(2)}`;
   const govde = `M${sol.join(' L')} L${centik} L${sag.join(' L')} Z`;
   const kaydir = (dx: number) => govde.replace(/(-?\d+\.\d+) (-?\d+\.\d+)/g, (_, x, y) => `${(Number(x) + dx).toFixed(2)} ${y}`);
   // The sheen line sits near the lit edge; across the half twist it crosses to the other edge.
@@ -88,9 +89,12 @@ function yollar(en: number, boy: number) {
     seritler.push({ d: serit(once, a, b), renk: satenRengi(u) });
     seritler.push({ d: serit(sonra, a, b), renk: satenRengi(1 - u) });
   }
-  // The lit rim of the tail (its right edge and the right side of the V), so it does not sink into a dark desk.
+  // A faint lit rim all round the tail (both edges and the V), so it does not sink into a dark desk; faint, so it
+  // reads as the satin's edge and not as a separate strip.
   const kuyruk = n.filter((p) => p.t > 1);
-  const kenar = `M${kuyruk.map((p) => `${(p.x + p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`).join(' L')} L${centik}`;
+  const kuyrukSol = kuyruk.map((p) => `${(p.x - p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`);
+  const kuyrukSag = kuyruk.map((p) => `${(p.x + p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`).reverse();
+  const kenar = `M${kuyrukSol.join(' L')} L${centik} L${kuyrukSag.join(' L')}`;
   return { govde, golge: kaydir(2.4 * s), golgeGenis: kaydir(4.4 * s), parlak, seritler, kenar, alt: boy - SARKMA };
 }
 
@@ -165,7 +169,7 @@ export function Kurdele({ etiket = 'Kurdele ayraç' }: { etiket?: string }) {
         <path className="kitap-kurdele-uc" d={govde} fill={`url(#${kivrim})`} />
         <path d={parlak} stroke="#F2A898" strokeWidth=".8" fill="none" opacity=".28" />
         <path d={govde} stroke="#1E0504" strokeWidth=".7" fill="none" opacity=".5" />
-        <path className="kitap-kurdele-uc-kenar" d={kenar} stroke="#D86A5C" strokeWidth=".9" fill="none" strokeLinejoin="round" opacity=".6" />
+        <path className="kitap-kurdele-uc-kenar" d={kenar} stroke="#C85A4E" strokeWidth=".7" fill="none" strokeLinejoin="round" opacity=".38" />
       </svg>
       {/* Phone: the tail alone. Its top is under the page (z-index in kitap.css); it crosses the cover edge. */}
       <svg className="kitap-kurdele-kisa" width="22" height="44" viewBox="0 0 22 44" aria-hidden="true" focusable="false">
