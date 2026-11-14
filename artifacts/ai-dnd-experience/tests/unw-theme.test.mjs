@@ -90,12 +90,79 @@ test('theme resolution lives in code: no prefers-color-scheme block sets tokens,
   assert.match(css, /--unw-font-display:/);
 });
 
-test('reading faces: Spectral for the story, Atkinson Hyperlegible for the dyslexia setting, both from the existing Google Fonts stylesheet', () => {
+// Fonts are served from the repository (src/fonts), not from Google. The faces are listed here exactly as the
+// previous Google Fonts stylesheet requested them, Turkish needs both the latin and the latin-ext subset.
+const fontsDir = new URL('../src/fonts/', import.meta.url);
+const WANTED_FACES = {
+  'Cinzel': [['normal', '500'], ['normal', '600'], ['normal', '700']],
+  'Cormorant Garamond': [['normal', '400'], ['normal', '500'], ['normal', '600'], ['italic', '400'], ['italic', '500']],
+  'Spectral': [['normal', '400'], ['normal', '600'], ['italic', '400']],
+  'Atkinson Hyperlegible': [['normal', '400'], ['normal', '700'], ['italic', '400']],
+  'DM Sans': [['normal', '400'], ['normal', '500'], ['normal', '600'], ['normal', '700']],
+};
+const WANTED_FILES = {
+  'Cinzel': 2, 'Cormorant Garamond': 4, 'Spectral': 6, 'Atkinson Hyperlegible': 6, 'DM Sans': 2,
+};
+const readFonts = () => {
+  try { return readFileSync(new URL('fonts.css', fontsDir), 'utf8'); } catch { return ''; }
+};
+const fontFaces = (text) => [...text.matchAll(/\/\*\s*([\w-]+)\s*\*\/\s*@font-face\s*\{([^}]*)\}/g)].map(([, subset, body]) => ({
+  subset,
+  family: /font-family:\s*'([^']+)'/.exec(body)?.[1],
+  style: /font-style:\s*(\w+)/.exec(body)?.[1],
+  weight: /font-weight:\s*([\d ]+);/.exec(body)?.[1],
+  url: /url\(([^)]+)\)/.exec(body)?.[1]?.replace(/^['"]|['"]$/g, ''),
+  range: /unicode-range:\s*([^;]+);/.exec(body)?.[1] ?? '',
+}));
+
+test('reading faces: Spectral for the story, Atkinson Hyperlegible for the dyslexia setting, both defined from the repository (TIGHTENED REWRITE, may loosen: the stylesheet check moved from the Google URL to local @font-face rules)', () => {
   assert.match(css, /--unw-font-read: 'Spectral'/);
   assert.match(css, /:root\[data-unw-font="dyslexia"\] \{[^}]*--unw-font-read: 'Atkinson Hyperlegible'/);
-  const imports = /@import url\('(https:\/\/fonts\.googleapis\.com\/css2[^']*)'\)/.exec(css)?.[1] ?? '';
-  assert.match(imports, /family=Spectral:/);
-  assert.match(imports, /family=Atkinson\+Hyperlegible:/);
-  assert.doesNotMatch(imports, /IM\+Fell/, 'IM Fell English ships no Turkish glyphs (latin subset only)');
+  const faces = fontFaces(readFonts());
+  for (const family of ['Spectral', 'Atkinson Hyperlegible']) {
+    for (const [style, weight] of WANTED_FACES[family]) {
+      for (const subset of ['latin', 'latin-ext']) {
+        assert.ok(faces.some((f) => f.family === family && f.style === style && f.weight === weight && f.subset === subset),
+          `${family} ${style} ${weight} ${subset} is not defined locally`);
+      }
+    }
+  }
+  assert.doesNotMatch(readFonts() + css, /IM\+?\s?Fell/, 'IM Fell English ships no Turkish glyphs (latin subset only)');
   assert.doesNotMatch(css, /--unw-font-display:[^;]*IM Fell/);
+});
+
+test('fonts come from the repository: no outside font address, five families with latin and latin-ext, files in place', () => {
+  const fontCss = readFonts();
+  assert.notEqual(fontCss, '', 'src/fonts/fonts.css is missing');
+  assert.match(css, /@import\s+['"]\.\/fonts\/fonts\.css['"]/, 'index.css does not load the local font stylesheet');
+  for (const text of [css, fontCss]) {
+    assert.doesNotMatch(text, /fonts\.(googleapis|gstatic)\.com/, 'a stylesheet still names Google Fonts');
+    assert.doesNotMatch(text, /@import\s+url\(\s*['"]?https?:/, 'a stylesheet imports an outside address');
+  }
+  const faces = fontFaces(fontCss);
+  assert.equal(faces.length, 36, 'the 36 latin and latin-ext rules of the previous Google stylesheet');
+  for (const [family, wanted] of Object.entries(WANTED_FACES)) {
+    for (const [style, weight] of wanted) {
+      for (const subset of ['latin', 'latin-ext']) {
+        assert.equal(faces.filter((f) => f.family === family && f.style === style && f.weight === weight && f.subset === subset).length, 1,
+          `${family} ${style} ${weight} ${subset}: expected exactly one local @font-face`);
+      }
+    }
+  }
+  assert.ok(faces.every((f) => /U\+0100-02BA/.test(f.range) === (f.subset === 'latin-ext')), 'latin-ext carries U+0100-02BA, latin does not');
+  assert.ok(faces.filter((f) => f.subset === 'latin').every((f) => /U\+0000-00FF/.test(f.range)), 'latin carries U+0000-00FF (ö, ü, ç)');
+  for (const f of faces) {
+    assert.match(f.url ?? '', /^\.\/[^/]+\/[^/:]+\.woff2$/, `${f.family} ${f.subset}: url must be a relative local .woff2`);
+    const bytes = readFileSync(new URL(f.url.replace(/^\.\//, ''), fontsDir));
+    assert.equal(bytes.subarray(0, 4).toString('latin1'), 'wOF2', `${f.url} is not a woff2 file`);
+  }
+  const files = new Set(faces.map((f) => f.url));
+  assert.equal(files.size, 20, '20 distinct font files');
+  for (const [family, count] of Object.entries(WANTED_FILES)) {
+    assert.equal(new Set(faces.filter((f) => f.family === family).map((f) => f.url)).size, count, `${family}: file count`);
+  }
+  for (const folder of ['cinzel', 'cormorant-garamond', 'spectral', 'atkinson-hyperlegible', 'dm-sans']) {
+    const licence = readFileSync(new URL(`${folder}/OFL.txt`, fontsDir), 'utf8');
+    assert.match(licence, /SIL OPEN FONT LICENSE Version 1\.1/, `${folder}/OFL.txt is not the OFL 1.1 text`);
+  }
 });
