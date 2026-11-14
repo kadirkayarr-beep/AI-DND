@@ -199,7 +199,10 @@ export function Pencere({ acik, degisince, baslik, children }: { acik: boolean; 
   );
 }
 
-/** Self-closing notice, small, top right (sonner.tsx). */
+/**
+ * Self-closing notice, small (sonner.tsx). Bottom left, above the writing line (ui-polish 6): top right it covered the
+ * tabs. The offsets clear the writing line with the page margin under it (measured in the gallery).
+ */
 export function BildirimAlani() {
-  return <Toaster position="top-right" duration={4000} className="kitap-bildirimler" toastOptions={{ classNames: { toast: 'kitap-bildirim' } }} />;
+  return <Toaster position="bottom-left" offset={{ bottom: 200 }} mobileOffset={{ bottom: 170 }} duration={4000} className="kitap-bildirimler" toastOptions={{ classNames: { toast: 'kitap-bildirim' } }} />;
 }

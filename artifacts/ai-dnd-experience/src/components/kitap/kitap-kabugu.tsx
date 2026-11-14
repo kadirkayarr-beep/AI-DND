@@ -60,16 +60,19 @@ export interface Ayrac { deger: string; etiket: string }
  * (Radix roving focus) and the open one is announced as selected. The book goes in as children so the
  * matching TabsContent can sit on its page. With tabs, the desk row goes in here (masa) so focus order follows the eye.
  */
-export function Ayraclar({ deger, degisince, ayraclar, masa, children }: { deger: string; degisince: (deger: string) => void; ayraclar: ReadonlyArray<Ayrac>; masa?: ReactNode; children?: ReactNode }) {
+export function Ayraclar({ deger, degisince, ayraclar, masa, masaSonra = false, children }: { deger: string; degisince: (deger: string) => void; ayraclar: ReadonlyArray<Ayrac>; masa?: ReactNode; masaSonra?: boolean; children?: ReactNode }) {
+  // The desk buttons sit top left, before the tabs in reading and focus order; on the phone they sit top right, after
+  // the tabs, so they come after them in focus order too (ui-polish 13).
+  const masaSirasi = masa ? <div className="kitap-masa-ust">{masa}</div> : null;
   return (
     <Tabs value={deger} onValueChange={degisince} className="kitap-ayrac-kok" activationMode="automatic">
-      {/* The desk buttons sit top left, before the tabs in reading and focus order. */}
-      {masa ? <div className="kitap-masa-ust">{masa}</div> : null}
+      {masaSonra ? null : masaSirasi}
       <TabsList className="kitap-ayraclar" aria-label="Defter ayraçları">
         {ayraclar.map((a) => (
           <TabsTrigger key={a.deger} value={a.deger} className="kitap-ayrac">{a.etiket}</TabsTrigger>
         ))}
       </TabsList>
+      {masaSonra ? masaSirasi : null}
       {children}
     </Tabs>
   );

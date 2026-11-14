@@ -51,9 +51,8 @@ function Parca({ baslik, children }: { baslik: string; children: ReactNode }) {
 
 export default function KitapGalerisi() {
   const ilkGorunum = GORUNUM_SECENEKLERI.some((s) => s.deger === sorgu('gorunum')) ? (sorgu('gorunum') as GorunumSecimi) : VARSAYILAN_GORUNUM;
-  const [ayar, setAyar] = useState<ArayuzDegeri>({ gorunum: ilkGorunum, duzen: 'iki-sayfa', el: VARSAYILAN_EL, boy: 'normal' });
+  const [ayar, setAyar] = useState<ArayuzDegeri>({ gorunum: ilkGorunum, duzen: 'iki-sayfa', el: VARSAYILAN_EL, boy: 'normal', lambaKaranlikta: sorgu('lamba') === 'acik', efektKapali: false });
   const [saat, setSaat] = useState<HikayeSaati>(sorgu('saat') === 'gunduz' ? 'gunduz' : 'gece');
-  const [efektKapali, setEfektKapali] = useState(false);
   const [ayrac, setAyrac] = useState('hikaye');
   const [kip, setKip] = useState<YazmaKipi>('yap');
   const [metin, setMetin] = useState('');
@@ -65,14 +64,16 @@ export default function KitapGalerisi() {
   const [kuvvet, setKuvvet] = useState('15');
   const [pencere, setPencere] = useState(false);
   const [dinliyor, setDinliyor] = useState(false);
-  const [lambaKaranlikta, setLambaKaranlikta] = useState(sorgu('lamba') === 'acik');
   const tema = kitapTemasi(ayar.gorunum, saat);
-  const tekAkis = hikayeTekAkista(ayrac, useIsMobile());
-  // T5: in one flow the left page opens on the last lines, right above the writing field.
+  const { efektKapali, lambaKaranlikta } = ayar;
+  const darEkran = useIsMobile();
+  const tekAkis = hikayeTekAkista(ayrac, darEkran);
+  // T5: the left page opens on its last lines, right above the writing field in one flow and right before the right
+  // page in two (ui-polish 1: at 768-1024px the left page hid its last lines while the right page went on).
   const solAkis = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    if (tekAkis && solAkis.current) solAkis.current.scrollTop = solAkis.current.scrollHeight;
-  }, [tekAkis, ayrac]);
+    if (solAkis.current) solAkis.current.scrollTop = solAkis.current.scrollHeight;
+  }, [tekAkis, ayrac, ayar.boy, ayar.el]);
 
   // Portalled windows, lists and notices render under <body>, so the attributes go on <html> while the gallery is open.
   useEffect(() => {
@@ -90,9 +91,9 @@ export default function KitapGalerisi() {
       <span className="kitap-dar-gizli">{saat === 'gece' ? 'Gündüze çevir' : 'Geceye çevir'}</span>
     </KitapDugme>
   ) : (
-    <KitapDugme tur="masa" onClick={() => setAyar({ ...ayar, gorunum: 'saat' })} aria-label="Saate dön">
+    <KitapDugme tur="masa" onClick={() => setAyar({ ...ayar, gorunum: 'saat' })} aria-label="Hikâyenin saatine dön">
       <Clock aria-hidden="true" />
-      <span className="kitap-dar-gizli">Saate dön</span>
+      <span className="kitap-dar-gizli">Hikâyenin saatine dön</span>
     </KitapDugme>
   );
 
@@ -166,7 +167,7 @@ export default function KitapGalerisi() {
   return (
     <div className="kitap-galeri" data-kitap-tema={tema} data-kitap-el={ayar.el} data-kitap-boy={ayar.boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'}>
       <h1 className="kitap-gizli">Unwritten kitap teması: galeri</h1>
-      <Ayraclar deger={ayrac} degisince={setAyrac} ayraclar={AYRACLAR}
+      <Ayraclar deger={ayrac} degisince={setAyrac} ayraclar={AYRACLAR} masaSonra={darEkran}
         masa={<>{saatDugmesi}<span className="kitap-dar-yok"><AyarCarki deger={ayar} degisince={setAyar} /></span></>}>
         <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi={ayrac === 'hikaye' ? 'sol' : 'sag'} lambaKaranlikta={lambaKaranlikta} />
       </Ayraclar>
@@ -185,12 +186,6 @@ export default function KitapGalerisi() {
             <div className="kitap-odak-goster">
               <SeciciGrup etiket="Sayfa düzeni, odak örneği" deger="iki-sayfa" degisince={() => {}} secenekler={[{ deger: 'iki-sayfa', etiket: 'İki sayfa hikâye' }, { deger: 'karakter-acik', etiket: 'Karakter açık' }]} />
             </div>
-          </Ornek>
-          <Ornek ad="G10: karanlıkta lamba (karar senin)">
-            <Anahtar etiket="Karanlık temada okuma lambası" acik={lambaKaranlikta} degisince={setLambaKaranlikta} />
-          </Ornek>
-          <Ornek ad="efekt">
-            <Anahtar etiket="Kâğıt dokusu" acik={!efektKapali} degisince={(v) => setEfektKapali(!v)} />
           </Ornek>
         </Parca>
 

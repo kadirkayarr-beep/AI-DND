@@ -200,13 +200,21 @@ test('the gallery route exists only in development and is loaded lazily', () => 
   assert.match(shell, /path="\/galeri"/);
 });
 
-test('the A1 book faces never swap in late: font-display optional, so story text cannot jump when a font arrives late', () => {
+// Rewritten (ui-polish, finding 4; on the approval list as "gevşetme olabilir"): with optional on every face, a hand
+// chosen mid-session (A Charm, C Bad Script) missed its short load window and Literata stood in for the page's life
+// (measured: both faces "loaded", the samples drawn in Literata). The story faces keep optional and their preload.
+test('the story faces never swap in late (optional); a chosen hand (Charm, Bad Script) swaps in, so it is really shown', () => {
   const fontCss = read('fonts/fonts.css');
   const faces = [...fontCss.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, body]) => ({
     family: /font-family:\s*'([^']+)'/.exec(body)?.[1], display: /font-display:\s*(\w+)/.exec(body)?.[1] }));
   const book = faces.filter((f) => ['Literata', 'Kalam', 'Charm', 'Bad Script'].includes(f.family));
   assert.equal(book.length, 12);
-  for (const f of book) assert.equal(f.display, 'optional', `${f.family} must not swap`);
+  const durgun = book.filter((f) => ['Literata', 'Kalam'].includes(f.family));
+  const secilen = book.filter((f) => ['Charm', 'Bad Script'].includes(f.family));
+  assert.equal(durgun.length, 6);
+  assert.equal(secilen.length, 6);
+  for (const f of durgun) assert.equal(f.display, 'optional', `${f.family} must not swap`);
+  for (const f of secilen) assert.equal(f.display, 'swap', `${f.family} must swap in once loaded`);
 });
 
 // Review fixes (separate-eye review of the A1 gallery, findings 1-8; Kadir: "1-8'i düzelt").
@@ -381,8 +389,10 @@ test('review 9: checkbox and switch rows and the number field are 44px touch tar
   assert.match(kural(kitapCss(), '.kitap-sayi-girdi'), /height:\s*var\(--dokunma\)/);
 });
 
+// Rewritten (ui-polish, finding 10): the label names what it goes back to; same strictness, new words.
 test('review 15: in the gallery, a hand-picked look offers a way back to the story clock', () => {
-  assert.match(read('pages/kitap-galerisi.tsx'), /Saate dön/);
+  assert.match(read('pages/kitap-galerisi.tsx'), /Hikâyenin saatine dön/);
+  assert.doesNotMatch(read('pages/kitap-galerisi.tsx'), /"Saate dön"|>Saate dön</);
 });
 
 test('narrow two-page books (768-1179px) put the margin note under its line, so the text column is not squeezed', () => {
@@ -547,4 +557,104 @@ test('ribbon: its lines are a satin red or a dark shade, never a pale pink; the 
   const kivrim = kurdeleCizimleri()[0].svg.match(/<linearGradient id="kurdele-kivrim-[\s\S]*?<\/linearGradient>/);
   assert.ok(kivrim, 'the bend overlay is there');
   for (const m of kivrim[0].matchAll(/stop-color="([^"]+)"/g)) assert.equal(m[1], '#000', 'the bend is shade only');
+});
+
+// ui-polish pass on the separate-eye review (Kadir: "yap daha sonra çıkan sonuçlara"), findings 1-13 and 15.
+test('polish 1: the story page opens on its last lines at every width, not only in one flow', () => {
+  const kod = read('pages/kitap-galerisi.tsx');
+  assert.match(kod, /solAkis\.current\.scrollTop = solAkis\.current\.scrollHeight/);
+  assert.doesNotMatch(kod, /if \(tekAkis && solAkis\.current\)/, 'the left page of two pages hid its last lines (768-1024)');
+  assert.match(kod, /\}, \[tekAkis, ayrac, ayar\.boy, ayar\.el\]\);/, 'a new text size or hand moves the lines, so the page re-opens on its end');
+});
+
+test('polish 2: at 768-1179px the page margins are narrower and the hand a little smaller, so the field holds its prompt', () => {
+  const dar = medya(css, '(max-width: 1179px)');
+  assert.match(dar, /\[data-kitap-tema\]\s*\{[^}]*--sayfa-ic:\s*30px 26px 32px 32px/);
+  assert.match(dar, /\[data-kitap-tema\]\s*\{[^}]*--sayfa-ic-sag:\s*30px 32px 32px 26px/);
+  assert.match(dar, /\[data-kitap-tema\]\s*\{[^}]*--elo:\s*0\.92/);
+  assert.match(dar, /\[data-kitap-tema\]\[data-kitap-boy="buyuk"\]\s*\{[^}]*--elo:\s*1/);
+  const dar2 = medya(kitapCss(), '(max-width: 1179px)');
+  assert.match(dar2, /\.kitap-yaz-sira\s*\{\s*gap:\s*6px/);
+  assert.match(dar2, /\.kitap-kalem-ucu\s*\{\s*width:\s*28px;\s*height:\s*28px/);
+});
+
+test('polish 3: lines outside a margin row keep the same text column (22em of the body text)', () => {
+  assert.equal(token(block('[data-kitap-tema]'), '--sutun-metin'), '22em');
+  const k = kural(kitapCss(), '.kitap-akis > .kitap-p, .kitap-akis > .kitap-soz');
+  assert.match(k, /max-width:\s*calc\(var\(--govde\) \* 22\)/);
+  assert.match(k, /box-sizing:\s*border-box/);
+});
+
+test('polish 5: "Yeni iş" reads as a margin note (italic, the margin ink), not as a link', () => {
+  const yeni = kural(kitapCss(), '.kitap-rozet-yeni');
+  assert.match(yeni, /color:\s*var\(--hakem\)/);
+  assert.match(yeni, /font-style:\s*italic/);
+  assert.match(yeni, /text-decoration:\s*none/);
+  assert.match(yeni, /font-size:\s*var\(--kenar-boy\)/);
+});
+
+test('polish 6: notices come up bottom left, above the writing line, never over the tabs', () => {
+  const kod = read('components/kitap/kontroller.tsx');
+  assert.match(kod, /<Toaster position="bottom-left"/);
+  assert.match(kod, /offset=\{\{ bottom: [^}]+\}\}/);
+  assert.match(kod, /mobileOffset=\{\{ bottom: [^}]+\}\}/);
+  assert.doesNotMatch(kod, /position="top-right"/);
+});
+
+test('polish 7: the open tab is the page itself: page colour, a little taller, over the page edge', () => {
+  const acik = kural(kitapCss(), ".kitap-ayrac[data-state='active']");
+  assert.match(acik, /background-color:\s*var\(--sayfa\)/);
+  assert.match(acik, /height:\s*calc\(var\(--dokunma\) \+ 5px\)/);
+  assert.match(acik, /margin-bottom:\s*-2px/);
+  assert.match(acik, /z-index:\s*1/);
+  assert.doesNotMatch(acik, /font-weight/, 'one rule in all three themes: the open tab is not told by weight');
+});
+
+test('polish 8: at 768-959px the tabs shrink so they stay over the right page', () => {
+  const dar = medya(kitapCss(), '(min-width: 768px) and (max-width: 959px)');
+  assert.match(dar, /\.kitap-ayrac\s*\{\s*padding:\s*0 5px;\s*font-size:\s*13px/);
+  assert.match(medya(kitapCss(), '(min-width: 768px) and (max-width: 1179px)'), /\.kitap-ayraclar\s*\{\s*right:\s*52px/);
+});
+
+test('polish 9: the settings hold the reading lamp and the texture switches', () => {
+  const html = render(ayar.ArayuzAyarlari, { deger: { gorunum: 'karanlik', duzen: 'iki-sayfa', el: 'b', boy: 'normal', lambaKaranlikta: true, efektKapali: false }, degisince() {} });
+  assert.equal((html.match(/role="switch"/g) ?? []).length, 2);
+  assert.match(html, /Karanlık temada okuma lambası/);
+  assert.match(html, /Kâğıt dokusu/);
+  assert.equal((html.match(/aria-checked="true"[^>]*role="switch"|role="switch"[^>]*aria-checked="true"/g) ?? []).length, 2);
+});
+
+test('polish 11: the large text size also grows the margin notes, labels and page numbers; the tabs keep their size', () => {
+  const base = block('[data-kitap-tema]');
+  assert.equal(token(base, '--sayfa-no-boy'), '13px');
+  assert.equal(token(base, '--ayrac-boy'), 'calc(15px + var(--buyume) * 0.5)');
+  const buyuk = block('[data-kitap-boy="buyuk"]');
+  assert.equal(token(buyuk, '--kenar-boy'), 'calc(17px + var(--buyume) * 0.5)');
+  assert.equal(token(buyuk, '--etiket-boy'), '16px');
+  assert.equal(token(buyuk, '--sayfa-no-boy'), '15px');
+  assert.match(kural(kitapCss(), '.kitap-sayfa-no'), /font-size:\s*var\(--sayfa-no-boy\)/);
+  assert.match(kural(kitapCss(), '.kitap-ayrac'), /font-size:\s*var\(--ayrac-boy\)/);
+  assert.match(medya(kitapCss(), '(max-width: 767px)'), /\.kitap-ayrac\s*\{\s*padding:\s*0 6px;\s*font-size:\s*14px/);
+});
+
+test('polish 12 and 15: under 1180px the date goes under the heading and a scrolled page fades its top more', () => {
+  const dar = medya(kitapCss(), '(max-width: 1179px)');
+  assert.match(dar, /\.kitap-bolum-2\s*\{[^}]*flex-direction:\s*column/);
+  assert.match(dar, /\.kitap-akis\s*\{[^}]*mask-image:\s*linear-gradient\(to bottom, transparent 0, transparent 6px, var\(--sayfa\) 34px\)/);
+  assert.match(dar, /\.kitap-akis\s*\{[^}]*padding-top:\s*28px/);
+});
+
+test('polish 13: on the phone the tabs come before the desk buttons in focus order, as on screen', () => {
+  const masa = React.createElement('button', null, 'MASA');
+  const yer = (html) => [html.indexOf('MASA'), html.indexOf('role="tablist"')];
+  const [m1, t1] = yer(render(kitap.Ayraclar, { deger: 'hikaye', degisince() {}, ayraclar: [{ deger: 'hikaye', etiket: 'Hikâye' }], masa }));
+  assert.ok(m1 >= 0 && m1 < t1, 'wide: desk buttons first');
+  const [m2, t2] = yer(render(kitap.Ayraclar, { deger: 'hikaye', degisince() {}, ayraclar: [{ deger: 'hikaye', etiket: 'Hikâye' }], masa, masaSonra: true }));
+  assert.ok(t2 >= 0 && m2 > t2, 'phone: tabs first');
+  assert.match(read('pages/kitap-galerisi.tsx'), /masaSonra=\{darEkran\}/);
+});
+
+test('polish 7: the taller open tab does not push the closed ones down: the row starts 3px higher', () => {
+  assert.match(kural(kitapCss(), '.kitap-ayraclar'), /top:\s*31px/);
+  assert.match(medya(kitapCss(), '(max-width: 767px)'), /\.kitap-ayraclar\s*\{\s*top:\s*9px/);
 });

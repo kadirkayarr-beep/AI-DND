@@ -122,14 +122,15 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   -webkit-mask-composite: source-in;
   mask-composite: intersect;
 }
-.kitap-sayfa-no { position: absolute; bottom: 11px; margin: 0; font-size: 13px; color: var(--soluk); }
+.kitap-sayfa-no { position: absolute; bottom: 11px; margin: 0; font-size: var(--sayfa-no-boy); color: var(--soluk); }
 .kitap-sayfa-sol .kitap-sayfa-no { left: 48px; }
 .kitap-sayfa-sag .kitap-sayfa-no { right: 48px; }
 
 /* Bookmark tabs over the top edge of the right page. */
+/* top: the closed tabs end on the page top (78px); the open one is 3px taller (ui-polish 7), so the row starts 3px higher. */
 .kitap-ayraclar {
   position: absolute;
-  top: 34px;
+  top: 31px;
   right: 92px;
   z-index: 4;
   display: flex;
@@ -145,7 +146,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   box-sizing: border-box;
   padding: 0 15px;
   font-family: var(--kitap-yazi);
-  font-size: var(--kenar-boy);
+  font-size: var(--ayrac-boy);
   font-weight: 400;
   color: var(--soluk);
   background: var(--sayfa2);
@@ -158,7 +159,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   box-shadow: var(--golge-ayrac), inset 0 1px 0 var(--kabarma);
 }
 .kitap-ayrac:hover { color: var(--murekkep); }
-.kitap-ayrac[data-state='active'] { background-color: var(--sayfa); color: var(--murekkep); box-shadow: inset 0 1px 0 var(--kabarma); }
+/* The open tab is the page itself (ui-polish 7): page colour, 3px taller than the rest and 2px down over the page edge,
+   so no cloth shows under it; told the same way in all three themes (not by weight). */
+.kitap-ayrac[data-state='active'] { background-color: var(--sayfa); color: var(--murekkep); box-shadow: inset 0 1px 0 var(--kabarma); height: calc(var(--dokunma) + 5px); margin-bottom: -2px; position: relative; z-index: 1; }
 
 /* ---------- Text on the page ---------- */
 /* A scrolled page fades its top line out instead of cutting it (as in the draft). */
@@ -166,6 +169,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 /* Lines keep their height in the scrolling page (as in the draft): a long story scrolls, its first lines do not
    slide under the heading (measured at 800px). */
 .kitap-akis > * { flex: 0 0 auto; }
+/* Lines outside a margin row keep the same column: 22em of the body text, as --sutun-metin in .kitap-satir (ui-polish 3). */
+.kitap-akis > .kitap-p, .kitap-akis > .kitap-soz { box-sizing: border-box; max-width: calc(var(--govde) * 22); }
 /* The text column stays near 45 letters (22em); the margin column takes what a wide book adds. */
 .kitap-satir { font-size: var(--govde); display: grid; grid-template-columns: minmax(0, var(--sutun-metin)) minmax(var(--sutun-kenar), 1fr); column-gap: var(--bosluk-5); align-items: start; }
 /* Ink sits a hair into the paper. */
@@ -361,7 +366,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-sayac-deger { min-width: 2ch; text-align: center; font-family: var(--el-aile); font-size: calc(var(--el) * 1.2); }
 .kitap-rozet { padding: 2px var(--bosluk-2); font-family: var(--kitap-yazi); font-size: var(--etiket-boy); font-weight: 400; color: var(--soluk); background: none; border: 1px solid var(--cizgi); border-radius: var(--kose); }
 /* No gold frame (draft rule 7: no gold-framed boxes): an italic word with a thin rule under it. */
-.kitap-rozet-yeni { color: var(--mum); border: none; padding: 0; font-style: italic; text-decoration: underline 1px; text-underline-offset: 4px; }
+/* A margin note (ui-polish 5): italic in the margin ink; no underline, so it does not read as a link. */
+.kitap-rozet-yeni { color: var(--hakem); border: none; padding: 0; font-size: var(--kenar-boy); font-style: italic; text-decoration: none; }
 .kitap-rozet-hakem { color: var(--hakem); border-color: var(--hakem); font-style: italic; }
 .kitap-bos { display: block; padding: 0; border: none; text-align: left; gap: 0; }
 .kitap-cizgili { height: calc(var(--satir) * 36px); background-image: repeating-linear-gradient(to bottom, var(--saydam) 0, var(--saydam) 35px, var(--cizgi) 35px, var(--cizgi) 36px); }
@@ -447,9 +453,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   .kitap-kapitalbant { display: none; }
   /* G6 (Kadir's call): no lamp on the phone yet. */
   .kitap-lamba { display: none; }
-  .kitap-ayraclar { top: 12px; left: 13px; right: auto; gap: 2px; }
+  .kitap-ayraclar { top: 9px; left: 13px; right: auto; gap: 2px; }
   /* Five tabs and the 44px theme button must not overlap at 390px (measured: tabs ended 12px under the button). */
-  .kitap-ayrac { padding: 0 6px; font-size: var(--etiket-boy); }
+  .kitap-ayrac { padding: 0 6px; font-size: 14px; }
   .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
   .kitap-satir > .kitap-kenar-metin { padding-left: 26px; }
   .kitap-sayfa-sol .kitap-sayfa-no, .kitap-sayfa-sag .kitap-sayfa-no { right: 20px; left: auto; }
@@ -472,8 +478,11 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 /* Narrow desktop (review 2): no room for the lamp between the desk buttons and the tabs; the tabs move in a little. */
 @media (min-width: 768px) and (max-width: 1179px) {
   .kitap-lamba { display: none; }
-  .kitap-ayraclar { right: 40px; }
+  /* The tabs end over the right page, short of its outer edge (ui-polish 8; measured at 768px they ran past it). */
+  .kitap-ayraclar { right: 52px; }
   .kitap-ayrac { padding: 0 10px; }
+  .kitap-sayfa-sol .kitap-sayfa-no { left: 32px; }
+  .kitap-sayfa-sag .kitap-sayfa-no { right: 32px; }
   /* A page is ~270-420px wide here: a 150px margin column squeezed the text to four words (measured at 800px). */
   .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
   .kitap-satir > .kitap-kenar-metin { padding-left: 26px; }
@@ -484,6 +493,22 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .kitap-kipler { margin-left: 26px; white-space: nowrap; }
   .kitap-kipler .kitap-secenek { padding: 0 8px; }
+}
+
+/* The narrowest two-page books: five tabs fit between the ribbon and the page edge only a little smaller. */
+@media (min-width: 768px) and (max-width: 959px) {
+  .kitap-ayrac { padding: 0 5px; font-size: 13px; }
+}
+
+/* Narrow pages, phone included (ui-polish 12 and 15): the date goes under the heading; the page opens on its last
+   lines, so its top fades over a longer stretch, with room above the first line when it is not scrolled. */
+@media (max-width: 1179px) {
+  .kitap-bolum-2 { flex-direction: column; align-items: flex-start; gap: 2px; }
+  /* The writing field keeps "Ne yapıyorsun?" on one line down to 360px and at 768px in "Büyük" (measured; ui-polish 2):
+     a smaller pen nib and tighter gaps. */
+  .kitap-yaz-sira { gap: 6px; }
+  .kitap-kalem-ucu { width: 28px; height: 28px; }
+  .kitap-akis { -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 6px, var(--sayfa) 34px); mask-image: linear-gradient(to bottom, transparent 0, transparent 6px, var(--sayfa) 34px); padding-top: 28px; }
 }
 
 /* ---------- Gallery page (development only) ---------- */

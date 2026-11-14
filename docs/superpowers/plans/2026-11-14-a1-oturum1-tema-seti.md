@@ -45,3 +45,16 @@
 - Ruling: 800 genişlikte "Ne yapıyorsun?" iki satıra iniyor (kelime bölünmeden) — Gönder simgeye döndü, seçenekler tek satır — yanlışsa maliyeti: küçük.
 - Test yeniden yazımı (onay listesi, gevşetme olabilir diye işaretli): `--lamba-en` 84→96 (büyüme); hale tepe formülü 0.573→0.725 (ampul aşağı kaydı); kurdele kutusu 100%+40→100%+44 ve `SARKMA = 42` (daha uzun sarkma, sıkılaştırma).
 - Kadir onayı (14 Kasım 2026): kurdele "Oldu" (commit `cc1597e4`, Fable düzeltmesi).
+
+### Ayrı göz incelemesi ve cila (ui-review → ui-polish) — Kadir: "yap daha sonra çıkan sonuçlara"
+- Ruling: hikâye sayfası her genişlikte son satırlarında açılır (yalnız tek akışta değil) — 768-1024'te sol sayfa son satırlarını gizliyordu, sağ sayfa devam ediyordu; gerçek sayfalama A2 motorunun işi — yanlışsa maliyeti: bir `useLayoutEffect` koşulu.
+- Ruling: 1180 altında sayfa kenar boşlukları daraldı (30/26/32/32), el yazısı telefondaki gibi 0,92, kalem ucu 28 piksel, satır aralığı 6 — 768'de yazma kutusu 96 pikseldi, "Ne yapıyorsun?" 140 istiyordu; ölçüldü: 360-1179 arası normal ve Büyük'te tek satır — yanlışsa maliyeti: CSS değişkenleri.
+- Ruling: Charm ve Bad Script `font-display: swap` (Literata ve Kalam `optional` kaldı) — A ya da C seçilince yazı tipi kısa yükleme penceresini kaçırıyor ve sayfa boyunca Literata görünüyordu (ölçüldü); bu iki yazı tipi yalnız oyuncu satırlarını dizer, hikâye metnini değil — yanlışsa maliyeti: el yazısı geç gelince oyuncu satırları bir kez yeniden dizilir.
+- Ruling: bildirim sol alt, yazma satırının üstünde (masaüstü alttan 200, telefon 170 piksel; yazma satırı 153-187 piksel yukarıda ölçüldü) — yanlışsa maliyeti: 1214 pikselden uzun ekranlarda kitap büyümeyi bırakınca bildirim yazma satırına binebilir (park: A2'de yazma satırına göre konumlansın).
+- Ruling: ayarlara "Karanlık temada okuma lambası" ve "Kâğıt dokusu" anahtarları eklendi; galerideki iki ayrı örnek kaldırıldı (aynı anahtar iki yerde olmasın) — yanlışsa maliyeti: galeriye iki satır.
+- Ruling: Büyük yazı boyu kenar notu (17), etiket (16) ve sayfa numarasını (15) da büyütür; ayraçlar büyümez (`--ayrac-boy`), yoksa 390 ve 768'de sığmıyorlar — yanlışsa maliyeti: bir değişken.
+- Ruling: açık ayraç 3 piksel uzun ve 2 piksel sayfanın üstüne biner, sayfa rengindedir; üç temada aynı kural, kalınlık yok — yanlışsa maliyeti: CSS.
+- Ruling: 768-959 arasında ayraçlar 13 piksel, iç boşluk 5 — ölçüldü: kurdeleyle en az 18 piksel, sayfa kenarıyla 8 piksel boşluk.
+- Bekliyor (Kadir'e soruldu): "Varka" altındaki noktalı çizgi — inceleme kaldırılmasını önerdi, hedef resimde var; dokunulmadı.
+- Test yeniden yazımı (onay listesi): yazı tipi testi "12 yüzün hepsi optional" yerine "Literata ve Kalam optional, Charm ve Bad Script swap" — **gevşetme olabilir**; "Saate dön" testi "Hikâyenin saatine dön" (aynı sıkılık, yeni metin).
+- Ruling: kapalı ayraçların yerinde kalması testi (`top: 31px`) düzeltmeden sonra yazıldı (önce ölçümle bulundu) — kırmızı görülmedi; maliyeti: yok, ölçüm kanıtı var.

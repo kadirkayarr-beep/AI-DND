@@ -845,6 +845,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --kenar-boy: calc(15px + var(--buyume) * 0.5);
   --etiket-boy: 14px;
   --dugme-boy: 16px;
+  /* Page numbers, and the tabs (they keep their size in "Büyük", so they still fit over the page). */
+  --sayfa-no-boy: 13px;
+  --ayrac-boy: calc(15px + var(--buyume) * 0.5);
   --dokunma: 44px;
   --kose: 3px;
   --bosluk-1: 4px;
@@ -891,7 +894,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 [data-kitap-el="a"] { --el-aile: 'Charm', 'Literata', Georgia, serif; --elb: 23px; }
 [data-kitap-el="b"] { --el-aile: 'Kalam', 'Literata', Georgia, serif; --elb: 20px; }
 [data-kitap-el="c"] { --el-aile: 'Bad Script', 'Literata', Georgia, serif; --elb: 21px; }
-[data-kitap-boy="buyuk"] { --govde: calc(21px + var(--buyume)); --elo: 1.09; }
+/* "Büyük" grows every reading size: body, hand, margin notes, labels, page numbers (ui-polish 11). */
+[data-kitap-boy="buyuk"] { --govde: calc(21px + var(--buyume)); --elo: 1.09; --kenar-boy: calc(17px + var(--buyume) * 0.5); --etiket-boy: 16px; --sayfa-no-boy: 15px; }
 @media (max-width: 767px) {
   [data-kitap-tema] { --govde: 17px; --elo: 0.92; --baslik-boy: 22px; }
   [data-kitap-tema][data-kitap-boy="buyuk"] { --govde: 19px; --elo: 1; }
@@ -998,6 +1002,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 /* Under 1180px there is no lamp (G6, review 2), so no lamp light either (round 3: a warm spot with no source): the
    night keeps only the broad light from above (T6). Before the effects-off block, which still wins. */
 @media (max-width: 1179px) {
+  /* Narrow pages (ui-polish 2, measured at 768px: the writing field was 96px for a 140px prompt): narrower page
+     margins and the phone's hand size. The phone uses --sayfa-ic-tek. */
+  [data-kitap-tema] { --sayfa-ic: 30px 26px 32px 32px; --sayfa-ic-sag: 30px 32px 32px 26px; --elo: 0.92; }
+  [data-kitap-tema][data-kitap-boy="buyuk"] { --elo: 1; }
   [data-kitap-tema="gece"] {
     --isik-sol: radial-gradient(ellipse 112% 108% at 100% -4%, rgba(255, 246, 218, 0.3) 0, rgba(255, 246, 218, 0.1) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
     --isik-sag: radial-gradient(ellipse 112% 108% at 0% -4%, rgba(255, 246, 218, 0.3) 0, rgba(255, 246, 218, 0.1) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
