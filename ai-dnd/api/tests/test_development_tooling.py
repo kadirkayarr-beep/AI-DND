@@ -286,6 +286,39 @@ class DevelopmentToolingTests(unittest.TestCase):
         )
         self.assertEqual(browser["argv"][-1], "test:ui")
 
+    def test_default_gate_runs_the_four_journey_modules(self):
+        selectors = owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"]
+        for module in ("api.tests.test_journey_runner", "api.tests.test_journey_report",
+                       "api.tests.test_journey_schema", "api.tests.test_journeys"):
+            with self.subTest(module=module):
+                self.assertIn(module, selectors)
+
+    def test_failed_regression_writes_the_failing_test_line_to_the_job_summary(self):
+        self.prepare_gate()
+        (self.repo / "ai-dnd/test_fixture.py").write_text(
+            "def test_ok(): pass\ndef test_broken(): assert 1 == 2, 'beklenen sayi'\n")
+        self.git("add", ".")
+        self.git("-c", "user.name=Tooling Fixture", "-c", "user.email=fixture@example.invalid",
+                 "commit", "-qm", "failing fixture")
+        summary = self.repo.parent / (self.repo.name + "-summary.md")
+        self.addCleanup(lambda: summary.unlink(missing_ok=True))
+        with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary)}):
+            code, _ = self.invoke("final_gate")
+        self.assertEqual(code, 1)
+        text = summary.read_text(encoding="utf-8")
+        self.assertIn("test_fixture.test_broken", text)
+        self.assertIn("beklenen sayi", text)
+        self.assertNotIn("test_fixture.test_ok", text)
+
+    def test_job_summary_is_empty_when_nothing_failed(self):
+        self.prepare_gate()
+        summary = self.repo.parent / (self.repo.name + "-summary.md")
+        self.addCleanup(lambda: summary.unlink(missing_ok=True))
+        with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary)}):
+            code, _ = self.invoke("final_gate")
+        self.assertEqual(code, 0)
+        self.assertFalse(summary.exists())
+
     def test_production_scope_is_not_semantic_authority_proof(self):
         (self.repo / "ai-dnd/game.py").write_text("changed")
         rows = owner.structural_checks(self.config, owner.repository_state(self.repo), self.repo)
