@@ -160,15 +160,18 @@ async function stopChild(child) {
 }
 
 async function createPage(browserPort, url, width, height) {
-  const target = await fetch(`http://127.0.0.1:${browserPort}/json/new?${encodeURIComponent(url)}`, { method: "PUT" }).then((response) => response.json());
+  // The tab gets its screen size before the page loads, as on a real device, and the checks start once the page
+  // and its fonts have finished loading; a page opened first and resized later is still moving under the checks.
+  const target = await fetch(`http://127.0.0.1:${browserPort}/json/new?about:blank`, { method: "PUT" }).then((response) => response.json());
   const page = new CdpPage(target.webSocketDebuggerUrl);
   await page.send("Page.enable");
   await page.send("Runtime.enable");
   await page.send("Emulation.setDeviceMetricsOverride", {
     width, height, deviceScaleFactor: 1, mobile: width < 600,
   });
-  await waitFor(`${url}`);
-  await page.evaluate("document.readyState === 'complete'");
+  await page.send("Page.navigate", { url });
+  await waitForValue(page, "location.href !== 'about:blank' && document.readyState === 'complete'");
+  await page.evaluate("document.fonts.ready.then(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true)))))");
   return { page, targetId: target.id };
 }
 
@@ -231,6 +234,9 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.equal(initialRollCard.open, false, "the in-story result card should start compact");
     assert.ok(initialRollCard.scrollWidth <= initialRollCard.width + 1, `roll card overflows at ${viewport.width}px`);
     assert.doesNotMatch(`${initialRollCard.label} ${initialRollCard.text}`, /DC\s*\d/i, "hidden DC must not appear in visible or accessible text");
+    // The reader scrolls up with the wheel (their own input), then the card is brought to the middle of the story box.
+    await mouseWheel(play.page, '[data-testid="transcript-scroll"]', -300);
+    await waitForValue(play.page, "(() => { const a=document.querySelector('[data-testid=\"transcript-scroll\"]'); return a.scrollHeight - a.scrollTop - a.clientHeight > 80; })()");
     await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').scrollIntoView({block:'center'})");
     // Card position = the card's own on-screen top, read once its layout has been stable for 3 consecutive 50 ms frames (the transcript auto-follows new messages).
     const cardTopOf = async () => {
