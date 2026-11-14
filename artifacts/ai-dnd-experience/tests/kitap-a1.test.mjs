@@ -69,8 +69,10 @@ test('old screens are untouched: the book tokens never sit on :root and the --un
 test('type: Literata body 19px (21px large), hand face per choice, paper grain tile per theme, effects off drops the grain', () => {
   const base = block('[data-kitap-tema]');
   assert.match(token(base, '--kitap-yazi') ?? '', /^'Literata'/);
-  assert.equal(token(base, '--govde'), '19px');
-  assert.equal(token(block('[data-kitap-boy="buyuk"]'), '--govde'), '21px');
+  // 19px and 21px up to 1440px wide; --buyume (finding 5) is 0px there and grows the type only on wider screens.
+  assert.equal(token(base, '--govde'), 'calc(19px + var(--buyume))');
+  assert.equal(token(block('[data-kitap-boy="buyuk"]'), '--govde'), 'calc(21px + var(--buyume))');
+  assert.match(token(base, '--buyume') ?? '', /^clamp\(0px, calc\(\(100vw - 1440px\) \* [0-9.]+\), [0-9]+px\)$/);
   assert.match(token(block('[data-kitap-el="b"]'), '--el-aile') ?? '', /^'Kalam'/);
   assert.match(token(block('[data-kitap-el="a"]'), '--el-aile') ?? '', /^'Charm'/);
   assert.match(token(block('[data-kitap-el="c"]'), '--el-aile') ?? '', /^'Bad Script'/);
@@ -205,4 +207,60 @@ test('the A1 book faces never swap in late: font-display optional, so story text
   const book = faces.filter((f) => ['Literata', 'Kalam', 'Charm', 'Bad Script'].includes(f.family));
   assert.equal(book.length, 12);
   for (const f of book) assert.equal(f.display, 'optional', `${f.family} must not swap`);
+});
+
+// Review fixes (separate-eye review of the A1 gallery, findings 1-8; Kadir: "1-8'i düzelt").
+const kitapCss = () => read('components/kitap/kitap.css');
+const kural = (text, selector) => {
+  const bare = text.replace(/\/\*[\s\S]*?\*\//g, '');
+  const at = bare.indexOf(`${selector} {`);
+  assert.notEqual(at, -1, `${selector} is missing`);
+  return bare.slice(at, bare.indexOf('}', at));
+};
+
+test('finding 1: the default hand and the body face are preloaded, and no hand falls back to the system cursive face', () => {
+  const html = readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+  for (const file of ['kalam/YA9dr0Wd4kDdMthROCc.woff2', 'literata/or3PQ6P12-iJxAIgLa78DkTtAoDhk0oVpaK3YLanFLHpPf2TbLi4J_HWTA.woff2', 'literata/or3NQ6P12-iJxAIgLYT1PLs1a-t7PU0AbeE9KPxYzNiCp1OUedn8VrLmTkiS.woff2']) {
+    assert.match(html, new RegExp(`<link rel="preload" href="/src/fonts/${file.replace(/[.]/g, '\.')}" as="font" type="font/woff2" crossorigin`), `${file} is not preloaded`);
+  }
+  for (const selector of ['[data-kitap-tema]', '[data-kitap-el="a"]', '[data-kitap-el="b"]', '[data-kitap-el="c"]']) {
+    const value = token(block(selector), '--el-aile') ?? '';
+    assert.doesNotMatch(value, /cursive|Comic Sans/, `${selector} falls back to a system cursive face`);
+    assert.match(value, /'Literata'/, `${selector} falls back to Literata`);
+  }
+});
+
+test('finding 2: the writing field grows with its text, and on the phone Gönder is a 44px return key that keeps its name', () => {
+  assert.doesNotMatch(kural(kitapCss(), '.kitap-yaz-girdi'), /(^|[;\s])height:\s*50px/);
+  const html = render(yazma.YazmaAlani, { kip: 'yap', kipDegisince() {}, metin: '', metinDegisince() {}, gonder() {}, mikrofonDestegi: true });
+  assert.match(html, /class="[^"]*kitap-gonder-simge[^"]*"/);
+  assert.match(html, /<span class="kitap-gonder-metin">Gönder<\/span>/);
+});
+
+test('findings 3 and 4: the gallery story keeps one writing field and the hand-off rule lives in code', () => {
+  assert.equal(tema.hikayeTekAkista('hikaye', false), false);
+  assert.equal(tema.hikayeTekAkista('karakter', false), true);
+  assert.equal(tema.hikayeTekAkista('hikaye', true), true);
+  assert.equal(tema.hikayeTekAkista('canta', true), true);
+});
+
+test('finding 5: on wide screens the type grows with the book and the text column stays near 45 letters', () => {
+  const base = block('[data-kitap-tema]');
+  assert.match(token(base, '--buyume') ?? '', /^clamp\(0px,/);
+  assert.equal(token(base, '--govde'), 'calc(19px + var(--buyume))');
+  assert.equal(token(block('[data-kitap-boy="buyuk"]'), '--govde'), 'calc(21px + var(--buyume))');
+  assert.match(kural(kitapCss(), '.kitap-satir'), /grid-template-columns:\s*minmax\(0,\s*var\(--sutun-metin\)\)/);
+  assert.equal(token(base, '--sutun-metin'), '22em');
+});
+
+test('finding 6: the ribbon hangs below the book', () => {
+  assert.match(kural(kitapCss(), '.kitap-kurdele'), /height:\s*calc\(100% \+ 40px\)/);
+});
+
+test('findings 7 and 8: a disabled checked box loses its fill; an error is a double rule with a referee note, a disabled field keeps the dashed rule', () => {
+  const css = kitapCss();
+  assert.match(kural(css, ".kitap-onay-kutu:disabled[data-state='checked']"), /background:\s*none/);
+  assert.match(kural(css, ".kitap-sayi-girdi[aria-invalid='true']"), /border-bottom:\s*3px double/);
+  assert.match(kural(css, '.kitap-alan-hata'), /color:\s*var\(--hakem\)/);
+  assert.match(kural(css, '.kitap-sayi-girdi:disabled'), /dashed/);
 });
