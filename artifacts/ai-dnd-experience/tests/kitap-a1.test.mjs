@@ -387,3 +387,7 @@ test('narrow two-page books (768-1179px) put the margin note under its line, so 
   assert.match(orta, /\.kitap-satir\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
   assert.match(orta, /\.kitap-satir > \.kitap-kenar-metin\s*\{\s*padding-left:\s*26px/);
 });
+
+test('story lines never shrink in the scrolling page: a long story scrolls instead of hiding its first lines', () => {
+  assert.match(kural(kitapCss(), '.kitap-akis > *'), /flex:\s*0 0 auto/);
+});

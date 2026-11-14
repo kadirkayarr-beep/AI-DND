@@ -144,6 +144,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 
 /* ---------- Text on the page ---------- */
 .kitap-akis { flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--cizgi) var(--saydam); display: flex; flex-direction: column; gap: 11px; padding: var(--bosluk-5) 0 10px; }
+/* Lines keep their height in the scrolling page (as in the draft): a long story scrolls, its first lines do not
+   slide under the heading (measured at 800px). */
+.kitap-akis > * { flex: 0 0 auto; }
 /* The text column stays near 45 letters (22em); the margin column takes what a wide book adds. */
 .kitap-satir { font-size: var(--govde); display: grid; grid-template-columns: minmax(0, var(--sutun-metin)) minmax(var(--sutun-kenar), 1fr); column-gap: var(--bosluk-5); align-items: start; }
 /* Ink sits a hair into the paper. */
