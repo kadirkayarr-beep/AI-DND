@@ -1,0 +1,59 @@
+{
+  "id": "50c_zar_calma_basari_geri_al",
+  "title": "Zar motorun işi, para yolu (D-094; SIFIR TOLERANS; kelimeler karar verir, ön okuma kapalı): 'çalmak için zar atıyorum' başarılı zarla zar kartı gösterir ve kese bir kez artar; Geri Al kese ve kişi kesesini eski hâline getirir; yenilemede de aynı kalır",
+  "source_items": [
+    94
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 60
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5003,
+    "front_proposal": false
+  },
+  "steps": [
+    {
+      "say": "kesesini fark ettirmeden çalmak için zar atıyorum",
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "kese": 50,
+        "gerekli_metin": "Kimse fark etmedi"
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        },
+        "gerekli_metin": "Son tur geri alındı"
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      }
+    }
+  ]
+}

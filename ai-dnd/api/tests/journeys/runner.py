@@ -773,6 +773,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "saat": (world.get("campaign_time") or {}).get("elapsed_seconds", 0) // _HOUR,
         "gorev": _open_quests(world.get("quests") or []),
         "karsi_saldiri": counter_attacks(getattr(case, "last_combat_result", None)),
+        "zar": _dice_card(getattr(case, "last_skill_check", None)),
         "yuva": _spell_slots(world),
         "buyu_olgusu": [fact.get("spell_id") for fact in world.get("spell_effects_v1") or [] if isinstance(fact, dict)],
         "anlatilan": _told(world),
@@ -785,6 +786,15 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
                   "kaynak": (getattr(session, "last_arrival_narration", None) or {}).get("source"),
                   "neden": (getattr(session, "last_arrival_narration", None) or {}).get("reason_code")},
     }
+
+
+def _dice_card(check: Any) -> dict[str, Any] | None:
+    """The dice card the player sees for the step's turn (the response's ``skill_check_result``): the skill, the
+    outcome (success or failure) and whether the d20 and total are on it; None when the turn showed no dice."""
+    if not isinstance(check, Mapping):
+        return None
+    return {"beceri": check.get("skill"), "sonuc": check.get("outcome"),
+            "zar_var": isinstance(check.get("d20"), int) and isinstance(check.get("total"), int)}
 
 
 def _scene_event(scene: Any) -> dict[str, Any]:
@@ -943,6 +953,8 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
     last_arrival_calls: int = 0
     # The last turn's combat result as the turn response carried it (None: no turn, or no combat result).
     last_combat_result: Mapping[str, Any] | None = None
+    # The last turn's dice card (``skill_check_result``) as the response carried it; None: the turn showed no dice.
+    last_skill_check: Mapping[str, Any] | None = None
     last_observations: list[dict[str, Any]]
     last_session_id: str | None = None
     # The action id of the last turn sent, which an ``undo`` step names as the turn to take back.
@@ -961,6 +973,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_speech_input = None
         self.last_denial = False
         self.last_combat_result = None
+        self.last_skill_check = None
         self.last_turn_action_id = None
         self.last_observations = []
         with _front_setting(scenario.setup):
@@ -1047,12 +1060,14 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         unexpected = getattr(client, "unexpected", None) or []
         failures.extend(f"beklenmeyen model çağrısı: {keys}" for keys in unexpected)
         self.last_combat_result = None
+        self.last_skill_check = None
         if response.status_code != 200:
             self.last_narration = ""
             failures.append(f"HTTP {response.status_code}: {response.text[:300]}")
         else:
             self.last_narration = str(response.json().get("narration") or "")
             self.last_combat_result = response.json().get("combat_result")
+            self.last_skill_check = response.json().get("skill_check_result")
         self.last_denial = denial_said(self.last_narration)
         return failures
 
@@ -1064,6 +1079,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_denial = False
         self.last_narration = ""
         self.last_combat_result = None
+        self.last_skill_check = None
         body = {"action_id": str(uuid4()), "action": step.ambient["action"]}
         with model.bind(self, step) as client:
             world = self.manager.get(session_id).game_session.world_state
@@ -1090,6 +1106,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_denial = False
         self.last_narration = ""
         self.last_combat_result = None
+        self.last_skill_check = None
         if self.last_turn_action_id is None:
             return ["geri al: geri alınacak tur yok (bu adımdan önce oynanmış tur yok)"]
         body = {"action_id": str(uuid4()), "target_action_id": self.last_turn_action_id}
@@ -1111,6 +1128,7 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         self.last_denial = False
         self.last_narration = ""
         self.last_combat_result = None
+        self.last_skill_check = None
         with model.bind(self, step):
             live = read_observed(self, session_id)
             reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)

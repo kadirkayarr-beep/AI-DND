@@ -51,6 +51,8 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Yol ve hedef", ("37", "40")),
     # A spell the engine does not resolve with dice: a narrative fact, or the "not in the engine yet" line (4C.5).
     ("Büyü anlatısı", ("49",)),
+    # An act the dice settle (a steal, a scare) shows its dice card whatever the model's reading says; a look-over is told.
+    ("Zar ve beceri kontrolleri", ("50", "50b", "50c", "50d")),
 )
 _OTHER_KIND = "Diğer"
 _NUMBER = re.compile(r"^(\d+[a-z]?)_")
