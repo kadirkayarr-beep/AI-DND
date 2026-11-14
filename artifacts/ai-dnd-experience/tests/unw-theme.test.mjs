@@ -99,9 +99,15 @@ const WANTED_FACES = {
   'Spectral': [['normal', '400'], ['normal', '600'], ['italic', '400']],
   'Atkinson Hyperlegible': [['normal', '400'], ['normal', '700'], ['italic', '400']],
   'DM Sans': [['normal', '400'], ['normal', '500'], ['normal', '600'], ['normal', '700']],
+  // A1 (book UI): Literata is one variable file per style (weight 400-700, optical size 7-72); the hand faces are static.
+  'Literata': [['normal', '400 700'], ['italic', '400 700']],
+  'Kalam': [['normal', '400']],
+  'Charm': [['normal', '400'], ['normal', '700']],
+  'Bad Script': [['normal', '400']],
 };
 const WANTED_FILES = {
   'Cinzel': 2, 'Cormorant Garamond': 4, 'Spectral': 6, 'Atkinson Hyperlegible': 6, 'DM Sans': 2,
+  'Literata': 4, 'Kalam': 2, 'Charm': 4, 'Bad Script': 2,
 };
 const readFonts = () => {
   try { return readFileSync(new URL('fonts.css', fontsDir), 'utf8'); } catch { return ''; }
@@ -131,7 +137,7 @@ test('reading faces: Spectral for the story, Atkinson Hyperlegible for the dysle
   assert.doesNotMatch(css, /--unw-font-display:[^;]*IM Fell/);
 });
 
-test('fonts come from the repository: no outside font address, five families with latin and latin-ext, files in place', () => {
+test('fonts come from the repository: no outside font address, nine families with latin and latin-ext, files in place', () => {
   const fontCss = readFonts();
   assert.notEqual(fontCss, '', 'src/fonts/fonts.css is missing');
   assert.match(css, /@import\s+['"]\.\/fonts\/fonts\.css['"]/, 'index.css does not load the local font stylesheet');
@@ -140,7 +146,7 @@ test('fonts come from the repository: no outside font address, five families wit
     assert.doesNotMatch(text, /@import\s+url\(\s*['"]?https?:/, 'a stylesheet imports an outside address');
   }
   const faces = fontFaces(fontCss);
-  assert.equal(faces.length, 36, 'the 36 latin and latin-ext rules of the previous Google stylesheet');
+  assert.equal(faces.length, 48, 'the 36 latin and latin-ext rules of the previous Google stylesheet and the 12 of the A1 book faces');
   for (const [family, wanted] of Object.entries(WANTED_FACES)) {
     for (const [style, weight] of wanted) {
       for (const subset of ['latin', 'latin-ext']) {
@@ -157,11 +163,11 @@ test('fonts come from the repository: no outside font address, five families wit
     assert.equal(bytes.subarray(0, 4).toString('latin1'), 'wOF2', `${f.url} is not a woff2 file`);
   }
   const files = new Set(faces.map((f) => f.url));
-  assert.equal(files.size, 20, '20 distinct font files');
+  assert.equal(files.size, 32, '32 distinct font files');
   for (const [family, count] of Object.entries(WANTED_FILES)) {
     assert.equal(new Set(faces.filter((f) => f.family === family).map((f) => f.url)).size, count, `${family}: file count`);
   }
-  for (const folder of ['cinzel', 'cormorant-garamond', 'spectral', 'atkinson-hyperlegible', 'dm-sans']) {
+  for (const folder of ['cinzel', 'cormorant-garamond', 'spectral', 'atkinson-hyperlegible', 'dm-sans', 'literata', 'kalam', 'charm', 'bad-script']) {
     const licence = readFileSync(new URL(`${folder}/OFL.txt`, fontsDir), 'utf8');
     assert.match(licence, /SIL OPEN FONT LICENSE Version 1\.1/, `${folder}/OFL.txt is not the OFL 1.1 text`);
   }

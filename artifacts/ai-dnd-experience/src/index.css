@@ -826,3 +826,194 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .death-pips-failure i.on { background: var(--unw-danger-text); border-color: var(--unw-danger-text); }
 .death-card { padding: 18px 16px; border: 1px solid var(--unw-danger-text); background: var(--unw-surface); color: var(--unw-text); }
 .death-card-title { margin: 0 0 8px; font-size: 24px; color: var(--unw-danger-text); }
+
+/* Book UI (A1, 2026-11-14). Values: KITAP_YONU_TASLAK_KARARLARI_20261113.md section 5 and kaynak/Main.dc.html.
+   Every token sits under [data-kitap-*]; old screens never carry the attribute and keep the --unw tokens above
+   (Ruling in docs/superpowers/plans/2026-11-14-a1-oturum1-tema-seti.md). The gallery sets the attributes on <html>
+   so portalled windows and lists follow the theme too. */
+[data-kitap-tema] {
+  --muhur: #A8332E;
+  --kitap-yazi: 'Literata', Georgia, 'Times New Roman', serif;
+  /* Wide screens (G7, review finding 5): the book grows past 1440px and the type grows with it, up to 4px. */
+  --buyume: clamp(0px, calc((100vw - 1440px) * 0.008), 4px);
+  --govde: calc(19px + var(--buyume));
+  --el-aile: 'Kalam', 'Literata', Georgia, serif;
+  --elb: 20px;
+  --elo: 1;
+  --el: calc(var(--elb) * var(--elo) + var(--buyume));
+  --baslik-boy: calc(27px + var(--buyume));
+  --kenar-boy: calc(15px + var(--buyume) * 0.5);
+  --etiket-boy: 14px;
+  --dugme-boy: 16px;
+  /* Page numbers, and the tabs (they keep their size in "Büyük", so they still fit over the page). */
+  --sayfa-no-boy: 13px;
+  --ayrac-boy: calc(15px + var(--buyume) * 0.5);
+  --dokunma: 44px;
+  --kose: 3px;
+  --bosluk-1: 4px;
+  --bosluk-2: 8px;
+  --bosluk-3: 12px;
+  --bosluk-4: 16px;
+  --bosluk-5: 20px;
+  --bosluk-6: 28px;
+  --bosluk-7: 40px;
+  --sutun-metin: 22em;
+  /* Lamp and ribbon grow with the book on wide screens (review 10). */
+  --lamba-en: calc(96px + var(--buyume) * 3);
+  --kurdele-en: calc(40px + var(--buyume) * 2.5);
+  --sutun-kenar: 150px;
+  --sayfa-ic: 34px 40px 36px 48px;
+  --sayfa-ic-sag: 34px 48px 36px 40px;
+  --sayfa-ic-tek: 20px 20px 30px 24px;
+  --tane-opaklik: 1;
+  --golge-cilt: 0 28px 46px -14px rgba(0, 0, 0, 0.75), 0 2px 0 rgba(0, 0, 0, 0.5);
+  --cilt-parlama: rgba(255, 255, 255, 0.05);
+  --golge-pencere: 0 14px 30px -8px rgba(0, 0, 0, 0.7);
+  --golge-ayrac: inset 0 -9px 8px -8px rgba(0, 0, 0, 0.45);
+  --bildirim-golge: 0 8px 18px -6px rgba(0, 0, 0, 0.55);
+  --saydam: rgba(0, 0, 0, 0);
+  --perde: rgba(0, 0, 0, 0.55);
+  /* Realism (Kadir, 14 Nov 2026): bookcloth weave, contact shadow, cloth rim, page bulge light, ink edge, paper grain
+     printed into the page. Effects off turns each of them flat (below). */
+  --cilt-dokuma: radial-gradient(ellipse 18% 22% at 0% 0%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 70%), radial-gradient(ellipse 18% 22% at 100% 100%, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 70%), repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, rgba(0, 0, 0, 0) 1px 3px), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.13) 0 1px, rgba(0, 0, 0, 0) 1px 4px), repeating-linear-gradient(87deg, rgba(0, 0, 0, 0.06) 0 1px, rgba(0, 0, 0, 0) 1px 7px);
+  --oluk-derin: rgba(0, 0, 0, 0.16);
+  --golge-temas: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 14px -6px rgba(0, 0, 0, 0.5);
+  --cilt-kenar-golge: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 6px rgba(0, 0, 0, 0.35), inset 0 0 22px rgba(0, 0, 0, 0.28);
+  --sayfa-blok-golge: rgba(0, 0, 0, 0.35);
+  --kabarma: rgba(255, 250, 235, 0.1);
+  --murekkep-golge: 0 0 0.35px rgba(20, 14, 6, 0.55);
+  --tane-karisim: multiply;
+  --dugme-parlama: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(0, 0, 0, 0.25);
+  /* Reading lamp light (T7); none unless the lamp is lit. */
+  --isik-cilt: none;
+  --lamba-havuz: none;
+  --lamba-hale: none;
+  --lamba-huzme: none;
+}
+/* No system cursive fallback (review finding 1): on Windows that is Comic Sans; Literata reads as the book. */
+[data-kitap-el="a"] { --el-aile: 'Charm', 'Literata', Georgia, serif; --elb: 23px; }
+[data-kitap-el="b"] { --el-aile: 'Kalam', 'Literata', Georgia, serif; --elb: 20px; }
+[data-kitap-el="c"] { --el-aile: 'Bad Script', 'Literata', Georgia, serif; --elb: 21px; }
+/* "Büyük" grows every reading size: body, hand, margin notes, labels, page numbers (ui-polish 11). */
+[data-kitap-boy="buyuk"] { --govde: calc(21px + var(--buyume)); --elo: 1.09; --kenar-boy: calc(17px + var(--buyume) * 0.5); --etiket-boy: 16px; --sayfa-no-boy: 15px; }
+@media (max-width: 767px) {
+  [data-kitap-tema] { --govde: 17px; --elo: 0.92; --baslik-boy: 22px; }
+  [data-kitap-tema][data-kitap-boy="buyuk"] { --govde: 19px; --elo: 1; }
+}
+
+[data-kitap-tema="gunduz"] {
+  --masa-zemin: #1F2624;
+  --masa: radial-gradient(ellipse 80% 70% at 50% 46%, #333D3A, #1F2624 80%);
+  --masa-yazi: #D5D0C0;
+  --bez: #2D4A44;
+  --bez-kenar: #4A6C63;
+  --sayfa: #DCD8C8;
+  --sayfa2: #CEC9B6;
+  --kenar-koyu: #A8A28E;
+  --murekkep: #26211A;
+  --soluk: #4A4439;
+  --hakem: #1D5145;
+  --mum: #603F08;
+  --cizgi: #B4AE9B;
+  --oluk1: rgba(60, 50, 30, 0.05);
+  --oluk2: rgba(40, 32, 18, 0.3);
+  --dis: rgba(60, 50, 30, 0.08);
+  --mum-cizgi: #8C846E;
+  --hale: 0.3;
+  --tane: url('./components/kitap/cizimler/kagit-tanesi-koyu.png');
+  --isik-sol: none;
+  --isik-sag: none;
+  --kabarma: rgba(255, 255, 250, 0.12);
+  --murekkep-golge: 0 0 0.35px rgba(38, 33, 26, 0.5);
+}
+
+/* Night is yellowed paper in a dark room, light from above (decision T6). */
+[data-kitap-tema="gece"] {
+  --masa-zemin: #060504;
+  --masa: radial-gradient(ellipse 30% 38% at 0% 100%, rgba(196, 88, 22, 0.16), rgba(196, 88, 22, 0) 72%), radial-gradient(ellipse 62% 58% at 50% 2%, #2B2214 0, #130F09 46%, #060504 100%);
+  --masa-yazi: #B9AE95;
+  --bez: #1F2C29;
+  --bez-kenar: #384D48;
+  --sayfa: #D4C394;
+  --sayfa2: #BBA97A;
+  --kenar-koyu: #75683F;
+  --murekkep: #1F1810;
+  --soluk: #30281B;
+  --hakem: #0F362E;
+  --mum: #4D3003;
+  --cizgi: #8E7F56;
+  --oluk1: rgba(50, 36, 10, 0.05);
+  --oluk2: rgba(40, 28, 8, 0.38);
+  --dis: rgba(50, 36, 10, 0.1);
+  --mum-cizgi: #75683F;
+  --hale: 0.55;
+  --tane: url('./components/kitap/cizimler/kagit-tanesi-koyu.png');
+  /* Night light: a warm hot spot under the lamp at the spine top, then the wide pool falling off into the corners. */
+  --isik-sol: radial-gradient(ellipse 60% 44% at 100% 0%, rgba(255, 226, 168, 0.4), rgba(255, 226, 168, 0) 70%), radial-gradient(ellipse 112% 108% at 100% -4%, rgba(255, 246, 218, 0.36) 0, rgba(255, 246, 218, 0.12) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
+  --kabarma: rgba(255, 240, 200, 0.14);
+  --murekkep-golge: 0 0 0.4px rgba(31, 24, 16, 0.55);
+  /* The lamp over the spine: a hot bulb with a wide warm bloom, light pooling on the cloth and spilling onto the desk. */
+  --lamba-hale: radial-gradient(ellipse 50% 50% at 50% 44%, rgba(255, 248, 222, 1) 0, rgba(255, 228, 160, 0.92) 2.5%, rgba(255, 208, 120, 0.5) 7%, rgba(255, 196, 100, 0.22) 17%, rgba(255, 186, 90, 0.08) 34%, rgba(255, 180, 80, 0.025) 52%, rgba(255, 180, 80, 0) 70%);
+  --isik-cilt: radial-gradient(ellipse 26% 16% at 50% 0%, rgba(255, 206, 130, 0.32), rgba(255, 206, 130, 0.08) 55%, rgba(255, 206, 130, 0) 80%);
+  /* The cone of light under the shade, seen against the dark room and falling on the top of the pages. */
+  --lamba-huzme: radial-gradient(ellipse 50% 100% at 50% 0%, rgba(255, 224, 165, 0.16), rgba(255, 214, 150, 0.06) 40%, rgba(255, 214, 150, 0) 72%);
+  --lamba-havuz: radial-gradient(ellipse 42% 26% at 50% 3%, rgba(255, 190, 105, 0.1), rgba(255, 180, 90, 0.03) 50%, rgba(0, 0, 0, 0) 75%);
+  --isik-sag: radial-gradient(ellipse 60% 44% at 0% 0%, rgba(255, 226, 168, 0.4), rgba(255, 226, 168, 0) 70%), radial-gradient(ellipse 112% 108% at 0% -4%, rgba(255, 246, 218, 0.36) 0, rgba(255, 246, 218, 0.12) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
+}
+
+[data-kitap-tema="karanlik"] {
+  --masa-zemin: #050708;
+  --masa: radial-gradient(ellipse 80% 70% at 50% 46%, #0E1316, #050708 78%);
+  --masa-yazi: #A9A595;
+  --bez: #1B2C2A;
+  --bez-kenar: #2E4743;
+  --sayfa: #11161B;
+  --sayfa2: #182028;
+  --kenar-koyu: #080B0E;
+  --murekkep: #E6DFCE;
+  --soluk: #A9A595;
+  --hakem: #7DB5A8;
+  --mum: #D9A441;
+  --cizgi: #2E3840;
+  --oluk1: rgba(0, 0, 0, 0.2);
+  --oluk2: rgba(0, 0, 0, 0.55);
+  --dis: rgba(0, 0, 0, 0.16);
+  --mum-cizgi: transparent;
+  --hale: 1;
+  --tane: url('./components/kitap/cizimler/kagit-tanesi-acik.png');
+  --tane-opaklik: 0.6;
+  --isik-sol: none;
+  --isik-sag: none;
+  --kabarma: rgba(255, 255, 255, 0.025);
+  --murekkep-golge: 0 0 0.3px rgba(230, 223, 206, 0.25);
+  --tane-karisim: normal;
+}
+
+/* Effects off: the paper grain turns into the flat page colour. */
+/* G10 option: the lamp in the dark theme lights the cloth and the desk, the dark page stays dark. */
+[data-kitap-tema="karanlik"][data-kitap-lamba="acik"] {
+  --lamba-hale: radial-gradient(ellipse 50% 50% at 50% 44%, rgba(255, 248, 222, 1) 0, rgba(255, 228, 160, 0.9) 2.5%, rgba(255, 208, 120, 0.42) 7%, rgba(255, 196, 100, 0.16) 17%, rgba(255, 186, 90, 0.05) 34%, rgba(255, 180, 80, 0) 60%);
+  --isik-cilt: radial-gradient(ellipse 26% 16% at 50% 0%, rgba(255, 206, 130, 0.22), rgba(255, 206, 130, 0) 75%);
+  --lamba-havuz: radial-gradient(ellipse 42% 26% at 50% 3%, rgba(255, 190, 105, 0.12), rgba(0, 0, 0, 0) 70%);
+  --lamba-huzme: radial-gradient(ellipse 50% 100% at 50% 0%, rgba(255, 224, 165, 0.08), rgba(255, 214, 150, 0) 65%);
+  --isik-sol: radial-gradient(ellipse 60% 44% at 100% 0%, rgba(255, 214, 150, 0.14), rgba(255, 214, 150, 0) 70%);
+  --isik-sag: radial-gradient(ellipse 60% 44% at 0% 0%, rgba(255, 214, 150, 0.14), rgba(255, 214, 150, 0) 70%);
+}
+/* Under 1180px there is no lamp (G6, review 2), so no lamp light either (round 3: a warm spot with no source): the
+   night keeps only the broad light from above (T6). Before the effects-off block, which still wins. */
+@media (max-width: 1179px) {
+  /* Narrow pages (ui-polish 2, measured at 768px: the writing field was 96px for a 140px prompt): narrower page
+     margins and the phone's hand size. The phone uses --sayfa-ic-tek. */
+  [data-kitap-tema] { --sayfa-ic: 30px 26px 32px 32px; --sayfa-ic-sag: 30px 32px 32px 26px; --elo: 0.92; }
+  [data-kitap-tema][data-kitap-boy="buyuk"] { --elo: 1; }
+  [data-kitap-tema="gece"] {
+    --isik-sol: radial-gradient(ellipse 112% 108% at 100% -4%, rgba(255, 246, 218, 0.3) 0, rgba(255, 246, 218, 0.1) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
+    --isik-sag: radial-gradient(ellipse 112% 108% at 0% -4%, rgba(255, 246, 218, 0.3) 0, rgba(255, 246, 218, 0.1) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
+    --isik-cilt: none;
+    --lamba-havuz: none;
+  }
+  [data-kitap-tema="karanlik"][data-kitap-lamba="acik"] { --isik-sol: none; --isik-sag: none; --isik-cilt: none; --lamba-havuz: none; }
+}
+
+[data-kitap-tema][data-kitap-efekt="kapali"] { --tane: none; --cilt-dokuma: none; --kabarma: transparent; --murekkep-golge: none; --dugme-parlama: none; --oluk-derin: transparent;
+  --lamba-havuz: none; --isik-cilt: none; --lamba-hale: none; --lamba-huzme: none; --golge-temas: 0 0 0 transparent; --cilt-kenar-golge: 0 0 0 transparent; --sayfa-blok-golge: transparent; }

@@ -1,0 +1,546 @@
+/* Book UI (A1). Layout only: every colour, face and spacing comes from the [data-kitap-*] tokens in src/index.css.
+   Unlayered on purpose, so it wins over the Tailwind utility classes of src/components/ui (they sit in @layer). */
+
+html[data-kitap-tema] body { background: var(--masa-zemin); }
+
+/* ---------- Book shell ---------- */
+.kitap-ayrac-kok { position: relative; }
+.kitap-masa {
+  position: relative;
+  box-sizing: border-box;
+  padding: 66px 30px var(--bosluk-6);
+  background: var(--lamba-havuz), var(--masa);
+  color: var(--murekkep);
+  font-family: var(--kitap-yazi);
+}
+.kitap-masa-ust { position: absolute; left: 44px; top: 11px; display: flex; gap: var(--bosluk-1); z-index: 5; }
+.kitap-cilt {
+  position: relative;
+  box-sizing: border-box;
+  max-width: 1860px;
+  margin: 0 auto;
+  height: clamp(560px, calc(100dvh - 94px), 1120px);
+  padding: 12px 14px 16px;
+  border-radius: 9px;
+  background-color: var(--bez);
+  background-image: var(--isik-cilt), var(--cilt-dokuma);
+  box-shadow: var(--golge-cilt), var(--golge-temas), inset 0 0 0 1px var(--bez-kenar), inset 0 1px 0 1px var(--cilt-parlama), var(--cilt-kenar-golge);
+}
+/* Paper-like grain over the cloth weave, so the weave is not a perfect grid (review 8). Under the pages. */
+.kitap-cilt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background-image: var(--tane);
+  background-size: 256px 256px;
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.kitap-cilt::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed var(--bez-kenar);
+  border-radius: 6px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.kitap-sayfalar { position: relative; z-index: 1; display: flex; height: 100%; }
+.kitap-sayfa {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--sayfa);
+}
+/* Spine curve and page stack (T1): the stacked edges are box shadows, the curve is a gradient into the gutter. */
+.kitap-sayfa-sol {
+  border-radius: 3px 110px 110px 3px / 3px 7px 7px 3px;
+  /* Page block: thin alternating sheet edges, then a soft shadow where the block meets the cloth. */
+  box-shadow: -1px 1px 0 var(--sayfa2), -2px 2px 0 var(--kenar-koyu), -3px 3px 0 var(--sayfa2), -4px 4px 0 var(--kenar-koyu), -5px 5px 0 var(--sayfa2), -6px 6px 0 var(--kenar-koyu), -7px 7px 0 var(--sayfa2), -8px 8px 0 var(--kenar-koyu), -9px 9px 0 var(--sayfa2), -10px 10px 0 var(--kenar-koyu), -10px 12px 10px -4px var(--sayfa-blok-golge);
+  /* Light catches the page where it bulges before curling into the spine. */
+  background-image: linear-gradient(to right, var(--saydam) 97%, var(--oluk-derin) 100%), linear-gradient(to right, var(--saydam) 70%, var(--kabarma) 84%, var(--saydam) 92%), linear-gradient(to right, var(--dis), var(--saydam) 6%, var(--saydam) 86%, var(--oluk1) 95%, var(--oluk2) 100%), var(--isik-sol);
+}
+.kitap-sayfa-sag {
+  border-radius: 110px 3px 3px 110px / 7px 3px 3px 7px;
+  box-shadow: 1px 1px 0 var(--sayfa2), 2px 2px 0 var(--kenar-koyu), 3px 3px 0 var(--sayfa2), 4px 4px 0 var(--kenar-koyu), 5px 5px 0 var(--sayfa2), 6px 6px 0 var(--kenar-koyu), 7px 7px 0 var(--sayfa2), 8px 8px 0 var(--kenar-koyu), 9px 9px 0 var(--sayfa2), 10px 10px 0 var(--kenar-koyu), 10px 12px 10px -4px var(--sayfa-blok-golge);
+  background-image: linear-gradient(to left, var(--saydam) 97%, var(--oluk-derin) 100%), linear-gradient(to left, var(--saydam) 70%, var(--kabarma) 84%, var(--saydam) 92%), linear-gradient(to left, var(--dis), var(--saydam) 6%, var(--saydam) 86%, var(--oluk1) 95%, var(--oluk2) 100%), var(--isik-sag);
+}
+/* Paper grain: a 256px tile repeated, not a page-wide filter (Kadir, 13 Nov 2026). */
+.kitap-tane {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: var(--tane);
+  background-size: 256px 256px;
+  opacity: var(--tane-opaklik);
+  mix-blend-mode: var(--tane-karisim);
+}
+.kitap-sayfa-ic { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: var(--sayfa-ic); }
+.kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-sag); }
+/* Ribbon: the body stretches with the book (an S-curve with one twist), the tail hangs below it; centred on the spine. */
+.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 44px); width: var(--kurdele-en); transform: translateX(calc(var(--kurdele-en) * -0.5)); z-index: 3; pointer-events: none; }
+/* Drawn at the measured size of its box (no stretching), so the curve and the bend keep their shape. */
+.kitap-kurdele-govde { display: block; width: 100%; height: 100%; overflow: visible; }
+.kitap-kurdele-kisa { display: none; }
+.kitap-kapitalbant { position: absolute; left: calc(var(--kurdele-en) * 0.5 - 13px); top: -4px; }
+
+/* Reading lamp (T7) clamped on the top edge over the spine; it grows with the book (--lamba-en). Its light is still
+   (review 11) and its halo sits under the shade, since a shaded bulb throws its light down (review 13). */
+/* The clamp sits on the cover edge (66px down; 0.78 of the lamp width into the drawing); the bulb is over the spine. */
+.kitap-lamba { position: absolute; top: calc(66px - var(--lamba-en) * 0.78); left: calc(50% - var(--lamba-en) * 0.692); width: var(--lamba-en); height: calc(var(--lamba-en) * 1.1); z-index: 6; pointer-events: none; }
+.kitap-lamba-cizim { position: relative; display: block; width: 100%; height: 100%; }
+.kitap-lamba-hale {
+  position: absolute;
+  left: calc(var(--lamba-en) * 0.692 - var(--lamba-en) * 1.2);
+  top: calc(var(--lamba-en) * 0.725 - var(--lamba-en) * 0.95);
+  width: calc(var(--lamba-en) * 2.4);
+  height: calc(var(--lamba-en) * 1.9);
+  border-radius: 50%;
+  background: var(--lamba-hale);
+  mix-blend-mode: screen;
+}
+/* The beam: a soft cone from the bulb down onto the top of the pages. */
+.kitap-lamba-huzme {
+  position: absolute;
+  left: calc(var(--lamba-en) * 0.692 - var(--lamba-en) * 3.4);
+  top: calc(var(--lamba-en) * 0.592);
+  width: calc(var(--lamba-en) * 6.8);
+  height: calc(var(--lamba-en) * 5);
+  background: var(--lamba-huzme);
+  mix-blend-mode: screen;
+  /* A cone that widens from the bulb (round 3: soft sides, no straight edge): a conic mask whose sides fade over
+     14 degrees, met with a top-to-bottom fade so it starts under the shade and dies out on the pages. */
+  -webkit-mask-image: conic-gradient(from 150deg at 50% 0, transparent 0deg, var(--sayfa) 14deg, var(--sayfa) 46deg, transparent 60deg), linear-gradient(to bottom, transparent 0, var(--sayfa) 18%, var(--sayfa) 55%, transparent 100%);
+  mask-image: conic-gradient(from 150deg at 50% 0, transparent 0deg, var(--sayfa) 14deg, var(--sayfa) 46deg, transparent 60deg), linear-gradient(to bottom, transparent 0, var(--sayfa) 18%, var(--sayfa) 55%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+.kitap-sayfa-no { position: absolute; bottom: 11px; margin: 0; font-size: var(--sayfa-no-boy); color: var(--soluk); }
+.kitap-sayfa-sol .kitap-sayfa-no { left: 48px; }
+.kitap-sayfa-sag .kitap-sayfa-no { right: 48px; }
+
+/* Bookmark tabs over the top edge of the right page. */
+/* top: the closed tabs end on the page top (78px); the open one is 3px taller (ui-polish 7), so the row starts 3px higher. */
+.kitap-ayraclar {
+  position: absolute;
+  top: 31px;
+  right: 92px;
+  z-index: 4;
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+.kitap-ayrac {
+  height: var(--dokunma);
+  box-sizing: border-box;
+  padding: 0 15px;
+  font-family: var(--kitap-yazi);
+  font-size: var(--ayrac-boy);
+  font-weight: 400;
+  color: var(--soluk);
+  background: var(--sayfa2);
+  border: 1px solid var(--cizgi);
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  background-image: var(--tane);
+  background-size: 256px 256px;
+  background-blend-mode: var(--tane-karisim);
+  box-shadow: var(--golge-ayrac), inset 0 1px 0 var(--kabarma);
+}
+.kitap-ayrac:hover { color: var(--murekkep); }
+/* The open tab is the page itself (ui-polish 7): page colour, 3px taller than the rest and 2px down over the page edge,
+   so no cloth shows under it; told the same way in all three themes (not by weight). */
+.kitap-ayrac[data-state='active'] { background-color: var(--sayfa); color: var(--murekkep); box-shadow: inset 0 1px 0 var(--kabarma); height: calc(var(--dokunma) + 5px); margin-bottom: -2px; position: relative; z-index: 1; }
+
+/* ---------- Text on the page ---------- */
+/* A scrolled page fades its top line out instead of cutting it (as in the draft). */
+.kitap-akis { -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 3px, var(--sayfa) 20px); mask-image: linear-gradient(to bottom, transparent 0, transparent 3px, var(--sayfa) 20px); flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--cizgi) var(--saydam); display: flex; flex-direction: column; gap: 11px; padding: var(--bosluk-5) 0 10px; }
+/* Lines keep their height in the scrolling page (as in the draft): a long story scrolls, its first lines do not
+   slide under the heading (measured at 800px). */
+.kitap-akis > * { flex: 0 0 auto; }
+/* Lines outside a margin row keep the same column: 22em of the body text, as --sutun-metin in .kitap-satir (ui-polish 3). */
+.kitap-akis > .kitap-p, .kitap-akis > .kitap-soz { box-sizing: border-box; max-width: calc(var(--govde) * 22); }
+/* The text column stays near 45 letters (22em); the margin column takes what a wide book adds. */
+.kitap-satir { font-size: var(--govde); display: grid; grid-template-columns: minmax(0, var(--sutun-metin)) minmax(var(--sutun-kenar), 1fr); column-gap: var(--bosluk-5); align-items: start; }
+/* Ink sits a hair into the paper. */
+.kitap-p { margin: 0; font-size: var(--govde); line-height: 1.55; text-wrap: pretty; text-shadow: var(--murekkep-golge); }
+.kitap-ilk::first-letter { float: left; font-size: 2.95em; line-height: 0.8; font-weight: 600; padding: 6px 6px 0 0; }
+.kitap-soz { margin: 0; padding-left: 26px; font-family: var(--el-aile); font-size: var(--el); line-height: 1.34; text-shadow: var(--murekkep-golge); }
+.kitap-soz-silik { text-decoration: line-through; text-decoration-thickness: 1px; }
+.kitap-kenar-metin { margin: 0; font-style: italic; font-size: var(--kenar-boy); line-height: 1.4; color: var(--hakem); }
+.kitap-ad { border-bottom: 1px dotted var(--soluk); }
+.kitap-etiket { margin: 0; font-size: var(--etiket-boy); color: var(--soluk); }
+.kitap-el { font-family: var(--el-aile); font-size: var(--el); line-height: 1.3; }
+
+/* ---------- Headings ---------- */
+.kitap-bolum-2 { display: flex; justify-content: space-between; align-items: baseline; gap: var(--bosluk-4); border-bottom: 3px double var(--cizgi); padding-bottom: 10px; }
+.kitap-bolum-2 .kitap-bolum-baslik { margin: 0; font-size: var(--baslik-boy); font-weight: 500; font-style: italic; line-height: 1.2; }
+.kitap-bolum-3 .kitap-bolum-baslik { margin: 0; font-size: var(--etiket-boy); font-weight: 400; color: var(--soluk); }
+.kitap-bolum-yan { margin: 0; font-size: var(--kenar-boy); color: var(--soluk); }
+.kitap-bolum-yan:empty { display: none; }
+
+/* ---------- Buttons ---------- */
+.kitap-dugme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  box-sizing: border-box;
+  min-height: var(--dokunma);
+  min-width: var(--dokunma);
+  height: var(--dokunma);
+  padding: 0 var(--bosluk-4);
+  font-family: var(--kitap-yazi);
+  font-size: var(--dugme-boy);
+  font-weight: 400;
+  border-radius: var(--kose);
+  border: 1px solid var(--cizgi);
+  background: none;
+  color: var(--murekkep);
+  box-shadow: none;
+  cursor: pointer;
+}
+.kitap-dugme svg { width: 18px; height: 18px; }
+.kitap-dugme:hover { background: none; border-color: var(--soluk); color: var(--murekkep); }
+.kitap-dugme-ana { background: var(--murekkep); border-color: var(--murekkep); color: var(--sayfa); padding: 0 18px; box-shadow: var(--dugme-parlama); }
+/* Pressed: the button sinks a pixel (A0-10); instant, so it is no motion. */
+.kitap-dugme:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+.kitap-dugme-ana:hover { background: var(--soluk); border-color: var(--soluk); color: var(--sayfa); }
+.kitap-dugme-kare { width: var(--dokunma); padding: 0; }
+.kitap-dugme-kare[data-state='on'] { background: var(--murekkep); border-color: var(--murekkep); color: var(--sayfa); }
+.kitap-dugme-masa { font-size: var(--etiket-boy); padding: 0 var(--bosluk-3); color: var(--masa-yazi); border-color: var(--saydam); border-radius: 4px; }
+.kitap-dugme-masa:hover, .kitap-dugme-masa[data-state='open'] { color: var(--masa-yazi); border-color: var(--masa-yazi); }
+/* Disabled keeps readable text (contrast is measured): no fill, dashed rule, soft ink. */
+.kitap-dugme:disabled, .kitap-dugme[data-disabled] { opacity: 1; background: none; color: var(--soluk); border-color: var(--soluk); border-style: dashed; cursor: not-allowed; }
+
+/* One focus look everywhere: a 2px ink ring; on the desk the desk text colour. .kitap-odak-goster shows it in the gallery. */
+.kitap-dugme:focus-visible, .kitap-ayrac:focus-visible, .kitap-secenek:focus-visible, .kitap-liste:focus-visible,
+.kitap-onay-kutu:focus-visible, .kitap-anahtar:focus-visible, .kitap-sayi-girdi:focus-visible, .kitap-yaz-girdi:focus-visible,
+.kitap-kart:has(:focus-visible), .kitap-odak-goster {
+  outline: 2px solid var(--murekkep);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+.kitap-dugme-masa:focus-visible, .kitap-masa-ust .kitap-odak-goster { outline-color: var(--masa-yazi); }
+/* Tabs stand on the dark desk: the ring goes inside the tab, on its paper. */
+.kitap-ayrac:focus-visible { outline-offset: -5px; box-shadow: 0 0 0 2px var(--masa-yazi); }
+
+/* ---------- Choice groups ---------- */
+.kitap-secici-kutu { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; justify-content: stretch; }
+.kitap-secici-gorunum { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kitap-secici-gorunum > :first-child { grid-column: 1 / -1; }
+.kitap-secici-kutu .kitap-secenek {
+  height: var(--dokunma);
+  min-width: var(--dokunma);
+  padding: 0 6px;
+  font-family: var(--kitap-yazi);
+  font-size: var(--kenar-boy);
+  font-weight: 400;
+  color: var(--murekkep);
+  background: none;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--kose);
+}
+.kitap-secici-kutu .kitap-secenek:hover { background: none; color: var(--murekkep); border-color: var(--soluk); }
+.kitap-secici-kutu .kitap-secenek[data-state='on'] { background: var(--murekkep); color: var(--sayfa); border-color: var(--murekkep); }
+.kitap-secici-cizgi { display: flex; justify-content: flex-start; gap: var(--bosluk-1); }
+.kitap-secici-cizgi .kitap-secenek {
+  height: var(--dokunma);
+  padding: 0 10px;
+  font-family: var(--kitap-yazi);
+  font-size: var(--kenar-boy);
+  font-weight: 400;
+  color: var(--soluk);
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--saydam);
+  border-radius: 0;
+}
+.kitap-secici-cizgi .kitap-secenek:hover { background: none; color: var(--murekkep); }
+.kitap-secici-cizgi .kitap-secenek[data-state='on'] { background: none; color: var(--murekkep); border-bottom-color: var(--murekkep); }
+.kitap-secenek:disabled { opacity: 1; color: var(--soluk); border-style: dashed; }
+.kitap-el-ornek { font-family: var(--el-aile); font-size: calc(var(--elb) * 0.9); }
+
+/* ---------- Settings window ---------- */
+.kitap-pusula {
+  width: 304px;
+  box-sizing: border-box;
+  padding: var(--bosluk-4) 18px 18px;
+  background: var(--sayfa);
+  color: var(--murekkep);
+  border: 1px solid var(--cizgi);
+  border-radius: 2px;
+  box-shadow: var(--golge-pencere);
+  font-family: var(--kitap-yazi);
+}
+.kitap-arayuz { display: flex; flex-direction: column; gap: 10px; }
+.kitap-arayuz-baslik { margin: 0 0 var(--bosluk-1); padding-bottom: var(--bosluk-2); font-size: 21px; font-weight: 500; font-style: italic; border-bottom: 3px double var(--cizgi); }
+
+/* ---------- Fields ---------- */
+.kitap-alan { display: flex; flex-direction: column; gap: 2px; min-width: 64px; }
+.kitap-liste {
+  height: var(--dokunma);
+  box-sizing: border-box;
+  padding: 0 var(--bosluk-3);
+  font-family: var(--kitap-yazi);
+  font-size: var(--kenar-boy);
+  color: var(--murekkep);
+  background: none;
+  border: 1px solid var(--cizgi);
+  border-radius: var(--kose);
+  box-shadow: none;
+}
+.kitap-liste[data-placeholder] { color: var(--soluk); }
+.kitap-liste:disabled { opacity: 1; color: var(--soluk); border-style: dashed; }
+.kitap-liste-icerik { background: var(--sayfa); color: var(--murekkep); border: 1px solid var(--cizgi); border-radius: var(--kose); box-shadow: var(--golge-pencere); font-family: var(--kitap-yazi); }
+.kitap-liste-oge { min-height: var(--dokunma); font-size: var(--kenar-boy); color: var(--murekkep); }
+.kitap-liste-oge[data-highlighted] { background: var(--sayfa2); color: var(--murekkep); }
+/* The whole row is the touch target (review 9): the label wraps the control. */
+.kitap-onay { display: inline-flex; align-items: center; gap: var(--bosluk-3); min-height: var(--dokunma); padding-right: var(--bosluk-2); font-size: var(--kenar-boy); cursor: pointer; }
+.kitap-onay-kutu { width: 22px; height: 22px; border: 1.5px solid var(--murekkep); border-radius: var(--kose); background: none; color: var(--sayfa); box-shadow: none; }
+.kitap-onay-kutu[data-state='checked'] { background: var(--murekkep); color: var(--sayfa); }
+.kitap-onay-kutu:disabled, .kitap-anahtar:disabled { opacity: 1; border-style: dashed; border-color: var(--soluk); }
+.kitap-onay-kutu:disabled[data-state='checked'] { background: none; color: var(--soluk); }
+.kitap-onay-kutu:disabled + span, .kitap-anahtar:disabled + span { color: var(--soluk); cursor: not-allowed; }
+.kitap-anahtar { width: 46px; height: 26px; border: 1.5px solid var(--soluk); background: none; box-shadow: none; }
+.kitap-anahtar > span { width: 18px; height: 18px; background: var(--soluk); box-shadow: none; }
+.kitap-anahtar[data-state='checked'] { background: var(--murekkep); border-color: var(--murekkep); }
+.kitap-anahtar[data-state='checked'] > span { background: var(--sayfa); }
+.kitap-sayi-girdi {
+  width: 72px;
+  height: var(--dokunma);
+  padding: 0 2px;
+  font-family: var(--el-aile);
+  font-size: calc(var(--el) * 1.35);
+  color: var(--murekkep);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--mum);
+  border-radius: 0;
+  box-shadow: none;
+}
+.kitap-sayi-girdi::placeholder { color: var(--soluk); opacity: 1; }
+.kitap-sayi-girdi[aria-invalid='true'] { border-bottom: 3px double var(--murekkep); }
+.kitap-sayi-girdi:disabled { opacity: 1; color: var(--soluk); border-bottom: 1px dashed var(--soluk); }
+.kitap-alan-hata { margin: 0; font-style: italic; font-size: var(--kenar-boy); color: var(--hakem); }
+/* The error is not told by colour alone (round 3): a mark stands before it. */
+.kitap-alan-hata-simge { display: inline-block; width: 14px; height: 14px; margin-right: 5px; vertical-align: -2px; }
+
+/* ---------- Choice cards ---------- */
+.kitap-kartlar { display: grid; gap: 0; }
+.kitap-kart {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: start;
+  min-height: 58px;
+  padding: var(--bosluk-2) 0;
+  border-bottom: 1px solid var(--cizgi);
+  cursor: pointer;
+}
+.kitap-kart:hover { border-bottom-color: var(--soluk); }
+.kitap-kart-secili { border-bottom-color: var(--murekkep); padding-bottom: 13px; }
+.kitap-kart-radyo { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; }
+.kitap-kart-damga { display: flex; padding-top: 2px; }
+.kitap-kart-metin { display: flex; flex-direction: column; gap: 2px; }
+.kitap-kart-baslik { font-size: 21px; font-weight: 600; }
+.kitap-kart-aciklama { font-size: var(--kenar-boy); color: var(--soluk); }
+.kitap-kart-secili .kitap-kart-aciklama { color: var(--murekkep); }
+.kitap-kart-ayrinti { font-style: italic; font-size: var(--kenar-boy); color: var(--hakem); }
+.kitap-kartlar[data-disabled] .kitap-kart { cursor: not-allowed; border-bottom-style: dashed; }
+
+/* ---------- Counter, badge, empty, loading ---------- */
+.kitap-sayac { display: inline-flex; align-items: center; gap: var(--bosluk-2); }
+.kitap-sayac .kitap-etiket { margin-right: var(--bosluk-2); }
+.kitap-sayac-deger { min-width: 2ch; text-align: center; font-family: var(--el-aile); font-size: calc(var(--el) * 1.2); }
+.kitap-rozet { padding: 2px var(--bosluk-2); font-family: var(--kitap-yazi); font-size: var(--etiket-boy); font-weight: 400; color: var(--soluk); background: none; border: 1px solid var(--cizgi); border-radius: var(--kose); }
+/* No gold frame (draft rule 7: no gold-framed boxes): an italic word with a thin rule under it. */
+/* A margin note (ui-polish 5): italic in the margin ink; no underline, so it does not read as a link. */
+.kitap-rozet-yeni { color: var(--hakem); border: none; padding: 0; font-size: var(--kenar-boy); font-style: italic; text-decoration: none; }
+.kitap-rozet-hakem { color: var(--hakem); border-color: var(--hakem); font-style: italic; }
+.kitap-bos { display: block; padding: 0; border: none; text-align: left; gap: 0; }
+.kitap-cizgili { height: calc(var(--satir) * 36px); background-image: repeating-linear-gradient(to bottom, var(--saydam) 0, var(--saydam) 35px, var(--cizgi) 35px, var(--cizgi) 36px); }
+.kitap-yukleniyor { display: inline-flex; align-items: center; gap: var(--bosluk-2); font-style: italic; font-size: var(--kenar-boy); color: var(--soluk); }
+.kitap-yukleniyor-isaret { width: 18px; height: 18px; }
+
+/* ---------- Hint, window, notice ---------- */
+.kitap-ipucu { padding: 6px 10px; font-family: var(--kitap-yazi); font-size: var(--etiket-boy); color: var(--murekkep); background: var(--sayfa); border: 1px solid var(--cizgi); border-radius: var(--kose); box-shadow: var(--golge-pencere); }
+.kitap-perde { background: var(--perde); }
+.kitap-pencere {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 32px));
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--sayfa);
+  color: var(--murekkep);
+  border: 1px solid var(--cizgi);
+  border-radius: var(--kose);
+  box-shadow: var(--golge-pencere);
+  font-family: var(--kitap-yazi);
+}
+.kitap-pencere-bas { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--bosluk-3); padding: var(--bosluk-3) var(--bosluk-3) 10px var(--bosluk-5); border-bottom: 3px double var(--cizgi); background: var(--sayfa); }
+.kitap-pencere-baslik { margin: 0; font-size: 22px; font-weight: 500; font-style: italic; }
+.kitap-pencere-govde { flex: 1 1 auto; min-height: 0; }
+.kitap-pencere-govde > [data-radix-scroll-area-viewport] { max-height: calc(85dvh - 72px); padding: var(--bosluk-4) var(--bosluk-5); box-sizing: border-box; }
+.kitap-pencere-govde [data-orientation='vertical'] > div { background: var(--cizgi); }
+[data-sonner-toaster].kitap-bildirimler { --normal-bg: var(--sayfa); --normal-text: var(--murekkep); --normal-border: var(--cizgi); --width: 300px; font-family: var(--kitap-yazi); }
+[data-sonner-toaster].kitap-bildirimler .kitap-bildirim { font-size: var(--kenar-boy); font-style: italic; border-radius: var(--kose); box-shadow: var(--bildirim-golge); }
+
+/* ---------- Writing line ---------- */
+.kitap-yaz { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--cizgi); padding-top: 10px; }
+.kitap-yaz-sira { display: flex; align-items: center; gap: 10px; }
+.kitap-kalem-ucu { flex: 0 0 auto; }
+.kitap-yaz-girdi {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 50px;
+  max-height: 40dvh;
+  box-sizing: border-box;
+  padding: 10px 2px 0;
+  resize: none;
+  overflow-y: auto;
+  font-family: var(--el-aile);
+  font-size: calc(var(--el) * 1.09);
+  line-height: 1.3;
+  color: var(--murekkep);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--mum);
+  border-radius: 0;
+  box-shadow: none;
+}
+.kitap-yaz-girdi::placeholder { color: var(--soluk); opacity: 1; }
+.kitap-yaz-girdi:disabled { opacity: 1; color: var(--soluk); border-bottom-style: dashed; }
+.kitap-kipler { margin-left: 48px; }
+.kitap-gonder-simge { display: none; }
+
+/* ---------- Narrow screen: one page (G6) ---------- */
+@media (max-width: 767px) {
+  .kitap-masa { padding: 56px 5px 5px; }
+  .kitap-masa-ust { left: auto; right: 8px; top: 6px; }
+  .kitap-masa-ust .kitap-dugme-masa { width: var(--dokunma); padding: 0; }
+  .kitap-masa-ust .kitap-dugme-masa .kitap-dar-gizli { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .kitap-cilt { height: calc(100dvh - 61px); min-height: 600px; padding: 8px 8px 11px 8px; }
+  .kitap-darda-gizli { display: none; }
+  .kitap-sayfa-sol, .kitap-sayfa-sag {
+    border-radius: 90px 3px 3px 90px / 6px 3px 3px 6px;
+    box-shadow: 2px 2px 0 var(--sayfa2), 3px 3px 0 var(--kenar-koyu), 5px 5px 0 var(--sayfa2), 6px 6px 0 var(--kenar-koyu);
+    background-image: linear-gradient(to left, var(--saydam) 0, var(--saydam) 86%, var(--oluk1) 95%, var(--oluk2) 100%), var(--isik-sag);
+  }
+  .kitap-sayfa-ic, .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-tek); }
+  /* Phone (review 1; round 3): the tail comes out from under the page (z-index -1 puts it under the paper) and
+     hangs over the cover edge onto the desk. */
+  .kitap-kurdele { left: 26px; top: auto; bottom: -14px; width: 22px; height: auto; transform: none; z-index: -1; }
+  .kitap-kurdele-govde { display: none; }
+  .kitap-kurdele-kisa { display: block; }
+  .kitap-kapitalbant { display: none; }
+  /* G6 (Kadir's call): no lamp on the phone yet. */
+  .kitap-lamba { display: none; }
+  .kitap-ayraclar { top: 9px; left: 13px; right: auto; gap: 2px; }
+  /* Five tabs and the 44px theme button must not overlap at 390px (measured: tabs ended 12px under the button). */
+  .kitap-ayrac { padding: 0 6px; font-size: 14px; }
+  .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
+  .kitap-satir > .kitap-kenar-metin { padding-left: 26px; }
+  .kitap-sayfa-sol .kitap-sayfa-no, .kitap-sayfa-sag .kitap-sayfa-no { right: 20px; left: auto; }
+  .kitap-kipler { margin-left: 48px; }
+  /* Phone: Gönder becomes a 44px return key (target 11); the word stays for screen readers. */
+  .kitap-yaz .kitap-dugme-ana { width: var(--dokunma); padding: 0; }
+  .kitap-gonder-simge { display: block; }
+  .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* Very narrow phones (360px): the tabs shrink a little more so they clear the theme button. */
+@media (max-width: 374px) {
+  .kitap-ayrac { padding: 0 4px; font-size: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kitap-yukleniyor-isaret { animation: none; }
+}
+
+/* Narrow desktop (review 2): no room for the lamp between the desk buttons and the tabs; the tabs move in a little. */
+@media (min-width: 768px) and (max-width: 1179px) {
+  .kitap-lamba { display: none; }
+  /* The tabs end over the right page, short of its outer edge (ui-polish 8; measured at 768px they ran past it). */
+  .kitap-ayraclar { right: 52px; }
+  .kitap-ayrac { padding: 0 10px; }
+  .kitap-sayfa-sol .kitap-sayfa-no { left: 32px; }
+  .kitap-sayfa-sag .kitap-sayfa-no { right: 32px; }
+  /* A page is ~270-420px wide here: a 150px margin column squeezed the text to four words (measured at 800px). */
+  .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
+  .kitap-satir > .kitap-kenar-metin { padding-left: 26px; }
+  /* Round 3 (measured at 800px): "Ne yapıyorsun?" broke inside a word and "Gönder" spilled; as on the phone, Gönder
+     is the 44px return key (the word stays for screen readers) and the modes keep one line. */
+  .kitap-yaz .kitap-dugme-ana { width: var(--dokunma); padding: 0; }
+  .kitap-gonder-simge { display: block; }
+  .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .kitap-kipler { margin-left: 26px; white-space: nowrap; }
+  .kitap-kipler .kitap-secenek { padding: 0 8px; }
+}
+
+/* The narrowest two-page books: five tabs fit between the ribbon and the page edge only a little smaller. */
+@media (min-width: 768px) and (max-width: 959px) {
+  .kitap-ayrac { padding: 0 5px; font-size: 13px; }
+}
+
+/* Narrow pages, phone included (ui-polish 12 and 15): the date goes under the heading; the page opens on its last
+   lines, so its top fades over a longer stretch, with room above the first line when it is not scrolled. */
+@media (max-width: 1179px) {
+  .kitap-bolum-2 { flex-direction: column; align-items: flex-start; gap: 2px; }
+  /* The writing field keeps "Ne yapıyorsun?" on one line down to 360px and at 768px in "Büyük" (measured; ui-polish 2):
+     a smaller pen nib and tighter gaps. */
+  .kitap-yaz-sira { gap: 6px; }
+  .kitap-kalem-ucu { width: 28px; height: 28px; }
+  .kitap-akis { -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 6px, var(--sayfa) 34px); mask-image: linear-gradient(to bottom, transparent 0, transparent 6px, var(--sayfa) 34px); padding-top: 28px; }
+}
+
+/* ---------- Gallery page (development only) ---------- */
+.kitap-galeri { min-height: 100dvh; background: var(--masa); color: var(--murekkep); font-family: var(--kitap-yazi); }
+.kitap-gizli { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.kitap-ayrac-icerik { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; margin: 0; }
+.kitap-ayrac-icerik[hidden] { display: none; }
+.kitap-ayrac-icerik:focus-visible { outline: 2px solid var(--murekkep); outline-offset: 3px; }
+.kitap-kucuk-bas { font-size: var(--kenar-boy); color: var(--soluk); }
+.kitap-galeri-set {
+  position: relative;
+  max-width: 1860px;
+  margin: var(--bosluk-6) auto 0;
+  box-sizing: border-box;
+  padding: var(--bosluk-6) var(--bosluk-7) var(--bosluk-7);
+  background-color: var(--sayfa);
+  border-radius: var(--kose);
+  box-shadow: var(--golge-cilt);
+}
+.kitap-galeri-set > :not(.kitap-tane) { position: relative; }
+.kitap-galeri .kitap-galeri-set { margin: var(--bosluk-6) 44px var(--bosluk-7); }
+.kitap-parca { display: flex; flex-direction: column; gap: var(--bosluk-3); padding: var(--bosluk-5) 0; border-bottom: 1px solid var(--cizgi); }
+.kitap-parca-ornekler { display: flex; flex-wrap: wrap; gap: var(--bosluk-5) var(--bosluk-7); align-items: flex-start; }
+.kitap-ornek { display: flex; flex-direction: column; gap: var(--bosluk-2); min-width: 0; max-width: 100%; }
+.kitap-ornek-ad { margin: 0; font-size: var(--etiket-boy); font-style: italic; color: var(--soluk); }
+.kitap-ornek-ic { display: flex; flex-wrap: wrap; gap: var(--bosluk-3); align-items: center; min-width: 0; }
+.kitap-ornek .kitap-arayuz { width: 304px; max-width: 100%; }
+.kitap-ornek .kitap-kartlar { width: 340px; max-width: 100%; }
+.kitap-ornek .kitap-yaz { width: 560px; max-width: 100%; }
+.kitap-ornek .kitap-bos { width: 320px; max-width: 100%; }
+.kitap-ornek-sutun { display: flex; flex-direction: column; gap: var(--bosluk-4); width: 360px; max-width: 100%; }
+@media (max-width: 767px) {
+  .kitap-dar-yok { display: none; }
+  .kitap-galeri .kitap-galeri-set { margin: var(--bosluk-4) 5px var(--bosluk-6); padding: var(--bosluk-4) var(--bosluk-4) var(--bosluk-6); }
+}
