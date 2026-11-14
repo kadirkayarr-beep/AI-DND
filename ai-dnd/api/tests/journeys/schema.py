@@ -49,6 +49,7 @@ EXPECT_KEYS = frozenset(
         "zirh",
         "varis",
         "seviye",
+        "zar",
     }
 )
 
@@ -71,7 +72,7 @@ _TRUE_ACTIONS = ("undo", "reload")
 # Expectations compared as a subset when both sides are mappings: the step names
 # only the fields it cares about (the observed card, counter offer, mode or purse
 # list carries more; ``gorev`` may name only ``aktif`` when a row's title is drawn at random).
-_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese", "gorev", "olay", "varis"})
+_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese", "gorev", "olay", "varis", "zar"})
 _TEXT_CHECKS = frozenset({"yasak_metin", "gerekli_metin"})
 
 
@@ -126,6 +127,7 @@ EXPECT_VALUE_RULES = {
     "kip": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
     "kart": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
     "tezgah": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
+    "zar": (_or_none(_filled_mapping), "boş olmayan nesne ya da null (null: turda zar kartı yok)"),
     "yuva": (_or_none(lambda value: isinstance(value, dict)), "nesne ya da null"),
     "konum": (_or_none(lambda value: isinstance(value, str) and bool(value)), "boş olmayan metin ya da null"),
     "olu": (_or_none(lambda value: isinstance(value, str) and bool(value)), "boş olmayan metin ya da null"),

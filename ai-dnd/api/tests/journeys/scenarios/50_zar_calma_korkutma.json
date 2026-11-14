@@ -1,0 +1,99 @@
+{
+  "id": "50_zar_calma_korkutma",
+  "title": "Zar motorun işi (D-094, D-099, D-098; Q17 'motor hakem, model yazar'; Kadir'in 2026-11-14 oynayışı, ön okuma bir şey bulmaz): muhafızın kesesini 'zar atıyorum' diyerek çalmak ve muhafızı korkutmak her zaman bir zar kartı gösterir (el çabukluğu, gözdağı); sonucu zar belirler, anlatıcı değil; 'üstünü inceliyorum' zarsızdır ama kısa bir 'Anladım.' ile geçilmez, muhafızın üstünün betimlemesi gelir",
+  "source_items": [
+    94,
+    98,
+    99
+  ],
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 60
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 5001,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "kesesini fark ettirmeden çalmak için zar atıyorum",
+      "script": {
+        "front": {
+          "kind": "unclear"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "failure",
+          "zar_var": true
+        },
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        },
+        "gerekli_metin": [
+          "bileğini yakalıyor"
+        ]
+      }
+    },
+    {
+      "say": "muhafızı korkutmaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "kavsim"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Intimidation",
+          "zar_var": true,
+          "sonuc": "failure"
+        },
+        "yasak_metin": [
+          "Anladım.",
+          "Hı. Duydum.",
+          "Devam et, dinliyorum.",
+          "Sen bilirsin.",
+          "Peki.",
+          "Bak sen."
+        ]
+      }
+    },
+    {
+      "say": "muhafızın üstünü inceliyorum",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "kavsim"
+        },
+        "narration": "Kavşim dik duruyor; yüzünde yorgun ama dikkatli bir ifade var, zırhı yıllanmış bir deri gibi çizik içinde."
+      },
+      "expect": {
+        "zar": null,
+        "gerekli_metin": [
+          "yorgun ama dikkatli"
+        ],
+        "yasak_metin": [
+          "Anladım.",
+          "Hı. Duydum.",
+          "Devam et, dinliyorum.",
+          "Sen bilirsin.",
+          "Peki.",
+          "Bak sen."
+        ]
+      }
+    }
+  ]
+}

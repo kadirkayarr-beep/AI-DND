@@ -23,9 +23,31 @@ _STEAL = re.compile(
     r"\b(?:asir\w*|yurut\w*|yagmal\w*|calacag\w*|kapip\b|kistir\w*|el at\w*|arakl\w*|"
     r"keserek al\w*|kesip al\w*|cekip al\w*|sessizce cek\w*|indirip\b.*\bsakl\w*|cal(?:iyorum|ip|ayim|dim))"
 )
+# D-094: an open try to steal, whatever the reading made of the line: a present, first-person, finished sentence that
+# names something a person carries. Past ("çalıştım"), future, reported, quoted, somebody else's act, a plan, a wish
+# that goes on ("... ama vazgeçiyorum") and every "çalmak" that is no theft (a whistle, a bell, a heart) never match.
+_STEAL_TRY = re.compile(
+    r"\b(?:kese\w*|cebi\w*|cep(?:te|ten|teki)?|cuzdan\w*|yuzu[kg]\w*|kolye\w*|bica[kg]\w*|hancer\w*|anahtar\w*|parasi\w*)\s+(?:\w+\s+){0,3}?"
+    r"cal(?:maya\s+calisiyorum|may[ii]\s+deniyorum|mak\s+icin\s+(?:(?:\w+\s+){0,3}?zar\w*\s+atiyorum|deniyorum"
+    r"|yaklasiyorum|elimi\s+uzatiyorum))$"
+)
+# A wish or plan, a time or a condition, speech, a refusal, somebody else's purse or friend, an attack: not a try now.
+_NOT_NOW = re.compile(
+    r"\b(?:yarin|sonra|once|eger|degil|ama|ancak|yoksa|diyorum|soyluyorum|fisildiyorum|diye|keske|belki|sanki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*|kesemi|cebimi|cuzdanimi|"
+    r"keseni|cebini|arkadasim|dostum|ortagim|saldir\w*|vur\w*|oldur\w*|kilic\w*|bicakla\w*|hancerle\w*|bogazla\w*|tekmele\w*|yumrukla\w*|sapla\w*|des(?:ip|erek))\b|\w{2,}(?:unca|ince|inca|unce|sam|sem)\b"
+)
+# Any "...ip/-up/-arak/-erek" deed before the purse ("boğup", "yere serip", "kesip") makes it more than a pickpocket; a
+# quiet approach does not.
+_FIRST_DEED = re.compile(
+    r"\b(?!(?:yaklasip|karisip|sokulup|carpip|itip|egilip|uzanip|yanasip|sinsip)\b)\w{2,}(?:ip|up|arak|erek)\b")
+_NOT_A_TRY = re.compile(
+    r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"
+    r"kaval|boru|alarm|kalp|dikkat)\w*\s+cal(?:mak|maya)"
+)
 # "Zili çalıyorum", "kapıyı çalıyorum", "flüt çalıyorum" are not theft.
 _NOT_STOLEN = re.compile(
-    r"\b(?:(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz)\w*|can[ia]?)\b.*\bcal(?:iyorum|ip)"
+    r"\b(?:(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz)\w*|can[ia]?)\b"
+    r".*\bcal(?:iyorum|ip)"
 )
 _ASKS = re.compile(r"\b(?:mi|mu|ne olur)\W*$")  # the owner leaves the question mark out
 _DISTRACTED = re.compile(r"\w+(?:ken|[iu]nc[ae])\b")  # 'bakarken', 'dönünce': the eye is elsewhere
@@ -51,11 +73,37 @@ def fold(session, text: str) -> str:
     return session._normalize_turkish_typos(text)
 
 
+def _bare(session, text: str) -> str:
+    """The words outside any quotes, folded, one space apart and with no punctuation: what a sentence-end rule reads."""
+    import living_world
+    return " ".join(re.findall(r"\w+", fold(session, living_world._text_outside_quotes(text))))
+
+
+def _tries_to_steal(session, text: Any) -> bool:
+    import living_world
+    if not isinstance(text, str):
+        return False
+    if getattr(session, "_front_kind", None) in {"speak_to", "say"}:
+        return False  # the reading heard words to somebody: "... kesesini çalmak için zar atıyorum" said to a guard
+    if ":" in text:
+        return False  # "Muhafız: kesesini çalmaya çalışıyorum" is somebody else's line
+    import game
+    if game._has_explicit_attack_verb(living_world._text_outside_quotes(text)):
+        return False  # a blow first: the attack route owns the line (HEAD behaviour)
+    bare = _bare(session, text)
+    tried = _STEAL_TRY.search(bare)
+    if not tried or _NOT_A_TRY.search(bare) or _NOT_NOW.search(bare):
+        return False
+    return not _FIRST_DEED.search(bare[:tried.start()])  # "boğup kesesini çalmaya çalışıyorum": a deed came first
+
+
 def is_theft(session, text: Any) -> bool:
     if not isinstance(text, str) or "?" in text:
         return False
     folded = fold(session, text)
-    return bool(_STEAL.search(folded)) and not _NOT_STOLEN.search(folded)
+    if bool(_STEAL.search(folded)) and not _NOT_STOLEN.search(folded):
+        return True
+    return _tries_to_steal(session, text)
 
 
 def is_arson(session, text: Any) -> bool:
@@ -1073,6 +1121,46 @@ def _can_be_done(session, text: Any) -> bool:
     return isinstance(text, str) and "?" not in text and not _ASKS.search(fold(session, text))
 
 
+def _steals(session, text: Any, deed: str | None) -> bool:
+    """The reading's word on theft stands; only an open "çalmak için"-style try is engine-owned when it found none."""
+    if deed is None:
+        return is_theft(session, text)
+    if not _can_be_done(session, text):
+        return False
+    if _NOT_STOLEN.search(fold(session, text)):
+        return False
+    return deed == "steal" or (deed == "" and _tries_to_steal(session, text))
+
+
+# "Muhafızın üstünü inceliyorum": a present, first-person, finished sentence; "... söylüyorum", "... dedim", a wish or a
+# question about it is speech or no act.
+_INSPECT_PERSON = re.compile(
+    r"^(?:\w+\s+){1,4}(?:ustunu|uzerini|kiyafetlerini|kiyafetini|donanimini|zirhini|silahini)\s+"
+    r"(?:(?:dikkatle|yakindan|bir\s+kez\s+daha)\s+)?(?:inceliyorum|suzuyorum|kontrol\s+ediyorum)$"
+)
+_NOT_A_PERSON = re.compile(r"\b(?:masa|cese[td]|tezgah|sandik|kapi|duvar|raf|zemin|yer|harita|tabela|levha|kitap|defter)\w*")
+
+
+def looks_person_over(session, text: Any) -> bool:
+    """"Muhafızın üstünü inceliyorum": the player looks someone over; the narrator describes, they are not spoken to."""
+    if not isinstance(text, str) or "?" in text:
+        return False
+    bare = _bare(session, text)
+    return bool(_INSPECT_PERSON.search(bare)) and not _NOT_A_PERSON.search(bare)
+
+
+def is_act_not_talk(session, text: Any) -> bool:
+    """A line that tries something the dice settle (a scare) or looks a person over is an act on them, not speech.
+
+    The words outside quotes decide, so the dice or the description come from the engine and the narrator, not from
+    the person's stock answer (D-098, D-099).
+    """
+    import game
+    if not isinstance(text, str) or "?" in text:
+        return False
+    return game.open_scare_try(text) or looks_person_over(session, text)
+
+
 def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | None:
     """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide.
 
@@ -1090,8 +1178,7 @@ def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | Non
                                                      if "?" not in text else None)
         if settled is not None:
             return settled
-    if is_theft(session, text) if deed is None else deed == "steal" and _can_be_done(session, text) and (
-            not _NOT_STOLEN.search(fold(session, text))):
+    if _steals(session, text, deed):
         return _steal(session, text)
     if is_arson(session, text) if deed is None else deed == "burn" and _can_be_done(session, text):
         return _burn(session)

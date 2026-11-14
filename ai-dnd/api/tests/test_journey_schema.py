@@ -128,7 +128,7 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
                 "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
-                "olay", "zirh", "varis", "seviye", "buyu_olgusu",
+                "olay", "zirh", "varis", "seviye", "buyu_olgusu", "zar",
             },
         )
 

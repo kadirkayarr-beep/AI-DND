@@ -1,0 +1,114 @@
+{
+  "id": "50d_zar_sozler_zar_atmaz",
+  "title": "Zar motorun işi, yanlış pozitifler (D-094, ikinci inceleme): çalma ya da korkutma kelimeleri olsa da ön okuma konuşma derse, dilek, saldırı ya da başkasının kesesi zar atmaz ve kese değişmez",
+  "source_items": [
+    94,
+    99
+  ],
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 60
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5004,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "kesesini çalmak için zar atıyorum",
+      "expect": {
+        "zar": null,
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      },
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "kavsim"
+        }
+      }
+    },
+    {
+      "say": "yarın kesesini çalmak istiyorum",
+      "expect": {
+        "zar": null,
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      },
+      "script": {
+        "front": {
+          "kind": "unclear"
+        }
+      }
+    },
+    {
+      "say": "para kazanmak için bağlama çalmak istiyorum",
+      "expect": {
+        "zar": null,
+        "kese": 40
+      },
+      "script": {
+        "front": {
+          "kind": "unclear"
+        }
+      }
+    },
+    {
+      "say": "muhafıza diyorum ki seni korkutmaya çalışıyorum",
+      "expect": {
+        "zar": null,
+        "kese": 40
+      },
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "kavsim"
+        }
+      }
+    },
+    {
+      "say": "muhafıza diyorum ki kesesini çalmak için zar atıyorum",
+      "script": {
+        "front": {
+          "kind": "unclear"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      }
+    },
+    {
+      "say": "Keşke kesesini çalmaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "unclear"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      }
+    }
+  ]
+}

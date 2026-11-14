@@ -1265,6 +1265,24 @@ def named_skill(player_input):
     return skill if side_by_side or in_brackets else None
 
 
+_OPEN_SCARE = re.compile(
+    r"^(?!.*\b(?:diyorum|soyluyorum|fisildiyorum|diye|ozur|sanirim|yarin|sonra|eger|degil|ama|seni|sizi|keske|belki|sanki|diyelim|farz|varsay\w*|bicakla\w*|ruya\w*|hayal\w*|ati|kus\w*|kopek\w*|hayvan\w*)\b)"
+    r".*\b(?:korkutmaya\s+calisiyorum|korkutmak\s+icin\s+(?:\w+\s+){0,2}?zar\w*\s+atiyorum|"
+    r"gozdagi\s+vermeye\s+calisiyorum|tehdit\s+etmeye\s+calisiyorum)$"
+)
+
+
+def open_scare_try(player_input) -> bool:
+    """D-099: "muhafızı korkutmaya çalışıyorum" is an attempt the dice settle, whoever it is aimed at. Only a present,
+    first-person, finished sentence outside quotes counts (never "korkutmaya çalıştım", "beni korkutmaya çalışıyor", a
+    quoted threat, a plan, or words said to somebody)."""
+    if not isinstance(player_input, str) or "?" in player_input or ":" in player_input:
+        return False
+    import living_world
+    bare = " ".join(re.findall(r"\w+", _normalize_turkish_typos(living_world._text_outside_quotes(player_input))))
+    return bool(_OPEN_SCARE.search(bare))
+
+
 def deterministic_check_for_action(player_input):
     """Map clear, known actions before consulting the model classifier."""
     text = player_input.casefold()
@@ -1294,6 +1312,8 @@ def deterministic_check_for_action(player_input):
             normalized_text,
         ):
             return {"action_type": "check", "skill": "Acrobatics", "difficulty": "medium"}
+        if open_scare_try(player_input):  # D-099
+            return {"action_type": "check", "skill": "Intimidation", "difficulty": "medium"}
         if re.search(
             r"\biz(?:leri|lerini)?\s+sur(?:uyorum|meye\s+calis(?!m)\w*)|"
             r"\biz(?:leri|lerini)?\s+takip\s+(?:ediyorum|ederek|etmeye\s+calis(?!m)\w*)|"
@@ -19118,6 +19138,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                             else "fallback:no_front" if answered else "fallback:failed", reached=answered)
         return None
     raw_front = reply.get("front")
+    session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
     session._front_economic_none = True  # only the validated owner may prepare room/gift cards in a front-enabled turn
     economic = front_proposal.economic_route(reply, listed, target_id=target_id if typed_economic else None)
     if economic is not None:
@@ -20060,7 +20081,9 @@ def _dispatch_player_turn(
             return standing
         _session()._coin_paid = None  # coin held out for an open offer is never a gift, even when the offer closed
     if front is not None and front["kind"] == "speak_to":
-        interaction_mode, target_id = "say", front["id"]
+        import bold_acts
+        if target_id is not None or not bold_acts.is_act_not_talk(_session(), player_input):  # D-098, D-099: an act
+            interaction_mode, target_id = "say", front["id"]
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None and front is None
             and _ENDS_IN_SPEECH.search(_normalize_turkish_typos(player_input))):
         hearer = _active_interlocutor()  # "dedim sana" is said to the one already being talked to
@@ -23386,9 +23409,13 @@ def _run_player_turn_internal(
             )
         validated_intent = {"intent": "dialogue"}
     else:
-        if npc_target is not None and _is_object_inspection(player_input):
+        import bold_acts
+        if npc_target is not None and (_is_object_inspection(player_input)
+                                       or (target_id is None and bold_acts.is_act_not_talk(_session(), player_input))):
             # "Merak etme Sera, sadece kilide bakacağım": the act is looking at
             # the lock; a name in passing must not demand a conversation.
+            # D-098, D-099: "muhafızı korkutmaya çalışıyorum", "muhafızın üstünü inceliyorum" are acts on them, not
+            # words to them; the dice or the narrator answer, never a stock "I heard you".
             npc_target = None
         intent_source = "model"
         if classifier_unusable:
