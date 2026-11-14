@@ -436,10 +436,12 @@ test('a scrolled page fades its top line out instead of cutting it (draft mask),
 const lambaKod = () => read('components/kitap/cizimler/okuma-lambasi.tsx');
 
 test('round 3, finding 1: the lamp never reaches past the top of the window, at any width the book grows to', () => {
-  // The lamp box: top = 66px - en * K; the drawing is 100 units wide, so one unit is en / 100.
+  // The lamp box: top = --masa-ust-bosluk (66px) - en * K; the drawing is 100 units wide, so one unit is en / 100.
+  // A1 Oturum 2: the 66px moved from kitap.css into the --masa-ust-bosluk token (rewritten with the same strictness).
   const ust = kural(kitapCss(), '.kitap-lamba');
-  const K = Number(/top:\s*calc\(66px - var\(--lamba-en\) \* ([\d.]+)\)/.exec(ust)?.[1]);
+  const K = Number(/top:\s*calc\(var\(--masa-ust-bosluk\) - var\(--lamba-en\) \* ([\d.]+)\)/.exec(ust)?.[1]);
   assert.ok(K > 0, 'lamp top formula not found');
+  assert.equal(token(block('[data-kitap-tema]'), '--masa-ust-bosluk'), '66px');
   const en = /calc\((\d+)px \+ var\(--buyume\) \* ([\d.]+)\)/.exec(token(block('[data-kitap-tema]'), '--lamba-en') ?? '');
   assert.ok(en, '--lamba-en formula not found');
   const enBuyuk = Number(en[1]) + 4 * Number(en[2]); // --buyume tops out at 4px
@@ -657,4 +659,207 @@ test('polish 13: on the phone the tabs come before the desk buttons in focus ord
 test('polish 7: the taller open tab does not push the closed ones down: the row starts 3px higher', () => {
   assert.match(kural(kitapCss(), '.kitap-ayraclar'), /top:\s*31px/);
   assert.match(medya(kitapCss(), '(max-width: 767px)'), /\.kitap-ayraclar\s*\{\s*top:\s*9px/);
+});
+
+// ---------- A1 Oturum 2 (15 Nov 2026): seal, candles, die, margin note, save notice; the last fixed pixels ----------
+const gosterge = () => vite.ssrLoadModule('/src/components/kitap/gostergeler.tsx');
+const yazi = (html) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+test('o2 shortcut closed: the top gap, page-stack shadows and spine curve radii are tokens in src/index.css, not pixels in kitap.css', () => {
+  const kc = kitapCss().replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(kc, /\b66px\b|\b110px\b|\b90px\b/, 'kitap.css still has the 66/110/90px literals');
+  assert.doesNotMatch(kc, /0 var\(--sayfa2\)/, 'kitap.css still spells the page stack out');
+  assert.match(kural(kitapCss(), '.kitap-masa'), /padding:\s*var\(--masa-ust-bosluk\) /);
+  assert.match(kural(kitapCss(), '.kitap-lamba'), /top:\s*calc\(var\(--masa-ust-bosluk\) - var\(--lamba-en\) \* [\d.]+\)/);
+  assert.match(kural(kitapCss(), '.kitap-sayfa-sol'), /border-radius:\s*var\(--sirt-kavis-sol\);[\s\S]*box-shadow:\s*var\(--sayfa-yigini-sol\);/);
+  assert.match(kural(kitapCss(), '.kitap-sayfa-sag'), /border-radius:\s*var\(--sirt-kavis-sag\);[\s\S]*box-shadow:\s*var\(--sayfa-yigini-sag\);/);
+  const base = block('[data-kitap-tema]');
+  assert.equal(token(base, '--masa-ust-bosluk'), '66px');
+  assert.equal(token(base, '--sirt-kavis-sol'), '3px 110px 110px 3px / 3px 7px 7px 3px');
+  assert.equal(token(base, '--sirt-kavis-sag'), '110px 3px 3px 110px / 7px 3px 3px 7px');
+  const katman = (isaret) => Array.from({ length: 10 }, (_, i) => `${isaret}${i + 1}px ${i + 1}px 0 var(${i % 2 ? '--kenar-koyu' : '--sayfa2'})`).join(', ');
+  assert.equal(token(base, '--sayfa-yigini-sol'), `${katman('-')}, -10px 12px 10px -4px var(--sayfa-blok-golge)`);
+  assert.equal(token(base, '--sayfa-yigini-sag'), `${katman('')}, 10px 12px 10px -4px var(--sayfa-blok-golge)`);
+  // The phone keeps its own values, now as tokens too.
+  const tel = medya(css, '(max-width: 767px)');
+  assert.match(tel, /--masa-ust-bosluk:\s*56px/);
+  assert.match(tel, /--sirt-kavis-tek:\s*90px 3px 3px 90px \/ 6px 3px 3px 6px/);
+  assert.match(tel, /--sayfa-yigini-tek:\s*2px 2px 0 var\(--sayfa2\), 3px 3px 0 var\(--kenar-koyu\), 5px 5px 0 var\(--sayfa2\), 6px 6px 0 var\(--kenar-koyu\)/);
+  assert.match(medya(kitapCss(), '(max-width: 767px)'), /border-radius:\s*var\(--sirt-kavis-tek\);\s*box-shadow:\s*var\(--sayfa-yigini-tek\);/);
+});
+
+test('o2 drawings: candle (lit, out), health seal and margin icons are taken from the draft, three colours from tokens', () => {
+  const dir = path.join(root, 'components', 'kitap', 'cizimler');
+  const mum = readFileSync(path.join(dir, 'mum.tsx'), 'utf8');
+  assert.match(mum, /var\(--mum-cizgi\)/, 'candle rim from --mum-cizgi');
+  assert.match(mum, /var\(--soluk\)/, 'smoke of the spent candle from --soluk');
+  const muhur = readFileSync(path.join(dir, 'can-muhuru.tsx'), 'utf8');
+  assert.match(muhur, /M109\.7 60\.0 C108\.7 62\.6/, 'the seal rim path of the draft');
+  assert.match(muhur, /stroke="var\(--soluk\)"[^>]*strokeDasharray="5 6"|strokeDasharray="5 6"[^>]*stroke="var\(--soluk\)"/, 'unpressed seal: dashed --soluk rim');
+  const simge = readFileSync(path.join(dir, 'kenar-simgeleri.tsx'), 'utf8');
+  for (const ad of ['para', 'zar', 'is', 'geri', 'kural']) assert.match(simge, new RegExp(`\\b${ad}:`), `margin icon ${ad}`);
+  for (const metin of [mum, muhur, simge]) assert.doesNotMatch(metin, /uw-demir|uw-fener-cam/);
+  const note = readFileSync(path.join(dir, 'KAYNAK.md'), 'utf8');
+  for (const ad of ['mum.tsx', 'can-muhuru.tsx', 'kenar-simgeleri.tsx']) assert.match(note, new RegExp(ad.replace('.', '\\.')));
+  assert.doesNotMatch(note, /Oturum 2'de eklenecek/);
+});
+
+test('o2 health seal: two sizes, the number stays written, cracks follow the damage, unpressed and unreadable states', async () => {
+  const g = await gosterge();
+  assert.deepEqual([49, 43, 30, 20, 5, 0].map((can) => g.catlakSayisi(can, 49)), [0, 1, 2, 2, 3, 3]);
+  const buyuk = render(g.CanMuhru, { can: 43, enCok: 49, basHarf: 'D' });
+  assert.match(buyuk, /role="img"[^>]*aria-label="Can mührü: 43 \/ 49 can, 1 çatlak"/);
+  assert.match(buyuk, /width="84"/);
+  assert.match(yazi(buyuk), /43 \/ 49/);
+  assert.equal((buyuk.match(/data-catlak=/g) ?? []).length, 1);
+  const kucuk = render(g.CanMuhru, { can: 49, enCok: 49, basHarf: 'D', boy: 'kucuk' });
+  assert.match(kucuk, /width="38"/);
+  assert.match(kucuk, /aria-label="Can mührü: 49 \/ 49 can, çatlak yok"/);
+  assert.equal((kucuk.match(/data-catlak=/g) ?? []).length, 0);
+  assert.equal((render(g.CanMuhru, { can: 4, enCok: 49, basHarf: 'D' }).match(/data-catlak=/g) ?? []).length, 3);
+  const bos = render(g.CanMuhru, { basHarf: 'D' });
+  assert.match(bos, /aria-label="Can mührü, henüz basılmadı"/);
+  assert.doesNotMatch(yazi(bos), /\d/);
+  for (const [can, enCok] of [[50, 49], [-1, 49], [3.5, 49], [3, 0]]) {
+    const hata = render(g.CanMuhru, { can, enCok, basHarf: 'D' });
+    assert.match(hata, /aria-label="Can mührü: can bilgisi okunamadı"/, `${can}/${enCok}`);
+    assert.doesNotMatch(yazi(hata), /\d/, 'no number is made up');
+  }
+});
+
+test('o2 spell slots: one short candle row per level, only the level name under it, the slots left read aloud and in the hint', async () => {
+  const g = await gosterge();
+  const seviyeler = [{ seviye: 1, toplam: 4, dolu: 2 }, { seviye: 2, toplam: 2, dolu: 2 }];
+  assert.equal(g.yuvaOzeti(seviyeler[0]), '1. seviye: kalan yuva 2 / 4');
+  const html = render(g.BuyuYuvalari, { seviyeler });
+  assert.match(html, /role="group"[^>]*aria-label="Büyü yuvaları"/);
+  assert.equal((html.match(/data-mum="yanan"/g) ?? []).length, 4);
+  assert.equal((html.match(/data-mum="sonuk"/g) ?? []).length, 2);
+  for (const s of seviyeler) assert.match(html, new RegExp(`tabindex="0"[^>]*aria-label="${g.yuvaOzeti(s)}"|aria-label="${g.yuvaOzeti(s)}"[^>]*tabindex="0"`));
+  assert.equal(yazi(html), '1. seviye 2. seviye', 'T12: only the level names are written');
+  assert.match(render(g.BuyuYuvalari, { seviyeler: [] }), /Büyü yuvası yok/);
+  const hata = render(g.BuyuYuvalari, { seviyeler: [{ seviye: 1, toplam: 2, dolu: 3 }] });
+  assert.match(hata, /aria-label="1\. seviye: yuva bilgisi okunamadı"/);
+  assert.equal((hata.match(/data-mum=/g) ?? []).length, 0, 'no candles are made up');
+  // The status strip: small candles, one name for the whole strip.
+  const serit = render(g.DurumSeridi, { seviyeler, can: 43, enCok: 49, basHarf: 'D' });
+  assert.match(serit, /aria-label="Durum: can 43 \/ 49; 1\. seviye: kalan yuva 2 \/ 4; 2\. seviye: kalan yuva 2 \/ 2"/);
+  assert.match(yazi(serit.replace(/<text[\s\S]*?<\/text>/g, '')), /^43 \/ 49$/, 'only the number is written (the seal letter is drawn)');
+});
+
+test('o2 die: drawn in SVG, the number comes only from the given value, never rolled here', async () => {
+  const g = await gosterge();
+  const dolu = render(g.Zar, { yuz: 20, deger: 14 });
+  assert.match(dolu, /<svg[^>]*role="img"[^>]*aria-label="d20 zarı: 14"/);
+  assert.equal(yazi(dolu), '14');
+  for (const yuz of [4, 6, 8, 10, 12, 20]) assert.match(render(g.Zar, { yuz, deger: 1 }), new RegExp(`aria-label="d${yuz} zarı: 1"`));
+  const bos = render(g.Zar, { yuz: 20 });
+  assert.match(bos, /aria-label="d20 zarı, atılmadı"/);
+  assert.equal(yazi(bos), '');
+  for (const deger of [0, 21, 2.5]) {
+    const hata = render(g.Zar, { yuz: 20, deger });
+    assert.match(hata, /aria-label="d20 zarı: değer okunamadı"/);
+    assert.equal(yazi(hata), '', 'an invalid value is not shown');
+  }
+  assert.match(render(g.Zar, { yuz: 20, deger: 3, disabled: true }), /kitap-zar-devre-disi/);
+  assert.doesNotMatch(read('components/kitap/gostergeler.tsx'), /Math\.random/);
+});
+
+test('o2 margin note: green italic with a small icon; the new one is gold, the undone one faint', async () => {
+  const g = await gosterge();
+  const not = render(g.KenarNotu, { simge: 'zar' }, 'Algı zarı 14, zorluk 12.');
+  assert.match(not, /^<p class="kitap-kenar-metin kitap-kenar">/);
+  assert.match(not, /<svg[^>]*aria-hidden="true"/);
+  assert.match(yazi(not), /^Algı zarı 14, zorluk 12\.$/);
+  assert.match(render(g.KenarNotu, { simge: 'is', yeni: true }, 'Yeni iş'), /kitap-kenar-yeni/);
+  assert.match(render(g.KenarNotu, { simge: 'geri', silik: true }, 'Geri alındı.'), /kitap-kenar-silik/);
+  assert.match(kural(kitapCss(), '.kitap-kenar-yeni'), /color:\s*var\(--mum\)/);
+  assert.match(kural(kitapCss(), '.kitap-kenar-silik'), /color:\s*var\(--soluk\)/);
+  assert.match(kural(kitapCss(), '.kitap-kenar'), /display:\s*flex/);
+});
+
+test('o2 save notice: seal or ribbon (Kadir picks), a polite status, fades by itself, an error stays', async () => {
+  const g = await gosterge();
+  for (const bicim of ['muhur', 'kurdele']) {
+    const html = render(g.KayitBildirimi, { bicim, durum: 'kaydedildi', kapat() {} });
+    assert.match(html, /role="status"[^>]*aria-live="polite"|aria-live="polite"[^>]*role="status"/);
+    assert.match(html, new RegExp(`kitap-kayit-${bicim}`));
+    assert.match(yazi(html), /^Kaydedildi$/);
+  }
+  assert.match(yazi(render(g.KayitBildirimi, { bicim: 'muhur', durum: 'hata', kapat() {} })), /^Kaydedilemedi$/);
+  const bos = render(g.KayitBildirimi, { bicim: 'muhur', kapat() {} });
+  assert.match(bos, /role="status"/, 'the live region is there before the first save');
+  assert.equal(yazi(bos), '');
+  assert.equal(g.KAYIT_SURESI, 2600);
+  assert.match(medya(kitapCss(), '(prefers-reduced-motion: reduce)'), /\.kitap-kayit[^{]*\{[^}]*animation:\s*none/);
+});
+
+test('o2 G6: the phone layout is a choice the gallery shows both ways (a: one settings button, b: desk strip with the lamp)', () => {
+  const html = render(kitap.KitapKabugu, { tema: 'gece', sol: 'SOL', sag: 'SAG', telefonDuzeni: 'b' });
+  assert.match(html, /data-kitap-telefon="b"/);
+  assert.match(render(kitap.KitapKabugu, { tema: 'gece', sol: 'SOL', sag: 'SAG' }), /data-kitap-telefon="a"/);
+  const tel = medya(kitapCss(), '(max-width: 767px)');
+  assert.match(tel, /\[data-kitap-telefon="a"\] \.kitap-dar-yok\s*\{\s*display:\s*inline/);
+  assert.match(tel, /\[data-kitap-telefon="a"\] \.kitap-saat-dugmesi\s*\{\s*display:\s*none/);
+  assert.match(tel, /\[data-kitap-telefon="b"\] \.kitap-lamba\s*\{[^}]*display:\s*block/);
+  assert.match(css, /\[data-kitap-telefon="b"\]\s*\{[^}]*--masa-ust-bosluk:\s*104px/);
+  const galeri = read('pages/kitap-galerisi.tsx');
+  assert.match(galeri, /sorgu\('telefon'\)/);
+  assert.match(galeri, /telefonDuzeni=\{telefon\}/);
+});
+
+test('o2 G6: on the phone the settings button is a 44px icon key, so its word is hidden for sight only (no 8px overflow at 375/390)', () => {
+  const dugme = render(ayar.AyarCarki, { deger: {}, degisince: () => {} });
+  assert.match(dugme, /<span class="kitap-dar-gizli">Ayarlar<\/span>/);
+  const tel = medya(kitapCss(), '(max-width: 767px)');
+  assert.match(tel, /\.kitap-masa-ust \.kitap-dugme-masa\s*\{\s*width:\s*var\(--dokunma\)/);
+});
+
+test('o2 gallery: each new piece shows its states (empty, full, error, disabled, focus where it takes focus)', () => {
+  const galeri = read('pages/kitap-galerisi.tsx');
+  for (const parca of ['<CanMuhru', '<BuyuYuvalari', '<DurumSeridi', '<Zar', '<KenarNotu', '<KayitBildirimi']) assert.match(galeri, new RegExp(parca), parca);
+  for (const ad of ['Can mührü', 'Büyü yuvaları', 'Zar', 'Kenar notu', 'Kayıt bildirimi']) assert.match(galeri, new RegExp(`<Parca baslik="${ad}`), ad);
+  assert.match(galeri, /bicim="muhur"/);
+  assert.match(galeri, /bicim="kurdele"/);
+  assert.doesNotMatch(galeri, /Mühür, mum, zar ve kenar notu Oturum 2'de/);
+});
+
+test('o2 review: cracks are exact at thirds; odd inputs read as unreadable, never as a number', async () => {
+  const g = await gosterge();
+  assert.deepEqual([[3, 3], [2, 3], [1, 3], [0, 3], [66, 99], [33, 99]].map(([c, e]) => g.catlakSayisi(c, e)), [0, 1, 2, 3, 1, 2]);
+  for (const [can, enCok] of [[Number.NaN, 49], [Infinity, Infinity], [undefined, 49], [43, undefined]]) {
+    const hata = render(g.CanMuhru, { can, enCok, basHarf: 'D' });
+    assert.match(hata, /aria-label="Can mührü: can bilgisi okunamadı"/, `${can}/${enCok}`);
+    assert.doesNotMatch(yazi(hata), /\d/);
+  }
+  for (const s of [{ seviye: 1, toplam: 0, dolu: 0 }, { seviye: 1, toplam: 2, dolu: Number.NaN }]) {
+    assert.match(render(g.BuyuYuvalari, { seviyeler: [s] }), /aria-label="1\. seviye: yuva bilgisi okunamadı"/);
+  }
+});
+
+test('o2 review: the status strip shows an unreadable level or health as written "okunamadı", never drops it', async () => {
+  const g = await gosterge();
+  const serit = render(g.DurumSeridi, { seviyeler: [{ seviye: 1, toplam: 4, dolu: 2 }, { seviye: 2, toplam: 2, dolu: 3 }], can: 43, enCok: 49, basHarf: 'D' });
+  assert.match(yazi(serit.replace(/<text[\s\S]*?<\/text>/g, '')), /okunamadı/);
+  const can = render(g.DurumSeridi, { seviyeler: [], can: 50, enCok: 49, basHarf: 'D' });
+  assert.match(yazi(can.replace(/<text[\s\S]*?<\/text>/g, '')), /^okunamadı$/);
+  // Up to nine levels fit a phone: the strip wraps instead of pushing the page wider.
+  assert.match(kural(kitapCss(), '.kitap-durum'), /flex-wrap:\s*wrap/);
+  assert.doesNotMatch(kural(kitapCss(), '.kitap-durum'), /(^|[^-])height:\s*32px/);
+});
+
+test('o2 review: each save restarts the fade and is announced again; an error is announced at once', async () => {
+  const g = await gosterge();
+  const kaynak = read('components/kitap/gostergeler.tsx');
+  assert.match(kaynak, /\}, \[durum, kimlik\]\);/, 'the fade timer re-runs for every save (kimlik changes)');
+  const hata = render(g.KayitBildirimi, { bicim: 'muhur', durum: 'hata', kimlik: 2, kapat() {} });
+  assert.match(hata, /aria-live="assertive"/);
+  assert.match(render(g.KayitBildirimi, { bicim: 'muhur', durum: 'kaydedildi', kimlik: 3, kapat() {} }), /aria-live="polite"/);
+  assert.match(read('pages/kitap-galerisi.tsx'), /kimlik=\{kayit\.kimlik\}/);
+});
+
+test('o2 review: a slot row says its slots once (no tooltip description on top of the name); a disabled die says so', async () => {
+  const g = await gosterge();
+  assert.match(read('components/kitap/gostergeler.tsx'), /className="kitap-yuva"[^>]*aria-describedby=\{undefined\}/);
+  assert.match(render(g.Zar, { yuz: 20, deger: 3, disabled: true }), /aria-label="d20 zarı: 3, devre dışı"/);
 });

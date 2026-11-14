@@ -865,6 +865,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --sayfa-ic: 34px 40px 36px 48px;
   --sayfa-ic-sag: 34px 48px 36px 40px;
   --sayfa-ic-tek: 20px 20px 30px 24px;
+  /* Book geometry (A1 Oturum 2: moved here from kitap.css): the desk gap above the cover (the lamp clamps on that
+     edge), the spine curve of each page and the page stack, thin alternating sheet edges and a soft block shadow. */
+  --masa-ust-bosluk: 66px;
+  --sirt-kavis-sol: 3px 110px 110px 3px / 3px 7px 7px 3px;
+  --sirt-kavis-sag: 110px 3px 3px 110px / 7px 3px 3px 7px;
+  --sayfa-yigini-sol: -1px 1px 0 var(--sayfa2), -2px 2px 0 var(--kenar-koyu), -3px 3px 0 var(--sayfa2), -4px 4px 0 var(--kenar-koyu), -5px 5px 0 var(--sayfa2), -6px 6px 0 var(--kenar-koyu), -7px 7px 0 var(--sayfa2), -8px 8px 0 var(--kenar-koyu), -9px 9px 0 var(--sayfa2), -10px 10px 0 var(--kenar-koyu), -10px 12px 10px -4px var(--sayfa-blok-golge);
+  --sayfa-yigini-sag: 1px 1px 0 var(--sayfa2), 2px 2px 0 var(--kenar-koyu), 3px 3px 0 var(--sayfa2), 4px 4px 0 var(--kenar-koyu), 5px 5px 0 var(--sayfa2), 6px 6px 0 var(--kenar-koyu), 7px 7px 0 var(--sayfa2), 8px 8px 0 var(--kenar-koyu), 9px 9px 0 var(--sayfa2), 10px 10px 0 var(--kenar-koyu), 10px 12px 10px -4px var(--sayfa-blok-golge);
   --tane-opaklik: 1;
   --golge-cilt: 0 28px 46px -14px rgba(0, 0, 0, 0.75), 0 2px 0 rgba(0, 0, 0, 0.5);
   --cilt-parlama: rgba(255, 255, 255, 0.05);
@@ -897,7 +904,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 /* "Büyük" grows every reading size: body, hand, margin notes, labels, page numbers (ui-polish 11). */
 [data-kitap-boy="buyuk"] { --govde: calc(21px + var(--buyume)); --elo: 1.09; --kenar-boy: calc(17px + var(--buyume) * 0.5); --etiket-boy: 16px; --sayfa-no-boy: 15px; }
 @media (max-width: 767px) {
-  [data-kitap-tema] { --govde: 17px; --elo: 0.92; --baslik-boy: 22px; }
+  [data-kitap-tema] { --govde: 17px; --elo: 0.92; --baslik-boy: 22px; --masa-ust-bosluk: 56px;
+    --sirt-kavis-tek: 90px 3px 3px 90px / 6px 3px 3px 6px;
+    --sayfa-yigini-tek: 2px 2px 0 var(--sayfa2), 3px 3px 0 var(--kenar-koyu), 5px 5px 0 var(--sayfa2), 6px 6px 0 var(--kenar-koyu); }
+  /* G6 option b (Kadir picks): a desk strip above the book for the clock, the settings and the lamp. */
+  [data-kitap-telefon="b"] { --masa-ust-bosluk: 104px; --lamba-en: 48px; }
   [data-kitap-tema][data-kitap-boy="buyuk"] { --govde: 19px; --elo: 1; }
 }
 

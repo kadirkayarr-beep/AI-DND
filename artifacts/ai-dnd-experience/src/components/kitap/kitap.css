@@ -8,7 +8,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-masa {
   position: relative;
   box-sizing: border-box;
-  padding: 66px 30px var(--bosluk-6);
+  padding: var(--masa-ust-bosluk) 30px var(--bosluk-6);
   background: var(--lamba-havuz), var(--masa);
   color: var(--murekkep);
   font-family: var(--kitap-yazi);
@@ -60,15 +60,15 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 }
 /* Spine curve and page stack (T1): the stacked edges are box shadows, the curve is a gradient into the gutter. */
 .kitap-sayfa-sol {
-  border-radius: 3px 110px 110px 3px / 3px 7px 7px 3px;
+  border-radius: var(--sirt-kavis-sol);
   /* Page block: thin alternating sheet edges, then a soft shadow where the block meets the cloth. */
-  box-shadow: -1px 1px 0 var(--sayfa2), -2px 2px 0 var(--kenar-koyu), -3px 3px 0 var(--sayfa2), -4px 4px 0 var(--kenar-koyu), -5px 5px 0 var(--sayfa2), -6px 6px 0 var(--kenar-koyu), -7px 7px 0 var(--sayfa2), -8px 8px 0 var(--kenar-koyu), -9px 9px 0 var(--sayfa2), -10px 10px 0 var(--kenar-koyu), -10px 12px 10px -4px var(--sayfa-blok-golge);
+  box-shadow: var(--sayfa-yigini-sol);
   /* Light catches the page where it bulges before curling into the spine. */
   background-image: linear-gradient(to right, var(--saydam) 97%, var(--oluk-derin) 100%), linear-gradient(to right, var(--saydam) 70%, var(--kabarma) 84%, var(--saydam) 92%), linear-gradient(to right, var(--dis), var(--saydam) 6%, var(--saydam) 86%, var(--oluk1) 95%, var(--oluk2) 100%), var(--isik-sol);
 }
 .kitap-sayfa-sag {
-  border-radius: 110px 3px 3px 110px / 7px 3px 3px 7px;
-  box-shadow: 1px 1px 0 var(--sayfa2), 2px 2px 0 var(--kenar-koyu), 3px 3px 0 var(--sayfa2), 4px 4px 0 var(--kenar-koyu), 5px 5px 0 var(--sayfa2), 6px 6px 0 var(--kenar-koyu), 7px 7px 0 var(--sayfa2), 8px 8px 0 var(--kenar-koyu), 9px 9px 0 var(--sayfa2), 10px 10px 0 var(--kenar-koyu), 10px 12px 10px -4px var(--sayfa-blok-golge);
+  border-radius: var(--sirt-kavis-sag);
+  box-shadow: var(--sayfa-yigini-sag);
   background-image: linear-gradient(to left, var(--saydam) 97%, var(--oluk-derin) 100%), linear-gradient(to left, var(--saydam) 70%, var(--kabarma) 84%, var(--saydam) 92%), linear-gradient(to left, var(--dis), var(--saydam) 6%, var(--saydam) 86%, var(--oluk1) 95%, var(--oluk2) 100%), var(--isik-sag);
 }
 /* Paper grain: a 256px tile repeated, not a page-wide filter (Kadir, 13 Nov 2026). */
@@ -93,8 +93,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 
 /* Reading lamp (T7) clamped on the top edge over the spine; it grows with the book (--lamba-en). Its light is still
    (review 11) and its halo sits under the shade, since a shaded bulb throws its light down (review 13). */
-/* The clamp sits on the cover edge (66px down; 0.78 of the lamp width into the drawing); the bulb is over the spine. */
-.kitap-lamba { position: absolute; top: calc(66px - var(--lamba-en) * 0.78); left: calc(50% - var(--lamba-en) * 0.692); width: var(--lamba-en); height: calc(var(--lamba-en) * 1.1); z-index: 6; pointer-events: none; }
+/* The clamp sits on the cover edge (--masa-ust-bosluk down; 0.78 of the lamp width into the drawing); the bulb is over the spine. */
+.kitap-lamba { position: absolute; top: calc(var(--masa-ust-bosluk) - var(--lamba-en) * 0.78); left: calc(50% - var(--lamba-en) * 0.692); width: var(--lamba-en); height: calc(var(--lamba-en) * 1.1); z-index: 6; pointer-events: none; }
 .kitap-lamba-cizim { position: relative; display: block; width: 100%; height: 100%; }
 .kitap-lamba-hale {
   position: absolute;
@@ -183,6 +183,48 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-etiket { margin: 0; font-size: var(--etiket-boy); color: var(--soluk); }
 .kitap-el { font-family: var(--el-aile); font-size: var(--el); line-height: 1.3; }
 
+/* ---------- Indicators (A1 Oturum 2) ---------- */
+/* Margin note: a 16px icon centred on the first line (draft: 3px down on a 21px line), then the note. */
+.kitap-kenar { display: flex; gap: 7px; align-items: flex-start; }
+.kitap-kenar-simge { flex: 0 0 auto; margin-top: calc((1.4em - 16px) / 2); }
+.kitap-kenar-yeni { color: var(--mum); }
+.kitap-kenar-silik { color: var(--soluk); }
+/* Health seal: the number is in the player's hand beside the seal (target 01 and 03). */
+.kitap-muhur-kutu { display: inline-flex; align-items: center; gap: var(--bosluk-3); }
+.kitap-muhur { flex: 0 0 auto; }
+.kitap-muhur-yazi { display: flex; flex-direction: column; gap: 2px; }
+.kitap-muhur-sayi { font-family: var(--el-aile); font-size: calc(var(--el) * 1.35); line-height: 1.12; white-space: nowrap; color: var(--murekkep); }
+.kitap-muhur-buyuk .kitap-muhur-sayi { font-size: calc(var(--el) * 1.65); }
+/* Spell slots: one shelf of candles per level, the level name under it (T12). */
+.kitap-yuvalar { display: flex; flex-wrap: wrap; gap: var(--bosluk-4) var(--bosluk-7); align-items: flex-start; }
+.kitap-yuva { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; border-radius: var(--kose); }
+.kitap-raf { display: flex; gap: 9px; align-items: flex-end; min-height: 72px; min-width: 40px; padding: 0 5px; border-bottom: 1px solid var(--cizgi); }
+.kitap-raf-bos { align-items: center; border-bottom-style: dashed; border-bottom-color: var(--soluk); }
+/* The status strip sits on the heading's centre line, as in target 01. */
+.kitap-bolum-2:has(.kitap-durum) { align-items: center; }
+.kitap-mum { flex: 0 0 auto; }
+.kitap-mum-hale { opacity: var(--hale); }
+.kitap-durum { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 14px; min-height: 32px; }
+.kitap-durum-mumlar { display: flex; gap: 3px; align-items: flex-end; }
+/* Die: outline in ink on the darker paper, the number in the body face; empty and unreadable are dashed. */
+.kitap-zar { flex: 0 0 auto; overflow: visible; }
+.kitap-zar-yuz > * { fill: var(--sayfa2); stroke: var(--murekkep); stroke-width: 1.6; stroke-linejoin: round; }
+.kitap-zar-ic { fill: none; stroke: var(--murekkep); stroke-width: 1; stroke-linejoin: round; opacity: 0.3; }
+.kitap-zar-sayi { font-family: var(--kitap-yazi); font-size: 14px; font-weight: 600; fill: var(--murekkep); }
+.kitap-zar-bos .kitap-zar-yuz > *, .kitap-zar-hata .kitap-zar-yuz > *, .kitap-zar-devre-disi .kitap-zar-yuz > * { fill: none; stroke: var(--soluk); stroke-dasharray: 4 4; }
+.kitap-zar-bos .kitap-zar-ic, .kitap-zar-hata .kitap-zar-ic, .kitap-zar-devre-disi .kitap-zar-ic { stroke: var(--soluk); }
+.kitap-zar-devre-disi .kitap-zar-sayi { fill: var(--soluk); }
+/* Save notice (conflict 24): a small paper slip top right, over the desk and clear of the tabs (they start 31px
+   down). The live region stays in place and empty; only the slip comes and goes. */
+.kitap-kayit { position: fixed; top: 4px; right: 16px; z-index: 60; pointer-events: none; font-family: var(--kitap-yazi); }
+.kitap-kayit-fis { display: inline-flex; align-items: center; gap: 7px; box-sizing: border-box; height: 26px; padding: 0 10px 0 6px; font-size: var(--etiket-boy); font-style: italic; color: var(--murekkep); background: var(--sayfa); border: 1px solid var(--cizgi); border-radius: var(--kose); box-shadow: var(--bildirim-golge); animation: kitap-kayit-sol 2600ms ease-out both; }
+.kitap-kayit-muhur .kitap-kayit-fis { animation-name: kitap-kayit-bas; }
+.kitap-kayit[data-durum='hata'] .kitap-kayit-fis { animation: none; }
+.kitap-kayit-hata-simge { width: 16px; height: 16px; margin-left: 2px; }
+.kitap-kayit-kurdele-isaret { align-self: flex-start; width: 10px; height: 22px; margin-top: -1px; background: var(--muhur); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%); }
+@keyframes kitap-kayit-sol { 0% { opacity: 0; transform: translateY(-4px); } 8% { opacity: 1; transform: none; } 82% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes kitap-kayit-bas { 0% { opacity: 0; transform: scale(1.18); } 8% { opacity: 1; transform: scale(1); } 82% { opacity: 1; } 100% { opacity: 0; } }
+
 /* ---------- Headings ---------- */
 .kitap-bolum-2 { display: flex; justify-content: space-between; align-items: baseline; gap: var(--bosluk-4); border-bottom: 3px double var(--cizgi); padding-bottom: 10px; }
 .kitap-bolum-2 .kitap-bolum-baslik { margin: 0; font-size: var(--baslik-boy); font-weight: 500; font-style: italic; line-height: 1.2; }
@@ -227,7 +269,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 /* One focus look everywhere: a 2px ink ring; on the desk the desk text colour. .kitap-odak-goster shows it in the gallery. */
 .kitap-dugme:focus-visible, .kitap-ayrac:focus-visible, .kitap-secenek:focus-visible, .kitap-liste:focus-visible,
 .kitap-onay-kutu:focus-visible, .kitap-anahtar:focus-visible, .kitap-sayi-girdi:focus-visible, .kitap-yaz-girdi:focus-visible,
-.kitap-kart:has(:focus-visible), .kitap-odak-goster {
+.kitap-kart:has(:focus-visible), .kitap-yuva:focus-visible, .kitap-odak-goster {
   outline: 2px solid var(--murekkep);
   outline-offset: 3px;
   box-shadow: none;
@@ -433,15 +475,15 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 
 /* ---------- Narrow screen: one page (G6) ---------- */
 @media (max-width: 767px) {
-  .kitap-masa { padding: 56px 5px 5px; }
+  .kitap-masa { padding: var(--masa-ust-bosluk) 5px 5px; }
   .kitap-masa-ust { left: auto; right: 8px; top: 6px; }
   .kitap-masa-ust .kitap-dugme-masa { width: var(--dokunma); padding: 0; }
   .kitap-masa-ust .kitap-dugme-masa .kitap-dar-gizli { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .kitap-cilt { height: calc(100dvh - 61px); min-height: 600px; padding: 8px 8px 11px 8px; }
+  .kitap-cilt { height: calc(100dvh - var(--masa-ust-bosluk) - 5px); min-height: 600px; padding: 8px 8px 11px 8px; }
   .kitap-darda-gizli { display: none; }
   .kitap-sayfa-sol, .kitap-sayfa-sag {
-    border-radius: 90px 3px 3px 90px / 6px 3px 3px 6px;
-    box-shadow: 2px 2px 0 var(--sayfa2), 3px 3px 0 var(--kenar-koyu), 5px 5px 0 var(--sayfa2), 6px 6px 0 var(--kenar-koyu);
+    border-radius: var(--sirt-kavis-tek);
+    box-shadow: var(--sayfa-yigini-tek);
     background-image: linear-gradient(to left, var(--saydam) 0, var(--saydam) 86%, var(--oluk1) 95%, var(--oluk2) 100%), var(--isik-sag);
   }
   .kitap-sayfa-ic, .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-tek); }
@@ -464,6 +506,20 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   .kitap-yaz .kitap-dugme-ana { width: var(--dokunma); padding: 0; }
   .kitap-gonder-simge { display: block; }
   .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .kitap-muhur-buyuk > .kitap-muhur { width: 58px; height: 58px; }
+  .kitap-muhur-buyuk .kitap-muhur-sayi { font-size: calc(var(--el) * 1.38); }
+  /* Save notice on the phone: the desk buttons hold the top right, so the slip sits bottom left over the writing line. */
+  .kitap-kayit { top: auto; right: auto; left: 12px; bottom: 170px; }
+  /* G6 (Kadir picks). a: one settings button top right (the look is chosen inside it), no lamp. */
+  [data-kitap-telefon="a"] .kitap-dar-yok { display: inline; }
+  [data-kitap-telefon="a"] .kitap-saat-dugmesi { display: none; }
+  /* b: a desk strip above the book (--masa-ust-bosluk 104px) with the clock and the settings top left, the small lamp
+     clamped on the top left corner over the spine side, the tabs moved right of it. */
+  [data-kitap-telefon="b"] .kitap-dar-yok { display: inline; }
+  [data-kitap-telefon="b"] .kitap-masa-ust { left: 8px; right: auto; }
+  [data-kitap-telefon="b"] .kitap-ayraclar { top: 57px; left: auto; right: 8px; }
+  [data-kitap-telefon="b"] .kitap-ayrac { padding: 0 4px; font-size: 13px; }
+  [data-kitap-telefon="b"] .kitap-lamba { display: block; left: 2px; }
 }
 
 /* Very narrow phones (360px): the tabs shrink a little more so they clear the theme button. */
@@ -473,6 +529,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 
 @media (prefers-reduced-motion: reduce) {
   .kitap-yukleniyor-isaret { animation: none; }
+  .kitap-kayit .kitap-kayit-fis { animation: none; }
 }
 
 /* Narrow desktop (review 2): no room for the lamp between the desk buttons and the tabs; the tabs move in a little. */
@@ -540,6 +597,10 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-ornek .kitap-yaz { width: 560px; max-width: 100%; }
 .kitap-ornek .kitap-bos { width: 320px; max-width: 100%; }
 .kitap-ornek-sutun { display: flex; flex-direction: column; gap: var(--bosluk-4); width: 360px; max-width: 100%; }
+/* The gallery shows the two save notices standing still beside each other; the live one stays top right. */
+.kitap-ornek .kitap-kayit { position: static; }
+.kitap-ornek .kitap-kayit-fis { animation: none; }
+.kitap-ornek .kitap-kenar { width: 220px; max-width: 100%; }
 @media (max-width: 767px) {
   .kitap-dar-yok { display: none; }
   .kitap-galeri .kitap-galeri-set { margin: var(--bosluk-4) 5px var(--bosluk-6); padding: var(--bosluk-4) var(--bosluk-4) var(--bosluk-6); }
