@@ -89,12 +89,10 @@ function yollar(en: number, boy: number) {
     seritler.push({ d: serit(once, a, b), renk: satenRengi(u) });
     seritler.push({ d: serit(sonra, a, b), renk: satenRengi(1 - u) });
   }
-  // A faint lit rim all round the tail (both edges and the V), so it does not sink into a dark desk; faint, so it
-  // reads as the satin's edge and not as a separate strip.
-  const kuyruk = n.filter((p) => p.t > 1);
-  const kuyrukSol = kuyruk.map((p) => `${(p.x - p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`);
-  const kuyrukSag = kuyruk.map((p) => `${(p.x + p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`).reverse();
-  const kenar = `M${kuyrukSol.join(' L')} L${centik} L${kuyrukSag.join(' L')}`;
+  // A faint lit rim along the V cut only, drawn inside the shape (Kadir's screenshot, 14 Nov 2026: a rim stroked on
+  // the tail's side edges lay half outside the ribbon and showed as a dull pink line beside it on the dark desk,
+  // so the tail read as another colour from the point where it left the page).
+  const kenar = `M${sol[sol.length - 1]} L${centik} L${sag[0]}`;
   return { govde, golge: kaydir(2.4 * s), golgeGenis: kaydir(4.4 * s), parlak, seritler, kenar, alt: boy - SARKMA };
 }
 
@@ -169,9 +167,12 @@ export function Kurdele({ etiket = 'Kurdele ayraç' }: { etiket?: string }) {
         <path d={govde} fill={`url(#${isik})`} />
         <path d={govde} fill={`url(#${burgu})`} />
         <path className="kitap-kurdele-uc" d={govde} fill={`url(#${kivrim})`} />
-        <path d={parlak} stroke="#F2A898" strokeWidth=".8" fill="none" opacity=".28" />
-        <path d={govde} stroke="#1E0504" strokeWidth=".7" fill="none" opacity=".5" />
-        <path className="kitap-kurdele-uc-kenar" d={kenar} stroke="#C85A4E" strokeWidth=".7" fill="none" strokeLinejoin="round" opacity=".38" />
+        {/* Lines are clipped to the ribbon shape, so no half of a line lies beside it; they are satin reds, not pale. */}
+        <g clipPath={`url(#${saten})`}>
+          <path d={parlak} stroke="#D2483A" strokeWidth=".8" fill="none" opacity=".3" />
+          <path d={govde} stroke="#1E0504" strokeWidth=".7" fill="none" opacity=".5" />
+          <path className="kitap-kurdele-uc-kenar" d={kenar} stroke="#B03C32" strokeWidth="1.4" fill="none" strokeLinejoin="round" opacity=".45" />
+        </g>
       </svg>
       {/* Phone: the tail alone. Its top is under the page (z-index in kitap.css); it crosses the cover edge. */}
       <svg className="kitap-kurdele-kisa" width="22" height="44" viewBox="0 0 22 44" aria-hidden="true" focusable="false">
@@ -179,12 +180,15 @@ export function Kurdele({ etiket = 'Kurdele ayraç' }: { etiket?: string }) {
           <linearGradient id={`${saten}-kisa`} x1="0" y1="0" x2="1" y2="0">
             {SATEN.map(([u, r, g, b]) => <stop key={u} offset={u} stopColor={`rgb(${r}, ${g}, ${b})`} />)}
           </linearGradient>
+          <clipPath id={`${saten}-kisa-kirp`}><path d="M5.5 0H16.5L17.2 41.5L11.8 36.4L6.4 42.2Z" /></clipPath>
         </defs>
         <path d="M5.5 0H16.5L17.2 41.5L11.8 36.4L6.4 42.2Z" fill="#000" opacity=".24" transform="translate(1.4 1)" />
         <path d="M5.5 0H16.5L17.2 41.5L11.8 36.4L6.4 42.2Z" fill={`url(#${saten}-kisa)`} />
         <path d="M5.5 26H16.6V31H5.5Z" fill="#000" opacity=".18" />
-        <path d="M6.6 0L7.4 41" stroke="#F2A898" strokeWidth=".7" opacity=".3" />
-        <path d="M16.5 0L17.2 41.5L11.8 36.4" stroke="#D86A5C" strokeWidth=".8" fill="none" opacity=".6" />
+        <g clipPath={`url(#${saten}-kisa-kirp)`}>
+          <path d="M6.6 0L7.4 41" stroke="#D2483A" strokeWidth=".7" opacity=".3" />
+          <path d="M6.4 42.2L11.8 36.4L17.2 41.5" stroke="#B03C32" strokeWidth="1.4" fill="none" strokeLinejoin="round" opacity=".45" />
+        </g>
       </svg>
       <svg className="kitap-kapitalbant" width="26" height="5" viewBox="0 0 26 5" aria-hidden="true" focusable="false">
         <rect x="0" y="0" width="26" height="5" rx="1.6" fill="#24180D" />

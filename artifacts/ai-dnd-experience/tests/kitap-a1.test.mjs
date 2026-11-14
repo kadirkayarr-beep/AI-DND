@@ -510,3 +510,41 @@ test('round 3, findings 13 and 14: the gallery note is current; a field error ca
   const html = render(kontrol.SayiKutusu, { etiket: 'Zekâ', deger: '21', hata: 'Olmaz.', degisince: () => {} });
   assert.match(html, /class="[^"]*kitap-alan-hata-simge"/);
 });
+
+// Kadir, 14 Nov 2026 (screenshot): "kenar ışık çizgisi de kurdelenin dışına taşıyor", "renkte sorun var". A line
+// stroked on the ribbon's edge lies half outside it, and a pale pink line over the red reads as another colour.
+const kurdeleCizimleri = () => {
+  const html = render(kitap.KitapKabugu, { tema: 'gece', sol: 'SOL', sag: 'SAG' });
+  return ['kitap-kurdele-govde', 'kitap-kurdele-kisa'].map((ad) => {
+    const bas = html.indexOf(`<svg class="${ad}"`);
+    assert.ok(bas >= 0, `${ad} is drawn`);
+    return { ad, svg: html.slice(bas, html.indexOf('</svg>', bas)) };
+  });
+};
+
+test('ribbon: every line (sheen, outline, rim) is drawn inside the ribbon shape, none beside it', () => {
+  for (const { ad, svg } of kurdeleCizimleri()) {
+    const kirpma = svg.match(/<clipPath id="([^"]+)">/);
+    assert.ok(kirpma, `${ad}: the ribbon shape is a clip path`);
+    // Split at each clipped group: every piece but the first starts inside a group and leaves it at its first </g>.
+    const [once, ...gruplar] = svg.split(`<g clip-path="url(#${kirpma[1]})">`);
+    const icinde = gruplar.map((g) => g.slice(0, g.indexOf('</g>'))).join('');
+    const disinda = once + gruplar.map((g) => g.slice(g.indexOf('</g>'))).join('');
+    assert.match(icinde, /stroke="/, `${ad}: the lines are inside the clipped group`);
+    assert.doesNotMatch(disinda, /stroke="/, `${ad}: no line outside the clipped group`);
+  }
+});
+
+test('ribbon: its lines are a satin red or a dark shade, never a pale pink; the bends are shade only', () => {
+  for (const { ad, svg } of kurdeleCizimleri()) {
+    const renkler = [...svg.matchAll(/stroke="#([0-9A-Fa-f]{6})"/g)].map((m) => m[1]);
+    assert.ok(renkler.length > 0, `${ad}: has lines`);
+    for (const renk of renkler) {
+      const [r, g, b] = [0, 2, 4].map((i) => parseInt(renk.slice(i, i + 2), 16));
+      assert.ok(r < 0x40 || (g <= r * 0.4 && b <= r * 0.4), `${ad}: #${renk} is a pale line colour`);
+    }
+  }
+  const kivrim = kurdeleCizimleri()[0].svg.match(/<linearGradient id="kurdele-kivrim-[\s\S]*?<\/linearGradient>/);
+  assert.ok(kivrim, 'the bend overlay is there');
+  for (const m of kivrim[0].matchAll(/stop-color="([^"]+)"/g)) assert.equal(m[1], '#000', 'the bend is shade only');
+});
