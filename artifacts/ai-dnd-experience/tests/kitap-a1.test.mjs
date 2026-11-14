@@ -220,7 +220,10 @@ const kural = (text, selector) => {
 
 test('finding 1: the default hand and the body face are preloaded, and no hand falls back to the system cursive face', () => {
   const html = readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-  for (const file of ['kalam/YA9dr0Wd4kDdMthROCc.woff2', 'literata/or3PQ6P12-iJxAIgLa78DkTtAoDhk0oVpaK3YLanFLHpPf2TbLi4J_HWTA.woff2', 'literata/or3NQ6P12-iJxAIgLYT1PLs1a-t7PU0AbeE9KPxYzNiCp1OUedn8VrLmTkiS.woff2']) {
+  // latin and latin-ext: Turkish ş, ğ, İ live in latin-ext, so without it those letters fell back to Georgia (measured).
+  for (const file of ['kalam/YA9dr0Wd4kDdMthROCc.woff2', 'kalam/YA9dr0Wd4kDdMthfOCfzsw.woff2',
+    'literata/or3PQ6P12-iJxAIgLa78DkTtAoDhk0oVpaK3YLanFLHpPf2TbLi4J_HWTA.woff2', 'literata/or3PQ6P12-iJxAIgLa78DkTtAoDhk0oVpaK3YLanFLHpPf2TbLi4J__WTFCW.woff2',
+    'literata/or3NQ6P12-iJxAIgLYT1PLs1a-t7PU0AbeE9KPxYzNiCp1OUedn8VrLmTkiS.woff2', 'literata/or3NQ6P12-iJxAIgLYT1PLs1a-t7PU0AbeE9KPxYzNiCp1OUedn8VrLmQEiSh8g.woff2']) {
     assert.match(html, new RegExp(`<link rel="preload" href="/src/fonts/${file.replace(/[.]/g, '\.')}" as="font" type="font/woff2" crossorigin`), `${file} is not preloaded`);
   }
   for (const selector of ['[data-kitap-tema]', '[data-kitap-el="a"]', '[data-kitap-el="b"]', '[data-kitap-el="c"]']) {
