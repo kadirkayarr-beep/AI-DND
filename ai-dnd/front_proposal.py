@@ -505,6 +505,7 @@ def begin(session, *, typed: bool = False) -> None:
     ollama_adapter.begin_turn_usage()
     session._front_reply = None
     session._front_deed = None
+    session._front_kind = None
     session._front_coin = 0
     session._bribe_held_out = 0
     session._coin_paid = None
