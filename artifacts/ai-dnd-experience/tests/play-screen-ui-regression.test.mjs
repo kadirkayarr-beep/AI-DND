@@ -30,15 +30,25 @@ async function freePort() {
   return address.port;
 }
 
-async function waitFor(url, parseJson = false) {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+async function waitFor(url, parseJson = false, attempts = 100, timeoutNote = () => "") {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const response = await fetch(url);
       if (response.ok) return parseJson ? response.json() : response;
     } catch {}
     await delay(100);
   }
-  throw new Error(`Timed out waiting for ${url}`);
+  throw new Error(`Timed out waiting for ${url}${timeoutNote()}`);
+}
+
+// D-087: on CI the browser has taken longer than the general wait (about 10 s) to open its debugging port,
+// so only the browser start waits about 30 s; the timeout message says whether the Chrome process had exited.
+function waitForBrowser(browser, browserPort) {
+  return waitFor(`http://127.0.0.1:${browserPort}/json/version`, true, 300, () => (
+    browser.exitCode === null && browser.signalCode === null
+      ? " (Chrome process still running)"
+      : ` (Chrome process had exited: code ${browser.exitCode}, signal ${browser.signalCode})`
+  ));
 }
 
 class CdpPage {
@@ -150,15 +160,18 @@ async function stopChild(child) {
 }
 
 async function createPage(browserPort, url, width, height) {
-  const target = await fetch(`http://127.0.0.1:${browserPort}/json/new?${encodeURIComponent(url)}`, { method: "PUT" }).then((response) => response.json());
+  // The tab gets its screen size before the page loads, as on a real device, and the checks start once the page
+  // and its fonts have finished loading; a page opened first and resized later is still moving under the checks.
+  const target = await fetch(`http://127.0.0.1:${browserPort}/json/new?about:blank`, { method: "PUT" }).then((response) => response.json());
   const page = new CdpPage(target.webSocketDebuggerUrl);
   await page.send("Page.enable");
   await page.send("Runtime.enable");
   await page.send("Emulation.setDeviceMetricsOverride", {
     width, height, deviceScaleFactor: 1, mobile: width < 600,
   });
-  await waitFor(`${url}`);
-  await page.evaluate("document.readyState === 'complete'");
+  await page.send("Page.navigate", { url });
+  await waitForValue(page, "location.href !== 'about:blank' && document.readyState === 'complete'");
+  await page.evaluate("document.fonts.ready.then(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true)))))");
   return { page, targetId: target.id };
 }
 
@@ -186,7 +199,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
 
   const baseUrl = `http://127.0.0.1:${vitePort}`;
   await waitFor(`${baseUrl}${fixturePath}`);
-  await waitFor(`http://127.0.0.1:${browserPort}/json/version`, true);
+  await waitForBrowser(browser, browserPort);
   const metrics = [];
 
   for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 360, height: 640 }, { width: 800, height: 900 }, { width: 768, height: 1024 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
@@ -213,6 +226,9 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     if (viewport.width === 390 || viewport.width === 1920) await saveScreenshot(play.page, `play-reading-${viewport.width}.jpg`);
     const inputBox = await play.page.evaluate("(() => { const r=document.querySelector('[data-testid=\"input-player-message\"]').getBoundingClientRect(); return {top:r.top,bottom:r.bottom,height:innerHeight}; })()");
     assert.ok(inputBox.top >= 0 && inputBox.bottom <= inputBox.height, `the input must be on screen without scrolling at ${viewport.width}x${viewport.height}: ${JSON.stringify(inputBox)}`);
+    // The story is read once it has settled at its last message: content that grows right after load is followed a moment later
+    // (measured: back at the bottom within 0.4 s), and a reading taken inside that moment is not where the story rests. A story that never reaches its last message still fails here.
+    await waitForValue(play.page, "(() => { const a=document.querySelector('[data-testid=\"transcript-scroll\"]'); const last=[...document.querySelectorAll('.story-text')].at(-1)?.getBoundingClientRect(); const box=a.getBoundingClientRect(); return Boolean(last && last.bottom > box.top && last.top < box.bottom && (a.scrollHeight <= a.clientHeight + 2 || a.scrollHeight - a.scrollTop - a.clientHeight <= 2)); })()");
     const longStory = await play.page.evaluate(`(() => { const nodes = [...document.querySelectorAll('.story-text')]; const area = document.querySelector('[data-testid="transcript-scroll"]'); const rect = (node) => { const r = node?.getBoundingClientRect(); return r ? { top: r.top, bottom: r.bottom, width: r.width, height: r.height } : null; }; const areaRect = rect(area); const lastParagraph = rect(nodes.at(-1)); const context=document.querySelector('[aria-label="Sahne bilgileri"]'); return { count:nodes.length,chars:nodes.map(n=>n.innerText).join('').length,scrollHeight:area.scrollHeight,clientHeight:area.clientHeight,scrollTop:area.scrollTop,scrollWidth:document.documentElement.scrollWidth,storyColumn:rect(document.querySelector('[data-testid="panel-story"]')),sceneContext:rect(context),transcript:areaRect,lastParagraph,lastParagraphVisible:Boolean(lastParagraph&&areaRect&&lastParagraph.bottom>areaRect.top&&lastParagraph.top<areaRect.bottom),css:{contextOverflow:getComputedStyle(context).overflow,transcriptOverflow:getComputedStyle(area).overflowY,transcriptMaxHeight:getComputedStyle(area).maxHeight,playDisplay:getComputedStyle(document.querySelector('.preview-play')).display}}; })()`);
     assert.ok(longStory.count >= 18);
     assert.ok(longStory.chars > 1000);
@@ -221,6 +237,9 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.equal(initialRollCard.open, false, "the in-story result card should start compact");
     assert.ok(initialRollCard.scrollWidth <= initialRollCard.width + 1, `roll card overflows at ${viewport.width}px`);
     assert.doesNotMatch(`${initialRollCard.label} ${initialRollCard.text}`, /DC\s*\d/i, "hidden DC must not appear in visible or accessible text");
+    // The reader scrolls up with the wheel (their own input), then the card is brought to the middle of the story box.
+    await mouseWheel(play.page, '[data-testid="transcript-scroll"]', -300);
+    await waitForValue(play.page, "(() => { const a=document.querySelector('[data-testid=\"transcript-scroll\"]'); return a.scrollHeight - a.scrollTop - a.clientHeight > 80; })()");
     await play.page.evaluate("document.querySelector('[data-testid=\"skill-check-result\"] summary').scrollIntoView({block:'center'})");
     // Card position = the card's own on-screen top, read once its layout has been stable for 3 consecutive 50 ms frames (the transcript auto-follows new messages).
     const cardTopOf = async () => {
@@ -724,7 +743,7 @@ async function startFixtureEnv(t) {
   });
   const baseUrl = `http://127.0.0.1:${vitePort}`;
   await waitFor(`${baseUrl}${fixturePath}`);
-  await waitFor(`http://127.0.0.1:${browserPort}/json/version`, true);
+  await waitForBrowser(browser, browserPort);
   const open = async (route, width, height) => {
     const { page, targetId } = await createPage(browserPort, `${baseUrl}${route}`, width, height);
     return { page, close: async () => { page.close(); await fetch(`http://127.0.0.1:${browserPort}/json/close/${targetId}`); } };
@@ -836,13 +855,6 @@ test("settings drawer: Escape closes it and returns focus to its opener, and pic
 });
 
 test("reading faces: Atkinson Hyperlegible (dyslexia setting) and Spectral load with Turkish glyphs and apply to the story text", async (t) => {
-  try {
-    const response = await fetch("https://fonts.googleapis.com/css2?family=Spectral&display=swap", { signal: AbortSignal.timeout(5000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  } catch (error) {
-    t.skip(`SKIPPED, not passed: the font service is unreachable (${error.message}); the font check needs network`);
-    return;
-  }
   const env = await startFixtureEnv(t);
   const play = await env.open(`${fixturePath}?screen=play`, 1280, 900);
   await waitForSelector(play.page, '[data-testid="button-open-settings"]');

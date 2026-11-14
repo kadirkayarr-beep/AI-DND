@@ -437,6 +437,9 @@ export default function GameBrowser() {
   const wasAtBottom = useRef(true);
   const storyLayoutRef = useRef<{ width: number; height: number; contentHeight: number; top: number } | null>(null);
   const storyLayoutScrollTopRef = useRef<number | null>(null);
+  // The reader's own wheel, touch, key, pointer or focus move inside the story.
+  const readerInputAt = useRef(-Infinity);
+  const readerIsScrolling = () => performance.now() - readerInputAt.current < 500;
   const readStoryLayout = (node: HTMLDivElement) => ({
     width: node.clientWidth, height: node.clientHeight, contentHeight: node.scrollHeight, top: node.scrollTop,
   });
@@ -548,7 +551,13 @@ export default function GameBrowser() {
     // The reader can shrink without changing the transcript content box.
     observer.observe(node);
     observer.observe(content);
-    return () => observer.disconnect();
+    const noteReaderInput = () => { readerInputAt.current = performance.now(); };
+    const readerInputs = ['wheel', 'touchstart', 'touchmove', 'keydown', 'pointerdown', 'focusin'];
+    readerInputs.forEach(type => node.addEventListener(type, noteReaderInput, { passive: true }));
+    return () => {
+      observer.disconnect();
+      readerInputs.forEach(type => node.removeEventListener(type, noteReaderInput));
+    };
   }, [entries.length]);
   useEffect(() => {
     if (phase !== 'adventure' || !sessionId) return;
@@ -596,8 +605,11 @@ export default function GameBrowser() {
     storyLayoutScrollTopRef.current = null;
     // Layout can dispatch scroll before ResizeObserver. Keep the preference
     // from before that resize; genuine same-layout scrolling still updates it.
-    if ((previous && (previous.width !== current.width || previous.height !== current.height
-      || previous.contentHeight !== current.contentHeight)) || layoutScrollTop === node.scrollTop) {
+    // A scroll the reader is making is theirs even when layout changes with it.
+    const readerScroll = readerIsScrolling();
+    if (readerScroll) readerInputAt.current = performance.now();
+    if (!readerScroll && ((previous && (previous.width !== current.width || previous.height !== current.height
+      || previous.contentHeight !== current.contentHeight)) || layoutScrollTop === node.scrollTop)) {
       if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
       return;
     }
