@@ -38,3 +38,9 @@
 - Ruling: ekran görüntüleri commit edilmedi (27 MB); worktree'de `UI_EKRAN_GORUNTULERI_20261113/` — yanlışsa maliyeti: istenirse ayrıca eklenir.
 - Kısayol: kitabın konum ölçüleri (üst boşluk 66 px, sayfa yığını gölgesi, sırt kavisi yarıçapı) `kitap.css`'te sabit piksel; renk ve yazı tipi tümüyle değişkenden, boşlukların çoğu `--bosluk-*`'tan.
 - Park: WSL yuva 9 yoktu; ilk deneme `/root/aidnd-env-9` altında yarım bir klasör bıraktı (silinmedi, sahibi bu oturum).
+
+### Üçüncü ayrı göz (Opus, Fable; `72a51bab`) — Kadir: "Hepsini düzelt"
+- Ruling: lamba boynu alçaltıldı ve lamba 84'ten 96 piksele büyütüldü (geniş ekranda en çok 108) — 1911'de tepesi pencereden taşıyordu, iki inceleme de "küçük" dedi; tepe her genişlikte pencerenin en az 4 piksel içinde (testle hesaplanıyor) — yanlışsa maliyeti: tek sayı.
+- Ruling: telefonda kurdele ucu sayfanın altından çıkıp cilt kenarını aşıyor (yaklaşık 14 piksel görünür) — masada 5 piksel boşluk var, daha uzun sarkamaz; gizlemek yerine bu seçildi — yanlışsa maliyeti: tek CSS kuralıyla gizlenir.
+- Ruling: 800 genişlikte "Ne yapıyorsun?" iki satıra iniyor (kelime bölünmeden) — Gönder simgeye döndü, seçenekler tek satır — yanlışsa maliyeti: küçük.
+- Test yeniden yazımı (onay listesi, gevşetme olabilir diye işaretli): `--lamba-en` 84→96 (büyüme); hale tepe formülü 0.573→0.725 (ampul aşağı kaydı); kurdele kutusu 100%+40→100%+44 ve `SARKMA = 42` (daha uzun sarkma, sıkılaştırma).

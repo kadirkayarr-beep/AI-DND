@@ -856,7 +856,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --bosluk-7: 40px;
   --sutun-metin: 22em;
   /* Lamp and ribbon grow with the book on wide screens (review 10). */
-  --lamba-en: calc(84px + var(--buyume) * 4);
+  --lamba-en: calc(96px + var(--buyume) * 3);
   --kurdele-en: calc(40px + var(--buyume) * 2.5);
   --sutun-kenar: 150px;
   --sayfa-ic: 34px 40px 36px 48px;
@@ -994,6 +994,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --lamba-huzme: radial-gradient(ellipse 50% 100% at 50% 0%, rgba(255, 224, 165, 0.08), rgba(255, 214, 150, 0) 65%);
   --isik-sol: radial-gradient(ellipse 60% 44% at 100% 0%, rgba(255, 214, 150, 0.14), rgba(255, 214, 150, 0) 70%);
   --isik-sag: radial-gradient(ellipse 60% 44% at 0% 0%, rgba(255, 214, 150, 0.14), rgba(255, 214, 150, 0) 70%);
+}
+/* Under 1180px there is no lamp (G6, review 2), so no lamp light either (round 3: a warm spot with no source): the
+   night keeps only the broad light from above (T6). Before the effects-off block, which still wins. */
+@media (max-width: 1179px) {
+  [data-kitap-tema="gece"] {
+    --isik-sol: radial-gradient(ellipse 112% 108% at 100% -4%, rgba(255, 246, 218, 0.3) 0, rgba(255, 246, 218, 0.1) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
+    --isik-sag: radial-gradient(ellipse 112% 108% at 0% -4%, rgba(255, 246, 218, 0.3) 0, rgba(255, 246, 218, 0.1) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
+    --isik-cilt: none;
+    --lamba-havuz: none;
+  }
+  [data-kitap-tema="karanlik"][data-kitap-lamba="acik"] { --isik-sol: none; --isik-sag: none; --isik-cilt: none; --lamba-havuz: none; }
 }
 
 [data-kitap-tema][data-kitap-efekt="kapali"] { --tane: none; --cilt-dokuma: none; --kabarma: transparent; --murekkep-golge: none; --dugme-parlama: none; --oluk-derin: transparent;

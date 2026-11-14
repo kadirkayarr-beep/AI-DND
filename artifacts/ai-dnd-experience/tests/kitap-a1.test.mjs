@@ -257,7 +257,9 @@ test('finding 5: on wide screens the type grows with the book and the text colum
 });
 
 test('finding 6: the ribbon hangs below the book', () => {
-  assert.match(kural(kitapCss(), '.kitap-kurdele'), /height:\s*calc\(100% \+ 40px\)/);
+  // Round 3: the tail hangs 4px longer (40 to 44), and the drawing's own SARKMA matches the box (2px above + 42).
+  assert.match(kural(kitapCss(), '.kitap-kurdele'), /height:\s*calc\(100% \+ 44px\)/);
+  assert.match(kurdeleKod(), /const SARKMA = 42;/);
 });
 
 test('findings 7 and 8: a disabled checked box loses its fill; an error is a double rule with a referee note, a disabled field keeps the dashed rule', () => {
@@ -342,7 +344,7 @@ test('review 2, 10: the lamp leaves room for the tabs and scales with the book',
   const orta = medya(kitapCss(), '(min-width: 768px) and (max-width: 1179px)');
   assert.match(orta, /\.kitap-lamba\s*\{\s*display:\s*none/);
   const base = block('[data-kitap-tema]');
-  assert.match(token(base, '--lamba-en') ?? '', /calc\(84px \+ var\(--buyume\)/);
+  assert.match(token(base, '--lamba-en') ?? '', /calc\(96px \+ var\(--buyume\)/);
   assert.match(token(base, '--kurdele-en') ?? '', /calc\(40px \+ var\(--buyume\)/);
   assert.match(kural(kitapCss(), '.kitap-lamba'), /width:\s*var\(--lamba-en\)/);
 });
@@ -352,8 +354,8 @@ test('review 3, 13, 14: the light falls on the pages, the halo sits under the sh
   assert.match(token(gece, '--isik-sol') ?? '', /^radial-gradient\(ellipse 60% 44% at 100% 0%, rgba\(255, 226, 168, 0\.4/);
   assert.match(token(gece, '--lamba-havuz') ?? '', /rgba\(255, 190, 105, 0\.1\)/);
   assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /border-radius:\s*50%/);
-  // Halo centre below the bulb (bulb at 0.473 of the lamp width; halo centre 0.1 lower).
-  assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /top:\s*calc\(var\(--lamba-en\) \* 0\.573 - var\(--lamba-en\) \* 0\.95\)/);
+  // Halo centre just below the bulb (round 3: the bulb moved down to 0.582 of the lamp width; the halo moved with it).
+  assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /top:\s*calc\(var\(--lamba-en\) \* 0\.725 - var\(--lamba-en\) \* 0\.95\)/);
   const karanlik = block('[data-kitap-tema="karanlik"][data-kitap-lamba="acik"]');
   assert.match(token(karanlik, '--isik-sol') ?? '', /rgba\(255, 214, 150, 0\.1[0-9]/);
 });
@@ -418,4 +420,93 @@ test('reading lamp drawing: shaded brass tube, coiled gooseneck, lit shade inter
 
 test('a scrolled page fades its top line out instead of cutting it (draft mask), using a token colour', () => {
   assert.match(kural(kitapCss(), '.kitap-akis'), /mask-image:\s*linear-gradient\(to bottom, transparent 0, transparent 3px, var\(--sayfa\) 20px\)/);
+});
+
+// Third review round (Opus, Fable) on 72a51bab; Kadir: "Hepsini düzelt".
+const lambaKod = () => read('components/kitap/cizimler/okuma-lambasi.tsx');
+
+test('round 3, finding 1: the lamp never reaches past the top of the window, at any width the book grows to', () => {
+  // The lamp box: top = 66px - en * K; the drawing is 100 units wide, so one unit is en / 100.
+  const ust = kural(kitapCss(), '.kitap-lamba');
+  const K = Number(/top:\s*calc\(66px - var\(--lamba-en\) \* ([\d.]+)\)/.exec(ust)?.[1]);
+  assert.ok(K > 0, 'lamp top formula not found');
+  const en = /calc\((\d+)px \+ var\(--buyume\) \* ([\d.]+)\)/.exec(token(block('[data-kitap-tema]'), '--lamba-en') ?? '');
+  assert.ok(en, '--lamba-en formula not found');
+  const enBuyuk = Number(en[1]) + 4 * Number(en[2]); // --buyume tops out at 4px
+  // The highest drawn point: the smallest y of any path coordinate, less half of the widest neck stroke.
+  const kod = lambaKod();
+  const boyun = /const boyun = '([^']+)'/.exec(kod)?.[1] ?? '';
+  const yler = [...boyun.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)].map((m) => Number(m[2]));
+  const kalin = Math.max(...[...kod.matchAll(/d=\{boyun\}[^>]*strokeWidth="([\d.]+)"/g)].map((m) => Number(m[1])));
+  const tepe = Math.min(...yler) - kalin / 2;
+  const ekranda = 66 - K * enBuyuk + (tepe / 100) * enBuyuk;
+  assert.ok(ekranda >= 4, `the lamp top is ${ekranda.toFixed(1)}px from the window top at the widest book (needs >= 4)`);
+  // ...and the lamp is larger than before, so its detail reads (round 3, nice-to-have).
+  assert.ok(Number(en[1]) >= 96, 'the lamp is at least 96px wide at 1440');
+});
+
+test('round 3, finding 2: on the phone the ribbon tail comes out from under the page and hangs over the cover edge', () => {
+  const dar = medya(kitapCss(), '(max-width: 767px)');
+  assert.match(dar, /\.kitap-kurdele\s*\{[^}]*z-index:\s*-1/, 'the tail starts under the page');
+  assert.doesNotMatch(kurdeleKod(), /rotate\(10 14 0\)/, 'no tilted loose stub');
+});
+
+test('round 3, finding 3: the beam has no hard edges (no polygon clip; a soft conic mask)', () => {
+  const huzme = kural(kitapCss(), '.kitap-lamba-huzme');
+  assert.doesNotMatch(huzme, /clip-path/);
+  assert.match(huzme, /mask-image:\s*conic-gradient\(/);
+});
+
+test('round 3, finding 4: at 768-1179px the writing line keeps one row: Gönder is the return key, the modes do not wrap', () => {
+  const orta = medya(kitapCss(), '(min-width: 768px) and (max-width: 1179px)');
+  assert.match(orta, /\.kitap-gonder-simge\s*\{\s*display:\s*block/);
+  assert.match(orta, /\.kitap-gonder-metin\s*\{[^}]*clip-path:\s*inset\(50%\)/);
+  assert.match(orta, /\.kitap-kipler[^{]*\{[^}]*white-space:\s*nowrap/);
+});
+
+test('round 3, finding 5: the heading side note is not a <p> (it may hold a badge, which is a div)', async () => {
+  const html = render(kontrol.BolumBasligi, { yan: "not" }, "Başlık");
+  assert.doesNotMatch(html, /<p class="kitap-bolum-yan"/);
+  assert.match(html, /<div class="kitap-bolum-yan"/);
+});
+
+test('round 3, finding 6: a focused tab also gets a ring in the desk colour around it', () => {
+  assert.match(kural(kitapCss(), '.kitap-ayrac:focus-visible'), /box-shadow:\s*0 0 0 2px var\(--masa-yazi\)/);
+});
+
+test('round 3, findings 7 and 12: the satin follows the ribbon (bands along it), and the tail has a lit rim', () => {
+  const kod = kurdeleKod();
+  assert.match(kod, /className="kitap-kurdele-serit"/, 'satin bands along the ribbon');
+  assert.doesNotMatch(kod, /<path d=\{govde\} fill=\{`url\(#\$\{saten\}\)`\}/, 'no box-wide gradient on the body');
+  assert.match(kod, /className="kitap-kurdele-uc-kenar"/, 'the V tail has a lit rim against the dark desk');
+});
+
+test('round 3, finding 8: the lamp clamp has jaws, the neck has a brown outline, not a black one', () => {
+  const kod = lambaKod();
+  assert.match(kod, /id=\{cene\}/, 'clamp jaws');
+  assert.doesNotMatch(kod, /stroke="#24180A"/, 'no near-black cartoon outline on the neck');
+});
+
+test('round 3, finding 9: the "Yeni iş" badge has no gold frame', () => {
+  const yeni = kural(kitapCss(), '.kitap-rozet-yeni');
+  assert.doesNotMatch(yeni, /border-color:\s*var\(--mum\)/);
+  assert.match(yeni, /border:\s*none/);
+});
+
+test('round 3, finding 10: the headband is a thin band, not a pill', () => {
+  assert.match(kurdeleKod(), /<svg className="kitap-kapitalbant" width="26" height="5"/);
+});
+
+test('round 3, finding 11: without the lamp (under 1180px) the night pages keep no lamp hot spot', () => {
+  const dar = medya(css, '(max-width: 1179px)');
+  assert.match(dar, /\[data-kitap-tema="gece"\]\s*\{[^}]*--isik-cilt:\s*none/);
+  assert.match(dar, /\[data-kitap-tema="gece"\]\s*\{[^}]*--lamba-havuz:\s*none/);
+  assert.doesNotMatch(dar, /0\.4\)/, 'the 0.4 hot spot is gone');
+  assert.match(dar, /\[data-kitap-tema="karanlik"\]\[data-kitap-lamba="acik"\]\s*\{[^}]*--isik-sol:\s*none/);
+});
+
+test('round 3, findings 13 and 14: the gallery note is current; a field error carries a mark, not only colour', () => {
+  assert.doesNotMatch(read('pages/kitap-galerisi.tsx'), /lamba Oturum 2'de/);
+  const html = render(kontrol.SayiKutusu, { etiket: 'Zekâ', deger: '21', hata: 'Olmaz.', degisince: () => {} });
+  assert.match(html, /class="[^"]*kitap-alan-hata-simge"/);
 });

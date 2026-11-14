@@ -173,7 +173,7 @@ export default function KitapGalerisi() {
 
       <div className="kitap-galeri-set">
         <div className="kitap-tane" aria-hidden="true" />
-        <BolumBasligi yan="Oturum 1: temel kontroller. Mühür, mum, zar, kenar notu ve lamba Oturum 2'de.">Kontrol seti</BolumBasligi>
+        <BolumBasligi yan="Oturum 1: temel kontroller ve okuma lambası. Mühür, mum, zar ve kenar notu Oturum 2'de.">Kontrol seti</BolumBasligi>
 
         <Parca baslik="Arayüz ayarları (seçici düğme grupları)">
           <Ornek ad="dolu"><ArayuzAyarlari deger={ayar} degisince={setAyar} /></Ornek>

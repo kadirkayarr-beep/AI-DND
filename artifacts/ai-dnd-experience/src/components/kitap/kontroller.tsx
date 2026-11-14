@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Minus, Plus, X } from 'lucide-react';
+import { CircleAlert, Minus, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -127,7 +127,8 @@ export function BolumBasligi({ duzey = 2, yan, children }: { duzey?: 2 | 3; yan?
   return (
     <div className={`kitap-bolum kitap-bolum-${duzey}`}>
       <Etiket className="kitap-bolum-baslik">{children}</Etiket>
-      {yan ? <p className="kitap-bolum-yan">{yan}</p> : null}
+      {/* A div, not a <p>: the side note may hold a badge (round 3: React warned about a div inside a p). */}
+      {yan ? <div className="kitap-bolum-yan">{yan}</div> : null}
     </div>
   );
 }
@@ -144,7 +145,7 @@ export function SayiKutusu({ etiket, deger, degisince, hata, disabled, yerTutucu
         aria-invalid={hata ? true : undefined} aria-describedby={hata ? hataId : undefined}
         onChange={(e) => degisince(e.target.value)} className="kitap-sayi-girdi" />
       <label className="kitap-etiket" htmlFor={id}>{etiket}</label>
-      {hata ? <p id={hataId} className="kitap-alan-hata">{hata}</p> : null}
+      {hata ? <p id={hataId} className="kitap-alan-hata"><CircleAlert className="kitap-alan-hata-simge" aria-hidden="true" />{hata}</p> : null}
     </div>
   );
 }

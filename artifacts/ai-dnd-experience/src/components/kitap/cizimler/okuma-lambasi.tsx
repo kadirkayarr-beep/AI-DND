@@ -1,11 +1,13 @@
 import { useId } from 'react';
 
 // Brass clip-on reading lamp, redrawn for realism (Kadir, 14 Nov 2026: the draft lamp looked "made in Paint");
-// placement and idea from kaynak/Main.dc.html (`class="fener"`); see KAYNAK.md. A clamp grips the top edge of the
-// cover near the spine, a short brass stem rises into a coiled gooseneck that arcs over, and a domed shade points the
-// bulb down at the pages. Metal is shaded as round tube and polished dome (light from the bulb and the room), the
-// shade's inside glows, the bulb is white-hot. The colours inside are part of the drawing; the light the lamp throws
-// on the book lives in src/index.css (--lamba-hale, --lamba-huzme, --isik-cilt, --lamba-havuz, --isik-sol/sag).
+// placement and idea from kaynak/Main.dc.html (`class="fener"`); see KAYNAK.md. A clamp bites the top edge of the
+// cover near the spine (a back block on the desk side, a jaw pressed onto the cloth, a thumb screw), a short brass
+// stem rises into a coiled gooseneck that arcs over, and a domed shade, tipped a little towards the reader, points
+// the bulb down at the pages. The arc is kept low so the lamp stays inside the window at every width (round 3).
+// Metal is shaded as round tube and polished dome (light from the bulb and the room), the shade's inside glows, the
+// bulb is white-hot. The colours inside are part of the drawing; the light the lamp throws on the book lives in
+// src/index.css (--lamba-hale, --lamba-huzme, --isik-cilt, --lamba-havuz, --isik-sol/sag).
 export function OkumaLambasi() {
   const id = useId().replace(/:/g, '');
   const boru = `lamba-boru-${id}`;
@@ -13,10 +15,12 @@ export function OkumaLambasi() {
   const ic = `lamba-ic-${id}`;
   const ampul = `lamba-ampul-${id}`;
   const kiskac = `lamba-kiskac-${id}`;
+  const cene = `lamba-cene-${id}`;
   const vida = `lamba-vida-${id}`;
   const kenar = `lamba-kenar-${id}`;
   const yansima = `lamba-yansima-${id}`;
-  const boyun = 'M29 52C29 33 35 15 51 11.5C60 9.6 66.5 12.6 68.6 19.4';
+  const boyun = 'M30 54C30 41 36 28.5 50 26.4C59 25.2 66 27.8 68.4 33.4';
+  const dil = 'M23.4 78H36.6L35.8 92C35.7 93.4 34.6 94.4 33.2 94.4H26.8C25.4 94.4 24.3 93.4 24.2 92Z';
   return (
     <svg className="kitap-lamba-cizim" viewBox="0 0 100 110" role="img" aria-label="Okuma ışığı yanıyor">
       <defs>
@@ -63,6 +67,13 @@ export function OkumaLambasi() {
           <stop offset=".7" stopColor="#8A6A2E" />
           <stop offset="1" stopColor="#33240B" />
         </linearGradient>
+        {/* The jaw lies on the cloth: lit along its top lip, darker where it presses down. */}
+        <linearGradient id={cene} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#E2C37E" />
+          <stop offset=".18" stopColor="#A9843E" />
+          <stop offset=".75" stopColor="#6E5222" />
+          <stop offset="1" stopColor="#3E2C0E" />
+        </linearGradient>
         <radialGradient id={vida} cx="38%" cy="32%" r="70%">
           <stop offset="0" stopColor="#F7E3A8" />
           <stop offset=".5" stopColor="#9C7A38" />
@@ -75,43 +86,46 @@ export function OkumaLambasi() {
         </linearGradient>
       </defs>
 
-      {/* Contact shadow of the clamp on the cloth. */}
-      <ellipse cx="30" cy="80.5" rx="11" ry="2.2" fill="#000" opacity=".35" />
+      {/* Shadows: the back block on the desk, the jaw on the cloth (offset down and right, away from the bulb). */}
+      <ellipse cx="30.5" cy="80.6" rx="10.5" ry="1.8" fill="#000" opacity=".4" />
+      <path d={dil} fill="#000" opacity=".32" transform="translate(1.4 2.2)" />
+      <ellipse cx="31" cy="95.6" rx="8" ry="1.6" fill="#000" opacity=".3" />
 
-      {/* Clamp gripping the cover edge, with its thumb screw. */}
-      <path d="M22.4 66.5H35.6C36.6 66.5 37.4 67.3 37.4 68.3V96.4C37.4 98 36.1 99.3 34.5 99.3H23.5C21.9 99.3 20.6 98 20.6 96.4V68.3C20.6 67.3 21.4 66.5 22.4 66.5Z" fill={`url(#${kiskac})`} />
-      <path d="M21.8 70.4H36.2" stroke="#2A1D09" strokeWidth=".8" opacity=".55" />
-      <path d="M21.8 95.2H36.2" stroke="#2A1D09" strokeWidth=".8" opacity=".55" />
-      <path d="M24 67.4V98.4" stroke="#FFF0C4" strokeWidth=".7" opacity=".45" />
-      <circle cx="29" cy="87" r="4.4" fill="#2A1D09" opacity=".6" />
-      <circle cx="29" cy="86.6" r="3.8" fill={`url(#${vida})`} />
-      <path d="M26.9 86.6H31.1" stroke="#2A1D09" strokeWidth=".9" strokeLinecap="round" />
+      {/* Clamp: the back block, the jaw biting the cover edge (the dark seam is the cover between them), the screw. */}
+      <rect x="21" y="64.6" width="18" height="15.6" rx="2.2" fill={`url(#${kiskac})`} />
+      <path d="M22.6 66.2H37.4" stroke="#FFF0C4" strokeWidth=".6" opacity=".4" />
+      <path d={dil} fill={`url(#${cene})`} />
+      <path d="M22 79.3H38" stroke="#1E1406" strokeWidth="1.2" opacity=".7" />
+      <path d="M24.6 79.9V92" stroke="#FFF0C4" strokeWidth=".6" opacity=".35" />
+      <circle cx="30" cy="87.4" r="3.9" fill="#1E1406" opacity=".55" />
+      <circle cx="30" cy="87" r="3.4" fill={`url(#${vida})`} />
+      <path d="M28.1 87H31.9" stroke="#2A1D09" strokeWidth=".8" strokeLinecap="round" />
 
       {/* Stem collar and stem. */}
-      <rect x="25.6" y="60.5" width="6.8" height="6.4" rx="1.4" fill={`url(#${kiskac})`} />
-      <rect x="26.9" y="51" width="4.2" height="10" fill={`url(#${boru})`} />
+      <rect x="26.6" y="60" width="6.8" height="5.4" rx="1.3" fill={`url(#${kiskac})`} />
+      <rect x="27.9" y="53" width="4.2" height="8" fill={`url(#${boru})`} />
 
-      {/* Coiled gooseneck: an outline, the tube, its coils, a highlight along the top. */}
-      <path d={boyun} stroke="#24180A" strokeWidth="5.6" fill="none" strokeLinecap="round" />
-      <path d={boyun} stroke="#9C7838" strokeWidth="4.2" fill="none" strokeLinecap="round" />
-      <path d={boyun} stroke="#3A2A0E" strokeWidth="4.2" fill="none" strokeDasharray=".9 1.5" opacity=".55" />
-      <path d={boyun} stroke="#F6DFA0" strokeWidth="1.1" fill="none" strokeLinecap="round" opacity=".75" transform="translate(-.9 -.7)" />
-      <path d="M58 11.4C63.5 11.4 67.4 14.2 68.8 18.8" stroke={`url(#${yansima})`} strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* Coiled gooseneck: a brown outline, the tube, wide coils, a highlight along the top. */}
+      <path d={boyun} stroke="#4A3416" strokeWidth="5.4" fill="none" strokeLinecap="round" opacity=".9" />
+      <path d={boyun} stroke="#A07C3A" strokeWidth="4.2" fill="none" strokeLinecap="round" />
+      <path d={boyun} stroke="#3A2A0E" strokeWidth="4.2" fill="none" strokeDasharray="1.3 2" opacity=".5" />
+      <path d={boyun} stroke="#F6DFA0" strokeWidth="1.1" fill="none" strokeLinecap="round" opacity=".75" transform="translate(-.8 -.8)" />
+      <path d="M58 26C63.5 26 67.2 28.8 68.6 32.8" stroke={`url(#${yansima})`} strokeWidth="2" fill="none" strokeLinecap="round" />
 
       {/* Knuckle joint and the shade's neck. */}
-      <circle cx="69" cy="21" r="3.4" fill={`url(#${vida})`} />
-      <rect x="66.6" y="22.2" width="5" height="3.6" rx="1" fill={`url(#${kiskac})`} />
+      <circle cx="68.8" cy="35" r="3.4" fill={`url(#${vida})`} />
+      <rect x="66.4" y="36.2" width="5" height="3.6" rx="1" fill={`url(#${kiskac})`} />
 
       {/* Domed shade with a rolled rim. */}
-      <path d="M53.2 41.2C53.2 31.4 60.4 24.6 69.2 24.6C78 24.6 85.2 31.4 85.2 41.2Z" fill={`url(#${kafa})`} />
-      <path d="M57.4 37.6C57.8 31.6 61.9 27.4 67.2 26.6" stroke="#FFF6D6" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity=".85" />
-      <path d="M80.6 32C82.4 34.4 83.5 37 83.8 40" stroke="#2E200B" strokeWidth="1" fill="none" opacity=".45" />
-      <ellipse cx="69.2" cy="41.4" rx="16.9" ry="2.7" fill={`url(#${kenar})`} />
-      {/* The lit inside of the shade and the bulb, seen from slightly below. */}
-      <ellipse cx="69.2" cy="42.1" rx="15.2" ry="2.5" fill={`url(#${ic})`} />
-      <ellipse cx="69.2" cy="43" rx="5.6" ry="3.3" fill={`url(#${ampul})`} />
-      <ellipse cx="68" cy="42.3" rx="1.8" ry="1" fill="#FFFFFF" opacity=".95" />
-      <path d="M52.6 42.4C58 44.1 80.4 44.1 85.8 42.4" stroke="#FFE7A8" strokeWidth=".7" fill="none" opacity=".8" />
+      <path d="M53.2 55.8C53.2 46 60.4 39.4 69.2 39.4C78 39.4 85.2 46 85.2 55.8Z" fill={`url(#${kafa})`} />
+      <path d="M57.4 52.2C57.8 46.2 61.9 42 67.2 41.2" stroke="#FFF6D6" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity=".85" />
+      <path d="M80.6 46.6C82.4 49 83.5 51.6 83.8 54.6" stroke="#2E200B" strokeWidth="1" fill="none" opacity=".45" />
+      <ellipse cx="69.2" cy="56" rx="16.9" ry="3.4" fill={`url(#${kenar})`} />
+      {/* The lit inside of the shade and the bulb: the shade tips towards the reader, so more of its mouth shows. */}
+      <ellipse cx="69.2" cy="56.9" rx="15.2" ry="3.9" fill={`url(#${ic})`} />
+      <ellipse cx="69.2" cy="58.2" rx="5.8" ry="3.6" fill={`url(#${ampul})`} />
+      <ellipse cx="68" cy="57.3" rx="1.9" ry="1.1" fill="#FFFFFF" opacity=".95" />
+      <path d="M52.6 57.2C58 60.2 80.4 60.2 85.8 57.2" stroke="#FFE7A8" strokeWidth=".7" fill="none" opacity=".8" />
     </svg>
   );
 }

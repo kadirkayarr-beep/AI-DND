@@ -85,11 +85,11 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-sayfa-ic { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: var(--sayfa-ic); }
 .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-sag); }
 /* Ribbon: the body stretches with the book (an S-curve with one twist), the tail hangs below it; centred on the spine. */
-.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 40px); width: var(--kurdele-en); transform: translateX(calc(var(--kurdele-en) * -0.5)); z-index: 3; pointer-events: none; }
+.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 44px); width: var(--kurdele-en); transform: translateX(calc(var(--kurdele-en) * -0.5)); z-index: 3; pointer-events: none; }
 /* Drawn at the measured size of its box (no stretching), so the curve and the bend keep their shape. */
 .kitap-kurdele-govde { display: block; width: 100%; height: 100%; overflow: visible; }
 .kitap-kurdele-kisa { display: none; }
-.kitap-kapitalbant { position: absolute; left: calc(var(--kurdele-en) * 0.5 - 17px); top: -6px; }
+.kitap-kapitalbant { position: absolute; left: calc(var(--kurdele-en) * 0.5 - 13px); top: -4px; }
 
 /* Reading lamp (T7) clamped on the top edge over the spine; it grows with the book (--lamba-en). Its light is still
    (review 11) and its halo sits under the shade, since a shaded bulb throws its light down (review 13). */
@@ -99,7 +99,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-lamba-hale {
   position: absolute;
   left: calc(var(--lamba-en) * 0.692 - var(--lamba-en) * 1.2);
-  top: calc(var(--lamba-en) * 0.573 - var(--lamba-en) * 0.95);
+  top: calc(var(--lamba-en) * 0.725 - var(--lamba-en) * 0.95);
   width: calc(var(--lamba-en) * 2.4);
   height: calc(var(--lamba-en) * 1.9);
   border-radius: 50%;
@@ -110,15 +110,17 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-lamba-huzme {
   position: absolute;
   left: calc(var(--lamba-en) * 0.692 - var(--lamba-en) * 3.4);
-  top: calc(var(--lamba-en) * 0.44);
+  top: calc(var(--lamba-en) * 0.592);
   width: calc(var(--lamba-en) * 6.8);
   height: calc(var(--lamba-en) * 5);
   background: var(--lamba-huzme);
   mix-blend-mode: screen;
-  /* A cone that widens from the bulb, fading in below the shade so no edge shows. */
-  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, var(--sayfa) 18%, var(--sayfa) 55%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0, var(--sayfa) 18%, var(--sayfa) 55%, transparent 100%);
+  /* A cone that widens from the bulb (round 3: soft sides, no straight edge): a conic mask whose sides fade over
+     14 degrees, met with a top-to-bottom fade so it starts under the shade and dies out on the pages. */
+  -webkit-mask-image: conic-gradient(from 150deg at 50% 0, transparent 0deg, var(--sayfa) 14deg, var(--sayfa) 46deg, transparent 60deg), linear-gradient(to bottom, transparent 0, var(--sayfa) 18%, var(--sayfa) 55%, transparent 100%);
+  mask-image: conic-gradient(from 150deg at 50% 0, transparent 0deg, var(--sayfa) 14deg, var(--sayfa) 46deg, transparent 60deg), linear-gradient(to bottom, transparent 0, var(--sayfa) 18%, var(--sayfa) 55%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 .kitap-sayfa-no { position: absolute; bottom: 11px; margin: 0; font-size: 13px; color: var(--soluk); }
 .kitap-sayfa-sol .kitap-sayfa-no { left: 48px; }
@@ -181,6 +183,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-bolum-2 .kitap-bolum-baslik { margin: 0; font-size: var(--baslik-boy); font-weight: 500; font-style: italic; line-height: 1.2; }
 .kitap-bolum-3 .kitap-bolum-baslik { margin: 0; font-size: var(--etiket-boy); font-weight: 400; color: var(--soluk); }
 .kitap-bolum-yan { margin: 0; font-size: var(--kenar-boy); color: var(--soluk); }
+.kitap-bolum-yan:empty { display: none; }
 
 /* ---------- Buttons ---------- */
 .kitap-dugme {
@@ -226,7 +229,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 }
 .kitap-dugme-masa:focus-visible, .kitap-masa-ust .kitap-odak-goster { outline-color: var(--masa-yazi); }
 /* Tabs stand on the dark desk: the ring goes inside the tab, on its paper. */
-.kitap-ayrac:focus-visible { outline-offset: -5px; }
+.kitap-ayrac:focus-visible { outline-offset: -5px; box-shadow: 0 0 0 2px var(--masa-yazi); }
 
 /* ---------- Choice groups ---------- */
 .kitap-secici-kutu { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; justify-content: stretch; }
@@ -326,6 +329,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-sayi-girdi[aria-invalid='true'] { border-bottom: 3px double var(--murekkep); }
 .kitap-sayi-girdi:disabled { opacity: 1; color: var(--soluk); border-bottom: 1px dashed var(--soluk); }
 .kitap-alan-hata { margin: 0; font-style: italic; font-size: var(--kenar-boy); color: var(--hakem); }
+/* The error is not told by colour alone (round 3): a mark stands before it. */
+.kitap-alan-hata-simge { display: inline-block; width: 14px; height: 14px; margin-right: 5px; vertical-align: -2px; }
 
 /* ---------- Choice cards ---------- */
 .kitap-kartlar { display: grid; gap: 0; }
@@ -355,7 +360,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-sayac .kitap-etiket { margin-right: var(--bosluk-2); }
 .kitap-sayac-deger { min-width: 2ch; text-align: center; font-family: var(--el-aile); font-size: calc(var(--el) * 1.2); }
 .kitap-rozet { padding: 2px var(--bosluk-2); font-family: var(--kitap-yazi); font-size: var(--etiket-boy); font-weight: 400; color: var(--soluk); background: none; border: 1px solid var(--cizgi); border-radius: var(--kose); }
-.kitap-rozet-yeni { color: var(--mum); border-color: var(--mum); }
+/* No gold frame (draft rule 7: no gold-framed boxes): an italic word with a thin rule under it. */
+.kitap-rozet-yeni { color: var(--mum); border: none; padding: 0; font-style: italic; text-decoration: underline 1px; text-underline-offset: 4px; }
 .kitap-rozet-hakem { color: var(--hakem); border-color: var(--hakem); font-style: italic; }
 .kitap-bos { display: block; padding: 0; border: none; text-align: left; gap: 0; }
 .kitap-cizgili { height: calc(var(--satir) * 36px); background-image: repeating-linear-gradient(to bottom, var(--saydam) 0, var(--saydam) 35px, var(--cizgi) 35px, var(--cizgi) 36px); }
@@ -433,8 +439,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
     background-image: linear-gradient(to left, var(--saydam) 0, var(--saydam) 86%, var(--oluk1) 95%, var(--oluk2) 100%), var(--isik-sag);
   }
   .kitap-sayfa-ic, .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-tek); }
-  /* Phone (review 1): only a short straight tail peeks out from under the page. */
-  .kitap-kurdele { left: 4px; top: auto; bottom: -10px; height: auto; transform: none; }
+  /* Phone (review 1; round 3): the tail comes out from under the page (z-index -1 puts it under the paper) and
+     hangs over the cover edge onto the desk. */
+  .kitap-kurdele { left: 26px; top: auto; bottom: -14px; width: 22px; height: auto; transform: none; z-index: -1; }
   .kitap-kurdele-govde { display: none; }
   .kitap-kurdele-kisa { display: block; }
   .kitap-kapitalbant { display: none; }
@@ -470,6 +477,13 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   /* A page is ~270-420px wide here: a 150px margin column squeezed the text to four words (measured at 800px). */
   .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
   .kitap-satir > .kitap-kenar-metin { padding-left: 26px; }
+  /* Round 3 (measured at 800px): "Ne yapıyorsun?" broke inside a word and "Gönder" spilled; as on the phone, Gönder
+     is the 44px return key (the word stays for screen readers) and the modes keep one line. */
+  .kitap-yaz .kitap-dugme-ana { width: var(--dokunma); padding: 0; }
+  .kitap-gonder-simge { display: block; }
+  .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .kitap-kipler { margin-left: 26px; white-space: nowrap; }
+  .kitap-kipler .kitap-secenek { padding: 0 8px; }
 }
 
 /* ---------- Gallery page (development only) ---------- */
