@@ -55,6 +55,6 @@
 - Ruling: Büyük yazı boyu kenar notu (17), etiket (16) ve sayfa numarasını (15) da büyütür; ayraçlar büyümez (`--ayrac-boy`), yoksa 390 ve 768'de sığmıyorlar — yanlışsa maliyeti: bir değişken.
 - Ruling: açık ayraç 3 piksel uzun ve 2 piksel sayfanın üstüne biner, sayfa rengindedir; üç temada aynı kural, kalınlık yok — yanlışsa maliyeti: CSS.
 - Ruling: 768-959 arasında ayraçlar 13 piksel, iç boşluk 5 — ölçüldü: kurdeleyle en az 18 piksel, sayfa kenarıyla 8 piksel boşluk.
-- Bekliyor (Kadir'e soruldu): "Varka" altındaki noktalı çizgi — inceleme kaldırılmasını önerdi, hedef resimde var; dokunulmadı.
+- Kadir kararı (14 Kasım 2026, "Kalsın"): "Varka" altındaki noktalı çizgi kalır — inceleme kaldırılmasını önermişti, hedef resimde var.
 - Test yeniden yazımı (onay listesi): yazı tipi testi "12 yüzün hepsi optional" yerine "Literata ve Kalam optional, Charm ve Bad Script swap" — **gevşetme olabilir**; "Saate dön" testi "Hikâyenin saatine dön" (aynı sıkılık, yeni metin).
 - Ruling: kapalı ayraçların yerinde kalması testi (`top: 31px`) düzeltmeden sonra yazıldı (önce ölçümle bulundu) — kırmızı görülmedi; maliyeti: yok, ölçüm kanıtı var.
