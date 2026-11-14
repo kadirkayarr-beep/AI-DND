@@ -138,6 +138,32 @@ class TheReadingsPickpocketGoesThroughTheft(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertFalse(bold_acts._steals(self.session(), line, ""))
 
+    def test_ones_own_things_or_giving_is_no_theft_whatever_the_reading_said(self):
+        for line in ("Cebimdeki zarı avucumda gizlice değiştiriyorum", "Kesesine gizlice bir bakır koyuyorum",
+                     "Bıçağımı kolumun içine gizliyorum", "Kesesini ona geri veriyorum", "Anahtarı ona geri veriyorum",
+                     "Cebine sahte mektubu gizlice yerleştiriyorum", "Kesemdeki altınları sayıyorum",
+                     "Anahtarımı kilide sokuyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(bold_acts._steals(self.session(), line, ""))
+
+    def test_a_read_pickpocket_takes_something_of_someone(self):
+        for line in ("muhafızın cebinden anahtarı aşırıyorum", "muhafızın cebini boşaltmaya çalışıyorum",
+                     "muhafızın kesesini almayı deniyorum", "keseyi kemerinden çekmeye çalışıyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(bold_acts._steals(self.session(), line, ""))
+
+    def test_a_read_steal_deed_on_a_wish_speech_or_change_of_mind_is_no_theft(self):
+        for line in ("Kesesini çalmak istiyorum", "“Kesesini çalıyorum” diyorum", "Kesesini çalmaktan vazgeçiyorum",
+                     "Kesesini çalmayı düşünüyorum", "Eğer bakmazsa kesesini çalarım", "Kesesini çalmam",
+                     "Belki kesesini çalarım", "Rüyamda kesesini çalıyorum", "Kesesini çalıyormuş gibi yapıyorum",
+                     "Kesesini çalmadan önce etrafa bakıyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(bold_acts._steals(self.session(check=""), line, "steal"))
+        self.assertFalse(bold_acts._steals(self.session(check="", kind="speak_to"), "kesesini çalıyorum", "steal"))
+        for line in ("kesesini aşırayım", "kesesini kapıp kaçıyorum", "muhafızın cebini yokluyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(bold_acts._steals(self.session(check=""), line, "steal"))
+
     def test_a_read_steal_deed_on_a_past_or_refused_line_is_no_theft(self):
         for line in ("dün muhafızın kesesini çalmaya çalıştım", "kesesini çaldım", "kesesini çalmıyorum",
                      "kesesini çalmaya çalışmıyorum"):

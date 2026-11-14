@@ -34,7 +34,7 @@ _STEAL_TRY = re.compile(
 # A wish or plan, a time or a condition, speech, a refusal, somebody else's purse or friend, an attack: not a try now.
 _NOT_NOW = re.compile(
     r"\b(?:yarin|sonra|once|eger|degil|ama|ancak|yoksa|diyorum|soyluyorum|fisildiyorum|diye|keske|belki|sanki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*|kesemi|cebimi|cuzdanimi|"
-    r"keseni|cebini|arkadasim|dostum|ortagim|saldir\w*|vur\w*|oldur\w*|kilic\w*|bicakla\w*|hancerle\w*|bogazla\w*|tekmele\w*|yumrukla\w*|sapla\w*|des(?:ip|erek))\b|\w{2,}(?:unca|ince|inca|unce|sam|sem)\b"
+    r"keseni|arkadasim|dostum|ortagim|saldir\w*|vur\w*|oldur\w*|kilic\w*|bicakla\w*|hancerle\w*|bogazla\w*|tekmele\w*|yumrukla\w*|sapla\w*|des(?:ip|erek))\b|\w{2,}(?:unca|ince|inca|unce|sam|sem)\b"
 )
 # Any "...ip/-up/-arak/-erek" deed before the purse ("boğup", "yere serip", "kesip") makes it more than a pickpocket; a
 # quiet approach does not.
@@ -44,10 +44,16 @@ _FIRST_DEED = re.compile(
 # ("çalacağım"), wished ("çalsam"). A reading's steal or check is no theft on such a line.
 _NOT_THIS_TURN_END = re.compile(r"(?:d[iu]m|t[iu]m|m[iu]yorum|acag[iu]m|ecegim|s[ae]m)$")
 _PAST_OR_LATER = re.compile(r"\b(?:dun|yarin)\b")
-# Something a person carries, named in the line ("kesesini", "cebinden", "yüzüğünü"); a reading's pickpocket needs one.
-_CARRIED_WORD = re.compile(
-    r"\b(?:kese\w*|cebi\w*|cep(?:te|ten|teki)?|cuzdan\w*|yuzu[kg]\w*|kolye\w*|bica[kg]\w*|hancer\w*|anahtar\w*|"
-    r"parasi\w*)\b")
+# Something of someone else's, then a verb that takes it ("kesesini almaya", "cebinden anahtarı aşırmaya"): what a
+# reading's pickpocket must say. One's own things ("kesemdeki", "bıçağımı"), giving or putting ("kesesine koyuyorum",
+# "geri veriyorum") and hiding one's own are Sleight of Hand too, but no theft.
+_TAKES_SOMEONES = re.compile(
+    r"\b(?:kese(?:sini|sinden|yi)|ceb(?:ini|inden)|cuzdan(?:ini|indan)|yuzug(?:unu|u)|kolye(?:sini|yi)|bicag(?:ini|i)|"
+    r"hancer(?:ini|i)|anahtar(?:ini|i)|paras(?:ini|i))\s+(?:\w+\s+){0,3}?"
+    r"(?:al(?:iyorum|maya|mayi|mak)|asir\w*|cal(?:iyorum|maya|mayi|mak)|yurut\w*|cek(?:iyorum|meye|meyi|mek)|"
+    r"arakl\w*|kap(?:iyorum|maya|mayi)|bosalt\w*)\b")
+# A steal the reading read on a line that is a pretence, a change of mind or a refusal in the plain present.
+_NOT_DONE = re.compile(r"\b(?:vazgec\w*|gibi\s+yapiyorum)\b|m[ae]m$")
 _ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\b")
 _NOT_A_TRY = re.compile(
     r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"
@@ -1138,9 +1144,11 @@ def _steals(session, text: Any, deed: str | None) -> bool:
         return False
     if _NOT_STOLEN.search(fold(session, text)):
         return False
-    if deed == "steal":  # the reading's own deed, still never on a past, refused or later line (live run 2026-11-15)
+    if deed == "steal":  # the reading's own deed, never on speech, a past, refused, later, wished or pretended line
         bare = _bare(session, text)
-        return ":" not in text and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
+        return (":" not in text and getattr(session, "_front_kind", None) not in {"speak_to", "say"}
+                and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
+                and not _NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare))
     return deed == "" and (_tries_to_steal(session, text) or _reads_a_pickpocket(session, text))
 
 
@@ -1157,7 +1165,7 @@ def _reads_a_pickpocket(session, text: str) -> bool:
     if game._has_explicit_attack_verb(living_world._text_outside_quotes(text)):
         return False
     bare = _bare(session, text)
-    return bool(_CARRIED_WORD.search(bare) and bare.endswith("yorum") and not _NOT_THIS_TURN_END.search(bare)
+    return bool(_TAKES_SOMEONES.search(bare) and bare.endswith("yorum") and not _NOT_THIS_TURN_END.search(bare)
                 and not _PAST_OR_LATER.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_A_TRY.search(bare)
                 and not _NOT_NOW.search(bare) and not _FIRST_DEED.search(bare))
 
