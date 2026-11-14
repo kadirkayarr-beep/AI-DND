@@ -27,3 +27,14 @@
 6. Yazma alanı (kalem ucu, altın çizgi, el yazısı, üç kip, mikrofon solda) — test: kip seçici radyo grubu, mikrofon desteklenmezse görünmez.
 7. Galeri sayfası — test: yol yalnız DEV'de; her parçanın boş/dolu/hata/devre dışı/odak hâli.
 8. Kanıt: 6 görüntü, yan yana, kontrast ölçümü, ağ, kayma, arama sonuçları; `typecheck`, `test`, `test:ui`.
+
+## Rulings (uygulama sırasında)
+
+- Ruling: galeri `data-kitap-*` niteliklerini açıkken `<html>`'e de koyar — pencere, açılır liste ve bildirim `<body>` altına taşınıyor, tema onlara da geçmeli — yanlışsa maliyeti: yalnız galeri etkilenir, kapanınca nitelikler silinir.
+- Ruling: dört yeni yazı tipi `font-display: optional` — yazı tipi geç gelince hikâye 30,6 piksel kayıyordu (ölçüldü), hedef 0 — yanlışsa maliyeti: yavaş ağda ilk açılışta yedek yazı tipi; A2.6'da `preload` eklenerek giderilir.
+- Ruling: el yazısı düğmeleri hedef resimdeki gibi A, B, C sırasıyla, varsayılan B — T10'daki "B, A, C" tercih sırasıdır, hedef resim A B C gösteriyor — yanlışsa maliyeti: dizi sırası, tek satır.
+- Ruling: telefonda masada yalnız saat düğmesi, Ayarlar gizli — beş ayraç ve iki düğme 390'a sığmıyor, yer kararı G6 (Oturum 2'de Kadir'e iki seçenek) — yanlışsa maliyeti: bir CSS kuralı.
+- Ruling: telefonda galeri sağ sayfayı (yazma alanıyla) gösterir — tek sayfa düzeninin hangi sayfayı göstereceği A2.6'nın işi — yanlışsa maliyeti: `darEkranSayfasi` değeri.
+- Ruling: ekran görüntüleri commit edilmedi (27 MB); worktree'de `UI_EKRAN_GORUNTULERI_20261113/` — yanlışsa maliyeti: istenirse ayrıca eklenir.
+- Kısayol: kitabın konum ölçüleri (üst boşluk 66 px, sayfa yığını gölgesi, sırt kavisi yarıçapı) `kitap.css`'te sabit piksel; renk ve yazı tipi tümüyle değişkenden, boşlukların çoğu `--bosluk-*`'tan.
+- Park: WSL yuva 9 yoktu; ilk deneme `/root/aidnd-env-9` altında yarım bir klasör bıraktı (silinmedi, sahibi bu oturum).
