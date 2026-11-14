@@ -381,3 +381,9 @@ test('review 9: checkbox and switch rows and the number field are 44px touch tar
 test('review 15: in the gallery, a hand-picked look offers a way back to the story clock', () => {
   assert.match(read('pages/kitap-galerisi.tsx'), /Saate dön/);
 });
+
+test('narrow two-page books (768-1179px) put the margin note under its line, so the text column is not squeezed', () => {
+  const orta = medya(kitapCss(), '(min-width: 768px) and (max-width: 1179px)');
+  assert.match(orta, /\.kitap-satir\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(orta, /\.kitap-satir > \.kitap-kenar-metin\s*\{\s*padding-left:\s*26px/);
+});

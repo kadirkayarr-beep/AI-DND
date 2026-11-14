@@ -446,6 +446,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   .kitap-lamba { display: none; }
   .kitap-ayraclar { right: 40px; }
   .kitap-ayrac { padding: 0 10px; }
+  /* A page is ~270-420px wide here: a 150px margin column squeezed the text to four words (measured at 800px). */
+  .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
+  .kitap-satir > .kitap-kenar-metin { padding-left: 26px; }
 }
 
 /* ---------- Gallery page (development only) ---------- */
