@@ -9,7 +9,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   position: relative;
   box-sizing: border-box;
   padding: 66px 30px var(--bosluk-6);
-  background: var(--masa);
+  background: var(--lamba-havuz), var(--masa);
   color: var(--murekkep);
   font-family: var(--kitap-yazi);
 }
@@ -23,7 +23,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   padding: 12px 14px 16px;
   border-radius: 9px;
   background-color: var(--bez);
-  background-image: var(--cilt-dokuma);
+  background-image: var(--isik-cilt), var(--cilt-dokuma);
   box-shadow: var(--golge-cilt), var(--golge-temas), inset 0 0 0 1px var(--bez-kenar), inset 0 1px 0 1px var(--cilt-parlama), var(--cilt-kenar-golge);
 }
 .kitap-cilt::before {
@@ -71,7 +71,28 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 }
 .kitap-sayfa-ic { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: var(--sayfa-ic); }
 .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-sag); }
-.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 40px); transform: translateX(-50%); z-index: 3; pointer-events: none; }
+/* Ribbon: the body stretches with the book (an S-curve with one twist), the tail hangs below it; centred on the spine. */
+.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 40px); width: 28px; transform: translateX(-12px); z-index: 3; pointer-events: none; display: flex; flex-direction: column; }
+.kitap-kurdele-govde { display: block; flex: 1 1 auto; min-height: 0; }
+.kitap-kurdele-uc { display: block; flex: 0 0 auto; margin-top: -1px; }
+.kitap-kapitalbant { position: absolute; left: -5px; top: -6px; }
+
+/* Reading lamp (T7) clamped on the top edge over the spine; its halo brightens what is under it, it breathes slowly. */
+.kitap-lamba { position: absolute; top: 0; left: calc(50% - 49px); width: 64px; height: 80px; z-index: 6; pointer-events: none; }
+.kitap-lamba-cizim { position: relative; display: block; }
+.kitap-lamba-hale {
+  position: absolute;
+  left: calc(48.8px - 150px);
+  top: calc(42.7px - 150px);
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: var(--lamba-hale);
+  mix-blend-mode: screen;
+  animation: kitap-lamba-nefes 5s ease-in-out infinite;
+}
+@keyframes kitap-lamba-nefes { 0%, 100% { opacity: 0.86; } 50% { opacity: 1; } }
+[data-kitap-efekt="kapali"] .kitap-lamba-hale { animation: none; }
 .kitap-sayfa-no { position: absolute; bottom: 11px; margin: 0; font-size: 13px; color: var(--soluk); }
 .kitap-sayfa-sol .kitap-sayfa-no { left: 48px; }
 .kitap-sayfa-sag .kitap-sayfa-no { right: 48px; }
@@ -382,6 +403,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   }
   .kitap-sayfa-ic, .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-tek); }
   .kitap-kurdele { left: 4px; top: auto; bottom: -6px; height: 70px; transform: none; }
+  .kitap-kapitalbant { display: none; }
+  /* G6 (Kadir's call): no lamp on the phone yet. */
+  .kitap-lamba { display: none; }
   .kitap-ayraclar { top: 12px; left: 13px; right: auto; gap: 2px; }
   .kitap-ayrac { padding: 0 8px; font-size: var(--etiket-boy); }
   .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
@@ -396,6 +420,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 
 @media (prefers-reduced-motion: reduce) {
   .kitap-yukleniyor-isaret { animation: none; }
+  .kitap-lamba-hale { animation: none; }
 }
 
 /* ---------- Gallery page (development only) ---------- */

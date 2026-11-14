@@ -301,12 +301,12 @@ test('reading lamp: drawn at night, never by day, in the dark theme only when as
   assert.match(gece, /class="kitap-lamba"/);
   assert.match(gece, /aria-label="Okuma ışığı yanıyor"/);
   assert.match(gece, /class="kitap-lamba-hale"/);
-  assert.doesNotMatch(render(kitap.KitapKabugu, { tema: 'gunduz', sol: 'SOL', sag: 'SAG' }), /kitap-lamba/);
-  assert.doesNotMatch(render(kitap.KitapKabugu, { tema: 'karanlik', sol: 'SOL', sag: 'SAG' }), /kitap-lamba/);
+  assert.doesNotMatch(render(kitap.KitapKabugu, { tema: 'gunduz', sol: 'SOL', sag: 'SAG' }), /class="kitap-lamba|Okuma ışığı/);
+  assert.doesNotMatch(render(kitap.KitapKabugu, { tema: 'karanlik', sol: 'SOL', sag: 'SAG' }), /class="kitap-lamba|Okuma ışığı/);
   assert.match(render(kitap.KitapKabugu, { tema: 'karanlik', sol: 'SOL', sag: 'SAG', lambaKaranlikta: true }), /class="kitap-lamba"/);
   for (const name of ['--isik-cilt', '--lamba-hale', '--lamba-havuz']) assert.ok(token(block('[data-kitap-tema="gece"]'), name), `${name} is missing at night`);
   assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /animation:/);
-  assert.match(kitapCss(), /prefers-reduced-motion: reduce\)\s*\{[^}]*\.kitap-lamba-hale\s*\{\s*animation:\s*none/);
+  assert.match(kitapCss(), /prefers-reduced-motion: reduce\)\s*\{(?:[^{}]*\{[^{}]*\})*?\s*\.kitap-lamba-hale\s*\{\s*animation:\s*none/);
   const dir = path.join(root, 'components', 'kitap', 'cizimler');
   assert.ok(statSync(path.join(dir, 'okuma-lambasi.tsx')).isFile());
   assert.match(readFileSync(path.join(dir, 'KAYNAK.md'), 'utf8'), /okuma-lambasi\.tsx/);

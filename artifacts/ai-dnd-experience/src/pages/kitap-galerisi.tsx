@@ -65,6 +65,7 @@ export default function KitapGalerisi() {
   const [kuvvet, setKuvvet] = useState('15');
   const [pencere, setPencere] = useState(false);
   const [dinliyor, setDinliyor] = useState(false);
+  const [lambaKaranlikta, setLambaKaranlikta] = useState(sorgu('lamba') === 'acik');
   const tema = kitapTemasi(ayar.gorunum, saat);
   const tekAkis = hikayeTekAkista(ayrac, useIsMobile());
   // T5: in one flow the left page opens on the last lines, right above the writing field.
@@ -160,7 +161,7 @@ export default function KitapGalerisi() {
       <h1 className="kitap-gizli">Unwritten kitap teması: galeri</h1>
       <Ayraclar deger={ayrac} degisince={setAyrac} ayraclar={AYRACLAR}
         masa={<>{saatDugmesi}<span className="kitap-dar-yok"><AyarCarki deger={ayar} degisince={setAyar} /></span></>}>
-        <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi={ayrac === 'hikaye' ? 'sol' : 'sag'} />
+        <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi={ayrac === 'hikaye' ? 'sol' : 'sag'} lambaKaranlikta={lambaKaranlikta} />
       </Ayraclar>
 
       <div className="kitap-galeri-set">
@@ -177,6 +178,9 @@ export default function KitapGalerisi() {
             <div className="kitap-odak-goster">
               <SeciciGrup etiket="Sayfa düzeni, odak örneği" deger="iki-sayfa" degisince={() => {}} secenekler={[{ deger: 'iki-sayfa', etiket: 'İki sayfa hikâye' }, { deger: 'karakter-acik', etiket: 'Karakter açık' }]} />
             </div>
+          </Ornek>
+          <Ornek ad="G10: karanlıkta lamba (karar senin)">
+            <Anahtar etiket="Karanlık temada okuma lambası" acik={lambaKaranlikta} degisince={setLambaKaranlikta} />
           </Ornek>
           <Ornek ad="efekt">
             <Anahtar etiket="Kâğıt dokusu" acik={!efektKapali} degisince={(v) => setEfektKapali(!v)} />

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Kurdele } from '@/components/kitap/cizimler/kurdele';
+import { OkumaLambasi } from '@/components/kitap/cizimler/okuma-lambasi';
 import type { ElYazisi, KitapTemasi, YaziBoyu } from '@/lib/kitap-tema';
 import './kitap.css';
 
@@ -16,14 +17,24 @@ export interface KitapKabuguProps {
   /** Below 760px only one page fits (decision G6); this one stays, the other hides. */
   darEkranSayfasi?: 'sol' | 'sag';
   kurdeleEtiketi?: string;
+  /** G10 (Kadir's call): the lamp in the dark theme too. Off by default, as in the draft. */
+  lambaKaranlikta?: boolean;
 }
 
 /** Open book: cloth cover, two pages with a spine curve and a page stack, the ribbon down the middle (T1). */
-export function KitapKabugu({ tema, el = 'b', boy = 'normal', efektKapali = false, masa, sol, sag, darEkranSayfasi = 'sol', kurdeleEtiketi }: KitapKabuguProps) {
+export function KitapKabugu({ tema, el = 'b', boy = 'normal', efektKapali = false, masa, sol, sag, darEkranSayfasi = 'sol', kurdeleEtiketi, lambaKaranlikta = false }: KitapKabuguProps) {
   const gizli = (taraf: 'sol' | 'sag') => (darEkranSayfasi === taraf ? '' : ' kitap-darda-gizli');
+  // T7: the brass reading lamp is lit at night and never by day.
+  const lamba = tema === 'gece' || (tema === 'karanlik' && lambaKaranlikta);
   return (
-    <div className="kitap-masa" data-kitap-tema={tema} data-kitap-el={el} data-kitap-boy={boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'}>
+    <div className="kitap-masa" data-kitap-tema={tema} data-kitap-el={el} data-kitap-boy={boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'} data-kitap-lamba={lamba ? 'acik' : 'kapali'}>
       {masa ? <div className="kitap-masa-ust">{masa}</div> : null}
+      {lamba ? (
+        <div className="kitap-lamba">
+          <div className="kitap-lamba-hale" aria-hidden="true" />
+          <OkumaLambasi />
+        </div>
+      ) : null}
       <div className="kitap-cilt">
         <div className="kitap-sayfalar">
           <section className={`kitap-sayfa kitap-sayfa-sol${gizli('sol')}`}>
