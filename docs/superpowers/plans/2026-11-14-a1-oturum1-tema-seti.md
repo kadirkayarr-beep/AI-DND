@@ -44,3 +44,4 @@
 - Ruling: telefonda kurdele ucu sayfanın altından çıkıp cilt kenarını aşıyor (yaklaşık 14 piksel görünür) — masada 5 piksel boşluk var, daha uzun sarkamaz; gizlemek yerine bu seçildi — yanlışsa maliyeti: tek CSS kuralıyla gizlenir.
 - Ruling: 800 genişlikte "Ne yapıyorsun?" iki satıra iniyor (kelime bölünmeden) — Gönder simgeye döndü, seçenekler tek satır — yanlışsa maliyeti: küçük.
 - Test yeniden yazımı (onay listesi, gevşetme olabilir diye işaretli): `--lamba-en` 84→96 (büyüme); hale tepe formülü 0.573→0.725 (ampul aşağı kaydı); kurdele kutusu 100%+40→100%+44 ve `SARKMA = 42` (daha uzun sarkma, sıkılaştırma).
+- Kadir onayı (14 Kasım 2026): kurdele "Oldu" (commit `cc1597e4`, Fable düzeltmesi).
