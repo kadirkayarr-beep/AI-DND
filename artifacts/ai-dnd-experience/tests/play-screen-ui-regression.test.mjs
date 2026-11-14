@@ -859,13 +859,6 @@ test("settings drawer: Escape closes it and returns focus to its opener, and pic
 });
 
 test("reading faces: Atkinson Hyperlegible (dyslexia setting) and Spectral load with Turkish glyphs and apply to the story text", async (t) => {
-  try {
-    const response = await fetch("https://fonts.googleapis.com/css2?family=Spectral&display=swap", { signal: AbortSignal.timeout(5000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  } catch (error) {
-    t.skip(`SKIPPED, not passed: the font service is unreachable (${error.message}); the font check needs network`);
-    return;
-  }
   const env = await startFixtureEnv(t);
   const play = await env.open(`${fixturePath}?screen=play`, 1280, 900);
   await waitForSelector(play.page, '[data-testid="button-open-settings"]');
