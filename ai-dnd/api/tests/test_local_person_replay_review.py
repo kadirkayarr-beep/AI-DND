@@ -31,6 +31,7 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStorageError, CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import PLAYER_A, PLAYER_B
+from api.tests.town_seed import fixed_town
 
 _LIVE = (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
 
@@ -44,6 +45,7 @@ CAMPAIGN_START = {"campaign_start": {
 }}
 ROLE = "kıyı balıkçısı"
 PRINCIPALS = {"a": PLAYER_A, "b": PLAYER_B}
+TOWN_SEED = 4902
 
 
 class CountingLocalPersonModel:
@@ -178,7 +180,8 @@ class LocalPersonReplayReviewTests(unittest.IsolatedAsyncioTestCase):
         return store, manager, clients
 
     async def _create_campaign(self, who="a"):
-        response = await self.clients[who].post("/api/game/campaigns", json=CAMPAIGN_START)
+        with fixed_town(self, TOWN_SEED):
+            response = await self.clients[who].post("/api/game/campaigns", json=CAMPAIGN_START)
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
@@ -233,6 +236,11 @@ class LocalPersonReplayReviewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(people), 1, "setup: the controlled proposal must be accepted")
         self._note("first accepted turn", campaign["campaign_id"], first)
         return campaign, action_id, first.json(), people[0]
+
+    async def test_the_campaign_id_is_pinned_so_the_town_is_the_same_on_every_run(self):
+        # the town is seeded from the campaign id; with a random id a passer-by sometimes took npc_001 before the fisherman
+        campaign = await self._create_campaign()
+        self.assertEqual(campaign["campaign_id"], f"00000000-0000-4000-8000-{TOWN_SEED:012d}")
 
     # -- 1: same action_id, same session ------------------------------------------
 
