@@ -420,7 +420,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   /* G6 (Kadir's call): no lamp on the phone yet. */
   .kitap-lamba { display: none; }
   .kitap-ayraclar { top: 12px; left: 13px; right: auto; gap: 2px; }
-  .kitap-ayrac { padding: 0 8px; font-size: var(--etiket-boy); }
+  /* Five tabs and the 44px theme button must not overlap at 390px (measured: tabs ended 12px under the button). */
+  .kitap-ayrac { padding: 0 6px; font-size: var(--etiket-boy); }
   .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
   .kitap-satir > .kitap-kenar-metin { padding-left: 26px; }
   .kitap-sayfa-sol .kitap-sayfa-no, .kitap-sayfa-sag .kitap-sayfa-no { right: 20px; left: auto; }
@@ -429,6 +430,11 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   .kitap-yaz .kitap-dugme-ana { width: var(--dokunma); padding: 0; }
   .kitap-gonder-simge { display: block; }
   .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* Very narrow phones (360px): the tabs shrink a little more so they clear the theme button. */
+@media (max-width: 374px) {
+  .kitap-ayrac { padding: 0 4px; font-size: 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
