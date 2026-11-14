@@ -85,24 +85,40 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-sayfa-ic { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: var(--sayfa-ic); }
 .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-sag); }
 /* Ribbon: the body stretches with the book (an S-curve with one twist), the tail hangs below it; centred on the spine. */
-.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 40px); width: var(--kurdele-en); transform: translateX(calc(var(--kurdele-en) * -0.5)); z-index: 3; pointer-events: none; display: flex; flex-direction: column; }
-.kitap-kurdele-govde { display: block; width: 100%; flex: 1 1 auto; min-height: 0; }
-.kitap-kurdele-uc { display: block; width: 100%; height: auto; flex: 0 0 auto; margin-top: -1px; }
+.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 40px); width: var(--kurdele-en); transform: translateX(calc(var(--kurdele-en) * -0.5)); z-index: 3; pointer-events: none; }
+/* Drawn at the measured size of its box (no stretching), so the curve and the bend keep their shape. */
+.kitap-kurdele-govde { display: block; width: 100%; height: 100%; overflow: visible; }
+.kitap-kurdele-kisa { display: none; }
 .kitap-kapitalbant { position: absolute; left: calc(var(--kurdele-en) * 0.5 - 17px); top: -6px; }
 
 /* Reading lamp (T7) clamped on the top edge over the spine; it grows with the book (--lamba-en). Its light is still
    (review 11) and its halo sits under the shade, since a shaded bulb throws its light down (review 13). */
-.kitap-lamba { position: absolute; top: 0; left: calc(50% - var(--lamba-en) * 0.766); width: var(--lamba-en); height: calc(var(--lamba-en) * 1.25); z-index: 6; pointer-events: none; }
+/* The clamp sits on the cover edge (66px down; 0.78 of the lamp width into the drawing); the bulb is over the spine. */
+.kitap-lamba { position: absolute; top: calc(66px - var(--lamba-en) * 0.78); left: calc(50% - var(--lamba-en) * 0.692); width: var(--lamba-en); height: calc(var(--lamba-en) * 1.1); z-index: 6; pointer-events: none; }
 .kitap-lamba-cizim { position: relative; display: block; width: 100%; height: 100%; }
 .kitap-lamba-hale {
   position: absolute;
-  left: calc(var(--lamba-en) * 0.7625 - var(--lamba-en) * 2.2);
-  top: calc(var(--lamba-en) * 0.9 - var(--lamba-en) * 1.8);
-  width: calc(var(--lamba-en) * 4.4);
-  height: calc(var(--lamba-en) * 3.6);
+  left: calc(var(--lamba-en) * 0.692 - var(--lamba-en) * 1.2);
+  top: calc(var(--lamba-en) * 0.573 - var(--lamba-en) * 0.95);
+  width: calc(var(--lamba-en) * 2.4);
+  height: calc(var(--lamba-en) * 1.9);
   border-radius: 50%;
   background: var(--lamba-hale);
   mix-blend-mode: screen;
+}
+/* The beam: a soft cone from the bulb down onto the top of the pages. */
+.kitap-lamba-huzme {
+  position: absolute;
+  left: calc(var(--lamba-en) * 0.692 - var(--lamba-en) * 3.4);
+  top: calc(var(--lamba-en) * 0.44);
+  width: calc(var(--lamba-en) * 6.8);
+  height: calc(var(--lamba-en) * 5);
+  background: var(--lamba-huzme);
+  mix-blend-mode: screen;
+  /* A cone that widens from the bulb, fading in below the shade so no edge shows. */
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, var(--sayfa) 18%, var(--sayfa) 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, var(--sayfa) 18%, var(--sayfa) 55%, transparent 100%);
 }
 .kitap-sayfa-no { position: absolute; bottom: 11px; margin: 0; font-size: 13px; color: var(--soluk); }
 .kitap-sayfa-sol .kitap-sayfa-no { left: 48px; }
@@ -143,7 +159,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-ayrac[data-state='active'] { background-color: var(--sayfa); color: var(--murekkep); box-shadow: inset 0 1px 0 var(--kabarma); }
 
 /* ---------- Text on the page ---------- */
-.kitap-akis { flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--cizgi) var(--saydam); display: flex; flex-direction: column; gap: 11px; padding: var(--bosluk-5) 0 10px; }
+/* A scrolled page fades its top line out instead of cutting it (as in the draft). */
+.kitap-akis { -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 3px, var(--sayfa) 20px); mask-image: linear-gradient(to bottom, transparent 0, transparent 3px, var(--sayfa) 20px); flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--cizgi) var(--saydam); display: flex; flex-direction: column; gap: 11px; padding: var(--bosluk-5) 0 10px; }
 /* Lines keep their height in the scrolling page (as in the draft): a long story scrolls, its first lines do not
    slide under the heading (measured at 800px). */
 .kitap-akis > * { flex: 0 0 auto; }
@@ -419,6 +436,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   /* Phone (review 1): only a short straight tail peeks out from under the page. */
   .kitap-kurdele { left: 4px; top: auto; bottom: -10px; height: auto; transform: none; }
   .kitap-kurdele-govde { display: none; }
+  .kitap-kurdele-kisa { display: block; }
   .kitap-kapitalbant { display: none; }
   /* G6 (Kadir's call): no lamp on the phone yet. */
   .kitap-lamba { display: none; }

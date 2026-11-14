@@ -342,7 +342,7 @@ test('review 2, 10: the lamp leaves room for the tabs and scales with the book',
   const orta = medya(kitapCss(), '(min-width: 768px) and (max-width: 1179px)');
   assert.match(orta, /\.kitap-lamba\s*\{\s*display:\s*none/);
   const base = block('[data-kitap-tema]');
-  assert.match(token(base, '--lamba-en') ?? '', /calc\(64px \+ var\(--buyume\)/);
+  assert.match(token(base, '--lamba-en') ?? '', /calc\(84px \+ var\(--buyume\)/);
   assert.match(token(base, '--kurdele-en') ?? '', /calc\(40px \+ var\(--buyume\)/);
   assert.match(kural(kitapCss(), '.kitap-lamba'), /width:\s*var\(--lamba-en\)/);
 });
@@ -352,7 +352,8 @@ test('review 3, 13, 14: the light falls on the pages, the halo sits under the sh
   assert.match(token(gece, '--isik-sol') ?? '', /^radial-gradient\(ellipse 60% 44% at 100% 0%, rgba\(255, 226, 168, 0\.4/);
   assert.match(token(gece, '--lamba-havuz') ?? '', /rgba\(255, 190, 105, 0\.1\)/);
   assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /border-radius:\s*50%/);
-  assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /top:\s*calc\(var\(--lamba-en\) \* 0\.9/);
+  // Halo centre below the bulb (bulb at 0.473 of the lamp width; halo centre 0.1 lower).
+  assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /top:\s*calc\(var\(--lamba-en\) \* 0\.573 - var\(--lamba-en\) \* 0\.95\)/);
   const karanlik = block('[data-kitap-tema="karanlik"][data-kitap-lamba="acik"]');
   assert.match(token(karanlik, '--isik-sol') ?? '', /rgba\(255, 214, 150, 0\.1[0-9]/);
 });

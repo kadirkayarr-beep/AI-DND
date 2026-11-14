@@ -856,7 +856,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --bosluk-7: 40px;
   --sutun-metin: 22em;
   /* Lamp and ribbon grow with the book on wide screens (review 10). */
-  --lamba-en: calc(64px + var(--buyume) * 4);
+  --lamba-en: calc(84px + var(--buyume) * 4);
   --kurdele-en: calc(40px + var(--buyume) * 2.5);
   --sutun-kenar: 150px;
   --sayfa-ic: 34px 40px 36px 48px;
@@ -885,6 +885,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --isik-cilt: none;
   --lamba-havuz: none;
   --lamba-hale: none;
+  --lamba-huzme: none;
 }
 /* No system cursive fallback (review finding 1): on Windows that is Comic Sans; Literata reads as the book. */
 [data-kitap-el="a"] { --el-aile: 'Charm', 'Literata', Georgia, serif; --elb: 23px; }
@@ -950,6 +951,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   /* The lamp over the spine: a hot bulb with a wide warm bloom, light pooling on the cloth and spilling onto the desk. */
   --lamba-hale: radial-gradient(ellipse 50% 50% at 50% 44%, rgba(255, 248, 222, 1) 0, rgba(255, 228, 160, 0.92) 2.5%, rgba(255, 208, 120, 0.5) 7%, rgba(255, 196, 100, 0.22) 17%, rgba(255, 186, 90, 0.08) 34%, rgba(255, 180, 80, 0.025) 52%, rgba(255, 180, 80, 0) 70%);
   --isik-cilt: radial-gradient(ellipse 26% 16% at 50% 0%, rgba(255, 206, 130, 0.32), rgba(255, 206, 130, 0.08) 55%, rgba(255, 206, 130, 0) 80%);
+  /* The cone of light under the shade, seen against the dark room and falling on the top of the pages. */
+  --lamba-huzme: radial-gradient(ellipse 50% 100% at 50% 0%, rgba(255, 224, 165, 0.16), rgba(255, 214, 150, 0.06) 40%, rgba(255, 214, 150, 0) 72%);
   --lamba-havuz: radial-gradient(ellipse 42% 26% at 50% 3%, rgba(255, 190, 105, 0.1), rgba(255, 180, 90, 0.03) 50%, rgba(0, 0, 0, 0) 75%);
   --isik-sag: radial-gradient(ellipse 60% 44% at 0% 0%, rgba(255, 226, 168, 0.4), rgba(255, 226, 168, 0) 70%), radial-gradient(ellipse 112% 108% at 0% -4%, rgba(255, 246, 218, 0.36) 0, rgba(255, 246, 218, 0.12) 36%, rgba(60, 42, 10, 0) 58%, rgba(46, 32, 8, 0.18) 100%);
 }
@@ -988,9 +991,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --lamba-hale: radial-gradient(ellipse 50% 50% at 50% 44%, rgba(255, 248, 222, 1) 0, rgba(255, 228, 160, 0.9) 2.5%, rgba(255, 208, 120, 0.42) 7%, rgba(255, 196, 100, 0.16) 17%, rgba(255, 186, 90, 0.05) 34%, rgba(255, 180, 80, 0) 60%);
   --isik-cilt: radial-gradient(ellipse 26% 16% at 50% 0%, rgba(255, 206, 130, 0.22), rgba(255, 206, 130, 0) 75%);
   --lamba-havuz: radial-gradient(ellipse 42% 26% at 50% 3%, rgba(255, 190, 105, 0.12), rgba(0, 0, 0, 0) 70%);
+  --lamba-huzme: radial-gradient(ellipse 50% 100% at 50% 0%, rgba(255, 224, 165, 0.08), rgba(255, 214, 150, 0) 65%);
   --isik-sol: radial-gradient(ellipse 60% 44% at 100% 0%, rgba(255, 214, 150, 0.14), rgba(255, 214, 150, 0) 70%);
   --isik-sag: radial-gradient(ellipse 60% 44% at 0% 0%, rgba(255, 214, 150, 0.14), rgba(255, 214, 150, 0) 70%);
 }
 
 [data-kitap-tema][data-kitap-efekt="kapali"] { --tane: none; --cilt-dokuma: none; --kabarma: transparent; --murekkep-golge: none; --dugme-parlama: none; --oluk-derin: transparent;
-  --lamba-havuz: none; --isik-cilt: none; --lamba-hale: none; --golge-temas: 0 0 0 transparent; --cilt-kenar-golge: 0 0 0 transparent; --sayfa-blok-golge: transparent; }
+  --lamba-havuz: none; --isik-cilt: none; --lamba-hale: none; --lamba-huzme: none; --golge-temas: 0 0 0 transparent; --cilt-kenar-golge: 0 0 0 transparent; --sayfa-blok-golge: transparent; }

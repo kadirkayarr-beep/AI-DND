@@ -31,6 +31,7 @@ export function KitapKabugu({ tema, el = 'b', boy = 'normal', efektKapali = fals
       {masa ? <div className="kitap-masa-ust">{masa}</div> : null}
       {lamba ? (
         <div className="kitap-lamba">
+          <div className="kitap-lamba-huzme" aria-hidden="true" />
           <div className="kitap-lamba-hale" aria-hidden="true" />
           <OkumaLambasi />
         </div>

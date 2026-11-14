@@ -1,58 +1,75 @@
-import { useId } from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
 
 // Ribbon bookmark, redrawn for realism (Kadir, 14 Nov 2026: "gerekirse farklı bir tasarım kullan"; "çok düz, direk
-// gibi olmasın"); see KAYNAK.md. A flat satin ribbon lying loose in the gutter: a clear S-curve down the spine, one
-// half twist where it narrows and catches the light, light along one edge (flat cloth, not a round rod), a soft shadow
-// on the page, a dark thread headband at the top of the spine and a V-cut tail that falls to the side below the book.
+// gibi olmasın"; screenshot: it broke where it left the page); see KAYNAK.md. One flat satin ribbon drawn at its
+// measured height, so nothing is stretched: a clear S-curve down the gutter, one half twist, light along one edge,
+// a soft shadow on the page; at the bottom it bends over the page block and the cover edge and hangs, falling to the
+// side, ending in a V cut. A dark thread headband sits at the top of the spine. The phone shows only a short tail.
 // The colours inside are part of the drawing. Its width follows the book (--kurdele-en).
 
-const YUKSEKLIK = 800;
-const EN = 40;
-const ORTA = 20;
-/** Swing of the S-curve in viewBox units (review: "kıvrımı 2-3 kat büyüt"). */
+/** Swing of the S-curve, in units of a 40px-wide ribbon box (review: "kıvrımı 2-3 kat büyüt"). */
 const GENLIK = 7;
+/** Container height minus the page bottom: the container reaches 40px below the pages and starts 2px above. */
+const SARKMA = 38;
 
-/** Centre line and width of the ribbon at height y: an S-curve with a smaller ripple and one half twist. */
-function kesit(y: number) {
-  const t = y / YUKSEKLIK;
-  const x = ORTA + GENLIK * Math.sin(t * Math.PI * 2) + 2.2 * Math.sin(t * Math.PI * 5);
-  const burgu = Math.exp(-(((y - 540) / 60) ** 2));
-  return { x, w: 11 - 7 * burgu };
-}
+interface Nokta { x: number; y: number; w: number }
 
-function govdeYolu(kaydir = 0) {
-  const sol: string[] = [];
-  const sag: string[] = [];
-  for (let y = 0; y <= YUKSEKLIK; y += 8) {
-    const { x, w } = kesit(y);
-    sol.push(`${(x - w / 2 + kaydir).toFixed(2)} ${y}`);
-    sag.unshift(`${(x + w / 2 + kaydir).toFixed(2)} ${y}`);
+function cizgi(en: number, boy: number): Nokta[] {
+  const s = en / 40;
+  const alt = boy - SARKMA;
+  const orta = en / 2;
+  const noktalar: Nokta[] = [];
+  for (let y = 0; y <= alt; y += 6) {
+    const t = y / alt;
+    const burgu = Math.exp(-(((t - 0.675) / 0.075) ** 2));
+    noktalar.push({ x: orta + GENLIK * s * Math.sin(t * Math.PI * 2) + 2.2 * s * Math.sin(t * Math.PI * 5), y, w: (11 - 7 * burgu) * s });
   }
-  return `M${sol.join(' L')} L${sag.join(' L')} Z`;
-}
-
-/** The light runs along the left edge of the satin, as on flat cloth. */
-function parlakYol() {
-  const nokta: string[] = [];
-  for (let y = 0; y <= YUKSEKLIK; y += 8) {
-    const { x, w } = kesit(y);
-    nokta.push(`${(x - w * 0.3).toFixed(2)} ${y}`);
+  // Over the page block and the cover edge, then hanging: the centre line leaves the vertical smoothly (t squared).
+  const uc = boy - 1 - alt;
+  for (let i = 1; i <= 12; i++) {
+    const t = i / 12;
+    noktalar.push({ x: orta + 9 * s * t * t, y: alt + uc * t, w: 11 * s });
   }
-  return `M${nokta.join(' L')}`;
+  return noktalar;
 }
 
-const GOVDE = govdeYolu();
-const GOLGE = govdeYolu(2.4);
-const GOLGE_GENIS = govdeYolu(4.4);
-const PARLAK = parlakYol();
+function yollar(en: number, boy: number) {
+  const s = en / 40;
+  const n = cizgi(en, boy);
+  const sol = n.map((p) => `${(p.x - p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`);
+  const sag = n.map((p) => `${(p.x + p.w / 2).toFixed(2)} ${p.y.toFixed(2)}`).reverse();
+  const son = n[n.length - 1];
+  const centik = `${son.x.toFixed(2)} ${(son.y - 7 * s).toFixed(2)}`;
+  const govde = `M${sol.join(' L')} L${centik} L${sag.join(' L')} Z`;
+  const kaydir = (dx: number) => govde.replace(/(-?\d+\.\d+) (-?\d+\.\d+)/g, (_, x, y) => `${(Number(x) + dx).toFixed(2)} ${y}`);
+  const parlak = `M${n.map((p) => `${(p.x - p.w * 0.3).toFixed(2)} ${p.y.toFixed(2)}`).join(' L')}`;
+  return { govde, golge: kaydir(2.4 * s), golgeGenis: kaydir(4.4 * s), parlak, alt: boy - SARKMA };
+}
 
 export function Kurdele({ etiket = 'Kurdele ayraç' }: { etiket?: string }) {
   const id = useId().replace(/:/g, '');
+  const kutu = useRef<HTMLSpanElement>(null);
+  const [olcu, setOlcu] = useState({ en: 40, boy: 820 });
+  useLayoutEffect(() => {
+    const el = kutu.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const olc = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) setOlcu({ en: r.width, boy: r.height });
+    };
+    olc();
+    const izle = new ResizeObserver(olc);
+    izle.observe(el);
+    return () => izle.disconnect();
+  }, []);
+  const { en, boy } = olcu;
+  const { govde, golge, golgeGenis, parlak, alt } = yollar(en, boy);
   const saten = `kurdele-saten-${id}`;
   const dokuma = `kurdele-dokuma-${id}`;
   const isik = `kurdele-isik-${id}`;
   const burgu = `kurdele-burgu-${id}`;
-  const uc = `kurdele-uc-${id}`;
+  const kivrim = `kurdele-kivrim-${id}`;
+  const oran = (y: number) => Math.min(1, Math.max(0, y / boy)).toFixed(4);
   // Flat satin: bright near one edge, a long even middle, a darker far edge.
   const satenDuraklari = (
     <>
@@ -64,58 +81,57 @@ export function Kurdele({ etiket = 'Kurdele ayraç' }: { etiket?: string }) {
     </>
   );
   return (
-    <span className="kitap-kurdele" role="img" aria-label={etiket}>
-      <svg className="kitap-kurdele-govde" viewBox={`0 0 ${EN} ${YUKSEKLIK}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <span className="kitap-kurdele" role="img" aria-label={etiket} ref={kutu}>
+      <svg className="kitap-kurdele-govde" width={en} height={boy} viewBox={`0 0 ${en.toFixed(2)} ${boy.toFixed(2)}`} aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id={saten} x1="0" y1="0" x2="1" y2="0">{satenDuraklari}</linearGradient>
-          <pattern id={dokuma} width={EN} height="2.4" patternUnits="userSpaceOnUse">
-            <rect x="0" y="0" width={EN} height=".8" fill="#000" opacity=".07" />
-            <rect x="0" y=".8" width={EN} height=".5" fill="#FFF" opacity=".03" />
+          <pattern id={dokuma} width={en} height="2.4" patternUnits="userSpaceOnUse">
+            <rect x="0" y="0" width={en} height=".8" fill="#000" opacity=".07" />
+            <rect x="0" y=".8" width={en} height=".5" fill="#FFF" opacity=".03" />
           </pattern>
           <linearGradient id={isik} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#FFD9A8" stopOpacity=".2" />
             <stop offset=".1" stopColor="#FFD9A8" stopOpacity=".05" />
             <stop offset=".5" stopColor="#000" stopOpacity="0" />
-            <stop offset="1" stopColor="#000" stopOpacity=".12" />
+            <stop offset="1" stopColor="#000" stopOpacity=".1" />
           </linearGradient>
           {/* The half twist: the satin turns its back (darker), then its face catches the light. */}
-          <linearGradient id={burgu} x1="0" y1="0" x2="0" y2="1">
-            <stop offset=".6" stopColor="#000" stopOpacity="0" />
-            <stop offset=".645" stopColor="#000" stopOpacity=".38" />
-            <stop offset=".675" stopColor="#FFC9B8" stopOpacity=".24" />
-            <stop offset=".71" stopColor="#000" stopOpacity="0" />
+          <linearGradient id={burgu} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={boy}>
+            <stop offset={oran(alt * 0.6)} stopColor="#000" stopOpacity="0" />
+            <stop offset={oran(alt * 0.645)} stopColor="#000" stopOpacity=".38" />
+            <stop offset={oran(alt * 0.675)} stopColor="#FFC9B8" stopOpacity=".24" />
+            <stop offset={oran(alt * 0.71)} stopColor="#000" stopOpacity="0" />
+          </linearGradient>
+          {/* Where it bends: over the page block (a crease, then a lit ridge) and over the cover edge. */}
+          <linearGradient id={kivrim} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={boy}>
+            <stop offset={oran(alt - 3)} stopColor="#000" stopOpacity="0" />
+            <stop offset={oran(alt)} stopColor="#000" stopOpacity=".32" />
+            <stop offset={oran(alt + 4)} stopColor="#FFD9C8" stopOpacity=".16" />
+            <stop offset={oran(alt + 10)} stopColor="#000" stopOpacity=".18" />
+            <stop offset={oran(alt + 15)} stopColor="#FFD9C8" stopOpacity=".1" />
+            <stop offset={oran(alt + 19)} stopColor="#000" stopOpacity=".28" />
+            <stop offset={oran(alt + 24)} stopColor="#000" stopOpacity=".06" />
+            <stop offset="1" stopColor="#000" stopOpacity=".14" />
           </linearGradient>
         </defs>
-        <path d={GOLGE_GENIS} fill="#000" opacity=".1" />
-        <path d={GOLGE} fill="#000" opacity=".24" />
-        <path d={GOVDE} fill={`url(#${saten})`} />
-        <path d={GOVDE} fill={`url(#${dokuma})`} />
-        <path d={GOVDE} fill={`url(#${isik})`} />
-        <path d={GOVDE} fill={`url(#${burgu})`} />
-        <path d={PARLAK} stroke="#F2A898" strokeWidth=".8" fill="none" opacity=".28" vectorEffect="non-scaling-stroke" />
-        <path d={GOVDE} stroke="#1E0504" strokeWidth=".7" fill="none" opacity=".5" vectorEffect="non-scaling-stroke" />
+        <path d={golgeGenis} fill="#000" opacity=".1" />
+        <path d={golge} fill="#000" opacity=".24" />
+        <path d={govde} fill={`url(#${saten})`} />
+        <path d={govde} fill={`url(#${dokuma})`} />
+        <path d={govde} fill={`url(#${isik})`} />
+        <path d={govde} fill={`url(#${burgu})`} />
+        <path className="kitap-kurdele-uc" d={govde} fill={`url(#${kivrim})`} />
+        <path d={parlak} stroke="#F2A898" strokeWidth=".8" fill="none" opacity=".28" />
+        <path d={govde} stroke="#1E0504" strokeWidth=".7" fill="none" opacity=".5" />
       </svg>
-      <svg className="kitap-kurdele-uc" viewBox={`0 0 ${EN} 46`} aria-hidden="true" focusable="false">
+      <svg className="kitap-kurdele-kisa" width="28" height="50" viewBox="0 0 28 50" aria-hidden="true" focusable="false">
         <defs>
-          <linearGradient id={`${saten}-uc`} x1="0" y1="0" x2="1" y2="0">{satenDuraklari}</linearGradient>
-          {/* Same light as the body's bottom end at the top (no seam), a crease where it bends, a lit edge below. */}
-          <linearGradient id={uc} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#000" stopOpacity=".12" />
-            <stop offset=".18" stopColor="#000" stopOpacity=".3" />
-            <stop offset=".3" stopColor="#FFD9C8" stopOpacity=".16" />
-            <stop offset=".55" stopColor="#000" stopOpacity="0" />
-            <stop offset="1" stopColor="#000" stopOpacity=".12" />
-          </linearGradient>
+          <linearGradient id={`${saten}-kisa`} x1="0" y1="0" x2="1" y2="0">{satenDuraklari}</linearGradient>
         </defs>
-        {/* The tail falls clearly to the side where it leaves the book. */}
-        <g transform="rotate(16 20 0)">
-          <path d="M25 2L31 4L31 39L27.6 36L25 42Z" fill="#000" opacity=".3" />
-          <path d="M14.5 0H25.5V43L20 36L14.5 43Z" fill={`url(#${saten}-uc)`} />
-          <path d="M14.5 0H25.5V43L20 36L14.5 43Z" fill={`url(#${dokuma})`} />
-          <path d="M14.5 0H25.5V43L20 36L14.5 43Z" fill={`url(#${uc})`} />
-          <path d="M15.6 0V41.6" stroke="#F2A898" strokeWidth=".7" opacity=".3" />
-          <path d="M14.5 43L20 36L25.5 43" stroke="#1E0504" strokeWidth=".6" fill="none" opacity=".55" />
-          <path d="M15.7 41.8L15.2 43.6M17.8 39.6L17.4 41.1M22.3 39.7L22.8 41.2M24.4 41.9L24.9 43.5" stroke="#B03C32" strokeWidth=".4" opacity=".7" />
+        <g transform="rotate(10 14 0)">
+          <path d="M8.5 0H19.5V47L14 40L8.5 47Z" fill={`url(#${saten}-kisa)`} />
+          <path d="M9.6 0V45.6" stroke="#F2A898" strokeWidth=".7" opacity=".3" />
+          <path d="M8.5 47L14 40L19.5 47" stroke="#1E0504" strokeWidth=".6" fill="none" opacity=".55" />
         </g>
       </svg>
       <svg className="kitap-kapitalbant" width="34" height="9" viewBox="0 0 34 9" aria-hidden="true" focusable="false">
