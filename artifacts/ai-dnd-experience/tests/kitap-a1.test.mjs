@@ -391,3 +391,30 @@ test('narrow two-page books (768-1179px) put the margin note under its line, so 
 test('story lines never shrink in the scrolling page: a long story scrolls instead of hiding its first lines', () => {
   assert.match(kural(kitapCss(), '.kitap-akis > *'), /flex:\s*0 0 auto/);
 });
+
+// Kadir, 14 Nov 2026 (screenshot): the ribbon broke where it left the page; the lamp looked "made in Paint".
+test('ribbon is one piece drawn at its measured height: it bends over the page edge and hangs without a joint', () => {
+  const kod = kurdeleKod();
+  assert.match(kod, /ResizeObserver/, 'the ribbon measures its own height');
+  assert.match(kod, /className="kitap-kurdele-uc"/, 'the tail is part of the same drawing');
+  assert.doesNotMatch(kod, /<svg className="kitap-kurdele-uc"/, 'the tail is no longer a separate drawing');
+  assert.doesNotMatch(kod, /preserveAspectRatio="none"/, 'no stretching: the curve and the rib keep their shape');
+  assert.match(kod, /className="kitap-kurdele-kisa"/, 'a short tail drawing for the phone');
+  assert.match(kitapCss(), /\.kitap-kurdele-kisa\s*\{\s*display:\s*none/);
+});
+
+test('reading lamp drawing: shaded brass tube, coiled gooseneck, lit shade interior, bright bulb, a beam of light', () => {
+  const kod = read('components/kitap/cizimler/okuma-lambasi.tsx');
+  for (const parca of ['lamba-boru', 'lamba-kafa', 'lamba-ic', 'lamba-ampul', 'lamba-kiskac', 'lamba-vida']) {
+    assert.match(kod, new RegExp(`id=\\{\`${parca}-`), `${parca} gradient is missing`);
+  }
+  assert.match(kod, /strokeDasharray/, 'the gooseneck shows its coils');
+  const html = render(kitap.KitapKabugu, { tema: 'gece', sol: 'SOL', sag: 'SAG' });
+  assert.match(html, /class="kitap-lamba-huzme"/);
+  assert.ok(token(block('[data-kitap-tema="gece"]'), '--lamba-huzme'), '--lamba-huzme is missing at night');
+  assert.equal(token(block('[data-kitap-tema][data-kitap-efekt="kapali"]'), '--lamba-huzme'), 'none');
+});
+
+test('a scrolled page fades its top line out instead of cutting it (draft mask), using a token colour', () => {
+  assert.match(kural(kitapCss(), '.kitap-akis'), /mask-image:\s*linear-gradient\(to bottom, transparent 0, transparent 3px, var\(--sayfa\) 20px\)/);
+});
