@@ -80,6 +80,7 @@ Bunlar Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esa
 - **[Kalite] Sahibin dili:** kısa, açık, dürüst ve sade Türkçe; Kadir programcı değil, doğrulamadığını söyle (yanlış güven zarar verir); harcama/push/merge/silme için onay iste.
 - **[Kalite] Oynayış kapısı (Kadir, 2026-11-12):** Kadir en az 10 dakika oynamadan hiçbir dilim "bitti" sayılmaz; testlerin yeşil olması oynayışın yerini tutmaz. Oynayış yapılmadıysa ledger'a "oynayış bekliyor" yazılır ve sonraki dilim başlamaz.
 - **[Kalite] Sabah özeti (Kadir, 2026-11-12):** Kadir yokken yapılan her çalışmanın sonunda en çok beş satırlık sade Türkçe özet yazılır: ne değişti, neden, hangi dosyalarda, ne doğrulandı, Kadir'den ne bekleniyor.
+- **[Hız] Kısa yazım ve az okuma (Kadir, 2026-11-14):** Yazarken: önce sonuç, sonra kanıt, sonra Kadir'den beklenen. Araç çağrıları arasında anlatım yok; raporda adım adım "şunu yaptım" dökümü yok. Bir cümle bir fikir. Sayılar, komutlar, dosya yolları ve hata metinleri birebir yazılır; "değil", "yalnız", "hiç" gibi anlamı çeviren sözcükler atılmaz. Güvenlik uyarısı, geri alınamaz işlem ve Kadir'in anlamadığını söylediği konu tam cümleyle yazılır. Okurken: test ve CI çıktısının tamamı okunmaz; önce düşen satır aranır, yalnız o bölüm açılır. Aynı dosya aynı oturumda ikinci kez baştan okunmaz. Rapor üst sınırı 25 satır; sığmayan ayrıntı dosyaya yazılır, raporda yalnız yolu verilir.
 
 ## Otonom çalışma ve izinler
 
