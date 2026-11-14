@@ -67,7 +67,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 }
 .kitap-sayfa-ic { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: var(--sayfa-ic); }
 .kitap-sayfa-sag .kitap-sayfa-ic { padding: var(--sayfa-ic-sag); }
-.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 18px); transform: translateX(-50%); z-index: 3; pointer-events: none; }
+.kitap-kurdele { position: absolute; left: 50%; top: -2px; height: calc(100% + 40px); transform: translateX(-50%); z-index: 3; pointer-events: none; }
 .kitap-sayfa-no { position: absolute; bottom: 11px; margin: 0; font-size: 13px; color: var(--soluk); }
 .kitap-sayfa-sol .kitap-sayfa-no { left: 48px; }
 .kitap-sayfa-sag .kitap-sayfa-no { right: 48px; }
@@ -105,7 +105,8 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 
 /* ---------- Text on the page ---------- */
 .kitap-akis { flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--cizgi) var(--saydam); display: flex; flex-direction: column; gap: 11px; padding: var(--bosluk-5) 0 10px; }
-.kitap-satir { display: grid; grid-template-columns: minmax(0, 1fr) var(--sutun-kenar); column-gap: var(--bosluk-5); align-items: start; }
+/* The text column stays near 45 letters (22em); the margin column takes what a wide book adds. */
+.kitap-satir { font-size: var(--govde); display: grid; grid-template-columns: minmax(0, var(--sutun-metin)) minmax(var(--sutun-kenar), 1fr); column-gap: var(--bosluk-5); align-items: start; }
 .kitap-p { margin: 0; font-size: var(--govde); line-height: 1.55; text-wrap: pretty; }
 .kitap-ilk::first-letter { float: left; font-size: 2.95em; line-height: 0.8; font-weight: 600; padding: 6px 6px 0 0; }
 .kitap-soz { margin: 0; padding-left: 26px; font-family: var(--el-aile); font-size: var(--el); line-height: 1.34; }
@@ -240,7 +241,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-onay-kutu { width: 22px; height: 22px; border: 1.5px solid var(--murekkep); border-radius: var(--kose); background: none; color: var(--sayfa); box-shadow: none; }
 .kitap-onay-kutu[data-state='checked'] { background: var(--murekkep); color: var(--sayfa); }
 .kitap-onay-kutu:disabled, .kitap-anahtar:disabled { opacity: 1; border-style: dashed; border-color: var(--soluk); }
-.kitap-onay-kutu:disabled[data-state='checked'] { background: var(--soluk); }
+.kitap-onay-kutu:disabled[data-state='checked'] { background: none; color: var(--soluk); }
 .kitap-onay-kutu:disabled + label, .kitap-anahtar:disabled + label { color: var(--soluk); cursor: not-allowed; }
 .kitap-anahtar { width: 46px; height: 26px; border: 1.5px solid var(--soluk); background: none; box-shadow: none; }
 .kitap-anahtar > span { width: 18px; height: 18px; background: var(--soluk); box-shadow: none; }
@@ -260,9 +261,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   box-shadow: none;
 }
 .kitap-sayi-girdi::placeholder { color: var(--soluk); opacity: 1; }
-.kitap-sayi-girdi[aria-invalid='true'] { border-bottom: 2px dashed var(--murekkep); }
+.kitap-sayi-girdi[aria-invalid='true'] { border-bottom: 3px double var(--murekkep); }
 .kitap-sayi-girdi:disabled { opacity: 1; color: var(--soluk); border-bottom: 1px dashed var(--soluk); }
-.kitap-alan-hata { margin: 0; font-style: italic; font-size: var(--kenar-boy); color: var(--murekkep); }
+.kitap-alan-hata { margin: 0; font-style: italic; font-size: var(--kenar-boy); color: var(--hakem); }
 
 /* ---------- Choice cards ---------- */
 .kitap-kartlar { display: grid; gap: 0; }
@@ -336,11 +337,11 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   flex: 1 1 auto;
   min-width: 0;
   min-height: 50px;
-  height: 50px;
+  max-height: 40dvh;
   box-sizing: border-box;
   padding: 10px 2px 0;
   resize: none;
-  overflow: hidden;
+  overflow-y: auto;
   font-family: var(--el-aile);
   font-size: calc(var(--el) * 1.09);
   line-height: 1.3;
@@ -354,11 +355,12 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-yaz-girdi::placeholder { color: var(--soluk); opacity: 1; }
 .kitap-yaz-girdi:disabled { opacity: 1; color: var(--soluk); border-bottom-style: dashed; }
 .kitap-kipler { margin-left: 48px; }
+.kitap-gonder-simge { display: none; }
 
 /* ---------- Narrow screen: one page (G6) ---------- */
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .kitap-masa { padding: 56px 5px 5px; }
-  .kitap-masa-ust { left: auto; right: 5px; top: 6px; }
+  .kitap-masa-ust { left: auto; right: 8px; top: 6px; }
   .kitap-masa-ust .kitap-dugme-masa { width: var(--dokunma); padding: 0; }
   .kitap-masa-ust .kitap-dugme-masa .kitap-dar-gizli { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .kitap-cilt { height: calc(100dvh - 61px); min-height: 600px; padding: 8px 8px 11px 8px; }
@@ -375,7 +377,11 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   .kitap-satir { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
   .kitap-satir > .kitap-kenar-metin { padding-left: 26px; }
   .kitap-sayfa-sol .kitap-sayfa-no, .kitap-sayfa-sag .kitap-sayfa-no { right: 20px; left: auto; }
-  .kitap-kipler { margin-left: 0; }
+  .kitap-kipler { margin-left: 48px; }
+  /* Phone: Gönder becomes a 44px return key (target 11); the word stays for screen readers. */
+  .kitap-yaz .kitap-dugme-ana { width: var(--dokunma); padding: 0; }
+  .kitap-gonder-simge { display: block; }
+  .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -411,7 +417,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-ornek .kitap-yaz { width: 560px; max-width: 100%; }
 .kitap-ornek .kitap-bos { width: 320px; max-width: 100%; }
 .kitap-ornek-sutun { display: flex; flex-direction: column; gap: var(--bosluk-4); width: 360px; max-width: 100%; }
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .kitap-dar-yok { display: none; }
   .kitap-galeri .kitap-galeri-set { margin: var(--bosluk-4) 5px var(--bosluk-6); padding: var(--bosluk-4) var(--bosluk-4) var(--bosluk-6); }
 }

@@ -1,7 +1,7 @@
 // A1 gallery: the book theme set on one page, for Kadir's approval from screenshots. Development only (see
 // app-shell.tsx); the sample text is gallery data, not game text. Query string for screenshots:
 // ?gorunum=gunduz|gece|karanlik|saat, ?saat=gunduz|gece.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Moon, Plus, Sun } from 'lucide-react';
 import { TabsContent } from '@/components/ui/tabs';
@@ -12,7 +12,8 @@ import {
   SayiKutusu, Sayac, SecimKartlari, SeciciGrup, Yukleniyor,
 } from '@/components/kitap/kontroller';
 import { Mikrofon, YazmaAlani, type YazmaKipi } from '@/components/kitap/yazma-alani';
-import { GORUNUM_SECENEKLERI, VARSAYILAN_EL, VARSAYILAN_GORUNUM, kitapTemasi, type GorunumSecimi, type HikayeSaati } from '@/lib/kitap-tema';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { GORUNUM_SECENEKLERI, VARSAYILAN_EL, VARSAYILAN_GORUNUM, hikayeTekAkista, kitapTemasi, type GorunumSecimi, type HikayeSaati } from '@/lib/kitap-tema';
 
 const AYRACLAR = [
   { deger: 'hikaye', etiket: 'Hikâye' }, { deger: 'karakter', etiket: 'Karakter' }, { deger: 'canta', etiket: 'Çanta' },
@@ -65,6 +66,12 @@ export default function KitapGalerisi() {
   const [pencere, setPencere] = useState(false);
   const [dinliyor, setDinliyor] = useState(false);
   const tema = kitapTemasi(ayar.gorunum, saat);
+  const tekAkis = hikayeTekAkista(ayrac, useIsMobile());
+  // T5: in one flow the left page opens on the last lines, right above the writing field.
+  const solAkis = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (tekAkis && solAkis.current) solAkis.current.scrollTop = solAkis.current.scrollHeight;
+  }, [tekAkis, ayrac]);
 
   // Portalled windows, lists and notices render under <body>, so the attributes go on <html> while the gallery is open.
   useEffect(() => {
@@ -81,26 +88,48 @@ export default function KitapGalerisi() {
     </KitapDugme>
   );
 
+  // Story lines of the sample scene: the first part fills the left page, the rest continues on the right.
+  const ilkBolum = (
+    <>
+      <div className="kitap-satir">
+        <p className="kitap-p kitap-ilk">Yağmur damdan sızıyor; mum alevi her damlada eğiliyor. Masanın öbür ucundaki kadın, eldivenini çıkarmadan bıçağını bileğine sürüyor.</p>
+        <p className="kitap-kenar-metin">Kesende 12 gümüş var.</p>
+      </div>
+      <p className="kitap-soz">Yanına oturup adını soruyorum.</p>
+      <div className="kitap-satir">
+        <p className="kitap-p">“Adımı soran ya borçludur ya ölü,” diyor, gözünü kapıdan ayırmadan. “Sen hangisisin?”</p>
+        <p className="kitap-kenar-metin">Sezgi zarı 13, zorluk 12. Yalan söylemiyor.</p>
+      </div>
+      <div className="kitap-satir">
+        <p className="kitap-soz kitap-soz-silik">Bıçağıma uzanıyorum.</p>
+        <p className="kitap-kenar-metin">Geri alındı.</p>
+      </div>
+      <p className="kitap-soz">Ona bir kadeh şarap ısmarlıyorum.</p>
+      <p className="kitap-p">Kadeh önüne gelince ilk kez gülümsüyor. Dişlerinden biri altın; öbürleri kırık. “Kuzey yolunda <span className="kitap-ad">Varka</span>’nın adamları bekliyor,” diye fısıldıyor.</p>
+    </>
+  );
+  const sonBolum = (
+    <>
+      <p className="kitap-soz">“Kaç kişiler?”</p>
+      <div className="kitap-satir">
+        <p className="kitap-p">“Dört. Belki beş. Biri tazı besliyor; tazıdan kork, adamdan değil.” Kadehini dibine kadar içiyor ve kalkıyor.</p>
+        <p className="kitap-kenar-metin">Yol tarifi günlüğe yazıldı.</p>
+      </div>
+    </>
+  );
+  const yazmaAlani = (
+    <YazmaAlani kip={kip} kipDegisince={setKip} metin={metin} metinDegisince={setMetin} gonder={() => setMetin('')}
+      mikrofonDestegi dinliyor={dinliyor} dinlemeDegisince={setDinliyor} />
+  );
+
   const sol = (
     <>
       <BolumBasligi yan={`3 Mirtul 1501, ${saat === 'gece' ? 'gece yarısı' : 'öğle'}`}>Kırık Fener Meyhanesi</BolumBasligi>
-      <div className="kitap-akis">
-        <div className="kitap-satir">
-          <p className="kitap-p kitap-ilk">Yağmur damdan sızıyor; mum alevi her damlada eğiliyor. Masanın öbür ucundaki kadın, eldivenini çıkarmadan bıçağını bileğine sürüyor.</p>
-          <p className="kitap-kenar-metin">Kesende 12 gümüş var.</p>
-        </div>
-        <p className="kitap-soz">Yanına oturup adını soruyorum.</p>
-        <div className="kitap-satir">
-          <p className="kitap-p">“Adımı soran ya borçludur ya ölü,” diyor, gözünü kapıdan ayırmadan. “Sen hangisisin?”</p>
-          <p className="kitap-kenar-metin">Sezgi zarı 13, zorluk 12. Yalan söylemiyor.</p>
-        </div>
-        <div className="kitap-satir">
-          <p className="kitap-soz kitap-soz-silik">Bıçağıma uzanıyorum.</p>
-          <p className="kitap-kenar-metin">Geri alındı.</p>
-        </div>
-        <p className="kitap-soz">Ona bir kadeh şarap ısmarlıyorum.</p>
-        <p className="kitap-p">Kadeh önüne gelince ilk kez gülümsüyor. Dişlerinden biri altın; öbürleri kırık. “Kuzey yolunda <span className="kitap-ad">Varka</span>’nın adamları bekliyor,” diye fısıldıyor.</p>
+      <div className="kitap-akis" ref={solAkis}>
+        {ilkBolum}
+        {tekAkis ? sonBolum : null}
       </div>
+      {tekAkis ? yazmaAlani : null}
       <p className="kitap-sayfa-no">51</p>
     </>
   );
@@ -108,16 +137,13 @@ export default function KitapGalerisi() {
   const sag = (
     <>
       <TabsContent value="hikaye" className="kitap-ayrac-icerik">
-        <BolumBasligi yan={<Rozet tur="yeni">Yeni iş</Rozet>}><span className="kitap-kucuk-bas">Ilsa, 3. seviye</span></BolumBasligi>
-        <div className="kitap-akis">
-          <p className="kitap-soz">“Kaç kişiler?”</p>
-          <div className="kitap-satir">
-            <p className="kitap-p">“Dört. Belki beş. Biri tazı besliyor; tazıdan kork, adamdan değil.” Kadehini dibine kadar içiyor ve kalkıyor.</p>
-            <p className="kitap-kenar-metin">Yol tarifi günlüğe yazıldı.</p>
-          </div>
-        </div>
-        <YazmaAlani kip={kip} kipDegisince={setKip} metin={metin} metinDegisince={setMetin} gonder={() => setMetin('')}
-          mikrofonDestegi dinliyor={dinliyor} dinlemeDegisince={setDinliyor} />
+        {tekAkis ? null : (
+          <>
+            <BolumBasligi yan={<Rozet tur="yeni">Yeni iş</Rozet>}><span className="kitap-kucuk-bas">Ilsa, 3. seviye</span></BolumBasligi>
+            <div className="kitap-akis">{sonBolum}</div>
+            {yazmaAlani}
+          </>
+        )}
       </TabsContent>
       {AYRACLAR.slice(1).map((a) => (
         <TabsContent key={a.deger} value={a.deger} className="kitap-ayrac-icerik">
@@ -134,7 +160,7 @@ export default function KitapGalerisi() {
       <h1 className="kitap-gizli">Unwritten kitap teması: galeri</h1>
       <Ayraclar deger={ayrac} degisince={setAyrac} ayraclar={AYRACLAR}
         masa={<>{saatDugmesi}<span className="kitap-dar-yok"><AyarCarki deger={ayar} degisince={setAyar} /></span></>}>
-        <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi="sag" />
+        <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi={ayrac === 'hikaye' ? 'sol' : 'sag'} />
       </Ayraclar>
 
       <div className="kitap-galeri-set">
@@ -153,7 +179,7 @@ export default function KitapGalerisi() {
             </div>
           </Ornek>
           <Ornek ad="efekt">
-            <Anahtar etiket="Kâğıt dokusu (efekt seviyesi Kapalı ise düz renk)" acik={!efektKapali} degisince={(v) => setEfektKapali(!v)} />
+            <Anahtar etiket="Kâğıt dokusu" acik={!efektKapali} degisince={(v) => setEfektKapali(!v)} />
           </Ornek>
         </Parca>
 

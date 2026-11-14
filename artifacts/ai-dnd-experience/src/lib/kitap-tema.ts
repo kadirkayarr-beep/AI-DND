@@ -36,6 +36,14 @@ export const YAZI_BOYU_SECENEKLERI: ReadonlyArray<{ deger: YaziBoyu; etiket: str
   { deger: 'buyuk', etiket: 'Büyük' },
 ];
 
+/**
+ * T5: no story line is lost. With another bookmark open, or on a phone (one page), the story runs as one flow on the
+ * left page, ending in its last lines and the writing field; only the two-page story spreads it over both pages.
+ */
+export function hikayeTekAkista(ayrac: string, darEkran: boolean): boolean {
+  return darEkran || ayrac !== 'hikaye';
+}
+
 export function kitapTemasi(secim: GorunumSecimi, saat: HikayeSaati): KitapTemasi {
   return secim === 'saat' ? saat : secim;
 }

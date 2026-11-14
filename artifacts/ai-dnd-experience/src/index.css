@@ -834,13 +834,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 [data-kitap-tema] {
   --muhur: #A8332E;
   --kitap-yazi: 'Literata', Georgia, 'Times New Roman', serif;
-  --govde: 19px;
-  --el-aile: 'Kalam', 'Comic Sans MS', cursive;
+  /* Wide screens (G7, review finding 5): the book grows past 1440px and the type grows with it, up to 4px. */
+  --buyume: clamp(0px, calc((100vw - 1440px) * 0.008), 4px);
+  --govde: calc(19px + var(--buyume));
+  --el-aile: 'Kalam', 'Literata', Georgia, serif;
   --elb: 20px;
   --elo: 1;
-  --el: calc(var(--elb) * var(--elo));
-  --baslik-boy: 27px;
-  --kenar-boy: 15px;
+  --el: calc(var(--elb) * var(--elo) + var(--buyume));
+  --baslik-boy: calc(27px + var(--buyume));
+  --kenar-boy: calc(15px + var(--buyume) * 0.5);
   --etiket-boy: 14px;
   --dugme-boy: 16px;
   --dokunma: 44px;
@@ -852,6 +854,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --bosluk-5: 20px;
   --bosluk-6: 28px;
   --bosluk-7: 40px;
+  --sutun-metin: 22em;
   --sutun-kenar: 150px;
   --sayfa-ic: 34px 40px 36px 48px;
   --sayfa-ic-sag: 34px 48px 36px 40px;
@@ -865,11 +868,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --saydam: rgba(0, 0, 0, 0);
   --perde: rgba(0, 0, 0, 0.55);
 }
-[data-kitap-el="a"] { --el-aile: 'Charm', 'Comic Sans MS', cursive; --elb: 23px; }
-[data-kitap-el="b"] { --el-aile: 'Kalam', 'Comic Sans MS', cursive; --elb: 20px; }
-[data-kitap-el="c"] { --el-aile: 'Bad Script', 'Comic Sans MS', cursive; --elb: 21px; }
-[data-kitap-boy="buyuk"] { --govde: 21px; --elo: 1.09; }
-@media (max-width: 760px) {
+/* No system cursive fallback (review finding 1): on Windows that is Comic Sans; Literata reads as the book. */
+[data-kitap-el="a"] { --el-aile: 'Charm', 'Literata', Georgia, serif; --elb: 23px; }
+[data-kitap-el="b"] { --el-aile: 'Kalam', 'Literata', Georgia, serif; --elb: 20px; }
+[data-kitap-el="c"] { --el-aile: 'Bad Script', 'Literata', Georgia, serif; --elb: 21px; }
+[data-kitap-boy="buyuk"] { --govde: calc(21px + var(--buyume)); --elo: 1.09; }
+@media (max-width: 767px) {
   [data-kitap-tema] { --govde: 17px; --elo: 0.92; --baslik-boy: 22px; }
   [data-kitap-tema][data-kitap-boy="buyuk"] { --govde: 19px; --elo: 1; }
 }

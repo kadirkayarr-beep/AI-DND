@@ -1,5 +1,5 @@
-import type { KeyboardEvent } from 'react';
-import { Mic } from 'lucide-react';
+import { useLayoutEffect, useRef, type KeyboardEvent } from 'react';
+import { CornerDownLeft, Mic } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Toggle } from '@/components/ui/toggle';
 import { KalemUcu } from '@/components/kitap/cizimler/kalem-ucu';
@@ -28,16 +28,27 @@ export function YazmaAlani({ kip, kipDegisince, metin, metinDegisince, gonder, m
   kip: YazmaKipi; kipDegisince: (k: YazmaKipi) => void; metin: string; metinDegisince: (v: string) => void; gonder: () => void;
   mikrofonDestegi: boolean; dinliyor?: boolean; dinlemeDegisince?: (v: boolean) => void; disabled?: boolean;
 }) {
+  // The field grows line by line with the text (review finding 2); CSS caps it at 40% of the screen.
+  const alan = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = alan.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [metin]);
   const yolla = (e?: { preventDefault(): void }) => { e?.preventDefault(); if (metin.trim() && !disabled) gonder(); };
   const tus = (e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Enter' && !e.shiftKey) yolla(e); };
   return (
     <form className="kitap-yaz" onSubmit={yolla}>
       <div className="kitap-yaz-sira">
         <KalemUcu />
-        <Textarea rows={1} value={metin} onChange={(e) => metinDegisince(e.target.value)} onKeyDown={tus} disabled={disabled}
+        <Textarea ref={alan} rows={1} value={metin} onChange={(e) => metinDegisince(e.target.value)} onKeyDown={tus} disabled={disabled}
           aria-label="Ne yapıyorsun?" placeholder="Ne yapıyorsun?" className="kitap-yaz-girdi" />
         <Mikrofon destek={mikrofonDestegi} dinliyor={dinliyor} degisince={dinlemeDegisince} disabled={disabled} />
-        <KitapDugme tur="ana" type="submit" disabled={disabled}>Gönder</KitapDugme>
+        <KitapDugme tur="ana" type="submit" disabled={disabled}>
+          <CornerDownLeft aria-hidden="true" className="kitap-gonder-simge" />
+          <span className="kitap-gonder-metin">Gönder</span>
+        </KitapDugme>
       </div>
       <SeciciGrup etiket="Söyleyiş biçimi" tur="cizgi" deger={kip} degisince={kipDegisince} secenekler={KIPLER} className="kitap-kipler" />
     </form>

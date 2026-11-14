@@ -264,3 +264,7 @@ test('findings 7 and 8: a disabled checked box loses its fill; an error is a dou
   assert.match(kural(css, '.kitap-alan-hata'), /color:\s*var\(--hakem\)/);
   assert.match(kural(css, '.kitap-sayi-girdi:disabled'), /dashed/);
 });
+
+test('finding 9: setting labels carry no explanation text in brackets (T12)', () => {
+  assert.doesNotMatch(read('pages/kitap-galerisi.tsx'), /etiket="[^"]*\(/);
+});
