@@ -19,15 +19,17 @@ export interface KitapKabuguProps {
   kurdeleEtiketi?: string;
   /** G10 (Kadir's call): the lamp in the dark theme too. Off by default, as in the draft. */
   lambaKaranlikta?: boolean;
+  /** G6 (Kadir's call, A1 Oturum 2): a = one settings button on the phone, no lamp; b = desk strip with the lamp. */
+  telefonDuzeni?: 'a' | 'b';
 }
 
 /** Open book: cloth cover, two pages with a spine curve and a page stack, the ribbon down the middle (T1). */
-export function KitapKabugu({ tema, el = 'b', boy = 'normal', efektKapali = false, masa, sol, sag, darEkranSayfasi = 'sol', kurdeleEtiketi, lambaKaranlikta = false }: KitapKabuguProps) {
+export function KitapKabugu({ tema, el = 'b', boy = 'normal', efektKapali = false, masa, sol, sag, darEkranSayfasi = 'sol', kurdeleEtiketi, lambaKaranlikta = false, telefonDuzeni = 'a' }: KitapKabuguProps) {
   const gizli = (taraf: 'sol' | 'sag') => (darEkranSayfasi === taraf ? '' : ' kitap-darda-gizli');
   // T7: the brass reading lamp is lit at night and never by day.
   const lamba = tema === 'gece' || (tema === 'karanlik' && lambaKaranlikta);
   return (
-    <div className="kitap-masa" data-kitap-tema={tema} data-kitap-el={el} data-kitap-boy={boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'} data-kitap-lamba={lamba ? 'acik' : 'kapali'}>
+    <div className="kitap-masa" data-kitap-tema={tema} data-kitap-el={el} data-kitap-boy={boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'} data-kitap-lamba={lamba ? 'acik' : 'kapali'} data-kitap-telefon={telefonDuzeni}>
       {masa ? <div className="kitap-masa-ust">{masa}</div> : null}
       {lamba ? (
         <div className="kitap-lamba">

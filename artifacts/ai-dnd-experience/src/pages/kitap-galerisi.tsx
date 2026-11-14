@@ -12,6 +12,7 @@ import {
   SayiKutusu, Sayac, SecimKartlari, SeciciGrup, Yukleniyor,
 } from '@/components/kitap/kontroller';
 import { Mikrofon, YazmaAlani, type YazmaKipi } from '@/components/kitap/yazma-alani';
+import { BuyuYuvalari, CanMuhru, DurumSeridi, KayitBildirimi, KenarNotu, Zar, type KayitDurumu } from '@/components/kitap/gostergeler';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { GORUNUM_SECENEKLERI, VARSAYILAN_EL, VARSAYILAN_GORUNUM, hikayeTekAkista, kitapTemasi, type GorunumSecimi, type HikayeSaati } from '@/lib/kitap-tema';
 
@@ -25,6 +26,8 @@ const TURLER = [
   { deger: 'cuce', baslik: 'Cüce', aciklama: 'Taşa ve zehre dayanıklı.' },
 ];
 const ZARLAR = [{ deger: 'kemik', etiket: 'Kemik' }, { deger: 'obsidyen', etiket: 'Obsidyen' }];
+// Ilsa, 3rd level: four 1st-level and two 2nd-level slots (gallery data).
+const YUVALAR = [{ seviye: 1, toplam: 4, dolu: 2 }, { seviye: 2, toplam: 2, dolu: 2 }];
 const TURKCE = 'Çığlık, ağaç, öğüt; İzmir ılık, şiş yağlı. ÇĞIİÖŞÜ çğıiöşü 43 / 49';
 
 function sorgu(ad: string): string | null {
@@ -64,6 +67,9 @@ export default function KitapGalerisi() {
   const [kuvvet, setKuvvet] = useState('15');
   const [pencere, setPencere] = useState(false);
   const [dinliyor, setDinliyor] = useState(false);
+  const [kayit, setKayit] = useState<{ bicim: 'muhur' | 'kurdele'; durum?: KayitDurumu; kimlik: number }>({ bicim: 'muhur', kimlik: 0 });
+  // G6 (Kadir's call): ?telefon=b shows the desk strip with the lamp on the phone; a is one settings button.
+  const telefon = sorgu('telefon') === 'b' ? 'b' : 'a';
   const tema = kitapTemasi(ayar.gorunum, saat);
   const { efektKapali, lambaKaranlikta } = ayar;
   const darEkran = useIsMobile();
@@ -78,20 +84,20 @@ export default function KitapGalerisi() {
   // Portalled windows, lists and notices render under <body>, so the attributes go on <html> while the gallery is open.
   useEffect(() => {
     const kok = document.documentElement;
-    const nitelikler = { 'data-kitap-tema': tema, 'data-kitap-el': ayar.el, 'data-kitap-boy': ayar.boy, 'data-kitap-efekt': efektKapali ? 'kapali' : 'acik' };
+    const nitelikler = { 'data-kitap-tema': tema, 'data-kitap-el': ayar.el, 'data-kitap-boy': ayar.boy, 'data-kitap-efekt': efektKapali ? 'kapali' : 'acik', 'data-kitap-telefon': telefon };
     for (const [ad, deger] of Object.entries(nitelikler)) kok.setAttribute(ad, deger);
     return () => { for (const ad of Object.keys(nitelikler)) kok.removeAttribute(ad); };
-  }, [tema, ayar.el, ayar.boy, efektKapali]);
+  }, [tema, ayar.el, ayar.boy, efektKapali, telefon]);
 
   // The fake story clock only drives the look while "Hikâyedeki saati izle" is chosen; a hand-picked look offers the
   // way back to the clock instead (review 15).
   const saatDugmesi = ayar.gorunum === 'saat' ? (
-    <KitapDugme tur="masa" onClick={() => setSaat(saat === 'gece' ? 'gunduz' : 'gece')} aria-label={saat === 'gece' ? 'Gündüze çevir' : 'Geceye çevir'}>
+    <KitapDugme tur="masa" className="kitap-saat-dugmesi" onClick={() => setSaat(saat === 'gece' ? 'gunduz' : 'gece')} aria-label={saat === 'gece' ? 'Gündüze çevir' : 'Geceye çevir'}>
       {saat === 'gece' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
       <span className="kitap-dar-gizli">{saat === 'gece' ? 'Gündüze çevir' : 'Geceye çevir'}</span>
     </KitapDugme>
   ) : (
-    <KitapDugme tur="masa" onClick={() => setAyar({ ...ayar, gorunum: 'saat' })} aria-label="Hikâyenin saatine dön">
+    <KitapDugme tur="masa" className="kitap-saat-dugmesi" onClick={() => setAyar({ ...ayar, gorunum: 'saat' })} aria-label="Hikâyenin saatine dön">
       <Clock aria-hidden="true" />
       <span className="kitap-dar-gizli">Hikâyenin saatine dön</span>
     </KitapDugme>
@@ -102,16 +108,16 @@ export default function KitapGalerisi() {
     <>
       <div className="kitap-satir">
         <p className="kitap-p kitap-ilk">Yağmur damdan sızıyor; mum alevi her damlada eğiliyor. Masanın öbür ucundaki kadın, eldivenini çıkarmadan bıçağını bileğine sürüyor.</p>
-        <p className="kitap-kenar-metin">Kesende 12 gümüş var.</p>
+        <KenarNotu simge="para">Kesende 12 gümüş var.</KenarNotu>
       </div>
       <p className="kitap-soz">Yanına oturup adını soruyorum.</p>
       <div className="kitap-satir">
         <p className="kitap-p">“Adımı soran ya borçludur ya ölü,” diyor, gözünü kapıdan ayırmadan. “Sen hangisisin?”</p>
-        <p className="kitap-kenar-metin">Sezgi zarı 13, zorluk 12. Yalan söylemiyor.</p>
+        <KenarNotu simge="zar">Sezgi zarı 13, zorluk 12. Yalan söylemiyor.</KenarNotu>
       </div>
       <div className="kitap-satir">
         <p className="kitap-soz kitap-soz-silik">Bıçağıma uzanıyorum.</p>
-        <p className="kitap-kenar-metin">Geri alındı.</p>
+        <KenarNotu simge="geri" silik>Geri alındı.</KenarNotu>
       </div>
       <p className="kitap-soz">Ona bir kadeh şarap ısmarlıyorum.</p>
       <p className="kitap-p">Kadeh önüne gelince ilk kez gülümsüyor. Dişlerinden biri altın; öbürleri kırık. “Kuzey yolunda <span className="kitap-ad">Varka</span>’nın adamları bekliyor,” diye fısıldıyor.</p>
@@ -122,7 +128,11 @@ export default function KitapGalerisi() {
       <p className="kitap-soz">“Kaç kişiler?”</p>
       <div className="kitap-satir">
         <p className="kitap-p">“Dört. Belki beş. Biri tazı besliyor; tazıdan kork, adamdan değil.” Kadehini dibine kadar içiyor ve kalkıyor.</p>
-        <p className="kitap-kenar-metin">Yol tarifi günlüğe yazıldı.</p>
+        <KenarNotu simge="kural">Yol tarifi günlüğe yazıldı.</KenarNotu>
+      </div>
+      <div className="kitap-satir">
+        <p className="kitap-p">Kapıda durup dönüyor. “Varka’nın başına konan ödülü sen de duydun mu? Kırk gümüş.”</p>
+        <KenarNotu simge="is" yeni>Yeni iş: Varka’yı bul, kırk gümüş.</KenarNotu>
       </div>
     </>
   );
@@ -148,7 +158,7 @@ export default function KitapGalerisi() {
       <TabsContent value="hikaye" className="kitap-ayrac-icerik">
         {tekAkis ? null : (
           <>
-            <BolumBasligi yan={<Rozet tur="yeni">Yeni iş</Rozet>}><span className="kitap-kucuk-bas">Ilsa, 3. seviye</span></BolumBasligi>
+            <BolumBasligi yan={<DurumSeridi seviyeler={YUVALAR} can={43} enCok={49} basHarf="I" />}><span className="kitap-kucuk-bas">Ilsa, 3. seviye</span></BolumBasligi>
             <div className="kitap-akis">{sonBolum}</div>
             {yazmaAlani}
           </>
@@ -165,16 +175,16 @@ export default function KitapGalerisi() {
   );
 
   return (
-    <div className="kitap-galeri" data-kitap-tema={tema} data-kitap-el={ayar.el} data-kitap-boy={ayar.boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'}>
+    <div className="kitap-galeri" data-kitap-telefon={telefon} data-kitap-tema={tema} data-kitap-el={ayar.el} data-kitap-boy={ayar.boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'}>
       <h1 className="kitap-gizli">Unwritten kitap teması: galeri</h1>
       <Ayraclar deger={ayrac} degisince={setAyrac} ayraclar={AYRACLAR} masaSonra={darEkran}
         masa={<>{saatDugmesi}<span className="kitap-dar-yok"><AyarCarki deger={ayar} degisince={setAyar} /></span></>}>
-        <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi={ayrac === 'hikaye' ? 'sol' : 'sag'} lambaKaranlikta={lambaKaranlikta} />
+        <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi={ayrac === 'hikaye' ? 'sol' : 'sag'} lambaKaranlikta={lambaKaranlikta} telefonDuzeni={telefon} />
       </Ayraclar>
 
       <div className="kitap-galeri-set">
         <div className="kitap-tane" aria-hidden="true" />
-        <BolumBasligi yan="Oturum 1: temel kontroller ve okuma lambası. Mühür, mum, zar ve kenar notu Oturum 2'de.">Kontrol seti</BolumBasligi>
+        <BolumBasligi yan="Temel kontroller, göstergeler, zar, kenar notu ve kayıt bildirimi.">Kontrol seti</BolumBasligi>
 
         <Parca baslik="Arayüz ayarları (seçici düğme grupları)">
           <Ornek ad="dolu"><ArayuzAyarlari deger={ayar} degisince={setAyar} /></Ornek>
@@ -231,6 +241,55 @@ export default function KitapGalerisi() {
           <Ornek ad="devre dışı"><SayiKutusu etiket="Karizma" deger="9" disabled degisince={() => {}} /></Ornek>
         </Parca>
 
+        <Parca baslik="Can mührü">
+          <Ornek ad="büyük, bir çatlak"><CanMuhru can={43} enCok={49} basHarf="I" /></Ornek>
+          <Ornek ad="küçük, tam can"><CanMuhru can={49} enCok={49} basHarf="I" boy="kucuk" /></Ornek>
+          <Ornek ad="ağır hasar, üç çatlak"><CanMuhru can={6} enCok={49} basHarf="I" /></Ornek>
+          <Ornek ad="boş: henüz basılmadı"><CanMuhru basHarf="I" /></Ornek>
+          <Ornek ad="hata: can okunamadı"><CanMuhru can={52} enCok={49} basHarf="I" /></Ornek>
+          <Ornek ad="devre dışı, odak"><p className="kitap-etiket">Gösterge: tıklanmaz, odak almaz.</p></Ornek>
+        </Parca>
+
+        <Parca baslik="Büyü yuvaları (mum)">
+          <Ornek ad="dolu"><BuyuYuvalari seviyeler={YUVALAR} /></Ornek>
+          <Ornek ad="hepsi harcandı"><BuyuYuvalari seviyeler={[{ seviye: 1, toplam: 4, dolu: 0 }]} /></Ornek>
+          <Ornek ad="boş"><BuyuYuvalari seviyeler={[]} /></Ornek>
+          <Ornek ad="hata: yuva okunamadı"><BuyuYuvalari seviyeler={[{ seviye: 1, toplam: 2, dolu: 3 }]} /></Ornek>
+          <Ornek ad="odak: ipucu açılır"><div className="kitap-odak-goster"><BuyuYuvalari seviyeler={[{ seviye: 3, toplam: 2, dolu: 1 }]} /></div></Ornek>
+          <Ornek ad="durum şeridi (küçük mumlar ve mühür)"><DurumSeridi seviyeler={YUVALAR} can={43} enCok={49} basHarf="I" /></Ornek>
+        </Parca>
+
+        <Parca baslik="Zar">
+          <Ornek ad="dolu: d4, d6, d8, d10, d12, d20">
+            <Zar yuz={4} deger={3} /><Zar yuz={6} deger={5} /><Zar yuz={8} deger={7} /><Zar yuz={10} deger={10} /><Zar yuz={12} deger={11} /><Zar yuz={20} deger={14} />
+          </Ornek>
+          <Ornek ad="boş: atılmadı"><Zar yuz={20} /></Ornek>
+          <Ornek ad="hata: değer okunamadı"><Zar yuz={20} deger={23} /><p className="kitap-etiket">Sayı uydurulmaz.</p></Ornek>
+          <Ornek ad="devre dışı"><Zar yuz={20} deger={9} disabled /></Ornek>
+          <Ornek ad="odak"><p className="kitap-etiket">Gösterge: odak almaz.</p></Ornek>
+        </Parca>
+
+        <Parca baslik="Kenar notu">
+          <Ornek ad="zar"><KenarNotu simge="zar">Dinleme zarı 9, zorluk 13. Ayak sesini kaçırdın.</KenarNotu></Ornek>
+          <Ornek ad="para"><KenarNotu simge="para">Kesenden 3 gümüş çıktı, 9 kaldı.</KenarNotu></Ornek>
+          <Ornek ad="yeni (altın)"><KenarNotu simge="is" yeni>Yeni iş: Varka’yı bul, kırk gümüş.</KenarNotu></Ornek>
+          <Ornek ad="geri alındı (soluk)"><KenarNotu simge="geri" silik>Geri alındı.</KenarNotu></Ornek>
+          <Ornek ad="günlük, kural"><KenarNotu simge="kural">Kuzey yolu günlüğe yazıldı.</KenarNotu></Ornek>
+        </Parca>
+
+        <Parca baslik="Kayıt bildirimi (Kadir seçer: mühür ya da kurdele)">
+          <Ornek ad="mühür"><KayitBildirimi bicim="muhur" durum="kaydedildi" kapat={() => {}} /></Ornek>
+          <Ornek ad="kurdele"><KayitBildirimi bicim="kurdele" durum="kaydedildi" kapat={() => {}} /></Ornek>
+          <Ornek ad="hata: kendiliğinden kapanmaz">
+            <KayitBildirimi bicim="muhur" durum="hata" kapat={() => {}} /><KayitBildirimi bicim="kurdele" durum="hata" kapat={() => {}} />
+          </Ornek>
+          <Ornek ad="boş"><p className="kitap-etiket">Kayıt yokken görünmez.</p></Ornek>
+          <Ornek ad="sağ üstte dene">
+            <KitapDugme onClick={() => setKayit((k) => ({ bicim: 'muhur', durum: 'kaydedildi', kimlik: k.kimlik + 1 }))}>Mühürle kaydet</KitapDugme>
+            <KitapDugme onClick={() => setKayit((k) => ({ bicim: 'kurdele', durum: 'kaydedildi', kimlik: k.kimlik + 1 }))}>Kurdeleyle kaydet</KitapDugme>
+          </Ornek>
+        </Parca>
+
         <Parca baslik="Bildirim, pencere, ipucu">
           <Ornek ad="kendiliğinden kapanan bildirim"><KitapDugme onClick={() => toast('Macera kaydedildi.')}>Bildirim göster</KitapDugme></Ornek>
           <Ornek ad="pencere, yapışkan kapatma"><KitapDugme onClick={() => setPencere(true)}>Pencereyi aç</KitapDugme></Ornek>
@@ -265,6 +324,7 @@ export default function KitapGalerisi() {
         ))}
       </Pencere>
       <BildirimAlani />
+      <KayitBildirimi bicim={kayit.bicim} durum={kayit.durum} kimlik={kayit.kimlik} kapat={() => setKayit((k) => ({ bicim: k.bicim, kimlik: k.kimlik }))} />
     </div>
   );
 }

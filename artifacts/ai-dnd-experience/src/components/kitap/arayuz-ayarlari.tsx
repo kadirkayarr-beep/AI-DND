@@ -35,7 +35,7 @@ export function AyarCarki({ deger, degisince }: { deger: ArayuzDegeri; degisince
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <KitapDugme tur="masa"><SlidersHorizontal aria-hidden="true" />Ayarlar</KitapDugme>
+        <KitapDugme tur="masa"><SlidersHorizontal aria-hidden="true" /><span className="kitap-dar-gizli">Ayarlar</span></KitapDugme>
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={6} className="kitap-pusula">
         <ArayuzAyarlari deger={deger} degisince={degisince} />
