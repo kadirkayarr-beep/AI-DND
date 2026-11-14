@@ -305,9 +305,79 @@ test('reading lamp: drawn at night, never by day, in the dark theme only when as
   assert.doesNotMatch(render(kitap.KitapKabugu, { tema: 'karanlik', sol: 'SOL', sag: 'SAG' }), /class="kitap-lamba|Okuma ışığı/);
   assert.match(render(kitap.KitapKabugu, { tema: 'karanlik', sol: 'SOL', sag: 'SAG', lambaKaranlikta: true }), /class="kitap-lamba"/);
   for (const name of ['--isik-cilt', '--lamba-hale', '--lamba-havuz']) assert.ok(token(block('[data-kitap-tema="gece"]'), name), `${name} is missing at night`);
-  assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /animation:/);
-  assert.match(kitapCss(), /prefers-reduced-motion: reduce\)\s*\{(?:[^{}]*\{[^{}]*\})*?\s*\.kitap-lamba-hale\s*\{\s*animation:\s*none/);
+  // Review 11 (Kadir, 14 Nov 2026): an electric bulb gives a still light; no breathing animation at all.
+  assert.doesNotMatch(kural(kitapCss(), '.kitap-lamba-hale'), /animation/);
+  assert.doesNotMatch(kitapCss(), /kitap-lamba-nefes/);
   const dir = path.join(root, 'components', 'kitap', 'cizimler');
   assert.ok(statSync(path.join(dir, 'okuma-lambasi.tsx')).isFile());
   assert.match(readFileSync(path.join(dir, 'KAYNAK.md'), 'utf8'), /okuma-lambasi\.tsx/);
+});
+
+// Two independent reviews (Opus, Fable) after 8c5ac10d; Kadir: fix all 15, the nice-to-haves included.
+const kurdeleKod = () => read('components/kitap/cizimler/kurdele.tsx');
+const medya = (css, sorgu) => {
+  const at = css.indexOf(`@media ${sorgu} {`);
+  assert.notEqual(at, -1, `@media ${sorgu} is missing`);
+  let derinlik = 0;
+  for (let i = css.indexOf('{', at); i < css.length; i++) {
+    if (css[i] === '{') derinlik++;
+    if (css[i] === '}' && --derinlik === 0) return css.slice(at, i);
+  }
+  return css.slice(at);
+};
+
+test('review 1, 5, 6, 12: phone ribbon is a short straight tail, the body curves wider, the headband has no red, the rib is soft', () => {
+  const dar = medya(kitapCss(), '(max-width: 767px)');
+  assert.match(dar, /\.kitap-kurdele-govde\s*\{\s*display:\s*none/);
+  const kod = kurdeleKod();
+  assert.match(kod, /const GENLIK = (\d+(\.\d+)?)/);
+  assert.ok(Number(/const GENLIK = (\d+(?:\.\d+)?)/.exec(kod)[1]) >= 7, 'the S-curve swings at least 7 units');
+  const bant = kod.slice(kod.indexOf('kitap-kapitalbant'));
+  assert.doesNotMatch(bant, /#8E2A24|#A8332E|#B4443B/i, 'the headband carries a red stripe');
+  assert.match(kod, /opacity="\.0[0-9]"[^>]*\/>\s*<rect[^>]*opacity="\.0[0-9]"/, 'rib lines are soft (opacity below .1)');
+  assert.doesNotMatch(kod, /<g transform="rotate\(7/, 'the tail falls clearly to the side');
+});
+
+test('review 2, 10: the lamp leaves room for the tabs and scales with the book', () => {
+  const orta = medya(kitapCss(), '(min-width: 768px) and (max-width: 1179px)');
+  assert.match(orta, /\.kitap-lamba\s*\{\s*display:\s*none/);
+  const base = block('[data-kitap-tema]');
+  assert.match(token(base, '--lamba-en') ?? '', /calc\(64px \+ var\(--buyume\)/);
+  assert.match(token(base, '--kurdele-en') ?? '', /calc\(40px \+ var\(--buyume\)/);
+  assert.match(kural(kitapCss(), '.kitap-lamba'), /width:\s*var\(--lamba-en\)/);
+});
+
+test('review 3, 13, 14: the light falls on the pages, the halo sits under the shade, the dark-theme lamp lights its page', () => {
+  const gece = block('[data-kitap-tema="gece"]');
+  assert.match(token(gece, '--isik-sol') ?? '', /^radial-gradient\(ellipse 60% 44% at 100% 0%, rgba\(255, 226, 168, 0\.4/);
+  assert.match(token(gece, '--lamba-havuz') ?? '', /rgba\(255, 190, 105, 0\.1\)/);
+  assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /border-radius:\s*50%/);
+  assert.match(kural(kitapCss(), '.kitap-lamba-hale'), /top:\s*calc\(var\(--lamba-en\) \* 0\.9/);
+  const karanlik = block('[data-kitap-tema="karanlik"][data-kitap-lamba="acik"]');
+  assert.match(token(karanlik, '--isik-sol') ?? '', /rgba\(255, 214, 150, 0\.1[0-9]/);
+});
+
+test('review 7, 8: effects off flattens the lamp light and every added shadow; the cloth weave is irregular', () => {
+  const off = block('[data-kitap-tema][data-kitap-efekt="kapali"]');
+  for (const name of ['--lamba-havuz', '--isik-cilt', '--lamba-hale']) assert.equal(token(off, name), 'none', `${name} with effects off`);
+  for (const name of ['--golge-temas', '--cilt-kenar-golge']) assert.equal(token(off, name), '0 0 0 transparent', `${name} with effects off`);
+  assert.equal(token(off, '--sayfa-blok-golge'), 'transparent');
+  const dokuma = token(block('[data-kitap-tema]'), '--cilt-dokuma') ?? '';
+  assert.match(dokuma, /1px 3px/);
+  assert.match(dokuma, /1px 4px/);
+  assert.match(dokuma, /87deg/);
+  assert.match(kural(kitapCss(), '.kitap-cilt::after'), /background-image:\s*var\(--tane\)/);
+});
+
+test('review 9: checkbox and switch rows and the number field are 44px touch targets', () => {
+  const onay = render(kontrol.OnayKutusu, { etiket: 'Zarları göster', isaretli: true, degisince() {} });
+  assert.match(onay, /^<label class="kitap-onay"[^>]*>.*role="checkbox".*<\/label>$/s);
+  const anahtar = render(kontrol.Anahtar, { etiket: 'Müzik', acik: false, degisince() {} });
+  assert.match(anahtar, /^<label class="kitap-onay"[^>]*>.*role="switch".*<\/label>$/s);
+  assert.match(kural(kitapCss(), '.kitap-onay'), /min-height:\s*var\(--dokunma\)/);
+  assert.match(kural(kitapCss(), '.kitap-sayi-girdi'), /height:\s*var\(--dokunma\)/);
+});
+
+test('review 15: in the gallery, a hand-picked look offers a way back to the story clock', () => {
+  assert.match(read('pages/kitap-galerisi.tsx'), /Saate dön/);
 });
