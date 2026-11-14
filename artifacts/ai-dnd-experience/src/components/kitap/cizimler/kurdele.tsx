@@ -141,19 +141,21 @@ export function Kurdele({ etiket = 'Kurdele ayraç' }: { etiket?: string }) {
           <linearGradient id={burgu} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={boy}>
             <stop offset={oran(alt * 0.6)} stopColor="#000" stopOpacity="0" />
             <stop offset={oran(alt * 0.655)} stopColor="#000" stopOpacity=".42" />
-            <stop offset={oran(alt * 0.69)} stopColor="#FFC9B8" stopOpacity=".2" />
+            <stop offset={oran(alt * 0.69)} stopColor="#D9604F" stopOpacity=".2" />
             <stop offset={oran(alt * 0.72)} stopColor="#000" stopOpacity="0" />
           </linearGradient>
-          {/* Where it bends: over the page block (a crease, then a lit ridge) and over the cover edge. */}
+          {/* Where it bends: over the page block (a crease, then a ridge) and over the cover edge. Shade only, no pale
+              highlight (Kadir's screenshot: near-white stops washed the red out to pink where it crossed the edge);
+              a ridge is a band with less shadow, so the satin keeps its own red. */}
           <linearGradient id={kivrim} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={boy}>
             <stop offset={oran(alt - 3)} stopColor="#000" stopOpacity="0" />
-            <stop offset={oran(alt)} stopColor="#000" stopOpacity=".32" />
-            <stop offset={oran(alt + 4)} stopColor="#FFD9C8" stopOpacity=".16" />
-            <stop offset={oran(alt + 10)} stopColor="#000" stopOpacity=".18" />
-            <stop offset={oran(alt + 15)} stopColor="#FFD9C8" stopOpacity=".1" />
-            <stop offset={oran(alt + 19)} stopColor="#000" stopOpacity=".28" />
-            <stop offset={oran(alt + 24)} stopColor="#000" stopOpacity=".06" />
-            <stop offset="1" stopColor="#000" stopOpacity=".1" />
+            <stop offset={oran(alt)} stopColor="#000" stopOpacity=".3" />
+            <stop offset={oran(alt + 4)} stopColor="#000" stopOpacity=".02" />
+            <stop offset={oran(alt + 10)} stopColor="#000" stopOpacity=".2" />
+            <stop offset={oran(alt + 15)} stopColor="#000" stopOpacity=".05" />
+            <stop offset={oran(alt + 19)} stopColor="#000" stopOpacity=".26" />
+            <stop offset={oran(alt + 24)} stopColor="#000" stopOpacity=".12" />
+            <stop offset="1" stopColor="#000" stopOpacity=".16" />
           </linearGradient>
         </defs>
         <path d={golgeGenis} fill="#000" opacity=".1" />
