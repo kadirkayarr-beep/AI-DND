@@ -435,7 +435,9 @@ export default function GameBrowser() {
   const wasAtBottom = useRef(true);
   const storyLayoutRef = useRef<{ width: number; height: number; contentHeight: number; top: number } | null>(null);
   const storyLayoutScrollTopRef = useRef<number | null>(null);
-  const readStoryLayout = (node: HTMLDivElement) => ({
+  // The reader's own wheel, touch, key, pointer or focus move inside the story.
+  const readerInputAt = useRef(-Infinity);
+  const readStoryLayout =(node: HTMLDivElement) => ({
     width: node.clientWidth, height: node.clientHeight, contentHeight: node.scrollHeight, top: node.scrollTop,
   });
   const seenEntryCount = useRef(0);
@@ -546,7 +548,13 @@ export default function GameBrowser() {
     // The reader can shrink without changing the transcript content box.
     observer.observe(node);
     observer.observe(content);
-    return () => observer.disconnect();
+    const noteReaderInput = () => { readerInputAt.current = performance.now(); };
+    const readerInputs = ['wheel', 'touchstart', 'touchmove', 'keydown', 'pointerdown', 'focusin'];
+    readerInputs.forEach(type => node.addEventListener(type, noteReaderInput, { passive: true }));
+    return () => {
+      observer.disconnect();
+      readerInputs.forEach(type => node.removeEventListener(type, noteReaderInput));
+    };
   }, [entries.length]);
   useEffect(() => {
     if (phase !== 'adventure' || !sessionId) return;
