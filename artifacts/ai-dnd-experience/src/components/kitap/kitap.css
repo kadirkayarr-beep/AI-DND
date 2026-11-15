@@ -176,6 +176,16 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 /* Ink sits a hair into the paper. */
 .kitap-p { margin: 0; font-size: var(--govde); line-height: 1.55; text-wrap: pretty; text-shadow: var(--murekkep-golge); }
 .kitap-ilk::first-letter { float: left; font-size: 2.95em; line-height: 0.8; font-weight: 600; padding: 6px 6px 0 0; }
+/* Review 7: when the story opens on its last lines, the box edge can cut the drop cap's arms and leave its stem, which
+   read the Y as an I (1024x768, measured). The drop cap fades as its paragraph's top leaves the box (exit-crossing
+   0-20px, so a paragraph taller than the box fades too); no ink shadow on the cap, so no ghost of it stays. Where scroll
+   timelines are missing the property stays 0% and nothing changes. */
+@property --kitap-ilk-sonme { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+@keyframes kitap-ilk-sol { from { --kitap-ilk-sonme: 0%; } to { --kitap-ilk-sonme: 100%; } }
+@supports (animation-timeline: view()) {
+  .kitap-ilk { view-timeline: --kitap-ilk block; animation: kitap-ilk-sol linear both; animation-timeline: --kitap-ilk; animation-range: exit-crossing 0px exit-crossing 20px; }
+  .kitap-ilk::first-letter { color: color-mix(in srgb, transparent var(--kitap-ilk-sonme), currentColor); text-shadow: none; }
+}
 .kitap-soz { margin: 0; padding-left: 26px; font-family: var(--el-aile); font-size: var(--el); line-height: 1.34; text-shadow: var(--murekkep-golge); }
 .kitap-soz-silik { text-decoration: line-through; text-decoration-thickness: 1px; }
 .kitap-kenar-metin { margin: 0; font-style: italic; font-size: var(--kenar-boy); line-height: 1.4; color: var(--hakem); }
@@ -214,16 +224,26 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-zar-bos .kitap-zar-yuz > *, .kitap-zar-hata .kitap-zar-yuz > *, .kitap-zar-devre-disi .kitap-zar-yuz > * { fill: none; stroke: var(--soluk); stroke-dasharray: 4 4; }
 .kitap-zar-bos .kitap-zar-ic, .kitap-zar-hata .kitap-zar-ic, .kitap-zar-devre-disi .kitap-zar-ic { stroke: var(--soluk); }
 .kitap-zar-devre-disi .kitap-zar-sayi { fill: var(--soluk); }
-/* Save notice (conflict 24): a small paper slip top right, over the desk and clear of the tabs (they start 31px
-   down). The live region stays in place and empty; only the slip comes and goes. */
-.kitap-kayit { position: fixed; top: 4px; right: 16px; z-index: 60; pointer-events: none; font-family: var(--kitap-yazi); }
+/* Review 3: an unreadable value gets the warning mark, so it no longer looks like an unrolled die. */
+.kitap-zar-uyari { fill: var(--sayfa); stroke: var(--hakem); stroke-width: 1.6; stroke-linecap: round; }
+/* Save notice (conflict 24, the ribbon): a small paper slip in the desk row (fallback without the row: top right).
+   The live region stays in place and empty; only the slip comes and goes. */
+.kitap-kayit { position: fixed; top: 20px; right: 44px; z-index: 60; display: flex; align-items: center; pointer-events: none; font-family: var(--kitap-yazi); }
+.kitap-kayit:focus { outline: none; }
 .kitap-kayit-fis { display: inline-flex; align-items: center; gap: 7px; box-sizing: border-box; height: 26px; padding: 0 10px 0 6px; font-size: var(--etiket-boy); font-style: italic; color: var(--murekkep); background: var(--sayfa); border: 1px solid var(--cizgi); border-radius: var(--kose); box-shadow: var(--bildirim-golge); animation: kitap-kayit-sol 2600ms ease-out both; }
-.kitap-kayit-muhur .kitap-kayit-fis { animation-name: kitap-kayit-bas; }
-.kitap-kayit[data-durum='hata'] .kitap-kayit-fis { animation: none; }
+.kitap-kayit[data-durum='hata'] .kitap-kayit-fis { animation: none; border-right: 0; border-radius: var(--kose) 0 0 var(--kose); }
+/* The error's buttons continue the slip (they are outside the live region, so it reads only the words). */
+.kitap-kayit-eylem { display: inline-flex; align-items: center; box-sizing: border-box; height: 26px; padding-right: 1px; background: var(--sayfa); border: 1px solid var(--cizgi); border-left: 0; border-radius: 0 var(--kose) var(--kose) 0; box-shadow: var(--bildirim-golge); clip-path: inset(-12px -12px -12px 0); pointer-events: auto; }
+/* Review 4: in the desk row the slip lines up with the desk buttons instead of hugging the window corner. */
+.kitap-masa-ust .kitap-kayit { position: static; align-self: center; }
+/* Review 2: the error's way out. */
+.kitap-kayit-dugme { font: inherit; font-style: normal; color: var(--murekkep); background: none; border: 0; border-left: 1px solid var(--cizgi); margin: 0; padding: 0 2px 0 9px; min-height: 24px; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.kitap-kayit-kapat { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; color: var(--soluk); background: none; border: 0; border-radius: var(--kose); cursor: pointer; }
+.kitap-kayit-kapat svg { width: 14px; height: 14px; }
+.kitap-kayit-dugme:focus-visible, .kitap-kayit-kapat:focus-visible { outline: 2px solid var(--murekkep); outline-offset: 1px; }
 .kitap-kayit-hata-simge { width: 16px; height: 16px; margin-left: 2px; }
 .kitap-kayit-kurdele-isaret { align-self: flex-start; width: 10px; height: 22px; margin-top: -1px; background: var(--muhur); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%); }
 @keyframes kitap-kayit-sol { 0% { opacity: 0; transform: translateY(-4px); } 8% { opacity: 1; transform: none; } 82% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes kitap-kayit-bas { 0% { opacity: 0; transform: scale(1.18); } 8% { opacity: 1; transform: scale(1); } 82% { opacity: 1; } 100% { opacity: 0; } }
 
 /* ---------- Headings ---------- */
 .kitap-bolum-2 { display: flex; justify-content: space-between; align-items: baseline; gap: var(--bosluk-4); border-bottom: 3px double var(--cizgi); padding-bottom: 10px; }
@@ -231,6 +251,7 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
 .kitap-bolum-3 .kitap-bolum-baslik { margin: 0; font-size: var(--etiket-boy); font-weight: 400; color: var(--soluk); }
 .kitap-bolum-yan { margin: 0; font-size: var(--kenar-boy); color: var(--soluk); }
 .kitap-bolum-yan:empty { display: none; }
+.kitap-bolum-yan-sira { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
 
 /* ---------- Buttons ---------- */
 .kitap-dugme {
@@ -508,8 +529,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .kitap-muhur-buyuk > .kitap-muhur { width: 58px; height: 58px; }
   .kitap-muhur-buyuk .kitap-muhur-sayi { font-size: calc(var(--el) * 1.38); }
-  /* Save notice on the phone: the desk buttons hold the top right, so the slip sits bottom left over the writing line. */
-  .kitap-kayit { top: auto; right: auto; left: 12px; bottom: 170px; }
+  /* Save notice on the phone (review 1): the tabs fill the desk row, so the slip floats in the page's top margin, right,
+     above the heading (measured at 375/390, a and b: clear of the heading letters and the story). */
+  .kitap-masa-ust .kitap-kayit { position: fixed; top: calc(var(--masa-ust-bosluk) + 4px); right: 16px; }
   /* G6 (Kadir picks). a: one settings button top right (the look is chosen inside it), no lamp. */
   [data-kitap-telefon="a"] .kitap-dar-yok { display: inline; }
   [data-kitap-telefon="a"] .kitap-saat-dugmesi { display: none; }
@@ -550,6 +572,9 @@ html[data-kitap-tema] body { background: var(--masa-zemin); }
   .kitap-gonder-metin { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .kitap-kipler { margin-left: 26px; white-space: nowrap; }
   .kitap-kipler .kitap-secenek { padding: 0 8px; }
+  /* Review 4 at 768-1179: the tabs reach into the desk row (measured at 768: the error slip covered "Hikâye"), so the
+     slip floats in the book's top margin under the tabs, right, above the right page head. */
+  .kitap-masa-ust .kitap-kayit { position: fixed; top: calc(var(--masa-ust-bosluk) + 18px); right: 52px; }
 }
 
 /* The narrowest two-page books: five tabs fit between the ribbon and the page edge only a little smaller. */

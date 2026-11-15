@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { CircleAlert, Minus, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -169,11 +169,41 @@ export function Yukleniyor({ etiket }: { etiket: string }) {
   );
 }
 
-/** Hover and focus hint (tooltip.tsx); needs a TooltipProvider above it. */
+/**
+ * Hover and focus hint (tooltip.tsx); needs a TooltipProvider above it. Radix opens a hint only on hover and focus, so a
+ * tap opens or closes it here (review 8). Radix closes the hint on the trigger's pointerdown and click; during a tap that
+ * close is ignored and the tap's click decides. No preventDefault: a wrapped button, link or menu trigger still works.
+ */
 export function Ipucu({ metin, children }: { metin: string; children: ReactNode }) {
+  const [acik, setAcik] = useState(false);
+  // During a tap: whether the hint was open when the finger came down (null: no tap). Chrome focuses the trigger before
+  // the click and Radix opens on that focus (measured), so the tap sets the opposite of this, not a toggle.
+  const dokunus = useRef<boolean | null>(null);
+  const degisince = (v: boolean) => {
+    if (!v && dokunus.current !== null) return;
+    setAcik(v);
+  };
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
+    <Tooltip open={acik} onOpenChange={degisince}>
+      <TooltipTrigger
+        asChild
+        onPointerDown={(e) => {
+          dokunus.current = e.pointerType === 'touch' ? acik : null;
+        }}
+        onPointerCancel={() => {
+          dokunus.current = null;
+        }}
+        onClick={() => {
+          if (dokunus.current === null) return;
+          setAcik(!dokunus.current);
+          // Radix's own close runs right after this handler; the tap ends once it has been ignored.
+          setTimeout(() => {
+            dokunus.current = null;
+          }, 0);
+        }}
+      >
+        {children}
+      </TooltipTrigger>
       <TooltipContent className="kitap-ipucu">{metin}</TooltipContent>
     </Tooltip>
   );

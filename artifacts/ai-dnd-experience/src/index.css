@@ -930,6 +930,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --oluk2: rgba(40, 32, 18, 0.3);
   --dis: rgba(60, 50, 30, 0.08);
   --mum-cizgi: #8C846E;
+  --mum-sonuk: rgba(60, 50, 30, 0.32);
   --hale: 0.3;
   --tane: url('./components/kitap/cizimler/kagit-tanesi-koyu.png');
   --isik-sol: none;
@@ -957,6 +958,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --oluk2: rgba(40, 28, 8, 0.38);
   --dis: rgba(50, 36, 10, 0.1);
   --mum-cizgi: #75683F;
+  --mum-sonuk: rgba(50, 36, 10, 0.36);
   --hale: 0.55;
   --tane: url('./components/kitap/cizimler/kagit-tanesi-koyu.png');
   /* Night light: a warm hot spot under the lamp at the spine top, then the wide pool falling off into the corners. */
@@ -990,6 +992,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --oluk2: rgba(0, 0, 0, 0.55);
   --dis: rgba(0, 0, 0, 0.16);
   --mum-cizgi: transparent;
+  --mum-sonuk: transparent;
   --hale: 1;
   --tane: url('./components/kitap/cizimler/kagit-tanesi-acik.png');
   --tane-opaklik: 0.6;
