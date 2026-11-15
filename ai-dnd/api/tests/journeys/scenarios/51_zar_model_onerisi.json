@@ -1,6 +1,6 @@
 {
   "id": "51_zar_model_onerisi",
-  "title": "Zar motorun işi, genel çözüm (D-094, D-175; Q17 'motor hakem, model yazar'): ön okuma riskli bir denemenin becerisini söyler, motor doğrular ve zarı atar; kalıp dışı söyleyişler de zar kartı gösterir (yankesicilik motorun çalma yolundan, korkutma, kandırma, ikna, yalanı sezme); soru ve açık olmayan beceri zar atmaz; gerçek yerel modelin 2026-11-15 okumaları: 'unclear'/'attempt' diye okunan gözdağı ve kandırma da zar atar, geçmiş ya da yarına bırakılan satır okuma ne derse desin zar atmaz",
+  "title": "Zar motorun işi, genel çözüm (D-094, D-175; Q17 'motor hakem, model yazar'): ön okuma riskli bir denemenin becerisini söyler, motor doğrular ve zarı atar; kalıp dışı söyleyişler de zar kartı gösterir (yankesicilik okumanın steal kararıyla motorun çalma yolundan, korkutma, kandırma, ikna, yalanı sezme); soru ve açık olmayan beceri zar atmaz; gerçek yerel modelin 2026-11-15 okumaları: 'unclear'/'attempt' diye okunan gözdağı ve kandırma da zar atar, geçmiş ya da yarına bırakılan satır okuma ne derse desin zar atmaz",
   "source_items": [
     94,
     175
@@ -30,7 +30,8 @@
         "front": {
           "kind": "attempt",
           "check": "Sleight of Hand",
-          "person_id": "kavsim"
+          "person_id": "kavsim",
+          "deed": "steal"
         }
       },
       "expect": {

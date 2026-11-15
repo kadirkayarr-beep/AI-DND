@@ -1,6 +1,6 @@
 {
   "id": "51b_zar_model_calma_para",
-  "title": "Zar motorun işi, genel çözüm, para yolu (D-094; SIFIR TOLERANS): ön okuma 'Sleight of Hand' dediğinde 'kesesini almaya çalışıyorum' motorun çalma yolundan geçer: başarılı zarla kese bir kez artar, Geri Al kese ve kişi kesesini eski hâline getirir, yenilemede de aynı kalır; konuşma diye okunan aynı söz para taşımaz",
+  "title": "Zar motorun işi, genel çözüm, para yolu (D-094; SIFIR TOLERANS): ön okuma 'steal' (deed) dediğinde 'kesesini almaya çalışıyorum' motorun çalma yolundan geçer: başarılı zarla kese bir kez artar, Geri Al kese ve kişi kesesini eski hâline getirir, yenilemede de aynı kalır; konuşma diye okunan aynı söz para taşımaz",
   "source_items": [
     94
   ],
@@ -30,7 +30,8 @@
         "front": {
           "kind": "speak_to",
           "check": "Sleight of Hand",
-          "person_id": "kavsim"
+          "person_id": "kavsim",
+          "deed": "steal"
         }
       },
       "expect": {
@@ -47,7 +48,8 @@
         "front": {
           "kind": "attempt",
           "check": "Sleight of Hand",
-          "person_id": "kavsim"
+          "person_id": "kavsim",
+          "deed": "steal"
         }
       },
       "expect": {

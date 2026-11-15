@@ -22,9 +22,9 @@ ROUTE_LOG = "AI_DND_ROUTE_LOG"
 KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit",
          "grab", "wait", "consume", "wield", "unclear")
 DEEDS = ("steal", "burn", "yield")
-# D-094: the checks a reading may name for a risky try; each needs no world precondition (a lock, a wall, cover).
-# The engine still sets the DC and rolls; Sleight of Hand goes through its own theft route, which alone moves coin.
-CHECKS = ("Sleight of Hand", "Intimidation", "Deception", "Persuasion", "Insight")
+# D-094: the checks a reading may name for a risky try; each needs no world precondition (a lock, a wall, cover) and
+# moves no coin. The engine still sets the DC and rolls. A pickpocket is the reading's deed=steal, never a check (R-7).
+CHECKS = ("Intimidation", "Deception", "Persuasion", "Insight")
 CHECK_KINDS = ("attempt", "speak_to", "unclear", "grab")
 _NOT_THIS_TURN = re.compile(
     r"\b(?:dun|yarin|keske|belki|sanki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*)\b"
@@ -234,8 +234,8 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "strike_to: oyuncu şu anda birine vuruyorsa, yumruk, tekme, tokat atıyor, suratına ya da kafasına bir şey geçiriyor, bir şey fırlatıyor, silah savuruyorsa, hangi kelimeyle söylerse söylesin vurduğu kişinin kimliği; satırda kişi geçmese de 'savuruyorum', 'indiriyorum' gibi bir darbe varsa speaking_with kişisi (bir eşyayla vuruyorsa thing_word o eşyanın adı); soru, tehdit, 'vururum' gibi söz, olumsuz ya da koşullu cümlede none. "
         "found: oyuncu bir şeyi inceliyor, okuyor, açıp bakıyor ya da arıyorsa, zar tutarsa orada ne gördüğünü söyleyen yeni bir tam cümle yaz: tek somut ayrıntı, sonu 'var', 'duruyor', 'görünüyor' gibi bir fiille bitsin. Oyuncunun sözünü tekrar etme, 'bir şey yok' yazma, para, anahtar, kişi adı, sır ekleme; inceleme yoksa boş. "
         "person_word: oyuncu people listesinde olmayan birine yöneliyor ya da sesleniyorsa, son anlatımda geçtiyse anlatımdaki kelimeyle onun yalın adı (oyuncu 'dede' diyor, anlatımda 'yaşlı adam' varsa yaşlı adam; ör. nöbetçi, yerliler); o zaman person_id none olmalı; yoksa boş. "
-        "check: oyuncu şu anda, bu satırda, sonucu belirsiz ve başarısızlığın bir bedeli olan bir şey deniyorsa hangi beceri, nasıl söylerse söylesin: birinin kesesinden, cebinden ya da üstünden bir şey almaya, aşırmaya çalışıyorsa Sleight of Hand; korkutuyor, tehdit ediyor, gözdağı veriyorsa Intimidation; kandırıyor, yalan söylüyor, kendini başka biri gibi gösteriyorsa Deception; ikna etmeye, razı etmeye çalışıyorsa Persuasion; karşısındakinin yalan söyleyip söylemediğini ya da niyetini sezmeye çalışıyorsa Insight. Soru, istek, plan, koşul, olumsuz cümle, geçmişte olan, alıntı, sıradan sohbet, satın alma ve savaşta vuruş none. "
-        "deed: oyuncu şu anda birinin malını gizlice alıyorsa steal; bir yeri, binayı ya da başkasının malını şu anda ateşe veriyorsa burn; "
+        "check: oyuncu şu anda, bu satırda, sonucu belirsiz ve başarısızlığın bir bedeli olan bir şey deniyorsa hangi beceri, nasıl söylerse söylesin: korkutuyor, tehdit ediyor, gözdağı veriyorsa Intimidation; kandırıyor, yalan söylüyor, kendini başka biri gibi gösteriyorsa Deception; ikna etmeye, razı etmeye çalışıyorsa Persuasion; karşısındakinin yalan söyleyip söylemediğini ya da niyetini sezmeye çalışıyorsa Insight. Soru, istek, plan, koşul, olumsuz cümle, geçmişte olan, alıntı, sıradan sohbet, satın alma, savaşta vuruş ve birinin malını almak (o deed alanıdır) none. "
+        "deed: oyuncu şu anda birinin kesesinden, cebinden ya da üstünden bir şeyi gizlice alıyor ya da almaya, aşırmaya çalışıyorsa steal; bir yeri, binayı ya da başkasının malını şu anda ateşe veriyorsa burn; "
         "kandil, fener, meşale, ocak yakmak ya da bunları söylemekle tehdit etmek none; şu anda teslim oluyor, silahını bırakıp tutuklanmayı kabul ediyorsa yield. "
         "coin_cp: oyuncu şu anda birine ya da bir yere para veriyor, uzatıyor, bırakıyor, fırlatıyorsa kaç bakır ettiği (1 altın 100, 1 gümüş 10 bakır; yarım gümüş 5); söz, teklif, soru ya da pazarlıkta 0. "
         "also_says: oyuncu aynı satırda hem bir şey yapıyor hem de ayrıca bir soru soruyor, söz söylüyor ya da ikinci bir iş yapıyorsa (yiyip içmek gibi), bu ikinci kısmı kendi kelimeleriyle yaz; tek iş varsa boş. "

@@ -1,8 +1,9 @@
 """D-094 general fix: the front reading may name the check a risky try needs; the engine validates it, sets the DC and
 rolls (Q17 "the engine referees, the model writes", ZAR_KURALLARI 2.2: roll only for a real, present try).
 
-Only the skills whose outcome needs no world precondition are open to the reading: Sleight of Hand (a pickpocket, through
-the engine's own theft route, which alone moves coin), Intimidation, Deception, Persuasion, Insight. A question, a
+Only the skills whose outcome needs no world precondition and moves no coin are open to the reading: Intimidation,
+Deception, Persuasion, Insight. A pickpocket is the reading's deed=steal, never a check (R-7, after three reviews found
+coin moved by a Sleight of Hand reading on hiding, palming, putting and giving back). A question, a
 reading of another kind and a fight give no check. The turn route is pinned by journeys 51 and 51b.
 """
 
@@ -28,8 +29,7 @@ class TheReadingNamesTheCheck(unittest.TestCase):
         schema = front_proposal.schema(LISTED)
         self.assertEqual(schema["properties"]["check"]["enum"], [*front_proposal.CHECKS, front_proposal.NONE])
         self.assertIn("check", schema["required"])
-        self.assertEqual(front_proposal.CHECKS,
-                         ("Sleight of Hand", "Intimidation", "Deception", "Persuasion", "Insight"))
+        self.assertEqual(front_proposal.CHECKS, ("Intimidation", "Deception", "Persuasion", "Insight"))
         for skill in front_proposal.CHECKS:
             self.assertIn(skill, game.SKILLS)
         self.assertIn("check:", front_proposal.guidance(LISTED))
@@ -57,7 +57,8 @@ class TheReadingNamesTheCheck(unittest.TestCase):
             (reading(), None),
             # the real local model named a check for these (2026-11-15 live run); not a try this turn
             (reading("attempt", "Deception"), "yarın muhafızı kandıracağım"),
-            (reading("attempt", "Sleight of Hand"), "dün muhafızın kesesini çalmaya çalıştım"),
+            (reading("attempt", "Sleight of Hand"), "kesesini almaya çalışıyorum"),
+            (reading("attempt", "Deception"), "dün muhafızı kandırmaya çalıştım"),
             (reading("attempt", "Deception"), "muhafızı kandırmıyorum"),
             (reading("attempt", "Intimidation"), "keşke onu korkutabilsem"),
         )
@@ -124,13 +125,21 @@ class ASocialCheckIsAnActNotAStockAnswer(unittest.TestCase):
         self.assertFalse(bold_acts.is_act_not_talk(session, "muhafıza yalan söylüyorum"))
 
 
-class TheReadingsPickpocketGoesThroughTheft(unittest.TestCase):
+class TheReadingsCheckNeverMovesCoin(unittest.TestCase):
+    """R-7: Sleight of Hand is also hiding, palming, putting and giving back; a reading's check is never a theft. A
+    pickpocket is the reading's own deed=steal (the live local model gave it on every steal line) or the engine's words."""
+
     def session(self, check="Sleight of Hand", kind="attempt"):
         return SimpleNamespace(_normalize_turkish_typos=game._normalize_turkish_typos, _front_check=check,
                                _front_kind=kind)
 
-    def test_a_pickpocket_check_is_a_theft_when_no_deed_was_read(self):
-        self.assertTrue(bold_acts._steals(self.session(), "kesesini almaya çalışıyorum", ""))
+    def test_a_sleight_of_hand_reading_without_a_deed_is_no_theft(self):
+        for line in ("kesesini almaya çalışıyorum", "muhafızın cebinden anahtarı aşırıyorum",
+                     "Hançeri kınından sessizce çekiyorum", "Anahtarı kilitten yavaşça çekiyorum",
+                     "Düşürdüğü kesesini yerden alıyorum ve ona geri veriyorum", "Kesesine gizlice bir bakır koyuyorum",
+                     "Cebimdeki zarı avucumda gizlice değiştiriyorum", "Bıçağımı kolumun içine gizliyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(bold_acts._steals(self.session(), line, ""))
 
     def test_every_line_that_is_no_try_stays_no_theft_whatever_the_reading_said(self):
         for line in NOT_TRIES + ("dün kesesini aldım", "“Keseni alıyorum” diyorum", "kesesini almıyorum",
@@ -138,52 +147,36 @@ class TheReadingsPickpocketGoesThroughTheft(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertFalse(bold_acts._steals(self.session(), line, ""))
 
-    def test_ones_own_things_or_giving_is_no_theft_whatever_the_reading_said(self):
-        for line in ("Cebimdeki zarı avucumda gizlice değiştiriyorum", "Kesesine gizlice bir bakır koyuyorum",
-                     "Bıçağımı kolumun içine gizliyorum", "Kesesini ona geri veriyorum", "Anahtarı ona geri veriyorum",
-                     "Cebine sahte mektubu gizlice yerleştiriyorum", "Kesemdeki altınları sayıyorum",
-                     "Anahtarımı kilide sokuyorum"):
-            with self.subTest(line=line):
-                self.assertFalse(bold_acts._steals(self.session(), line, ""))
-
-    def test_a_read_pickpocket_takes_something_of_someone(self):
-        for line in ("muhafızın cebinden anahtarı aşırıyorum", "muhafızın cebini boşaltmaya çalışıyorum",
-                     "muhafızın kesesini almayı deniyorum", "keseyi kemerinden çekmeye çalışıyorum"):
+    def test_the_engines_own_open_tries_stay_thefts(self):
+        for line in TRIES:
             with self.subTest(line=line):
                 self.assertTrue(bold_acts._steals(self.session(), line, ""))
 
-    def test_a_read_steal_deed_on_a_wish_speech_or_change_of_mind_is_no_theft(self):
+
+class TheReadingsStealDeed(unittest.TestCase):
+    def session(self, kind="attempt"):
+        return SimpleNamespace(_normalize_turkish_typos=game._normalize_turkish_typos, _front_check="", _front_kind=kind)
+
+    def test_a_present_steal_the_reading_found_is_a_theft(self):
+        for line in ("kesesini almaya çalışıyorum", "muhafızın cebinden anahtarı aşırıyorum", "kesesini çalıyorum",
+                     "kesesini aşırayım", "kesesini kapıp kaçıyorum", "muhafızın cebini yokluyorum",
+                     "Kavşim arkasını dönünce kesesini çalıyorum", "kesesini çalıyorum, tamam",
+                     "yaklaşıp sonra kesesini çalıyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(bold_acts._steals(self.session(), line, "steal"))
+
+    def test_a_wish_speech_change_of_mind_past_or_giving_back_is_no_theft(self):
         for line in ("Kesesini çalmak istiyorum", "“Kesesini çalıyorum” diyorum", "Kesesini çalmaktan vazgeçiyorum",
                      "Kesesini çalmayı düşünüyorum", "Eğer bakmazsa kesesini çalarım", "Kesesini çalmam",
                      "Belki kesesini çalarım", "Rüyamda kesesini çalıyorum", "Kesesini çalıyormuş gibi yapıyorum",
-                     "Kesesini çalmadan önce etrafa bakıyorum"):
+                     "dün muhafızın kesesini çalmaya çalıştım", "kesesini çaldım", "kesesini çalmıyorum",
+                     "kesesini çalmaya çalışmıyorum", "Muhafız: kesesini çalıyorum",
+                     "Düşürdüğü kesesini yerden alıyorum ve ona geri veriyorum"):
             with self.subTest(line=line):
-                self.assertFalse(bold_acts._steals(self.session(check=""), line, "steal"))
-        self.assertFalse(bold_acts._steals(self.session(check="", kind="speak_to"), "kesesini çalıyorum", "steal"))
-        for line in ("kesesini aşırayım", "kesesini kapıp kaçıyorum", "muhafızın cebini yokluyorum"):
-            with self.subTest(line=line):
-                self.assertTrue(bold_acts._steals(self.session(check=""), line, "steal"))
-
-    def test_a_read_steal_deed_on_a_past_or_refused_line_is_no_theft(self):
-        for line in ("dün muhafızın kesesini çalmaya çalıştım", "kesesini çaldım", "kesesini çalmıyorum",
-                     "kesesini çalmaya çalışmıyorum"):
-            with self.subTest(line=line):
-                self.assertFalse(bold_acts._steals(self.session(check=""), line, "steal"))
-        self.assertTrue(bold_acts._steals(self.session(check=""), "kesesini çalıyorum", "steal"))
-
-    def test_the_open_tries_are_still_thefts_with_the_reading(self):
-        for line in TRIES + ("kesesini almaya çalışıyorum", "muhafızın kesesini gizlice almaya çalışıyorum"):
-            with self.subTest(line=line):
-                self.assertTrue(bold_acts._steals(self.session(), line, ""))
-
-    def test_no_theft_for_speech_a_question_another_check_or_a_read_deed(self):
-        self.assertFalse(bold_acts._steals(self.session(kind="speak_to"), "kesesini almaya çalışıyorum", ""))
-        self.assertFalse(bold_acts._steals(self.session(), "kesesini alsam mı?", ""))
-        self.assertFalse(bold_acts._steals(self.session(check="Deception"), "kesesini almaya çalışıyorum", ""))
-        self.assertFalse(bold_acts._steals(self.session(check=""), "kesesini almaya çalışıyorum", ""))
-        self.assertFalse(bold_acts._steals(self.session(), "kesesini almaya çalışıyorum", "burn"))
-        self.assertFalse(bold_acts._steals(self.session(), "muhafızın gırtlağını kesip kesesini alıyorum", ""))
-
+                self.assertFalse(bold_acts._steals(self.session(), line, "steal"))
+        self.assertFalse(bold_acts._steals(self.session(kind="speak_to"), "kesesini çalıyorum", "steal"))
+        self.assertFalse(bold_acts._steals(self.session(), "kesesini alsam mı?", "steal"))
+        self.assertFalse(bold_acts._steals(self.session(), "kesesini çalıyorum", "burn"))
 
 if __name__ == "__main__":
     unittest.main()
