@@ -87,9 +87,10 @@
     "api.tests.test_d211_undone_fight_answer",
     "api.tests.test_d039_spellbook_choice",
     "api.tests.test_d061_unrecorded_xp_line",
-    "api.tests.test_d109_timing"
+    "api.tests.test_d109_timing",
+    "api.tests.test_coin_ask_persuasion"
   ],
-  "regression_group_sizes": [31, 18, 1, 3, 5, 4, 4, 2],
+  "regression_group_sizes": [31, 18, 1, 3, 5, 4, 4, 3],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
     {"name": "frontend_libraries", "argv": ["pnpm", "run", "typecheck:libs"]},

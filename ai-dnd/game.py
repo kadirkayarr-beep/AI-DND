@@ -8956,7 +8956,46 @@ def _accept_named_job(session, world, npc, thread):
         world_threads.apply_decision(world, thread, "accepted", int(world.get("flags", {}).get("turn_index", 0) or 0) - 1)
 
 
-def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None):
+def _coin_persuasion(action_result):
+    """D-166: the Persuasion roll asking a person for coin takes, at their DC (`influence.dc`).
+
+    A Persuasion this turn already rolled is reused against that DC, never rerolled; any other roll this turn asked
+    for something else, so it gives no coin (None). Otherwise one fresh roll, its card returned for the turn to show.
+    """
+    def persuade(dc, advantage):
+        if action_result.get("action") == "skill_check":
+            total = action_result.get("total")
+            if action_result.get("skill") != "Persuasion" or type(total) is not int:
+                return None
+            return {"success": total >= dc}
+        character = _session().character
+        check = perform_skill_check("Persuasion", dc, character["modifiers"], character["proficient_skills"],
+                                    character["proficiency_bonus"], advantage=advantage,
+                                    expertise_skills=character.get("expertise_skills", ()))
+        outcome = _skill_result_category(check.get("result"))
+        card = {
+            "action": "skill_check", "skill": check["skill"], "ability": check["ability"], "dice": check["dice"],
+            **({"dice_rolls": check["dice_rolls"]} if "dice_rolls" in check else {}),
+            "modifier": check["modifier"], "proficiency_bonus": check["proficiency_bonus"],
+            "expertise": check["expertise"], "advantage": check["advantage"], "disadvantage": check["disadvantage"],
+            "action_id": check["resolution"].get("action_id"), "resolution_id": check["resolution"].get("resolution_id"),
+            "resolution": check["resolution"], "total": check["total"], "dc": check["dc"], "outcome": outcome,
+            "success": outcome == "success", "status": "resolved",
+        }
+        return {"success": outcome == "success", "card": card}
+    return persuade
+
+
+def _show_coin_roll(action_result, card):
+    """D-166: the coin ask's roll shows on the turn, while the turn stays what it was: a talk stays a talk (its
+    action, success and status, which 'talk to X' objectives and a guard's question read). A turn that already
+    rolled a check keeps its own card."""
+    if card and action_result.get("action") != "skill_check":
+        action_result.update({key: value for key, value in card.items() if key not in {"action", "success", "status"}},
+                             coin_ask_roll=True)
+
+
+def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None, persuade=None):
     """What the reply proposed reaches the record if it checks out. A failure here costs the turn nothing."""
     import town_knowledge
     session = _session()
@@ -8971,6 +9010,7 @@ def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=N
             world, npc, player_input, raw, spoken,
             accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
             moved=(gate or {}).get("paid_cp") or 0, threat=threat, purchase=getattr(session, "_purchase_said", False),
+            persuade=persuade,
         )
         import pocket
         settled["spoken"], settled["unbacked"] = pocket.settle_claim(session, raw, settled["spoken"], npc)
@@ -23324,7 +23364,7 @@ def _run_player_turn_internal(
                                 world_state, npc_target, player_input, cleaned_stage, stage=True)
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
-                        threat=raw_intent.get("threat"),
+                        threat=raw_intent.get("threat"), persuade=_coin_persuasion(action_result),
                     )
                     cleaned_spoken = settled_money["spoken"]
                     if getattr(_session(), "_empty_handed", False):
@@ -23531,6 +23571,7 @@ def _run_player_turn_internal(
                     )
                     if settled_money.get("note"):
                         text = f"{text} {settled_money['note']}"
+                _show_coin_roll(action_result, settled_money.get("check"))  # D-166: the roll shows, reply used or not
                 return finish_turn(
                     action_result, text, is_final=True,
                     safety_reason_code=(
@@ -23562,6 +23603,7 @@ def _run_player_turn_internal(
                                                   player_input, npc_target=npc_target, target_id=target_id)
                     if price_result.get("action") == "skill_check":
                         action_result.update(price_result)
+            _show_coin_roll(action_result, settled_money.get("check"))  # D-166: the coin ask's own roll shows
             if experimental_npc_dialogue:
                 spoken = attributed_speech["spoken_text"] if accepted_model_speech else text
                 terms = _offer_terms_shown(world_state, npc_target, player_input, spoken)

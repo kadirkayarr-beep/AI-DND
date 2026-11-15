@@ -300,6 +300,11 @@ class DevelopmentToolingTests(unittest.TestCase):
                        "api.tests.test_d109_timing"):  # D-109: the crime/threat question, the same way
             self.assertIn(module, selectors)
 
+    def test_coin_ask_roll_tests_are_in_the_gate(self):
+        # D-166: a coin ask without its Persuasion roll, or paying the model's figure, must not reach main green.
+        self.assertIn("api.tests.test_coin_ask_persuasion",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
     def test_old_save_spellbook_choice_tests_are_in_the_gate(self):
         # D-039: the one-time spellbook choice touches the save; its regression runs in the CI list.
         self.assertIn("api.tests.test_d039_spellbook_choice",
