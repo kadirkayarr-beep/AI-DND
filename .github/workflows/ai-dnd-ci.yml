@@ -15,7 +15,7 @@ concurrency:
 jobs:
   bounded-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,6 +61,27 @@ jobs:
       - name: Final Gate (bounded offline regression and frontend)
         if: ${{ !cancelled() }}
         run: python ai-dnd/scripts/final_gate.py --archive-root "$RUNNER_TEMP/ai-dnd-evidence"
+      - name: D-218 measurement - full Python test discovery (draft PR only, never merged)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        shell: bash
+        working-directory: ai-dnd
+        run: |
+          mkdir -p "$RUNNER_TEMP/ai-dnd-evidence"
+          LOG="$RUNNER_TEMP/ai-dnd-evidence/d218-full-discovery.log"
+          START=$(date +%s)
+          set +e
+          timeout 120m python -m unittest discover -s api/tests -t . -p "test_*.py" > "$LOG" 2>&1
+          CODE=$?
+          set -e
+          END=$(date +%s)
+          {
+            echo "## D-218 full discovery"
+            echo "exit code: $CODE, seconds: $((END-START))"
+            grep -a -E "^Ran |^OK|^FAILED" "$LOG" | tail -3
+            echo "### failing tests"
+            grep -a -E "^(FAIL|ERROR): test" "$LOG" | sort | uniq | head -200
+          } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Retain new execution evidence including failures
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
