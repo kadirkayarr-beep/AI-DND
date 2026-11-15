@@ -282,6 +282,11 @@ class DevelopmentToolingTests(unittest.TestCase):
                        "api.tests.test_d211_undone_fight_answer"):
             self.assertIn(module, selectors)
 
+    def test_the_unrecorded_xp_line_test_is_in_the_gate(self):
+        # D-061: a forfeited award's line and the rule that an unrelated error is raised are guarded in CI.
+        self.assertIn("api.tests.test_d061_unrecorded_xp_line",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
     def test_regression_groups_are_unique_and_browser_ui_is_an_explicit_check(self):
         config = owner.load_config(owner.DEFAULT_CONFIG)
         selectors = config["regression_selectors"]

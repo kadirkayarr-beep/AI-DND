@@ -3565,6 +3565,8 @@ def _restore_combat_death_checkpoint(cause):
     session.world_metadata = copy.deepcopy(checkpoint.get("world_metadata"))
     # The XP, level and receipt of an award are back to the checkpoint; so is its pending announcement.
     session._xp_level_up = None
+    session._xp_unrecorded = []
+    session._xp_unrecorded_awards = []
     if has_format:
         session._persisted_engine_format = saved_format
     campaign_state = checkpoint.get("campaign_state")
@@ -18757,10 +18759,13 @@ def _run_player_turn_keyed(
         local_dialogue.remember_native_reply(
             _session().world_state, action_result, player_input, result.get("narration")
         )
-        if isinstance(action_result.get("level_up"), dict):
+        # D-061: a forfeited award's line ("<X> XP kaydedilemedi: <neden>.") goes the same way as the award line.
+        lines = [xp.award_line(action_result["level_up"])] if isinstance(action_result.get("level_up"), dict) else []
+        lines += _session()._take_xp_unrecorded()
+        if lines:
             # After every narration check (and after a person's reply is remembered): Python's own line from the
             # award's facts, in the reply and in this turn's assistant message (no model call, no number from the model).
-            line = xp.award_line(action_result["level_up"])
+            line = " ".join(lines)
             result["narration"] = f"{result.get('narration') or ''} {line}".strip()
             for row in reversed(_session().messages[messages_before:]):
                 if isinstance(row, dict) and row.get("role") == "assistant":
@@ -23841,6 +23846,8 @@ class GameSession:
         self.last_arrival_narration = None
         self.narration_safety_history = []
         self._xp_level_up = None
+        self._xp_unrecorded = []
+        self._xp_unrecorded_awards = []  # this turn's forfeited awards: (receipt ids, amount shown) — one line each
         self._persisted_engine_format = SAVE_FORMAT_VERSION
 
     def _receive_xp_award(self, award_owner, *args, **kwargs):
@@ -23866,15 +23873,30 @@ class GameSession:
             raise
 
     def _admit_xp_award(self, award_owner, *args, **kwargs):
+        held = self.world_state.get("xp_awarded_event_ids")
+        held = set(held) if isinstance(held, list) else set()
+        format_before = getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION)
         summary = award_owner(*args, **kwargs)
         crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
                     and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
-        if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in _SUPPORTED_SAVE_VERSIONS:
-            raise ValueError("Numeric advancement requires a supported save format.")
+        if crossing:
+            written = [event_id for event_id in self.world_state.get("xp_awarded_event_ids", [])
+                       if event_id not in held]  # this award's receipts: a retry of it is the same award (D-061)
+        if crossing and format_before not in _SUPPORTED_SAVE_VERSIONS:
+            import xp
+            raise xp.UnrecordableXp(summary["xp_gained"], xp.REASON_OLD_SAVE, written)
         self._remember_xp_award(summary)
         if crossing:
             # Read through the real production admission owner before commit.
-            self._validate_save_payload(self.serialize_game_state())
+            try:
+                self._validate_save_payload(self.serialize_game_state())
+            except ValueError as error:
+                import xp
+                # D-061: the forfeit boundary checks the record before the award, so a refusal the award did not
+                # cause is raised, not forfeited (``__cause__`` carries the admission's own error). Only a record
+                # still on an older format is told it is an old save.
+                reason = xp.REASON_CROSSING if format_before == 6 else xp.REASON_OLD_SAVE
+                raise xp.UnrecordableXp(summary["xp_gained"], reason, written) from error
         return summary
 
     def _forfeit_unrecordable_xp(self, award_owner, *args, **kwargs):
@@ -23886,30 +23908,66 @@ class GameSession:
         container a caller holds (the fight being ended, the creature just knocked out, ``saving_throw_mods``) stays
         the live object, and whatever the award or the save check wrote (receipts, level, the save check's
         ``scene_state`` default-fill) is undone. The pending announcement and the save format are put back too. The RNG
-        and the narration history are not touched by an award and are not restored. A non-ValueError is a bug: put
-        back, raised.
+        and the narration history are not touched by an award and are not restored.
+
+        D-061: only a known refusal (``xp.UnrecordableXp``) is forfeited; it leaves one player line for this turn
+        (``_take_xp_unrecorded``). Any other error is a bug: put back, raised, and the turn falls back whole. A level-5
+        admission refusal counts as known only when the record before the award passes the same admission.
         """
+        import xp
         character = copy.deepcopy(self.character)
         world = copy.deepcopy(self.world_state)
         pending = copy.deepcopy(self._xp_level_up)
         had_format = "_persisted_engine_format" in self.__dict__
         old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
-        try:
-            return self._admit_xp_award(award_owner, *args, **kwargs)
-        except Exception as error:
-            _restore_in_place(self.character, character)
-            _restore_in_place(self.world_state, world)
-            self._xp_level_up = pending
+
+        def put_back(saved_character, saved_world):
+            _restore_in_place(self.character, saved_character)
+            _restore_in_place(self.world_state, saved_world)
+            self._xp_level_up = copy.deepcopy(pending)
             if had_format:
                 self._persisted_engine_format = old_format
             else:
                 self.__dict__.pop("_persisted_engine_format", None)
-            if not isinstance(error, ValueError):
+
+        try:
+            return self._admit_xp_award(award_owner, *args, **kwargs)
+        except Exception as error:
+            put_back(copy.deepcopy(character), copy.deepcopy(world))
+            if not isinstance(error, xp.UnrecordableXp):
                 raise
+            if isinstance(error.__cause__, ValueError):
+                try:
+                    self._validate_save_payload(self.serialize_game_state())
+                except ValueError:
+                    put_back(character, world)
+                    raise error.__cause__  # the record was refused before the award: not the award's doing
+                put_back(character, world)  # the check's own default-fill (``scene_state``) goes back too
             import logging
             logging.getLogger(__name__).warning("An experience award could not be recorded and is forfeited (B1): %s",
                                                 error)
+            self._note_unrecorded_xp(error)
             return None
+
+    def _note_unrecorded_xp(self, error):
+        """One line per forfeited award this turn (D-061). An award tried again in the same turn (a creature knocked
+        out, then counted again when the fight ends) adds no second line; a retry that also holds new receipts shows
+        only the amount not shown yet."""
+        import xp
+        ids = set(error.event_ids)
+        shown = list(getattr(self, "_xp_unrecorded_awards", []))
+        if ids and ids <= {event_id for earlier, _ in shown for event_id in earlier}:
+            return
+        amount = error.amount - sum(earlier_amount for earlier, earlier_amount in shown if ids and set(earlier) <= ids)
+        self._xp_unrecorded_awards = [*shown, (sorted(ids), amount)]
+        self._xp_unrecorded = [*getattr(self, "_xp_unrecorded", []), str(xp.UnrecordableXp(amount, error.reason))]
+
+    def _take_xp_unrecorded(self):
+        """This turn's lines for forfeited awards ("<X> XP kaydedilemedi: <neden>."), then forget them (D-061)."""
+        lines = list(getattr(self, "_xp_unrecorded", []))
+        self._xp_unrecorded = []
+        self._xp_unrecorded_awards = []
+        return lines
 
     def _remember_xp_award(self, summary):
         """Fold another award into the single announcement for this turn."""
@@ -23953,6 +24011,8 @@ class GameSession:
             "messages": copy.deepcopy(self.messages),
             "rng_state": self.rng.getstate(),
             "xp_level_up": copy.deepcopy(self._xp_level_up),
+            "xp_unrecorded": list(getattr(self, "_xp_unrecorded", [])),
+            "xp_unrecorded_awards": copy.deepcopy(getattr(self, "_xp_unrecorded_awards", [])),
             "persisted_engine_format_present": "_persisted_engine_format" in self.__dict__,
             "persisted_engine_format": copy.deepcopy(self.__dict__.get("_persisted_engine_format")),
             # D-115: the open "kavga mı başlatıyorsun?" question goes back with the turn that asked it.
@@ -23979,6 +24039,8 @@ class GameSession:
         self.recent_dm_narrations[:] = restored["recent_dm_narrations"]
         self.messages[:] = restored["messages"]
         self._xp_level_up = restored.get("xp_level_up")
+        self._xp_unrecorded = restored.get("xp_unrecorded", [])
+        self._xp_unrecorded_awards = restored.get("xp_unrecorded_awards", [])
         if restored.get("persisted_engine_format_present", False):
             self._persisted_engine_format = restored["persisted_engine_format"]
         else:
