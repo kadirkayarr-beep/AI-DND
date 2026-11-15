@@ -2439,6 +2439,12 @@ def create_app(
                     session.campaign_lore_state = None if session_lore_snapshot is None else record.lore_authority
                     if transitions:
                         result["effects"]["quest_outcomes"] = transitions
+                # D-003: an award this command paid (a fight it ended, a bounty it closed) is announced by this
+                # command and its history entry, not one turn late by the next play turn (whose Undo would repeat it).
+                paid = session._publish_level_up({}).get("level_up")
+                if paid is not None:
+                    import xp
+                    result["message"] = f"{result['message']} {xp.award_line(paid)}"
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
                     action_id=action_id,
