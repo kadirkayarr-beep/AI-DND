@@ -130,6 +130,35 @@ class AdventurePhase8Tests(unittest.TestCase):
         self.assertTrue(shown["completed"])
         self.assertNotIn("objective_id", str(shown))
 
+    def test_untargeted_investigation_elsewhere_does_not_reach_absent_giver(self):
+        """D-133 / ORTA-28: a targetless check away from the quest giver never counts as hearing them."""
+        for template, first in (("MISSING_PERSON", "hook"), ("BOUNTY", "notice")):
+            with self.subTest(template=template):
+                session, place = _session()
+                quest = templates.instantiate(
+                    template,
+                    quest_id=f"adv.{first}",
+                    turn=1,
+                    opportunity_key=f"opportunity:{first}",
+                    creation_evidence="event:rumor:9",
+                    bindings=_bindings(place),
+                    rumor="Bir söylenti.",
+                )
+                session.world_state["quests"].append(quest)
+                for state, turn in (("DISCOVERED", 2), ("ACTIVE", 2)):
+                    updated = adventure_transition(quest, state, turn)
+                    quest.clear()
+                    quest.update(updated)
+                session.world_state["location"] = "forest"
+                check = {"action": "skill_check", "success": True, "skill": "Investigation"}
+                self._advance(session, quest, dict(check, action_id="adventure-check:3:Investigation"))
+                node = next(item for item in quest["objectives"] if item["objective_id"] == first)
+                self.assertEqual(node["graph_state"], "ACTIVE")
+
+                session.world_state["location"] = place
+                self._advance(session, quest, dict(check, action_id="adventure-check:4:Investigation"))
+                self.assertEqual(node["graph_state"], "COMPLETE")
+
     def _reach_cell(self, session, quest):
         campaign_id = "campaign-a"
         session.world_state["campaign_id"] = campaign_id
@@ -484,7 +513,13 @@ class AdventurePhase8Tests(unittest.TestCase):
             for npc in before["npcs"]
         ]
         evidence.apply_dynamic_evidence(session.world_state, before, {"action_id": "defeat:npc.missing"})
-        self.assertEqual(quest["outcome"], "success")
+        # YENİDEN YAZIM (D-117 / YÜK-14 inceleme): the old test expected success from beating the
+        # captive; a beaten captive is not rescued, so the rescue stays open and the quest unpaid.
+        rescue = next(item for item in quest["objectives"] if item["objective_id"] == "rescue")
+        self.assertEqual(rescue["graph_state"], "ACTIVE")
+        threat = next(item for item in quest["objectives"] if item["objective_id"] == "threat")
+        self.assertEqual(threat["graph_state"], "COMPLETE")
+        self.assertIsNone(quest["outcome"])
         other = game.create_session(seed=9)
         self.assertEqual(other.world_state["quests"], [])
         partial = copy.deepcopy(quest)

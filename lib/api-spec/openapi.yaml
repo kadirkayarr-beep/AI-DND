@@ -2846,6 +2846,10 @@ components:
         processing:
           description: True while a turn of this session holds the turn lock
           type: boolean
+        undo_available:
+          description: Sent with an applied action; true while it is still the
+            one-step undo target. A hint only; the undo route checks again
+          type: boolean
     GameTurnResult:
       type: object
       properties:

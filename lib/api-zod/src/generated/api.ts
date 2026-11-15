@@ -10174,7 +10174,8 @@ export const GetGameActionStatusResponse = zod.object({
 }).describe('The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.'),zod.null()]).optional().describe('Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte.')
 })]).optional().describe('The stored turn reply of an applied action; null when the receipt belongs to another command kind'),
   "detail": zod.record(zod.string(), zod.unknown()).nullish().describe('The stored refusal body of a not_applied action'),
-  "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock')
+  "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock'),
+  "undo_available": zod.boolean().optional().describe('Sent with an applied action; true while it is still the one-step undo target. A hint only; the undo route checks again')
 })
 
 
@@ -11887,7 +11888,8 @@ export const AbandonGameActionResponse = zod.object({
 }).describe('The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.'),zod.null()]).optional().describe('Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte.')
 })]).optional().describe('The stored turn reply of an applied action; null when the receipt belongs to another command kind'),
   "detail": zod.record(zod.string(), zod.unknown()).nullish().describe('The stored refusal body of a not_applied action'),
-  "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock')
+  "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock'),
+  "undo_available": zod.boolean().optional().describe('Sent with an applied action; true while it is still the one-step undo target. A hint only; the undo route checks again')
 })
 
 

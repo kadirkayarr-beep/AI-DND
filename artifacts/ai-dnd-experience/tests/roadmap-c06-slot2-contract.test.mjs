@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { PlayGameTurnBody, PlayLegacyTurnBody } from '../../../lib/api-zod/src/generated/api.ts';
 
 for (const [name, schema] of [['canonical', PlayGameTurnBody], ['legacy', PlayLegacyTurnBody]]) {
-  const request = (slot) => ({ message: 'Cast', combat_action: { steps: [{ kind: 'magic', ability: 'Magic Missile', ...slot }] } });
+  const request = (slot) => ({ action_id: '8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d', message: 'Cast', combat_action: { steps: [{ kind: 'magic', ability: 'Magic Missile', ...slot }] } });
   test(`${name} generated contract preserves explicit slot choice and legacy absence`, () => {
     assert.equal(schema.parse(request({slot_level: 2})).combat_action.steps[0].slot_level, 2);
     assert.equal(schema.parse(request({slot_level: null})).combat_action.steps[0].slot_level, null);

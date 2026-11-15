@@ -3393,6 +3393,8 @@ export interface GameActionStatus {
   detail?: GameActionStatusDetail;
   /** True while a turn of this session holds the turn lock */
   processing?: boolean;
+  /** Sent with an applied action; true while it is still the one-step undo target. A hint only; the undo route checks again */
+  undo_available?: boolean;
 }
 
 export interface GameTurnUndoInput {
