@@ -282,6 +282,20 @@ class WeaponTests(unittest.TestCase):
             self.assertEqual(effect["damage"], expected)
             self.assertEqual(len(effect.get("raw_rolls", [])), dice)
 
+    def test_frost_giant_ancestry_speed_penalty_ends_at_goliath_next_turn(self):
+        # D-049: Frost's Chill lowers Speed by 10 ft only until the start of the Goliath's next turn (PHB 2024).
+        from api.tests.test_species_traits import make_session
+        s, n = ready(make_session("Goliath", ancestry="frost", level=3))
+        n.update(armor_class=10, speed_ft=30)
+        for _ in range(2):  # a second Frost's Chill refreshes the penalty, never stacks with itself
+            s.resolve_species_trait_action("arm_giant_ancestry")
+            resolve(s, n, rolls=(15,))
+        self.assertEqual(ae.speed(s, n["id"]), 20)
+        s.advance_combat_turn()  # the target's own turn: still slowed
+        self.assertEqual(ae.speed(s, n["id"]), 20)
+        s.advance_combat_turn()  # the Goliath's next turn begins: the penalty ends
+        self.assertEqual(ae.speed(s, n["id"]), 30)
+
     def test_critical_rolls_all_dice_not_fixed_modifiers(self):
         s, n = armed("Greatsword")
         s.world_state["inventory"] = [{"name": "Greatsword", "magic_damage_bonus": 2}]
@@ -338,6 +352,29 @@ class WeaponTests(unittest.TestCase):
         self.assertEqual(s.world_state["inventory"], [])
         self.assertIsNone(s.world_state["equipment"]["main_hand"])
         self.assertEqual(len(s.world_state["spent_thrown_weapons"]), 1)
+
+    def test_thrown_from_counted_stack_spends_one(self):
+        # D-114: a starting "10 Dart" / "5 Hançer" line is one record; a throw spends one, not the bundle.
+        for weapon, label, left in (("Dart", "10 Dart", "9 Dart"), ("Dagger", "5 Hançer", "4 Hançer"),
+                                    ("Dagger", "2 Hançer", "Hançer")):
+            s, n = armed(weapon, distance=10)
+            s.world_state["inventory"] = [label]
+            r = resolve(s, n, weapon, {"mode": "thrown"}, rolls=(1,))
+            self.assertIsNone(r["ammunition_consumed"])
+            self.assertEqual(s.world_state["inventory"], [left])
+            self.assertEqual(len(s.world_state["spent_thrown_weapons"]), 1)
+
+    def test_thrown_from_materialized_stack_keeps_item_id(self):
+        s, n = armed("Dart", distance=10)
+        s.world_state["inventory"] = [{"item_id": "item_000001", "name": "10 Dart", "weapon_id": "dart"}]
+        s.world_state["equipment"] = {"main_hand": "item_000001", "off_hand": None}
+        resolve(s, n, "Dart", {"mode": "thrown"}, rolls=(1,))
+        self.assertEqual(s.world_state["inventory"], [{"item_id": "item_000001", "name": "9 Dart", "weapon_id": "dart"}])
+        self.assertIsNone(s.world_state["equipment"]["main_hand"])
+        # The rest of the stack is drawn as part of the next throw.
+        resolve(s, n, "Dart", {"mode": "thrown", "draw": True}, rolls=(1,))
+        self.assertEqual(s.world_state["inventory"][0]["name"], "8 Dart")
+        self.assertEqual(len(s.world_state["spent_thrown_weapons"]), 2)
 
     def test_loading_extra_attack_cannot_bypass(self):
         s, n = armed("Light Crossbow", distance=30)
@@ -421,6 +458,91 @@ class WeaponTests(unittest.TestCase):
         n["distance_ft"] = 20
         r = resolve(s, n, "Spear", {"grip": 2, "mode": "thrown"})
         self.assertEqual(r["damage_rolls"][0]["die"], 6)
+
+    def test_worn_creation_shield_holds_a_hand_against_a_two_handed_grip(self):
+        # D-116: a creation shield has no hand entry, yet its +2 is in the Armor Class; while it counts there it holds
+        # the off hand, so the versatile two-handed die and a two-handed weapon need it put down first.
+        s, n = armed("Longsword")
+        s.character["armor_origin"] = {"armor": None, "shield": True}
+        s.world_state["inventory"].append({"item_id": "shield_1", "name": "Kalkan"})
+        self.assert_invalid_unchanged(s, n, "Longsword", {"grip": 2})
+        self.assertEqual(resolve(s, n, "Longsword", {"grip": 1})["damage_rolls"][0]["die"], 8)
+        s.world_state["inventory"].append("Greatsword")
+        self.assert_invalid_unchanged(s, n, "Greatsword", {"draw": True, "unequip": lookup("Longsword")["weapon_id"]})
+        s.world_state["shield_down"] = {"item_id": "shield_1", "ac_bonus": 2}  # put down, its share taken off the AC
+        self.assertEqual(resolve(s, n, "Longsword", {"grip": 2})["damage_rolls"][0]["die"], 10)
+
+    def test_creation_shield_as_a_plain_inventory_line_holds_a_hand(self):
+        # Review of D-116: a new character's bag is plain text ("Kalkan") until the lazy materialize runs; the attack
+        # path does not run it, so the plain line must count as the shield in use too.
+        s, n = armed("Longsword")
+        s.character["armor_origin"] = {"armor": None, "shield": True}
+        s.world_state["inventory"].append("Kalkan")
+        self.assert_invalid_unchanged(s, n, "Longsword", {"grip": 2})
+        self.assertEqual(resolve(s, n, "Longsword", {"grip": 1})["damage_rolls"][0]["die"], 8)
+
+    def test_worn_creation_shield_leaves_no_hand_to_draw_a_second_weapon(self):
+        # Second review of D-116: the draw picked the empty off_hand entry while the creation shield (no hand entry)
+        # still held that hand, so a weapon and a dagger were held together with the shield's +2.
+        for shield in ({"item_id": "shield_1", "name": "Kalkan"}, "Kalkan"):
+            s, n = armed("Shortsword")
+            s.character["armor_origin"] = {"armor": None, "shield": True}
+            s.world_state["inventory"] += [shield, "Dagger"]
+            self.assert_invalid_unchanged(s, n, "Dagger", {"draw": True})
+            # With the main hand empty the drawn weapon goes there and the shield keeps the other hand.
+            s.world_state["equipment"]["main_hand"] = None
+            resolve(s, n, "Dagger", {"draw": True})
+            self.assertEqual(s.world_state["equipment"], {"main_hand": lookup("Dagger")["weapon_id"], "off_hand": None})
+
+    def test_worn_creation_shield_leaves_no_loading_hand_for_a_one_handed_ammunition_weapon(self):
+        # D-185: a creation shield (no hand entry) holds the other hand, as one registered in off_hand does; a
+        # one-handed ammunition weapon needs a free hand to load, so it does not fire beside the worn shield.
+        for shield in ({"item_id": "shield_1", "name": "Kalkan"}, "Kalkan"):
+            s, n = armed("Hand Crossbow", distance=30)
+            s.character["armor_origin"] = {"armor": None, "shield": True}
+            s.world_state["inventory"].append(shield)
+            self.assert_invalid_unchanged(s, n, "Hand Crossbow")
+        s.world_state["shield_down"] = {"item_id": "shield_1", "ac_bonus": 2}  # put down: the loading hand is free
+        resolve(s, n, "Hand Crossbow")
+        self.assertEqual(s.world_state["ammunition"]["bolt"], 19)
+
+    def test_a_hand_naming_no_owned_weapon_is_free_for_the_shield_wearer_draw(self):
+        # Review of the D-116 hand rule: a new world's default "longsword" stays in the main hand of a class that never
+        # had one; with the creation shield holding the other hand, drawing the owned Mace found no hand at all.
+        s, n = armed("Mace")
+        s.world_state["inventory"] = ["Mace", "Kalkan"]
+        s.world_state["equipment"] = {"main_hand": "longsword", "off_hand": None}
+        s.character["armor_origin"] = {"armor": None, "shield": True}
+        resolve(s, n, "Mace", {"draw": True})
+        self.assertEqual(s.world_state["equipment"], {"main_hand": lookup("Mace")["weapon_id"], "off_hand": None})
+        # A weapon the bag does own still holds its hand: no second weapon is drawn beside it and the shield.
+        s, n = armed("Shortsword")
+        s.world_state["inventory"] += ["Kalkan", "Dagger"]
+        s.character["armor_origin"] = {"armor": None, "shield": True}
+        self.assert_invalid_unchanged(s, n, "Dagger", {"draw": True})
+
+    def test_new_shield_cleric_and_druid_attack_with_their_own_weapon(self):
+        # The creation path, not armed(): random seeds that make a Cleric and a Druid (both start with a shield and
+        # without a Longsword) attack with the weapon they own.
+        seen = {}
+        for seed in range(200):
+            s = game.create_session(seed=seed)
+            s.commit_location_change("tavern")
+            configure_character(s, mode="random")
+            cls = s.character.get("class")
+            if cls in ("Cleric", "Druid") and cls not in seen:
+                seen[cls] = seed
+                owned = next(lookup(item)["weapon_id"] for item in s.world_state["inventory"]
+                             if isinstance(item, str) and lookup(item))
+                s, n = ready(s)
+                n.update(current_hp=100, max_hp=100)
+                s.world_state["inventory"] = [item for item in s.world_state["inventory"] if item != {"name": "Kılıç"}]
+                s.world_state["equipment"]["main_hand"] = "longsword"  # the new world's default hand, never owned
+                result = resolve(s, n, owned, {"draw": True})
+                self.assertEqual(result["weapon_id"], owned, cls)
+            if len(seen) == 2:
+                break
+        self.assertEqual(set(seen), {"Cleric", "Druid"})
 
     def test_reach_boundary_does_not_grant_all_melee_ten_feet(self):
         s, n = armed("Whip", distance=10)

@@ -187,7 +187,9 @@ def resolve(session: Any, reading: tuple[str, str]) -> dict[str, Any]:
                          spell_id, "narrative_spell_in_combat")
     state = world.get("spellcasting_v1")
     spell_scope.validate(state, session.character)
-    if state is None or spell_id not in state["cantrips"]:
+    # Aasimar Light Bearer (PHB 2024 PDF 185): "You know the Light cantrip", with or without class spellcasting (D-132).
+    light_bearer = spell_id == "Light" and session.character.get("species") == "Aasimar"
+    if not light_bearer and (state is None or spell_id not in state["cantrips"]):
         return _not_cast(f"{tr} ({spell_id}) bildiğin büyüler arasında değil; büyü yapılmadı.",
                          spell_id, "spell_not_available")
     import combat_lifecycle

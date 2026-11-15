@@ -238,6 +238,20 @@ class CampaignJournalTests(unittest.TestCase):
         self.assertNotIn("untrusted narration", str(result))
         self.assertNotIn("quest completed", str(result))
 
+    def test_a_throw_from_a_counted_line_is_one_item_lost_not_a_gain(self):
+        # Review of D-114: a throw turns "10 Dart" into "9 Dart"; that is one Dart spent, not a new "9 Dart" gained.
+        result = update_campaign_journal(
+            empty_campaign_journal(),
+            save(world("tavern", turn=4, inventory=["10 Dart", "2 Hançer"])),
+            save(world("tavern", turn=5, inventory=["9 Dart", "Hançer"])),
+            {"action": "attack", "status": "completed"},
+            {"environment": "tavern"},
+        )
+        self.assertEqual(
+            [(event["event_type"], event["summary"]) for event in result["notable_events"]],
+            [("item_lost", "Envanterden Dart çıkarıldı."), ("item_lost", "Envanterden Hançer çıkarıldı.")],
+        )
+
     def test_combat_end_enemy_defeat_and_unconsciousness_are_canonical_events(self):
         npc_before = {"id": "npc_001", "name": "Gromm", "role": "Rakip", "location": "tavern", "combat_status": "active", "current_hp": 4, "memory": []}
         npc_after = {**npc_before, "combat_status": "unconscious", "current_hp": 0}

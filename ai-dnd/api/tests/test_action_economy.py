@@ -196,6 +196,14 @@ class ActionEconomyTests(unittest.TestCase):
             step(self.s, {"kind": "move", "distance_ft": 1})
         self.assertEqual(self.s.character.get("speed_ft", 30), 30)
 
+    def test_a_legacy_npc_speed_penalty_from_frost_chill_is_not_read(self):
+        # Review of D-049: before the fix Frost's Chill wrote speed_penalty_ft=10 on the NPC and nothing ended it;
+        # nothing writes that NPC field any more, so an old save's stale value must not slow the creature.
+        self.n["speed_ft"] = 30
+        self.n["speed_penalty_ft"] = 10
+        self.n["speed_penalty_turns_remaining"] = 1
+        self.assertEqual(ae.speed(self.s, self.n["id"]), 30)
+
     def test_incapacitated_npc_skips_action_and_player_can_end_turn(self):
         self.n["conditions"] = ["incapacitated"]
         self.s.character["conditions"] = ["stunned"]
