@@ -282,6 +282,11 @@ class DevelopmentToolingTests(unittest.TestCase):
                        "api.tests.test_d211_undone_fight_answer"):
             self.assertIn(module, selectors)
 
+    def test_heard_job_evidence_test_is_in_the_gate(self):
+        # D-203 (Kadir kararı 2026-11-15): evidence kept on a heard job, saved, counted on acceptance, consistent with Undo.
+        selectors = owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"]
+        self.assertIn("api.tests.test_d203_heard_job_evidence", selectors)
+
     def test_regression_groups_are_unique_and_browser_ui_is_an_explicit_check(self):
         config = owner.load_config(owner.DEFAULT_CONFIG)
         selectors = config["regression_selectors"]

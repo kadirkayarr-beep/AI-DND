@@ -24196,13 +24196,14 @@ class GameSession:
         transitions.extend(_dynamic_engine_transitions(
             adventure.apply_dynamic_evidence(world, before_world, action_result),
             world,
+            before_world,
         ))
         adventure_play.after_turn(self, before_world, action_result)
         incident_hooks.after_turn(self, before_world, action_result)
         return transitions
 
 
-def _dynamic_engine_transitions(notes, world):
+def _dynamic_engine_transitions(notes, world, before_world=None):
     """Shape dynamic completions for the existing engine-evidence contract."""
     turn = world.get("flags", {}).get("turn_index", 0) if isinstance(world, dict) else 0
     if type(turn) is not int:
@@ -24227,6 +24228,16 @@ def _dynamic_engine_transitions(notes, world):
         if quest_id not in touched:
             touched.append(quest_id)
     quests = world.get("quests", []) if isinstance(world, dict) else []
+    before_status = {
+        item.get("quest_id"): item.get("status")
+        for item in (before_world.get("quests", []) if isinstance(before_world, dict) else [])
+        if isinstance(item, dict)
+    }
+    for quest in quests:  # a job closed with no new step this turn (steps kept before acceptance, D-203)
+        quest_id = quest.get("quest_id") if isinstance(quest, dict) else None
+        if (isinstance(quest_id, str) and quest_id not in touched and quest.get("status") == "COMPLETED"
+                and before_status.get(quest_id) not in {None, "COMPLETED"}):
+            touched.append(quest_id)
     for quest_id in touched:
         quest = next(
             (
