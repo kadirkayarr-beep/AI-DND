@@ -140,8 +140,8 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "deal": {"type": "string", "enum": [*DEALS, NONE]},
             "deal_goods": {"type": "string", "enum": _ids(listed["goods"])},
             "keep_change": {"type": "boolean"},
-            "timing": {"type": "string", "enum": list(TIMINGS)},  # D-109: early too, right after the money fields
             "economic_intent": {"type": "string", "enum": ["none", "room", "room_quote", "gift", "tip", "purchase"]},
+            "timing": {"type": "string", "enum": list(TIMINGS)},  # D-109: early too, right after the money fields and economic_intent
             "person_id": {"type": "string", "enum": _ids(listed["people"])},
             # Early on purpose: a small model fills a long object's last fields with none, whatever the line says.
             "threat_to": {"type": "string", "enum": _ids(listed["people"])},
