@@ -494,6 +494,18 @@ class WeaponTests(unittest.TestCase):
             resolve(s, n, "Dagger", {"draw": True})
             self.assertEqual(s.world_state["equipment"], {"main_hand": lookup("Dagger")["weapon_id"], "off_hand": None})
 
+    def test_worn_creation_shield_leaves_no_loading_hand_for_a_one_handed_ammunition_weapon(self):
+        # D-179: a creation shield (no hand entry) holds the other hand, as one registered in off_hand does; a
+        # one-handed ammunition weapon needs a free hand to load, so it does not fire beside the worn shield.
+        for shield in ({"item_id": "shield_1", "name": "Kalkan"}, "Kalkan"):
+            s, n = armed("Hand Crossbow", distance=30)
+            s.character["armor_origin"] = {"armor": None, "shield": True}
+            s.world_state["inventory"].append(shield)
+            self.assert_invalid_unchanged(s, n, "Hand Crossbow")
+        s.world_state["shield_down"] = {"item_id": "shield_1", "ac_bonus": 2}  # put down: the loading hand is free
+        resolve(s, n, "Hand Crossbow")
+        self.assertEqual(s.world_state["ammunition"]["bolt"], 19)
+
     def test_a_hand_naming_no_owned_weapon_is_free_for_the_shield_wearer_draw(self):
         # Review of the D-116 hand rule: a new world's default "longsword" stays in the main hand of a class that never
         # had one; with the creation shield holding the other hand, drawing the owned Mace found no hand at all.

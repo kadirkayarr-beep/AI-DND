@@ -702,7 +702,16 @@ class TheRunnerSortsEveryStep(JourneyCase):
                     apply_setup(self, campaign, scenario.setup)
                 (before, after), = seen
                 changed = {key for key in before.keys() | after.keys() if before.get(key) != after.get(key)}
-                self.assertLessEqual(changed, {"inventory", "item_sequence"}, changed)
+                self.assertLessEqual(changed, {"inventory", "item_sequence", "equipment"}, changed)
+                # D-178: the one hand change it may make is a player hand naming a catalog weapon the bag does not
+                # hold at all (a new world's default "longsword"): that hand now holds nothing.
+                for hand, held in before["equipment"].items():
+                    if after["equipment"][hand] != held:
+                        weapon = equipment_economy.lookup(held)
+                        self.assertIsNotNone(weapon, (hand, held))
+                        self.assertIsNone(after["equipment"][hand], (hand, held))
+                        self.assertFalse(any(item.get("weapon_id") == weapon["weapon_id"]
+                                             for item in after["inventory"]), (hand, held))
                 self.assertEqual([item["name"] for item in after["inventory"]], list(scenario.setup["inventory"]))
                 self.assertTrue(all(isinstance(item.get("item_id"), str) for item in after["inventory"]))
                 saved = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]

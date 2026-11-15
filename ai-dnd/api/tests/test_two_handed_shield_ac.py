@@ -101,7 +101,9 @@ class TwoHandedShieldAc(JourneyCase):
 
     async def test_a_refused_draw_changes_nothing(self):
         session = await self.fighter_with_shield_and_greatsword()
-        session.world_state["equipment"]["main_hand"] = "Uzun Kılıç"     # a hand alias no owned item answers to
+        # A hand alias no owned item answers to and no catalog weapon names (D-178: a catalog weapon the bag does not
+        # hold at all, such as "Uzun Kılıç", now holds nothing and frees the hand, so it no longer refuses the draw).
+        session.world_state["equipment"]["main_hand"] = "Paslı Kanca"
         before = (copy.deepcopy(session.world_state), session.character["armor_class"])
         result = gear.draw(session.world_state, self.greatsword_id(session), character=session.character)
         self.assertEqual(result.status, "refused")

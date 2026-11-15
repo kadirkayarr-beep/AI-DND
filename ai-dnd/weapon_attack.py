@@ -478,7 +478,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         two_required = "two-handed" in weapon["properties"]
         if (two_required and grip != 2) or (grip == 2 and free_hands - shield_on < 1):
             fail("invalid_hands", "Two-handed attack needs both hands.")
-        if "ammunition" in weapon["properties"] and grip == 1 and free_hands < 1:
+        if "ammunition" in weapon["properties"] and grip == 1 and free_hands - shield_on < 1:
             fail("invalid_hands", "A one-handed ammunition weapon requires a free loading hand.")
         weapon["grip"] = grip
         weapon["equipment_after"] = hands
