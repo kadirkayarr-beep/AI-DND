@@ -2538,8 +2538,10 @@ def create_app(
         import spell_preparation
         record = get_record(session_id)
         action_id = str(request.action_id)
+        # D-039: an absent spellbook stays out of the hash, so receipts saved before the field existed still replay.
         request_hash = hashlib.sha256(json.dumps(
-            {"command": "spell_prepare", **request.model_dump(mode="json", exclude={"action_id"})},
+            {"command": "spell_prepare", **request.model_dump(
+                mode="json", exclude={"action_id", *(("spellbook",) if request.spellbook is None else ())})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
@@ -2590,19 +2592,27 @@ def create_app(
                 except (ValueError, KeyError, TypeError):
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_unavailable", "message": "Kayıtlı büyü durumu okunamadı."}) from None
-                if window["blocked_reason"] == "spellbook_missing":
+                if request.spellbook is not None:
+                    # D-039: the one-time spellbook choice of an old save's Wizard, on its own (never with a list or close).
+                    if request.prepared is not None or request.close:
+                        raise HTTPException(status_code=409, detail={
+                            "code": "prepare_request_mixed",
+                            "message": "Büyü kitabı seçimi tek başına gönderilir; hazırlık listesi ondan sonra kaydedilir."})
+                    result = spell_preparation.choose_spellbook(session, list(request.spellbook))
+                elif window["blocked_reason"] == "spellbook_missing":
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_spellbook_missing",
                         "message": "Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor."})
-                if not window["supported"]:
+                elif not window["supported"]:
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_not_supported", "message": "Bu sınıf büyü hazırlamaz."})
-                if not window["open"]:
+                elif not window["open"]:
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_window_closed",
                         "message": "Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş ya da yeni bir seviyeye geçmiş olmalısın."})
-                prepared = None if request.prepared is None else list(request.prepared)
-                result = spell_preparation.prepare(session, prepared, close=request.close)
+                else:
+                    prepared = None if request.prepared is None else list(request.prepared)
+                    result = spell_preparation.prepare(session, prepared, close=request.close)
                 response = SpellPrepareCommandResult(
                     session_id=session_id, action_id=action_id,
                     state=serialize_session_state(session, record.journal, record.lore_authority),
