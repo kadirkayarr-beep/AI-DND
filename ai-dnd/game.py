@@ -3102,6 +3102,7 @@ def load_game(path):
         # D-072: the sitting-only fight questions (never saved) belong to the replaced game, not the loaded one.
         _session()._attack_asked, _session()._blow_asked, _session()._blow_asked_line = False, None, None
         _session()._surrender_strike_asked = None
+        _session()._heavy_asked = _session()._heavy_confirmed = None  # D-109: so do the crime/threat question and its yes
         return loaded
     except Exception:
         _session()._persisted_engine_format = previous_format
@@ -3565,6 +3566,8 @@ def _restore_combat_death_checkpoint(cause):
     session.world_metadata = copy.deepcopy(checkpoint.get("world_metadata"))
     # The XP, level and receipt of an award are back to the checkpoint; so is its pending announcement.
     session._xp_level_up = None
+    session._xp_unrecorded = []
+    session._xp_unrecorded_awards = []
     if has_format:
         session._persisted_engine_format = saved_format
     campaign_state = checkpoint.get("campaign_state")
@@ -8953,16 +8956,61 @@ def _accept_named_job(session, world, npc, thread):
         world_threads.apply_decision(world, thread, "accepted", int(world.get("flags", {}).get("turn_index", 0) or 0) - 1)
 
 
-def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None):
+def _coin_persuasion(action_result):
+    """D-166: the Persuasion roll asking a person for coin takes, at their DC (`influence.dc`).
+
+    A Persuasion this turn already rolled is reused against that DC, never rerolled; any other roll this turn asked
+    for something else, so it gives no coin (None). Otherwise one fresh roll, its card returned for the turn to show.
+    """
+    def persuade(dc, advantage):
+        if action_result.get("action") == "skill_check":
+            total = action_result.get("total")
+            if action_result.get("skill") != "Persuasion" or type(total) is not int:
+                return None
+            return {"success": total >= dc}
+        character = _session().character
+        check = perform_skill_check("Persuasion", dc, character["modifiers"], character["proficient_skills"],
+                                    character["proficiency_bonus"], advantage=advantage,
+                                    expertise_skills=character.get("expertise_skills", ()))
+        outcome = _skill_result_category(check.get("result"))
+        card = {
+            "action": "skill_check", "skill": check["skill"], "ability": check["ability"], "dice": check["dice"],
+            **({"dice_rolls": check["dice_rolls"]} if "dice_rolls" in check else {}),
+            "modifier": check["modifier"], "proficiency_bonus": check["proficiency_bonus"],
+            "expertise": check["expertise"], "advantage": check["advantage"], "disadvantage": check["disadvantage"],
+            "action_id": check["resolution"].get("action_id"), "resolution_id": check["resolution"].get("resolution_id"),
+            "resolution": check["resolution"], "total": check["total"], "dc": check["dc"], "outcome": outcome,
+            "success": outcome == "success", "status": "resolved",
+        }
+        return {"success": outcome == "success", "card": card}
+    return persuade
+
+
+def _show_coin_roll(action_result, card):
+    """D-166: the coin ask's roll shows on the turn, while the turn stays what it was: a talk stays a talk (its
+    action, success and status, which 'talk to X' objectives and a guard's question read). A turn that already
+    rolled a check keeps its own card."""
+    if card and action_result.get("action") != "skill_check":
+        action_result.update({key: value for key, value in card.items() if key not in {"action", "success", "status"}},
+                             coin_ask_roll=True)
+
+
+def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None, persuade=None):
     """What the reply proposed reaches the record if it checks out. A failure here costs the turn nothing."""
     import town_knowledge
     session = _session()
     gate = getattr(session, "_thread_turn", None)
     try:
+        import world_happenings
+        said = threat.split()[0] if isinstance(threat, str) and threat.strip() else None
+        if said == world_happenings.PLAYER_THREATENED and not _heavy_allowed("threat", player_input,
+                                                                             person_id=npc.get("id")):
+            threat = None  # D-109: only a threat said now and asked yes hurts a tie; the reply's own claim stays words
         settled = town_knowledge.settle_reply(
             world, npc, player_input, raw, spoken,
             accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
             moved=(gate or {}).get("paid_cp") or 0, threat=threat, purchase=getattr(session, "_purchase_said", False),
+            persuade=persuade,
         )
         import pocket
         settled["spoken"], settled["unbacked"] = pocket.settle_claim(session, raw, settled["spoken"], npc)
@@ -18757,10 +18805,13 @@ def _run_player_turn_keyed(
         local_dialogue.remember_native_reply(
             _session().world_state, action_result, player_input, result.get("narration")
         )
-        if isinstance(action_result.get("level_up"), dict):
+        # D-061: a forfeited award's line ("<X> XP kaydedilemedi: <neden>.") goes the same way as the award line.
+        lines = [xp.award_line(action_result["level_up"])] if isinstance(action_result.get("level_up"), dict) else []
+        lines += _session()._take_xp_unrecorded()
+        if lines:
             # After every narration check (and after a person's reply is remembered): Python's own line from the
             # award's facts, in the reply and in this turn's assistant message (no model call, no number from the model).
-            line = xp.award_line(action_result["level_up"])
+            line = " ".join(lines)
             result["narration"] = f"{result.get('narration') or ''} {line}".strip()
             for row in reversed(_session().messages[messages_before:]):
                 if isinstance(row, dict) and row.get("role") == "assistant":
@@ -18892,7 +18943,7 @@ def _stock_hearer(result, player_input, target_id):
         return here[action_result["npc_id"]]  # it already came out of a mouth
     if target_id in here:
         return here[target_id]
-    if read.get("kind") == "speak_to":
+    if read.get("kind") in {"speak_to", "heavy_asked"}:  # D-109: an asked threat is for the one threatened
         return here.get(read["id"])
     if not (read.get("kind") == "talk_around" or npc_speech_boundary.player_supplied_quote(player_input)
             or (not read and _reads_as_address(player_input))):
@@ -19268,6 +19319,10 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     session._front_rest = front_proposal.rest_in(reply, player_input)
     world_threads.note_want(world, front_proposal.want_in(reply, listed))
     threatened = front_proposal.threat_in(reply, listed)
+    if threatened and not fighting and not _heavy_allowed("threat", player_input, person_id=threatened):
+        # D-109: a hurt tie is asked about first; nothing moves this turn (the dispatcher shows the question)
+        front_proposal.note(session, "front:heavy_asked", reached=True)
+        return {"kind": "heavy_asked", "what": "threat", "id": threatened, "deed": None, "said": str(player_input)}
     if threatened:
         world_happenings.threatened(world, world_threads._npc(world, threatened))
     session._front_coin = front_proposal.coin_in(reply, player_input)
@@ -19366,7 +19421,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
 _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
-                      "blow_asked", "which_move", "wait", "consume", "wield"}
+                      "blow_asked", "heavy_asked", "which_move", "wait", "consume", "wield"}  # D-109: asked moves nothing
 
 
 def _defer_spoken_coin_offer(route):
@@ -19642,6 +19697,46 @@ def _ask_about_the_blow(person_id, player_input="", with_word=""):
                               "outcome": "unconfirmed_blow", "state_changes": [], "direct_response": line}}
 
 
+def _heavy_allowed(what, player_input, *, person_id=None, deed=None):
+    """D-109: the asked crime or threat was answered yes, and this is the very line that was asked about."""
+    confirmed = getattr(_session(), "_heavy_confirmed", None)
+    return (isinstance(confirmed, dict) and confirmed.get("said") == str(player_input)
+            and [what, person_id, deed] in confirmed.get("allowed", []))
+
+
+def _ask_before_the_heavy(asked):
+    """D-109 (Kadir kararı 2026-11-15): a crime or a hurt tie is asked about first, in one short line; nothing moves.
+    Asked for this sitting only, as "kavga mı başlatıyorsun?" is; a yes plays the asked line again (see
+    ``_answered_heavy_question``). Eating and drinking are never asked: Undo takes those back."""
+    session = _session()
+    session._heavy_asked = {key: asked.get(key) for key in ("what", "id", "deed", "said")}
+    if asked["what"] == "threat":
+        who = next((npc for npc in active_npcs() if npc.get("id") == asked.get("id")), None)
+        name = living_world.public_npc_name(who) if who is not None else "o kişi"
+        line = f"Bu, {name} ile aranı bozar. Gerçekten tehdit ediyor musun? (evet/hayır)"
+    else:
+        act = "çalıyor" if asked.get("deed") == "steal" else "ateşe veriyor"
+        line = f"Bu bir suç olarak kayda geçer. Gerçekten {act} musun? (evet/hayır)"
+    return {"messages": session.messages, "narration": line, "model_calls": 0,
+            "action_result": {"action": "narrative", "status": "clarification", "success": False,
+                              "outcome": f"unconfirmed_{asked['what']}", "state_changes": [], "direct_response": line}}
+
+
+def _answered_heavy_question(player_input):
+    """D-109: a yes to the asked crime or threat is the asked line, now allowed; anything else forgets the question."""
+    session = _session()
+    asked, session._heavy_asked = getattr(session, "_heavy_asked", None), None
+    given, session._heavy_confirmed = getattr(session, "_heavy_confirmed", None), None
+    if isinstance(asked, dict) and combat_lifecycle._says_yes(session, player_input):
+        # D-109 review: a second question on the same line keeps the first yes (else the two would ask in turn forever);
+        # the threat played again is not a second threat: its tie is made once while it is coming (world_happenings.tie)
+        kept = given.get("allowed", []) if isinstance(given, dict) and given.get("said") == asked["said"] else []
+        session._heavy_confirmed = {"said": asked["said"],
+                                    "allowed": [*kept, [asked["what"], asked["id"], asked["deed"]]]}
+        return asked["said"]
+    return player_input
+
+
 def _ask_which_move(person_id):
     """A yes to a blow whose words name no move the engine has (a trip): the real moves are offered, nothing rolls."""
     session = _session()
@@ -19682,8 +19777,11 @@ def front_read_ahead(player_input, target_id=None, interaction_mode=None):
     session = _session()
     session._front_ahead = False
     session._counter_held = None  # only this turn's reading may hold coin back for an open offer
+    if not getattr(session, "_heavy_asked", None):
+        session._heavy_confirmed = None  # D-109 review: a yes is spent with its turn; this line was never asked
     if (not front_proposal.enabled() or session.character.get("current_hp", 0) <= 0 or ensure_death_state()["dead"]
-            or getattr(session, "_attack_asked", False) or not isinstance(player_input, str)
+            or getattr(session, "_attack_asked", False) or getattr(session, "_heavy_asked", None)
+            or not isinstance(player_input, str)
             or _is_end_conversation_request(player_input)):
         return None
     interaction_mode = _normalize_interaction_mode(interaction_mode)
@@ -19986,6 +20084,10 @@ def _dispatch_player_turn(
                                              "do", action_id)
     _reopen_public_doors()
     player_input = combat_lifecycle.answered_attack_question(_session(), player_input)
+    player_input = _answered_heavy_question(player_input)  # D-109
+    ahead = getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False) else None
+    if isinstance(ahead, dict) and ahead.get("kind") == "heavy_asked":
+        return _ask_before_the_heavy(ahead)  # D-109: read ahead of the turn; asked before any owner answers
     surrender_answer = (combat_lifecycle.answered_surrender_question(_session(), player_input)
                         if combat_action is None else None)
     if surrender_answer is not None:
@@ -20052,6 +20154,8 @@ def _dispatch_player_turn(
         read = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
         _session()._front_read = read
         _session()._front_ahead = True
+    if read is not None and read.get("kind") == "heavy_asked":
+        return _ask_before_the_heavy(read)  # D-109: asked, nothing moved
     if getattr(_session(), "_front_strike", None):
         target_id, interaction_mode = _session()._front_strike["id"], "do"
     import spell_effects
@@ -20090,7 +20194,12 @@ def _dispatch_player_turn(
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and not confessed
             and not _session().world_state.get("combat", {}).get("active")):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            bold = bold_acts.resolve(_session(), player_input, getattr(_session(), "_front_deed", None))
+            deed = getattr(_session(), "_front_deed", None)
+            bold = bold_acts.resolve(
+                _session(), player_input, deed,
+                # D-109: a crime is asked about first, whether the reading or the old words (no reading) found it
+                ask=lambda act: None if _heavy_allowed("deed", player_input, deed=act)
+                else _ask_before_the_heavy({"what": "deed", "id": None, "deed": act, "said": str(player_input)}))
         if bold is not None:
             return bold
     elif (combat_action is None and interaction_mode == "say" and isinstance(player_input, str)
@@ -23255,7 +23364,7 @@ def _run_player_turn_internal(
                                 world_state, npc_target, player_input, cleaned_stage, stage=True)
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
-                        threat=raw_intent.get("threat"),
+                        threat=raw_intent.get("threat"), persuade=_coin_persuasion(action_result),
                     )
                     cleaned_spoken = settled_money["spoken"]
                     if getattr(_session(), "_empty_handed", False):
@@ -23462,6 +23571,7 @@ def _run_player_turn_internal(
                     )
                     if settled_money.get("note"):
                         text = f"{text} {settled_money['note']}"
+                _show_coin_roll(action_result, settled_money.get("check"))  # D-166: the roll shows, reply used or not
                 return finish_turn(
                     action_result, text, is_final=True,
                     safety_reason_code=(
@@ -23493,6 +23603,7 @@ def _run_player_turn_internal(
                                                   player_input, npc_target=npc_target, target_id=target_id)
                     if price_result.get("action") == "skill_check":
                         action_result.update(price_result)
+            _show_coin_roll(action_result, settled_money.get("check"))  # D-166: the coin ask's own roll shows
             if experimental_npc_dialogue:
                 spoken = attributed_speech["spoken_text"] if accepted_model_speech else text
                 terms = _offer_terms_shown(world_state, npc_target, player_input, spoken)
@@ -23841,6 +23952,8 @@ class GameSession:
         self.last_arrival_narration = None
         self.narration_safety_history = []
         self._xp_level_up = None
+        self._xp_unrecorded = []
+        self._xp_unrecorded_awards = []  # this turn's forfeited awards: (receipt ids, amount shown) — one line each
         self._persisted_engine_format = SAVE_FORMAT_VERSION
 
     def _receive_xp_award(self, award_owner, *args, **kwargs):
@@ -23866,15 +23979,30 @@ class GameSession:
             raise
 
     def _admit_xp_award(self, award_owner, *args, **kwargs):
+        held = self.world_state.get("xp_awarded_event_ids")
+        held = set(held) if isinstance(held, list) else set()
+        format_before = getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION)
         summary = award_owner(*args, **kwargs)
         crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
                     and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
-        if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in _SUPPORTED_SAVE_VERSIONS:
-            raise ValueError("Numeric advancement requires a supported save format.")
+        if crossing:
+            written = [event_id for event_id in self.world_state.get("xp_awarded_event_ids", [])
+                       if event_id not in held]  # this award's receipts: a retry of it is the same award (D-061)
+        if crossing and format_before not in _SUPPORTED_SAVE_VERSIONS:
+            import xp
+            raise xp.UnrecordableXp(summary["xp_gained"], xp.REASON_OLD_SAVE, written)
         self._remember_xp_award(summary)
         if crossing:
             # Read through the real production admission owner before commit.
-            self._validate_save_payload(self.serialize_game_state())
+            try:
+                self._validate_save_payload(self.serialize_game_state())
+            except ValueError as error:
+                import xp
+                # D-061: the forfeit boundary checks the record before the award, so a refusal the award did not
+                # cause is raised, not forfeited (``__cause__`` carries the admission's own error). Only a record
+                # still on an older format is told it is an old save.
+                reason = xp.REASON_CROSSING if format_before == 6 else xp.REASON_OLD_SAVE
+                raise xp.UnrecordableXp(summary["xp_gained"], reason, written) from error
         return summary
 
     def _forfeit_unrecordable_xp(self, award_owner, *args, **kwargs):
@@ -23886,30 +24014,66 @@ class GameSession:
         container a caller holds (the fight being ended, the creature just knocked out, ``saving_throw_mods``) stays
         the live object, and whatever the award or the save check wrote (receipts, level, the save check's
         ``scene_state`` default-fill) is undone. The pending announcement and the save format are put back too. The RNG
-        and the narration history are not touched by an award and are not restored. A non-ValueError is a bug: put
-        back, raised.
+        and the narration history are not touched by an award and are not restored.
+
+        D-061: only a known refusal (``xp.UnrecordableXp``) is forfeited; it leaves one player line for this turn
+        (``_take_xp_unrecorded``). Any other error is a bug: put back, raised, and the turn falls back whole. A level-5
+        admission refusal counts as known only when the record before the award passes the same admission.
         """
+        import xp
         character = copy.deepcopy(self.character)
         world = copy.deepcopy(self.world_state)
         pending = copy.deepcopy(self._xp_level_up)
         had_format = "_persisted_engine_format" in self.__dict__
         old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
-        try:
-            return self._admit_xp_award(award_owner, *args, **kwargs)
-        except Exception as error:
-            _restore_in_place(self.character, character)
-            _restore_in_place(self.world_state, world)
-            self._xp_level_up = pending
+
+        def put_back(saved_character, saved_world):
+            _restore_in_place(self.character, saved_character)
+            _restore_in_place(self.world_state, saved_world)
+            self._xp_level_up = copy.deepcopy(pending)
             if had_format:
                 self._persisted_engine_format = old_format
             else:
                 self.__dict__.pop("_persisted_engine_format", None)
-            if not isinstance(error, ValueError):
+
+        try:
+            return self._admit_xp_award(award_owner, *args, **kwargs)
+        except Exception as error:
+            put_back(copy.deepcopy(character), copy.deepcopy(world))
+            if not isinstance(error, xp.UnrecordableXp):
                 raise
+            if isinstance(error.__cause__, ValueError):
+                try:
+                    self._validate_save_payload(self.serialize_game_state())
+                except ValueError:
+                    put_back(character, world)
+                    raise error.__cause__  # the record was refused before the award: not the award's doing
+                put_back(character, world)  # the check's own default-fill (``scene_state``) goes back too
             import logging
             logging.getLogger(__name__).warning("An experience award could not be recorded and is forfeited (B1): %s",
                                                 error)
+            self._note_unrecorded_xp(error)
             return None
+
+    def _note_unrecorded_xp(self, error):
+        """One line per forfeited award this turn (D-061). An award tried again in the same turn (a creature knocked
+        out, then counted again when the fight ends) adds no second line; a retry that also holds new receipts shows
+        only the amount not shown yet."""
+        import xp
+        ids = set(error.event_ids)
+        shown = list(getattr(self, "_xp_unrecorded_awards", []))
+        if ids and ids <= {event_id for earlier, _ in shown for event_id in earlier}:
+            return
+        amount = error.amount - sum(earlier_amount for earlier, earlier_amount in shown if ids and set(earlier) <= ids)
+        self._xp_unrecorded_awards = [*shown, (sorted(ids), amount)]
+        self._xp_unrecorded = [*getattr(self, "_xp_unrecorded", []), str(xp.UnrecordableXp(amount, error.reason))]
+
+    def _take_xp_unrecorded(self):
+        """This turn's lines for forfeited awards ("<X> XP kaydedilemedi: <neden>."), then forget them (D-061)."""
+        lines = list(getattr(self, "_xp_unrecorded", []))
+        self._xp_unrecorded = []
+        self._xp_unrecorded_awards = []
+        return lines
 
     def _remember_xp_award(self, summary):
         """Fold another award into the single announcement for this turn."""
@@ -23953,6 +24117,8 @@ class GameSession:
             "messages": copy.deepcopy(self.messages),
             "rng_state": self.rng.getstate(),
             "xp_level_up": copy.deepcopy(self._xp_level_up),
+            "xp_unrecorded": list(getattr(self, "_xp_unrecorded", [])),
+            "xp_unrecorded_awards": copy.deepcopy(getattr(self, "_xp_unrecorded_awards", [])),
             "persisted_engine_format_present": "_persisted_engine_format" in self.__dict__,
             "persisted_engine_format": copy.deepcopy(self.__dict__.get("_persisted_engine_format")),
             # D-115: the open "kavga mı başlatıyorsun?" question goes back with the turn that asked it.
@@ -23960,6 +24126,9 @@ class GameSession:
                                 copy.deepcopy(getattr(self, "_blow_asked_line", None))),
             # D-115: so does the surrendered-foe question ("Yine de vuruyor musun?").
             "surrender_question": copy.deepcopy(getattr(self, "_surrender_strike_asked", None)),
+            # D-109: and the crime/threat question ("Gerçekten çalıyor musun?").
+            "heavy_question": copy.deepcopy(getattr(self, "_heavy_asked", None)),
+            "heavy_yes": copy.deepcopy(getattr(self, "_heavy_confirmed", None)),
         }
 
     def _restore_runtime_snapshot(self, snapshot):
@@ -23979,12 +24148,16 @@ class GameSession:
         self.recent_dm_narrations[:] = restored["recent_dm_narrations"]
         self.messages[:] = restored["messages"]
         self._xp_level_up = restored.get("xp_level_up")
+        self._xp_unrecorded = restored.get("xp_unrecorded", [])
+        self._xp_unrecorded_awards = restored.get("xp_unrecorded_awards", [])
         if restored.get("persisted_engine_format_present", False):
             self._persisted_engine_format = restored["persisted_engine_format"]
         else:
             self.__dict__.pop("_persisted_engine_format", None)
         self._attack_asked, self._blow_asked, self._blow_asked_line = restored.get("attack_question", (False, None, None))
         self._surrender_strike_asked = restored.get("surrender_question")
+        self._heavy_asked = restored.get("heavy_question")
+        self._heavy_confirmed = restored.get("heavy_yes")
 
     def resolve_ambient_event_action(
         self,

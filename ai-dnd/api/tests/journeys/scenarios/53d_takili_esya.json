@@ -40,6 +40,30 @@
         }
       },
       "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?",
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 30
+        },
+        "envanter": {},
+        "kisi_esya": {
+          "kavsim": {
+            "Kalkan": 1
+          }
+        }
+      }
+    },
+    {
+      "say": "evet",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
         "envanter": {},
         "kese": 40,
         "kisi_kese": {

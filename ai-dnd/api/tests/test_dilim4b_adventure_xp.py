@@ -51,8 +51,12 @@ def to_level_four(session):
     assert (session.character["level"], session.character["xp"]) == (4, 6490), session.character
 
 
-def refused_admission(*_args, **_kwargs):
-    raise ValueError("injected: save admission refused")
+def refused_admission(payload, *_args, **_kwargs):
+    # YENİDEN YAZIM (D-061, onay listesi) [GEVŞETME OLABİLİR]: was "refuses every record". The forfeit now checks the record before the
+    # award and raises a refusal the award did not cause, so the injected refusal is the crossing's own: a level-5
+    # record is refused, the level-4 record before it passes.
+    if payload["player"]["level"] >= 5:
+        raise ValueError("injected: save admission refused")
 
 
 refused_admission._session_bound = True
