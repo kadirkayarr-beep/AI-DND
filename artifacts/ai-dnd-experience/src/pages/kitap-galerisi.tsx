@@ -67,7 +67,7 @@ export default function KitapGalerisi() {
   const [kuvvet, setKuvvet] = useState('15');
   const [pencere, setPencere] = useState(false);
   const [dinliyor, setDinliyor] = useState(false);
-  const [kayit, setKayit] = useState<{ bicim: 'muhur' | 'kurdele'; durum?: KayitDurumu; kimlik: number }>({ bicim: 'muhur', kimlik: 0 });
+  const [kayit, setKayit] = useState<{ durum?: KayitDurumu; kimlik: number }>({ kimlik: 0 });
   // G6 (Kadir's call): ?telefon=b shows the desk strip with the lamp on the phone; a is one settings button.
   const telefon = sorgu('telefon') === 'b' ? 'b' : 'a';
   const tema = kitapTemasi(ayar.gorunum, saat);
@@ -141,9 +141,11 @@ export default function KitapGalerisi() {
       mikrofonDestegi dinliyor={dinliyor} dinlemeDegisince={setDinliyor} />
   );
 
+  const tarih = `3 Mirtul 1501, ${saat === 'gece' ? 'gece yarısı' : 'öğle'}`;
   const sol = (
     <>
-      <BolumBasligi yan={`3 Mirtul 1501, ${saat === 'gece' ? 'gece yarısı' : 'öğle'}`}>Kırık Fener Meyhanesi</BolumBasligi>
+      {/* Review 5: on the phone (one flow) the right page head is not shown, so the status strip rides with the date. */}
+      <BolumBasligi yan={tekAkis ? <span className="kitap-bolum-yan-sira"><span>{tarih}</span><DurumSeridi seviyeler={YUVALAR} can={43} enCok={49} basHarf="I" /></span> : tarih}>Kırık Fener Meyhanesi</BolumBasligi>
       <div className="kitap-akis" ref={solAkis}>
         {ilkBolum}
         {tekAkis ? sonBolum : null}
@@ -178,7 +180,7 @@ export default function KitapGalerisi() {
     <div className="kitap-galeri" data-kitap-telefon={telefon} data-kitap-tema={tema} data-kitap-el={ayar.el} data-kitap-boy={ayar.boy} data-kitap-efekt={efektKapali ? 'kapali' : 'acik'}>
       <h1 className="kitap-gizli">Unwritten kitap teması: galeri</h1>
       <Ayraclar deger={ayrac} degisince={setAyrac} ayraclar={AYRACLAR} masaSonra={darEkran}
-        masa={<>{saatDugmesi}<span className="kitap-dar-yok"><AyarCarki deger={ayar} degisince={setAyar} /></span></>}>
+        masa={<>{saatDugmesi}<span className="kitap-dar-yok"><AyarCarki deger={ayar} degisince={setAyar} /></span><KayitBildirimi durum={kayit.durum} kimlik={kayit.kimlik} kapat={() => setKayit((k) => ({ kimlik: k.kimlik }))} tekrar={() => setKayit((k) => ({ durum: 'kaydedildi', kimlik: k.kimlik + 1 }))} /></>}>
         <KitapKabugu tema={tema} el={ayar.el} boy={ayar.boy} efektKapali={efektKapali} sol={sol} sag={sag} darEkranSayfasi={ayrac === 'hikaye' ? 'sol' : 'sag'} lambaKaranlikta={lambaKaranlikta} telefonDuzeni={telefon} />
       </Ayraclar>
 
@@ -277,16 +279,16 @@ export default function KitapGalerisi() {
           <Ornek ad="günlük, kural"><KenarNotu simge="kural">Kuzey yolu günlüğe yazıldı.</KenarNotu></Ornek>
         </Parca>
 
-        <Parca baslik="Kayıt bildirimi (Kadir seçer: mühür ya da kurdele)">
-          <Ornek ad="mühür"><KayitBildirimi bicim="muhur" durum="kaydedildi" kapat={() => {}} /></Ornek>
-          <Ornek ad="kurdele"><KayitBildirimi bicim="kurdele" durum="kaydedildi" kapat={() => {}} /></Ornek>
-          <Ornek ad="hata: kendiliğinden kapanmaz">
-            <KayitBildirimi bicim="muhur" durum="hata" kapat={() => {}} /><KayitBildirimi bicim="kurdele" durum="hata" kapat={() => {}} />
+        <Parca baslik="Kayıt bildirimi (kurdele; Kadir seçti, çelişki 24)">
+          <Ornek ad="kaydedildi"><KayitBildirimi durum="kaydedildi" kapat={() => {}} /></Ornek>
+          <Ornek ad="hata: kendiliğinden kapanmaz, tekrar dene ve kapat">
+            <KayitBildirimi durum="hata" kapat={() => {}} tekrar={() => {}} />
           </Ornek>
+          <Ornek ad="hata: tekrar yolu yoksa yalnız kapat"><KayitBildirimi durum="hata" kapat={() => {}} /></Ornek>
           <Ornek ad="boş"><p className="kitap-etiket">Kayıt yokken görünmez.</p></Ornek>
-          <Ornek ad="sağ üstte dene">
-            <KitapDugme onClick={() => setKayit((k) => ({ bicim: 'muhur', durum: 'kaydedildi', kimlik: k.kimlik + 1 }))}>Mühürle kaydet</KitapDugme>
-            <KitapDugme onClick={() => setKayit((k) => ({ bicim: 'kurdele', durum: 'kaydedildi', kimlik: k.kimlik + 1 }))}>Kurdeleyle kaydet</KitapDugme>
+          <Ornek ad="üst çubukta dene">
+            <KitapDugme onClick={() => setKayit((k) => ({ durum: 'kaydedildi', kimlik: k.kimlik + 1 }))}>Kaydet</KitapDugme>
+            <KitapDugme onClick={() => setKayit((k) => ({ durum: 'hata', kimlik: k.kimlik + 1 }))}>Kayıt hatası</KitapDugme>
           </Ornek>
         </Parca>
 
@@ -324,7 +326,6 @@ export default function KitapGalerisi() {
         ))}
       </Pencere>
       <BildirimAlani />
-      <KayitBildirimi bicim={kayit.bicim} durum={kayit.durum} kimlik={kayit.kimlik} kapat={() => setKayit((k) => ({ bicim: k.bicim, kimlik: k.kimlik }))} />
     </div>
   );
 }

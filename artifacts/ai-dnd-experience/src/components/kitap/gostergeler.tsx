@@ -2,7 +2,7 @@
 // guesses. A value that cannot be true (below zero, above the maximum, not a whole number) is shown as unreadable,
 // never as a made-up number.
 import { useEffect, useRef, type ReactNode } from 'react';
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, X } from 'lucide-react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { BosSatirlar, Ipucu } from '@/components/kitap/kontroller';
 import { CanMuhuruCizimi } from '@/components/kitap/cizimler/can-muhuru';
@@ -117,14 +117,15 @@ export function DurumSeridi({ seviyeler, can, enCok, basHarf }: { seviyeler: Rea
 export type ZarYuzu = 4 | 6 | 8 | 10 | 12 | 20;
 
 // Die outlines in a 48-unit box, drawn here in code (the draft has no die drawing); colours come from kitap.css tokens.
-// Facet lines only where they clear the number (the d20 face triangle holds it).
+// Facet lines only where they clear the number: the d20 face triangle holds it (its base on the lower corners), the d10
+// has the V of its lower faces under the number, so it no longer reads as the d8 diamond (review 3).
 const ZAR_BICIMI: Record<ZarYuzu, { dis: ReactNode; ic?: string; y: number }> = {
   4: { dis: <path d="M24 5L44.5 40.5H3.5Z" />, y: 31 },
   6: { dis: <rect x="6" y="6" width="36" height="36" rx="5" />, y: 24 },
   8: { dis: <path d="M24 3L44 24L24 45L4 24Z" />, y: 24 },
-  10: { dis: <path d="M24 3L44.5 20L24 45L3.5 20Z" />, y: 22 },
+  10: { dis: <path d="M24 3L44.5 20L24 45L3.5 20Z" />, ic: 'M3.5 20L24 30L44.5 20M24 30V45', y: 18 },
   12: { dis: <path d="M24 3.5L44.5 18.4L36.7 42.5H11.3L3.5 18.4Z" />, y: 25 },
-  20: { dis: <path d="M24 2.5L42.6 13.2V34.8L24 45.5L5.4 34.8V13.2Z" />, ic: 'M24 8.5L41 36.5H7Z', y: 28 },
+  20: { dis: <path d="M24 2.5L42.6 13.2V34.8L24 45.5L5.4 34.8V13.2Z" />, ic: 'M24 5L42.6 34.8H5.4Z', y: 27.5 },
 };
 
 /** A die (A1): drawn in SVG; it shows the value it is given and nothing else. It never rolls. */
@@ -137,6 +138,9 @@ export function Zar({ yuz, deger, disabled, en = 48 }: { yuz: ZarYuzu; deger?: n
     <svg width={en} height={en} viewBox="0 0 48 48" role="img" aria-label={ad} className={`kitap-zar${durum}${disabled ? ' kitap-zar-devre-disi' : ''}`}>
       <g className="kitap-zar-yuz">{bicim.dis}</g>
       {bicim.ic ? <path className="kitap-zar-ic" d={bicim.ic} /> : null}
+      {deger !== undefined && !gecerli ? (
+        <g className="kitap-zar-uyari"><circle cx="24" cy="24" r="8" /><path d="M24 19.6V25M24 28.2V28.4" /></g>
+      ) : null}
       {gecerli ? <text className="kitap-zar-sayi" x="24" y={bicim.y} textAnchor="middle" dominantBaseline="central">{deger}</text> : null}
     </svg>
   );
@@ -156,25 +160,41 @@ export const KAYIT_SURESI = 2600;
 export type KayitDurumu = 'kaydedildi' | 'hata';
 
 /**
- * Save notice, small and top right (A0-7); two looks side by side until Kadir picks one (conflict 24): a pressed seal
- * or a ribbon. A save fades by itself after KAYIT_SURESI; an error stays until the next save and is announced at once.
- * `kimlik` changes with every save, so a second save restarts the fade and is read again.
+ * Save notice in the desk row (A0-7), with the ribbon mark (Kadir picked it over the seal, conflict 24: the seal read as
+ * health). A save fades by itself after KAYIT_SURESI; an error stays, is announced at once and offers a way out:
+ * "Tekrar dene" when the caller can retry, and always a close button. `kimlik` changes with every save, so a second
+ * save restarts the fade and is read again.
  */
-export function KayitBildirimi({ bicim, durum, kimlik = 0, kapat }: { bicim: 'muhur' | 'kurdele'; durum?: KayitDurumu; kimlik?: number; kapat: () => void }) {
+export function KayitBildirimi({ durum, kimlik = 0, kapat, tekrar }: { durum?: KayitDurumu; kimlik?: number; kapat: () => void; tekrar?: () => void }) {
   const kapatRef = useRef(kapat);
   kapatRef.current = kapat;
+  const kutu = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (durum !== 'kaydedildi') return undefined;
     const zaman = setTimeout(() => kapatRef.current(), KAYIT_SURESI);
     return () => clearTimeout(zaman);
   }, [durum, kimlik]);
+  // A pressed button leaves the page (close empties the notice, a retry turns it into a save), so focus moves to the
+  // notice itself, which stays; otherwise it would fall back to the top of the page.
+  const basinca = (f: () => void) => () => {
+    kutu.current?.focus();
+    f();
+  };
   return (
-    <div role="status" aria-live={durum === 'hata' ? 'assertive' : 'polite'} className={`kitap-kayit kitap-kayit-${bicim}`} data-durum={durum ?? 'bos'}>
-      {durum ? (
-        <span key={kimlik} className="kitap-kayit-fis">
-          {durum === 'hata' ? <CircleAlert className="kitap-kayit-hata-simge" aria-hidden="true" />
-            : bicim === 'muhur' ? <CanMuhuruCizimi en={22} basHarf="" /> : <span className="kitap-kayit-kurdele-isaret" aria-hidden="true" />}
-          <span>{durum === 'hata' ? 'Kaydedilemedi' : 'Kaydedildi'}</span>
+    <div ref={kutu} tabIndex={-1} className="kitap-kayit" data-durum={durum ?? 'bos'}>
+      {/* Only the words are live; the buttons sit beside the live region so it reads "Kaydedilemedi" alone. */}
+      <div role="status" aria-live={durum === 'hata' ? 'assertive' : 'polite'} className="kitap-kayit-canli">
+        {durum ? (
+          <span key={kimlik} className="kitap-kayit-fis">
+            {durum === 'hata' ? <CircleAlert className="kitap-kayit-hata-simge" aria-hidden="true" /> : <span className="kitap-kayit-kurdele-isaret" aria-hidden="true" />}
+            <span>{durum === 'hata' ? 'Kaydedilemedi' : 'Kaydedildi'}</span>
+          </span>
+        ) : null}
+      </div>
+      {durum === 'hata' ? (
+        <span className="kitap-kayit-eylem">
+          {tekrar ? <button type="button" className="kitap-kayit-dugme" onClick={basinca(tekrar)}>Tekrar dene</button> : null}
+          <button type="button" className="kitap-kayit-kapat" aria-label="Kapat" onClick={basinca(kapat)}><X aria-hidden="true" /></button>
         </span>
       ) : null}
     </div>

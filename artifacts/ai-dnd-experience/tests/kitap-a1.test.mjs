@@ -778,20 +778,23 @@ test('o2 margin note: green italic with a small icon; the new one is gold, the u
   assert.match(kural(kitapCss(), '.kitap-kenar'), /display:\s*flex/);
 });
 
-test('o2 save notice: seal or ribbon (Kadir picks), a polite status, fades by itself, an error stays', async () => {
+test('o2 save notice: the ribbon (Kadir picked it, conflict 24), a polite status, fades by itself, an error stays', async () => {
   const g = await gosterge();
-  for (const bicim of ['muhur', 'kurdele']) {
-    const html = render(g.KayitBildirimi, { bicim, durum: 'kaydedildi', kapat() {} });
-    assert.match(html, /role="status"[^>]*aria-live="polite"|aria-live="polite"[^>]*role="status"/);
-    assert.match(html, new RegExp(`kitap-kayit-${bicim}`));
-    assert.match(yazi(html), /^Kaydedildi$/);
-  }
-  assert.match(yazi(render(g.KayitBildirimi, { bicim: 'muhur', durum: 'hata', kapat() {} })), /^Kaydedilemedi$/);
-  const bos = render(g.KayitBildirimi, { bicim: 'muhur', kapat() {} });
+  // Rewritten (approval list): it walked both looks; Kadir picked the ribbon on 15 Nov 2026, so the seal look is gone.
+  const html = render(g.KayitBildirimi, { durum: 'kaydedildi', kapat() {} });
+  assert.match(html, /role="status"[^>]*aria-live="polite"|aria-live="polite"[^>]*role="status"/);
+  assert.match(html, /kitap-kayit-kurdele-isaret/);
+  assert.doesNotMatch(html, /kitap-muhur|<svg/, 'no seal drawing in the save notice (it read as a health change)');
+  assert.match(yazi(html), /^Kaydedildi$/);
+  assert.match(yazi(render(g.KayitBildirimi, { durum: 'hata', kapat() {} })), /^Kaydedilemedi$/);
+  const bos = render(g.KayitBildirimi, { kapat() {} });
   assert.match(bos, /role="status"/, 'the live region is there before the first save');
   assert.equal(yazi(bos), '');
   assert.equal(g.KAYIT_SURESI, 2600);
   assert.match(medya(kitapCss(), '(prefers-reduced-motion: reduce)'), /\.kitap-kayit[^{]*\{[^}]*animation:\s*none/);
+  const kaynak = read('components/kitap/gostergeler.tsx');
+  assert.doesNotMatch(kaynak.slice(kaynak.indexOf('export function KayitBildirimi')), /bicim|muhur|Muhur/i, 'one look only');
+  assert.doesNotMatch(kitapCss(), /kitap-kayit-muhur|kitap-kayit-bas/, 'the seal animation is gone with the seal');
 });
 
 test('o2 G6: the phone layout is a choice the gallery shows both ways (a: one settings button, b: desk strip with the lamp)', () => {
@@ -819,8 +822,9 @@ test('o2 gallery: each new piece shows its states (empty, full, error, disabled,
   const galeri = read('pages/kitap-galerisi.tsx');
   for (const parca of ['<CanMuhru', '<BuyuYuvalari', '<DurumSeridi', '<Zar', '<KenarNotu', '<KayitBildirimi']) assert.match(galeri, new RegExp(parca), parca);
   for (const ad of ['Can mührü', 'Büyü yuvaları', 'Zar', 'Kenar notu', 'Kayıt bildirimi']) assert.match(galeri, new RegExp(`<Parca baslik="${ad}`), ad);
-  assert.match(galeri, /bicim="muhur"/);
-  assert.match(galeri, /bicim="kurdele"/);
+  // Rewritten (approval list): the gallery showed both save looks; after Kadir's pick it shows the ribbon only.
+  assert.doesNotMatch(galeri, /bicim=|Mühürle kaydet/);
+  assert.match(galeri, />Kaydet</);
   assert.doesNotMatch(galeri, /Mühür, mum, zar ve kenar notu Oturum 2'de/);
 });
 
@@ -852,9 +856,9 @@ test('o2 review: each save restarts the fade and is announced again; an error is
   const g = await gosterge();
   const kaynak = read('components/kitap/gostergeler.tsx');
   assert.match(kaynak, /\}, \[durum, kimlik\]\);/, 'the fade timer re-runs for every save (kimlik changes)');
-  const hata = render(g.KayitBildirimi, { bicim: 'muhur', durum: 'hata', kimlik: 2, kapat() {} });
+  const hata = render(g.KayitBildirimi, { durum: 'hata', kimlik: 2, kapat() {} });
   assert.match(hata, /aria-live="assertive"/);
-  assert.match(render(g.KayitBildirimi, { bicim: 'muhur', durum: 'kaydedildi', kimlik: 3, kapat() {} }), /aria-live="polite"/);
+  assert.match(render(g.KayitBildirimi, { durum: 'kaydedildi', kimlik: 3, kapat() {} }), /aria-live="polite"/);
   assert.match(read('pages/kitap-galerisi.tsx'), /kimlik=\{kayit\.kimlik\}/);
 });
 
@@ -862,4 +866,98 @@ test('o2 review: a slot row says its slots once (no tooltip description on top o
   const g = await gosterge();
   assert.match(read('components/kitap/gostergeler.tsx'), /className="kitap-yuva"[^>]*aria-describedby=\{undefined\}/);
   assert.match(render(g.Zar, { yuz: 20, deger: 3, disabled: true }), /aria-label="d20 zarı: 3, devre dışı"/);
+});
+
+// ui-design-review of A1 Oturum 2 (15 Nov 2026), all eight findings; Kadir: "Hepsini düzelt, kurdele seç".
+test('review 1/4: the save slip sits in the desk row (aligned with its buttons), on the phone at the page head, never over the story', () => {
+  const tum = kitapCss();
+  assert.match(kural(tum, '.kitap-masa-ust .kitap-kayit'), /position:\s*static/);
+  const tel = medya(tum, '(max-width: 767px)');
+  assert.doesNotMatch(tel, /bottom:\s*170px/, 'no longer over the last story line');
+  assert.match(tel, /\.kitap-masa-ust \.kitap-kayit\s*\{[^}]*position:\s*fixed[^}]*top:\s*calc\(var\(--masa-ust-bosluk\)/);
+  // 768-1179: the tabs reach into the desk row, so the slip sits fixed in the book's top margin (measured at 768/1024).
+  const ara = medya(tum, '(min-width: 768px) and (max-width: 1179px)');
+  assert.match(ara, /\.kitap-masa-ust \.kitap-kayit\s*\{[^}]*position:\s*fixed[^}]*top:\s*calc\(var\(--masa-ust-bosluk\)/);
+  // The media rules win over the base rule only by coming after it (same specificity).
+  assert.ok(tum.indexOf('.kitap-masa-ust .kitap-kayit {') < tum.indexOf('@media (max-width: 767px) {'));
+  const galeri = read('pages/kitap-galerisi.tsx');
+  assert.match(galeri, /masa=\{<>[^\n]*<KayitBildirimi /, 'the live notice is part of the desk row');
+});
+
+test('review 2: a failed save gives a way out: "Tekrar dene" when a retry is given, and always a close button', async () => {
+  const g = await gosterge();
+  const hata = render(g.KayitBildirimi, { durum: 'hata', kapat() {}, tekrar() {} });
+  assert.match(hata, /<button[^>]*type="button"[^>]*>[^<]*Tekrar dene<\/button>/);
+  assert.match(hata, /<button[^>]*aria-label="Kapat"/);
+  assert.equal(yazi(hata), 'Kaydedilemedi Tekrar dene');
+  const tekrarsiz = render(g.KayitBildirimi, { durum: 'hata', kapat() {} });
+  assert.doesNotMatch(tekrarsiz, /Tekrar dene/, 'no retry button that does nothing');
+  assert.match(tekrarsiz, /aria-label="Kapat"/);
+  assert.doesNotMatch(render(g.KayitBildirimi, { durum: 'kaydedildi', kapat() {}, tekrar() {} }), /<button/, 'a save that worked has nothing to press');
+  assert.match(kural(kitapCss(), '.kitap-kayit-eylem'), /pointer-events:\s*auto/);
+  // Opus review: the buttons sit beside the live region, not in it (it reads only "Kaydedilemedi").
+  const canli = /<div role="status"[^>]*>([\s\S]*?)<\/div>/.exec(hata)[1];
+  assert.doesNotMatch(canli, /<button/);
+  assert.equal(yazi(canli), 'Kaydedilemedi');
+  // Opus review: a pressed button leaves the page; focus goes to the notice (it stays), not to the page top.
+  assert.match(hata, /class="kitap-kayit"[^>]*tabindex="-1"|tabindex="-1"[^>]*class="kitap-kayit"/);
+  assert.match(read('components/kitap/gostergeler.tsx'), /kutu\.current\?\.focus\(\)/);
+  const kaynak = read('components/kitap/gostergeler.tsx');
+  assert.match(kaynak, /aria-label="Kapat" onClick=\{basinca\(kapat\)\}/);
+  assert.match(kaynak, /onClick=\{basinca\(tekrar\)\}/);
+});
+
+const zarSayilari = (d) => d.match(/-?\d+(\.\d+)?/g).map(Number);
+test('review 3: an unreadable die shows a warning mark (unrolled does not); d10 has facets d8 lacks; the d20 face clears its number', async () => {
+  const g = await gosterge();
+  const hata = render(g.Zar, { yuz: 20, deger: 21 });
+  assert.match(hata, /class="kitap-zar-uyari"/);
+  assert.equal(yazi(hata), '', 'the mark is drawn, not written');
+  assert.doesNotMatch(render(g.Zar, { yuz: 20 }), /kitap-zar-uyari/);
+  assert.match(kural(kitapCss(), '.kitap-zar-uyari'), /stroke:\s*var\(--hakem\)/);
+  assert.match(render(g.Zar, { yuz: 10, deger: 7 }), /class="kitap-zar-ic"/);
+  assert.doesNotMatch(render(g.Zar, { yuz: 8, deger: 7 }), /class="kitap-zar-ic"/);
+  // d20: the number (14px, about 10 high and 17 wide) sits inside the face triangle with room on every side.
+  const d20 = render(g.Zar, { yuz: 20, deger: 14 });
+  const [ax, ay, bx, by] = zarSayilari(/class="kitap-zar-ic" d="([^"]+)"/.exec(d20)[1]);
+  const y = Number(/<text[^>]*y="([\d.]+)"/.exec(d20)[1]);
+  const yariEn = (yy) => (bx - ax) * (yy - ay) / (by - ay);
+  assert.ok(yariEn(y - 5) >= 10, `half width at the top of the number: ${yariEn(y - 5)}`);
+  assert.ok(by - (y + 5) >= 2, `base below the number: ${by - (y + 5)}`);
+});
+
+test('review 5: on the phone (one flow) the page head carries the status strip, so health and candles stay in sight', () => {
+  const galeri = read('pages/kitap-galerisi.tsx');
+  assert.match(galeri, /<BolumBasligi yan=\{tekAkis \?[^\n]*<DurumSeridi /);
+  assert.match(kural(kitapCss(), '.kitap-bolum-yan-sira'), /flex-wrap:\s*wrap/);
+});
+
+test('review 6: a spent candle darkens its body in every theme (not only by losing the flame)', () => {
+  assert.match(read('components/kitap/cizimler/mum.tsx'), /fill="var\(--mum-sonuk\)"/);
+  for (const sec of ['[data-kitap-tema="gunduz"]', '[data-kitap-tema="gece"]', '[data-kitap-tema="karanlik"]']) {
+    assert.ok(token(block(sec), '--mum-sonuk'), `${sec} --mum-sonuk`);
+  }
+});
+
+test('review 7: a scrolled-off chapter start fades its drop cap with it (a lone stem read the Y as an I)', () => {
+  // Measured at 1024x768: the story opens on its last lines, the box edge cuts the Y's arms and the stem stays. A wider
+  // fade did not help (the arms are above the box), so the drop cap fades as its paragraph leaves the top.
+  const tum = kitapCss();
+  const destek = tum.slice(tum.indexOf('@supports (animation-timeline: view())'));
+  assert.match(tum, /@property --kitap-ilk-sonme\s*\{[^}]*syntax:\s*'<percentage>'[^}]*initial-value:\s*0%/);
+  // exit-crossing, not exit: a first paragraph taller than the box starts fading when its top leaves, not its bottom.
+  assert.match(destek, /\.kitap-ilk\s*\{[^}]*view-timeline:\s*--kitap-ilk block[^}]*animation-timeline:\s*--kitap-ilk[^}]*animation-range:\s*exit-crossing 0px exit-crossing 20px/);
+  assert.match(destek, /\.kitap-ilk::first-letter\s*\{\s*color:\s*color-mix\(in srgb, transparent var\(--kitap-ilk-sonme\), currentColor\);\s*text-shadow:\s*none;/, 'no ink-shadow ghost of the faded letter');
+  assert.match(tum, /@keyframes kitap-ilk-sol\s*\{\s*from\s*\{\s*--kitap-ilk-sonme:\s*0%;\s*\}\s*to\s*\{\s*--kitap-ilk-sonme:\s*100%;\s*\}\s*\}/);
+});
+
+test('review 8: a hint opens on a tap too (Radix opens it only on hover and focus)', () => {
+  const kaynak = read('components/kitap/kontroller.tsx');
+  const ipucu = kaynak.slice(kaynak.indexOf('export function Ipucu'), kaynak.indexOf('export function Pencere'));
+  assert.match(ipucu, /open=\{acik\}/);
+  assert.match(ipucu, /pointerType [!=]== 'touch'/);
+  // Opus review: no preventDefault (it would stop a wrapped button, link or menu trigger on a phone); the click that
+  // follows a tap is told apart by a flag that a cancelled touch (scroll) clears.
+  assert.doesNotMatch(ipucu, /preventDefault/);
+  assert.match(ipucu, /onPointerCancel=/);
 });

@@ -53,6 +53,8 @@ export function Mum({ yanan, en = 24 }: { yanan: boolean; en?: number }) {
         <>
           <ellipse cx="15" cy="86.4" rx="10.5" ry="2.4" fill="#000" opacity=".22" />
           <g opacity=".5">{govde}</g>
+          {/* Review 6: the spent body is darkened too (transparent in the dark theme, where the faded body already reads dark). */}
+          <path d={GOVDE} fill="var(--mum-sonuk)" />
           <path d="M15 34C14.5 31.4 15.6 29.6 15 27.4" stroke="#17120E" strokeWidth="1.5" fill="none" strokeLinecap="round" />
           <path d="M15 24.5C12.2 20 17.8 16.6 15 12C13.2 9 16.4 6.4 15.4 3" stroke="var(--soluk)" strokeWidth="1" fill="none" strokeLinecap="round" opacity=".55" />
         </>
