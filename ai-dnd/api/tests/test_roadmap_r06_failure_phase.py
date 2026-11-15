@@ -136,12 +136,13 @@ class FailurePhaseIntegrationTests(unittest.IsolatedAsyncioTestCase):
 
         # NPC_SPEECH: speech that could not be produced is not persisted and nothing else moves.
         self.mode = "speech"
-        action_id = str(uuid.uuid4())  # the id stays unresolved after an uncertain failure; the same id is the way forward
-        spoken = await self.post(action_id)
+        spoken_id = str(uuid.uuid4())
+        spoken = await self.post(spoken_id)
         self.assertGreaterEqual(spoken.status_code, 500, spoken.text)
         self.assertEqual(self.durable(), before)
 
         # RESOLVED_UNCOMMITTED (storage): rolled back, a retry with the SAME id commits exactly once, no never-applied claim.
+        action_id = str(uuid.uuid4())  # D-106: the model failure closed its id for good; the player's next try is a new id
         self.mode = "ok"
         with patch.object(self.store, "save_campaign", side_effect=CampaignStorageError("disk full")):
             storage = await self.post(action_id)
@@ -158,6 +159,10 @@ class FailurePhaseIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(replay.status_code, 200)
         self.assertEqual(replay.json(), committed.json(), "same dice, same source, same time")
         self.assertEqual(self.calls, calls_after_commit, "a committed result is replayed, never re-resolved")
+        self.assertEqual(self.durable()["revision"], before["revision"] + 1)
+        late = await self.post(spoken_id)
+        self.assertEqual(late.json(), spoken.json(), "the model-failed id replays its refusal")
+        self.assertEqual(self.calls, calls_after_commit, "a model-failed id never runs a second turn")
         self.assertEqual(self.durable()["revision"], before["revision"] + 1)
 
     async def test_stale_storage_and_quarantine_answer_with_distinct_codes(self):

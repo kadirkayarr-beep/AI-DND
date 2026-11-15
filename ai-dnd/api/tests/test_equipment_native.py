@@ -580,7 +580,7 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
             self.assertEqual(response.status_code, 200, response.text)
             self.assertIn("atomik olarak tamamlandı", response.json()["narration"])
         for message in (f'/item work {npc["id"]}', f'/item talk {npc["id"]} Merhaba'):
-            self.assertEqual((await self.post(campaign, {"message": message})).status_code, 200)
+            self.assertEqual((await self.post(campaign, {"action_id": str(uuid4()), "message": message})).status_code, 200)
         identity = next(iter(record.game_session.world_state["item_rewards"]))
-        result = await self.post(campaign, {"message": f"/item reward {identity}"})
+        result = await self.post(campaign, {"action_id": str(uuid4()), "message": f"/item reward {identity}"})
         self.assertIn("atomik olarak tamamlandı", result.json()["narration"])

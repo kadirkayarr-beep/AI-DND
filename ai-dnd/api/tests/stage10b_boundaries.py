@@ -12,6 +12,7 @@ import os
 import sys
 from pathlib import Path
 from unittest.mock import patch
+from uuid import uuid4
 
 import httpx
 
@@ -71,7 +72,7 @@ async def _observe_model_failures() -> dict:
                 before = serialize_session_state(session)
                 response = await http.post(
                     f"/api/sessions/{session_id}/turn",
-                    json={"message": message},
+                    json={"message": message, "action_id": str(uuid4())},
                 )
                 after = serialize_session_state(session)
                 shops_before = len(before_state.get("shops") or [])

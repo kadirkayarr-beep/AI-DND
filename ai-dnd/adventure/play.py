@@ -160,7 +160,7 @@ _HAZARD_CHECK = {"loose_beam": ("Acrobatics", 15)}
 
 
 def inside_hideout(world):
-    return _discovery(world) is not None
+    return _inside(world)
 
 
 def resolve_dungeon_turn(session, text, check):
@@ -203,7 +203,7 @@ def resolve_dungeon_turn(session, text, check):
 def known_place(world):
     """Player-safe hideout slice. Hidden edges stay out."""
     state = _discovery(world)
-    if state is None:
+    if not _inside(world):
         return None
     exits = _known_edges(world)
     return {
@@ -214,7 +214,7 @@ def known_place(world):
 
 
 def dungeon_affordances(world):
-    if _discovery(world) is None:
+    if not _inside(world):
         if _can_enter(world):
             return ["Saklı girişe gir"]
         return []
@@ -241,7 +241,7 @@ def _interpret(world, text):
     folded = _fold(text if isinstance(text, str) else "")
     if not folded or folded.endswith("?"):
         return None
-    inside = _discovery(world) is not None
+    inside = _inside(world)
     if not inside:
         if _can_enter(world) and any(phrase in folded for phrase in ("sakli giris", "saklı giriş", "siginak", "sığınak")):
             return {"kind": "enter"}
@@ -272,7 +272,8 @@ def _commit_dungeon(session, choice, check):
     campaign_id = str(world.get("campaign_id") or "")
     kind = choice["kind"]
     if kind == "enter":
-        dungeon.ensure(world, campaign_id)
+        state = dungeon.ensure(world, campaign_id)
+        state["node"] = dungeon.HIDEOUT["entry"]  # back in after "Dışarı": the walk starts at the entrance again
         return {"action": "dungeon_enter", "success": True, "changes": ["dungeon"], "narration": "Saklı girişin içindesin. İleride bir koridor var."}
     if kind == "refuse":
         return {"action": "dungeon_traverse", "success": False, "changes": [], "narration": "Oraya açılan bilinen bir yol yok."}
@@ -366,6 +367,12 @@ def _active_bindings(world):
             if isinstance(bindings, dict):
                 return bindings
     return {}
+
+
+def _inside(world):
+    # The exit node ("Dışarı") is outside: the record stays for quest evidence, the player does not.
+    state = _discovery(world)
+    return state is not None and state.get("node") != dungeon.HIDEOUT["exit"]
 
 
 def _discovery(world):

@@ -3201,7 +3201,7 @@ export const ResolveSpeciesTraitActionParams = zod.object({
 
 
 export const ResolveSpeciesTraitActionBody = zod.object({
-  "action_id": zod.string().uuid().nullish().describe('UUIDv4 action receipt identity; reuse on network retry.'),
+  "action_id": zod.string().uuid().describe('UUIDv4 action receipt identity; reuse on network retry.'),
   "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense']),
   "healing_amount": zod.number().int().min(1).nullish(),
   "remove_poisoned": zod.boolean().nullish(),
@@ -4341,7 +4341,7 @@ export const prepareGameSessionSpellsBodyCloseDefault = false;
 export const PrepareGameSessionSpellsBody = zod.object({
   "prepared": zod.array(zod.string().max(prepareGameSessionSpellsBodyPreparedItemMax)).max(prepareGameSessionSpellsBodyPreparedMax).nullish(),
   "close": zod.boolean().default(prepareGameSessionSpellsBodyCloseDefault),
-  "action_id": zod.string().uuid().nullish()
+  "action_id": zod.string().uuid()
 }).describe('Omitted (or null) prepared keeps today\'s list; an explicit empty list is an explicit empty list.')
 
 export const prepareGameSessionSpellsResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -5454,7 +5454,7 @@ export const ResolveSpeciesTraitActionCompatParams = zod.object({
 
 
 export const ResolveSpeciesTraitActionCompatBody = zod.object({
-  "action_id": zod.string().uuid().nullish().describe('UUIDv4 action receipt identity; reuse on network retry.'),
+  "action_id": zod.string().uuid().describe('UUIDv4 action receipt identity; reuse on network retry.'),
   "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense']),
   "healing_amount": zod.number().int().min(1).nullish(),
   "remove_poisoned": zod.boolean().nullish(),
@@ -6660,7 +6660,7 @@ export const PlayGameTurnBody = zod.object({
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
   "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish(),
-  "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish(),
+  "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp),
   "economic_action": zod.union([zod.union([zod.object({
   "kind": zod.enum(['prepare']),
   "proposal": zod.object({
@@ -29633,7 +29633,7 @@ export const PlayLegacyTurnBody = zod.object({
   "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
   "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish(),
-  "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish(),
+  "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp),
   "economic_action": zod.union([zod.union([zod.object({
   "kind": zod.enum(['prepare']),
   "proposal": zod.object({

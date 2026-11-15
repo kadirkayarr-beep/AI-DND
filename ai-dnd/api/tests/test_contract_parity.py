@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
 import re
 import tempfile
 import unittest
@@ -1079,7 +1080,7 @@ class ContractParityTests(unittest.TestCase):
                 }.get(field_name, ())
                 if constraints:
                     runtime_value = next(
-                        branch for branch in runtime_property["anyOf"]
+                        branch for branch in runtime_property.get("anyOf", [runtime_property])
                         if branch.get("type") != "null"
                     )
                     for constraint in constraints:
@@ -1092,9 +1093,9 @@ class ContractParityTests(unittest.TestCase):
         self.assertEqual(message_schema["minLength"], 1)
         self.assertEqual(message_schema["maxLength"], 4000)
         with self.assertRaises(ValidationError):
-            TurnRequest(message="   ")
+            TurnRequest(message="   ", action_id=uuid4())
         with self.assertRaises(ValidationError):
-            TurnRequest.model_validate({"message": "look", "current_hp": 99})
+            TurnRequest.model_validate({"message": "look", "action_id": str(uuid4()), "current_hp": 99})
 
     def test_campaign_and_session_schema_fields_match_fastapi_models(self):
         response_models = {
@@ -1626,7 +1627,7 @@ class ContractParityTests(unittest.TestCase):
     def test_species_action_runtime_acceptance_and_rejection_boundaries(self):
         request_schema = SpeciesTraitActionRequest.model_json_schema()["properties"]
         for action in _schema_enum(request_schema["action"]):
-            payload = {"action": action}
+            payload = {"action": action, "action_id": str(uuid4())}
             if action == "celestial_revelation":
                 payload["form"] = "heavenly_wings"
             elif action == "choose_giant_ancestry":
@@ -1641,19 +1642,22 @@ class ContractParityTests(unittest.TestCase):
         ):
             for value in _schema_enum(request_schema[field]) - {None}:
                 with self.subTest(field=field, value=value):
-                    SpeciesTraitActionRequest.model_validate({"action": action, field: value})
+                    SpeciesTraitActionRequest.model_validate({"action": action, field: value, "action_id": str(uuid4())})
         SpeciesTraitActionRequest(
-            action="healing_hands", form=None, ancestry=None, armed=None, action_id=None
+            action="healing_hands", form=None, ancestry=None, armed=None, action_id=uuid4()
         )
-        SpeciesTraitActionRequest(action="arm_giant_ancestry", armed=False)
-        SpeciesTraitActionRequest(action="arm_giant_ancestry", armed=True)
+        SpeciesTraitActionRequest(action="arm_giant_ancestry", armed=False, action_id=uuid4())
+        SpeciesTraitActionRequest(action="arm_giant_ancestry", armed=True, action_id=uuid4())
+        action_id = str(uuid4())
         for payload in (
-            {},
-            {"action": None},
-            {"action": "unknown"},
-            {"action": "celestial_revelation", "form": "unknown"},
-            {"action": "choose_giant_ancestry", "ancestry": "unknown"},
-            {"action": "healing_hands", "unexpected": True},
+            {"action_id": action_id},
+            {"action": None, "action_id": action_id},
+            {"action": "unknown", "action_id": action_id},
+            {"action": "celestial_revelation", "form": "unknown", "action_id": action_id},
+            {"action": "choose_giant_ancestry", "ancestry": "unknown", "action_id": action_id},
+            {"action": "healing_hands", "unexpected": True, "action_id": action_id},
+            {"action": "healing_hands"},
+            {"action": "healing_hands", "action_id": None},
         ):
             with self.subTest(payload=payload), self.assertRaises(ValidationError):
                 SpeciesTraitActionRequest.model_validate(payload)
@@ -1928,7 +1932,7 @@ class ContractParityTests(unittest.TestCase):
         anonymous = TestClient(app)
         denied = anonymous.post(
             "/api/game/sessions/not-a-uuid/turn",
-            json={"message": "   "},
+            json={"action_id": str(uuid4()), "message": "   "},
         )
         self.assertEqual(denied.status_code, 401)
         self.assertEqual(denied.json()["detail"]["code"], "authentication_required")
@@ -1947,7 +1951,7 @@ class ContractParityTests(unittest.TestCase):
         client = TestClient(authenticated)
         validation = client.post(
             "/api/game/sessions/not-a-uuid/turn",
-            json={"message": "   "},
+            json={"action_id": str(uuid4()), "message": "   "},
         )
         self.assertEqual(validation.status_code, 422)
         validation_body = validation.json()

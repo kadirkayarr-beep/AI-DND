@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
 import json
 import os
 import sys
@@ -112,7 +113,7 @@ class TransientNarrationMemoryAcceptanceTests(unittest.IsolatedAsyncioTestCase):
             ) as client:
                 response = await client.post(
                     f"/api/sessions/{session_id}/turn",
-                    json={"message": PLAYER_MESSAGE},
+                    json={"action_id": str(uuid4()), "message": PLAYER_MESSAGE},
                 )
 
         self.assertEqual(response.status_code, 200, response.text)
