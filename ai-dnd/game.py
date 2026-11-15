@@ -15167,6 +15167,12 @@ def finalize_narration(
         import town_knowledge
         narration = town_knowledge.without_unbacked_money(narration)
         narration = pocket.without_the_taking(narration, pocket.not_in_bag(session.world_state, getattr(session, "_nothing_taken", None)))
+    if (not attributed_speech and isinstance(action_result, dict)
+            and "currency" not in (action_result.get("state_changes") or ())
+            and not action_result.get("direct_response") and not is_live_town_response(narration)):
+        import pocket
+        # D-142: on any turn that moved no coin, a purse sentence of free prose must be the engine's purse.
+        narration = pocket.without_false_purse(narration, session.world_state)
     if not isinstance(narration, str) or not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -20868,6 +20874,13 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             resolved_turn.fallback_response if narration_only else None
         ),
     )
+    if resolved_turn.action_result.get("action") == "narrative_spell" and isinstance(packet.get("item_claims"), list):
+        # D-067: the cast moved nothing, so a thing the narrator says changed hands is never committed: its sentence
+        # leaves first (the rest of the line stays), and a line that was all claim is the Python line.
+        import pocket
+        for claim in packet["item_claims"]:
+            finalized_narration = pocket.without_claim(_session().world_state, claim, finalized_narration)
+        finalized_narration = finalized_narration or resolved_turn.fallback_response
     import spell_effects
     if (resolved_turn.action_result.get("action") == "narrative_spell"
             and spell_effects.claims_state_change(finalized_narration)):
