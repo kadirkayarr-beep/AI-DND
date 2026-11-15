@@ -4729,7 +4729,7 @@ def _species_player_turn_id():
     return _session().world_state.get("flags", {}).get("turn_index", 0)
 
 
-def _apply_species_on_hit_effects(target_npc, *, critical=False):
+def _apply_species_on_hit_effects(target_npc, *, critical=False, deals_damage):
     character = _session().character
     state = _species_trait_state()
     proficiency_bonus = character.get("proficiency_bonus", 2)
@@ -4760,8 +4760,15 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
         character.get("species") == "Goliath"
         and ancestry in GIANT_ANCESTRY_IDS
         and ancestry not in {"cloud", "stone", "storm"}  # Storm's Thunder is a damage reaction (D-132)
+        and deals_damage  # "hit ... and deal damage" (PHB 2024; D-197)
         and state.get("giant_ancestry_armed")
         and state.get("giant_ancestry_uses_remaining", 0) > 0
+        # Hill's Tumble reaches only a Large or smaller creature (PHB 2024); a Huge or unknown size spends nothing (D-201).
+        and (
+            ancestry != "hill"
+            or str(target_npc.get("size", "medium")).lower()
+            in weapon_attack.SIZES[: weapon_attack.SIZES.index("large") + 1]
+        )
     ):
         state["giant_ancestry_uses_remaining"] -= 1
         state["giant_ancestry_armed"] = False
@@ -4789,32 +4796,9 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
                 }
             )
         elif ancestry == "hill":
-            save_bonus = target_npc.get(
-                "strength_save_bonus", target_npc.get("strength_modifier", 0)
-            )
-            if type(save_bonus) is not int:
-                save_bonus = 0
-            dc = 8 + proficiency_bonus + character.get("strength_mod", 0)
-            resolution = resolve_saving_throw(
-                roll_fn=roll_d20,
-                ability="strength",
-                dc=dc,
-                ability_modifier=save_bonus,
-            )
-            save_roll = resolution["selected_roll"]
-            knocked_prone = resolution["outcome"] == "FAILURE"
-            if knocked_prone:
-                target_npc["prone"] = True
-            effects.append(
-                {
-                    "trait": "hill_giant_ancestry",
-                    "save_roll": save_roll,
-                    "save_bonus": save_bonus,
-                    "save_dc": dc,
-                    "knocked_prone": knocked_prone,
-                    "resolution": resolution,
-                }
-            )
+            # Hill's Tumble (PHB 2024): Prone with no saving throw (D-201).
+            target_npc["prone"] = True
+            effects.append({"trait": "hill_giant_ancestry", "knocked_prone": True})
     return bonus_damage, effects
 
 
