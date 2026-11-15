@@ -372,7 +372,7 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       hit_die: 6,
       primary_ability: 'intelligence',
       skill_count: 2,
-      skill_options: ['Arcana', 'History', 'Insight', 'Investigation', 'Medicine', 'Religion'],
+      skill_options: ['Arcana', 'History', 'Insight', 'Investigation', 'Medicine', 'Nature', 'Religion'],
       features: ['Büyü Kitabı', 'Ritüel Büyücülük'],
       is_spellcaster: true,
       cantrips_count: 3,
