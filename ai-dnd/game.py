@@ -4908,8 +4908,9 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 raise ValueError("Yeni uzun dinlenmeye başlamadan önce son tamamlanmadan 16 oyun saati geçmeli.")
         rest_time = advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
         if rest_time.get("condition_death"):
+            # D-145: the one result shape every rest answers with, so the panel's contract keeps the death too.
             return {"action": action, "message": "Dinlenme, mevcut ölüm politikasınca kesildi.",
-                    "refreshed": {}, "time_advance": rest_time}
+                    "effects": {"time_result": rest_time, "rest_completed": False}}
         if rest_time.get("interrupted"):
             interrupted_effects = {"time_result": rest_time, "rest_completed": False}
             if action == "long_rest" and rest_time.get("elapsed_seconds", 0) >= 3600:
