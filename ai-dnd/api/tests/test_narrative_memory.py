@@ -157,7 +157,14 @@ class NarrativeMemoryTests(unittest.TestCase):
             memory["npc_interactions"]["npc_001"],
             memory["npc_interactions"]["npc_058"],
         )
-        self.assertTrue(all(item["npc_id"] if "npc_id" in item else True for item in []))
+        self.assertEqual(
+            [(item["text"], item["turn_index"]) for item in memory["npc_interactions"]["npc_001"]],
+            [("Arin'e söz veriyorum.", 1)],
+        )
+        self.assertEqual(
+            [(item["text"], item["turn_index"]) for item in memory["npc_interactions"]["npc_058"]],
+            [("Arin'i sonra bulacağım.", 2)],
+        )
 
     def test_same_title_quests_are_identity_separate_without_inference(self):
         canonical_quests = [

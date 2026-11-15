@@ -76,7 +76,10 @@
       "say": "I shove the guard back with both hands, trying to push him five feet away without using a weapon.",
       "real_chain": true,
       "expect": {
-        "savas": false
+        "savas": false,
+        "kisi_hp": {
+          "guard": 12
+        }
       }
     },
     {
@@ -89,7 +92,10 @@
     {
       "undo": true,
       "expect": {
-        "savas": false
+        "savas": false,
+        "kisi_hp": {
+          "guard": 12
+        }
       },
       "real_chain": true
     }
