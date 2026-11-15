@@ -35,6 +35,21 @@
         }
       },
       "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?"
+      }
+    },
+    {
+      "say": "evet",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
         "zar": {
           "beceri": "Sleight of Hand",
           "zar_var": true

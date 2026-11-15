@@ -361,6 +361,11 @@ class AtTheTable(Table):
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "threat_to": self.npc["id"]}
         before = self.client.chat_calls
         await self.line("seni de dukkanini da yakarim haberin olsun", "Dene de görelim.")
+        # D-109: the threat is asked about first (the reading alone, no other call); nothing is tied yet
+        self.assertFalse(links(self.world), self.routes())
+        self.assertEqual(self.client.chat_calls - before, 1)
+        before = self.client.chat_calls
+        await self.line("evet", "Dene de görelim.")
         self.assertTrue(links(self.world), self.routes())
         self.assertEqual(links(self.world)[0]["kind"], world_happenings.GUARDED)
         self.assertEqual(self.client.chat_calls - before, 2)
@@ -383,5 +388,14 @@ class AtTheTable(Table):
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
         self.client.speech_extra = {"threat": "warned"}
-        await self.line("bak sana diyim, gece kapina dayanirim haberin olsun", "Dene de görelim.")
-        self.assertEqual(links(self.world)[0]["kind"], world_happenings.GUARDED)
+        line = "bak sana diyim, gece kapina dayanirim haberin olsun"
+        await self.line(line, "Dene de görelim.")
+        # D-109 re-review: the reply's own "warned" ties nothing while the reading found no threat said now and asked yes
+        self.assertFalse(links(self.world), self.routes())
+        self.assertEqual(relationships.score(self.world, self.npc["id"]), 0)
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "threat_to": self.npc["id"]}
+        await self.line(line, "Dene de görelim.")
+        self.assertFalse(links(self.world), self.routes())  # asked first
+        await self.line("evet", "Dene de görelim.")
+        self.assertEqual([row["kind"] for row in links(self.world)], [world_happenings.GUARDED])
+        self.assertEqual(relationships.score(self.world, self.npc["id"]), -1)  # the reading's tie and the reply's: once

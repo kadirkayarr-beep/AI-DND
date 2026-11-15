@@ -147,6 +147,11 @@ class ReadsBeforeTheOldOwners(FrontTable):
         await self.begin()
         self.client.front = {"kind": "attempt", "deed": "burn"}
         await self.line("su dukkani bastan asagi tutusturuyorum")
+        # D-109: a crime is asked about first; nothing burns until the player says yes
+        self.assertNotEqual(self.routes()[-1]["owner"], "arson")
+        self.assertFalse(self.world["flags"].get("fires"))
+        self.assertEqual(self.session._heavy_asked["deed"], "burn")
+        await self.line("evet")
         self.assertEqual(self.routes()[-1]["owner"], "arson")
 
     async def test_a_glance_at_a_purse_is_no_theft(self):
@@ -159,6 +164,11 @@ class ReadsBeforeTheOldOwners(FrontTable):
         await self.begin()
         self.client.front = {"kind": "attempt", "deed": "steal"}
         await self.line("kalabaligi firsat bilip adamin belindekini usulca kendime katiyorum")
+        # D-109: a crime is asked about first; nothing is taken until the player says yes
+        self.assertNotEqual(self.routes()[-1]["owner"], "theft")
+        self.assertFalse(self.world["flags"].get("deeds"))
+        self.assertEqual(self.session._heavy_asked["deed"], "steal")
+        await self.line("evet")
         self.assertEqual(self.routes()[-1]["owner"], "theft")
 
     async def test_asking_about_a_theft_is_no_theft_whatever_the_reading_says(self):
@@ -187,6 +197,11 @@ class ReadsBeforeTheOldOwners(FrontTable):
         await self.begin()
         self.client.drop_front = True
         await self.line("dukkani atese veriyorum")
+        # D-109 review: with no reading the old words still find the fire, and it too is asked first
+        self.assertEqual(self.session._heavy_asked["deed"], "burn")
+        self.assertNotIn("arson", [row.get("owner") for row in self.routes()])
+        self.assertFalse(self.world["flags"].get("fires"))
+        await self.line("evet")
         self.assertEqual(self.routes()[-1]["owner"], "arson")
 
     async def test_what_is_in_my_bag_goes_by_the_reading_however_it_is_said(self):

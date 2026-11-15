@@ -3102,6 +3102,7 @@ def load_game(path):
         # D-072: the sitting-only fight questions (never saved) belong to the replaced game, not the loaded one.
         _session()._attack_asked, _session()._blow_asked, _session()._blow_asked_line = False, None, None
         _session()._surrender_strike_asked = None
+        _session()._heavy_asked = _session()._heavy_confirmed = None  # D-109: so do the crime/threat question and its yes
         return loaded
     except Exception:
         _session()._persisted_engine_format = previous_format
@@ -8961,6 +8962,11 @@ def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=N
     session = _session()
     gate = getattr(session, "_thread_turn", None)
     try:
+        import world_happenings
+        said = threat.split()[0] if isinstance(threat, str) and threat.strip() else None
+        if said == world_happenings.PLAYER_THREATENED and not _heavy_allowed("threat", player_input,
+                                                                             person_id=npc.get("id")):
+            threat = None  # D-109: only a threat said now and asked yes hurts a tie; the reply's own claim stays words
         settled = town_knowledge.settle_reply(
             world, npc, player_input, raw, spoken,
             accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
@@ -18897,7 +18903,7 @@ def _stock_hearer(result, player_input, target_id):
         return here[action_result["npc_id"]]  # it already came out of a mouth
     if target_id in here:
         return here[target_id]
-    if read.get("kind") == "speak_to":
+    if read.get("kind") in {"speak_to", "heavy_asked"}:  # D-109: an asked threat is for the one threatened
         return here.get(read["id"])
     if not (read.get("kind") == "talk_around" or npc_speech_boundary.player_supplied_quote(player_input)
             or (not read and _reads_as_address(player_input))):
@@ -19273,6 +19279,10 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     session._front_rest = front_proposal.rest_in(reply, player_input)
     world_threads.note_want(world, front_proposal.want_in(reply, listed))
     threatened = front_proposal.threat_in(reply, listed)
+    if threatened and not fighting and not _heavy_allowed("threat", player_input, person_id=threatened):
+        # D-109: a hurt tie is asked about first; nothing moves this turn (the dispatcher shows the question)
+        front_proposal.note(session, "front:heavy_asked", reached=True)
+        return {"kind": "heavy_asked", "what": "threat", "id": threatened, "deed": None, "said": str(player_input)}
     if threatened:
         world_happenings.threatened(world, world_threads._npc(world, threatened))
     session._front_coin = front_proposal.coin_in(reply, player_input)
@@ -19371,7 +19381,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
 _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
-                      "blow_asked", "which_move", "wait", "consume", "wield"}
+                      "blow_asked", "heavy_asked", "which_move", "wait", "consume", "wield"}  # D-109: asked moves nothing
 
 
 def _defer_spoken_coin_offer(route):
@@ -19647,6 +19657,46 @@ def _ask_about_the_blow(person_id, player_input="", with_word=""):
                               "outcome": "unconfirmed_blow", "state_changes": [], "direct_response": line}}
 
 
+def _heavy_allowed(what, player_input, *, person_id=None, deed=None):
+    """D-109: the asked crime or threat was answered yes, and this is the very line that was asked about."""
+    confirmed = getattr(_session(), "_heavy_confirmed", None)
+    return (isinstance(confirmed, dict) and confirmed.get("said") == str(player_input)
+            and [what, person_id, deed] in confirmed.get("allowed", []))
+
+
+def _ask_before_the_heavy(asked):
+    """D-109 (Kadir kararı 2026-11-15): a crime or a hurt tie is asked about first, in one short line; nothing moves.
+    Asked for this sitting only, as "kavga mı başlatıyorsun?" is; a yes plays the asked line again (see
+    ``_answered_heavy_question``). Eating and drinking are never asked: Undo takes those back."""
+    session = _session()
+    session._heavy_asked = {key: asked.get(key) for key in ("what", "id", "deed", "said")}
+    if asked["what"] == "threat":
+        who = next((npc for npc in active_npcs() if npc.get("id") == asked.get("id")), None)
+        name = living_world.public_npc_name(who) if who is not None else "o kişi"
+        line = f"Bu, {name} ile aranı bozar. Gerçekten tehdit ediyor musun? (evet/hayır)"
+    else:
+        act = "çalıyor" if asked.get("deed") == "steal" else "ateşe veriyor"
+        line = f"Bu bir suç olarak kayda geçer. Gerçekten {act} musun? (evet/hayır)"
+    return {"messages": session.messages, "narration": line, "model_calls": 0,
+            "action_result": {"action": "narrative", "status": "clarification", "success": False,
+                              "outcome": f"unconfirmed_{asked['what']}", "state_changes": [], "direct_response": line}}
+
+
+def _answered_heavy_question(player_input):
+    """D-109: a yes to the asked crime or threat is the asked line, now allowed; anything else forgets the question."""
+    session = _session()
+    asked, session._heavy_asked = getattr(session, "_heavy_asked", None), None
+    given, session._heavy_confirmed = getattr(session, "_heavy_confirmed", None), None
+    if isinstance(asked, dict) and combat_lifecycle._says_yes(session, player_input):
+        # D-109 review: a second question on the same line keeps the first yes (else the two would ask in turn forever);
+        # the threat played again is not a second threat: its tie is made once while it is coming (world_happenings.tie)
+        kept = given.get("allowed", []) if isinstance(given, dict) and given.get("said") == asked["said"] else []
+        session._heavy_confirmed = {"said": asked["said"],
+                                    "allowed": [*kept, [asked["what"], asked["id"], asked["deed"]]]}
+        return asked["said"]
+    return player_input
+
+
 def _ask_which_move(person_id):
     """A yes to a blow whose words name no move the engine has (a trip): the real moves are offered, nothing rolls."""
     session = _session()
@@ -19687,8 +19737,11 @@ def front_read_ahead(player_input, target_id=None, interaction_mode=None):
     session = _session()
     session._front_ahead = False
     session._counter_held = None  # only this turn's reading may hold coin back for an open offer
+    if not getattr(session, "_heavy_asked", None):
+        session._heavy_confirmed = None  # D-109 review: a yes is spent with its turn; this line was never asked
     if (not front_proposal.enabled() or session.character.get("current_hp", 0) <= 0 or ensure_death_state()["dead"]
-            or getattr(session, "_attack_asked", False) or not isinstance(player_input, str)
+            or getattr(session, "_attack_asked", False) or getattr(session, "_heavy_asked", None)
+            or not isinstance(player_input, str)
             or _is_end_conversation_request(player_input)):
         return None
     interaction_mode = _normalize_interaction_mode(interaction_mode)
@@ -19991,6 +20044,10 @@ def _dispatch_player_turn(
                                              "do", action_id)
     _reopen_public_doors()
     player_input = combat_lifecycle.answered_attack_question(_session(), player_input)
+    player_input = _answered_heavy_question(player_input)  # D-109
+    ahead = getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False) else None
+    if isinstance(ahead, dict) and ahead.get("kind") == "heavy_asked":
+        return _ask_before_the_heavy(ahead)  # D-109: read ahead of the turn; asked before any owner answers
     surrender_answer = (combat_lifecycle.answered_surrender_question(_session(), player_input)
                         if combat_action is None else None)
     if surrender_answer is not None:
@@ -20057,6 +20114,8 @@ def _dispatch_player_turn(
         read = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
         _session()._front_read = read
         _session()._front_ahead = True
+    if read is not None and read.get("kind") == "heavy_asked":
+        return _ask_before_the_heavy(read)  # D-109: asked, nothing moved
     if getattr(_session(), "_front_strike", None):
         target_id, interaction_mode = _session()._front_strike["id"], "do"
     import spell_effects
@@ -20095,7 +20154,12 @@ def _dispatch_player_turn(
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and not confessed
             and not _session().world_state.get("combat", {}).get("active")):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            bold = bold_acts.resolve(_session(), player_input, getattr(_session(), "_front_deed", None))
+            deed = getattr(_session(), "_front_deed", None)
+            bold = bold_acts.resolve(
+                _session(), player_input, deed,
+                # D-109: a crime is asked about first, whether the reading or the old words (no reading) found it
+                ask=lambda act: None if _heavy_allowed("deed", player_input, deed=act)
+                else _ask_before_the_heavy({"what": "deed", "id": None, "deed": act, "said": str(player_input)}))
         if bold is not None:
             return bold
     elif (combat_action is None and interaction_mode == "say" and isinstance(player_input, str)
@@ -24020,6 +24084,9 @@ class GameSession:
                                 copy.deepcopy(getattr(self, "_blow_asked_line", None))),
             # D-115: so does the surrendered-foe question ("Yine de vuruyor musun?").
             "surrender_question": copy.deepcopy(getattr(self, "_surrender_strike_asked", None)),
+            # D-109: and the crime/threat question ("Gerçekten çalıyor musun?").
+            "heavy_question": copy.deepcopy(getattr(self, "_heavy_asked", None)),
+            "heavy_yes": copy.deepcopy(getattr(self, "_heavy_confirmed", None)),
         }
 
     def _restore_runtime_snapshot(self, snapshot):
@@ -24047,6 +24114,8 @@ class GameSession:
             self.__dict__.pop("_persisted_engine_format", None)
         self._attack_asked, self._blow_asked, self._blow_asked_line = restored.get("attack_question", (False, None, None))
         self._surrender_strike_asked = restored.get("surrender_question")
+        self._heavy_asked = restored.get("heavy_question")
+        self._heavy_confirmed = restored.get("heavy_yes")
 
     def resolve_ambient_event_action(
         self,

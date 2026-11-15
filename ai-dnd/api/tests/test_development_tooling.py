@@ -296,7 +296,8 @@ class DevelopmentToolingTests(unittest.TestCase):
         # D-211 review: PR #58's Undo/surrender regression reached main green because CI runs only this list.
         selectors = owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"]
         for module in ("api.tests.test_dilim4c_surrender_spells_http", "api.tests.test_d115_undone_fight_question",
-                       "api.tests.test_d211_undone_fight_answer"):
+                       "api.tests.test_d211_undone_fight_answer",
+                       "api.tests.test_d109_timing"):  # D-109: the crime/threat question, the same way
             self.assertIn(module, selectors)
 
     def test_old_save_spellbook_choice_tests_are_in_the_gate(self):
