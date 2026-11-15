@@ -63,7 +63,7 @@ class LiveContextTests(unittest.IsolatedAsyncioTestCase):
     r=await self.send('Günün nasıl?',action_id=aid)
    self.assertEqual(r.status_code,200,r.text)
    self.assertTrue(path.exists(),'free_v1 raw/context trace absent')
-   records=[json.loads(line) for line in path.read_text().splitlines()]
+   records=[json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
    rows=[x for x in records if x.get('route')=='free_v1' and x.get('phase')=='provider_response']
    self.assertEqual(len(rows),1);row=rows[0]
    self.assertEqual(row['action_id'],aid);self.assertEqual(row['speaker_id'],self.npc['id'])
