@@ -95,17 +95,61 @@ def _candidates(state: dict[str, Any], character: dict[str, Any]) -> list[str]:
     return listed + sorted(character_progression.extra_spell_ids(character, "prepared") - set(listed))
 
 
+def _book_options() -> list[str]:
+    """D-039: what an old save's Wizard may write into the book: the Wizard level-1 list, in catalog order."""
+    return [s["id"] for s in SPELLS_CATALOG["Wizard"]["spells_level_1"]]
+
+
+def _book_suggestion() -> list[str]:
+    """D-039: the engine's ready offer, the creation quick-build rule (the first six of the list). Only an offer: the
+    player accepts or changes it, and nothing is written until the player sends a book."""
+    from class_progression.wizard import BOOK_AT_CREATION
+    return _book_options()[:BOOK_AT_CREATION]
+
+
 def view(session: Any) -> dict[str, Any]:
     state = _state(session, write=False)
     blocked = _blocked(state)
     if blocked:
+        missing = blocked == "spellbook_missing"
         return {"supported": False, "blocked_reason": blocked, "class_name": session.character.get("class"),
-                "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None}
+                "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None,
+                "spellbook_options": _book_options() if missing else [],
+                "suggested_spellbook": _book_suggestion() if missing else []}
     window = state["prepare_window"]
     return {"supported": True, "blocked_reason": None, "class_name": state["class"], "open": _open(session.world_state, state),
             "reason": _reason(session.world_state, window) if window else None, "limit": spell_scope.prepare_limit(session.character),
             "candidates": _candidates(state, session.character), "prepared": list(state["prepared"]),
-            "spellbook": copy.deepcopy(state["spellbook"])}
+            "spellbook": copy.deepcopy(state["spellbook"]), "spellbook_options": [], "suggested_spellbook": []}
+
+
+def choose_spellbook(session: Any, requested: list[str]) -> dict[str, Any]:
+    """D-039: an old save's Wizard (formats 1-3 carry no creation spells) writes the book once, by the player's choice.
+
+    The choice is saved exactly like the creation selections (`character["spells"]`) and the existing migration builds the
+    version-2 state from it (`spell_scope.upgrade`: the book, a migration window, the full check). Exactly six distinct
+    Wizard level-1 spells (PHB 2024 Wizard Spellbook); anything else is refused and changes nothing."""
+    from class_progression.wizard import BOOK_AT_CREATION
+    state = _state(session)
+    if _blocked(state) != "spellbook_missing":
+        raise PrepareRefused("prepare_spellbook_not_missing",
+                             "Büyü kitabın zaten kayıtlı ya da bu sınıf büyü kitabı tutmaz; kitap yeniden seçilmez.")
+    options = _book_options()
+    if (len(requested) != BOOK_AT_CREATION or len(set(requested)) != len(requested)
+            or any(spell not in options for spell in requested)):
+        raise PrepareRefused("prepare_spellbook_invalid",
+                             f"Büyü kitabına Wizard listesinden tam {BOOK_AT_CREATION} farklı birinci seviye büyü seçmelisin.")
+    character = {**copy.deepcopy(session.character), "spells": list(requested)}
+    world = {**session.world_state, "spellcasting_v1": copy.deepcopy(state)}
+    spell_scope.upgrade(world, character)  # validates the old state and the migrated one before anything is written
+    migrated = world["spellcasting_v1"]
+    if migrated.get("version") != 2 or migrated["spellbook"] != list(requested):
+        raise ValueError("Büyü kitabı kaydedilemedi.")
+    session.character["spells"] = list(requested)
+    session.world_state["spellcasting_v1"] = migrated
+    return {"status": "spellbook_saved", "prepared": [], "dropped": [], "limit": spell_scope.prepare_limit(session.character),
+            "excess": 0, "open": window_open(session),
+            "message": f"Büyü kitabına yazıldı: {', '.join(requested)}."}
 
 
 def prepare(session: Any, requested: list[str] | None, close: bool = False) -> dict[str, Any]:

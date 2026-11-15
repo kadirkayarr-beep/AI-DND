@@ -69,3 +69,56 @@ jobs:
           path: ${{ runner.temp }}/ai-dnd-evidence/
           if-no-files-found: warn
           retention-days: 30
+
+  full-python-tests:
+    # D-218 (Kadir, 2026-11-15): every Python test module runs on every PR and main push, split into 6 shards (Kadir 2026-11-15: 6 instead of 4 to shorten the wait).
+    # Measured once on draft PR #85: 564 modules, 9437 tests, 29.7 minutes in one process, 0 failures.
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.26.1"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.24"
+      - name: Install locked Python dependencies
+        run: |
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt --output-file "$RUNNER_TEMP/ai-dnd-requirements.txt"
+          uv pip install --system --require-hashes -r "$RUNNER_TEMP/ai-dnd-requirements.txt"
+      - name: Install locked workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate official hosted Chrome runtime
+        shell: bash
+        run: |
+          CHROMIUM_PATH=""
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              CHROMIUM_PATH="$(command -v "$candidate")"
+              break
+            fi
+          done
+          if [[ -z "$CHROMIUM_PATH" || ! -f "$CHROMIUM_PATH" || ! -x "$CHROMIUM_PATH" ]]; then
+            echo "No executable Chrome/Chromium found on the supported GitHub-hosted Ubuntu runner." >&2
+            exit 1
+          fi
+          "$CHROMIUM_PATH" --version
+          printf 'CHROMIUM_PATH=%s\n' "$CHROMIUM_PATH" >> "$GITHUB_ENV"
+      - name: Python tests (shard ${{ matrix.shard }} of 6)
+        working-directory: ai-dnd
+        run: python scripts/full_python_suite.py --shard ${{ matrix.shard }} --of 6
