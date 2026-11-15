@@ -1247,8 +1247,10 @@ def is_act_not_talk(session, text: Any) -> bool:
     return game.open_scare_try(text) or looks_person_over(session, text)
 
 
-def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | None:
+def resolve(session, text: Any, deed: str | None = None, *, ask=None) -> dict[str, Any] | None:
     """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide.
+
+    D-109: ``ask(act)`` is called right before a theft or a fire would be done; a reply it gives is the turn instead.
 
     A money decision this turn owns the room and the counter (design §12 D29): its room or goods offer opens whatever
     the words say, and any other decision skips both. The room and purchase words are read only with no decision.
@@ -1265,7 +1267,7 @@ def resolve(session, text: Any, deed: str | None = None) -> dict[str, Any] | Non
         if settled is not None:
             return settled
     if _steals(session, text, deed):
-        return _steal(session, text)
+        return (ask("steal") if ask else None) or _steal(session, text)
     if is_arson(session, text) if deed is None else deed == "burn" and _can_be_done(session, text):
-        return _burn(session)
+        return (ask("burn") if ask else None) or _burn(session)
     return None

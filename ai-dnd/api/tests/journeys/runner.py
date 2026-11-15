@@ -299,7 +299,8 @@ class ScriptedClient(fixtures.FakeOllamaClient):
         else:
             reading = self.script.get("front")
         return {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none",
-                "answer": "none", "inside": False, "kind": "unclear", **copy.deepcopy(dict(reading or {}))}
+                "answer": "none", "inside": False, "kind": "unclear", "timing": "now",
+                **copy.deepcopy(dict(reading or {}))}
 
 
 class ModelDriver(Protocol):

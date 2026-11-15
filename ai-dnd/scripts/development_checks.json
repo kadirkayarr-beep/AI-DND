@@ -84,9 +84,10 @@
     "api.tests.test_journeys",
     "api.tests.test_dilim4c_surrender_spells_http",
     "api.tests.test_d115_undone_fight_question",
-    "api.tests.test_d211_undone_fight_answer"
+    "api.tests.test_d211_undone_fight_answer",
+    "api.tests.test_d109_timing"
   ],
-  "regression_group_sizes": [31, 18, 1, 3, 5, 4, 3],
+  "regression_group_sizes": [31, 18, 1, 3, 5, 4, 4],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
     {"name": "frontend_libraries", "argv": ["pnpm", "run", "typecheck:libs"]},

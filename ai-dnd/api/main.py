@@ -2176,6 +2176,7 @@ def create_app(
                 session._surrender_strike_asked = None
                 # D-211 review: the same for "kavga mı başlatıyorsun?" (its flags ride the same snapshot).
                 session._attack_asked, session._blow_asked, session._blow_asked_line = False, None, None
+                session._heavy_asked = session._heavy_confirmed = None  # D-109: and the crime/threat question and its yes
                 if isinstance(session, game.GameSession):
                     economic_actions.reconcile_offers_after_undo(
                         session.world_state, current_offers, undone_action_id=target_action_id,
