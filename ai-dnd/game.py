@@ -1283,6 +1283,12 @@ def open_scare_try(player_input) -> bool:
     return bool(_OPEN_SCARE.search(bare))
 
 
+# Someone else's purse, pocket, wallet, bag or money (third person: "kesesi", "cebinde", "çantasını"), never the
+# player's own ("kesem", "cebimde", "çantamda").
+_SOMEONE_ELSES_PURSE = re.compile(
+    r"\b(?:kesesi\w*|cebi(?:ni|nde|nden|n)?|cuzdani(?:ni|nda|ndan|n)?|cantasi\w*|parasi\w*)\b")
+
+
 def deterministic_check_for_action(player_input):
     """Map clear, known actions before consulting the model classifier.
 
@@ -20070,7 +20076,9 @@ def _dispatch_player_turn(
                     "direct_response": question,
                 },
             }
-    if read is not None and read["kind"] == "bag":
+    # D-095: "muhafızın kesesi var mı diye inceliyorum" is about someone else's purse; never answer with the player's
+    if read is not None and read["kind"] == "bag" and not _SOMEONE_ELSES_PURSE.search(
+            _normalize_turkish_typos(living_world._text_outside_quotes(player_input))):
         listed = equipment_economy.execute(_session(), "çantamda ne var")
         if listed is not None:
 
