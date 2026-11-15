@@ -18,7 +18,7 @@ import game
 from api import action_contract
 from api.auth import AuthenticationError, Principal, current_principal
 from api.campaign_journal import empty_campaign_journal
-from api.history_view import mark_undone, undo_links
+from api.history_view import mark_undone, undo_links, undone_combat_events
 from api.lore_authority.models import CampaignLoreState
 from api.persistence import receipt_archive
 from api.persistence.campaign_models import (
@@ -99,6 +99,20 @@ _EMERGENCE_TERMINAL = ("accepted", "rejected", "stale", "no_proposal")
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _row_of_receipt(history_rows: Any, created_at: Any, narration: Any) -> int | None:
+    """The story sequence a receipt was saved with (D-139): its own created_at and narration, exactly one row, else None.
+
+    `created_at` has one-second resolution, so two rows with the same time and text prove nothing (as `undo_links`).
+    """
+    if not isinstance(created_at, str) or not isinstance(narration, str):
+        return None
+    matches = [
+        row["sequence"] for row in history_rows
+        if row["created_at"] == created_at and row["narration"] == narration
+    ]
+    return matches[0] if len(matches) == 1 and type(matches[0]) is int else None
 
 
 def _is_uuid4(campaign_id: str) -> bool:
@@ -1502,9 +1516,13 @@ class CampaignStore:
             archived = skipped = 0
             now = _now()
             skip_ids: set[str] = set(protected)
+            history_rows = connection.execute(
+                "SELECT sequence, narration, created_at FROM campaign_history WHERE campaign_id = ?", (campaign_id,),
+            ).fetchall()
             while True:
                 rows = connection.execute(
-                    "SELECT action_id, request_hash, response_json, base_revision, committed_revision, result_digest "
+                    "SELECT action_id, request_hash, response_json, base_revision, committed_revision, result_digest, "
+                    "created_at "
                     "FROM campaign_turn_actions WHERE campaign_id = ? AND committed_revision IS NOT NULL "
                     "AND committed_revision < ? ORDER BY committed_revision ASC LIMIT ?",
                     (campaign_id, before_revision, batch_size + len(skip_ids)),
@@ -1518,6 +1536,11 @@ class CampaignStore:
                         skip_ids.add(str(row["action_id"]))
                         skipped += 1
                         continue
+                    # D-139: the archived turn is the story row the receipt was saved with (get_campaign binds the
+                    # skill result by it), not the engine turn number; a row that cannot be proven keeps none.
+                    tombstone["turn_index"] = _row_of_receipt(
+                        history_rows, row["created_at"], json.loads(str(row["response_json"])).get("narration"),
+                    )
                     connection.execute(
                         "INSERT OR IGNORE INTO campaign_turn_actions_archive (campaign_id, action_id, request_hash, "
                         "result_digest, base_revision, committed_revision, turn_index, narration_digest, skill_json, archived_at) "
@@ -1744,10 +1767,11 @@ class CampaignStore:
                         skill = receipt.get("skill_check_result")
                         if not isinstance(skill, dict) or skill.get("action_id") != receipt_row["action_id"]:
                             continue
-                        state = receipt.get("state")
-                        turn_number = state.get("turn_index") if isinstance(state, dict) else None
-                        matched_history_row = existing.get(turn_number) if type(turn_number) is int else None
-                        if matched_history_row is None or receipt.get("narration") != matched_history_row["narration"]:
+                        # D-139: the receipt and its story row are written in one transaction with the same created_at
+                        # and narration; that pair, with exactly one row, names the row. The engine turn number drifts
+                        # from the story sequence after a card prepare/cancel row or an undo, so it never names it.
+                        turn_number = _row_of_receipt(history_rows, receipt_row["created_at"], receipt.get("narration"))
+                        if turn_number is None:
                             continue
                         validated = SkillCheckResult.model_validate(skill).model_dump(exclude_none=True)
                     except (json.JSONDecodeError, TypeError, ValueError):
@@ -1813,6 +1837,8 @@ class CampaignStore:
                         "Campaign combat history exceeds the supported limit."
                     )
                 combat_history = []
+                # D-140: the combat row of an undone turn stays as evidence and is marked, read-time only.
+                undone_events = undone_combat_events(receipts)
                 for combat_row in combat_rows:
                     if (
                         type(combat_row["sequence"]) is not int
@@ -1834,6 +1860,8 @@ class CampaignStore:
                             }
                         )
                     )
+                    if combat_history[-1]["event_id"] in undone_events:
+                        combat_history[-1]["undone"] = True
             except CampaignCorruptError:
                 raise
             except (json.JSONDecodeError, TypeError, ValueError, KeyError):

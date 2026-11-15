@@ -150,14 +150,29 @@ class PersistedSkillReceiptProjectionTests(NativeBase):
         # to prove that no loosely matching receipt can annotate campaign canon.
         with closing(sqlite3.connect(self.path)) as conn, conn:
             row = conn.execute(
-                "SELECT request_hash,response_json FROM campaign_turn_actions "
+                "SELECT request_hash,response_json,created_at FROM campaign_turn_actions "
                 "WHERE campaign_id=? AND action_id=?", (campaign_id, action)
             ).fetchone()
         self.assertIsNotNone(row)
-        request_hash, response_json = row
+        request_hash, response_json, created_at = row
         clean = json.loads(response_json)
+        # D-139: a receipt names its row by the created_at and narration it was saved with, not by the engine
+        # turn number (that drifts from the story sequence); "wrong_turn" became "wrong_time" below.
+        with self.subTest(case="wrong_time"):
+            with closing(sqlite3.connect(self.path)) as conn, conn:
+                conn.execute(
+                    "UPDATE campaign_turn_actions SET created_at=? WHERE campaign_id=? AND action_id=?",
+                    ("2000-01-01T00:00:00+00:00", campaign_id, action)
+                )
+            detail = self.client.get(f"/api/campaigns/{campaign_id}")
+            self.assertEqual(detail.status_code, 200, detail.text)
+            self.assertNotIn("skill_check_result", detail.json()["history"][0])
+            with closing(sqlite3.connect(self.path)) as conn, conn:
+                conn.execute(
+                    "UPDATE campaign_turn_actions SET created_at=? WHERE campaign_id=? AND action_id=?",
+                    (created_at, campaign_id, action)
+                )
         variations = {
-            "wrong_turn": lambda value: value["state"].update(turn_index=99),
             "different_narration": lambda value: value.update(narration="Other narration"),
             "wrong_action_identity": lambda value: value.update(action_id=str(uuid4())),
             "wrong_skill_identity": lambda value: value["skill_check_result"].update(action_id=str(uuid4())),
