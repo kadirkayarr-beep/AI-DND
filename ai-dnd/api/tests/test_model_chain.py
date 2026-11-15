@@ -340,6 +340,26 @@ class TheChain(unittest.TestCase):
                 self.assertEqual(cloud.hosts(), [GOOGLE, ANTHROPIC])
                 self.assertEqual(local.calls, 0)
 
+    def test_a_json_reply_cut_at_the_token_cap_moves_to_the_next_provider(self):
+        # D-141: the intent parser drops a cut reply (game.ollama_reply_was_cut) even when its JSON parses,
+        # so the chain must not hand one over as an answer while a healthy provider is still left.
+        local = LocalModel()
+        cloud = FakeCloud(gemini=ok(gemini_reply(finish="MAX_TOKENS")), haiku=ok(haiku_reply()))
+        response, answered = chain_for(cloud).chat(CALL, local)
+        self.assertEqual(answered, "haiku")
+        self.assertEqual(cloud.hosts(), [GOOGLE, ANTHROPIC])
+        self.assertEqual(response.done_reason, "stop")
+        self.assertFalse(game.ollama_reply_was_cut(response))
+        self.assertEqual(local.calls, 0)
+
+    def test_the_local_model_answers_when_every_cloud_reply_is_cut(self):
+        local = LocalModel()
+        cloud = FakeCloud(gemini=ok(gemini_reply(finish="MAX_TOKENS")), haiku=ok(haiku_reply(stop="max_tokens")))
+        response, answered = chain_for(cloud).chat(CALL, local)
+        self.assertIsNone(answered)
+        self.assertIs(response, local.answer)
+        self.assertEqual(local.calls, 1)
+
     def test_the_local_model_answers_when_every_cloud_provider_fails(self):
         local = LocalModel()
         cloud = FakeCloud(gemini=httpx.Response(500), haiku=httpx.ReadTimeout("slow"))
@@ -896,6 +916,67 @@ class TheCharacterNote(unittest.TestCase):
         on = create_app(session_manager=TestPlayerSessionManager(), ollama_adapter=adapter,
                         authenticator=FixedAuthenticator(TEST_PLAYER))
         self.assertIsNot(on.state.identity_suggestions._provider, identity_suggestion.local_ollama_provider)
+
+
+class TheLocalSecretStaysHome(unittest.TestCase):
+    """D-135: a local Ollama host or token pasted into play never leaves for a cloud provider."""
+
+    TOKEN = "test-proxy-token-not-real-4b2d"
+    HOST = "http://127.0.0.1:11434"
+
+    def setUp(self):
+        patcher = patch.dict(os.environ, {"OLLAMA_HOST": self.HOST, "OLLAMA_PROXY_TOKEN": self.TOKEN})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def pasted_call(self):
+        return dict(CALL, messages=[
+            {"role": "system", "content": f"Kurallar. Sunucu {self.HOST}."},
+            {"role": "user", "content": f"Kapıyı açıyorum {self.TOKEN} ve {self.HOST} diyorum."},
+        ])
+
+    def assert_nothing_local_in(self, request):
+        text = request.content.decode("utf-8")
+        self.assertNotIn(self.TOKEN, text)
+        self.assertNotIn(self.HOST, text)
+        self.assertNotIn("127.0.0.1:11434", text)
+        self.assertIn("[redacted]", text)
+
+    def test_an_engine_call_sends_neither_the_token_nor_the_host_to_gemini_or_haiku(self):
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))
+        local = LocalModel()
+        _, answered = chain_for(cloud).chat(self.pasted_call(), local)
+        self.assertEqual(answered, "haiku")
+        self.assertEqual(cloud.hosts(), [GOOGLE, ANTHROPIC])
+        for request in cloud.requests:
+            self.assert_nothing_local_in(request)
+
+    def test_the_engine_message_through_the_adapter_reaches_the_cloud_masked(self):
+        cloud = FakeCloud(gemini=ok(gemini_reply()))
+        stub = EngineStub()
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4-fast")
+        adapter._chain = chain_for(cloud)
+        adapter.chat(model=ollama_adapter.MODEL_NAME, messages=self.pasted_call()["messages"], format=SCHEMA,
+                     think=False, options={"temperature": 0.3, "num_predict": 400})
+        self.assertEqual(len(cloud.requests), 1)
+        self.assert_nothing_local_in(cloud.requests[0])
+
+    def test_a_character_note_reaches_the_cloud_masked(self):
+        local = EngineStub()
+        local.chat = lambda **call: {"message": {"role": "assistant", "content": "Yerel not."}}
+        with patch.object(identity_suggestion, "_local_client", return_value=local):
+            cloud = FakeCloud(gemini=ok(gemini_reply("Sessiz bir arşivci.")))
+            identity_suggestion.chain_provider(chain_for(cloud))(f"Alan: Kişilik {self.TOKEN}.")
+        self.assert_nothing_local_in(cloud.requests[0])
+
+    def test_the_local_model_still_gets_the_message_as_written(self):
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500))
+        stub = EngineStub()
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4-fast")
+        adapter._chain = chain_for(cloud)
+        adapter.chat(model=ollama_adapter.MODEL_NAME, messages=self.pasted_call()["messages"], format=SCHEMA,
+                     think=False, options={"temperature": 0.3, "num_predict": 400})
+        self.assertIn(self.TOKEN, stub.calls[0]["messages"][1]["content"])
 
 
 class EngineStub:

@@ -20,6 +20,8 @@ function fromServerEntry(value: unknown): CombatLogEntry | null {
     id: candidate.event_id,
     turnIndex: candidate.turn_index as number,
     result: candidate.result,
+    // D-140: the server's read-time undo mark; the row stays as evidence of a turn taken back.
+    ...(candidate.undone === true ? { undone: true } : {}),
   };
 }
 
@@ -40,6 +42,7 @@ function fromLocalEntry(value: unknown): CombatLogEntry | null {
     id: candidate.id,
     turnIndex: candidate.turnIndex as number,
     result: candidate.result,
+    ...(candidate.undone === true ? { undone: true } : {}),
   };
 }
 

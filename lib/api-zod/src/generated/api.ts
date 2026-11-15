@@ -1857,7 +1857,7 @@ export const CreateGameSessionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -1865,7 +1865,7 @@ export const CreateGameSessionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -2947,7 +2947,7 @@ export const GetGameSessionStateResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -2955,7 +2955,7 @@ export const GetGameSessionStateResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -4054,7 +4054,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -4062,7 +4062,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -5186,7 +5186,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -5194,7 +5194,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -6307,7 +6307,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -6315,7 +6315,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -7686,7 +7686,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -7694,7 +7694,7 @@ export const PlayGameTurnResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -7977,7 +7977,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -7985,7 +7985,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -8047,7 +8047,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8055,7 +8055,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8105,7 +8105,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8113,7 +8113,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8172,7 +8172,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8180,7 +8180,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -8242,7 +8242,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8250,7 +8250,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8300,7 +8300,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8308,12 +8308,13 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
@@ -9474,7 +9475,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9482,7 +9483,7 @@ export const GetGameActionStatusResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9765,7 +9766,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9773,7 +9774,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -9835,7 +9836,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9843,7 +9844,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9893,7 +9894,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9901,7 +9902,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9960,7 +9961,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9968,7 +9969,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -10030,7 +10031,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -10038,7 +10039,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -10088,7 +10089,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -10096,12 +10097,13 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
@@ -11188,7 +11190,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11196,7 +11198,7 @@ export const AbandonGameActionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11479,7 +11481,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11487,7 +11489,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -11549,7 +11551,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11557,7 +11559,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11607,7 +11609,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11615,7 +11617,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11674,7 +11676,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11682,7 +11684,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -11744,7 +11746,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11752,7 +11754,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11802,7 +11804,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11810,12 +11812,13 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
@@ -12749,7 +12752,7 @@ export const UndoGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -12757,7 +12760,7 @@ export const UndoGameTurnResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -13872,7 +13875,7 @@ export const AcceptGameQuestResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -13880,7 +13883,7 @@ export const AcceptGameQuestResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -15017,7 +15020,7 @@ export const CancelGameQuestResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -15025,7 +15028,7 @@ export const CancelGameQuestResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -16153,7 +16156,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -16161,7 +16164,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -17286,7 +17289,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -17294,7 +17297,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -18432,7 +18435,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -18440,7 +18443,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -19569,7 +19572,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -19577,7 +19580,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -22898,7 +22901,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -22906,7 +22909,7 @@ export const CreateCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -23223,7 +23226,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -23231,7 +23234,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -23293,7 +23296,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -23301,7 +23304,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -23351,7 +23354,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -23359,12 +23362,13 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -24314,7 +24318,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24322,7 +24326,7 @@ export const GetCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24639,7 +24643,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24647,7 +24651,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -24709,7 +24713,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24717,7 +24721,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24767,7 +24771,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24775,12 +24779,13 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -25707,7 +25712,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -25715,7 +25720,7 @@ export const ResumeCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -26032,7 +26037,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -26040,7 +26045,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -26102,7 +26107,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -26110,7 +26115,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -26160,7 +26165,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -26168,12 +26173,13 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -28196,7 +28202,7 @@ export const CreateLegacySessionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -28204,7 +28210,7 @@ export const CreateLegacySessionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -29287,7 +29293,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -29295,7 +29301,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -30661,7 +30667,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -30669,7 +30675,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -30952,7 +30958,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -30960,7 +30966,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -31022,7 +31028,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31030,7 +31036,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31080,7 +31086,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31088,7 +31094,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31147,7 +31153,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31155,7 +31161,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -31217,7 +31223,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31225,7 +31231,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31275,7 +31281,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31283,12 +31289,13 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
@@ -32218,7 +32225,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -32226,7 +32233,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35390,7 +35397,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35398,7 +35405,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35715,7 +35722,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35723,7 +35730,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -35785,7 +35792,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35793,7 +35800,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35843,7 +35850,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35851,12 +35858,13 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -36808,7 +36816,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -36816,7 +36824,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -37133,7 +37141,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -37141,7 +37149,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -37203,7 +37211,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -37211,7 +37219,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -37261,7 +37269,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -37269,12 +37277,13 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -38202,7 +38211,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38210,7 +38219,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38527,7 +38536,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38535,7 +38544,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
@@ -38597,7 +38606,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38605,7 +38614,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38655,7 +38664,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38663,12 +38672,13 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
