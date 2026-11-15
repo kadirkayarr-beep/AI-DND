@@ -42,16 +42,17 @@ _FIRST_DEED = re.compile(
     r"\b(?!(?:yaklasip|karisip|sokulup|carpip|itip|egilip|uzanip|yanasip|sinsip)\b)\w{2,}(?:ip|up|arak|erek)\b")
 # The end of a line that is no try this turn: past ("çaldım", "çalıştım"), refused ("çalmıyorum"), future
 # ("çalacağım"), wished ("çalsam"). A reading's steal or check is no theft on such a line.
-_NOT_THIS_TURN_END = re.compile(r"(?:d[iu]m|t[iu]m|m[iu]yorum|acag[iu]m|ecegim|s[ae]m)$")
+_NOT_THIS_TURN_END = re.compile(r"(?:d[iu]m|t[iu]m|m[iu]yorum|acag[iu]m|ecegim|s[ae]m|[aeiu]r[iu]m)$")  # + "çalarım"
 _PAST_OR_LATER = re.compile(r"\b(?:dun|yarin)\b")
 # A steal the reading read on a line that is a pretence, a change of mind, a giving back or a refusal in the plain
 # present ("çalmam", never "tamam").
-_NOT_DONE = re.compile(r"\b(?:vazgec\w*|gibi\s+yapiyorum|geri\s+ver\w*)\b|\b(?!tamam\b)\w+m[ae]m$")
+_NOT_DONE = re.compile(r"\b(?:vazgec\w*|gibi\s+yapiyorum|geri\s+ver(?!m[ei]y)\w*)\b|\b(?!tamam\b)\w+m[ae]m$")
 # What the reading's own steal deed may not ride on: a time or condition, a dream or supposition, speech, one's own
 # or "your" purse. Unlike a word-found try, a sequence in the present ("dönünce", "sonra") is fine.
 _DEED_NOT_NOW = re.compile(
-    r"\b(?:yarin|eger|degil|keske|belki|sanki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*|diyorum|soyluyorum|"
-    r"fisildiyorum|diye|kesemi|cebimi|cuzdanimi|keseni)\b")
+    r"\b(?:yarin|eger|keske|belki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*|diyorum|soyluyorum|fisildiyorum|once|"
+    r"\w+m[ae]dan|kesemi|cebimi|cuzdanimi|keseni)\b"
+    r"|\bdiye\s+(?:\w+\s+)?(?:bagir|seslen|fisild|soyl|sor)\w*")  # "kimse görmesin diye" is no speech
 _ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\b")
 _NOT_A_TRY = re.compile(
     r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"

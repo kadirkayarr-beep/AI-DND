@@ -137,9 +137,25 @@ class TheReadingsCheckNeverMovesCoin(unittest.TestCase):
         for line in ("kesesini almaya çalışıyorum", "muhafızın cebinden anahtarı aşırıyorum",
                      "Hançeri kınından sessizce çekiyorum", "Anahtarı kilitten yavaşça çekiyorum",
                      "Düşürdüğü kesesini yerden alıyorum ve ona geri veriyorum", "Kesesine gizlice bir bakır koyuyorum",
-                     "Cebimdeki zarı avucumda gizlice değiştiriyorum", "Bıçağımı kolumun içine gizliyorum"):
+                     "Cebimdeki zarı avucumda gizlice değiştiriyorum", "Bıçağımı kolumun içine gizliyorum",
+                     # kept from 74629e84's own-things test
+                     "Kesesini ona geri veriyorum", "Anahtarı ona geri veriyorum",
+                     "Cebine sahte mektubu gizlice yerleştiriyorum", "Kesemdeki altınları sayıyorum",
+                     "Anahtarımı kilide sokuyorum",
+                     # R-7 boundary (on the approval list): these were thefts by a Sleight of Hand reading alone in
+                     # 2d1995a7/74629e84; with no steal deed they now move no coin
+                     "muhafızın cebini boşaltmaya çalışıyorum", "muhafızın kesesini almayı deniyorum",
+                     "keseyi kemerinden çekmeye çalışıyorum", "muhafızın kesesini gizlice almaya çalışıyorum"):
             with self.subTest(line=line):
                 self.assertFalse(bold_acts._steals(self.session(), line, ""))
+
+    def test_no_theft_for_speech_a_question_another_check_or_another_deed(self):  # kept from 74629e84
+        self.assertFalse(bold_acts._steals(self.session(kind="speak_to"), "kesesini almaya çalışıyorum", ""))
+        self.assertFalse(bold_acts._steals(self.session(), "kesesini alsam mı?", ""))
+        self.assertFalse(bold_acts._steals(self.session(check="Deception"), "kesesini almaya çalışıyorum", ""))
+        self.assertFalse(bold_acts._steals(self.session(check=""), "kesesini almaya çalışıyorum", ""))
+        self.assertFalse(bold_acts._steals(self.session(), "kesesini almaya çalışıyorum", "burn"))
+        self.assertFalse(bold_acts._steals(self.session(), "muhafızın gırtlağını kesip kesesini alıyorum", ""))
 
     def test_every_line_that_is_no_try_stays_no_theft_whatever_the_reading_said(self):
         for line in NOT_TRIES + ("dün kesesini aldım", "“Keseni alıyorum” diyorum", "kesesini almıyorum",
@@ -161,7 +177,9 @@ class TheReadingsStealDeed(unittest.TestCase):
         for line in ("kesesini almaya çalışıyorum", "muhafızın cebinden anahtarı aşırıyorum", "kesesini çalıyorum",
                      "kesesini aşırayım", "kesesini kapıp kaçıyorum", "muhafızın cebini yokluyorum",
                      "Kavşim arkasını dönünce kesesini çalıyorum", "kesesini çalıyorum, tamam",
-                     "yaklaşıp sonra kesesini çalıyorum"):
+                     "yaklaşıp sonra kesesini çalıyorum", "Kimse görmesin diye arkasından yaklaşıp kesesini aşırıyorum",
+                     "Sanki ona çarpıyormuş gibi yapıp kesesini aşırıyorum",
+                     "Kesesini değil, kemerindeki hançeri aşırıyorum"):
             with self.subTest(line=line):
                 self.assertTrue(bold_acts._steals(self.session(), line, "steal"))
 
@@ -171,7 +189,10 @@ class TheReadingsStealDeed(unittest.TestCase):
                      "Belki kesesini çalarım", "Rüyamda kesesini çalıyorum", "Kesesini çalıyormuş gibi yapıyorum",
                      "dün muhafızın kesesini çalmaya çalıştım", "kesesini çaldım", "kesesini çalmıyorum",
                      "kesesini çalmaya çalışmıyorum", "Muhafız: kesesini çalıyorum",
-                     "Düşürdüğü kesesini yerden alıyorum ve ona geri veriyorum"):
+                     "Düşürdüğü kesesini yerden alıyorum ve ona geri veriyorum",
+                     # restored from 74629e84 (dropped by mistake in 152bde98), with round-4's later and preparing lines
+                     "Kesesini çalmadan önce etrafa bakıyorum", "Sonra kesesini çalarım", "Kesesini çalarım",
+                     "Kesesini çalmak için önce dikkatini dağıtıyorum", "“Kesesini çalıyorum” diye bağırıyorum"):
             with self.subTest(line=line):
                 self.assertFalse(bold_acts._steals(self.session(), line, "steal"))
         self.assertFalse(bold_acts._steals(self.session(kind="speak_to"), "kesesini çalıyorum", "steal"))
