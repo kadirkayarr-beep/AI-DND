@@ -93,9 +93,11 @@ def speed(session, actor):
         if (data.get("species_trait_state") or {}).get("large_form_turns_remaining", 0) > 0:
             value += 10
         value += character_progression.fast_movement_bonus_ft(data, session.world_state)
-    value -= int(data.get("speed_penalty_ft", 0))
+        # Only the player's saved penalty is read: an NPC one was the old, never-ending Frost's Chill (D-049).
+        value -= int(data.get("speed_penalty_ft", 0))
     value -= 5 * weapon_attack.exhaustion(data)
     value -= weapon_attack.slow_penalty(session, actor)
+    value -= weapon_attack.slow_penalty(session, actor, "frost_giant_ancestry")  # Goliath Frost's Chill (D-049)
     import spell_scope
     value -= spell_scope.speed_penalty(session, actor)  # Ray of Frost (4C.4b)
     if weapon_attack.speed_halved(session, actor):

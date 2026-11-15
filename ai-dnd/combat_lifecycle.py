@@ -586,7 +586,10 @@ def approach(session, target_id, *, named):
                    and n.get("combat_status", "active") in {"active", "unconscious"}), None)
     if target is None:
         return ApproachResult("not_a_participant", 0, 0, target_id, ())
-    distance = target.get("distance_ft", 5)
+    import monster_sense
+    # The courtyard Yolcu's distance is its authored node pair (D-130), which the swing reads, not its record.
+    pair = monster_sense.observable_pair(session) if target_id == monster_sense.NPC_ID else None
+    distance = pair["distance_ft"] if pair else target.get("distance_ft", 5)
     need = max(0, distance - 5)
     r = action_economy.ensure(session)["player"]
     left = action_economy.movement_limit(session, "player") - r["movement_used"]
@@ -599,6 +602,9 @@ def approach(session, target_id, *, named):
         action_economy.move(session, "player", moved)   # the fight's own movement owner checks and spends it
         if "distance_ft" in target:                      # an encounter's own map may have taken the feet over
             target["distance_ft"] = distance - moved
+        if pair and moved == need:  # reaching the Yolcu is standing on its node (a same-node pair is 5 feet)
+            scene = session.world_state[monster_sense.KEY]
+            scene["player_node"] = scene["npc_node"]
     name = (living_world.public_npc_name(target),)
     if moved == need:
         return ApproachResult("moved", moved, max(0, left - moved * step_cost), target_id, name)

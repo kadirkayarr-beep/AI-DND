@@ -129,7 +129,9 @@ class GearRules(JourneyCase):
 
     def test_a_hand_the_owner_will_not_change_is_refused_without_an_error(self):
         w = self.world(bag=["Hançer"], main=None, off=None)
-        w["equipment"]["main_hand"] = "longsword"                        # a new world's catalog hand, no longsword owned
+        # A hand alias nothing in the bag answers to and no catalog weapon names. (D-184: a new world's catalog hand,
+        # "longsword" with no longsword owned, now holds nothing, so the dagger is drawn into it.)
+        w["equipment"]["main_hand"] = "Paslı Kanca"
         before = copy.deepcopy(w)
         self.assertEqual(gear.draw(w, self.item_id(w, "Hançer")).status, "refused")
         self.assertEqual(w, before)                                       # the bag and the hands are untouched

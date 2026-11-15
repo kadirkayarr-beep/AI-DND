@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from copy import deepcopy
 from datetime import datetime, timezone
+import re
 import uuid
 from typing import Any
 
@@ -735,26 +736,37 @@ def update_campaign_journal(
         # Identity materialization is not an item loss. Compare actual owned
         # display labels across both legacy strings and canonical records.
         from equipment_economy import labels
-        before_counts = Counter(item for item in labels(before_items) if isinstance(item, str))
-        after_counts = Counter(item for item in labels(after_items) if isinstance(item, str))
+        def counts(items):
+            # A counted line ("10 Dart") is that many of one item, so a throw ("9 Dart") reads as one spent (D-114).
+            result = Counter()
+            for item in labels(items):
+                if isinstance(item, str):
+                    counted = re.fullmatch(r"\s*(\d+)\s+(.+)", item)
+                    result[counted.group(2) if counted else item] += int(counted.group(1)) if counted else 1
+            return result
+
+        before_counts = counts(before_items)
+        after_counts = counts(after_items)
         for item in sorted(set(before_counts) | set(after_counts), key=str.casefold):
             if not _valid_text(item, 160):
                 continue
             if after_counts[item] > before_counts[item]:
+                gained = after_counts[item] - before_counts[item]
                 _add_event(
                     journal,
                     event_type="item_gained",
-                    summary=f"Envantere {item} eklendi.",
+                    summary=f"Envantere {f'{gained} {item}' if gained > 1 else item} eklendi.",
                     created_at=now,
                     turn_index=turn_index,
                     location=current_location,
                     related_item=item,
                 )
             elif after_counts[item] < before_counts[item]:
+                lost = before_counts[item] - after_counts[item]
                 _add_event(
                     journal,
                     event_type="item_lost",
-                    summary=f"Envanterden {item} çıkarıldı.",
+                    summary=f"Envanterden {f'{lost} {item}' if lost > 1 else item} çıkarıldı.",
                     created_at=now,
                     turn_index=turn_index,
                     location=current_location,

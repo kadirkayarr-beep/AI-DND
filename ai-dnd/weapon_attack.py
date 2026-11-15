@@ -141,6 +141,22 @@ def held_identity(session, actor, data, value):
     return value
 
 
+def _names_no_owned_weapon(session, actor, data, value):
+    """A hand value that is a catalog weapon with no owned record behind it; any other value keeps its hand."""
+    items = inventory(session, actor, data)
+    if any(item == value if isinstance(item, str)
+           else isinstance(item, dict) and value in (item.get("item_id"), item.get("name")) for item in items):
+        return False
+    weapon = lookup(value)
+    if weapon is None:
+        return False
+    try:
+        item_for(session, actor, data, weapon)
+    except CombatRequestError:
+        return True
+    return False
+
+
 def pair(session, actor, target):
     """Minimal spatial interface; absent distance is an error, never a guess."""
     pairs = session.world_state.get("attack_environment", {}).get("pairs", {})
@@ -430,10 +446,27 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
                 fail("invalid_equipment_change", "Unequip needs one held weapon and an Attack Action.")
             hands[matches[0]] = None
             held = [held_identity(session, actor, attacker, value) for value in hands.values()]
+        # D-116: a creation shield has no hand entry; while it is in use (in the bag, not put down) and its share is in
+        # the Armor Class, it holds a hand: no second weapon is drawn into that hand, and no two-handed grip.
+        shield_on = False
+        if actor == "player" and character_progression.shield_share(session.character) > 0:
+            import equipment_economy
+            shield = equipment_economy._shield_in_hand(session.world_state, hands)
+            shield_on = shield is not None and shield["item_id"] not in hands.values()
+            if shield is None and "shield_down" not in session.world_state:
+                # A new character's bag is plain text until the lazy materialize runs; its "Kalkan" line is that shield.
+                from api.dnd_2024_rules import SHIELD_ITEM_TOKENS
+                shield_on = any(isinstance(item, str) and any(token in item.casefold() for token in SHIELD_ITEM_TOKENS)
+                                for item in session.world_state.get("inventory", []))
         if weapon["instance_id"] not in held:
             if choice.get("draw") and (origin in {"action", "continuation"} or "thrown" in weapon["properties"]):
-                free = next((hand for hand, value in hands.items() if value is None), None)
-                if free is None:
+                # A hand naming a catalog weapon the bag does not own (a new world's default "longsword" kept for a
+                # Cleric or Druid) holds nothing; the draw takes that hand first, so the shield keeps the other.
+                open_hands = [hand for hand, value in hands.items()
+                              if value is not None and _names_no_owned_weapon(session, actor, attacker, value)]
+                open_hands += [hand for hand, value in hands.items() if value is None]
+                free = open_hands[0] if open_hands else None
+                if free is None or len(open_hands) - shield_on < 1:
                     fail("invalid_hands", "No hand is available to draw the weapon.")
                 hands[free] = weapon["instance_id"]
             else:
@@ -443,9 +476,9 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             fail("invalid_grip", "Invalid weapon grip.")
         free_hands = sum(value is None for value in hands.values())
         two_required = "two-handed" in weapon["properties"]
-        if (two_required and grip != 2) or (grip == 2 and free_hands < 1):
+        if (two_required and grip != 2) or (grip == 2 and free_hands - shield_on < 1):
             fail("invalid_hands", "Two-handed attack needs both hands.")
-        if "ammunition" in weapon["properties"] and grip == 1 and free_hands < 1:
+        if "ammunition" in weapon["properties"] and grip == 1 and free_hands - shield_on < 1:
             fail("invalid_hands", "A one-handed ammunition weapon requires a free loading hand.")
         weapon["grip"] = grip
         weapon["equipment_after"] = hands
@@ -855,8 +888,8 @@ def boundary(session, actor, event):
         monk_features.effect_ended(session, entry)
 
 
-def slow_penalty(session, actor):
-    return 10 if any(e["kind"] == "slow" and e["target_id"] == actor
+def slow_penalty(session, actor, kind="slow"):
+    return 10 if any(e["kind"] == kind and e["target_id"] == actor
                      for e in session.world_state.get("attack_effects", [])) else 0
 
 
@@ -1004,6 +1037,9 @@ def _resolve(session, c):
     if target == "player":
         hp_result = session._apply_attack_damage_to_player(damage, critical, hit or graze)
         species_effects.extend(hp_result["species_effects"])
+        # Storm's Thunder answers a creature's damage (D-132); a death rollback restored the fight, nothing answers.
+        if actor != "player" and not (hp_result.get("death_resolution") or {}).get("rolled_back"):
+            species_effects.extend(session._storm_thunder_reaction(attacker, damage, c["spatial"]["distance_ft"]))
         hp_after = session.character["current_hp"]
         if deflected:
             additional_effects.append(deflected)
@@ -1054,7 +1090,19 @@ def _resolve(session, c):
         owner["ammunition"][c["ammunition"]] -= 1
     if "thrown" in weapon["properties"] and c["mode"] != "melee":
         items = inventory(session, actor, attacker)
-        items.remove(item_for(session, actor, attacker, weapon, weapon["instance_id"]))
+        thrown = item_for(session, actor, attacker, weapon, weapon["instance_id"])
+        # A counted starting line ("10 Dart", "5 Hançer") is one record: a throw spends one of it, not the bundle.
+        name = thrown.get("name") if isinstance(thrown, dict) else thrown
+        counted = re.fullmatch(r"\s*(\d+)\s+(.+)", name) if isinstance(name, str) else None
+        if counted and int(counted.group(1)) > 1:
+            left = int(counted.group(1)) - 1
+            rest = f"{left} {counted.group(2)}" if left > 1 else counted.group(2)
+            if isinstance(thrown, dict):
+                thrown["name"] = rest
+            else:
+                items[items.index(thrown)] = rest
+        else:
+            items.remove(thrown)
         hands = equipment(session, actor, attacker)
         for hand, value in hands.items():
             if value == weapon["instance_id"] or (lookup(value) and lookup(value)["weapon_id"] == weapon["instance_id"]):

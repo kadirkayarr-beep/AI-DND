@@ -197,6 +197,28 @@ def _alias_in_text(folded: str, alias: str) -> bool:
     return re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", folded) is not None
 
 
+def longer_spell_names(supported: dict[str, str]) -> list[str]:
+    """Spellings of other PHB spells whose name holds a supported spelling, longest first (D-120).
+
+    `supported` is {spelling: spell id}. "Mass Healing Word" / "Toplu Şifa Sözü" names that spell, not Healing Word.
+    """
+    names = tr_names.table()["spells"]
+    spellings = {**{spell_id.casefold(): spell_id for spell_id in names}, **tr_names.spellings_for(names)}
+    return sorted((spelling for spelling, spell_id in spellings.items()
+                   if spell_id not in supported.values() and spelling not in supported
+                   and any(alias in spelling for alias in supported)), key=len, reverse=True)
+
+
+def without_names(text: str, names: list[str]) -> str:
+    """The text with each named longer spell blanked out, so its inner supported name is not read (D-120)."""
+    for name in names:
+        text = text.replace(name, " ")
+    return text
+
+
+_LONGER_NAMES = longer_spell_names(dict(_V1_ALIASES))
+
+
 def classify_cast_phrase(player_input: str) -> dict[str, str] | None:
     """Return a cast classification when the player used a casting verb.
 
@@ -205,8 +227,9 @@ def classify_cast_phrase(player_input: str) -> dict[str, str] | None:
     folded = fold_text(player_input)
     if not _CAST_VERB.search(folded):
         return None
+    named = without_names(folded, _LONGER_NAMES)
     for alias, spell_id in _V1_ALIASES:
-        if _alias_in_text(folded, alias):
+        if _alias_in_text(named, alias):
             return {"kind": "v1", "spell_id": spell_id}
     for alias, spell_id in _UNSUPPORTED_ALIASES:
         if _alias_in_text(folded, alias):

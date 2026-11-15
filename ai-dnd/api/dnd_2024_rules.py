@@ -542,7 +542,7 @@ SPECIES_DEFINITIONS = {
             {"id": "frost", "name_tr": "Ayaz Devi", "desc": "İsabetten sonra soğuk hasarı ver ve hedefi yavaşlat."},
             {"id": "hill", "name_tr": "Tepe Devi", "desc": "İsabetten sonra hedefi yere düşürmeye çalış."},
             {"id": "stone", "name_tr": "Taş Devi", "desc": "Hasar aldığında hasarı azalt."},
-            {"id": "storm", "name_tr": "Fırtına Devi", "desc": "İsabetten sonra gök gürültüsü hasarı ver ve hedefi it."},
+            {"id": "storm", "name_tr": "Fırtına Devi", "desc": "60 fit içindeki bir yaratıktan hasar aldığında, tepkinle ona gök gürültüsü hasarı ver."},
         ],
         "rules_version": "2024 PHB",
         "source_label_tr": "D&D 2024 PHB",
