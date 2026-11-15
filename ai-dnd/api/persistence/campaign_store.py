@@ -224,6 +224,21 @@ class CampaignStore:
         except (OSError, sqlite3.Error):
             raise CampaignStorageError("Campaign storage is unavailable.") from None
 
+    def _table_ready(self, connection: sqlite3.Connection, table: str, ddl: str) -> bool:
+        """D-194: a request makes a missing unversioned table only with migration approval; False when it stays absent."""
+        if connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table,),
+        ).fetchone() is not None:
+            return True
+        if not self._allow_schema_migration:
+            return False
+        connection.execute(ddl)
+        return True
+
+    def _require_table(self, connection: sqlite3.Connection, table: str, ddl: str) -> None:
+        if not self._table_ready(connection, table, ddl):
+            raise CampaignStorageError("Campaign database schema requires explicit migration approval.")
+
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(
             self.path,
@@ -273,7 +288,9 @@ class CampaignStore:
             )
         connection = self._connect()
         try:
-            connection.execute("PRAGMA journal_mode = WAL")
+            # D-195: switching to WAL rewrites the file header; an existing file opened without approval keeps its mode.
+            if existing is None or self._allow_schema_migration:
+                connection.execute("PRAGMA journal_mode = WAL")
             current_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
             if current_version > _DATABASE_SCHEMA_VERSION:
                 raise CampaignStorageError(
@@ -852,10 +869,12 @@ class CampaignStore:
                             now,
                         ),
                     )
-                    if narration_source is not None:
-                        # The file under an open store may predate the table (an older file put in its place):
-                        # made here, inside this save's transaction, so a refused save leaves no table behind.
-                        connection.execute(_HISTORY_SOURCES_DDL)
+                    # The file under an open store may predate the table (an older file put in its place): made here,
+                    # inside this save's transaction, only with migration approval (D-194); without it the turn is
+                    # saved and its source is not, as for a row saved before the record existed.
+                    if narration_source is not None and self._table_ready(
+                        connection, "campaign_history_sources", _HISTORY_SOURCES_DDL,
+                    ):
                         connection.execute(
                             """
                             INSERT INTO campaign_history_sources (
@@ -1141,7 +1160,7 @@ class CampaignStore:
         issuer, subject = self._owner_pair(principal)
         connection = self._connect()
         try:
-            connection.execute(self._REFUSED_ACTIONS_DDL)
+            self._require_table(connection, "campaign_refused_actions", self._REFUSED_ACTIONS_DDL)
             connection.execute("BEGIN IMMEDIATE")
             try:
                 owned = connection.execute(
@@ -1217,8 +1236,8 @@ class CampaignStore:
         issuer, subject = self._owner_pair(principal)
         connection = self._connect()
         try:
-            connection.execute(self._REFUSED_ACTIONS_DDL)
-            connection.execute(self._INTENTS_DDL)
+            self._require_table(connection, "campaign_refused_actions", self._REFUSED_ACTIONS_DDL)
+            self._require_table(connection, "campaign_action_intents", self._INTENTS_DDL)
             connection.execute("BEGIN IMMEDIATE")
             owned = connection.execute(
                 """
