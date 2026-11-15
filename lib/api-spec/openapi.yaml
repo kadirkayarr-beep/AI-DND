@@ -36,9 +36,9 @@ paths:
         '404':
           $ref: '#/components/responses/ApiError'
         '409':
-          $ref: '#/components/responses/ApiError'
+          $ref: '#/components/responses/LevelUpError'
         '500':
-          $ref: '#/components/responses/ApiError'
+          $ref: '#/components/responses/LevelUpError'
         '503':
           $ref: '#/components/responses/ApiError'
       tags:
@@ -71,11 +71,11 @@ paths:
         '404':
           $ref: '#/components/responses/ApiError'
         '409':
-          $ref: '#/components/responses/ApiError'
+          $ref: '#/components/responses/LevelUpError'
         '422':
           $ref: '#/components/responses/RequestValidationError'
         '500':
-          $ref: '#/components/responses/ApiError'
+          $ref: '#/components/responses/LevelUpError'
         '503':
           $ref: '#/components/responses/ApiError'
       tags:
@@ -1222,9 +1222,9 @@ paths:
         '404':
           $ref: '#/components/responses/ApiError'
         '409':
-          $ref: '#/components/responses/ApiError'
+          $ref: '#/components/responses/LevelUpError'
         '500':
-          $ref: '#/components/responses/ApiError'
+          $ref: '#/components/responses/LevelUpError'
         '503':
           $ref: '#/components/responses/ApiError'
       tags:
@@ -1258,11 +1258,11 @@ paths:
         '404':
           $ref: '#/components/responses/ApiError'
         '409':
-          $ref: '#/components/responses/ApiError'
+          $ref: '#/components/responses/LevelUpError'
         '422':
           $ref: '#/components/responses/RequestValidationError'
         '500':
-          $ref: '#/components/responses/ApiError'
+          $ref: '#/components/responses/LevelUpError'
         '503':
           $ref: '#/components/responses/ApiError'
       tags:
@@ -7703,6 +7703,35 @@ components:
           $ref: '#/components/schemas/ApiErrorDetail'
       required:
       - detail
+    LevelUpErrorDetail:
+      type: object
+      additionalProperties: false
+      description: >-
+        Level-up error detail. code is an open string: besides fixed codes (campaign_persistence_required,
+        unresolved_action, action_id_conflict, level_up_campaign_mismatch, level_up_preview_stale,
+        level_up_choice_class_mismatch, level_up_unavailable, level_up_failed, campaign_stale and the ApiErrorDetail
+        codes) the server forwards the engine's own refusal reason for the chosen level and choices.
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        not_applied:
+          type: boolean
+          description: Present and true when the refusal was recorded durably and nothing was applied.
+        unresolved_action_id:
+          type: string
+          description: Present with code unresolved_action; the earlier action that must be resolved first.
+      required:
+      - code
+    LevelUpErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        detail:
+          $ref: '#/components/schemas/LevelUpErrorDetail'
+      required:
+      - detail
     RequestValidationIssue:
       type: object
       additionalProperties: false
@@ -8457,6 +8486,12 @@ components:
             anyOf:
             - $ref: '#/components/schemas/RequestValidationError'
             - $ref: '#/components/schemas/ApiErrorResponse'
+    LevelUpError:
+      description: A controlled level-up error returned by FastAPI (refusal, stale preview, open earlier action or failed save).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LevelUpErrorResponse'
     ApiError:
       description: A controlled application error returned by FastAPI.
       content:

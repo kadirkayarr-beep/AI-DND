@@ -237,6 +237,8 @@ export * from './levelUpDexterityConstitutionIncrease';
 export * from './levelUpDexterityIncrease';
 export * from './levelUpDexterityIntelligenceIncrease';
 export * from './levelUpDexterityWisdomIncrease';
+export * from './levelUpErrorDetail';
+export * from './levelUpErrorResponse';
 export * from './levelUpFiveChoices';
 export * from './levelUpIntelligenceCharismaIncrease';
 export * from './levelUpIntelligenceIncrease';
