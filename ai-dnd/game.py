@@ -3427,6 +3427,8 @@ def _capture_combat_death_checkpoint():
         "world_metadata": copy.deepcopy(
             getattr(session, "world_metadata", None)
         ),
+        # D-113: a level crossing inside the fight moves the save format; the rollback puts it back with the hero.
+        "persisted_engine_format": getattr(session, "_persisted_engine_format", SAVE_FORMAT_VERSION),
     }
     provider = getattr(session, "death_checkpoint_provider", None)
     if callable(provider):
@@ -3449,6 +3451,10 @@ def _restore_combat_death_checkpoint(cause):
     saved_world = checkpoint.get("world_state")
     saved_player = checkpoint.get("player")
     if not isinstance(saved_world, dict) or not isinstance(saved_player, dict):
+        raise ValueError("Normal death rollback checkpoint is invalid.")
+    has_format = "persisted_engine_format" in checkpoint  # a checkpoint saved before D-113 has none
+    saved_format = checkpoint.get("persisted_engine_format")
+    if has_format and (type(saved_format) is not int or saved_format not in _SUPPORTED_SAVE_VERSIONS):
         raise ValueError("Normal death rollback checkpoint is invalid.")
 
     mode = state["mode"]
@@ -3480,6 +3486,10 @@ def _restore_combat_death_checkpoint(cause):
     candidate.world_state.update(copy.deepcopy(restored_world))
     candidate.recent_dm_narrations[:] = copy.deepcopy(checkpoint.get("recent_dm_narrations", []))
     _validate_save_payload(candidate.serialize_game_state())
+    if has_format:
+        # Also admit the restored hero at the format the campaign will be saved in.
+        candidate._persisted_engine_format = saved_format
+        _validate_save_payload(candidate.serialize_game_state())
     candidate.ensure_death_state()
     campaign_state = checkpoint.get("campaign_state")
     if campaign_state is not None:
@@ -3499,6 +3509,8 @@ def _restore_combat_death_checkpoint(cause):
     session.world_metadata = copy.deepcopy(checkpoint.get("world_metadata"))
     # The XP, level and receipt of an award are back to the checkpoint; so is its pending announcement.
     session._xp_level_up = None
+    if has_format:
+        session._persisted_engine_format = saved_format
     campaign_state = checkpoint.get("campaign_state")
     if campaign_state is not None:
         restorer = getattr(session, "death_checkpoint_restorer", None)
@@ -23853,6 +23865,11 @@ class GameSession:
             "xp_level_up": copy.deepcopy(self._xp_level_up),
             "persisted_engine_format_present": "_persisted_engine_format" in self.__dict__,
             "persisted_engine_format": copy.deepcopy(self.__dict__.get("_persisted_engine_format")),
+            # D-115: the open "kavga mı başlatıyorsun?" question goes back with the turn that asked it.
+            "attack_question": (getattr(self, "_attack_asked", False), copy.deepcopy(getattr(self, "_blow_asked", None)),
+                                copy.deepcopy(getattr(self, "_blow_asked_line", None))),
+            # D-115: so does the surrendered-foe question ("Yine de vuruyor musun?").
+            "surrender_question": copy.deepcopy(getattr(self, "_surrender_strike_asked", None)),
         }
 
     def _restore_runtime_snapshot(self, snapshot):
@@ -23876,6 +23893,8 @@ class GameSession:
             self._persisted_engine_format = restored["persisted_engine_format"]
         else:
             self.__dict__.pop("_persisted_engine_format", None)
+        self._attack_asked, self._blow_asked, self._blow_asked_line = restored.get("attack_question", (False, None, None))
+        self._surrender_strike_asked = restored.get("surrender_question")
 
     def resolve_ambient_event_action(
         self,
