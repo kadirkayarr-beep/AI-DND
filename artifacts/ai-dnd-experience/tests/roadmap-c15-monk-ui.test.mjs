@@ -184,7 +184,7 @@ test('every button sends its exact typed step and the generated body accepts it'
   assert.deepEqual(sent, [{ kind: 'martial_arts_strike', target_id: 'npc' }, { kind: 'flurry_of_blows', target_id: 'npc' }, { kind: 'patient_defense' }, { kind: 'patient_defense', spend_focus: true },
     { kind: 'step_of_the_wind' }, { kind: 'step_of_the_wind', spend_focus: true }, { kind: 'uncanny_metabolism' }, { kind: 'attack', target_id: 'npc', stunning_strike: true }]);
   const { PlayGameTurnBody } = await import('../../../lib/api-zod/src/generated/api.ts');
-  for (const step of sent) assert.deepEqual(PlayGameTurnBody.parse({ message: 'x', combat_action: { steps: [step] } }).combat_action.steps[0], { resource: 'action', ...step });
+  for (const step of sent) assert.deepEqual(PlayGameTurnBody.parse({ action_id: '8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d', message: 'x', combat_action: { steps: [step] } }).combat_action.steps[0], { resource: 'action', ...step });
 });
 
 test('Flurry carries only a technique the server offers, and the second strike appears only with one left', () => {

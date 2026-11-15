@@ -268,7 +268,13 @@ class CommitBoundaryTests(unittest.IsolatedAsyncioTestCase):
             for column in ("base_revision", "committed_revision", "result_digest"):
                 db.execute(f"ALTER TABLE campaign_turn_actions DROP COLUMN {column}")
             db.commit()
-        reopened = CampaignStore(self.db_path, bound_principal=TEST_PLAYER)
+        # D-125: the upgrade needs migration approval; without it the open is refused and the columns stay absent.
+        with self.assertRaisesRegex(CampaignStorageError, "explicit migration approval"):
+            CampaignStore(self.db_path, bound_principal=TEST_PLAYER)
+        with closing(sqlite3.connect(self.db_path)) as db:
+            self.assertFalse({"base_revision", "committed_revision", "result_digest"}
+                             & {row[1] for row in db.execute("PRAGMA table_info(campaign_turn_actions)")})
+        reopened = CampaignStore(self.db_path, bound_principal=TEST_PLAYER, allow_schema_migration=True)
         legacy = reopened.get_turn_action_receipt(self.cid, action_id)
         self.assertIsNotNone(legacy)
         self.assertIsNone(legacy["base_revision"], "a legacy row stays NULL; it is not invented")

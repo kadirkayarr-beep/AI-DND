@@ -3447,6 +3447,8 @@ def _capture_combat_death_checkpoint():
         "world_metadata": copy.deepcopy(
             getattr(session, "world_metadata", None)
         ),
+        # D-113: a level crossing inside the fight moves the save format; the rollback puts it back with the hero.
+        "persisted_engine_format": getattr(session, "_persisted_engine_format", SAVE_FORMAT_VERSION),
     }
     provider = getattr(session, "death_checkpoint_provider", None)
     if callable(provider):
@@ -3469,6 +3471,10 @@ def _restore_combat_death_checkpoint(cause):
     saved_world = checkpoint.get("world_state")
     saved_player = checkpoint.get("player")
     if not isinstance(saved_world, dict) or not isinstance(saved_player, dict):
+        raise ValueError("Normal death rollback checkpoint is invalid.")
+    has_format = "persisted_engine_format" in checkpoint  # a checkpoint saved before D-113 has none
+    saved_format = checkpoint.get("persisted_engine_format")
+    if has_format and (type(saved_format) is not int or saved_format not in _SUPPORTED_SAVE_VERSIONS):
         raise ValueError("Normal death rollback checkpoint is invalid.")
 
     mode = state["mode"]
@@ -3500,6 +3506,10 @@ def _restore_combat_death_checkpoint(cause):
     candidate.world_state.update(copy.deepcopy(restored_world))
     candidate.recent_dm_narrations[:] = copy.deepcopy(checkpoint.get("recent_dm_narrations", []))
     _validate_save_payload(candidate.serialize_game_state())
+    if has_format:
+        # Also admit the restored hero at the format the campaign will be saved in.
+        candidate._persisted_engine_format = saved_format
+        _validate_save_payload(candidate.serialize_game_state())
     candidate.ensure_death_state()
     campaign_state = checkpoint.get("campaign_state")
     if campaign_state is not None:
@@ -3519,6 +3529,8 @@ def _restore_combat_death_checkpoint(cause):
     session.world_metadata = copy.deepcopy(checkpoint.get("world_metadata"))
     # The XP, level and receipt of an award are back to the checkpoint; so is its pending announcement.
     session._xp_level_up = None
+    if has_format:
+        session._persisted_engine_format = saved_format
     campaign_state = checkpoint.get("campaign_state")
     if campaign_state is not None:
         restorer = getattr(session, "death_checkpoint_restorer", None)
@@ -4711,7 +4723,7 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
     if (
         character.get("species") == "Goliath"
         and ancestry in GIANT_ANCESTRY_IDS
-        and ancestry not in {"cloud", "stone"}
+        and ancestry not in {"cloud", "stone", "storm"}  # Storm's Thunder is a damage reaction (D-132)
         and state.get("giant_ancestry_armed")
         and state.get("giant_ancestry_uses_remaining", 0) > 0
     ):
@@ -4729,8 +4741,8 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
         elif ancestry == "frost":
             damage, audit = bonus_roll(6)
             bonus_damage += damage
-            target_npc["speed_penalty_ft"] = 10
-            target_npc["speed_penalty_turns_remaining"] = 1
+            # Until the start of the Goliath's next turn: the attack owner's timed effect ends it (D-049).
+            weapon_attack.effect(_session(), "frost_giant_ancestry", "player", target_npc["id"])
             effects.append(
                 {
                     "trait": "frost_giant_ancestry",
@@ -4765,18 +4777,6 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
                     "save_dc": dc,
                     "knocked_prone": knocked_prone,
                     "resolution": resolution,
-                }
-            )
-        elif ancestry == "storm":
-            damage, audit = bonus_roll(8)
-            bonus_damage += damage
-            effects.append(
-                {
-                    "trait": "storm_giant_ancestry",
-                    "damage": damage,
-                    "damage_type": "thunder",
-                    "push_ft": 10,
-                    **audit,
                 }
             )
     return bonus_damage, effects
@@ -5671,6 +5671,45 @@ def _reduce_attack_damage_to_player(damage):
                 }
             )
     return damage, species_effects
+
+
+def _storm_thunder_reaction(attacker_npc, damage_taken, distance_ft):
+    """Storm's Thunder (PHB 2024 PDF 191): damage taken from a creature within 60 ft; Reaction, 1d8 Thunder to it (D-132)."""
+    combat = ensure_combat_state()
+    trait_state = _species_trait_state()
+    if not (
+        damage_taken > 0
+        and _session().character.get("species") == "Goliath"
+        and _session().character.get("giant_ancestry") == "storm"
+        and trait_state.get("giant_ancestry_armed")
+        and trait_state.get("giant_ancestry_uses_remaining", 0) > 0
+        and distance_ft <= 60
+        and _session().character.get("current_hp", 0) > 0
+        and (not combat["active"] or (
+            action_economy.can_act(_session(), "player")
+            and not action_economy.ensure(_session())["player"]["reaction_spent"]
+        ))
+    ):
+        return []
+    if combat["active"]:
+        action_economy.ensure(_session())["player"]["reaction_spent"] = True
+    trait_state["giant_ancestry_uses_remaining"] -= 1
+    trait_state["giant_ancestry_armed"] = False
+    roll = _session().rng.randint(1, 8)
+    mitigation = weapon_attack.mitigate(_session(), attacker_npc["id"], "thunder", roll)
+    after = apply_npc_damage(attacker_npc, mitigation["final_damage"])
+    return [
+        {
+            "trait": "storm_giant_ancestry",
+            "target_id": attacker_npc["id"],
+            "damage": mitigation["final_damage"],
+            "damage_type": "thunder",
+            "damage_die": 8,
+            "raw_rolls": [roll],
+            "mitigation": mitigation,
+            "target_hp_after": after,
+        }
+    ]
 
 
 def _apply_attack_damage_to_player(damage, critical, hit):
@@ -16361,7 +16400,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             return _finish_combat_result(result, before)
         melee_weapon = weapon_data if isinstance(weapon_data, dict) else {"range_ft": 5}
         sense_pair = monster_sense.observable_pair(_session())
-        if sense_pair is not None:
+        if sense_pair is not None and target_npc["id"] == monster_sense.NPC_ID:
             target_npc["distance_ft"] = sense_pair["distance_ft"]
         if monster_sense.blocks_melee(_session(), target_npc["id"], melee_weapon):
             pair = monster_sense.observable_pair(_session())
@@ -18343,37 +18382,12 @@ def _local_place_turn(player_input):
 
 def _adventure_travel_reply(session, destination):
     before = copy.deepcopy(session.world_state)
-    venue_door = _venue_entry_door(
-        session.world_state, session.world_state.get("location"), destination
-    )
-    if venue_door:
-        response = _locked_door_refusal(venue_door)
-        return {
-            "messages": session.messages,
-            "narration": response,
-            "model_calls": 0,
-            "action_result": {
-                "action": "travel",
-                "success": False,
-                "status": "blocked",
-                "target_id": destination,
-                "state_changes": [],
-                "direct_response": response,
-            },
-        }
-    commit_location_change(destination)
+    # D-123: the same journey owner as any trip - closed roads, venue doors and road time all apply.
+    action_result = timed_gameplay.start_travel(session, destination)
     flags = session.world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
-    action_result = {
-        "action": "travel",
-        "success": True,
-        "status": "resolved",
-        "state_changes": ["location"],
-    }
     session.evaluate_quest_events(before, action_result)
-    record = session.world_state.get("locations", {}).get(destination, {})
-    name = record.get("name") if isinstance(record, dict) and isinstance(record.get("name"), str) else destination
-    narration = f"{name} konumuna vardın."
+    narration = action_result["direct_response"]
     session.messages.extend([
         {"role": "user", "content": destination},
         {"role": "assistant", "content": narration},
@@ -20223,7 +20237,9 @@ def _dispatch_player_turn(
             return hideout
         # Read as talk, a look or sitting down: the words of a line walk nowhere. The route log shows these lost all traffic.
         talk = front is not None and front["kind"] in {"talk_around", "look", "sit"}
-        scene = None if talk else _adventure_scene_turn(player_input)
+        # D-123: the quest shortcut's rolls (a check, the road's Survival) belong to this turn like any journey's.
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            scene = None if talk else _adventure_scene_turn(player_input)
         if scene is not None:
             return scene
         # LR00 fix: read a local physical action once, bind it to a real target
@@ -23874,6 +23890,11 @@ class GameSession:
             "xp_level_up": copy.deepcopy(self._xp_level_up),
             "persisted_engine_format_present": "_persisted_engine_format" in self.__dict__,
             "persisted_engine_format": copy.deepcopy(self.__dict__.get("_persisted_engine_format")),
+            # D-115: the open "kavga mı başlatıyorsun?" question goes back with the turn that asked it.
+            "attack_question": (getattr(self, "_attack_asked", False), copy.deepcopy(getattr(self, "_blow_asked", None)),
+                                copy.deepcopy(getattr(self, "_blow_asked_line", None))),
+            # D-115: so does the surrendered-foe question ("Yine de vuruyor musun?").
+            "surrender_question": copy.deepcopy(getattr(self, "_surrender_strike_asked", None)),
         }
 
     def _restore_runtime_snapshot(self, snapshot):
@@ -23897,6 +23918,8 @@ class GameSession:
             self._persisted_engine_format = restored["persisted_engine_format"]
         else:
             self.__dict__.pop("_persisted_engine_format", None)
+        self._attack_asked, self._blow_asked, self._blow_asked_line = restored.get("attack_question", (False, None, None))
+        self._surrender_strike_asked = restored.get("surrender_question")
 
     def resolve_ambient_event_action(
         self,
@@ -23991,7 +24014,8 @@ class GameSession:
         existing = next((item for item in self.world_state["quests"]
                          if item.get("quest_id") == quest_id), None)
         if existing is not None and existing.get("record_kind") == "dynamic":
-            return adventure_play.abandon(self, quest_id)
+            from adventure import dialogue_jobs
+            return dialogue_jobs.cancel_job(self, existing)
         if existing is None:
             definition = next(
                 (item for item in self.quest_offers() if item["quest_id"] == quest_id),

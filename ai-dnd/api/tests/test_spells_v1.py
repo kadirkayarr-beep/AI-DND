@@ -44,7 +44,7 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
         session_id = created.json()["session_id"]
         response = await self.http.post(
             f"/api/sessions/{session_id}/turn",
-            json={"message": "I cast Fire Bolt", "damage": 99, "healing": 20, "spell_slots_remaining": {"1": 9}},
+            json={"action_id": str(uuid.uuid4()), "message": "I cast Fire Bolt", "damage": 99, "healing": 20, "spell_slots_remaining": {"1": 9}},
         )
         self.assertEqual(response.status_code, 422)
 
@@ -65,7 +65,7 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = broken_cast
         response = await self.http.post(
             f"/api/sessions/{session_id}/turn",
-            json={"message": "I cast Magic Missile"},
+            json={"action_id": str(uuid.uuid4()), "message": "I cast Magic Missile"},
         )
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json()["detail"]["code"], "engine_error")

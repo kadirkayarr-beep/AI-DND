@@ -65,8 +65,8 @@ test('public generated interface, OpenAPI and game upper flow agree without a na
     assert.equal(owners.get(owner).match(/historyToEntries\(/g)?.length,1,
       owner+' maps the generated history through exactly one historyToEntries call');
   }
-  assert.equal(source.match(/historyToEntries\(/g)?.length,4,
-    'undo, resume, real turn reconciliation and server-proven recovery all map history through the helper');
+  assert.equal(source.match(/historyToEntries\(/g)?.length,5,
+    'undo, resume, real turn reconciliation, server-proven recovery and a joined ambient event (D-128) all map history through the helper');
   assert.equal(source.match(/entry\.skill_check_result/g),null,'the play screen maps no history skill field of its own');
   assert.equal(helper.match(/skillCheckResult: entry\.skill_check_result/g)?.length,1,
     'the helper preserves exactly one generated history skill field');

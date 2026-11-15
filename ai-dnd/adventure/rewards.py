@@ -15,7 +15,8 @@ def apply_plan(character, world, quest, lore_state=None):
     The branch's XP is not paid here: ``xp_due`` (0 when none) is paid last by the session's XP boundary under the
     same marker as its receipt, so an XP grant that cannot be recorded is forfeited alone (B1) and never takes the
     gold back or keeps the branch unpaid. A marker lost from a save whose receipt exists is put back and nothing is
-    paid again: the receipt is only ever written after the rest of the branch.
+    paid again: the receipt is only ever written after the rest of the branch. A standing with no campaign bond and an
+    item no catalog source can grant are forfeited alone (D-062), so the branch is never retried and refused each turn.
     """
     if quest.get("record_kind") != "dynamic":
         return None
@@ -36,6 +37,10 @@ def apply_plan(character, world, quest, lore_state=None):
     before_quest = copy.deepcopy(quest)
     try:
         gold = branch.get("gold", 0)
+        # D-104: the plan's gold is gold (the offer card says "N altın") and the purse counts copper. A thread job's
+        # plan already carries its pay in copper ("N bakır ödendi").
+        if not str(quest.get("creation_evidence") or "").startswith("thread-job:"):
+            gold *= 100
         if gold > 0:
             pool = f"adventure-pool:{quest['quest_id']}"
             wallets = world.setdefault("currency", {})
@@ -44,17 +49,21 @@ def apply_plan(character, world, quest, lore_state=None):
             wallets.pop(pool, None)
         item = branch.get("item")
         if isinstance(item, str) and item:
-            equipment_economy.grant_catalog_item(world, item)
+            try:
+                equipment_economy.grant_catalog_item(world, item)
+            except equipment_economy.EquipmentError as error:
+                # D-062: an item no catalog source can grant is forfeited alone; any other failure still rolls back.
+                if str(error) != "reward_source_unavailable":
+                    raise
         quest["reward_application_id"] = marker
         faction = branch.get("faction")
-        if isinstance(faction, dict):
+        # D-062: without a campaign bond the standing has nowhere to land and is forfeited alone (no retry each turn).
+        if isinstance(faction, dict) and lore_state is not None:
             from api.lore_authority.campaign_state import (
                 EngineActionEvidence,
                 apply_faction_standing,
             )
 
-            if lore_state is None:
-                raise ValueError("Hizip ödülü için kampanya bağı yok.")
             turn = world.get("flags", {}).get("turn_index", 0)
             if type(turn) is not int:
                 turn = 0

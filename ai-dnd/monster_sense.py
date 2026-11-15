@@ -164,6 +164,7 @@ def _begin(session: Any) -> dict[str, Any]:
         "damage_die": STATBLOCK["attack"]["damage_die"],
         "damage_dice": STATBLOCK["attack"]["damage_dice"],
         "damage_modifier": 0,
+        "speed_ft": STATBLOCK["speed_ft"],  # the combat actor's Speed (Dodge needs Speed above 0, D-131)
         "hidden": False,
         "reality_layer": "PROCEDURAL_LOCAL_FICTION",
         "statblock": copy.deepcopy(STATBLOCK),
@@ -213,6 +214,23 @@ def resolve_turn(session: Any, message: str) -> dict[str, Any] | None:
             route=dict(pair),
         )
     if len(parts) == 3 and parts[:2] == ["/encounter", "move"] and parts[2] in NODES:
+        combat = world.get("combat")
+        if isinstance(combat, dict) and combat.get("active") is True:
+            # In a fight the walk between the authored nodes is combat movement, spent from the turn's budget.
+            import action_economy
+            from combat_lifecycle import CombatRequestError
+            state = world[KEY]
+            feet = abs(PAIRS[(state["player_node"], state["npc_node"])]["distance_ft"]
+                       - PAIRS[(parts[2], state["npc_node"])]["distance_ft"])
+            if feet:
+                try:
+                    action_economy.move(session, "player", feet)
+                except CombatRequestError:
+                    return _fail("Bu tur o kadar hareketin kalmadı.", "encounter")
+            # The Yolcu's own swing reads its record's distance (weapon_attack.pair); the move sets it too.
+            for npc in world.get("npcs", []):
+                if isinstance(npc, dict) and npc.get("id") == NPC_ID:
+                    npc["distance_ft"] = PAIRS[(parts[2], state["npc_node"])]["distance_ft"]
         world[KEY]["player_node"] = parts[2]
         pair = PAIRS[(parts[2], world[KEY]["npc_node"])]
         return _reply(f"Konumun değişti. Mesafe {pair['distance_ft']} ayak.", "encounter", route=dict(pair))

@@ -77,7 +77,7 @@ class _Money:
 
     def assert_paid_once(self, before):
         purse, gained, receipts, *_ = before
-        self.assertEqual(self.purse(), purse + 25)
+        self.assertEqual(self.purse(), purse + 25 * 100)  # YENİDEN YAZIM (D-104): plan gold paid as gold x 100 copper (was 25)
         self.assertEqual(self.xp(), gained + 40)
         self.assertEqual(self.receipts(), receipts + [MARKER])
         self.assertEqual(self.quest()["reward_application_id"], MARKER)
@@ -192,7 +192,7 @@ class AdventureXpEngine(_Money, unittest.TestCase):
         paid = rewards.apply_plan(self.session.character, self.world, quest)
         self.assertEqual((paid["xp_due"], paid["marker"], paid["replayed"]), (40, MARKER, False))
         self.assertEqual(set(paid), {"replayed", "marker", "lore_state", "xp_due"})
-        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25, before[1], before[2]))
+        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25 * 100, before[1], before[2]))  # YENİDEN YAZIM (D-104): was + 25
         self.assertEqual(quest["reward_application_id"], MARKER)
 
     def test_a_gold_only_plan_has_no_xp_due(self):
@@ -201,7 +201,7 @@ class AdventureXpEngine(_Money, unittest.TestCase):
         before = (self.purse(), self.xp(), self.receipts())
         paid = rewards.apply_plan(self.session.character, self.world, quest)
         self.assertEqual(paid["xp_due"], 0)
-        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25, before[1], before[2]))
+        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25 * 100, before[1], before[2]))  # YENİDEN YAZIM (D-104): was + 25
         play.settle_session(self.session)
         self.assertIsNone(self.session._xp_level_up)
 
@@ -235,7 +235,7 @@ class AdventureXpEngine(_Money, unittest.TestCase):
         self.assertEqual(self.session.campaign_lore_state.faction_standings, ())
         with patch.object(game, "_validate_save_payload", refused_admission):
             play.settle_session(self.session)
-        settled = (purse + 25, gained, receipts, 4, MARKER, False)
+        settled = (purse + 25 * 100, gained, receipts, 4, MARKER, False)  # YENİDEN YAZIM (D-104): was purse + 25
         self.assertEqual(self.state(), settled)
         self.assertEqual(self.session._persisted_engine_format, game.SAVE_FORMAT_VERSION)
         self.assertIsNone(self.session._xp_level_up)
@@ -244,12 +244,46 @@ class AdventureXpEngine(_Money, unittest.TestCase):
         self.assertEqual(self.state(), settled)
         self.assertEqual(len(self.session.campaign_lore_state.faction_standings), 1)
 
-    def test_faction_reward_without_a_campaign_bond_pays_nothing(self):
+    # YENİDEN YAZIM (D-062, B1 sınıfı, XP dışı) [GEVŞETME OLABİLİR]: was "a faction reward without a campaign bond
+    # pays nothing" (the ValueError rolled the branch back, the marker stayed unset, so every later turn retried it and
+    # was refused). Now the standing that has no bond to land on is forfeited alone: gold, XP, receipt and marker
+    # stand once, no lore is invented, and a later settle pays nothing more and refuses nothing.
+    def test_faction_reward_without_a_campaign_bond_forfeits_only_the_standing(self):
         self.session.campaign_lore_state = None
         self.plant(faction={"id": "faction:watch", "standing": 1})
         before = self.state()
-        with self.assertRaises(ValueError):
+        play.settle_session(self.session)
+        self.assert_paid_once(before)
+        self.assertEqual(self.session._xp_level_up["xp_gained"], 40)
+        self.assertIsNone(self.session.campaign_lore_state)
+        play.settle_session(self.session)                           # settled: nothing more, no refusal
+        self.assert_paid_once(before)
+        self.assertIsNone(self.session.campaign_lore_state)
+
+    # D-062: an item no catalog source can grant (``reward_source_unavailable``) is forfeited alone; gold, XP, receipt
+    # and marker stand once and no later turn retries the branch.
+    def test_an_item_no_catalog_source_can_grant_forfeits_only_the_item(self):
+        quest = self.plant()
+        quest["reward_plan"]["success"]["item"] = "dagger"
+        inventory = copy.deepcopy(self.world.get("inventory"))
+        before = self.state()
+        with patch.object(equipment_economy, "lookup", return_value=None):
             play.settle_session(self.session)
+            self.assert_paid_once(before)
+            self.assertEqual(self.world.get("inventory"), inventory)
+            play.settle_session(self.session)                       # settled: nothing more, no refusal
+        self.assert_paid_once(before)
+        self.assertEqual(self.world.get("inventory"), inventory)
+
+    # D-062 boundary: any other failure of the item owner still rolls the whole branch back and is raised.
+    def test_another_item_failure_still_rolls_the_branch_back(self):
+        quest = self.plant()
+        quest["reward_plan"]["success"]["item"] = "dagger"
+        before = self.state()
+        failure = equipment_economy.EquipmentError("invalid_world")
+        with patch.object(equipment_economy, "grant_catalog_item", side_effect=failure):
+            with self.assertRaises(equipment_economy.EquipmentError):
+                play.settle_session(self.session)
         self.assertEqual(self.state(), before)
         self.assertIsNone(self.session._xp_level_up)
 

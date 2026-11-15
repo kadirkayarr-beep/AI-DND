@@ -82,8 +82,8 @@ class HttpAuthGateTests(unittest.IsolatedAsyncioTestCase):
             ("POST", "/api/game/sessions", None),
             ("GET", f"/api/sessions/{self.session_id}/state", None),
             ("GET", f"/api/game/sessions/{self.session_id}/state", None),
-            ("POST", f"/api/sessions/{self.session_id}/turn", {"message": "Bekle."}),
-            ("POST", f"/api/game/sessions/{self.session_id}/turn", {"message": "Bekle."}),
+            ("POST", f"/api/sessions/{self.session_id}/turn", {"action_id": str(uuid.uuid4()), "message": "Bekle."}),
+            ("POST", f"/api/game/sessions/{self.session_id}/turn", {"action_id": str(uuid.uuid4()), "message": "Bekle."}),
             ("POST", f"/api/sessions/{self.session_id}/undo", {
                 "action_id": str(uuid.uuid4()), "target_action_id": str(uuid.uuid4()),
             }),
@@ -94,8 +94,8 @@ class HttpAuthGateTests(unittest.IsolatedAsyncioTestCase):
             ("POST", f"/api/game/sessions/{self.session_id}/quests/{quest_id}/accept", None),
             ("POST", f"/api/sessions/{self.session_id}/quests/{quest_id}/cancel", None),
             ("POST", f"/api/game/sessions/{self.session_id}/quests/{quest_id}/cancel", None),
-            ("POST", f"/api/sessions/{self.session_id}/species-actions", {"action": "dash"}),
-            ("POST", f"/api/game/sessions/{self.session_id}/species-actions", {"action": "dash"}),
+            ("POST", f"/api/sessions/{self.session_id}/species-actions", {"action_id": str(uuid.uuid4()), "action": "dash"}),
+            ("POST", f"/api/game/sessions/{self.session_id}/species-actions", {"action_id": str(uuid.uuid4()), "action": "dash"}),
             (
                 "POST",
                 f"/api/sessions/{self.session_id}/ambient-events/{event_id}/actions",

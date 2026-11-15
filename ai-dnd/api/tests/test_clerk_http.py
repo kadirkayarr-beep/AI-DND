@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
 import asyncio
 import tempfile
 import time
@@ -196,8 +197,8 @@ class ClerkHttpTests(unittest.IsolatedAsyncioTestCase):
                 ("DELETE", f"/api/game/campaigns/{campaign_id}", None),
                 ("POST", f"/api/campaigns/{campaign_id}/save", None),
                 ("POST", f"/api/game/campaigns/{campaign_id}/save", None),
-                ("POST", f"/api/sessions/{session_id}/turn", {"message": "Bekle."}),
-                ("POST", f"/api/game/sessions/{session_id}/turn", {"message": "Bekle."}),
+                ("POST", f"/api/sessions/{session_id}/turn", {"action_id": str(uuid4()), "message": "Bekle."}),
+                ("POST", f"/api/game/sessions/{session_id}/turn", {"action_id": str(uuid4()), "message": "Bekle."}),
             ]
             for method, path, body in anonymous:
                 response = await client.request(method, path, json=body)
@@ -231,7 +232,7 @@ class ClerkHttpTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(pending.status_code, 401)
             malformed = await client.post(
                 f"/api/sessions/{session_id}/turn",
-                json={"message": "Bekle."},
+                json={"action_id": str(uuid4()), "message": "Bekle."},
                 headers={"Authorization": "Bearer not-a-token"},
             )
             self.assertEqual(malformed.status_code, 401)
@@ -285,8 +286,8 @@ class ClerkHttpTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(same_subject.json(), _MISSING_CAMPAIGN)
             hp = self.manager.get(session_a, principal=Principal(ISSUER, "user_a")).game_session.character["current_hp"]
             for method, path, body in (
-                ("POST", f"/api/sessions/{session_a}/turn", {"message": "Bekle."}),
-                ("POST", f"/api/game/sessions/{session_a}/turn", {"message": "Bekle."}),
+                ("POST", f"/api/sessions/{session_a}/turn", {"action_id": str(uuid4()), "message": "Bekle."}),
+                ("POST", f"/api/game/sessions/{session_a}/turn", {"action_id": str(uuid4()), "message": "Bekle."}),
                 ("POST", f"/api/campaigns/{campaign_a}/save", None),
                 ("POST", f"/api/game/campaigns/{campaign_a}/save", None),
             ):

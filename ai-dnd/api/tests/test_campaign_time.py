@@ -243,7 +243,7 @@ class ClockTests(unittest.TestCase):
         from api.schemas import TurnRequest
         from pydantic import ValidationError
         with self.assertRaises(ValidationError):
-            TurnRequest(message="merhaba", elapsed_seconds=300)
+            TurnRequest(message="merhaba", action_id=uuid4(), elapsed_seconds=300)
         decision = session._narration_safety_decision(
             "Üç saat sonra çevrene bakıyorsun.", "Bakıyorum.",
             action_result={"action": "explore"},

@@ -270,6 +270,47 @@ class FireGoesOnByTheClock(OneTownScene):
         self.assertEqual(self.world["locations"][self.city].get("description"), before)
         self.assertIn("Sönmüş ateş", self.fire_feature(self.city))
 
+    async def test_a_second_fire_where_one_burnt_out_keeps_its_own_clock(self):
+        """D-129 (ORTA-24): the old burnt-out fire must not stop the new one's clock."""
+        await self.town()
+        self.light()
+        await self.wait("iki saat bekliyorum")
+        self.light()
+        self.assertIn("Tüten ateş", self.fire_feature(self.city))
+        await self.wait("iki saat bekliyorum")
+        self.assertNotIn("Tüten ateş", self.fire_feature(self.city))
+        self.assertEqual(self.fire_feature(self.city).count("Sönmüş ateş"), 2)
+
+    async def test_a_fire_kept_burning_does_not_leave_a_second_unclocked_flame(self):
+        """D-129 (ORTA-24): sparking a place already ablaze adds no fire feature without a clock."""
+        await self.town()
+        self.world["location"] = "shop"
+        self.light()
+        await self.wait("yarım saat bekliyorum")
+        self.assertIn("Yayılan yangın", self.fire_feature())
+        self.light()
+        names = self.fire_feature()
+        fires = self.world["flags"]["fires"]
+        self.assertEqual(len(fires), 1)
+        self.assertNotIn("Tüten ateş", names)
+
+    async def test_no_room_for_a_fire_writes_no_crime_and_no_success(self):
+        """D-129 (ORTA-24): a place at its 16-feature limit gets no fire, so no arson, no witness, no 'lit'."""
+        await self.town()
+        self.world["location"] = "shop"
+        self.add_person("Kalila", "Usta", location="shop")
+        self.world["features"] = [f for f in self.world.get("features", []) if f.get("location") != "shop"] + [
+            {"id": f"feature_9{n:02d}", "location": "shop", "name": f"Raf {n}", "description": ""}
+            for n in range(16)]
+        import bold_acts
+        from unittest.mock import patch
+        with self.binding(), patch.object(bold_acts, "_check", return_value={"result": "BAŞARILI"}):
+            out = bold_acts._burn(self.session)
+        self.assertFalse(self.world["flags"].get("fires"))
+        self.assertFalse([d for d in self.world["flags"].get("deeds", []) if d.get("kind") == "arson"])
+        self.assertNotEqual(out["action_result"]["status"], "lit")
+        self.assertEqual(out["action_result"]["state_changes"], [])
+
 
 class ATheftIsMissedLater(OneTownScene):
     async def test_the_robbed_notice_later_and_do_not_know_who(self):

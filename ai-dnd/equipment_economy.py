@@ -323,6 +323,14 @@ def sync_equipment_identities(world):
             ]
             if len(matches) == 1:
                 hands[hand] = matches[0]["item_id"]
+            elif actor == "player" and weapon is not None and not any(
+                    isinstance(item, dict)
+                    and (lookup(item.get("weapon_id") or item.get("name")) or {}).get("weapon_id") == weapon["weapon_id"]
+                    for item in items):
+                # A player hand naming a catalog weapon the bag does not hold at all (a new world's default
+                # "longsword" kept for a Cleric or Druid) holds nothing, as the attack path reads it
+                # (`weapon_attack._names_no_owned_weapon`). An NPC's hand may be its stat-block weapon: it stays.
+                hands[hand] = None
 
 
 def materialize(world):
@@ -806,6 +814,12 @@ def _apply(world, operation, args):
         if hands[hand] is not None or item["item_id"] in hands.values():
             fail("hand_occupied")
         hands[hand] = item["item_id"]
+        if None not in hands.values():
+            # D-116/D-184: a creation shield has no hand entry but holds one; a weapon in each hand puts it down,
+            # as a two-handed weapon does, and `gear.settle_shield` takes its Armor Class share off.
+            shield = _shield_in_hand(world, hands)
+            if shield is not None and shield["item_id"] not in hands.values():
+                world["shield_down"] = {"item_id": shield["item_id"], "ac_bonus": None}
     elif operation == "unequip" and len(args) == 1:
         hands = world.get("equipment")
         if not isinstance(hands, dict) or args[0] not in {"main_hand", "off_hand"}:

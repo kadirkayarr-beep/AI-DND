@@ -202,7 +202,7 @@ test('Second Wind and Action Surge send the exact typed steps and respect the se
   const low = FIGHTER(); low.action_surge = null; low.second_wind.tactical_shift = false;
   const lowTree = tree(low); assert.equal(byId(lowTree, 'button-action-surge'), undefined); assert.equal(byId(lowTree, 'fighter-tactical-shift'), undefined);
   const { PlayGameTurnBody } = await import('../../../lib/api-zod/src/generated/api.ts');
-  for (const step of sent) assert.deepEqual(PlayGameTurnBody.parse({ message: 'x', combat_action: { steps: [step] } }).combat_action.steps[0].kind, step.kind);
+  for (const step of sent) assert.deepEqual(PlayGameTurnBody.parse({ action_id: '8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d', message: 'x', combat_action: { steps: [step] } }).combat_action.steps[0].kind, step.kind);
 });
 
 test('Tactical Mind is one optional consent shown only from the server projection', async () => {
@@ -222,7 +222,7 @@ test('Tactical Mind is one optional consent shown only from the server projectio
   byId(tree, 'tactical-mind-confirm').props.onChange({ target: { checked: true } });
   assert.equal(chosen, true);
   const { PlayGameTurnBody } = await import('../../../lib/api-zod/src/generated/api.ts');
-  assert.equal(PlayGameTurnBody.parse({ message: 'x', interaction_mode: 'do', check_feature: 'tactical_mind' }).check_feature, 'tactical_mind');
+  assert.equal(PlayGameTurnBody.parse({ action_id: '8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d', message: 'x', interaction_mode: 'do', check_feature: 'tactical_mind' }).check_feature, 'tactical_mind');
 });
 
 function speciesPanel(character, combat = { active: false, current_actor_id: null, participant_records: [] }) {

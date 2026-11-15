@@ -131,7 +131,10 @@ test('action requests use a single generated UUIDv4 and preserve the selected ac
 
 test('a click on an event continues as a real move in the story, never as a bare status line', () => {
   const move = (action, status) => ambientFollowUpMove(action, status);
-  assert.equal(move('interact', 'APPLIED'), 'Yanlarına gidip ne olduğunu soruyorum.');
+  // D-128: a joined event is already its own story turn on the server (history row and undo checkpoint).
+  // A second, automatic turn would make one click two records and Undo would take back only the second.
+  assert.equal(move('interact', 'APPLIED'), null);
+  // Observing changes nothing on the server, so the story move is the click's only record.
   assert.equal(move('observe', 'NO_EFFECT'), 'Bir süre durup çevremi gözlemliyorum.');
   assert.equal(move('interact', 'REJECTED'), null);
   assert.equal(move('interact', 'ALREADY_APPLIED'), null);
@@ -253,4 +256,78 @@ test('a refusal shows the engine message when there is one', () => {
   assert.match(html, /Onlar çoktan dağıldı\./);
   assert.doesNotMatch(html, /Şu anda buna müdahale edemiyorsun/);
   assert.doesNotMatch(html, /event_expired/);
+});
+
+// D-128 review: the joined click is the server's live undo target and its own history row, so the screen must name it.
+async function runAmbientClick(status, { campaignRead = 'fresh' } = {}) {
+  const { readFile } = await import('node:fs/promises');
+  const vm = await import('node:vm');
+  const ts = (await import('typescript')).default;
+  const { historyToEntries } = await vite.ssrLoadModule('/src/lib/transcript-history.ts');
+  const source = await readFile(new URL('../src/pages/game-browser.tsx', import.meta.url), 'utf8');
+  const ast = ts.createSourceFile('game-browser.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const component = ast.statements.find((n) => ts.isFunctionDeclaration(n) && n.name?.text === 'GameBrowser');
+  const code = component.body.statements.find((n) => ts.isVariableStatement(n)
+    && n.declarationList.declarations.some((d) => d.name.getText(ast) === 'submitAmbientEventAction'));
+  assert.ok(code);
+  const executable = ts.transpileModule(`${code.getText(ast)}\nglobalThis.click = submitAmbientEventAction;`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+  }).outputText;
+  const calls = { lastTurn: [], undoneJustNow: [], entries: [], turns: [], campaignReads: [] };
+  let mutation;
+  const request = createAmbientEventActionRequest('session-a', blueEvent.instance_id, 'interact',
+    () => '00000000-0000-4000-8000-000000000128');
+  const history = [
+    { player_message: 'Önceki hamle', narration: 'Önceki anlatım.' },
+    { player_message: 'Yolcuyla konuşmaya gidiyorum.', narration: 'Yanlarına gidiyorsun; karşında yorgun bir yolcu var.' },
+  ];
+  const env = {
+    sessionId: 'session-a', campaignId: 'campaign-a',
+    activeSessionRef: { current: 'session-a' },
+    pendingAmbientActionRef: { current: null },
+    blockingMutation: () => null, setNotice() {},
+    setAmbientActionRequest() {}, setAmbientActionError() {}, setAmbientActionResult() {},
+    nextRevision: () => 1,
+    queryClient: {},
+    applyGameState: (_client, _session, state) => campaignRead === 'fresh' || state !== 'campaign-state',
+    ambientFollowUpMove,
+    submitTurnRef: { current: (...args) => calls.turns.push(args) },
+    setLastTurn: (value) => calls.lastTurn.push(value),
+    setUndoneJustNow: (value) => calls.undoneJustNow.push(value),
+    setEntries: (value) => calls.entries.push(value),
+    historyToEntries,
+    getCampaign: async (id) => { calls.campaignReads.push(id); return { state: 'campaign-state', history }; },
+    resolveAmbientEventAction: { mutate: (_vars, callbacks) => { mutation = callbacks; } },
+  };
+  vm.runInNewContext(executable, Object.assign(env, { globalThis: env }));
+  env.click(request);
+  mutation.onSuccess({ state: 'reply-state', result: { action_id: request.data.action_id, status } });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return { calls, request };
+}
+
+test('a joined event is the turn the Undo bar names, and its story line shows at once', async () => {
+  const { calls, request } = await runAmbientClick('APPLIED');
+  assert.deepEqual(calls.turns, []);
+  assert.equal(calls.lastTurn.length, 1);
+  assert.equal(calls.lastTurn[0].sessionId, 'session-a');
+  assert.equal(calls.lastTurn[0].actionId, request.data.action_id);
+  assert.deepEqual(calls.undoneJustNow, [false]);
+  assert.deepEqual(calls.campaignReads, ['campaign-a']);
+  assert.equal(calls.entries.length, 1);
+  assert.ok(calls.entries[0].some((entry) => entry.text === 'Yanlarına gidiyorsun; karşında yorgun bir yolcu var.'));
+});
+
+test('a click that changed nothing leaves the last turn and the story as they were', async () => {
+  for (const status of ['REJECTED', 'ALREADY_APPLIED', 'NO_EFFECT']) {
+    const { calls } = await runAmbientClick(status);
+    assert.deepEqual(calls.lastTurn, [], status);
+    assert.deepEqual(calls.entries, [], status);
+  }
+});
+
+test('an older campaign read after a joined event never overwrites a newer story', async () => {
+  const { calls } = await runAmbientClick('APPLIED', { campaignRead: 'stale' });
+  assert.equal(calls.lastTurn.length, 1);
+  assert.deepEqual(calls.entries, []);
 });

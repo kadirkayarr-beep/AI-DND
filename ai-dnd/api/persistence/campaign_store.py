@@ -139,6 +139,30 @@ def _read_user_version(path: Path) -> int | None:
         connection.close()
 
 
+# Tables and receipt columns _initialize adds to a current-version file without a version bump.
+_UNVERSIONED_TABLES = (
+    "campaign_refused_actions", "campaign_action_intents",
+    "campaign_turn_actions_archive", "campaign_history_sources",
+)
+_UNVERSIONED_RECEIPT_COLUMNS = ("base_revision", "committed_revision", "result_digest")
+
+
+def _lacks_unversioned_schema(path: Path) -> bool:
+    """True when opening this file would add tables or columns (read-only check, file left unchanged)."""
+    try:
+        connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)
+    except sqlite3.Error:
+        raise CampaignStorageError("Campaign database could not be opened safely.") from None
+    try:
+        tables = {str(row[0]) for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        columns = {str(row[1]) for row in connection.execute("PRAGMA table_info(campaign_turn_actions)")}
+    except sqlite3.Error:
+        raise CampaignStorageError("Campaign database could not be opened safely.") from None
+    finally:
+        connection.close()
+    return not set(_UNVERSIONED_TABLES) <= tables or not set(_UNVERSIONED_RECEIPT_COLUMNS) <= columns
+
+
 _OWNED_SQL = (
     "ownership_state = 'owned' AND owner_issuer = ? AND owner_subject = ?"
 )
@@ -201,6 +225,15 @@ class CampaignStore:
             existing is not None
             and existing < _DATABASE_SCHEMA_VERSION
             and not self._allow_schema_migration
+        ):
+            raise CampaignStorageError(
+                "Campaign database schema requires explicit migration approval."
+            )
+        # D-125: an older current-version file would gain tables or columns below; that change needs the same approval.
+        if (
+            existing is not None
+            and not self._allow_schema_migration
+            and _lacks_unversioned_schema(self.path)
         ):
             raise CampaignStorageError(
                 "Campaign database schema requires explicit migration approval."
@@ -1267,47 +1300,6 @@ class CampaignStore:
         finally:
             connection.close()
 
-    def release_action_intent(
-        self,
-        campaign_id: str,
-        action_id: str,
-        request_hash: str,
-        principal: Principal | None = None,
-    ) -> bool:
-        """Forget an open intent whose turn is proven not to have applied; True only if nothing of it remains.
-
-        For a failure that decided nothing about the campaign (a model failed and the turn was rolled back): no terminal
-        record is kept, so any new id may run and this same id may simply run again. A receipt wins and is never released.
-        """
-        self._validate_campaign_id(campaign_id)
-        if not _is_uuid4(action_id):
-            raise CampaignValidationError("Turn action ID is invalid.")
-        connection = self._owned_connection(campaign_id, principal)
-        try:
-            try:
-                if connection.execute(
-                    "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ? "
-                    "UNION ALL SELECT 1 FROM campaign_turn_actions_archive WHERE campaign_id = ? AND action_id = ?",
-                    (campaign_id, action_id, campaign_id, action_id),
-                ).fetchone() is not None:
-                    connection.commit()
-                    return False
-                connection.execute(
-                    "DELETE FROM campaign_action_intents WHERE campaign_id = ? AND action_id = ? AND request_hash = ?",
-                    (campaign_id, action_id, request_hash),
-                )
-                connection.commit()
-                return True
-            except Exception:
-                connection.rollback()
-                raise
-        except CampaignNotFoundError:
-            raise
-        except sqlite3.Error:
-            raise CampaignStorageError("Campaign action intent could not be released safely.") from None
-        finally:
-            connection.close()
-
     def abandon_action(
         self,
         campaign_id: str,
@@ -1383,7 +1375,7 @@ class CampaignStore:
         try:
             row = connection.execute(
                 """
-                SELECT actions.request_hash, actions.response_json
+                SELECT actions.request_hash, actions.response_json, actions.result_digest
                 FROM campaign_turn_actions AS actions
                 JOIN campaigns ON campaigns.campaign_id = actions.campaign_id
                 WHERE actions.campaign_id = ? AND actions.action_id = ?
@@ -1425,6 +1417,10 @@ class CampaignStore:
                 or any(char not in "0123456789abcdef" for char in request_hash)
             ):
                 raise CampaignCorruptError("Campaign action receipt is invalid.")
+            # D-124: a replay serves only the text the digest was recorded for; a legacy row without a digest stays readable.
+            if row["result_digest"] is not None and row["result_digest"] != hashlib.sha256(
+                    str(row["response_json"]).encode("utf-8")).hexdigest():
+                raise CampaignCorruptError("Campaign action receipt digest does not match its stored result.")
             return {"request_hash": request_hash, "response": response}
         except CampaignCorruptError:
             raise

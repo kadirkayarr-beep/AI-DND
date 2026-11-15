@@ -1,4 +1,5 @@
 """Trusted local model selection; no provider network or personal campaign data."""
+from uuid import uuid4
 import os
 import re
 import unittest
@@ -191,7 +192,7 @@ class LocalModelSelectionTests(unittest.TestCase):
 
     def test_request_cannot_select_model(self):
         with self.assertRaises(ValidationError):
-            TurnRequest(message='Merhaba', model=NINE)
+            TurnRequest(message='Merhaba', action_id=uuid4(), model=NINE)
 
 
 class IdentitySuggestionModelTests(unittest.TestCase):
@@ -290,7 +291,7 @@ class LocalModelHttpTests(unittest.IsolatedAsyncioTestCase):
                     before_response = await http.get(f'/api/game/sessions/{sid}/state')
                     self.assertEqual(before_response.status_code, 200, before_response.text)
                     before = before_response.json()
-                    response = await http.post(f'/api/game/sessions/{sid}/turn', json={'message': 'Merhaba, nasılsın?'})
+                    response = await http.post(f'/api/game/sessions/{sid}/turn', json={"action_id": str(uuid4()), 'message': 'Merhaba, nasılsın?'})
                     self.assertEqual(response.status_code, 503, response.text)
                     self.assertEqual(response.json()['detail']['code'], 'model_unavailable')
                     self.assertIn(NINE, response.json()['detail']['message'])
