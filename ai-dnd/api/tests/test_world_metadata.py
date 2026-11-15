@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 
+from uuid import uuid4
 import json
 import sqlite3
 import tempfile
@@ -145,7 +146,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             )
         with self.assertRaises(ValidationError):
             TurnRequest.model_validate(
-                {"message": "Ormana gidiyorum", "weather": "storm"}
+                {"message": "Ormana gidiyorum", "action_id": str(uuid4()), "weather": "storm"}
             )
 
     async def test_api_state_exposes_canonical_world_and_rejects_forged_fields(self):
@@ -176,7 +177,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             )
             forged_turn = await client.post(
                 f"/api/game/sessions/{session_id}/turn",
-                json={"message": "Ormana gidiyorum", "weather": "storm"},
+                json={"action_id": str(uuid4()), "message": "Ormana gidiyorum", "weather": "storm"},
             )
 
         self.assertEqual(forged_campaign.status_code, 422)

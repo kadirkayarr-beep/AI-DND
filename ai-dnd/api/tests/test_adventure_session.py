@@ -936,6 +936,32 @@ class HideoutTurnTests(unittest.TestCase):
         self.assertNotIn("fork_hidden", text)
         self.assertNotIn("Dar geçit", text)
 
+    def test_leaving_by_the_exit_is_outside_after_a_save(self):
+        # D-118: the "Dışarı" node is outside; a saved game must not keep the player inside the hideout.
+        import adventure.projection as projection
+        session, _quest = self._at_captive()
+        session.run_player_turn("Dışarı yönünde ilerliyorum.")
+        self.assertEqual(self._state(session)["node"], "exit")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "hideout.json"
+            session.save_game(path)
+            session.world_state["dungeon_discovery"] = {}
+            session.load_game(path)
+        self.assertEqual(self._state(session)["node"], "exit")
+        self.assertFalse(play.inside_hideout(session.world_state))
+        self.assertNotIn("place", projection.model_packet(session.world_state, session.campaign_lore_state))
+        self.assertIsNone(play.resolve_dungeon_turn(session, "Koridorda ilerliyorum.", lambda *_args: True))
+
+    def test_reentering_after_the_exit_starts_at_the_entrance(self):
+        session, quest = self._at_captive()
+        session.run_player_turn("Dışarı yönünde ilerliyorum.")
+        self.assertEqual(quest["status"], "ACTIVE")
+        self.assertIn("Saklı girişe gir", play.dungeon_affordances(session.world_state))
+        entered = session.run_player_turn("Saklı girişe giriyorum.")
+        self.assertEqual(entered["action_result"]["action"], "dungeon_enter")
+        self.assertEqual(self._state(session)["node"], "entrance")
+        self.assertTrue(play.inside_hideout(session.world_state))
+
     def _entered(self):
         session = _session()
         quest = _active_missing(session)

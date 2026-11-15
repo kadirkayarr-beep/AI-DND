@@ -1,5 +1,6 @@
 """Focused maintenance regressions; disposable saves and offline models only."""
 
+from uuid import uuid4
 import copy
 import tempfile
 import unittest
@@ -159,7 +160,7 @@ class CheckpointFailureRollbackTests(unittest.IsolatedAsyncioTestCase):
 
         with patch.object(session, "run_player_turn", new=failed_turn):
             response = await self.http.post(f"/api/game/sessions/{sid}/turn",
-                                            json={"message": "Bekle."})
+                                            json={"action_id": str(uuid4()), "message": "Bekle."})
         self.assertEqual(response.status_code, 503 if model_failure else 500, response.text)
         self.assertEqual(len(checkpoint_applied), 1)
         for key in ("engine", "journal", "memory", "lore", "metadata"):

@@ -260,10 +260,20 @@ class AdventurePhase8Tests(unittest.TestCase):
         }
         before_xp = session.character.get("xp", 0)
         broken = copy.deepcopy(quest)
-        with self.assertRaises(ValueError):
-            rewards.apply_plan(session.character, session.world_state, broken, lore_state=None)
+        # YENİDEN YAZIM (D-062) [GEVŞETME OLABİLİR]: the failing standing was a missing bond (``lore_state=None``),
+        # which now forfeits the standing alone; the same rollback after gold and marker is pinned with a refused
+        # standing owner instead (plus the purse, which the old form did not check).
+        from unittest.mock import patch
+        import api.lore_authority.campaign_state as campaign_state
+
+        before_world = copy.deepcopy(session.world_state)
+        refused = ValueError("injected: standing refused")
+        with patch.object(campaign_state, "apply_faction_standing", side_effect=refused):
+            with self.assertRaises(ValueError):
+                rewards.apply_plan(session.character, session.world_state, broken, lore_state=bound_state())
         self.assertEqual(session.character.get("xp", 0), before_xp)
         self.assertIsNone(broken["reward_application_id"])
+        self.assertEqual(session.world_state, before_world)
 
         lore = bound_state()
         paid = rewards.apply_plan(session.character, session.world_state, quest, lore_state=lore)

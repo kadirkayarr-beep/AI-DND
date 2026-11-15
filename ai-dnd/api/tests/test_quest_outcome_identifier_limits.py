@@ -4,6 +4,7 @@ The overflow tests deliberately document a real contract violation without
 truncating canonical IDs or adding bounds to the permissive runtime model.
 """
 
+from uuid import uuid4
 import copy
 from pathlib import Path
 import unittest
@@ -320,7 +321,7 @@ class QuestOutcomeIdentifierApiTests(OutcomeAssertions, unittest.IsolatedAsyncio
         ):
             response = await self.http.post(
                 f"/api/game/sessions/{session_id}/turn",
-                json={"message": "Travel"},
+                json={"action_id": str(uuid4()), "message": "Travel"},
             )
             self.assertEqual(response.status_code, 200, response.text)
             outcomes = response.json()["quest_outcomes"]
@@ -355,7 +356,7 @@ class QuestOutcomeIdentifierApiTests(OutcomeAssertions, unittest.IsolatedAsyncio
         self.enterContext(patch.object(session, "run_player_turn", deterministic_visit))
         response = await self.http.post(
             f"/api/game/sessions/{session_id}/turn",
-            json={"message": "Travel"},
+            json={"action_id": str(uuid4()), "message": "Travel"},
         )
         self.assertEqual(response.status_code, 500, response.text)
         self.assertEqual(response.json()["detail"]["code"], "narrative_memory_error")

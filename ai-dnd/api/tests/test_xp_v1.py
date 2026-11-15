@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
 import unittest
 
 import httpx
@@ -44,7 +45,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(field=field):
                 response = await self.http.post(
                     f"/api/sessions/{session_id}/turn",
-                    json={"message": "Bekle", field: value},
+                    json={"action_id": str(uuid4()), "message": "Bekle", field: value},
                 )
                 self.assertEqual(response.status_code, 422)
                 self.assertNotIn(str(value), response.text)
@@ -63,7 +64,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = no_award
         missed = await self.http.post(
             f"/api/sessions/{session_id}/turn",
-            json={"message": "Bekle"},
+            json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(missed.status_code, 200, missed.text)
         self.assertIsNone(missed.json()["level_up"])
@@ -88,7 +89,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = awarded
         gained = await self.http.post(
             f"/api/sessions/{session_id}/turn",
-            json={"message": "Bekle"},
+            json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(gained.status_code, 200, gained.text)
         self.assertEqual(

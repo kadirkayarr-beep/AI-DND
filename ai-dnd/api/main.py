@@ -15,7 +15,7 @@ import game
 import refusals
 from dataclasses import replace
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -1254,7 +1254,7 @@ def create_app(
                 "message": "Economic actions are not open yet; nothing was applied.",
             })
         active_adapter = application.state.ollama_adapter
-        action_id = str(request.action_id or uuid4())
+        action_id = str(request.action_id)
         effective_mode = "do" if request.combat_action is not None else request.interaction_mode
         hash_payload = {"message": request.message, "target_id": request.target_id}
         # Omitted modes keep the legacy hash used by saved turn receipts.
@@ -1376,16 +1376,22 @@ def create_app(
             def refuse_model_failure(code: str, message: str = MODEL_FAILURE_MESSAGE) -> HTTPException:
                 """Answer a model failure on a turn that applied nothing, and let the campaign go on.
 
-                The failure says nothing about the campaign, so the open intent is released instead of holding every later
-                move: any new id runs, and this same id may run again. The not_applied claim needs a verified rollback.
+                The failure says nothing about the campaign, so it does not hold later moves: any new id runs. The browser
+                closes its move on not_applied and retries with a new id, so this id is closed for good (D-106): a late
+                copy replays this refusal instead of running a second turn. The not_applied claim needs a verified
+                rollback and a durable refusal record.
                 """
                 take_back_opening()
-                detail = {"code": code, "message": message}
+                detail = {"code": code, "message": message, "not_applied": True}
                 try:
-                    if getattr(record, "usable", True) and manager.release_action_intent(record, action_id, request_hash):
-                        detail["not_applied"] = True
+                    durable = getattr(record, "usable", True) and manager.record_refused_action(
+                        record, action_id, request_hash, 503, detail,
+                    )
                 except Exception:
-                    _logger.error("Action intent could not be released; no never-applied claim is made.", exc_info=True)
+                    _logger.error("Model-failure refusal could not be saved; no never-applied claim is made.", exc_info=True)
+                    durable = False
+                if not durable:
+                    detail = {"code": code, "message": message}
                 return HTTPException(status_code=503, detail=detail)
 
             try:
@@ -2351,7 +2357,7 @@ def create_app(
         request: SpeciesTraitActionRequest,
     ) -> dict[str, Any]:
         record = get_record(session_id)
-        action_id = str(request.action_id or uuid4())
+        action_id = str(request.action_id)
         request_hash = hashlib.sha256(json.dumps(
             {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
@@ -2492,7 +2498,7 @@ def create_app(
         """4C.2: save the player's preparation list (same receipt, replay and rollback contract as species actions)."""
         import spell_preparation
         record = get_record(session_id)
-        action_id = str(request.action_id or uuid4())
+        action_id = str(request.action_id)
         request_hash = hashlib.sha256(json.dumps(
             {"command": "spell_prepare", **request.model_dump(mode="json", exclude={"action_id"})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),

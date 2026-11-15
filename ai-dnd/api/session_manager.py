@@ -806,6 +806,8 @@ class SessionManager:
                 record.campaign_id, action_id, request_hash, status_code, detail,
                 principal=self._sealed_principal(record),
             )
+        if action_id in record.turn_action_receipts:
+            return False  # a receipt always wins, as in the campaign store
         record.refused_actions[action_id] = {
             "request_hash": request_hash, "status_code": status_code, "detail": detail,
         }
@@ -825,13 +827,6 @@ class SessionManager:
         return self._require_campaign_store().claim_action_intent(
             record.campaign_id, action_id, request_hash, principal=self._sealed_principal(record),
             session=record.game_session,  # the server-held session, never a client token
-        )
-
-    def release_action_intent(self, record: ManagedSession, action_id: str, request_hash: str) -> bool:
-        if record.campaign_id is None:
-            return action_id not in record.turn_action_receipts
-        return self._require_campaign_store().release_action_intent(
-            record.campaign_id, action_id, request_hash, principal=self._sealed_principal(record),
         )
 
     def unresolved_action(self, record: ManagedSession) -> dict[str, Any] | None:

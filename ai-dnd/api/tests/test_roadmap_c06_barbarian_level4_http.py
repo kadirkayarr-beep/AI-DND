@@ -224,11 +224,11 @@ class BarbarianFourHttpTests(unittest.IsolatedAsyncioTestCase):
         from api.persistence.campaign_store import CampaignStore
         from api.tests.auth_fixture import TEST_PLAYER
         from api.schemas import LevelUpApplyRequest
-        fixture=json.loads((Path(__file__).parent/'fixtures/c06_pre_barbarian4_http_receipts.json').read_text())
+        fixture=json.loads((Path(__file__).parent/'fixtures/c06_pre_barbarian4_http_receipts.json').read_text(encoding='utf-8'))
         path=Path(self.temporary_directory.name)/'before-barbarian4.sqlite3'
         with sqlite3.connect(path) as connection:
             connection.executescript(fixture['sqlite_dump']);connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
-        self.store=CampaignStore(path,bound_principal=TEST_PLAYER)
+        self.store=CampaignStore(path,bound_principal=TEST_PLAYER,allow_schema_migration=True)  # D-125: frozen older file, approved migration
         for name,oracle in fixture['oracles'].items():
             a=copy.deepcopy(oracle['campaign']);r=await self.reopen(a);runtime=r.game_session.serialize_game_state();runtime['player'].pop('armor_origin',None);self.assertEqual(runtime,oracle['runtime'])  # the one additive read-time repair
             command=oracle['request'];self.assertEqual(LevelUpApplyRequest.model_validate(command).model_dump(mode='json'),command)

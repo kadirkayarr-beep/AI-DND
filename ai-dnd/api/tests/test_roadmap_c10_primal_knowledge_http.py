@@ -18,6 +18,7 @@ from api.core_resolution import resolution_action_scope
 from api.tests import test_roadmap_c10_berserker_http as prior
 from api.tests.test_roadmap_c10_primal_knowledge import selected, roll
 from api.tests.test_campaign_api import ControlledVenueOllamaClient
+from api.tests.town_seed import fixed_town
 
 FIXTURE = Path(__file__).parent / 'fixtures' / 'c10_pre_primal_http_receipt.json'
 HASH = 'fae5bab8973fb30dee0bfbbbc872da54ea13b3b65a32498ffe47d488b3d32cf0'
@@ -60,7 +61,7 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
         with sqlite3.connect(path) as connection:
             connection.executescript(fixture['sqlite_dump'])
             connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
-        self.store=CampaignStore(path,bound_principal=TEST_PLAYER)
+        self.store=CampaignStore(path,bound_principal=TEST_PLAYER,allow_schema_migration=True)  # D-125: frozen older file, approved migration
         a=copy.deepcopy(fixture['campaign']);r=await self.reopen(a)
         runtime=r.game_session.serialize_game_state();self.assertEqual(runtime['player'].pop('armor_origin'),{'armor':None,'shield':False});self.assertEqual(runtime,fixture['runtime'])  # the one additive read-time repair
         expected=copy.deepcopy(fixture['response']);expected['session_id']=a['session_id']
@@ -90,7 +91,7 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('_PrimalKnowledge',response.text)
 
     async def test_schema_retains_only_explicit_option_and_refuses_mixed_client_authority(self):
-        value={'message':'Takla atıyorum','interaction_mode':'do','check_feature':'primal_knowledge'}
+        value={'message':'Takla atıyorum','interaction_mode':'do','check_feature':'primal_knowledge','action_id':uuid4()}
         try:parsed=TurnRequest.model_validate(value)
         except ValueError as error:self.fail(f'Explicit feature rejected: {error}')
         self.assertEqual(parsed.model_dump(exclude_none=True),value)
@@ -99,20 +100,41 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
                       {'ability':'strength'},{'skill':'Acrobatics'},{'dc':1},{'modifier':10},{'check_evidence':[]}):
             with self.subTest(extra=extra),self.assertRaises(ValueError):TurnRequest.model_validate({**value,**extra})
 
-    async def test_actual_http503_has_no_permanent_refusal_and_exact_same_id_retries(self):
-        a,r,command=await self.ready();before=self.snapshot(r)
+    async def test_actual_http503_closes_the_id_and_a_new_id_runs(self):
+        # D-106 (was ..._has_no_permanent_refusal_and_exact_same_id_retries): the model failure's not_applied answer is final for its id.
+        with fixed_town(self,106_001):a,r,command=await self.ready()
+        before=self.snapshot(r);revision=self.store.get_campaign(r.campaign_id).metadata['revision']
         with patch('api.tests.test_campaign_api.FakeOllamaClient.chat',return_value={'message':{'content':'not usable JSON'}}):
             failed=await self.http.post(f"/api/game/sessions/{a['session_id']}/turn",json=command)
         self.assertEqual(failed.status_code,503,failed.text)
         self.assertEqual(failed.json()['detail']['code'],'intent_json_invalid')
+        self.assertIs(failed.json()['detail']['not_applied'],True)
         self.assertEqual(self.snapshot(r),before)
-        self.assertIsNone(self.manager.get_refused_action(r,command['action_id']))
+        refusal=self.manager.get_refused_action(r,command['action_id'])
+        self.assertEqual((refusal['status_code'],refusal['detail']),(503,failed.json()['detail']))
         self.assertIsNone(self.manager.get_turn_action(r,command['action_id']))
         self.assertIsNone(self.manager.unresolved_action(r))
-        response=await self.post(a,command)
+        with patch('api.tests.test_campaign_api.FakeOllamaClient.chat',side_effect=AssertionError('closed id reached the model')) as model,\
+             patch('game.perform_skill_check',side_effect=AssertionError('closed id reran the engine')) as engine:
+            again=await self.http.post(f"/api/game/sessions/{a['session_id']}/turn",json=command)
+        self.assertEqual(again.status_code,503,again.text)
+        self.assertEqual(again.json(),failed.json(),'the refusal answers, nothing runs again')
+        model.assert_not_called();engine.assert_not_called()
+        self.assertEqual(self.snapshot(r),before)
+        self.assertEqual(self.store.get_campaign(r.campaign_id).metadata['revision'],revision)
+        self.assertIsNone(self.manager.get_turn_action(r,command['action_id']))
+        self.assertIsNone(self.manager.unresolved_action(r))
+        fresh={**command,'action_id':str(uuid4())}
+        response=await self.post(a,fresh)
         self.assertEqual(response.status_code,200,response.text)
         self.assertEqual(response.json()['skill_check_result']['check_feature'],'primal_knowledge')
+        self.assertEqual(self.store.get_campaign(r.campaign_id).metadata['revision'],revision+1)
+        self.assertIsNotNone(self.manager.get_turn_action(r,fresh['action_id']))
         self.assertIsNone(self.manager.unresolved_action(r))
+        applied=self.snapshot(r)
+        with patch('game.perform_skill_check',side_effect=AssertionError('new id rerolled')):
+            self.assertEqual((await self.post(a,fresh)).json(),response.json())
+        self.assertEqual(self.snapshot(r),applied)
 
     async def test_actual_sqlite_precommit_fault_restores_full_runtime_and_retry_rolls_once(self):
         a,r,command=await self.ready();before=self.snapshot(r)

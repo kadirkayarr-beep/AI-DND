@@ -2295,9 +2295,7 @@ components:
           minLength: 1
           maxLength: 128
         action_id:
-          type:
-          - string
-          - 'null'
+          type: string
           format: uuid
           pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
         economic_action:
@@ -2308,6 +2306,7 @@ components:
           - $ref: '#/components/schemas/EconomicAction'
           - type: 'null'
       required:
+      - action_id
       - message
     TextSpan:
       type: object
@@ -3282,9 +3281,7 @@ components:
       additionalProperties: false
       properties:
         action_id:
-          type:
-          - string
-          - 'null'
+          type: string
           format: uuid
           description: UUIDv4 action receipt identity; reuse on network retry.
         action:
@@ -3338,6 +3335,7 @@ components:
           - boolean
           - 'null'
       required:
+      - action_id
       - action
     SpeciesTraitActionResult:
       type: object
@@ -3393,10 +3391,10 @@ components:
           type: boolean
           default: false
         action_id:
-          type:
-          - string
-          - 'null'
+          type: string
           format: uuid
+      required:
+      - action_id
     SpellPrepareDropped:
       type: object
       additionalProperties: false

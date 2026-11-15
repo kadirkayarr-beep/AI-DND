@@ -130,7 +130,7 @@ export function SpeciesTraitControls({
       ?.primary_action_available === true
   );
   const notBusy = !sending && !retryInput;
-  const send = (data: SpeciesTraitActionInput) => {
+  const send = (data: Omit<SpeciesTraitActionInput, 'action_id'> & { action_id?: string }) => {
     if (busy.current) return;
     // An unresolved play move in this campaign must be settled first; this path never overtakes it.
     if (readPending(currentAccountOwner() ?? 'local', campaignId || sessionId)) {
