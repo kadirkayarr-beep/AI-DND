@@ -88,6 +88,7 @@ class QuestLogCase(JourneyCase):
 
 
 class OneView(QuestLogCase):
+    SEED = 4571     # fixed town: the new tests and the public-names test must not depend on a random one
     async def test_counter_and_journal_read_one_view(self):
         view = quest_log.view(await self.world_with_town_errand())
         self.assertEqual(view["active_count"], len(view["active"]))
@@ -148,6 +149,28 @@ class OneView(QuestLogCase):
         self.assertEqual((rows["q_legacy"]["record_kind"], rows["q_legacy"]["raw_status"]), (None, "accepted"))
         self.assertEqual((rows[self.quest_id]["record_kind"], rows[self.quest_id]["raw_status"]), ("dynamic", "ACTIVE"))
         self.assertIsNone(rows[self.quest_id]["result"])
+
+    async def test_an_open_job_shows_the_promised_pay_and_a_done_job_the_same_figure(self):
+        """D-232: the card carries the pay the job promised, so the figure paid later is the figure the card showed."""
+        world = await self.world_with_town_errand()
+        promised = world_threads.by_id(world, self.thread_id)["terms"]["pay"]
+        self.assertIsInstance(promised, int)
+        self.assertGreater(promised, 0)
+        [row] = quest_log.view(world)["active"]
+        self.assertEqual(row["promised_cp"], promised)
+        world["quests"][0]["status"] = "DISCOVERED"                      # offered: the pay is already on the card
+        [offered] = quest_log.view(world)["offered"]
+        self.assertEqual(offered["promised_cp"], promised)
+        world["quests"][0]["status"] = "ACTIVE"
+        self.assertEqual(self.state()["quest_log"]["active"][0]["promised_cp"], promised)
+        done = await self.world_delivered(seal_broken=False)
+        [paid] = quest_log.view(done)["done"]
+        self.assertEqual(paid["result"], f"{paid['promised_cp']} bakır ödendi")
+
+    async def test_a_legacy_record_has_no_promised_pay(self):
+        world = self.with_legacy_quest(await self.world_with_town_errand())
+        rows = {r["quest_id"]: r for r in quest_log.view(world)["active"]}
+        self.assertIsNone(rows["q_legacy"]["promised_cp"])
 
 
 class ContactWhereabouts(QuestLogCase):

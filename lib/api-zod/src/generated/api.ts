@@ -1883,6 +1883,7 @@ export const CreateGameSessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -1896,6 +1897,7 @@ export const CreateGameSessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -1909,6 +1911,7 @@ export const CreateGameSessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -1922,6 +1925,7 @@ export const CreateGameSessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -2973,6 +2977,7 @@ export const GetGameSessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -2986,6 +2991,7 @@ export const GetGameSessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -2999,6 +3005,7 @@ export const GetGameSessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -3012,6 +3019,7 @@ export const GetGameSessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -4080,6 +4088,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -4093,6 +4102,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -4106,6 +4116,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -4119,6 +4130,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -5212,6 +5224,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -5225,6 +5238,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -5238,6 +5252,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -5251,6 +5266,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -6333,6 +6349,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -6346,6 +6363,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -6359,6 +6377,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -6372,6 +6391,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -7712,6 +7732,7 @@ export const PlayGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -7725,6 +7746,7 @@ export const PlayGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -7738,6 +7760,7 @@ export const PlayGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -7751,6 +7774,7 @@ export const PlayGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -9501,6 +9525,7 @@ export const GetGameActionStatusResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -9514,6 +9539,7 @@ export const GetGameActionStatusResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -9527,6 +9553,7 @@ export const GetGameActionStatusResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -9540,6 +9567,7 @@ export const GetGameActionStatusResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -11216,6 +11244,7 @@ export const AbandonGameActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -11229,6 +11258,7 @@ export const AbandonGameActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -11242,6 +11272,7 @@ export const AbandonGameActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -11255,6 +11286,7 @@ export const AbandonGameActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -12778,6 +12810,7 @@ export const UndoGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -12791,6 +12824,7 @@ export const UndoGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -12804,6 +12838,7 @@ export const UndoGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -12817,6 +12852,7 @@ export const UndoGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -13901,6 +13937,7 @@ export const AcceptGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -13914,6 +13951,7 @@ export const AcceptGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -13927,6 +13965,7 @@ export const AcceptGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -13940,6 +13979,7 @@ export const AcceptGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -15046,6 +15086,7 @@ export const CancelGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -15059,6 +15100,7 @@ export const CancelGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -15072,6 +15114,7 @@ export const CancelGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -15085,6 +15128,7 @@ export const CancelGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -16182,6 +16226,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -16195,6 +16240,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -16208,6 +16254,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -16221,6 +16268,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -17315,6 +17363,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -17328,6 +17377,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -17341,6 +17391,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -17354,6 +17405,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -18461,6 +18513,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -18474,6 +18527,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -18487,6 +18541,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -18500,6 +18555,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -19598,6 +19654,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -19611,6 +19668,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -19624,6 +19682,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -19637,6 +19696,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -22927,6 +22987,7 @@ export const CreateCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -22940,6 +23001,7 @@ export const CreateCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -22953,6 +23015,7 @@ export const CreateCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -22966,6 +23029,7 @@ export const CreateCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -24344,6 +24408,7 @@ export const GetCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -24357,6 +24422,7 @@ export const GetCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -24370,6 +24436,7 @@ export const GetCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -24383,6 +24450,7 @@ export const GetCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -25738,6 +25806,7 @@ export const ResumeCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -25751,6 +25820,7 @@ export const ResumeCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -25764,6 +25834,7 @@ export const ResumeCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -25777,6 +25848,7 @@ export const ResumeCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -28228,6 +28300,7 @@ export const CreateLegacySessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -28241,6 +28314,7 @@ export const CreateLegacySessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -28254,6 +28328,7 @@ export const CreateLegacySessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -28267,6 +28342,7 @@ export const CreateLegacySessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -29319,6 +29395,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -29332,6 +29409,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -29345,6 +29423,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -29358,6 +29437,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -30693,6 +30773,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -30706,6 +30787,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -30719,6 +30801,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -30732,6 +30815,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -32251,6 +32335,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -32264,6 +32349,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -32277,6 +32363,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -32290,6 +32377,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -35423,6 +35511,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -35436,6 +35525,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -35449,6 +35539,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -35462,6 +35553,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -36842,6 +36934,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -36855,6 +36948,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -36868,6 +36962,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -36881,6 +36976,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -38237,6 +38333,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -38250,6 +38347,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -38263,6 +38361,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -38276,6 +38375,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),

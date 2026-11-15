@@ -4476,6 +4476,11 @@ components:
           anyOf:
           - type: string
           - type: 'null'
+        promised_cp:
+          description: The pay in copper the job's own terms promise (offered and running cards); null when the record has no terms.
+          anyOf:
+          - type: integer
+          - type: 'null'
         record_kind:
           anyOf:
           - type: string
@@ -4492,6 +4497,7 @@ components:
       - status
       - objectives
       - result
+      - promised_cp
       - record_kind
       - raw_status
     QuestLogTrail:
