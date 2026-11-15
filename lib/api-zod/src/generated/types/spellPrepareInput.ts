@@ -17,5 +17,12 @@ export interface SpellPrepareInput {
      */
   prepared?: string[] | null;
   close?: boolean;
+  /**
+     * D-039 one-time spellbook choice of an old save's Wizard (exactly six distinct Wizard level-1 spells, checked by the server); sent alone, never with prepared or close.
+     * @maxItems 32
+     * @nullable
+     * @items.maxLength 64
+     */
+  spellbook?: string[] | null;
   action_id: string;
 }
