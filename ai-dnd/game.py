@@ -4740,6 +4740,7 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False, deals_damage):
     if (
         character.get("species") == "Aasimar"
         and active_form
+        and deals_damage  # "when you deal damage to it with an attack" (PHB 2024; D-197)
         and state.get("celestial_damage_used_turn") != turn_id
     ):
         damage_type = (

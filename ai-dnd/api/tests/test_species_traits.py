@@ -268,6 +268,32 @@ class SpeciesTraitTests(unittest.TestCase):
             self.assertEqual(state["giant_ancestry_uses_remaining"], 2, ancestry)
             self.assertTrue(state["giant_ancestry_armed"], ancestry)
 
+    def test_aasimar_celestial_revelation_needs_the_hit_to_deal_damage(self):
+        # D-197: PHB 2024 Celestial Revelation extra damage needs "when you deal damage"; an immune target takes 0.
+        session = make_session("Aasimar")
+        state = session._species_trait_state()
+        state["active_celestial_form"] = "heavenly_wings"
+        target = {
+            "id": "immune-target",
+            "name": "Immune Target",
+            "current_hp": 40,
+            "max_hp": 40,
+            "armor_class": 10,
+            "combat_status": "active",
+            "immunities": ["slashing"],
+        }
+        attack_fixture(session, target)
+        with (
+            patch("game.roll_attack", return_value=15),
+            patch("game.roll_damage", return_value=4),
+        ):
+            result = session.resolve_attack("attack", "Kılıç", game.WEAPONS["Kılıç"], target)
+        self.assertTrue(result["hit"])
+        self.assertEqual(result["damage"], 0)
+        self.assertEqual(result["species_effects"], [])
+        self.assertEqual(target["current_hp"], 40)
+        self.assertNotEqual(state.get("celestial_damage_used_turn"), game._species_player_turn_id())
+
     def test_orc_adrenaline_rush_and_short_rest_recharge(self):
         session = make_session("Orc")
         result = session.resolve_species_trait_action("adrenaline_rush")
