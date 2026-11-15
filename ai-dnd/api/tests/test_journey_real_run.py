@@ -8,12 +8,14 @@ scripted local model. Outside sockets are off throughout.
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import os
 import re
 import shutil
 import socket
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -92,6 +94,25 @@ class CountingClient(ScriptedClient):
         return super().chat(*args, **kwargs)
 
 
+_REAL_CONNECT = socket.socket.connect
+# The stdlib's loopback socketpair fallback, under either name: ``socket._fallback_socketpair`` (3.12.5+/3.13+,
+# private, so looked up once and never required) or ``socket.socketpair`` itself on older Windows Pythons.
+# A native socketpair is a builtin with no ``__code__`` and never calls connect.
+_SOCKETPAIR_CODES = tuple(
+    function.__code__
+    for function in (getattr(socket, "_fallback_socketpair", None), socket.socketpair)
+    if hasattr(function, "__code__")
+)
+
+
+def _no_connect_but_the_socketpair_fallback(sock: socket.socket, address: object) -> None:
+    """Every connect fails, except the stdlib's own ``socket._fallback_socketpair``: on Windows it is what
+    ``socket.socketpair`` is, and an event loop is built on it (an in-process loopback pipe, never the network)."""
+    if sys._getframe(1).f_code in _SOCKETPAIR_CODES:
+        return _REAL_CONNECT(sock, address)
+    raise AssertionError("External network is disabled in journey tests.")
+
+
 class Offline(unittest.TestCase):
     """No outside socket, no key file, no environment chain: any of these is a test failure."""
 
@@ -108,8 +129,7 @@ class Offline(unittest.TestCase):
             patcher = patch.object(target, name, side_effect=AssertionError(f"{name} must not run here"))
             patcher.start()
             self.addCleanup(patcher.stop)
-        patcher = patch.object(socket.socket, "connect",
-                               side_effect=AssertionError("External network is disabled in journey tests."))
+        patcher = patch.object(socket.socket, "connect", _no_connect_but_the_socketpair_fallback)
         patcher.start()
         self.addCleanup(patcher.stop)
         environment = patch.dict(os.environ)
@@ -129,6 +149,26 @@ class Offline(unittest.TestCase):
         self.assertEqual(len(reports), 1, [path.name for path in reports])
         self.assertEqual(reports[0].name, "ADIM2_RAPOR_20261104.md")
         return reports[0].read_text(encoding="utf-8")
+
+
+class TheNetworkGuard(Offline):
+    """The guard shuts every connect but the in-process pipe an event loop is built on (D-196: on Windows
+    ``socket.socketpair`` is the stdlib's loopback fallback, which connects, so every run broke there)."""
+
+    def test_an_event_loop_still_starts_and_any_other_connect_still_fails(self):
+        left, right = getattr(socket, "_fallback_socketpair", socket.socketpair)()
+        left.close()
+        right.close()
+        asyncio.new_event_loop().close()
+        with self.assertRaisesRegex(AssertionError, "External network is disabled"), socket.socket() as other:
+            other.connect(("127.0.0.1", 9))
+
+    def test_a_python_without_the_private_fallback_name_still_gets_the_guard_message(self):
+        # ``socket._fallback_socketpair`` is private: Python 3.12.3 (before gh-122133) has no such name.
+        with patch.dict(socket.__dict__):
+            socket.__dict__.pop("_fallback_socketpair", None)
+            with self.assertRaisesRegex(AssertionError, "External network is disabled"), socket.socket() as other:
+                other.connect(("127.0.0.1", 9))
 
 
 class TheGate(Offline):
