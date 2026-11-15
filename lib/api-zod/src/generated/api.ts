@@ -4320,7 +4320,8 @@ export const GetGameSessionSpellPreparationResponse = zod.object({
   "limit": zod.number().int(),
   "candidates": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
-  "spellbook": zod.array(zod.string()).nullish()
+  "spellbook": zod.array(zod.string()).nullish(),
+  "not_in_engine": zod.array(zod.string()).optional()
 })
 
 

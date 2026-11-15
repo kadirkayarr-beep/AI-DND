@@ -3460,6 +3460,10 @@ components:
           - 'null'
           items:
             type: string
+        not_in_engine:
+          type: array
+          items:
+            type: string
       required:
       - session_id
       - supported

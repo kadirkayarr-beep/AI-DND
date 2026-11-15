@@ -95,17 +95,24 @@ def _candidates(state: dict[str, Any], character: dict[str, Any]) -> list[str]:
     return listed + sorted(character_progression.extra_spell_ids(character, "prepared") - set(listed))
 
 
+def _not_in_engine(state: dict[str, Any], character: dict[str, Any]) -> list[str]:
+    """D-228: the candidates no engine resolver casts yet; the screen marks them "henüz yok" (they stay preparable)."""
+    import spell_registry
+    return [spell for spell in _candidates(state, character) if spell_registry.spell_state(spell) != "resolver"]
+
+
 def view(session: Any) -> dict[str, Any]:
     state = _state(session, write=False)
     blocked = _blocked(state)
     if blocked:
         return {"supported": False, "blocked_reason": blocked, "class_name": session.character.get("class"),
-                "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None}
+                "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None,
+                "not_in_engine": []}
     window = state["prepare_window"]
     return {"supported": True, "blocked_reason": None, "class_name": state["class"], "open": _open(session.world_state, state),
             "reason": _reason(session.world_state, window) if window else None, "limit": spell_scope.prepare_limit(session.character),
             "candidates": _candidates(state, session.character), "prepared": list(state["prepared"]),
-            "spellbook": copy.deepcopy(state["spellbook"])}
+            "spellbook": copy.deepcopy(state["spellbook"]), "not_in_engine": _not_in_engine(state, session.character)}
 
 
 def prepare(session: Any, requested: list[str] | None, close: bool = False) -> dict[str, Any]:

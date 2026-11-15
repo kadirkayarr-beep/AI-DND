@@ -23,4 +23,5 @@ export interface SpellPrepareViewResponse {
   prepared: string[];
   /** @nullable */
   spellbook?: string[] | null;
+  not_in_engine?: string[];
 }

@@ -822,6 +822,7 @@ class SpellPrepareView(BaseModel):
     candidates: list[str]
     prepared: list[str]
     spellbook: list[str] | None = None
+    not_in_engine: list[str] = []
 
 
 class SpellPrepareViewResponse(SpellPrepareView):

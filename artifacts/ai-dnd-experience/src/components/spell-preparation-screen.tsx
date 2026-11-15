@@ -56,6 +56,7 @@ export function SpellPreparationPanel({ view, draft, combatActive, expanded, sen
               return <li key={id}><label className="spell-prep-choice">
                 <input type="checkbox" value={id} checked={checked} disabled={isLocked || (!checked && (atCap || !view.candidates.includes(id)))} onChange={() => onToggle(id)} />
                 <span>{label(id)}</span>
+                {view.not_in_engine?.includes(id) && <small data-testid="spell-not-in-engine">henüz yok · hazırlanır ama oyunda atılamaz</small>}
                 {isLocked && <small>önceki hazırlık · uzun dinlenmede değişir</small>}
               </label></li>;
             })}

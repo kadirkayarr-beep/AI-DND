@@ -296,7 +296,8 @@ class PrepareWindow(unittest.TestCase):
         view = spell_preparation.view(w)
         self.assertEqual(view, {"supported": True, "blocked_reason": None, "class_name": "Wizard", "open": True,
                                 "reason": "creation",
-                                "limit": 4, "candidates": BOOK, "prepared": [], "spellbook": BOOK})
+                                "limit": 4, "candidates": BOOK, "prepared": [], "spellbook": BOOK,
+                                "not_in_engine": [s for s in BOOK if s != "Magic Missile"]})  # D-228: only Magic Missile has a resolver
         c = prepper("Cleric")
         self.assertEqual(spell_preparation.view(c)["candidates"], [s["id"] for s in SPELLS_CATALOG["Cleric"]["spells_level_1"]])
 
