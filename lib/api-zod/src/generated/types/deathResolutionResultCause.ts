@@ -12,4 +12,7 @@ export type DeathResolutionResultCause = typeof DeathResolutionResultCause[keyof
 export const DeathResolutionResultCause = {
   massive_damage: 'massive_damage',
   failed_death_saves: 'failed_death_saves',
+  dehydration: 'dehydration',
+  malnutrition: 'malnutrition',
+  extended_travel: 'extended_travel',
 } as const;

@@ -539,6 +539,20 @@ test('resumed combat history renders returned cards once per stable event ID', (
   assert.equal(appended[0].turnIndex, 6);
 });
 
+test('D-140: an undone combat row keeps its evidence and is marked undone, like its story turn', () => {
+  const standing = { event_id: '00000000-0000-4000-8000-000000000007', turn_index: 7, result: criticalExchange };
+  const undone = { event_id: '00000000-0000-4000-8000-000000000008', turn_index: 8, result: criticalExchange, undone: true };
+  const restored = mergeCombatHistory([standing, undone, { ...standing, event_id: '00000000-0000-4000-8000-000000000009', undone: 'yes' }]);
+  assert.deepEqual(restored.map((entry) => entry.undone ?? false), [false, true, false], 'only a literal true marks a row');
+  assert.equal(mergeCombatHistory([], restored)[1].undone, true, 'a local merge keeps the server mark');
+  const html = renderCombatPanel(makeState(), restored);
+  assert.match(html, /class="combat-entry transcript-undone" data-testid="combat-log-entry-00000000-0000-4000-8000-000000000008"/);
+  assert.match(html, /data-testid="combat-log-entry-00000000-0000-4000-8000-000000000008-undone">Geri alındı</);
+  assert.doesNotMatch(html, /combat-log-entry-00000000-0000-4000-8000-000000000007-undone/);
+  assert.match(html, /class="combat-entry" data-testid="combat-log-entry-00000000-0000-4000-8000-000000000007"/);
+  assert.match(html, /data-testid="combat-entry-00000000-0000-4000-8000-000000000008-roll">[\s\S]*?<strong>20<\/strong>/, 'the roll is still shown');
+});
+
 test('result animation is brief and disabled for reduced motion', async () => {
   const css = await readFile(
     path.join(process.cwd(), 'src/components/combat-panel.css'),
