@@ -792,6 +792,15 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
         decisions.append(LineDecision(line_id=line.line_id,
                                       status="refused" if line_response in ("refuse", "unknown") else "accepted",
                                       reason_code=line_reason))
+    for line, decision in zip(lines, decisions):
+        if decision.status == "refused" and (not line.optional or proposal.dependency == "all_or_none"):
+            # D-096: confirmation could only refuse this card, so none opens and the reason is said now.
+            who = living_world.turkish_initial_upper(living_world.public_npc_name(npc))
+            message = (f"{who} bu parayı alacağını söylemedi; para kesende kaldı."
+                       if decision.reason_code == "npc_consent_required"
+                       else "Bu para teklifi kabul edilmedi; para kesende kaldı.")
+            return PrepareResult(status="refused", offer=None, reason_code=decision.reason_code,
+                                 public_message=message)
     return AcceptanceRecord(record_id=f"acceptance:{offer_id}", offer_id=offer_id, npc_id=npc_id,
                             context_digest=context_digest(state, proposal, lines), producer="engine", check=check,
                             line_decisions=decisions)
@@ -937,6 +946,10 @@ _REFUSED_SUMMARY = {
     "check_failed": "Teklif kabul görmedi; para kesende kaldı.",
     "check_required": "Teklif henüz denenmedi; para kesende kaldı.",
     "stale": "Durum değişti; teklifin yenilenmesi gerekiyor. Hiçbir şey ödenmedi.",
+    "npc_consent_required": "Karşındaki bu parayı alacağını söylemedi; para kesende kaldı.",
+    "npc_refuses": "Teklif geri çevrildi; para kesende kaldı.",
+    "npc_declined": "Para az önce geri çevrildi; para kesende kaldı.",
+    "item_not_owned": "Eşya artık sende değil; hiçbir şey verilmedi.",
 }
 
 

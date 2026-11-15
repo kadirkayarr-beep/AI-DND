@@ -54,9 +54,12 @@ class EnglishCoinTurn(JourneyCase):
                               step(undo=True, expect={"kese": 100, "oda": False})])
 
     def tips_once(self, line):
-        read = {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 10, "economic_intent": "tip"}}
+        # D-096: the barman says he takes it (a card with no spoken consent could only be refused, so none opens).
+        read = {"front": {"kind": "speak_to", "person_id": "barman", "coin_cp": 10, "economic_intent": "tip"},
+                "speech": {"coin_answer": "takes", "coin_answer_for": "tip"}}
         # The card's sum is what a confirm may take at most (test_room_purpose_routing reads the tip card the same way).
-        return [step(say=line, script=read, expect={"kese": 100, "kart": {"max_total_cp": 5, "kalemler": ["Bahşiş"]}})]
+        return [step(say=line, script=read, expect={"kese": 100, "kart": {"max_total_cp": 5, "kalemler": ["Bahşiş"]}}),
+                step(economic_action={"kind": "confirm"}, expect={"kese": 95, "kart": None})]
 
     async def test_a_tip_named_twice_is_given_once(self):
         # The sum on the card is the line's own: the same five copper said twice is five, not ten.
