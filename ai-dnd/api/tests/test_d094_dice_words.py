@@ -100,7 +100,8 @@ class OpenTryToSteal(unittest.TestCase):
         line = "kesesini çalmak için zar atıyorum"
         self.assertTrue(bold_acts._steals(SESSION, line, ""))
         self.assertFalse(bold_acts._steals(Heard(), line, ""))
-        self.assertTrue(bold_acts._steals(Heard(), line, "steal"))
+        # D-094 general (Opus review 2026-11-15): a steal deed read on a line heard as speech moves no coin either
+        self.assertFalse(bold_acts._steals(Heard(), line, "steal"))
 
     def test_the_reading_still_owns_the_old_word_lines(self):
         for line in ("kesesini çaldım", "kesesini çalacağım", "kesesini çalıyorum"):
