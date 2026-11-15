@@ -824,7 +824,7 @@ CLASS_DEFINITIONS = {
         "primary_ability": "intelligence",
         "saving_throws": ["intelligence", "wisdom"],
         "skill_count": 2,
-        "skill_options": ["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"],
+        "skill_options": ["Arcana", "History", "Insight", "Investigation", "Medicine", "Nature", "Religion"],
         "armor_proficiencies": [],
         "weapon_proficiencies": ["Simple"],
         "features": ["Büyü Kitabı", "Gizemli İyileşme", "Ritüel Büyücülüğü"],
