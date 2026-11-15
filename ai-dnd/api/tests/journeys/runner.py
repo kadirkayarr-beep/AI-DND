@@ -761,6 +761,8 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
                                             "kalemler": [line.get("label") for line in offer.get("lines") or []]},
         "tezgah": _counter_offer(world),
         "kisi_kese": {str(owner): cp for owner, cp in currency.items() if owner != "player"},
+        "kisi_esya": {str(npc.get("id")): _inventory_counts(npc.get("inventory") or [])
+                      for npc in world.get("npcs", []) if isinstance(npc, dict)},
         "cephane": copy.deepcopy(ammunition),
         "hareket": _combat_movement(combat),
         "olu": (state.get("death_state") or {}).get("status"),

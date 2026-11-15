@@ -537,8 +537,23 @@ def _check(session, skill: str, dc: int) -> dict[str, Any]:
     )
 
 
+_SOFTENED = {"k": "[kg]", "p": "[pb]", "t": "[td]"}  # "yüzük" -> "yüzüğünü", "kitap" -> "kitabını", "paket" -> "paketi"
+
+
 def _thing_named(folded: str) -> str | None:
-    return next((label for stem, label in _THINGS if stem in folded), None)
+    return next((label for stem, label in _THINGS
+                 if re.search(re.escape(stem[:-1]) + _SOFTENED.get(stem[-1], re.escape(stem[-1])), folded)), None)
+
+
+def _carried(session, person: dict[str, Any] | None, thing: str) -> Any:
+    """The thing as the person carries it (D-108): an entry of their own inventory named like it, or None."""
+    if person is None:
+        return None
+    for entry in person.get("inventory") or []:
+        name = entry.get("name") if isinstance(entry, dict) else entry
+        if isinstance(name, str) and _thing_named(fold(session, name)) == thing:
+            return entry
+    return None
 
 
 def _hand_to_whom(session, text: str) -> dict[str, Any] | None:
@@ -647,10 +662,15 @@ def _steal(session, text: str) -> dict[str, Any]:
                      seen=False)["till"] = True
         narration = f"Parmakların sessizce işini görüyor: kesende {coins} bakır daha var. Kimse fark etmedi."
         return _reply(session, narration, "theft", "stolen", check, ["currency"], coins_cp=coins)
-    world.setdefault("inventory", []).append(thing)
-    if victim is not None:
-        remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",
-                 victim_id=victim["id"], seen=False)["item"] = thing
+    # D-108: the thing leaves the victim's own inventory; a thing nobody here carries is not there to take
+    if _carried(session, victim, thing) is None:
+        return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+    import equipment_economy
+    equipment_economy.materialize(world)
+    item = _carried(session, victim, thing)
+    equipment_economy.move(world, item, victim["inventory"], world.setdefault("inventory", []), victim["id"])
+    remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",
+             victim_id=victim["id"], seen=False)["item"] = thing
     narration = f"Elin hızlı: {thing.lower()} artık sende, kimse bakmıyor."
     return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=thing)
 
@@ -710,8 +730,9 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     if body.get("searched"):
         return _reply(session, f"{who} üzerinde alınacak başka bir şey kalmamış.", "loot", "already_searched", None, [])
     body["searched"] = True
-    coins = session.rng.randint(0, 30)
     wallets = session.world_state.setdefault("currency", {})
+    coins = _purse_of(wallets, body)  # D-206: what the dead carried, and no more; the purse is emptied
+    wallets[body["id"]] = 0
     wallets["player"] = wallets.get("player", 0) + coins
     narration = (f"{who} üzerinde {coins} bakır buluyorsun; artık senin." if coins
                  else f"{who} üzerinde işe yarar bir şey çıkmıyor.")

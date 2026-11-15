@@ -125,7 +125,7 @@ class TheLoaderIsStrict(unittest.TestCase):
             set(EXPECT_KEYS),
             {
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
-                "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
+                "kart", "tezgah", "kisi_kese", "kisi_esya", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
                 "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
                 "olay", "zirh", "varis", "seviye", "buyu_olgusu", "zar",
