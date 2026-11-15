@@ -18355,37 +18355,12 @@ def _local_place_turn(player_input):
 
 def _adventure_travel_reply(session, destination):
     before = copy.deepcopy(session.world_state)
-    venue_door = _venue_entry_door(
-        session.world_state, session.world_state.get("location"), destination
-    )
-    if venue_door:
-        response = _locked_door_refusal(venue_door)
-        return {
-            "messages": session.messages,
-            "narration": response,
-            "model_calls": 0,
-            "action_result": {
-                "action": "travel",
-                "success": False,
-                "status": "blocked",
-                "target_id": destination,
-                "state_changes": [],
-                "direct_response": response,
-            },
-        }
-    commit_location_change(destination)
+    # D-123: the same journey owner as any trip - closed roads, venue doors and road time all apply.
+    action_result = timed_gameplay.start_travel(session, destination)
     flags = session.world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
-    action_result = {
-        "action": "travel",
-        "success": True,
-        "status": "resolved",
-        "state_changes": ["location"],
-    }
     session.evaluate_quest_events(before, action_result)
-    record = session.world_state.get("locations", {}).get(destination, {})
-    name = record.get("name") if isinstance(record, dict) and isinstance(record.get("name"), str) else destination
-    narration = f"{name} konumuna vardın."
+    narration = action_result["direct_response"]
     session.messages.extend([
         {"role": "user", "content": destination},
         {"role": "assistant", "content": narration},
@@ -20235,7 +20210,9 @@ def _dispatch_player_turn(
             return hideout
         # Read as talk, a look or sitting down: the words of a line walk nowhere. The route log shows these lost all traffic.
         talk = front is not None and front["kind"] in {"talk_around", "look", "sit"}
-        scene = None if talk else _adventure_scene_turn(player_input)
+        # D-123: the quest shortcut's rolls (a check, the road's Survival) belong to this turn like any journey's.
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            scene = None if talk else _adventure_scene_turn(player_input)
         if scene is not None:
             return scene
         # LR00 fix: read a local physical action once, bind it to a real target
@@ -24010,7 +23987,8 @@ class GameSession:
         existing = next((item for item in self.world_state["quests"]
                          if item.get("quest_id") == quest_id), None)
         if existing is not None and existing.get("record_kind") == "dynamic":
-            return adventure_play.abandon(self, quest_id)
+            from adventure import dialogue_jobs
+            return dialogue_jobs.cancel_job(self, existing)
         if existing is None:
             definition = next(
                 (item for item in self.quest_offers() if item["quest_id"] == quest_id),
