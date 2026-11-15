@@ -32,8 +32,12 @@ from api.tests.test_dilim4b_legacy_level_five import legacy_save, reloaded
 from api.tests.test_phase7_package import bound_state
 
 
-def _refused(*_args, **_kwargs):
-    raise ValueError("injected: save admission refused")
+def _refused(payload, *_args, **_kwargs):
+    # YENİDEN YAZIM (D-061, onay listesi) [GEVŞETME OLABİLİR]: was "refuses every record". Only the crossing's own refusal is forfeited
+    # now (a record refused before the award is raised: test_d061_unrecorded_xp_line), so a level-5 record is refused
+    # and the level-4 record before it passes.
+    if payload["player"]["level"] >= 5:
+        raise ValueError("injected: save admission refused")
 
 
 _refused._session_bound = True

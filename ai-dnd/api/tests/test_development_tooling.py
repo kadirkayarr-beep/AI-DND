@@ -283,6 +283,16 @@ class DevelopmentToolingTests(unittest.TestCase):
                        "api.tests.test_d109_timing"):  # D-109: the crime/threat question, the same way
             self.assertIn(module, selectors)
 
+    def test_old_save_spellbook_choice_tests_are_in_the_gate(self):
+        # D-039: the one-time spellbook choice touches the save; its regression runs in the CI list.
+        self.assertIn("api.tests.test_d039_spellbook_choice",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
+    def test_the_unrecorded_xp_line_test_is_in_the_gate(self):
+        # D-061: a forfeited award's line and the rule that an unrelated error is raised are guarded in CI.
+        self.assertIn("api.tests.test_d061_unrecorded_xp_line",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
     def test_regression_groups_are_unique_and_browser_ui_is_an_explicit_check(self):
         config = owner.load_config(owner.DEFAULT_CONFIG)
         selectors = config["regression_selectors"]
