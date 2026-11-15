@@ -18,6 +18,7 @@ fight gets the same kind of line (the fight's action economy has no owner for it
 from __future__ import annotations
 
 import copy
+import functools
 import re
 from typing import Any
 
@@ -35,11 +36,24 @@ _ALIASES = (("mage hand", "Mage Hand"), ("buyucu eli", "Mage Hand"), ("minor ill
 # "Light" and "Işık" are everyday words: only with a casting word next to them are they the spell.
 _LIGHT = re.compile(r"\b(?:isik|light)\s+(?:buyu\w*|spell|cantrip)\b|\bcast(?:ing)?\s+(?:the\s+)?light\b")
 _CAST_WORD = re.compile(r"\bcast(?:s|ing)?\b|\bbuyu(?:su\w*|yu|yle|nu)?\b")  # "büyücü" (a wizard) is no casting word
+# D-071: "cast" in an everyday phrase ("cast a glance", "cast aside", "cast the net") is no casting word.
+_CAST_IDIOM = re.compile(
+    r"\bcast(?:s|ing)?\s+(?:(?:a|an|the|my|his|her|their|your|our|one|some)\s+)?(?:\w+\s+)?"
+    r"(?:glances?|looks?|eyes?|gaze|glares?|shadows?|votes?|ballots?|nets?|lines?|lots?|dice|die|doubts?|stones?"
+    r"|anchor)\b|\bcast(?:s|ing)?\s+(?:aside|away|off|around|about)\b")
+
+
+@functools.lru_cache(maxsize=1)
+def _spell_names() -> re.Pattern[str]:
+    """Every PHB 2024 spell name (folded), so an idiom never eats one: "cast Arcane Eye" is a cast."""
+    from class_progression.prepared_caster import _source_spells
+    names = sorted((_fold(name) for name in _source_spells()), key=len, reverse=True)
+    return re.compile(rf"(?<![a-z0-9])(?:{'|'.join(map(re.escape, names))})(?![a-z0-9])")
 _QUESTION = re.compile(r"\?|\b(?:nedir|nasil|what|how|describe|anlat)\b")
 # Negated, wished, asked or weighed forms are no cast: "yapmak istemiyorum", "yapsam mı", "kullanmalı mıyım", "keşke".
 _NEGATED = re.compile(
     r"\b(?:not|don't|dont|never|degil|should|would|could|shall|if|maybe|acaba|keske|eger|belki)\b"
-    r"|\bm[iu](?:s\w*|y\w*)?\b|istem(?:iyor|em|ez|edi|eyece)|\w+(?:sam|sem|saydim|seydim)\b|\w+m[ae]li\b"
+    r"|\bm[iu](?:s\w*|y\w*)?\b|istem(?:iyor|em|ez|edi|eyece)|\b\w+(?:sam|sem|saydim|seydim)\b|\b\w+m[ae]li\b"
     r"|\b(?:kullan|yap|at|dene)m(?:a\b|iyor|am\b|ayacag|adi)")
 # K2: money, an item, a container, a hand/bag/pocket to put something in, or a taking verb is no narrative cast:
 # when it is not plainly a pure effect, the line goes on to today's paths (economic, theft, item owners).
@@ -105,7 +119,7 @@ def named(message: Any) -> tuple[str, str] | None:
         if len(hits) != 1 or _TRANSFER.search(folded):
             return None
         return "narrative", hits.pop()
-    if not _CAST_WORD.search(folded):
+    if not _CAST_WORD.search(_CAST_IDIOM.sub(" ", _spell_names().sub(" spell ", folded))):
         return None
     for alias, spell in spells._UNSUPPORTED_ALIASES:
         if spell not in NARRATIVE and re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", folded):

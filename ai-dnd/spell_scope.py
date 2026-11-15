@@ -52,21 +52,78 @@ _END_CONCENTRATION = re.compile(r"konsantrasyon\w*\s+(?:bırak|birak|bitir|kes|s
 # bırakıyorum", "konsantrasyonumu bitirdim", "I drop my concentration", "end concentration". Anything else that names it
 # (negated, asked, wished, conditional, said to someone, retracted after a comma) keeps it; the player can rephrase.
 # Only a later " and / then / ve / sonra " clause is cut off ("I drop concentration and do not attack" drops).
-_DROP_EN = re.compile(r"(?:i\s+)?(?:(?:will|now)\s+)?(?:(?:end|drop|stop|break)\s+(?:my\s+)?concentration"
+_DROP_EN = re.compile(r"(?:i\s+|i'll\s+)?(?:(?:will|now)\s+)?(?:(?:end|drop|stop|break)\s+(?:my\s+)?concentration"
                       r"|(?:stop|quit)\s+concentrating)(?:\s+now)?")
-_DROP_TR = re.compile(r"(?:(?:artik|simdi)\s+)?(?:konsantrasyon(?:u|umu)\s+(?:birak|bitir|kes|sonlandir)(?:iyorum|tim|dim)?"
-                      r"|(?:birak|bitir|kes|sonlandir)(?:iyorum|tim|dim)?\s+konsantrasyon(?:u|umu))"
+_TR_DROP_VERB = r"(?:birak|bitir|kes|sonlandir)(?:iyorum|tim|dim|acagim|ecegim)?"  # D-059: future tense too
+_DROP_TR = re.compile(r"(?:(?:artik|simdi)\s+)?(?:konsantrasyon(?:u|umu)\s+" + _TR_DROP_VERB +
+                      r"|" + _TR_DROP_VERB + r"\s+konsantrasyon(?:u|umu))"
                       r"(?:\s+(?:artik|simdi))?")  # object-first or verb-first ("bırakıyorum konsantrasyonu")
 _LATER_CLAUSE = re.compile(r"\s(?:and|then|ve|sonra)\s")
+_TR_OBJECT = r"(?:'?y?[iu]|(?:'?n?[iu]n)?\s+konsantrasyonunu|\s+buyusunu)"  # Bless'i, kutsamayı, ...unu
+# A drop root (folded) and the closed list of verb endings it may take, then a word end. A word that only starts with a
+# root (keskin, kesinlikle, kestirme, bitirici, kesif) is no drop verb.
+_TR_DROP_INFLECTED = (r"(?:birak|bitir|kes|sonlandir)(?:"
+                      r"[iu]yor\w*|m[iu]yor\w*"  # bırakıyorum, bırakmıyorum
+                      r"|[dt][iu](?:m|n|k|niz|nuz|lar)?|m[ae]d[iu](?:m|n|k|niz|nuz|lar)?"  # bıraktım, bırakmadım
+                      r"|(?:acak|ecek|acag|eceg)\w*|m(?:ayacak|eyecek|ayacag|eyeceg)\w*"  # bırakacağım, bırakmayacağım
+                      r"|[aei]r(?:im|sin|iz|siniz|lar)?|[aei]rs[ae](?:m|n|k|niz|lar)?|s[ae](?:m|n|k|niz|lar)?"  # bırakır(sam)
+                      r"|m[ae](?:z\w*|m|k\w*|d[ae]n|y[aeiu]\w*|l[iu]\w*|s[iu]n[iu])?"  # bırakma(z/m/k/dan/yı/lı)
+                      r"|[iu]p|[ae]r[ae]k|[ae]y[iu]m|[ae]l[iu]m"  # bırakıp, bırakarak, bırakayım, bırakalım
+                      r")?\b")
+# Between an English drop verb and the spell only a possessive/determiner and "concentration on" may stand.
+_EN_DROP_GAP = (r"(?:(?:my|the|this|that|our|your|his|her|their)\s+)?"
+                r"(?:concentrat(?:ion|ing)\s+on\s+(?:(?:my|the|this|that)\s+)?)?")
 
 
-def _drops_concentration(text):
+def _concentration_names():
+    """D-059: every folded name (catalog or Turkish) of a Concentration spell, longest first, as a regex group."""
+    import spell_concentration
+    from spells import fold_text
+    names = {fold_text(alias): spell for alias, spell in ({name: name for name in CATALOG} | ALIASES).items()
+             if spell in spell_concentration.CONCENTRATION_SPELLS}
+    return names, "(" + "|".join(re.escape(name) for name in sorted(names, key=len, reverse=True)) + ")"
+
+
+def _drop_step(text):
+    """The end_concentration step a short positive drop line asks for (with the spell when it is named), else None."""
     from spells import fold_text
     folded = fold_text(text).strip()
     if "?" in folded:
-        return False
-    first = _LATER_CLAUSE.split(folded, maxsplit=1)[0].strip().rstrip(".!")
-    return bool(_DROP_EN.fullmatch(first) or _DROP_TR.fullmatch(first))
+        return None
+    first = _LATER_CLAUSE.split(folded, maxsplit=1)[0].strip().rstrip(".!,")  # "..., then attack": the comma goes too
+    if _DROP_EN.fullmatch(first) or _DROP_TR.fullmatch(first):
+        return {"kind": "end_concentration"}
+    names, name = _concentration_names()
+    named_tr = name + _TR_OBJECT
+    named = (re.fullmatch(r"(?:(?:artik|simdi)\s+)?(?:" + named_tr + r"\s+" + _TR_DROP_VERB + r"|" + _TR_DROP_VERB +
+                          r"\s+" + named_tr + r")(?:\s+(?:artik|simdi))?", first)
+             or re.fullmatch(r"(?:i\s+|i'll\s+)?(?:(?:will|now)\s+)?(?:(?:end|drop|stop|break)\s+(?:my\s+)?"
+                             r"(?:concentration\s+on\s+)?" + name + r"|(?:stop|quit)\s+concentrating\s+on\s+" + name +
+                             r")(?:\s+now)?", first))
+    if named is None:
+        return None
+    return {"kind": "end_concentration", "spell_id": names[next(group for group in named.groups() if group)]}
+
+
+def _names_a_dropped_spell(text):
+    """D-059: a Concentration spell's name beside a drop verb is about dropping it, never a cast of it.
+    The verb must govern the spell: Turkish needs the spell in the object case ("Bless'i", "kutsama büyüsünü") and an
+    English verb is a whole drop verb form; no clause break (converb, finite verb, ve/sonra, and/then, cast, a comma)
+    may stand between. The Turkish verb is a drop root with a closed list of endings (_TR_DROP_INFLECTED); between an
+    English verb and the spell only a possessive/determiner or "concentration on" (_EN_DROP_GAP). So "Bless'i
+    kesinlikle atıyorum", "Bless'i keskin bir sesle atıyorum", "Bless atıp goblini kesiyorum", "I drop prone and cast
+    Bless", "I end the fight with Bless" and "Endless war: I cast Bless" still cast."""
+    from spells import fold_text
+    _, name = _concentration_names()
+    tr_between = r"(?:\s+(?!(?:ve|sonra)\b)(?![^\s,.;!]*(?:ip|up|arak|erek|yorum)\b)[^\s,.;!]+){0,2}?"
+    en_verb = r"(?:end(?:s|ed|ing)?|drop(?:s|ped|ping)?|stop(?:s|ped|ping)?|break(?:s|ing)?|broke|quit(?:s|ting)?)"
+    return re.search(r"\b" + name + _TR_OBJECT + r"\b" + tr_between + r"\s+" + _TR_DROP_INFLECTED +
+                     r"|\b" + en_verb + r"\s+" + _EN_DROP_GAP + name + r"\b",
+                     fold_text(text)) is not None
+
+
+def _drops_concentration(text):
+    return _drop_step(text) is not None
 
 
 def harmful(spell_id):
@@ -231,9 +288,10 @@ def restore_slots(session):
 def natural_command(message, target_id):
     """Explicit deterministic proposals only; never choose an implicit target."""
     text = str(message).casefold()
-    if _drops_concentration(text):
-        return {"steps": [{"kind": "end_concentration"}]}
-    if _END_CONCENTRATION.search(text):
+    drop = _drop_step(text)
+    if drop is not None:
+        return {"steps": [drop]}
+    if _END_CONCENTRATION.search(text) or _names_a_dropped_spell(text):
         return None  # a negated or asked drop is no command
     names = {name.casefold(): name for name in CATALOG} | ALIASES
     import spells
@@ -283,12 +341,15 @@ def narration(result):
     return line
 
 
-def end_concentration(session):
+def end_concentration(session, spell_id=None):
     """The caster drops Concentration at will: no action, nothing rolled (PDF 362)."""
     import spell_concentration
     session.require_player_can_act()
-    if spell_concentration.holds(session) is None:  # none held, or a finished fight's record: nothing to drop
+    held = spell_concentration.holds(session)
+    if held is None:  # none held, or a finished fight's record: nothing to drop
         fail("concentration_not_held", "There is no spell Concentration to end.")
+    if spell_id is not None and held["spell_id"] != spell_id:  # D-059: a named drop ends only that spell
+        fail("concentration_not_held", "The named spell is not the one held in Concentration.")
     return spell_concentration.end(session, "dropped")
 
 

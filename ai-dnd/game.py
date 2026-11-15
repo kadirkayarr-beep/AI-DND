@@ -3098,7 +3098,11 @@ def load_game(path):
         # Keep the file's own version. The current default is v4, and a v1–v3
         # file must still be written back as that same version.
         _session()._persisted_engine_format = payload["version"]
-        return serialize_game_state()
+        loaded = serialize_game_state()
+        # D-072: the sitting-only fight questions (never saved) belong to the replaced game, not the loaded one.
+        _session()._attack_asked, _session()._blow_asked, _session()._blow_asked_line = False, None, None
+        _session()._surrender_strike_asked = None
+        return loaded
     except Exception:
         _session()._persisted_engine_format = previous_format
         world_state.clear()

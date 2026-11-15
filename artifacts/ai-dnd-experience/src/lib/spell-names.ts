@@ -1,4 +1,5 @@
 import { DEFAULT_CATALOG } from './character-catalog-defaults';
+import TR_NAMES from '../../../../content/names/tr_names.json';
 
 /** A spell's Turkish catalog name for display; the English id is never changed and stays what the engine receives. */
 function turkishName(catalog: unknown, id: string): string | undefined {
@@ -20,10 +21,13 @@ function turkishName(catalog: unknown, id: string): string | undefined {
 
 /**
  * D-043: Turkish name with the English id beside it when a catalog has one ("Kutsama (Bless)"); otherwise the English id.
- * The server catalog wins over the built-in defaults.
+ * The server catalog wins over the built-in defaults; the shared name table (content/names/tr_names.json, the engine's
+ * one Turkish table) covers the spells no catalog lists, such as level 2/3 spells.
  */
 export function spellLabel(id: string, catalog?: unknown): string {
-  const tr = turkishName(catalog, id) ?? turkishName(DEFAULT_CATALOG, id);
+  const table = (TR_NAMES as { spells: Record<string, string> }).spells;
+  const fromTable = Object.hasOwn(table, id) ? table[id]?.trim() || undefined : undefined;
+  const tr = turkishName(catalog, id) ?? turkishName(DEFAULT_CATALOG, id) ?? fromTable;
   if (!tr || tr === id) return id;
   return tr.includes(`(${id})`) ? tr : `${tr} (${id})`;
 }

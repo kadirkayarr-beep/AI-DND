@@ -12,7 +12,7 @@ from api.tests.test_weapon_attack import armed
 
 class DodgeBenefitTests(unittest.TestCase):
     def test_dodge_leaf_is_source_bound_and_matches_every_case(self):
-        import rule_oracles
+        from api.tests import rule_oracles
         data = rule_oracles.load_oracles()
         leaves = [leaf for leaf in data['leaves'] if leaf['leaf_id'] == 'K07.dodge_benefits_loss']
         self.assertEqual(len(leaves), 1, 'Dodge needs its own bounded source oracle')

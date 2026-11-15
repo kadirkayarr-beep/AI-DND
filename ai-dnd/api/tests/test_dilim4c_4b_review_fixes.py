@@ -20,7 +20,7 @@ import combat_lifecycle
 import game
 import living_world
 import monster_combat
-import rule_oracles
+from api.tests import rule_oracles
 import spell_preparation
 import spell_scope
 from api.tests import test_dilim4b_combat_xp as t1
@@ -179,8 +179,8 @@ class SpellKernelHasNoProductCaller(unittest.TestCase):
                 continue
             if re.search(r"\bspell_scope\.cast\s*\(", path.read_text(encoding="utf-8", errors="replace")):
                 callers.append(relative)
-        # rule_oracles runs the real cast for the K07 spell leaves (an oracle harness on test fixtures, never a turn).
-        self.assertEqual(sorted(callers), ["action_economy.py", "rule_oracles.py"])
+        # rule_oracles (the K07 oracle harness on test fixtures, never a turn) lives under api/tests/ since D-053.
+        self.assertEqual(sorted(callers), ["action_economy.py"])
 
 
 class D038HasNoReachableCast(unittest.TestCase):

@@ -9,7 +9,7 @@ from api.persistence.campaign_validation import serialize_campaign_payload, rest
 
 class InitiativeExhaustionTests(unittest.TestCase):
     def test_source_bound_oracle_exists_and_matches(self):
-        import rule_oracles
+        from api.tests import rule_oracles
         data=rule_oracles.load_oracles()
         leaves=[x for x in data['leaves'] if x['leaf_id']=='K07.initiative_exhaustion_penalty']
         self.assertEqual(len(leaves),1,'Exhaustion Initiative oracle missing')
