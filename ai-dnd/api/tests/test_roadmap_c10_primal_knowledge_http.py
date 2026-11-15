@@ -5,7 +5,7 @@ import inspect
 import json
 import sqlite3
 import unittest
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
@@ -57,8 +57,8 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_prechange_receipt_bytes_and_omitted_null_hash_survive_restart(self):
         from api.persistence.campaign_store import CampaignStore
         from api.tests.auth_fixture import TEST_PLAYER
-        fixture=json.loads(FIXTURE.read_text());path=Path(self.temporary_directory.name)/'prechange.sqlite3'
-        with sqlite3.connect(path) as connection:
+        fixture=json.loads(FIXTURE.read_text(encoding='utf-8'));path=Path(self.temporary_directory.name)/'prechange.sqlite3'
+        with closing(sqlite3.connect(path)) as connection, connection:
             connection.executescript(fixture['sqlite_dump'])
             connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
         self.store=CampaignStore(path,bound_principal=TEST_PLAYER,allow_schema_migration=True)  # D-125: frozen older file, approved migration
@@ -72,7 +72,7 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.json(),expected)
         self.assertEqual(self.snapshot(r),before)
         receipt=self.manager.get_turn_action(r,fixture['command']['action_id']);self.assertEqual(receipt['request_hash'],HASH)
-        with sqlite3.connect(path) as connection:
+        with closing(sqlite3.connect(path)) as connection:
             raw=connection.execute('SELECT response_json FROM campaign_turn_actions WHERE campaign_id=? AND action_id=?',(a['campaign_id'],fixture['command']['action_id'])).fetchone()[0]
         self.assertEqual(raw,fixture['response_json'])
         self.assertNotIn('check_feature',expected['skill_check_result'])
