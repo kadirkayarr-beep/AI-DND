@@ -77,7 +77,7 @@ class _Money:
 
     def assert_paid_once(self, before):
         purse, gained, receipts, *_ = before
-        self.assertEqual(self.purse(), purse + 25)
+        self.assertEqual(self.purse(), purse + 25 * 100)  # YENİDEN YAZIM (D-104): plan gold paid as gold x 100 copper (was 25)
         self.assertEqual(self.xp(), gained + 40)
         self.assertEqual(self.receipts(), receipts + [MARKER])
         self.assertEqual(self.quest()["reward_application_id"], MARKER)
@@ -192,7 +192,7 @@ class AdventureXpEngine(_Money, unittest.TestCase):
         paid = rewards.apply_plan(self.session.character, self.world, quest)
         self.assertEqual((paid["xp_due"], paid["marker"], paid["replayed"]), (40, MARKER, False))
         self.assertEqual(set(paid), {"replayed", "marker", "lore_state", "xp_due"})
-        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25, before[1], before[2]))
+        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25 * 100, before[1], before[2]))  # YENİDEN YAZIM (D-104): was + 25
         self.assertEqual(quest["reward_application_id"], MARKER)
 
     def test_a_gold_only_plan_has_no_xp_due(self):
@@ -201,7 +201,7 @@ class AdventureXpEngine(_Money, unittest.TestCase):
         before = (self.purse(), self.xp(), self.receipts())
         paid = rewards.apply_plan(self.session.character, self.world, quest)
         self.assertEqual(paid["xp_due"], 0)
-        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25, before[1], before[2]))
+        self.assertEqual((self.purse(), self.xp(), self.receipts()), (before[0] + 25 * 100, before[1], before[2]))  # YENİDEN YAZIM (D-104): was + 25
         play.settle_session(self.session)
         self.assertIsNone(self.session._xp_level_up)
 
@@ -235,7 +235,7 @@ class AdventureXpEngine(_Money, unittest.TestCase):
         self.assertEqual(self.session.campaign_lore_state.faction_standings, ())
         with patch.object(game, "_validate_save_payload", refused_admission):
             play.settle_session(self.session)
-        settled = (purse + 25, gained, receipts, 4, MARKER, False)
+        settled = (purse + 25 * 100, gained, receipts, 4, MARKER, False)  # YENİDEN YAZIM (D-104): was purse + 25
         self.assertEqual(self.state(), settled)
         self.assertEqual(self.session._persisted_engine_format, game.SAVE_FORMAT_VERSION)
         self.assertIsNone(self.session._xp_level_up)
