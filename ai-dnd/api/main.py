@@ -2399,6 +2399,7 @@ def create_app(
             journal_snapshot = copy.deepcopy(record.journal)
             memory_snapshot = copy.deepcopy(record.narrative_memory)
             lore_snapshot = record.lore_authority
+            session_lore_snapshot = getattr(session, "campaign_lore_state", None)
 
             def restore_command():
                 _rollback_session(record, session, snapshot)
@@ -2406,9 +2407,11 @@ def create_app(
                 record.journal = journal_snapshot
                 record.narrative_memory = memory_snapshot
                 record.lore_authority = lore_snapshot
+                session.campaign_lore_state = session_lore_snapshot
 
             response_payload = None
             try:
+                quest_before = copy.deepcopy(session.world_state)
                 result = session.resolve_species_trait_action(
                     request.action,
                     form=request.form,
@@ -2417,6 +2420,25 @@ def create_app(
                     **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
                        if request.action == "lay_on_hands" else {}),
                 )
+                # D-105: a combat species action can end the turn and its damage (Inner Radiance) can drop a quest
+                # target; like the play turn, the quest owner reads this command's own before/after world. The
+                # panel command carries no player words, so last turn's text must not ask for work here.
+                if (quest_before.get("combat") or {}).get("active") and isinstance(result.get("effects"), dict):
+                    session._adventure_player_text = ""
+                    # A reward's faction standing is written onto the session's lore copy; that copy can be missing
+                    # or older than the record's, so it starts from the record and the record takes the result.
+                    session.campaign_lore_state = record.lore_authority
+                    transitions = session.evaluate_quest_events(
+                        quest_before, {"action": "species_action", "species_action": request.action,
+                                       "status": "resolved"},
+                    )
+                    record.lore_authority = session.campaign_lore_state
+                    # A session without a copy stays without one: a later turn moves only the record's lore, so a copy
+                    # left here would turn stale. A copy that was already there (hear, a paid reward, Undo, a rolled-back
+                    # turn) takes the new record lore: a quest command or the next turn reads it before the record.
+                    session.campaign_lore_state = None if session_lore_snapshot is None else record.lore_authority
+                    if transitions:
+                        result["effects"]["quest_outcomes"] = transitions
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
                     action_id=action_id,

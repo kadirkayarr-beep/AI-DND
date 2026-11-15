@@ -142,7 +142,7 @@ class QuestAwardRefused(unittest.TestCase):
         return plant(self.session, "tavern", "npc.source", "npc.target", **kwargs)
 
     def assert_gold_without_xp(self, purse, xp_before, receipts):
-        self.assertEqual(self.purse(), purse + 25)
+        self.assertEqual(self.purse(), purse + 25 * 100)  # YENİDEN YAZIM (D-104): plan gold paid as gold x 100 copper (was + 25)
         self.assertNotIn(POOL, self.world.get("currency", {}))
         self.assertEqual(self.quest()["reward_application_id"], MARKER)
         self.assertEqual(self.session.character.get("xp", 0), xp_before)

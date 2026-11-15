@@ -44,7 +44,8 @@ class DialogueJobTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(q['status'],'COMPLETED');self.assertIsNotNone(q['reward_application_id'])
   import relationships
   self.assertEqual(relationships.score(self.world,self.npc['id']),1)
-  self.assertEqual(self.world['currency']['player'],gold+q['reward_plan']['success']['gold'])
+  # YENİDEN YAZIM (D-104, Kadir 2026-11-14): the card's gold is paid as gold, gold x 100 copper (was: the same number in copper).
+  self.assertEqual(self.world['currency']['player'],gold+q['reward_plan']['success']['gold']*100)
   after=copy.deepcopy(self.session.serialize_game_state());again=await self.send('Paketi Lia adlı arşivciye teslim ediyorum',mode='do',action_id=aid)
   self.assertEqual(hand.json(),again.json());self.assertEqual(after,self.session.serialize_game_state())
  async def test_typed_parcel_take_and_give_write_ledger_operations(self):

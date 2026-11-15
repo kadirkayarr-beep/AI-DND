@@ -37,6 +37,10 @@ def apply_plan(character, world, quest, lore_state=None):
     before_quest = copy.deepcopy(quest)
     try:
         gold = branch.get("gold", 0)
+        # D-104: the plan's gold is gold (the offer card says "N altın") and the purse counts copper. A thread job's
+        # plan already carries its pay in copper ("N bakır ödendi").
+        if not str(quest.get("creation_evidence") or "").startswith("thread-job:"):
+            gold *= 100
         if gold > 0:
             pool = f"adventure-pool:{quest['quest_id']}"
             wallets = world.setdefault("currency", {})

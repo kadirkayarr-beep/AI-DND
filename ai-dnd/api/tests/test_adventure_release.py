@@ -136,7 +136,7 @@ class AdventureReleaseTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("karşılık", paid.json()["narration"].casefold())
         after = self._reward_view(record)
         self.assertEqual(after["xp"], before["xp"] + 80)
-        self.assertEqual(after["gold"], before["gold"] + 50)
+        self.assertEqual(after["gold"], before["gold"] + 50 * 100)  # YENİDEN YAZIM (D-104): plan gold paid as gold x 100 copper (was + 50)
         self.assertEqual(after["daggers"], before["daggers"] + 1)
         self.assertEqual(after["standing"], 1)
         self.assertEqual(after["marker"], "quest:adv.release:success")
