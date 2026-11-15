@@ -649,10 +649,11 @@
     "pay_topic": ["hesap", "hesab", "ödeme", "öde", "kese", "mangır", "harçlık", "bahşiş", "sadaka"],
     "pay_verbs": [
       "ver", "verin", "versene", "verecek", "verecen", "vereceksin", "verir", "alayım", "alıyorum", "alırım",
-      "alacağım", "alcam", "say", "sayıyorum", "sayıp", "atıyorum", "istiyorum", "isterim", "uzat", "nerede", "nerde"
+      "alacağım", "alcam", "say", "sayıyorum", "sayıp", "atıyorum", "istiyorum", "isterim", "uzat", "nerede", "nerde",
+      "verebilir", "verebilirsin"
     ],
     "pay_alone": ["öde", "ödesene", "ödeyecek", "ödeyeceksin", "ödeyecen", "ödeyin", "öder"],
-    "pay_not_asking": ["ne kadar", "ne zaman", "kaç", "nasıl", "kazanmak", "kazanayım", "kazanırım", "kazanacak"]
+    "pay_not_asking": ["ne kadar", "ne zaman", "kaç", "nasıl", "kazanmak", "kazanayım", "kazanırım", "kazanacak", "verebilir miyim", "verebilir miyiz"]
   },
   "money_speech": {
     "units": ["bakır", "gümüş", "altın", "sikke"],
@@ -956,6 +957,7 @@
       "shift_paid_days": "{days} günün sonunda toplam {amount} bakır eline sayılmış oluyor.",
       "shift_some": "{place} içinde birkaç saat iş başında kaldın.",
       "pay_counted": "{amount} bakır avucuna sayılıyor; kesende artık.",
+      "coin_ask_refused": "Kese kapalı kalıyor; avucuna tek sikke düşmüyor.",
       "shift_done": "İş bitti; hesap kapandı.",
       "shift_short": "Vardiya yarıda kaldı, bu saatler henüz bir güne denk gelmedi.",
       "shift_no_pay": "Bugünkü ücretini almıştın; bu saatler hesaba yazılmıyor.",
