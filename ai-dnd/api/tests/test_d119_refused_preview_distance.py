@@ -94,6 +94,26 @@ class RefusedPreviewDistanceTests(unittest.IsolatedAsyncioTestCase):
         })
         self.assertEqual(undone.status_code, 200, undone.text)
 
+    async def test_a_check_feature_refusal_after_a_passed_preview_leaves_no_opening_step(self):
+        # D-190: the preview passes, then the check-feature admission refuses the turn before its snapshot.
+        turn_id = str(uuid.uuid4())
+        played = await self.http.post(self.turn_url, json={"message": "Etrafa bakıyorum.", "action_id": turn_id})
+        self.assertEqual(played.status_code, 200, played.text)
+        self.assertNotIn("distance_ft", self.npc)
+        refused = await self.http.post(self.turn_url, json={
+            "message": "Haydut'a hançerle saldırıyorum", "action_id": str(uuid.uuid4()),
+            "target_id": self.npc["id"], "interaction_mode": "do", "check_feature": "primal_knowledge",
+        })
+        self.assertEqual(refused.status_code, 400, refused.text)
+        self.assertEqual(refused.json()["detail"]["code"], "primal_knowledge_immediate_check_only")
+        npc = next(item for item in self.session().world_state["npcs"] if item["id"] == self.npc["id"])
+        self.assertNotIn("distance_ft", npc)
+        undone = await self.http.post(self.undo_url, json={
+            "action_id": str(uuid.uuid4()), "target_action_id": turn_id,
+        })
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.assertEqual(undone.json()["undone_action_id"], turn_id)
+
     async def test_a_turn_rolled_back_after_its_snapshot_leaves_no_opening_step(self):
         # D-119 review: the turn's own snapshot is the state before the opening step, so a rollback removes it too.
         turn_id, refused, npc = await self._played_then_refused_dagger(mock.patch.object(

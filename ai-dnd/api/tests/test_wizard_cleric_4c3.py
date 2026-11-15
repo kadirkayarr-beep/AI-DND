@@ -580,6 +580,34 @@ class LevelUpWindowIsAdditive(unittest.TestCase):
             spell_preparation.prepare(session, ["Magic Missile", "Thunderwave"])
         self.assertEqual(caught.exception.code, "prepare_level_up_additive_only")
 
+    def test_d192_a_step_in_the_rest_moment_with_no_saved_list_can_still_fill_the_grown_limit_later(self):
+        """D-192: the step comes in the Long Rest moment before any list is saved; after time passes or a fight, the
+        level-up window still waits and the grown limit is filled now, not at the next Long Rest."""
+        from api.tests import test_death_system as fixtures
+        for cls in ("Wizard", "Cleric"):
+            for how in ("time", "fight"):
+                with self.subTest(cls=cls, how=how):
+                    session = earned(self, cls, 1)
+                    session.resolve_species_trait_action("long_rest")
+                    rest_second = spells(session)["prepare_window"]["opened_second"]
+                    self.assertEqual((spells(session)["prepare_window"]["reason"], spells(session)["prepared"]), ("long_rest", []))
+                    earn(session, 2)
+                    step(self, session, 2)
+                    if how == "time":
+                        session.advance_campaign_time(3600, "wait")
+                    else:
+                        session.world_state["npcs"] = [n for n in session.world_state["npcs"] if n["id"] != "death-save-enemy"]
+                        fixtures.start_test_combat(session)
+                        session.ensure_combat_state()
+                        session.end_combat("test")
+                    self.assertEqual(spells(session)["prepare_window"]["opened_second"], rest_second)
+                    view = spell_preparation.view(session)
+                    self.assertEqual((view["open"], view["reason"], view["limit"], view["prepared"]), (True, "level_up", 5, []))
+                    wanted = view["candidates"][:5]
+                    result = spell_preparation.prepare(session, wanted)
+                    self.assertEqual((result["status"], result["prepared"]), ("prepared", wanted))
+                    self.assertIsNone(spells(session)["prepare_window"])
+
     def test_d069_the_swap_marker_is_only_saved_on_a_level_up_window(self):
         session = self.rested_list_then_level_two()
         for window in ({"opened_second": 0, "reason": "long_rest", "rest_swap": True},
