@@ -537,8 +537,25 @@ def _check(session, skill: str, dc: int) -> dict[str, Any]:
     )
 
 
+_COUNTER = re.compile(r"\btezgah\w*")
+_PURSE_WORD = re.compile(r"\b(?:kese\w*|cuzdan\w*|para(?:si\w*|sini|yi)?)\b")
+_SOFTENED = {"k": "[kg]", "p": "[pb]", "t": "[td]"}  # "yüzük" -> "yüzüğünü", "kitap" -> "kitabını", "paket" -> "paketi"
+
+
 def _thing_named(folded: str) -> str | None:
-    return next((label for stem, label in _THINGS if stem in folded), None)
+    return next((label for stem, label in _THINGS
+                 if re.search(re.escape(stem[:-1]) + _SOFTENED.get(stem[-1], re.escape(stem[-1])), folded)), None)
+
+
+def _carried(session, person: dict[str, Any] | None, thing: str) -> Any:
+    """The thing as the person carries it (D-108): an entry of their own inventory named like it, or None."""
+    if person is None:
+        return None
+    for entry in person.get("inventory") or []:
+        name = entry.get("name") if isinstance(entry, dict) else entry
+        if isinstance(name, str) and _thing_named(fold(session, name)) == thing:
+            return entry
+    return None
 
 
 def _hand_to_whom(session, text: str) -> dict[str, Any] | None:
@@ -617,7 +634,8 @@ def _steal(session, text: str) -> dict[str, Any]:
     watcher = victim or (present[0] if present else None)  # with several in the room, somebody sees the hand
     check = _check(session, "Sleight of Hand", _steal_dc(session, folded, watcher))
     world = session.world_state
-    thing = _thing_named(folded)
+    # a purse named in the line is a coin theft, whatever else it names ("bıçağıyla oynayan adamın kesesini")
+    thing = None if _PURSE_WORD.search(folded) else _thing_named(folded)
     if check["result"] != "BAŞARILI":
         if watcher is None:
             return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "failed", check, [])
@@ -647,10 +665,25 @@ def _steal(session, text: str) -> dict[str, Any]:
                      seen=False)["till"] = True
         narration = f"Parmakların sessizce işini görüyor: kesende {coins} bakır daha var. Kimse fark etmedi."
         return _reply(session, narration, "theft", "stolen", check, ["currency"], coins_cp=coins)
-    world.setdefault("inventory", []).append(thing)
-    if victim is not None:
+    # D-108: the thing leaves the victim's own inventory; a good on a counter is the place's stock (sold here
+    # without a count, R-12); anything else nobody here carries is not there to take
+    if _carried(session, victim, thing) is not None:
+        import equipment_economy
+        try:
+            equipment_economy.materialize(world)
+            item = _carried(session, victim, thing)
+            equipment_economy.move(world, item, victim["inventory"], world.setdefault("inventory", []), victim["id"])
+        except equipment_economy.EquipmentError:  # worn armour, an unreachable or unresolved hand: not to be lifted
+            return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+        if isinstance(item, dict) and isinstance(victim.get("item_consents"), dict):
+            victim["item_consents"].pop(item.get("item_id"), None)  # a stolen thing carries no leave to give it
         remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",
                  victim_id=victim["id"], seen=False)["item"] = thing
+    elif _COUNTER.search(folded) and any(key == fold(session, thing) for key, _label, _cp in _PRICES):
+        world.setdefault("inventory", []).append(thing)
+        remember(session, "theft_unseen", f"{_place_name(world, world.get('location'))} tezgâhından {thing.lower()} eksildi", seen=False)["item"] = thing
+    else:
+        return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
     narration = f"Elin hızlı: {thing.lower()} artık sende, kimse bakmıyor."
     return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=thing)
 
@@ -710,8 +743,9 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     if body.get("searched"):
         return _reply(session, f"{who} üzerinde alınacak başka bir şey kalmamış.", "loot", "already_searched", None, [])
     body["searched"] = True
-    coins = session.rng.randint(0, 30)
     wallets = session.world_state.setdefault("currency", {})
+    coins = _purse_of(wallets, body)  # D-206: what the dead carried, and no more; the purse is emptied
+    wallets[body["id"]] = 0
     wallets["player"] = wallets.get("player", 0) + coins
     narration = (f"{who} üzerinde {coins} bakır buluyorsun; artık senin." if coins
                  else f"{who} üzerinde işe yarar bir şey çıkmıyor.")

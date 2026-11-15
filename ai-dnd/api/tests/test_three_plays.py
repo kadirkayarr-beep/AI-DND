@@ -241,7 +241,8 @@ class StealingTests(ThreePlaysTests):
             with self.subTest(line=line):
                 await self.begin(ROGUE)
                 self.world["npcs"].clear()
-                self.add_person("Dorn", "Muhafız")
+                dorn = self.add_person("Dorn", "Muhafız")
+                dorn["inventory"] = ["Elma", "Kalkan", "Defter"]  # D-108: a thing is stolen only from who carries it
                 before = (list(self.world["inventory"]), self.world.get("currency", {}).get("player", 0))
                 out = await self.say(line, PlayClient())
                 self.assertFalse(self.world["combat"]["active"])
