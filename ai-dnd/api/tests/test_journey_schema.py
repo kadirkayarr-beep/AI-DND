@@ -128,9 +128,30 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kart", "tezgah", "kisi_kese", "kisi_esya", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
                 "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
-                "olay", "zirh", "varis", "seviye", "buyu_olgusu", "zar",
+                "olay", "zirh", "varis", "seviye", "buyu_olgusu", "zar", "kisi_hp",
             },
         )
+
+    def test_kisi_hp_names_each_persons_hit_points_and_is_checked_as_a_subset(self):
+        """D-031: a person's hit points (``kisi_hp``: person -> current HP) can be pinned, so a journey can say the
+        model's number did not touch the guard; a wrong type or an empty mapping fails when the file loads."""
+        for bad in ({"guard": "12"}, {"guard": 1.5}, {"guard": True}, {}, 12, None):
+            with self.subTest(bad=bad), self.assertRaises(ScenarioError) as raised:
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"kisi_hp": bad}}])))
+            self.assertIn("kisi_hp", str(raised.exception))
+        load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"kisi_hp": {"guard": 12}}}])))
+        seen = {"kisi_hp": {"guard": 12, "barman": 4}}
+        self.assertEqual(check_expect({"kisi_hp": {"guard": 12}}, seen), [])
+        self.assertEqual(check_expect({"kisi_hp": {"guard": 11}}, seen), ["kisi_hp.guard: beklenen 11, gözlenen 12"])
+        self.assertTrue(check_expect({"kisi_hp": {"rat": 3}}, seen))
+
+    def test_rc14_pins_the_guards_hit_points_before_the_fight_and_after_the_undo(self):
+        """D-031: rc14 says the model's number never changes HP; the guard's HP is checked where no blow lands
+        (the shove that starts no fight) and where the undo takes the fight back."""
+        rc14 = load_scenario(Path(schema.__file__).parent / "scenarios" / "rc14_english_fight_real.json")
+        max_hp = 12
+        self.assertEqual(rc14.steps[0].expect.get("kisi_hp"), {"guard": max_hp})
+        self.assertEqual(rc14.steps[-1].expect.get("kisi_hp"), {"guard": max_hp})
 
     def test_varis_is_an_expect_key_and_its_values_are_checked(self):
         self.assertIn("varis", EXPECT_KEYS)

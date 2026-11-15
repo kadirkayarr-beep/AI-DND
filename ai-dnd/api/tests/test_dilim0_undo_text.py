@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import sqlite3
 import unittest
 
@@ -145,7 +146,7 @@ class UndoOverHttp(EconomicHttpFixture):
         self.assertEqual(resumed.status_code, 200, resumed.text)
         self.assertEqual(resumed.json()["history"], history)
         # the save is untouched: same history columns, no flag in the stored payload
-        with sqlite3.connect(self.store.path) as db:
+        with contextlib.closing(sqlite3.connect(self.store.path)) as db:  # D-181: close it, or Windows cannot delete the temp dir
             columns = {r[1] for r in db.execute("PRAGMA table_info(campaign_history)")}
             payload = db.execute("SELECT payload_json FROM campaigns WHERE campaign_id = ?", (campaign_id,)).fetchone()[0]
         self.assertEqual(columns, {"campaign_id", "sequence", "player_message", "narration", "created_at"})

@@ -344,6 +344,8 @@ def _read_clause(clause: dict[str, Any], cands=()) -> dict[str, Any]:
 # Candidates: everything the player could mean, from the saved world.
 # ---------------------------------------------------------------------------
 _PERSON_NOUNS = ("kisi", "adam", "kadin", "yabanci", "genc", "yasli", "cocuk")
+# "Someone" with its endings ("birine", "birisini", "biriyle"): never a typo of a place noun.
+_SOMEONE = re.compile(r"biri(?:si|leri)?(?:ne|ni|nin|nden|nde|yle)?")
 _OUTSIDE_NOUNS = ("disari", "sokak", "sokag", "cadde", "meydan")
 
 
@@ -543,7 +545,8 @@ def _noun_hit(noun: str, tokens: list[str]) -> bool:
             tail = token[len(noun):]
             if npc_statements._CASE_TAIL.match(tail) or re.fullmatch(r"(?:n|s|y)?(?:i|u|a|e)(?:n|na|ni|nda|ndan|nin)?|lar\w*|ler\w*", tail):
                 return True
-        if len(noun) >= 4 and token_matches(noun, token) and hit(token) is None and len(token) <= len(noun) + 5:
+        if len(noun) >= 4 and token_matches(noun, token) and hit(token) is None and len(token) <= len(noun) + 5 \
+                and not _SOMEONE.fullmatch(token):  # "birine" is a person, not a typo of "fırın"
             return True
     return False
 

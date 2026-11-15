@@ -7,6 +7,7 @@ from api.tests.fixed_street import use_fixed_street
 import copy
 from contextlib import closing
 from functools import wraps
+import gc
 import json
 from pathlib import Path
 import sqlite3
@@ -525,7 +526,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         await self.http.aclose()
-        self.temporary_directory.cleanup()
+        # D-191: an unclosed sqlite connection (``with sqlite3.connect`` only commits) lives in a reference cycle
+        # and keeps the file open until collected; Windows cannot delete an open file (WinError 32).
+        # Collected only when the cleanup met such a file: a full collection in every HTTP test costs time.
+        try:
+            self.temporary_directory.cleanup()
+        except PermissionError:
+            gc.collect()
+            self.temporary_directory.cleanup()
 
     async def create_campaign(self):
         # These tests cover a stored old-mode campaign; the new default has its own test.

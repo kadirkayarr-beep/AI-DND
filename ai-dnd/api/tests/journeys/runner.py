@@ -51,6 +51,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.journeys.report import scenario_outcome
 from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect, check_invariant, check_start_hour
 
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
@@ -74,7 +75,8 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 # tests build one (a seeded thread of the town, rewritten): ``type`` hiring (worked on the spot, paid at the end of
 # the day) or errand (a parcel carried to ``recipient`` in a new ``target_kind`` place of the town); ``owner`` the
 # person's id; ``status`` offered or accepted (hiring only: an errand is accepted by a step, which puts the parcel in
-# hand); ``pay`` in copper; ``line`` what the owner said; ``work_days`` (hiring), ``noun`` (errand).
+# hand), or open (errand only: not offered yet, street talk until a step hears it and its owner offers it);
+# ``pay`` in copper; ``line`` what the owner said; ``work_days`` (hiring), ``noun`` (errand).
 #
 # ``letter`` (with an errand ``job``) is a second errand: a sealed letter (``line`` speaks of the seal) that one of the
 # scenario's people (``owner``, whose own place is another place of the town, standing at the job's target place)
@@ -494,8 +496,10 @@ def apply_setup(case: Any, campaign: Mapping[str, Any], setup: Mapping[str, Any]
         if key in setup:
             world[key] = copy.deepcopy(setup[key])
     if "inventory" in setup:
+        # D-027: the setup's bag is all the player has and the hands hold nothing; a new world's default "longsword"
+        # hand would otherwise pick up a longsword the bag holds and the scenario would start with it drawn.
+        world["equipment"] = {"main_hand": None, "off_hand": None}
         equipment_economy.materialize(world)
-        _hands_hold_only_the_bag(world)
     if "current_hp" in setup:
         session.character.update(current_hp=setup["current_hp"])
     if "xp" in setup:
@@ -558,21 +562,6 @@ def _place_ambient_event(world: dict[str, Any], spec: Any) -> None:
     scene["ambient_event"] = record
 
 
-def _hands_hold_only_the_bag(world: dict[str, Any]) -> None:
-    """The setup's bag is all the player has: a hand still naming a thing the bag does not hold holds nothing (a
-    hand nothing can resolve makes every item transfer out of the player's bag refuse)."""
-    hands = world.get("equipment")
-    if not isinstance(hands, dict):
-        return
-    for hand, held in hands.items():
-        if held is None:
-            continue
-        try:
-            equipment_economy.canonical_hands(world, "player", {"equipment": {"main_hand": held, "off_hand": None}})
-        except equipment_economy.EquipmentError:
-            hands[hand] = None
-
-
 def _give_job(world: dict[str, Any], job: Any) -> str:
     """One town job for one of the scenario's people, where the player stands (see ``SETUP_KEYS``); its thread id."""
     if not isinstance(job, Mapping):
@@ -585,7 +574,7 @@ def _give_job(world: dict[str, Any], job: Any) -> str:
     kind, status, pay, line = job.get("type"), job.get("status"), job.get("pay"), job.get("line")
     if kind not in {"hiring", "errand"}:
         raise ScenarioError(f"setup 'job.type' hiring ya da errand olmalı: {kind}")
-    if status not in ({"offered", "accepted"} if kind == "hiring" else {"offered"}):
+    if status not in ({"offered", "accepted"} if kind == "hiring" else {"offered", "open"}):
         raise ScenarioError(f"setup 'job.status' bu iş türünde olamaz: {status}")
     if isinstance(pay, bool) or not isinstance(pay, int) or pay <= 0:
         raise ScenarioError("setup 'job.pay' pozitif bir tam sayı olmalı")
@@ -627,6 +616,11 @@ def _give_job(world: dict[str, Any], job: Any) -> str:
                                              "pay_timing": "on_delivery", "deadline_text": "bir gün içinde"})
     state["threads"] = [thread]
     owner["place_role_of"] = here
+    if status == "open":  # nobody has offered it yet: the street talks of it, its owner holds the terms
+        target = world["locations"][thread["target_place_id"]]["name"]
+        thread.update(status="open", offered_at=None, offered_turn=None, offer_line=None, offer_line_turn=None,
+                      public_line=f"{owner.get('name')}, {target} için bir {noun} yollatacak birini arıyor.")
+        return thread["thread_id"]
     world["npc_speech_log"] = {owner["id"]: [{"player": "iş var mı", "npc": line}]}
     if status == "accepted":
         world_threads.accept_hired(world, thread)
@@ -720,7 +714,8 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
     conversation, the card and death; the live world for the rest).
 
     ``kart`` is the economic card; ``tezgah`` is the counter's offer that a spoken order opens (settled
-    only by the counter trade, never by the card); ``kisi_kese`` is every purse but the player's; ``cephane`` is
+    only by the counter trade, never by the card); ``kisi_kese`` is every purse but the player's; ``kisi_hp`` is
+    every present person's current HP (``world.npcs``; a person without an HP number is left out); ``cephane`` is
     the player's ammunition counter (``world.ammunition``, type to count), kept apart from the items: a pack
     label such as "Uzun Yay & 20 Ok" is one item and no arrows. ``hareket`` is the feet of movement the player
     has used in the fight's current turn (None outside a fight or before the turn's resources exist).
@@ -763,6 +758,8 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "kisi_kese": {str(owner): cp for owner, cp in currency.items() if owner != "player"},
         "kisi_esya": {str(npc.get("id")): _inventory_counts(npc.get("inventory") or [])
                       for npc in world.get("npcs", []) if isinstance(npc, dict)},
+        "kisi_hp": {str(npc.get("id")): npc["current_hp"] for npc in world.get("npcs", [])
+                    if isinstance(npc, dict) and type(npc.get("current_hp")) is int},
         "cephane": copy.deepcopy(ammunition),
         "hareket": _combat_movement(combat),
         "olu": (state.get("death_state") or {}).get("status"),
@@ -1250,21 +1247,24 @@ def describe_problems(results: Sequence[StepResult]) -> list[str]:
 
 
 def summary_line(results: Mapping[str, Sequence[StepResult]]) -> str:
-    """Scenario counts: a scenario with any new break is a new break, else any known break makes it
-    known broken, else it passed. Stale markers are counted on their own, and so are the steps that only the real
-    chain runs."""
-    passed = known = new = 0
+    """Scenario counts by the report's rule (``report.scenario_outcome``): a scenario with any new break is a new
+    break, else any known break makes it known broken, else one with no results or only unreached steps did not run,
+    else it passed. Stale markers are counted on their own, and so are the steps that only the real chain runs."""
+    passed = known = new = not_run = 0
     stale = pending = 0
     for steps in results.values():
-        statuses = {result.status for result in steps}
         stale += sum(result.status == "marker_stale" for result in steps)
         pending += sum(result.status == "unreached" and result.failures == (REAL_CHAIN_ONLY,) for result in steps)
-        if "new_break" in statuses:
+        outcome = scenario_outcome(steps)
+        if outcome == "new_break":
             new += 1
-        elif "known_broken" in statuses:
+        elif outcome == "known_broken":
             known += 1
+        elif outcome == "not_run":
+            not_run += 1
         else:
             passed += 1
     line = f"{passed} geçti, {known} bilinen kırık, {new} yeni kırık"
     line += f" ({stale} adımda işaret kaldırılmalı)" if stale else ""
+    line += f" ({not_run} senaryo koşulmadı)" if not_run else ""
     return line + (f" ({pending} adım yalnız gerçek zincirde)" if pending else "")

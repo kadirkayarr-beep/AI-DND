@@ -24,6 +24,7 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import fixed_town
 
 START = {"campaign_start": {
     "setting_id": "forgotten_realms",
@@ -155,6 +156,11 @@ class ClassifierCallIsSmall(PlayFixture):
 
 class RunSixReproduction(PlayFixture):
     """The owner saw this question answer 503 twice in real play; it must answer in the story."""
+
+    async def asyncSetUp(self):
+        # D-075: a fixed town. Seed 1 has a bakery ("fırın"), which "birine" once walked the player to.
+        with fixed_town(self, 1):
+            await super().asyncSetUp()
 
     async def test_a_runaway_reply_with_a_person_being_spoken_to_becomes_speech_to_them(self):
         await self.turn(self.body(SPEECH_TURN))
