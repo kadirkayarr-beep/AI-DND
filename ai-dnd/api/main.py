@@ -2249,6 +2249,10 @@ def create_app(
             snapshot = _capture_session(session)
             lore_before = record.lore_authority
             token_before = getattr(session, "_campaign_persistence_version", None)
+            if getattr(session, "campaign_lore_state", None) is not None:
+                # D-189: a committed turn moves only the record's lore and a resume reloads it, so a copy left on the
+                # session can be older; the command starts it from the record, like play_turn, before reading it below.
+                session.campaign_lore_state = record.lore_authority
 
             def put_back() -> None:
                 record.lore_authority = lore_before

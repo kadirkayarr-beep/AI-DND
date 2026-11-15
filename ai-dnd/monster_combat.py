@@ -678,8 +678,12 @@ def player_response(session, text, target_id=None):
     combat = session.world_state["combat"]
     combat_id = combat["combat_id"]
     if accepted:
-        # Only foes still resisting must have agreed; a beaten foe (down, out) cannot hold the ending hostage.
-        enemies = [a for a in combat["participants"] if a != "player"
+        # Only foes still resisting must have agreed; a beaten foe (down, out) cannot hold the ending hostage,
+        # nor can one carried off the scene (its record reads 'inactive'; D-006).
+        here = session.world_state.get("location")
+        local = {n.get("id") for n in session.world_state.get("npcs", [])
+                 if isinstance(n, dict) and n.get("location") == here}
+        enemies = [a for a in combat["participants"] if a != "player" and a in local
                    and perception.relationship(session, a, "player") == "enemy"
                    and not _is_beaten(session, a)]
         if all(any(p["status"] == "accepted" for p in root.get(a, {}).get("proposals", [])) for a in enemies):
