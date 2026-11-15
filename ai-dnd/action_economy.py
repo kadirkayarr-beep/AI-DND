@@ -425,6 +425,7 @@ def monster_routes(session, actor, kind):
     Route facts never come from a client or narration.
     """
     from monster_perception import relationship
+    import spell_scope
     resources = ensure(session)[actor]
     routes = session.world_state.get("monster_routes", {}).get(actor, [])
     legal = []
@@ -484,6 +485,8 @@ def monster_routes(session, actor, kind):
                 valid = False
                 break
             if (old <= 5 < new_distance and relationship(session, actor, target) == "enemy"
+                    and can_act(session, target)  # surrendered/incapacitated: no Reaction, no OA (D-037)
+                    and not spell_scope.opportunity_attacks_blocked(session, target)  # Shocking Grasp (D-051)
                     and not ensure(session)[target]["reaction_spent"] and kind != "disengage"):
                 valid = False  # Missing OA resolver is not permission to escape freely.
                 break

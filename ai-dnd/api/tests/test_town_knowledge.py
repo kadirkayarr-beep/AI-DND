@@ -24,6 +24,7 @@ from api.session_manager import SessionManager
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.test_world_threads import city
+from api.tests.town_seed import fixed_town
 
 
 AuthenticatedOllamaAdapter = test_campaign_api.AuthenticatedOllamaAdapter
@@ -464,13 +465,17 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
 
     async def test_street_talk_is_newer_than_what_someone_said_earlier(self):
         # Real play: "Selwyn Karakolu ..." overheard, then "Oraya gidiyorum" went back to the temple named before.
-        world = await self.heard()
+        # The town is pinned (D-074): in some towns every open matter is already heard before the walk.
+        with fixed_town(self, 7400):
+            world = await self.heard()
         await self.say("İş bilen var mı?", f"{self.place['name']} tarafına bak.")
         for npc in world["npcs"]:
             npc["location"] = "elsewhere"
         world["flags"].update(active_npc_id=None, last_npc_id=None, active_npc_until_turn=0)
+        heard_before = list(world_threads.view(world)["overheard"])
         await self.go("Şehirde geziyorum.")
         talk = world_threads.view(world)["overheard"][-1]
+        self.assertNotIn(talk, heard_before, "the walk caught no street talk, so this town cannot test it")
         thread = next(t for t in world_threads.active(world) if t["thread_id"] == talk)
         await self.go("Şehirde geziyorum.")
         talk = world_threads.view(world)["overheard"][-1]

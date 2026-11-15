@@ -2171,6 +2171,11 @@ def create_app(
             purse_now = economic_actions.wallet_total_cp(session.world_state)
             try:
                 _restore_session(session, checkpoint["snapshot"])
+                # D-211: the undone turn answered (or dropped) the surrendered-foe question; Undo never reopens it, so
+                # the same blow sent again is asked about again, never struck unasked.
+                session._surrender_strike_asked = None
+                # D-211 review: the same for "kavga mı başlatıyorsun?" (its flags ride the same snapshot).
+                session._attack_asked, session._blow_asked, session._blow_asked_line = False, None, None
                 if isinstance(session, game.GameSession):
                     economic_actions.reconcile_offers_after_undo(
                         session.world_state, current_offers, undone_action_id=target_action_id,

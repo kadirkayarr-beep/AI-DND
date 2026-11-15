@@ -412,6 +412,24 @@ class TheRunnerSortsEveryStep(JourneyCase):
         session.world_state["combat"]["turn_resources"]["player"]["movement_used"] = 15
         self.assertEqual(read_observed(self, campaign["session_id"])["hareket"], 15)
 
+    async def test_each_persons_hit_points_are_observed(self):
+        # D-031: ``kisi_hp`` is every present person's current HP, read from the world the engine changes.
+        with fixed_town(self, 4441):
+            campaign = await self.create_campaign()
+        apply_setup(self, campaign, {"npcs": [{"id": "bandit", "name": "Haydut", "role": "Bandit", "current_hp": 30,
+                                               "max_hp": 30}, {"id": "child", "name": "Çocuk", "role": "Çocuk"}]})
+        sid = campaign["session_id"]
+        self.assertEqual(read_observed(self, sid)["kisi_hp"], {"bandit": 30})  # a person without HP is left out
+        self.manager.get(sid).game_session.world_state["npcs"][0]["current_hp"] = 21
+        self.assertEqual(read_observed(self, sid)["kisi_hp"], {"bandit": 21})
+        with fixed_town(self, 4442):
+            results = await self.run_scenario(beer_scenario(
+                {"command": BUY_BEER, "expect": {"kisi_hp": {"barman": 10}}},
+                {"command": BUY_SECOND_BEER, "expect": {"kisi_hp": {"barman": 9}}},
+            ))
+        self.assertEqual([result.status for result in results], ["pass", "new_break"], results)
+        self.assertEqual(results[1].failures, ("kisi_hp.barman: beklenen 9, gözlenen 10",))
+
     async def test_varis_reads_the_sessions_arrival_diagnostic(self):
         with fixed_town(self, 4421):
             campaign = await self.create_campaign()
@@ -537,6 +555,31 @@ class TheRunnerSortsEveryStep(JourneyCase):
                 apply_setup(self, await self._journey_campaign({"campaign_start": start}),
                             {"npcs": [owner], "job": wrong})
             self.assertIn(word, str(raised.exception))
+
+    async def test_an_open_errand_is_street_talk_its_owner_has_not_offered_yet(self):
+        """D-020: an errand nobody has offered yet, so the street can speak of it (journey 41)."""
+        import quest_log
+        owner = {"id": "potter", "name": "Halil", "role": "Çömlekçi", "current_hp": 10}
+        errand = {"type": "errand", "owner": "potter", "status": "open", "pay": 12, "noun": "iade takımı",
+                  "recipient": "Tuna", "target_kind": "harbor", "line": "İade takımını iskeledeki Tuna'ya götür."}
+        campaign = await self._journey_campaign({"campaign_start": NEVERWINTER})
+        apply_setup(self, campaign, {"npcs": [owner], "job": errand})
+        world = self.manager.get(campaign["session_id"]).game_session.world_state
+        (thread,) = world["world_threads_v1"]["threads"]
+        target = world["locations"][thread["target_place_id"]]
+        self.assertEqual((thread["type"], thread["status"], thread["owner_npc_id"], thread["place_id"]),
+                         ("errand", "open", "potter", world["location"]))
+        self.assertEqual((thread["offered_at"], thread["offer_line"], thread["heard_turn"]), (None, None, None))
+        self.assertEqual((thread["owner_line"], thread["terms"]["pay"]), (errand["line"], 12))
+        self.assertIn("Halil", thread["public_line"])
+        self.assertIn(target["name"], thread["public_line"])
+        self.assertNotIn("potter", world.get("npc_speech_log") or {})  # the owner has said nothing yet
+        self.assertEqual(quest_log.trails(world), [])  # not heard yet: no trail
+        with self.assertRaises(ScenarioError) as raised:  # a hiring is offered or accepted, never open
+            apply_setup(self, await self._journey_campaign({"campaign_start": NEVERWINTER}),
+                        {"npcs": [owner], "job": {"type": "hiring", "owner": "potter", "status": "open", "pay": 26,
+                                                  "line": "Tezgâhtaki çanakları say."}})
+        self.assertIn("status", str(raised.exception))
 
     async def test_letter_setup_offers_a_sealed_letter_where_the_job_ends_and_a_trouble_where_it_goes(self):
         owner = {"id": "potter", "name": "Halil", "role": "Çömlekçi", "current_hp": 10}
@@ -717,6 +760,33 @@ class TheRunnerSortsEveryStep(JourneyCase):
                 saved = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
                 self.assertEqual(saved["inventory"], after["inventory"])
 
+    async def test_a_setup_bag_with_a_longsword_starts_with_empty_hands_like_any_other_bag(self):
+        """D-027: a new world's main hand names "longsword"; a setup bag holding a longsword must not pick it up.
+        The setup's bag is all the player has and the hands hold nothing, whatever the bag holds, and the setup's
+        ``materialize`` call still changes only the bag."""
+        fighter = load_scenario(runner.SCENARIO_DIR / "05c_greatsword_shield_ac.json").setup
+        real = equipment_economy.materialize
+        seen = []
+
+        def spy(world):
+            before = copy.deepcopy(world)
+            real(world)
+            seen.append((before, copy.deepcopy(world)))
+
+        for seed, weapon in ((2701, "Hançer"), (2702, "Uzun Kılıç")):
+            with self.subTest(weapon=weapon):
+                setup = {**fighter, "campaign_seed": seed, "inventory": ["Zincir Zırh", weapon, "Kalkan"]}
+                seen.clear()
+                campaign = await self._journey_campaign(setup)
+                with patch.object(runner.equipment_economy, "materialize", side_effect=spy):
+                    apply_setup(self, campaign, setup)
+                (before, after), = seen
+                self.assertEqual(after["equipment"], before["equipment"])
+                world = self.manager.get(campaign["session_id"]).game_session.world_state
+                self.assertEqual(world["equipment"], {"main_hand": None, "off_hand": None})
+                self.assertIsNone(read_observed(self, campaign["session_id"])["elinde"])
+                self.assertEqual([item["name"] for item in world["inventory"]], ["Zincir Zırh", weapon, "Kalkan"])
+
     async def test_what_was_told_survives_the_save_and_a_reload(self):
         """``npc_told_v1`` written and saved goes through the save unchanged: a reload step reads the same
         ``anlatilan`` from the fresh session as the live one holds, so the comparison raises nothing."""
@@ -872,6 +942,19 @@ class TheMarkerCause(unittest.TestCase):
             "b": [StepResult(1, "known_broken", ("x",), (35,), "", 0.0), unreached(2, "adım 1 bilinen kırık; bu adım koşulmadı")],
         }
         self.assertEqual(summary_line(results), "1 geçti, 1 bilinen kırık, 0 yeni kırık (2 adım yalnız gerçek zincirde)")
+
+    def test_a_scenario_whose_steps_all_went_unreached_is_not_counted_as_passed(self):
+        # D-156: offline, a real-chain-only scenario skips every step; the console must say "koşulmadı" like the report.
+        def unreached(index):
+            return StepResult(index, "unreached", (runner.REAL_CHAIN_ONLY,), (), "", 0.0)
+
+        results = {
+            "a": [StepResult(1, "pass", (), (), "", 0.0)],
+            "offline": [unreached(1), unreached(2), unreached(3)],
+            "empty": [],
+        }
+        self.assertEqual(summary_line(results),
+                         "1 geçti, 0 bilinen kırık, 0 yeni kırık (2 senaryo koşulmadı) (3 adım yalnız gerçek zincirde)")
 
 
 class TheScriptedClient(unittest.TestCase):
