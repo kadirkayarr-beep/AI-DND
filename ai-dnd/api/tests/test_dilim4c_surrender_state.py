@@ -121,6 +121,24 @@ class SurrenderAndXp(unittest.TestCase):
         self.assertEqual(s.character["xp"], 25)
         self.assertEqual(s.world_state["xp_awarded_event_ids"], ["combat:foe:" + n["id"]])
 
+    def test_a_relocated_foe_does_not_block_the_acceptance(self):
+        """D-006 (G2): a foe that left the scene made every acceptance fail with invalid_combat_target."""
+        s, n, other = two_foes()
+        propose(s, n, "SURRENDER_PROPOSED")
+        for _ in range(6):
+            if s.world_state["combat"]["current_actor_id"] == "player":
+                break
+            s.advance_combat_turn()
+        other["location"] = "cellar"  # carried off mid-fight (fire, scheduled event); still a participant
+        s._sync_combat_participant_records(s.world_state["combat"])
+        self.assertEqual(record(s, other["id"])["status"], "inactive")
+        result = s.run_player_turn("Teslim olma teklifini kabul ediyorum.", target_id=n["id"])
+        self.assertEqual(result["action_result"]["outcome"], "accepted")
+        self.assertFalse(s.world_state["combat"]["active"])
+        self.assertEqual(s.world_state["combat"]["end_reason"], "parley_accepted")
+        self.assertEqual(s.character["xp"], 25)
+        self.assertEqual(s.world_state["xp_awarded_event_ids"], ["combat:foe:" + n["id"]])
+
 
 class OldSaves(unittest.TestCase):
     def test_a_save_written_before_the_surrendered_state_loads_and_reads_surrendered(self):

@@ -52,7 +52,15 @@ _TRANSFER = re.compile(
     r"|\b(?:cal(?:ar|iyor|ip|mak|acag|dim)\w*|asir\w*|yuru(?:t|d)\w*|al(?:iyor|ip|ir|mak|acag|dim)\w*|getir\w*"
     r"|ver(?:iyor|ir|mek)\w*|kap(?:iyor|ar|ip|mak|tim|acag)\w*"
     r"|koy(?:uyor|ar|up|mak|dum)\w*|topla\w*|steal\w*|stole|pickpocket\w*|pilfer\w*|snatch\w*|grab\w*"
-    r"|take|takes|taking|took|fetch\w*|bring\w*|give|giving|carry\w*|carries)\b|\bpick(?:s|ing|ed)?\s+up\b")
+    r"|take|takes|taking|took|fetch\w*|bring\w*|give|giving|carry\w*|carries)\b|\bpick(?:s|ing|ed)?\s+up\b"
+    # D-067: a thing taken off someone's body ("boynundan çıkarıyorum") is a theft; dice and cheating are a stake.
+    # Only with a word of taking off: 'göğsünden ışık yayılan' takes nothing, and 'Zara'nın' is a name, not dice.
+    # 'çıkarmak' is also 'to bring forth': a spark, flame or smoke drawn from a body takes nothing (second review).
+    r"|\b(?:boyn|bileg|parmag|kulag|gogs|kemer)\w*(?:dan|den)\b"
+    r"(?!\s+(?:bir\s+)?(?:kivilcim|alev|duman|isik|ates|ses|koku|buhar|sis|parilti|isilti|kelebek|cicek)\w*\s+cikar)"
+    r"(?=.*\b(?:cikar|cek|coz|kopar|soy|sok|ayir)\w*)"
+    r"|\b(?:lift|remov|pull|slip|unclasp|unhook|tug|yank)\w*\b.*\b(?:off|from)\s+(?:his|her|their|its)\s+"
+    r"(?:neck|wrist|finger|ear|chest|belt)\w*|\bzar(?:i|a(?!')|da|dan|la|lar\w*)?\b|\b(?:dice|hile\w*|cheat\w*)\b")
 _DURATION = {"1 minute": 60, "1 hour": 3600, "Up to 1 hour": 3600}
 _DURATION_TR = {"1 minute": "bir dakika sürer", "1 hour": "bir saat sürer", "Up to 1 hour": "en çok bir saat sürer"}
 _FIELDS = {"id", "spell_id", "kind", "location_id", "cast_second", "until_second"}
@@ -116,7 +124,13 @@ _STATE_CLAIM = re.compile(
     r"|\belinde(?:\s+\S+){0,4}?\s+kal\w*|\beline\s+(?:gec|al|dus)\w*|\bele\s+gecir\w*|\byour\s+(?:palm|hand|hands|bag|pack|pouch)\b"
     r"|\b(?:bul(?:ur|up|dun|ursun|uyorsun)|kazan\w*|alirsin|edinirsin)\b|\b(?:find|found|gain\w*|receive\w*|earn\w*)\b"
     r"|\byara\w*\s+(?:kapan|iyiles|gec)\w*|\biyiles\w*|\bcan\w*\s+(?:dol|art|yenilen)\w*|\bcan\s+puan\w*"
-    r"|\b(?:heal\w*|wound\w*|hit\s+points?)\b|\bhasar\w*|\bdamage\w*")
+    r"|\b(?:heal\w*|wound\w*|hit\s+points?)\b|\bhasar\w*|\bdamage\w*"
+    # D-067: a thing brought or left to the player ("sana doğru getirir", "artık sende", "kucağına bırakır"); a bare
+    # 'sende' is a gaze or a shiver ('Bütün gözler sende'), not a thing held.
+    r"|\bsana\s+(?:dogru\s+|kadar\s+)?(?:getir|uzat|ver|birak|tasi|ulastir|gonder|firlat)\w*"
+    r"|\b(?:artik|simdi)\s+(?:sende|elinde)(?:dir)?\b|\bsende\s+kal\w*|\bkucagina\s+(?:birak|koy|dus)\w*"
+    r"|\b(?:brings?|brought|hands|handed|gives?|gave|passe[sd]|carrie[sd]|delivers?|delivered|drops|dropped"
+    r"|tosse[sd])(?:\s+\w+){0,4}?\s+to\s+you\b")
 
 
 def claims_state_change(text: Any) -> bool:

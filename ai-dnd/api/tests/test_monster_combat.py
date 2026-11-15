@@ -729,6 +729,55 @@ class MonsterTests(unittest.TestCase):
         s.world_state["monster_routes"][n["id"]][0]["target_distances"]["player"] = 55
         self.assertEqual(ae.monster_routes(s, n["id"], "disengage"), [])
 
+    def test_route_leaving_a_surrendered_enemy_needs_no_disengage(self):
+        # D-037: an accepted surrender takes the creature's Reaction away, so leaving its reach draws no
+        # Opportunity Attack; an enemy that can still react keeps blocking the same route.
+        s, n = fixture()
+        other = add_creature(s, n)
+        route = {"route_id": "away", "known": True, "clear": True, "destination": "corner", "distance_ft": 20,
+                 "start_distances": {"player": 5, other["id"]: 5},
+                 "target_distances": {"player": 5, other["id"]: 25}}
+        s.world_state["monster_routes"] = {n["id"]: [route]}
+        self.assertTrue(ae.can_act(s, other["id"]))
+        self.assertEqual(ae.monster_routes(s, n["id"], "dash"), [])
+        memory = ai.state(s, other["id"])
+        cid = s.world_state["combat"]["combat_id"]
+        memory.setdefault("proposals", []).append(
+            {"proposal_id": f"{cid}:1:{other['id']}:0:SURRENDER_PROPOSED", "type": "SURRENDER_PROPOSED",
+             "status": "accepted", "actor_id": other["id"]})
+        self.assertFalse(ae.can_act(s, other["id"]))
+        self.assertEqual([r["route_id"] for r in ae.monster_routes(s, n["id"], "dash")], ["away"])
+
+    def test_route_leaving_an_incapacitated_player_needs_no_disengage(self):
+        # D-037, same rule: an Incapacitated creature takes no Reaction (2024), so it makes no Opportunity Attack.
+        s, n = fixture()
+        route = {"route_id": "away", "known": True, "clear": True, "destination": "corner", "distance_ft": 20,
+                 "start_distances": {"player": 5}, "target_distances": {"player": 25}}
+        s.world_state["monster_routes"] = {n["id"]: [route]}
+        self.assertEqual(ae.monster_routes(s, n["id"], "dash"), [])
+        s.character["conditions"] = ["stunned"]
+        self.assertFalse(ae.can_act(s, "player"))
+        self.assertEqual([r["route_id"] for r in ae.monster_routes(s, n["id"], "dash")], ["away"])
+
+    def test_route_leaving_a_shocking_grasped_enemy_needs_no_disengage(self):
+        # D-051: Shocking Grasp's target can't make Opportunity Attacks until its next turn starts (2024), so
+        # leaving its reach needs no Disengage; its Reaction stays unspent, and an unshocked enemy still blocks.
+        s, n = fixture()
+        other = add_creature(s, n)
+        route = {"route_id": "away", "known": True, "clear": True, "destination": "corner", "distance_ft": 20,
+                 "start_distances": {"player": 5, other["id"]: 5},
+                 "target_distances": {"player": 5, other["id"]: 25}}
+        s.world_state["monster_routes"] = {n["id"]: [route]}
+        self.assertEqual(ae.monster_routes(s, n["id"], "dash"), [])
+        s.world_state["attack_effects"] = [
+            {"kind": "shocking_grasp", "source_actor": "player", "target_id": other["id"], "expires_turn": 2,
+             "expires_boundary": "begin", "expires_actor": other["id"]}]
+        self.assertTrue(ae.can_act(s, other["id"]))
+        self.assertFalse(ae.ensure(s)[other["id"]]["reaction_spent"])
+        self.assertEqual([r["route_id"] for r in ae.monster_routes(s, n["id"], "dash")], ["away"])
+        route["target_distances"]["player"] = 25  # the player is not shocked: leaving its reach still needs Disengage
+        self.assertEqual(ae.monster_routes(s, n["id"], "dash"), [])
+
     def test_charmed_harmful_special_cannot_target_charmer(self):
         special = {"capability_id": "special", "kind": "special", "action_source": "action", "powerful": True}
         s, n = fixture([claw(), special], conditions=["charmed"], charmed_by="player")
