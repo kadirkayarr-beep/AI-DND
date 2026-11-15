@@ -20,6 +20,10 @@ class APersonsPurse(unittest.TestCase):
         self.assertEqual(bold_acts._purse_of({}, {"id": "kavsim"}), bold_acts._purse_of({}, {"id": "kavsim"}))
         self.assertEqual(bold_acts._purse_of({}, {"id": "kavsim"}), 26)
 
+    def test_an_uncounted_shopkeeper_has_the_shops_cash(self):
+        self.assertEqual(bold_acts._purse_of({}, {"id": "marek", "role": "Shopkeeper"}), 1000)
+        self.assertEqual(bold_acts._purse_of({"marek": 12}, {"id": "marek", "role": "Shopkeeper"}), 12)
+
     def test_counting_does_not_write_the_wallet(self):
         wallets = {"player": 40}
         bold_acts._purse_of(wallets, {"id": "kavsim"})
