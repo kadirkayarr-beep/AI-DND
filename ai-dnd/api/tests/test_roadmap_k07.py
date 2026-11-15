@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import unittest
 
-import rule_oracles
+from api.tests import rule_oracles
 
 ORACLES = rule_oracles.load_oracles()
 

@@ -1041,9 +1041,9 @@ def _execute(session, command, action_id=None, session_id=None):
                 )})
             elif kind == "end_concentration":
                 import spell_scope
-                if any(field != "kind" and value is not None for field, value in step.items()):
+                if any(field not in ("kind", "spell_id") and value is not None for field, value in step.items()):
                     fail("unsupported_action", "Ending Concentration takes no other choice.")
-                results.append({"kind": kind, "result": spell_scope.end_concentration(session)})
+                results.append({"kind": kind, "result": spell_scope.end_concentration(session, step.get("spell_id"))})
             elif kind == "end_turn":
                 if (not session.world_state["combat"]["active"]
                     or session.world_state["combat"]["current_actor_id"] != "player"

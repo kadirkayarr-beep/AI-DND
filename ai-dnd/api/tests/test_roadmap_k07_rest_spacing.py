@@ -16,7 +16,7 @@ MARKER = 'last_long_rest_completed_at'
 
 class RestSpacingTests(unittest.TestCase):
     def test_spacing_oracle_has_normal_boundary_and_interaction_cases(self):
-        import rule_oracles
+        from api.tests import rule_oracles
         data = rule_oracles.load_oracles()
         leaves = [x for x in data['leaves'] if x['leaf_id'] == 'K07.long_rest_start_spacing']
         self.assertEqual(len(leaves), 1, 'Long Rest spacing source oracle missing')

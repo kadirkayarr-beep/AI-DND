@@ -45,7 +45,7 @@ class AggregationTests(unittest.TestCase):
                 self.assertEqual(r['disadvantage_sources'],['opposing'])
 
     def test_source_oracle_is_registered(self):
-        import rule_oracles
+        from api.tests import rule_oracles
         data=rule_oracles.load_oracles();leaf_id='K07.advantage_disadvantage_source_aggregation.weapon_and_initiative'
         leaves=[x for x in data['leaves'] if x['leaf_id']==leaf_id]
         self.assertEqual(len(leaves),1,'eligible-source aggregation oracle missing')

@@ -100,11 +100,31 @@ test('every engine refusal code has its own Turkish text; 5xx and network errors
 test('spell names: Turkish where a catalog has one, else the English id; server catalog first', () => {
   assert.match(names.spellLabel('Magic Missile'), /^\S.* \(Magic Missile\)$/);
   assert.doesNotMatch(names.spellLabel('Magic Missile'), /^Magic Missile/);
-  assert.equal(names.spellLabel('Misty Step'), 'Misty Step', 'level-2 spells have no Turkish name yet (D-043)');
+  assert.equal(names.spellLabel('Misty Step'), 'Sisli Adım (Misty Step)', 'level-2 spells take the shared Turkish table (D-043)');
   const server = { spells_catalog: { Cleric: { spells_level_1: [{ id: 'Bless', name_tr: 'Kutsama (Bless)' }] } } };
   assert.equal(names.spellLabel('Bless', server), 'Kutsama (Bless)');
   assert.equal(names.spellLabel('Bless', { spells_catalog: { Cleric: { spells_level_1: [{ id: 'Bless', name_tr: 'Takdis' }] } } }), 'Takdis (Bless)');
   assert.equal(names.spellLabel('Unknown Spell', server), 'Unknown Spell');
+});
+
+test('D-043: every spell in content/names/tr_names.json shows Turkish with its English id; the table is the fallback after the catalogs', async () => {
+  const table = JSON.parse(await readFile(path.join(process.cwd(), '..', '..', 'content', 'names', 'tr_names.json'), 'utf8')).spells;
+  const ids = Object.keys(table);
+  assert.ok(ids.length > 300, 'the shared table covers the spell list');
+  const same = ids.filter(id => table[id].trim() === id);
+  assert.deepEqual(same, ['Alarm', 'Tsunami'], 'only names spelled the same in both languages show one word');
+  for (const id of same) assert.equal(names.spellLabel(id), id);
+  for (const id of ids.filter(item => !same.includes(item))) {
+    const label = names.spellLabel(id);
+    assert.ok(label.endsWith(` (${id})`), `${id} keeps its English id: ${label}`);
+    assert.notEqual(label, id, `${id} has a Turkish name`);
+  }
+  for (const id of ['Spiritual Weapon', 'Hold Person', 'Fireball', 'Counterspell', 'Revivify', 'Spirit Guardians']) {
+    assert.equal(names.spellLabel(id), `${table[id]} (${id})`);
+  }
+  const server = { spells_catalog: { Wizard: { spells_level_2: [{ id: 'Misty Step', name_tr: 'Sis Adımı' }] } } };
+  assert.equal(names.spellLabel('Misty Step', server), 'Sis Adımı (Misty Step)', 'a catalog name still wins over the table');
+  assert.equal(names.spellLabel('Not A Spell'), 'Not A Spell', 'an id in no table stays English, never a guess');
 });
 
 test('only Wizard and Cleric with a spell state get the screen', () => {
@@ -127,7 +147,7 @@ test('open window renders a keyboard-usable checklist with count, cap and Turkis
   assert.equal((html.match(/type="checkbox"/g) ?? []).length, 4);
   assert.match(html, /data-testid="spell-prepare-count"[^>]*>1 \/ 3 hazır</);
   assert.match(html, /\(Magic Missile\)/);
-  assert.match(html, />Misty Step</);
+  assert.match(html, />Sisli Adım \(Misty Step\)</);
   assert.match(html, /Uzun dinlenmeyi bitirdin/);
   assert.match(html, /data-testid="button-save-prepared"/);
   assert.doesNotMatch(html, /data-testid="button-save-prepared"[^>]*disabled/);

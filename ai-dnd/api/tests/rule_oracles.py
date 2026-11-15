@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-ORACLE_PATH = Path(__file__).resolve().parents[1] / "content" / "manifest" / "rule-oracles.json"
+ORACLE_PATH = Path(__file__).resolve().parents[3] / "content" / "manifest" / "rule-oracles.json"
 
 
 class OpenRule(ValueError):

@@ -11,7 +11,7 @@ from api.tests.test_initiative import actors
 
 class InvisibleInitiativeTests(unittest.TestCase):
     def test_source_oracle_covers_invisibility_and_cancellation(self):
-        import rule_oracles
+        from api.tests import rule_oracles
         data = rule_oracles.load_oracles()
         rows = [x for x in data['leaves'] if x['leaf_id'] == 'K07.initiative_invisible']
         self.assertEqual(len(rows), 1, 'Invisible Initiative source binding missing')
