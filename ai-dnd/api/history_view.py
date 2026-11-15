@@ -113,3 +113,25 @@ def mark_undone(history: list[dict[str, Any]], links: dict[int, int | None]) -> 
             copied["undone"] = True
         marked.append(copied)
     return marked
+
+
+def undone_combat_events(receipts: list[dict[str, Any]]) -> set[str]:
+    """The combat event ids of the turns an undo receipt names (D-140): read-time only, never saved.
+
+    `receipts` are the live receipts as `undo_links` takes them. The undo receipt names the undone turn by its action id
+    (a unique key); that turn's own receipt carries the event id of the combat row it wrote. Nothing is matched by text
+    or time, and a turn named by two undo receipts, or an id held by two receipts, marks nothing.
+    """
+    named = Counter(
+        receipt["response"]["undone_action_id"] for receipt in receipts
+        if isinstance(receipt.get("response"), dict) and isinstance(receipt["response"].get("undone_action_id"), str)
+    )
+    events: set[str] = set()
+    for action_id, count in named.items():
+        targets = [receipt for receipt in receipts if receipt.get("action_id") == action_id]
+        if count != 1 or len(targets) != 1 or not isinstance(targets[0].get("response"), dict):
+            continue
+        entry = targets[0]["response"].get("combat_history_entry")
+        if isinstance(entry, dict) and isinstance(entry.get("event_id"), str):
+            events.add(entry["event_id"])
+    return events
