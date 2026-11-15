@@ -216,9 +216,12 @@ class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
 
     def test_a_spoken_give_from_someone_who_does_not_serve(self):
         import town_knowledge
+        # D-166 (Kadir kararı 2026-11-15): the ask takes a won Persuasion roll; the engine sets the sum (10 of 100).
         settled = town_knowledge.settle_reply(self.w, self.w["npcs"][1], "paramı ver hadi", {"kind": "give", "amount_cp": 5},
-                                              "Al bakalım.", accept_job=lambda thread: None)
-        self.assertEqual(settled["moved"], 5)
+                                              "Al bakalım.", accept_job=lambda thread: None,
+                                              persuade=lambda dc, advantage: {"success": True})
+        self.assertEqual(settled["moved"], 10)
+        self.assertEqual((self.w["currency"]["player"], self.w["currency"]["guest"]), (510, 90))
         self.moved_by("equipment_economy.py:pay")
         [(operation_id, entry)] = self.operations().items()
         self.assertEqual(entry["purpose"], "npc_gift")

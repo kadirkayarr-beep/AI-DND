@@ -282,6 +282,11 @@ class DevelopmentToolingTests(unittest.TestCase):
                        "api.tests.test_d211_undone_fight_answer"):
             self.assertIn(module, selectors)
 
+    def test_coin_ask_roll_tests_are_in_the_gate(self):
+        # D-166: a coin ask without its Persuasion roll, or paying the model's figure, must not reach main green.
+        self.assertIn("api.tests.test_coin_ask_persuasion",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
     def test_regression_groups_are_unique_and_browser_ui_is_an_explicit_check(self):
         config = owner.load_config(owner.DEFAULT_CONFIG)
         selectors = config["regression_selectors"]
