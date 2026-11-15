@@ -684,3 +684,29 @@ test('combat event terms are Turkish with original names on hover', () => {
   const html = renderCombatPanel(makeState(), mergeCombatHistory([event], []));
   for (const title of ['Dash / Bonus Action / feet','feet','Ready / Action','Ready / Reaction','Reaction','Attack / Action']) assert.ok(html.includes(`title="${title}"`), title);
 });
+
+test('D-147: a spell step is not logged as an attack, and a fight a spell ended reads as ended', () => {
+  const event = { event_id: 'd147-spell', turn_index: 4, result: {
+    action: 'action_economy', combat_id: 'combat-d147', economy_steps: [
+      { kind: 'magic', result: { spell_id: 'Cure Wounds', target_id: 'player', healing: 7, heal_source: 'spell' } },
+      { kind: 'end_concentration', result: { spell_id: 'Bless' } },
+      { kind: 'dodge' },
+      { kind: 'second_wind', result: { healing: 5 } },
+    ],
+  } };
+  const entries = mergeCombatHistory([event], []);
+  const ended = renderCombatPanel(makeState({ combat: { combat_id: 'combat-d147', end_reason: 'target_defeated' } }), entries);
+  assert.ok(!ended.includes(`${'Saldırı'} Eylem çözüldü`), 'no attack label on a non-attack step');
+  assert.ok(!ended.includes('title="Attack / Action"'), 'no attack hover on a non-attack step');
+  assert.match(ended, /Büyü · Cure Wounds · \+7 can/);
+  assert.match(ended, /data-testid="combat-status"[^>]*>(?:<[^>]+>)*Sona erdi/);
+  assert.match(ended, /data-testid="combat-end-reason">Rakip etkisiz hale getirildi/);
+
+  const otherFight = renderCombatPanel(makeState({ combat: { combat_id: 'combat-later', end_reason: 'target_defeated' } }), entries);
+  assert.match(otherFight, /data-testid="combat-status"[^>]*>(?:<[^>]+>)*Pasif/);
+
+  const attack = renderCombatPanel(makeState(), mergeCombatHistory([{ event_id: 'd147-attack', turn_index: 5, result: {
+    action: 'action_economy', economy_steps: [{ kind: 'attack', result: { action: 'attack', outcome: 'miss', target_name: 'Gromm' } }],
+  } }], []));
+  assert.ok(attack.includes('Saldırı Eylem çözüldü'), 'an attack step keeps its label');
+});

@@ -442,8 +442,12 @@ def _names_one_spell(message):
         return False
 
 
-def _aimed(command):
-    """(target id, blow) for every step that harms: a weapon blow, or a spell whose owner says it harms (D-036)."""
+def _aimed(session, command):
+    """(target id, blow) for every step that harms: a weapon blow, or a spell whose owner says it harms (D-036).
+
+    A Reaction that takes a readied attack is that attack's blow at its target (D-046).
+    """
+    import action_economy
     import spell_scope
     aimed = []
     for step in command.get("steps", []):
@@ -451,6 +455,10 @@ def _aimed(command):
             continue
         if step.get("kind") in {"attack", "continue_attack"}:
             aimed.append((step.get("target_id"), "attack"))
+        elif step.get("kind") == "react":
+            response = (action_economy.ensure(session)["player"].get("ready") or {}).get("response") or {}
+            if response.get("kind") == "attack":
+                aimed.append((response.get("target_id"), "attack"))
         elif step.get("kind") == "magic" and spell_scope.harmful(step.get("ability")):
             aimed.append((step.get("target_id"), f"magic:{step.get('ability')}"))  # healing is never asked
     return aimed
@@ -468,7 +476,7 @@ def surrendered_strike_question(session, message, target_id, command):
     if not combat.get("active") or session.character.get("current_hp", 0) <= 0:
         return None
     if command:
-        aimed = _aimed(command)
+        aimed = _aimed(session, command)
     elif is_attack_decision(session, message):
         targets = _attack_targets(session, message, target_id)
         aimed = [(targets[0].get("id"), "attack")] if len(targets) == 1 else []

@@ -518,7 +518,9 @@ class AdventurePhase8Tests(unittest.TestCase):
         rescue = next(item for item in quest["objectives"] if item["objective_id"] == "rescue")
         self.assertEqual(rescue["graph_state"], "ACTIVE")
         threat = next(item for item in quest["objectives"] if item["objective_id"] == "threat")
-        self.assertEqual(threat["graph_state"], "COMPLETE")
+        # YENİDEN YAZIM (D-183): the threat's target is the captive, so beating the captive used to
+        # "defeat the threat"; the one to be saved is never the threat, so it stays open.
+        self.assertEqual(threat["graph_state"], "ACTIVE")
         self.assertIsNone(quest["outcome"])
         other = game.create_session(seed=9)
         self.assertEqual(other.world_state["quests"], [])
