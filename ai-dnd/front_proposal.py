@@ -22,6 +22,10 @@ ROUTE_LOG = "AI_DND_ROUTE_LOG"
 KINDS = ("speak_to", "go_to", "attempt", "offer_answer", "take", "hand_over", "work", "look", "bag", "sit",
          "grab", "wait", "consume", "wield", "unclear")
 DEEDS = ("steal", "burn", "yield")
+# D-109 (Kadir kararı 2026-11-15): whether the line's act is done now. Only "now" may change the world for good (a meal,
+# a hand-over, a job, a tie, a crime); no word list decides it, the reading does. The first one is the only "now".
+TIMINGS = ("now", "later", "hypothetical", "negated", "observe")
+_LASTING = {"consume", "hand_over", "work", "take", "offer_answer", "strike"}  # routes that change the world for good
 # D-094: the checks a reading may name for a risky try; each needs no world precondition (a lock, a wall, cover) and
 # moves no coin. The engine still sets the DC and rolls. A pickpocket is the reading's deed=steal, never a check (R-7).
 CHECKS = ("Intimidation", "Deception", "Persuasion", "Insight")
@@ -137,6 +141,7 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "deal_goods": {"type": "string", "enum": _ids(listed["goods"])},
             "keep_change": {"type": "boolean"},
             "economic_intent": {"type": "string", "enum": ["none", "room", "room_quote", "gift", "tip", "purchase"]},
+            "timing": {"type": "string", "enum": list(TIMINGS)},  # D-109: early too, right after the money fields and economic_intent
             "person_id": {"type": "string", "enum": _ids(listed["people"])},
             # Early on purpose: a small model fills a long object's last fields with none, whatever the line says.
             "threat_to": {"type": "string", "enum": _ids(listed["people"])},
@@ -157,7 +162,7 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "inside": {"type": "boolean"},
             "want": {"type": "string", "enum": _ids(listed["wants"])},
         },
-        "required": ["kind", "deal", "deal_goods", "keep_change", "economic_intent", "person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
+        "required": ["kind", "timing", "deal", "deal_goods", "keep_change", "economic_intent", "person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
                      "threat_to", "strike_to", "check", "deed", "coin_cp", "also_says"],
         "additionalProperties": False,
     }
@@ -210,6 +215,10 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "istiyorsa veya bırakma niyeti olumsuz, alıntı, koşul ya da belirsiz ise keep_change=false. "
         "Niyeti cümlenin bütününden anla, belirli bir söz arama. Fiyatı, bahşiş tutarını veya toplamı "
         "hesaplama ve ödeme kararı verme: bunlar Python'a aittir. "
+        "timing: oyuncu okuduğun eylemi (kind; threat_to, strike_to, deed, check) bu satırda şu anda gerçekten yapıyorsa now; "
+        "ileride yapacağını söylüyorsa later; soruyor, düşünüyor, koşul ya da dilek söylüyorsa hypothetical; yapmadığını ya da "
+        "yapmayacağını söylüyorsa negated; yalnız ona bakıyor, onu anıyor ya da ondan söz ediyorsa observe. Bir tehdidi şu anda "
+        "söylemek now'dır. Kelimeye değil cümlenin anlamına bak. "
         "consume = oyuncu şimdi çantasındaki bir yiyeceği yiyor veya içeceği içiyor; item_id bag listesindeki eşya. Soru, koşul veya ileride yapma sözü tüketim değildir. "
         "wield: oyuncu bir silahı eline alıyor/çekiyor; item_id çantadaki silah ya da none. Kalkanını koluna takıyorsa da wield, item_id çantadaki kalkan. "
         "kind: speak_to = biriyle konuşuyor veya birine soruyor (kendi yaptığı işi '...yorum' diye anlatıyor ve kimseye söylemiyorsa speak_to değil attempt olur); go_to = listedeki bir yere gidiyor (içeri giriyorsa "
@@ -244,6 +253,16 @@ def guidance(listed: Mapping[str, Any]) -> str:
     )
 
 
+def acts_now(reply: Any) -> bool:
+    """D-109: the reading says the act is done now. A reading with no timing at all (an old record, an old script) reads
+    as before (Ruling: the schema requires the field); any other word, or no reading, is not now."""
+    front = reply.get("front") if isinstance(reply, dict) else None
+    if not isinstance(front, dict):
+        return False
+    timing = front.get("timing")
+    return timing is None or timing == TIMINGS[0]
+
+
 def want_in(reply: Any, listed: Mapping[str, Any]) -> str | None:
     """The listed goal the reading found in the line, if any; it stands beside the route, whatever the route is."""
     front = reply.get("front") if isinstance(reply, dict) else None
@@ -255,7 +274,7 @@ def threat_in(reply: Any, listed: Mapping[str, Any]) -> str | None:
     """The listed person the player just threatened, if the reading found one; it too stands beside the route."""
     front = reply.get("front") if isinstance(reply, dict) else None
     person = front.get("threat_to") if isinstance(front, dict) else None
-    return person if person in [row["id"] for row in listed["people"]] else None
+    return person if person in [row["id"] for row in listed["people"]] and acts_now(reply) else None
 
 
 def check_in(reply: Any, player_input: Any) -> str:
@@ -265,7 +284,7 @@ def check_in(reply: Any, player_input: Any) -> str:
     if not isinstance(front, dict) or not isinstance(player_input, str) or "?" in player_input:
         return ""
     check = front.get("check")
-    if check not in CHECKS or front.get("kind") not in CHECK_KINDS:
+    if check not in CHECKS or front.get("kind") not in CHECK_KINDS or not acts_now(reply):
         return ""
     import bold_acts
     import game
@@ -279,7 +298,7 @@ def deed_in(reply: Any) -> str:
     """The bold deed the reading found; the empty text means it read the line and found none."""
     front = reply.get("front") if isinstance(reply, dict) else None
     deed = front.get("deed") if isinstance(front, dict) else None
-    return deed if deed in DEEDS else ""
+    return deed if deed in DEEDS and acts_now(reply) else ""
 
 
 _COIN_WORDS = ("altin", "gumus", "bakir", "para", "sikke")
@@ -445,7 +464,18 @@ def person_word_in(reply: Any) -> str:
 
 
 def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
-    """A route Python can stand behind, or None. Every id must be one this turn listed."""
+    """A route Python can stand behind, or None. Every id must be one this turn listed.
+
+    D-109: an act the reading says is not done now (later, asked, refused, only looked at) changes nothing for good:
+    it is words, said to the person it names or to nobody, and no old word reader takes it up again."""
+    route = _route(reply, listed)
+    if route is None or route["kind"] not in _LASTING or acts_now(reply):
+        return route
+    person = route.get("person_id") or (route.get("id") if route["kind"] == "strike" else None)
+    return {"kind": "speak_to", "id": person} if person else {"kind": "talk_around"}
+
+
+def _route(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
     front = reply.get("front") if isinstance(reply, dict) else None
     if not isinstance(front, dict) or front.get("kind") not in KINDS:
         return None

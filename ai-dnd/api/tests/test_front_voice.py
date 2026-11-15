@@ -304,6 +304,11 @@ class StockLinesNeverAnswerAPerson(FrontTable):
         with patch("game._dispatch_player_turn", owner):
             await self.line("dukkanini yakarim dikkat et", "Tehdit mi bu?")
         self.assertEqual(len(calls), 2)
+        # D-109: the threat outlived the door and is asked about; the tie is hurt only on the player's yes
+        self.assertEqual(self.session._heavy_asked["what"], "threat")
+        links = world_happenings.links(world_threads.view(self.world) or {"history": []})
+        self.assertFalse(any(row.get("kind") == world_happenings.GUARDED for row in links), links)
+        await self.line("evet", "Tehdit mi bu?")
         links = world_happenings.links(world_threads.view(self.world))
         self.assertTrue(any(row.get("kind") == world_happenings.GUARDED for row in links), links)
 
