@@ -3463,6 +3463,9 @@ def apply_npc_damage(npc, damage, *, knock_out=False):
         npc["combat_status"] = "dead"
         import bold_acts
         bold_acts.killed(_session(), npc)
+        import xp  # paid at the kill like a knock-out, so fleeing or standing down loses nothing; the shared receipt stops a second pay (D-016, K8)
+        _session()._forfeit_unrecordable_xp(xp.award_downed, npc, _session().world_state, _session().character,
+                                            person_kind=person_fight_kind(npc))
     return npc["current_hp"]
 
 
@@ -5825,7 +5828,7 @@ def end_combat(reason="combat_ended"):
     if not combat["active"]:
         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
     _session()._surrender_strike_asked = None  # a question about a surrendered foe ends with its fight
-    if reason in ("target_defeated", "parley_accepted", "opponents_relocated"):
+    if reason in ("target_defeated", "parley_accepted", "opponents_relocated", "player_stable", "participants_left"):
         import xp
         _session()._forfeit_unrecordable_xp(  # a refused award never keeps the fight going (B1, D-013)
             xp.award_defeated_combat, combat, _session().world_state, _session().character,
@@ -24247,7 +24250,7 @@ class GameSession:
                            for item in quest["objectives"]):
                         quest["status"] = "completed"
                         import xp
-                        self._receive_xp_award(
+                        self._forfeit_unrecordable_xp(  # D-060: a refused award is forfeited with a line, not a rejected turn
                             xp.award_completed_quest, world, self.character, quest["quest_id"]
                         )
                         transitions.append(self._quest_transition(
