@@ -45,6 +45,9 @@ def apply_dynamic_evidence(world, before_world, action_result):
             continue
         if _fail_dead_rescue(world, quest):
             continue
+        if quest.get("status") == "DISCOVERED":
+            # Heard is not accepted: steps wait for acceptance, and DISCOVERED may never close as done (D-203).
+            continue
         for evidence in _evidence_from_turn(quest, world, before_world, action_result):
             note = _apply_one(quest, evidence)
             if note is not None:
