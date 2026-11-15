@@ -498,6 +498,7 @@ CLASS_SKILL_OPTIONS = {
         "Insight",
         "Investigation",
         "Medicine",
+        "Nature",
         "Religion"
     ]
 }
