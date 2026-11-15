@@ -95,6 +95,15 @@ _NPC_FIELDS = (
     "armor_class",
     "combat_status",
 )
+# GameNpc requires these keys but lets them be null: an NPC without one sends null, not a missing key (D-143).
+_NPC_NULLABLE_REQUIRED_FIELDS = (
+    "appearance",
+    "relationship",
+    "max_hp",
+    "current_hp",
+    "armor_class",
+    "combat_status",
+)
 _SHOP_FIELDS = (
     "id",
     "name",
@@ -823,7 +832,10 @@ def serialize_session_state(
                 if points is not None else {})}
             if world.get("spellcasting_v1") is not None else None
         ),
-        "npcs": _project_list(visible_world["npcs"], _NPC_FIELDS),
+        "npcs": [
+            {**dict.fromkeys(_NPC_NULLABLE_REQUIRED_FIELDS), **npc}
+            for npc in _project_list(visible_world["npcs"], _NPC_FIELDS)
+        ],
         "shops": _project_list([living_world.public_shop_projection(world, shop) for shop in exploration.player_entities(world, world.get("shops", []))] + _visited_counters(world), _SHOP_FIELDS),
         "features": _project_list(exploration.player_entities(world, world.get("features", [])), _FEATURE_FIELDS),
         "doors": _project_list(exploration.visible_doors(world), _DOOR_FIELDS),

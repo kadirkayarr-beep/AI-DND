@@ -14,8 +14,15 @@ EXTENSIONS = {"dependencies", "priority", "causal_group", "requires_decision",
 SURFACE_EFFECTS = {"mark_remove": "mark_id", "surface_item_custody": "item_id"}
 
 
+def _active(event):
+    """Still able to happen, or still waiting for the player's decision."""
+    return event.get("status") == "PENDING" or event.get("decision_status") in {"PENDING", "IN_COMBAT"}
+
+
 def validate_events(events, world):
-    if not isinstance(events, list) or len(events) > 256:
+    # The 256 cap bounds active events only; occurred and expired ones are history (D-138).
+    if not isinstance(events, list) or sum(
+            1 for event in events if isinstance(event, dict) and _active(event)) > 256:
         raise ValueError("Scheduled events are invalid.")
     ids = set()
     for event in events:
