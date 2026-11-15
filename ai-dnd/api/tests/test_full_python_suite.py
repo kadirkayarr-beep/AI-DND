@@ -1,5 +1,6 @@
 """D-218: CI runs every Python test module, split into shards that together cover each module exactly once."""
 from pathlib import Path
+import re
 import sys
 import tempfile
 import unittest
@@ -8,6 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import full_python_suite as suite
+
+
+def _ci_shards() -> list[int]:
+    text = (ROOT.parent / ".github" / "workflows" / "ai-dnd-ci.yml").read_text(encoding="utf-8")
+    match = re.search(r"shard: \[([0-9, ]+)\]", text)
+    return [int(part) for part in match.group(1).split(",")]
 
 
 class FullPythonSuite(unittest.TestCase):
@@ -40,11 +47,19 @@ class FullPythonSuite(unittest.TestCase):
             with self.assertRaises(ValueError):
                 suite.shard(["api.tests.test_a"], index, count)
 
-    def test_the_real_suite_splits_into_four_non_empty_shards(self):
+    def test_the_real_suite_splits_into_the_ci_shard_count_without_empty_shards(self):
         listed = suite.modules(ROOT)
-        parts = [suite.shard(listed, index, 4) for index in range(1, 5)]
+        count = len(_ci_shards())
+        parts = [suite.shard(listed, index, count) for index in range(1, count + 1)]
         self.assertEqual(sorted(name for part in parts for name in part), listed)
         self.assertTrue(all(parts))
+
+    def test_ci_runs_six_shards_and_tells_each_shard_the_same_count(self):
+        # Kadir 2026-11-15: 6 shards instead of 4 to shorten the wait on each PR.
+        text = (ROOT.parent / ".github" / "workflows" / "ai-dnd-ci.yml").read_text(encoding="utf-8")
+        self.assertEqual(_ci_shards(), [1, 2, 3, 4, 5, 6])
+        self.assertIn("--shard ${{ matrix.shard }} --of 6", text)
+        self.assertNotIn("--of 4", text)
 
 
 if __name__ == "__main__":
