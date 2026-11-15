@@ -1,4 +1,4 @@
-import { term, termTitle } from '@/lib/tr-terms';
+import { TR_TERMS, term, termTitle, type TermKey } from '@/lib/tr-terms';
 import type { CombatTurnResult, GameState } from '@workspace/api-client-react';
 import { SpeciesTraitControls, speciesEffectText } from './species-trait-controls';
 import { DeathRecoveryControls } from './death-recovery-controls';
@@ -8,6 +8,8 @@ export interface CombatLogEntry {
   id: string;
   turnIndex: number;
   result: CombatTurnResult;
+  /** D-140: the server's read-time undo mark (receipt-backed), shown like an undone story turn. */
+  undone?: boolean;
 }
 
 type AttackResult = CombatTurnResult;
@@ -377,12 +379,35 @@ function InitiativeStrip({ state }: { state: GameState }) {
   );
 }
 
+function isTermKey(value: string): value is TermKey {
+  return Object.prototype.hasOwnProperty.call(TR_TERMS, value);
+}
+
+// A step that is not an attack never reads as one (D-147): a spell names itself.
+function otherStepText(kind: string, step: Record<string, unknown>): string {
+  const result = step.result !== null && typeof step.result === 'object' ? step.result as Record<string, unknown> : {};
+  if (kind === 'magic') {
+    const spell = typeof result.spell_id === 'string' ? ` · ${result.spell_id}` : '';
+    const healing = typeof result.healing === 'number' && result.healing > 0 ? ` · +${result.healing} can` : '';
+    return `Büyü${spell}${healing}`;
+  }
+  if (kind === 'end_concentration') return 'Konsantrasyon bırakıldı';
+  if (isTermKey(kind)) return `${term(kind)} çözüldü`;
+  return 'Hamle çözüldü';
+}
+
+function undoneMark(entry: CombatLogEntry) {
+  return entry.undone ? <span className="transcript-undone-label" data-testid={`combat-log-entry-${entry.id}-undone`}>Geri alındı</span> : null;
+}
+
 function EntryCard({ entry }: { entry: CombatLogEntry }) {
   const result = entry.result;
+  const entryClass = entry.undone ? 'combat-entry transcript-undone' : 'combat-entry';
   if (result.action === 'action_economy') {
-    return <div className="combat-entry" data-testid={`combat-log-entry-${entry.id}`}>
+    return <div className={entryClass} data-testid={`combat-log-entry-${entry.id}`}>
       <div className="combat-entry-index">{String(entry.turnIndex).padStart(2, '0')}</div>
       <div className="combat-entry-body">
+        {undoneMark(entry)}
         {(result.economy_steps ?? []).map((step, index) => {
           const kind = typeof step.kind === 'string' ? step.kind : 'hamle';
           const rawAttack = kind === 'attack' ? step.result : kind === 'react' ? step.response : null;
@@ -390,13 +415,15 @@ function EntryCard({ entry }: { entry: CombatLogEntry }) {
             ? rawAttack as AttackResult : null;
           const npcAttacks = kind === 'end_turn' && Array.isArray(step.enemy_actions) ? step.enemy_actions : [];
           return <div key={index}>
-            <div className="combat-event" title={kind === 'move' ? termTitle('feet') : kind === 'dash' ? [termTitle('dash'), termTitle(step.resource === 'bonus' ? 'bonus_action' : 'action'), termTitle('feet')].join(' / ') : kind === 'ready' ? termTitle('ready') + ' / ' + termTitle('action') : kind === 'react' ? termTitle('ready') + ' / ' + termTitle('reaction') : kind === 'decline_reaction' ? termTitle('reaction') : kind === 'end_turn' || kind === 'species' ? undefined : termTitle('attack') + ' / ' + termTitle('action')}>{kind === 'move' ? `Hareket · ${String(step.distance_ft)} fit · maliyet ${String(step.movement_cost_ft)} fit`
+            <div className="combat-event" title={kind === 'move' ? termTitle('feet') : kind === 'dash' ? [termTitle('dash'), termTitle(step.resource === 'bonus' ? 'bonus_action' : 'action'), termTitle('feet')].join(' / ') : kind === 'ready' ? termTitle('ready') + ' / ' + termTitle('action') : kind === 'react' ? termTitle('ready') + ' / ' + termTitle('reaction') : kind === 'decline_reaction' ? termTitle('reaction') : kind === 'end_turn' || kind === 'species' ? undefined : kind === 'attack' || kind === 'continue_attack' ? termTitle('attack') + ' / ' + termTitle('action') : isTermKey(kind) ? termTitle(kind) : undefined}>{kind === 'move' ? `Hareket · ${String(step.distance_ft)} fit · maliyet ${String(step.movement_cost_ft)} fit`
               : kind === 'dash' ? `${term('dash')} · ${step.resource === 'bonus' ? term('bonus_action') : term('action')} · +${String(step.movement_added_ft)} fit`
               : kind === 'ready' ? (term('ready') + " " + term('action') + " hazırlandı")
               : kind === 'end_turn' ? 'Tur tamamlandı'
               : kind === 'decline_reaction' ? (term('reaction') + " fırsatı atlandı")
               : kind === 'species' ? 'Tür yeteneği çözüldü'
-              : kind === 'react' ? (term('ready') + " " + term('reaction') + " çözüldü") : (term('attack') + " " + term('action') + " çözüldü")}</div>
+              : kind === 'react' ? (term('ready') + " " + term('reaction') + " çözüldü")
+              : kind === 'attack' || kind === 'continue_attack' ? (term('attack') + " " + term('action') + " çözüldü")
+              : otherStepText(kind, step)}</div>
             {attack !== null && <AttackReadout result={attack} entryId={`${entry.id}-${index}`} heading="Saldırının sonucu" />}
             {npcAttacks.map((npcAttack, npcIndex) => <AttackReadout key={npcIndex}
               result={npcAttack as AttackResult} entryId={`${entry.id}-${index}-${npcIndex}`} heading="Rakibin saldırısı" enemy />)}
@@ -414,9 +441,10 @@ function EntryCard({ entry }: { entry: CombatLogEntry }) {
   const heading = result.action ? `${actionLabel(result.action)}${target}` : result.target_name ?? 'Yapılan hamle';
 
   return (
-    <div className="combat-entry" data-testid={`combat-log-entry-${entry.id}`}>
+    <div className={entryClass} data-testid={`combat-log-entry-${entry.id}`}>
       <div className="combat-entry-index" aria-hidden="true">{String(entry.turnIndex).padStart(2, '0')}</div>
       <div className="combat-entry-body">
+        {undoneMark(entry)}
         {result.combat_started && <div className="combat-event combat-event-started" data-testid={`combat-log-entry-${entry.id}-started`}>ÇATIŞMA BAŞLADI</div>}
         <AttackReadout result={result} entryId={entry.id} heading={heading} />
         {enemyActions.map((enemyAction, index) => (
@@ -456,7 +484,12 @@ export function CombatPanel({
 }) {
   const active = Boolean(state.combat.active);
   const latest = entries[entries.length - 1]?.result;
-  const ended = !active && latest?.combat_ended === true;
+  // An action-economy receipt carries no closure fields; the fight it belongs to is read from canonical state (D-147).
+  const ended = !active && (latest?.combat_ended === true || (
+    latest?.action === 'action_economy' && Boolean(latest.combat_id)
+    && latest.combat_id === state.combat.combat_id && Boolean(state.combat.end_reason)
+  ));
+  const endReason = latest?.end_reason ?? (ended ? state.combat.end_reason : null);
   const combatants = state.combat.participant_records ?? [];
   const currentActorName = combatants.find(
     (participant) => participant.id === state.combat.current_actor_id,
@@ -495,7 +528,7 @@ export function CombatPanel({
         <div className="combat-ended-state" data-testid="combat-ended-state">
           <span className="combat-overline">SON AN</span>
           <strong>Çatışma sona erdi.</strong>
-            {latest?.end_reason && <span data-testid="combat-end-reason">{endReasonLabel(latest.end_reason)}</span>}
+            {endReason && <span data-testid="combat-end-reason">{endReasonLabel(endReason)}</span>}
         </div>
       ) : active ? (
         <>

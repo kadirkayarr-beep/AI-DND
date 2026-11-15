@@ -189,6 +189,42 @@ class InteractionContracts(unittest.TestCase):
         self.assertEqual(current["status"], "succeeded")
         self.assertTrue(current["objectives"][0]["evidence_id"])
 
+    def test_visit_goal_closes_on_every_committed_arrival_receipt(self):
+        # D-146 / ORTA-30: a local-place walk answers {"action": "travel", "status": "resolved"} and a
+        # grounded walk {"action": "grounded_action", "status": "completed"}; the visit is the committed move.
+        for receipt in ({"action": "travel", "status": "resolved", "success": True, "target_id": "there"},
+                        {"action": "grounded_action", "status": "completed", "success": True, "target_id": "there"},
+                        {"action": "travel", "status": "completed", "success": True, "new_location": "there"}):
+            with self.subTest(receipt=receipt):
+                self.setUp()
+                thread = self.goal([{"kind": "visit", "target": "there"}])
+                before = copy.deepcopy(self.w)
+                self.w["location"] = "there"
+                adventure.consume(self.s, dict(receipt), before)
+                current = self.w[adventure.KEY]["threads"][0]
+                self.assertEqual(current["thread_id"], thread["thread_id"])
+                self.assertEqual(current["objectives"][0]["status"], "completed")
+                self.assertTrue(current["objectives"][0]["evidence_id"])
+                self.assertEqual(current["status"], "succeeded")
+
+    def test_visit_goal_stays_open_without_a_committed_arrival_at_its_target(self):
+        cases = (("here", {"action": "travel", "status": "resolved", "success": True, "target_id": "there"}),
+                 ("here", {"action": "travel", "status": "already_here", "success": True, "target_id": "here"}),
+                 ("elsewhere", {"action": "travel", "status": "resolved", "success": True,
+                                "target_id": "elsewhere"}),
+                 ("there", {"action": "travel", "status": "blocked", "success": False, "target_id": "there"}))
+        for location, receipt in cases:
+            with self.subTest(location=location, receipt=receipt):
+                self.setUp()
+                thread = self.goal([{"kind": "visit", "target": "there"}])
+                before = copy.deepcopy(self.w)
+                self.w["location"] = location
+                adventure.consume(self.s, dict(receipt), before)
+                current = self.w[adventure.KEY]["threads"][0]
+                self.assertEqual(current["thread_id"], thread["thread_id"])
+                self.assertNotEqual(current["objectives"][0]["status"], "completed")
+                self.assertEqual(current["status"], thread["status"])
+
     def test_reframing_requires_verified_evidence_and_keeps_alternative_routes(self):
         thread = self.goal([{"kind": "talk", "target": "other"}])
         bad = self.resolve("reframe", "Hedefi değiştiriyorum", thread_id=thread["thread_id"],

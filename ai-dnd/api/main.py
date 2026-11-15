@@ -2244,6 +2244,10 @@ def create_app(
             snapshot = _capture_session(session)
             lore_before = record.lore_authority
             token_before = getattr(session, "_campaign_persistence_version", None)
+            if getattr(session, "campaign_lore_state", None) is not None:
+                # D-189: a committed turn moves only the record's lore and a resume reloads it, so a copy left on the
+                # session can be older; the command starts it from the record, like play_turn, before reading it below.
+                session.campaign_lore_state = record.lore_authority
 
             def put_back() -> None:
                 record.lore_authority = lore_before
@@ -2439,6 +2443,12 @@ def create_app(
                     session.campaign_lore_state = None if session_lore_snapshot is None else record.lore_authority
                     if transitions:
                         result["effects"]["quest_outcomes"] = transitions
+                # D-003: an award this command paid (a fight it ended, a bounty it closed) is announced by this
+                # command and its history entry, not one turn late by the next play turn (whose Undo would repeat it).
+                paid = session._publish_level_up({}).get("level_up")
+                if paid is not None:
+                    import xp
+                    result["message"] = f"{result['message']} {xp.award_line(paid)}"
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
                     action_id=action_id,

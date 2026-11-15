@@ -246,6 +246,77 @@ def _tells_it_taken(sentence: str, stems: tuple[str, ...]) -> bool:
     return any(word.startswith(stems) for word in words) and any(word.endswith(_TOLD_TO_YOU) for word in words)
 
 
+# Where the player's purse stands, not coin going in or out ('kesenden'): 'kesende' and 'your purse' always tell
+# it; bare 'kesen'/'paran' only beside a word of holding ('var', 'kaldı', 'dolu', 'eder'), and 'kesen' only at the
+# head of its clause or after 'belindeki', since 'yolunu kesen haydut' is the verb 'kesmek' (review of D-142).
+_YOUR_PURSE = re.compile(r"\b(?:kesen(?:iz)?(?:de|deki|in)|your (?:coin )?(?:purse|pouch))\b")
+_YOUR_MONEY = re.compile(r"\bparan(?:iz)?(?:in)?\b")
+_BARE_KESEN = re.compile(r"(?:^|\w+[dt][ae]ki )kesen(?:iz)?\b")
+_HOLDING = re.compile(r"\b(?:var|vardi|yok|yoktu|eder|ediyor|tutar|tutuyor|kald\w*|kalmis\w*|kalan\w*|dolu\w*|tasi\w*"
+                      r"|icer\w*)\b")
+# A purse sentence's clauses: a price after ';', ',', 'ama' or 've' is not the purse ('Kesende 7 bakır var; ekmek 2
+# bakır'), unless the piece goes on counting coin ('2 gümüş, 7 bakır var', '2 gümüş ve 7 bakır').
+_CLAUSE_BREAK = re.compile(r"[;:,]|\s(?:ama|fakat|ancak|oysa|lakin|ve|but|yet|and)\s", re.IGNORECASE)
+
+
+def _only_coin(words: list[str]) -> bool:
+    """'7 bakır var', '5 bakır da': figures, coin and holding only; '3 bakır daha lazım' or '2 gümüş yok' is not."""
+    import front_proposal
+    return all(word.isdigit() or word in front_proposal._NUMBER_WORDS or word in {"yuz", "bin", "da", "de", "daha"}
+               or word in front_proposal._EN_NUMBER_WORDS or word in front_proposal._EN_COIN_UNITS
+               or word in front_proposal._EN_PIECES or word in front_proposal._COIN_UNITS
+               or _HOLDING.fullmatch(word) and word not in {"yok", "yoktu"} for word in words)
+
+
+def _purse_clauses(sentence: str) -> list[list[str]]:
+    """The sentence's clauses as folded words; a piece that only goes on counting coin belongs to the one before it.
+
+    Second review of D-142: a need, price or debt that opens with a figure ('3 bakır daha lazım') is its own clause.
+    """
+    import front_proposal
+    clauses: list[list[str]] = []
+    for piece in _CLAUSE_BREAK.split(sentence):
+        words = living_world.normalize_text(piece).split()
+        counting = bool(words) and (words[0].isdigit() or words[0] in front_proposal._NUMBER_WORDS
+                                    or words[0] in front_proposal._EN_NUMBER_WORDS) and _only_coin(words)
+        if counting and clauses:
+            clauses[-1] += words
+        elif words:
+            clauses.append(words)
+    return clauses
+
+
+def _tells_the_purse(words: list[str]) -> bool:
+    joined = " ".join(words)
+    return bool(_YOUR_PURSE.search(joined) or _HOLDING.search(joined) and (
+        _YOUR_MONEY.search(joined) or _BARE_KESEN.search(joined)))
+
+
+def without_false_purse(narration: Any, world: dict[str, Any]) -> Any:
+    """Repair (D-142): a sentence that tells the player's purse a sum the engine does not hold leaves the line.
+
+    Only the figure of the clause that names the purse counts; a figure in coin no unit can price ('90 sikke') cannot
+    be the purse either, so it goes too.
+    """
+    if not isinstance(narration, str) or not narration.strip():
+        return narration
+    import front_proposal
+    held = shop_trade.purse_cp(world)
+    kept = []
+    for sentence in re.split(r"(?<=[.!?…])\s+", narration.strip()):
+        false = False
+        for words in _purse_clauses(sentence):
+            if not _tells_the_purse(words):
+                continue
+            said = front_proposal._coin_said(words)
+            unpriced = any(word.startswith("sikke") and front_proposal._number_before(words, at)
+                           for at, word in enumerate(words))
+            false = false or unpriced or (said is not None and said != held)
+        if not false:
+            kept.append(sentence)
+    return " ".join(kept)
+
+
 def _says_it(text: str, stem: str) -> bool:
     return any(word.startswith(stem) for word in living_world.normalize_text(text).split())
 
@@ -323,6 +394,22 @@ def _a_sale(world: dict[str, Any], person: Any, claim: dict[str, Any], item: str
             and (shop_trade.sells(world, person, item) or bool(claim.get("amount_cp"))))
 
 
+def _claim_stem(world: dict[str, Any], item: str) -> str:
+    """The word a claimed thing goes by in the line: the parcel's noun, the bag entry's name, or the model's word."""
+    thread = world_threads.parcel_thread(world, item) if item.startswith("parcel:") else None
+    named = next((entry.get("name") for entry in world.get("inventory", [])
+                  if isinstance(entry, dict) and entry.get("item_id") == item), None)
+    return _stem(thread.get("item_noun") if thread else named or item)
+
+
+def without_claim(world: dict[str, Any], claim: Any, text: Any) -> Any:
+    """A claim nothing may commit (a narrative cast moves no item, D-067): the sentences naming the thing leave."""
+    item = claim.get("item") if isinstance(claim, dict) else None
+    if not isinstance(item, str) or not item.strip():
+        return text
+    return without_said(text, _claim_stem(world, item.strip()))
+
+
 def settle_claim(session, claim: Any, text: Any, person: Any = None, *, line: Any = None) -> tuple[Any, str]:
     """What a reply says changed hands: (the line, what was taken off it). Python commits it or it goes.
 
@@ -333,10 +420,7 @@ def settle_claim(session, claim: Any, text: Any, person: Any = None, *, line: An
         return text, ""
     item = item.strip()
     world = session.world_state
-    thread = world_threads.parcel_thread(world, item) if item.startswith("parcel:") else None
-    named = next((entry.get("name") for entry in world.get("inventory", [])
-                  if isinstance(entry, dict) and entry.get("item_id") == item), None)
-    stem = _stem(thread.get("item_noun") if thread else named or item)
+    stem = _claim_stem(world, item)
     if claim.get("to") != "person" and _a_sale(world, person, claim, item, stem):
         # Nothing changes hands; the words stay, since a price said is true ('bira dört bakır'), and the
         # stem goes back so the stage direction's handing over leaves.

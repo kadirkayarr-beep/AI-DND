@@ -83,7 +83,8 @@ def _evidence_from_turn(quest, world, before_world, action_result):
             continue
         defeated = npc.get("combat_status") in {"unconscious", "defeated", "dead"} or npc.get("current_hp", 1) <= 0
         was = previous.get("combat_status") in {"unconscious", "defeated", "dead"} or previous.get("current_hp", 1) <= 0
-        if defeated and not was:
+        if defeated and not was and npc.get("id") not in _rescue_targets(quest):
+            # The one to be saved is never the threat: striking them down disperses nothing (D-183).
             found.extend(_matching(
                 quest, "defeat_entity", npc.get("id"), "combat", f"defeat:{turn}:{npc.get('id')}",
             ))
@@ -110,6 +111,9 @@ def _evidence_from_turn(quest, world, before_world, action_result):
         if not isinstance(target, str):
             target = action_result.get("target_id") or action_result.get("npc_id")
         targets = [target] if isinstance(target, str) else _skill_targets(quest, world, kind)
+        if kind in {"persuasion", "intimidation"}:
+            # Words never reach someone senseless or dead: no rescue, no dispersed threat (D-183).
+            targets = [item for item in targets if item not in _downed_npcs(world)]
         if kind is not None:
             types = ("rescue_person", "investigate", "discover_clue")
             if _dungeon_node(world) == "captive" and kind != "stealth":
@@ -129,6 +133,21 @@ def _evidence_from_turn(quest, world, before_world, action_result):
             rescued.get("action_id"),
         ))
     return found
+
+
+def _rescue_targets(quest):
+    return {
+        objective.get("target") for objective in quest.get("objectives", [])
+        if objective.get("type") == "rescue_person"
+    }
+
+
+def _downed_npcs(world):
+    return {
+        npc.get("id") for npc in world.get("npcs", [])
+        if isinstance(npc, dict)
+        and (npc.get("combat_status") in {"unconscious", "defeated", "dead"} or npc.get("current_hp", 1) <= 0)
+    }
 
 
 def _skill_targets(quest, world, kind):
@@ -228,7 +247,8 @@ def _leave_unfinished_threat(quest, before_world, world):
 
 def _fail_dead_rescue(world, quest):
     """A dead person cannot be rescued: the rescue and the whole adventure fail, unpaid, before this turn's
-    evidence applies; earlier steps or the kill itself never turn it into a partial success (D-117)."""
+    evidence applies; earlier steps or the kill itself never turn it into a partial success (D-117). A rescue
+    already marked done fails the same way while the job is still open (D-183)."""
     dead = {
         npc.get("id") for npc in world.get("npcs", [])
         if isinstance(npc, dict) and npc.get("combat_status") == "dead"
@@ -237,7 +257,7 @@ def _fail_dead_rescue(world, quest):
     for objective in quest.get("objectives", []):
         if objective.get("type") != "rescue_person" or objective.get("target") not in dead:
             continue
-        if objective.get("graph_state") not in {"ACTIVE", "HIDDEN"}:
+        if objective.get("graph_state") not in {"ACTIVE", "HIDDEN", "COMPLETE"}:
             continue
         objective["graph_state"] = "FAILED"
         objective["status"] = "failed"

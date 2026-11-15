@@ -498,6 +498,7 @@ CLASS_SKILL_OPTIONS = {
         "Insight",
         "Investigation",
         "Medicine",
+        "Nature",
         "Religion"
     ]
 }
@@ -1287,6 +1288,31 @@ def open_scare_try(player_input) -> bool:
 # player's own ("kesem", "cebimde", "çantamda").
 _SOMEONE_ELSES_PURSE = re.compile(
     r"\b(?:kesesi\w*|cebi(?:ni|nde|nden|n)?|cuzdani(?:ni|nda|ndan|n)?|cantasi\w*|parasi\w*)\b")
+
+
+# Dice guide 4.4/H01: a hide needs cover or obscurement. The engine knows the dark (night), a place with walls and a
+# door, and what cover the player names; anything else in the open by day is no hide (D-094, D-171).
+_COVER = re.compile(
+    r"\b(?:golge\w*|karanlig\w*|karanlik\w*|kalabalig\w*|kalabalik\w*|arkasina|arkasinda|ardina|ardinda|altina|"
+    r"altinda|calilar\w*|calilig\w*|calilik\w*|caliya|calinin|agac\w*|fici\w*|sandig\w*|sandik\w*|perde\w*|sis\w*|kose\w*|kuytu\w*|siper\w*|"
+    r"cuval\w*|kayanin|kayalar\w*|duvarin\s+dibine)\b")
+# One's own thing hidden on oneself ("hançerimi kolumun içine gizliyorum") is Sleight of Hand, not a hide (D-176).
+_OWN_THING_HIDDEN = re.compile(r"\b(?!kendim)\w{2,}m[iu]\s+(?:\w+\s+){0,4}?(?:gizl|sakl)\w*")
+
+
+def _stealth_skill(player_input):
+    """The skill a hiding line rolls: Stealth with cover or the dark, Sleight of Hand for one's own thing, else
+    None (no roll: seen in the open by day)."""
+    folded = " ".join(re.findall(r"\w+", _normalize_turkish_typos(living_world._text_outside_quotes(player_input))))
+    if _OWN_THING_HIDDEN.search(folded):
+        return "Sleight of Hand"
+    import bold_acts
+    import local_places
+    import world_threads
+    world = _session().world_state
+    here = world.get("location")
+    indoors = bold_acts._door_out(world, here) is not None and local_places.settlement_of(world, here) != here
+    return "Stealth" if indoors or world_threads._in_the_night(world) or _COVER.search(folded) else None
 
 
 def deterministic_check_for_action(player_input):
@@ -4887,8 +4913,9 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 raise ValueError("Yeni uzun dinlenmeye başlamadan önce son tamamlanmadan 16 oyun saati geçmeli.")
         rest_time = advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
         if rest_time.get("condition_death"):
+            # D-145: the one result shape every rest answers with, so the panel's contract keeps the death too.
             return {"action": action, "message": "Dinlenme, mevcut ölüm politikasınca kesildi.",
-                    "refreshed": {}, "time_advance": rest_time}
+                    "effects": {"time_result": rest_time, "rest_completed": False}}
         if rest_time.get("interrupted"):
             interrupted_effects = {"time_result": rest_time, "rest_completed": False}
             if action == "long_rest" and rest_time.get("elapsed_seconds", 0) >= 3600:
@@ -15144,6 +15171,12 @@ def finalize_narration(
         import town_knowledge
         narration = town_knowledge.without_unbacked_money(narration)
         narration = pocket.without_the_taking(narration, pocket.not_in_bag(session.world_state, getattr(session, "_nothing_taken", None)))
+    if (not attributed_speech and isinstance(action_result, dict)
+            and "currency" not in (action_result.get("state_changes") or ())
+            and not action_result.get("direct_response") and not is_live_town_response(narration)):
+        import pocket
+        # D-142: on any turn that moved no coin, a purse sentence of free prose must be the engine's purse.
+        narration = pocket.without_false_purse(narration, session.world_state)
     if not isinstance(narration, str) or not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -15949,7 +15982,7 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
         r'(?:onu korkutmaya|gozdagi vermeye) calisiyorum|tehdit ediyorum|'
         r'(?:bir sey fark etmeye|tehlikeyi fark etmeye|bir sey duymaya) calisiyorum|'
         r'ses dinliyorum|(?:etrafi|cevreyi) gozlemliyorum|'
-        r'(?:gizleniyorum|saklaniyorum)|'
+        r'(?:(?:golgelere|karanliga|kalabaliga) )?(?:gizleniyorum|saklaniyorum)|'  # D-171: a hide may name its cover
         r'(?:yolumu|yonumu) (?:buluyorum|bulmaya calisiyorum)|'
         r'yiyecek (?:ariyorum|aramaya calisiyorum)|barinak kurmaya calisiyorum'
         r')[.! ]*', text,
@@ -15965,6 +15998,8 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
         raise _immediate_check_refusal(check_feature, 'This wording or route does not support an immediate {feature} check.')
     selected = deterministic_check_for_action(player_input)
     skill = selected.get('skill') if isinstance(selected, dict) and selected.get('action_type') == 'check' else None
+    if skill == 'Stealth' and _stealth_skill(player_input) != 'Stealth':
+        skill = None  # D-171: no cover, no hide to use the feature on
     if check_feature == 'tactical_mind':
         import fighter_features
         fighter_features.require_tactical_mind(_session())
@@ -16213,6 +16248,17 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     if (skill is None and negotiation is not None and isinstance(npc_target, dict)
             and negotiation["npc_id"] == npc_target.get("id")):
         skill = "Persuasion"
+    if skill == "Stealth":
+        skill = _stealth_skill(player_input)  # D-094, D-171, D-176: hiding needs cover; hiding a thing is no hide
+        if skill is None:
+            world_state.setdefault("flags", {})["player_hidden"] = False
+            result.update({
+                "action": "world_interaction",
+                "status": "resolved",
+                "direct_response": "Açıkta, gün ışığında saklanacak bir yer yok; seni görebiliyorlar.",
+                "state_changes": _changed_state_fields(before),
+            })
+            return result
     if skill in SKILLS:
         dc = DIFFICULTY_DC.get(difficulty, DIFFICULTY_DC["medium"])
         ability = "strength" if check_feature == 'primal_knowledge' else SKILLS[skill]
@@ -20832,6 +20878,13 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             resolved_turn.fallback_response if narration_only else None
         ),
     )
+    if resolved_turn.action_result.get("action") == "narrative_spell" and isinstance(packet.get("item_claims"), list):
+        # D-067: the cast moved nothing, so a thing the narrator says changed hands is never committed: its sentence
+        # leaves first (the rest of the line stays), and a line that was all claim is the Python line.
+        import pocket
+        for claim in packet["item_claims"]:
+            finalized_narration = pocket.without_claim(_session().world_state, claim, finalized_narration)
+        finalized_narration = finalized_narration or resolved_turn.fallback_response
     import spell_effects
     if (resolved_turn.action_result.get("action") == "narrative_spell"
             and spell_effects.claims_state_change(finalized_narration)):

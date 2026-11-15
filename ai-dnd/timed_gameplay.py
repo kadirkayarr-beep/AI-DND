@@ -948,7 +948,7 @@ def _take_rest(session, kind, duration):
             lead_in = " ".join(e["summary"] for e in passed["player_known_events"])
             duration -= gap
     rest = session.resolve_species_trait_action(kind, elapsed_seconds=duration)
-    time_result = rest.get("effects", {}).get("time_result") or rest["time_advance"]
+    time_result = rest["effects"]["time_result"]
     import talk_mode
     talk_mode.close(session.world_state, "rest")  # whoever was being talked to is not heard across the night
     return _result("rest", f"{lead_in} {rest['message']}".strip(), time_result)

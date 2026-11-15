@@ -539,6 +539,20 @@ test('resumed combat history renders returned cards once per stable event ID', (
   assert.equal(appended[0].turnIndex, 6);
 });
 
+test('D-140: an undone combat row keeps its evidence and is marked undone, like its story turn', () => {
+  const standing = { event_id: '00000000-0000-4000-8000-000000000007', turn_index: 7, result: criticalExchange };
+  const undone = { event_id: '00000000-0000-4000-8000-000000000008', turn_index: 8, result: criticalExchange, undone: true };
+  const restored = mergeCombatHistory([standing, undone, { ...standing, event_id: '00000000-0000-4000-8000-000000000009', undone: 'yes' }]);
+  assert.deepEqual(restored.map((entry) => entry.undone ?? false), [false, true, false], 'only a literal true marks a row');
+  assert.equal(mergeCombatHistory([], restored)[1].undone, true, 'a local merge keeps the server mark');
+  const html = renderCombatPanel(makeState(), restored);
+  assert.match(html, /class="combat-entry transcript-undone" data-testid="combat-log-entry-00000000-0000-4000-8000-000000000008"/);
+  assert.match(html, /data-testid="combat-log-entry-00000000-0000-4000-8000-000000000008-undone">Geri alındı</);
+  assert.doesNotMatch(html, /combat-log-entry-00000000-0000-4000-8000-000000000007-undone/);
+  assert.match(html, /class="combat-entry" data-testid="combat-log-entry-00000000-0000-4000-8000-000000000007"/);
+  assert.match(html, /data-testid="combat-entry-00000000-0000-4000-8000-000000000008-roll">[\s\S]*?<strong>20<\/strong>/, 'the roll is still shown');
+});
+
 test('result animation is brief and disabled for reduced motion', async () => {
   const css = await readFile(
     path.join(process.cwd(), 'src/components/combat-panel.css'),
@@ -669,4 +683,30 @@ test('combat event terms are Turkish with original names on hover', () => {
   const event = { event_id: 'hover-economy', turn_index: 1, result: { action: 'action_economy', economy_steps: [{kind:'dash', resource:'bonus',movement_added_ft:30},{kind:'move',distance_ft:5,movement_cost_ft:5},{kind:'ready'},{kind:'react'},{kind:'decline_reaction'},{kind:'continue_attack'}] } };
   const html = renderCombatPanel(makeState(), mergeCombatHistory([event], []));
   for (const title of ['Dash / Bonus Action / feet','feet','Ready / Action','Ready / Reaction','Reaction','Attack / Action']) assert.ok(html.includes(`title="${title}"`), title);
+});
+
+test('D-147: a spell step is not logged as an attack, and a fight a spell ended reads as ended', () => {
+  const event = { event_id: 'd147-spell', turn_index: 4, result: {
+    action: 'action_economy', combat_id: 'combat-d147', economy_steps: [
+      { kind: 'magic', result: { spell_id: 'Cure Wounds', target_id: 'player', healing: 7, heal_source: 'spell' } },
+      { kind: 'end_concentration', result: { spell_id: 'Bless' } },
+      { kind: 'dodge' },
+      { kind: 'second_wind', result: { healing: 5 } },
+    ],
+  } };
+  const entries = mergeCombatHistory([event], []);
+  const ended = renderCombatPanel(makeState({ combat: { combat_id: 'combat-d147', end_reason: 'target_defeated' } }), entries);
+  assert.ok(!ended.includes(`${'Saldırı'} Eylem çözüldü`), 'no attack label on a non-attack step');
+  assert.ok(!ended.includes('title="Attack / Action"'), 'no attack hover on a non-attack step');
+  assert.match(ended, /Büyü · Cure Wounds · \+7 can/);
+  assert.match(ended, /data-testid="combat-status"[^>]*>(?:<[^>]+>)*Sona erdi/);
+  assert.match(ended, /data-testid="combat-end-reason">Rakip etkisiz hale getirildi/);
+
+  const otherFight = renderCombatPanel(makeState({ combat: { combat_id: 'combat-later', end_reason: 'target_defeated' } }), entries);
+  assert.match(otherFight, /data-testid="combat-status"[^>]*>(?:<[^>]+>)*Pasif/);
+
+  const attack = renderCombatPanel(makeState(), mergeCombatHistory([{ event_id: 'd147-attack', turn_index: 5, result: {
+    action: 'action_economy', economy_steps: [{ kind: 'attack', result: { action: 'attack', outcome: 'miss', target_name: 'Gromm' } }],
+  } }], []));
+  assert.ok(attack.includes('Saldırı Eylem çözüldü'), 'an attack step keeps its label');
 });

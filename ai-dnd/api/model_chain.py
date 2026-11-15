@@ -83,10 +83,15 @@ class Reply:
 
 
 def _prompt(call: Mapping[str, Any]) -> tuple[str, list[tuple[str, str]]]:
-    """The system text and the remaining turns: all that a provider ever receives."""
+    """The system text and the remaining turns: all that a provider ever receives.
+
+    The local Ollama host and token are masked here, so a value pasted into play never leaves this machine (D-135).
+    """
+    from api.serializers import redact_sensitive_values
+
     system, turns = [], []
     for message in call.get("messages") or ():
-        role, content = message.get("role"), str(message.get("content", ""))
+        role, content = message.get("role"), redact_sensitive_values(str(message.get("content", "")))
         if role == "system":
             system.append(content)
         else:
@@ -372,10 +377,12 @@ def _shaped(value: Any, schema: Mapping[str, Any], definitions: Mapping[str, Any
 def _for_the_game(reply: Reply, call: Mapping[str, Any]) -> str | None:
     """The text the game should receive, or None when the next provider should answer."""
     text = reply.text
-    if not text.strip():
+    # A reply cut at the token cap is never an answer, even when its JSON parses: the game drops it
+    # (game.ollama_reply_was_cut), so the next provider must be asked here instead (D-141).
+    if not text.strip() or reply.done_reason == "length":
         return None
     if not call.get("format"):
-        return None if reply.done_reason == "length" else text
+        return text
     fence = _FENCE.match(text)
     text = fence.group(1) if fence else text
     schema = _schema(call)
