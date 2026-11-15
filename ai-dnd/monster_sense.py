@@ -183,6 +183,38 @@ def _begin(session: Any) -> dict[str, Any]:
     return _reply("Avluda bir yolcu var. Senden uzakta duruyor.", "encounter")
 
 
+def _opportunity_attack(session: Any) -> str | None:
+    """The Yolcu's one Opportunity Attack as the player walks out of its reach (D-200).
+
+    2024 rule (ZAR_KURALLARI 5.6): a hostile that sees the mover spends its Reaction on one melee attack, right
+    before the mover leaves; Disengage, a Reaction it cannot use or Shocking Grasp means no attack.
+    """
+    import action_economy
+    import monster_capabilities
+    import spell_scope
+    import weapon_attack
+    from monster_perception import relationship
+
+    budget = action_economy.ensure(session)
+    if (NPC_ID not in session.world_state["combat"]["participants"]
+            or relationship(session, NPC_ID, "player") != "enemy"
+            or not action_economy.can_act(session, NPC_ID) or budget[NPC_ID]["reaction_spent"]
+            or budget["player"].get("disengaging") or spell_scope.opportunity_attacks_blocked(session, NPC_ID)
+            or weapon_attack.target_sees_attacker(session, "player", NPC_ID) is not True):
+        return None
+    melee = next((c for c in monster_capabilities.capabilities(session, NPC_ID)
+                  if c["kind"] == "attack" and (c.get("profile") or {}).get("kind") == "melee"), None)
+    if melee is None:
+        return None
+    with action_economy.executing(session, "reaction", NPC_ID):
+        result = weapon_attack.resolve(session, NPC_ID, "player", profile=melee["profile"], origin="reaction")
+    budget[NPC_ID]["reaction_spent"] = True
+    session._combat_end_if_decided()
+    if result.get("hit"):
+        return f"{STATBLOCK['name']} erişiminden çıkarken Fırsat Saldırısı yapıyor: isabet, {result.get('damage', 0)} hasar."
+    return f"{STATBLOCK['name']} erişiminden çıkarken Fırsat Saldırısı yapıyor: ıskalıyor."
+
+
 def resolve_turn(session: Any, message: str) -> dict[str, Any] | None:
     if not isinstance(message, str):
         return None
@@ -214,24 +246,30 @@ def resolve_turn(session: Any, message: str) -> dict[str, Any] | None:
             route=dict(pair),
         )
     if len(parts) == 3 and parts[:2] == ["/encounter", "move"] and parts[2] in NODES:
+        opportunity = None
         combat = world.get("combat")
         if isinstance(combat, dict) and combat.get("active") is True:
             # In a fight the walk between the authored nodes is combat movement, spent from the turn's budget.
             import action_economy
             from combat_lifecycle import CombatRequestError
             state = world[KEY]
-            feet = abs(PAIRS[(state["player_node"], state["npc_node"])]["distance_ft"]
-                       - PAIRS[(parts[2], state["npc_node"])]["distance_ft"])
+            before = PAIRS[(state["player_node"], state["npc_node"])]["distance_ft"]
+            feet = abs(before - PAIRS[(parts[2], state["npc_node"])]["distance_ft"])
             if feet:
                 try:
                     action_economy.move(session, "player", feet)
                 except CombatRequestError:
                     return _fail("Bu tur o kadar hareketin kalmadı.", "encounter")
+            if before <= MELEE_REACH_FT < PAIRS[(parts[2], state["npc_node"])]["distance_ft"]:
+                opportunity = _opportunity_attack(session)  # right before the player leaves the reach (D-200)
+                if opportunity and not action_economy.can_act(session, "player"):
+                    return _reply(opportunity, "encounter")  # dropped by the swing: the walk stops in reach
             # The Yolcu's own swing reads its record's distance (weapon_attack.pair); the move sets it too.
             for npc in world.get("npcs", []):
                 if isinstance(npc, dict) and npc.get("id") == NPC_ID:
                     npc["distance_ft"] = PAIRS[(parts[2], state["npc_node"])]["distance_ft"]
         world[KEY]["player_node"] = parts[2]
         pair = PAIRS[(parts[2], world[KEY]["npc_node"])]
-        return _reply(f"Konumun değişti. Mesafe {pair['distance_ft']} ayak.", "encounter", route=dict(pair))
+        text = f"Konumun değişti. Mesafe {pair['distance_ft']} ayak."
+        return _reply(f"{opportunity} {text}" if opportunity else text, "encounter", route=dict(pair))
     return _fail("Algı, rota veya yakın/uzak konum komutunu kullan.", "encounter")
