@@ -4691,7 +4691,7 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
     if (
         character.get("species") == "Goliath"
         and ancestry in GIANT_ANCESTRY_IDS
-        and ancestry not in {"cloud", "stone"}
+        and ancestry not in {"cloud", "stone", "storm"}  # Storm's Thunder is a damage reaction (D-132)
         and state.get("giant_ancestry_armed")
         and state.get("giant_ancestry_uses_remaining", 0) > 0
     ):
@@ -4709,8 +4709,8 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
         elif ancestry == "frost":
             damage, audit = bonus_roll(6)
             bonus_damage += damage
-            target_npc["speed_penalty_ft"] = 10
-            target_npc["speed_penalty_turns_remaining"] = 1
+            # Until the start of the Goliath's next turn: the attack owner's timed effect ends it (D-049).
+            weapon_attack.effect(_session(), "frost_giant_ancestry", "player", target_npc["id"])
             effects.append(
                 {
                     "trait": "frost_giant_ancestry",
@@ -4745,18 +4745,6 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
                     "save_dc": dc,
                     "knocked_prone": knocked_prone,
                     "resolution": resolution,
-                }
-            )
-        elif ancestry == "storm":
-            damage, audit = bonus_roll(8)
-            bonus_damage += damage
-            effects.append(
-                {
-                    "trait": "storm_giant_ancestry",
-                    "damage": damage,
-                    "damage_type": "thunder",
-                    "push_ft": 10,
-                    **audit,
                 }
             )
     return bonus_damage, effects
@@ -5651,6 +5639,45 @@ def _reduce_attack_damage_to_player(damage):
                 }
             )
     return damage, species_effects
+
+
+def _storm_thunder_reaction(attacker_npc, damage_taken, distance_ft):
+    """Storm's Thunder (PHB 2024 PDF 191): damage taken from a creature within 60 ft; Reaction, 1d8 Thunder to it (D-132)."""
+    combat = ensure_combat_state()
+    trait_state = _species_trait_state()
+    if not (
+        damage_taken > 0
+        and _session().character.get("species") == "Goliath"
+        and _session().character.get("giant_ancestry") == "storm"
+        and trait_state.get("giant_ancestry_armed")
+        and trait_state.get("giant_ancestry_uses_remaining", 0) > 0
+        and distance_ft <= 60
+        and _session().character.get("current_hp", 0) > 0
+        and (not combat["active"] or (
+            action_economy.can_act(_session(), "player")
+            and not action_economy.ensure(_session())["player"]["reaction_spent"]
+        ))
+    ):
+        return []
+    if combat["active"]:
+        action_economy.ensure(_session())["player"]["reaction_spent"] = True
+    trait_state["giant_ancestry_uses_remaining"] -= 1
+    trait_state["giant_ancestry_armed"] = False
+    roll = _session().rng.randint(1, 8)
+    mitigation = weapon_attack.mitigate(_session(), attacker_npc["id"], "thunder", roll)
+    after = apply_npc_damage(attacker_npc, mitigation["final_damage"])
+    return [
+        {
+            "trait": "storm_giant_ancestry",
+            "target_id": attacker_npc["id"],
+            "damage": mitigation["final_damage"],
+            "damage_type": "thunder",
+            "damage_die": 8,
+            "raw_rolls": [roll],
+            "mitigation": mitigation,
+            "target_hp_after": after,
+        }
+    ]
 
 
 def _apply_attack_damage_to_player(damage, critical, hit):
@@ -16341,7 +16368,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             return _finish_combat_result(result, before)
         melee_weapon = weapon_data if isinstance(weapon_data, dict) else {"range_ft": 5}
         sense_pair = monster_sense.observable_pair(_session())
-        if sense_pair is not None:
+        if sense_pair is not None and target_npc["id"] == monster_sense.NPC_ID:
             target_npc["distance_ft"] = sense_pair["distance_ft"]
         if monster_sense.blocks_melee(_session(), target_npc["id"], melee_weapon):
             pair = monster_sense.observable_pair(_session())

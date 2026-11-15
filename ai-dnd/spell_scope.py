@@ -235,7 +235,9 @@ def natural_command(message, target_id):
     if _END_CONCENTRATION.search(text):
         return None  # a negated or asked drop is no command
     names = {name.casefold(): name for name in CATALOG} | ALIASES
-    selected = [name for alias, name in names.items() if alias in text]
+    import spells
+    named = spells.without_names(text, spells.longer_spell_names(names))  # "mass healing word" is not Healing Word (D-120)
+    selected = [name for alias, name in names.items() if alias in named]
     casting = bool(re.search(r"\b(cast|casting|büyü|buyu|büyüsünü|buyusunu)\b", text))
     if not selected and not casting:
         return None
@@ -514,7 +516,8 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         if spell_id in SPELL_ATTACKS:
             bless = spell_concentration.bless_roll(session, "player")  # Bless: +1d4 to the attack roll
             resolution = resolve_attack_roll(
-                roll_fn=session.roll_d20, attack_bonus=modifier + pb + (bless or 0),
+                # Exhaustion: -2 per level on the D20 Test, as a weapon attack takes it (D-121).
+                roll_fn=session.roll_d20, attack_bonus=modifier + pb + (bless or 0) - 2 * attacks.exhaustion(character),
                 target_ac=target["armor_class"] + spatial_rules.COVER_AC[cover],
                 actor_id="player", target_id=target_id,
             )
