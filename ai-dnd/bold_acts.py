@@ -249,6 +249,10 @@ def _tend_fires(world: dict[str, Any], now: int) -> None:
         for npc in world.get("npcs", []):
             if isinstance(npc, dict) and npc.get("location") == fire["location"] and npc.get("combat_status") != "dead":
                 npc["location"] = out
+                import monster_sense
+                sense = world.get(monster_sense.KEY)
+                if npc.get("id") == monster_sense.NPC_ID and isinstance(sense, dict):
+                    sense["location_id"] = out  # the Yolcu's encounter goes out with it, or the save refuses the turn (D-137)
 
 
 def _place_name(world: dict[str, Any], location: Any) -> str:

@@ -4,6 +4,9 @@ from dataclasses import replace
 from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, describe_problems
 from api.tests.journeys.schema import load_scenario
 
+# D-096: the person says they take the coin; a gift or tip card with no spoken consent could only be refused, so none opens.
+TAKES = {'coin_answer':'takes','coin_answer_for':'unclear'}
+
 class RoomPurposeRouting(JourneyCase):
     def _body(self, session_id, step):
         body = super()._body(session_id, step)
@@ -11,14 +14,15 @@ class RoomPurposeRouting(JourneyCase):
             body.update(interaction_mode='say', target_id='barman')
         return body
 
-    async def run_purpose(self, text, purpose, *, coin=50, typed=False, person='barman', extra=None, expect=None):
+    async def run_purpose(self, text, purpose, *, coin=50, typed=False, person='barman', extra=None, expect=None, speech=None):
         self.typed = typed
         source = load_scenario(SCENARIO_DIR / '18_room_phrase_not_job.json')
         front = {'kind':'speak_to','person_id':person,'coin_cp':coin,'economic_intent':purpose, **(extra or {})}
         if purpose == '__missing__':
             front.pop('economic_intent')
         wanted = {'kese':100,'saat':0,'oda':False, **(expect or {})}
-        step = replace(source.steps[0], say=text, script={'front':front}, expect=wanted, known_broken=(), broken_because=())
+        script = {'front':front, **({'speech':speech} if speech else {})}
+        step = replace(source.steps[0], say=text, script=script, expect=wanted, known_broken=(), broken_because=())
         results = await self.run_scenario(replace(source, steps=(step,)))
         self.assertEqual(describe_problems(results), [])
         return self.manager.get(self.last_session_id).game_session
@@ -28,7 +32,7 @@ class RoomPurposeRouting(JourneyCase):
         self.assertEqual(s.world_state['currency']['player'],100)
 
     async def test_compound_gift_mentions_room_but_stays_gift(self):
-        await self.run_purpose('Oda hakkında konuşup barmene 5 bakır bahşiş veriyorum','gift',coin=5,expect={'kart':{'max_total_cp':5,'kalemler':['Hediye']}})
+        await self.run_purpose('Oda hakkında konuşup barmene 5 bakır bahşiş veriyorum','gift',coin=5,expect={'kart':{'max_total_cp':5,'kalemler':['Hediye']}},speech=TAKES)
 
     async def test_typed_room_request_binds_the_explicit_actor(self):
         await self.run_purpose('Bir gecelik yer ayırır mısın','room',coin=0,typed=True,expect={'kart':{'max_total_cp':50,'counterparty_label':'Marek','kalemler':['Oda (bir gece)']}})
@@ -43,7 +47,7 @@ class RoomPurposeRouting(JourneyCase):
         await self.run_purpose('Bir gecelik yer ayırır mısın','room',typed=True,extra={'kind':'attempt','strike_to':'barman'},expect={'kart':None,'savas':False})
 
     async def test_tip_amount_comes_from_words_not_model_figure(self):
-        await self.run_purpose('Barmene beş bakır veriyorum','tip',coin=500,expect={'kart':{'max_total_cp':5,'kalemler':['Bahşiş']}})
+        await self.run_purpose('Barmene beş bakır veriyorum','tip',coin=500,expect={'kart':{'max_total_cp':5,'kalemler':['Bahşiş']}},speech=TAKES)
 
 
     async def test_economic_purpose_does_not_leak_into_next_typed_turn(self):
@@ -223,7 +227,7 @@ class EconomicPurposeOwnerControls(Counter):
         from api.tests.journeys.runner import ScriptedClient
         with patch.dict(os.environ,{front_proposal.FLAG:'0'}):
             self.turn('bi oda tutayım')
-        client=ScriptedClient({'front':{'kind':'speak_to','person_id':'barman','economic_intent':'gift','coin_cp':5}})
+        client=ScriptedClient({'front':{'kind':'speak_to','person_id':'barman','economic_intent':'gift','coin_cp':5},'speech':TAKES})
         with patch.dict(os.environ,{front_proposal.FLAG:'1'}),patch('game.ollama.chat',side_effect=client.chat):
             self.turn('Barmene beş bakır veriyorum')
         self.assertIn('front',client.kinds)

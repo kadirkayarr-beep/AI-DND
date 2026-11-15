@@ -44,6 +44,37 @@ test('no trails shows the empty state under the heading', () => {
   assert.match(html, /İzler/);
   assert.match(html, /Henüz bir iz yok\./);
 });
+test('D-136: an offered dynamic job has an accept button in its row and no cancel button yet', () => {
+  const offered = row('İskele teslimatı', { quest_id: 'dyn.q1', status: 'offered', raw_status: 'DISCOVERED', objectives: ['Paketi al'] });
+  const accepted = [];
+  const tree = React.createElement(ui.QuestJournalSection, { ...base, onAccept: (id) => accepted.push(id),
+    questLog: { ...log([]), offered: [offered] } });
+  const html = render(tree);
+  assert.match(html, /data-testid="journal-quest-offered-dyn\.q1"/);
+  assert.match(html, /İskele teslimatı/);
+  assert.match(html, /Paketi al/);
+  assert.match(html, /data-testid="button-accept-quest-dyn\.q1"[^>]*>Kabul et</);
+  assert.doesNotMatch(html, /button-cancel-quest-dyn\.q1/);         // cancel waits for ORTA-29 (D-134) to merge
+  // the row's button calls onAccept with the job id: find the element and press it
+  const find = (node) => {
+    if (!node || typeof node !== 'object') return null;
+    if (Array.isArray(node)) { for (const child of node) { const hit = find(child); if (hit) return hit; } return null; }
+    if (typeof node.type === 'function') return find(node.type(node.props));
+    if (node.props?.['data-testid'] === 'button-accept-quest-dyn.q1') return node;
+    return find(node.props?.children);
+  };
+  const button = find(tree);
+  assert.ok(button, 'accept button element');
+  button.props.onClick();
+  assert.deepEqual(accepted, ['dyn.q1']);
+});
+test('D-136: an offered dynamic job alone is not the empty journal', () => {
+  const offered = row('Tek teklif', { quest_id: 'dyn.q2', status: 'offered', raw_status: 'DISCOVERED' });
+  const html = render(React.createElement(ui.QuestJournalSection, { ...base,
+    questLog: { active_count: 0, active: [], offered: [offered], done: [], let_go: [], rumors: [], trails: [] } }));
+  assert.doesNotMatch(html, /Henüz kayıtlı görev yok\./);
+  assert.match(html, /button-accept-quest-dyn\.q2/);
+});
 test('a done job shows the engine result and the badge counts quest_log', () => {
   const html = render(React.createElement(ui.QuestJournalSection, { ...base, questLog: log([]) }));
   assert.match(html, /Kayıp mektup: 12 bakır ödendi/);
