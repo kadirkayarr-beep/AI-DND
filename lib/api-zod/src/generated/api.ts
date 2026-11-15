@@ -190,6 +190,8 @@ export const ApplyGameSessionLevelUpParams = zod.object({
   "session_id": zod.string()
 })
 
+export const applyGameSessionLevelUpBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const applyGameSessionLevelUpBodyCampaignIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const applyGameSessionLevelUpBodyExpectedRevisionMin = 0;
 
 export const applyGameSessionLevelUpBodyTargetLevelMin = 2;
@@ -628,8 +630,8 @@ export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneCharismaM
 
 
 export const ApplyGameSessionLevelUpBody = zod.object({
-  "action_id": zod.string().uuid(),
-  "campaign_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().regex(applyGameSessionLevelUpBodyActionIdRegExp),
+  "campaign_id": zod.string().uuid().regex(applyGameSessionLevelUpBodyCampaignIdRegExp),
   "expected_revision": zod.number().int().min(applyGameSessionLevelUpBodyExpectedRevisionMin),
   "target_level": zod.number().int().min(applyGameSessionLevelUpBodyTargetLevelMin).max(applyGameSessionLevelUpBodyTargetLevelMax),
   "choices": zod.union([zod.object({
@@ -1211,6 +1213,9 @@ export const createGameSessionResponseStateSpellcastingOneSlotsMinOne = 0;
 export const createGameSessionResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const createGameSessionResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const createGameSessionResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const createGameSessionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createGameSessionResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -1767,6 +1772,12 @@ export const CreateGameSessionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(createGameSessionResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createGameSessionResponseStateSpellcastingOneSlotTurnOneMin).max(createGameSessionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(createGameSessionResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -2302,6 +2313,9 @@ export const getGameSessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
 export const getGameSessionStateResponseSpellcastingOneSlotTurnOneMin = 3;
 export const getGameSessionStateResponseSpellcastingOneSlotTurnOneMax = 3;
+
+export const getGameSessionStateResponseConcentrationOneSlotLevelMax = 9;
+
 
 export const getGameSessionStateResponseCombatParticipantRecordsItemIdMax = 128;
 
@@ -2857,6 +2871,12 @@ export const GetGameSessionStateResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getGameSessionStateResponseSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getGameSessionStateResponseSpellcastingOneSlotTurnOneMin).max(getGameSessionStateResponseSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getGameSessionStateResponseConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -3404,6 +3424,9 @@ export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne = 
 
 export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const resolveSpeciesTraitActionResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -3964,6 +3987,12 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMin).max(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -4337,11 +4366,13 @@ export const prepareGameSessionSpellsBodyPreparedItemMax = 64;
 export const prepareGameSessionSpellsBodyPreparedMax = 32;
 
 export const prepareGameSessionSpellsBodyCloseDefault = false;
+export const prepareGameSessionSpellsBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
 
 export const PrepareGameSessionSpellsBody = zod.object({
   "prepared": zod.array(zod.string().max(prepareGameSessionSpellsBodyPreparedItemMax)).max(prepareGameSessionSpellsBodyPreparedMax).nullish(),
   "close": zod.boolean().default(prepareGameSessionSpellsBodyCloseDefault),
-  "action_id": zod.string().uuid()
+  "action_id": zod.string().uuid().regex(prepareGameSessionSpellsBodyActionIdRegExp)
 }).describe('Omitted (or null) prepared keeps today\'s list; an explicit empty list is an explicit empty list.')
 
 export const prepareGameSessionSpellsResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -4538,6 +4569,9 @@ export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotsMinOne = 0
 
 export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const prepareGameSessionSpellsResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -5096,6 +5130,12 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(prepareGameSessionSpellsResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMin).max(prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(prepareGameSessionSpellsResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -5658,6 +5698,9 @@ export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMin
 export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const resolveSpeciesTraitActionCompatResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -6217,6 +6260,12 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMin).max(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -6883,6 +6932,9 @@ export const playGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 export const playGameTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const playGameTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const playGameTurnResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const playGameTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const playGameTurnResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -6965,6 +7017,11 @@ export const playGameTurnResponseCombatResultOneDeathSaveOneSuccessesMax = 3;
 export const playGameTurnResponseCombatResultOneDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatResultOneDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseCombatResultOneConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatResultOneConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatResultOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playGameTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -6983,6 +7040,11 @@ export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSucces
 export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playGameTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -7000,6 +7062,11 @@ export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSucc
 
 export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const playGameTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playGameTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
@@ -7022,6 +7089,11 @@ export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccesse
 export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax = 4;
+
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -7040,6 +7112,11 @@ export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathS
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -7057,6 +7134,11 @@ export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeat
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const playGameTurnResponseSkillCheckResultOneTacticalMindRollMax = 10;
 
@@ -7596,6 +7678,12 @@ export const PlayGameTurnResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(playGameTurnResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(playGameTurnResponseStateSpellcastingOneSlotTurnOneMin).max(playGameTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(playGameTurnResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -7989,6 +8077,15 @@ export const PlayGameTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatResultOneConcentrationCheckOneDcMin).max(playGameTurnResponseCombatResultOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -8058,7 +8155,16 @@ export const PlayGameTurnResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMin).max(playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -8116,7 +8222,16 @@ export const PlayGameTurnResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin).max(playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -8184,6 +8299,15 @@ export const PlayGameTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMin).max(playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -8253,7 +8377,16 @@ export const PlayGameTurnResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -8311,7 +8444,16 @@ export const PlayGameTurnResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -8669,6 +8811,9 @@ export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotsMinO
 export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotTurnOneMin = 3;
 export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const getGameActionStatusResponseResponseTwoStateConcentrationOneSlotLevelMax = 9;
+
+
 export const getGameActionStatusResponseResponseTwoStateCombatParticipantRecordsItemIdMax = 128;
 
 export const getGameActionStatusResponseResponseTwoStateCombatParticipantRecordsItemNameMax = 120;
@@ -8751,6 +8896,11 @@ export const getGameActionStatusResponseResponseTwoCombatResultOneDeathSaveOneSu
 export const getGameActionStatusResponseResponseTwoCombatResultOneDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatResultOneDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -8769,6 +8919,11 @@ export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOne
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -8786,6 +8941,11 @@ export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsIt
 
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneTurnIndexMin = 0;
@@ -8808,6 +8968,11 @@ export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultDe
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax = 4;
+
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -8826,6 +8991,11 @@ export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEn
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -8843,6 +9013,11 @@ export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEn
 
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const getGameActionStatusResponseResponseTwoSkillCheckResultOneTacticalMindRollMax = 10;
 
@@ -9385,6 +9560,12 @@ export const GetGameActionStatusResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotTurnOneMin).max(getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -9778,6 +9959,15 @@ export const GetGameActionStatusResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -9847,7 +10037,16 @@ export const GetGameActionStatusResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -9905,7 +10104,16 @@ export const GetGameActionStatusResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -9973,6 +10181,15 @@ export const GetGameActionStatusResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -10042,7 +10259,16 @@ export const GetGameActionStatusResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -10100,7 +10326,16 @@ export const GetGameActionStatusResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -10384,6 +10619,9 @@ export const abandonGameActionResponseResponseTwoStateSpellcastingOneSlotsMinOne
 export const abandonGameActionResponseResponseTwoStateSpellcastingOneSlotTurnOneMin = 3;
 export const abandonGameActionResponseResponseTwoStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const abandonGameActionResponseResponseTwoStateConcentrationOneSlotLevelMax = 9;
+
+
 export const abandonGameActionResponseResponseTwoStateCombatParticipantRecordsItemIdMax = 128;
 
 export const abandonGameActionResponseResponseTwoStateCombatParticipantRecordsItemNameMax = 120;
@@ -10466,6 +10704,11 @@ export const abandonGameActionResponseResponseTwoCombatResultOneDeathSaveOneSucc
 export const abandonGameActionResponseResponseTwoCombatResultOneDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatResultOneDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneBlessRollMax = 4;
+
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -10484,6 +10727,11 @@ export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneDe
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -10501,6 +10749,11 @@ export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItem
 
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneTurnIndexMin = 0;
@@ -10523,6 +10776,11 @@ export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultDeat
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax = 4;
+
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -10541,6 +10799,11 @@ export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnem
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -10558,6 +10821,11 @@ export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnem
 
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const abandonGameActionResponseResponseTwoSkillCheckResultOneTacticalMindRollMax = 10;
 
@@ -11100,6 +11368,12 @@ export const AbandonGameActionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(abandonGameActionResponseResponseTwoStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(abandonGameActionResponseResponseTwoStateSpellcastingOneSlotTurnOneMin).max(abandonGameActionResponseResponseTwoStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -11493,6 +11767,15 @@ export const AbandonGameActionResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -11562,7 +11845,16 @@ export const AbandonGameActionResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -11620,7 +11912,16 @@ export const AbandonGameActionResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -11688,6 +11989,15 @@ export const AbandonGameActionResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -11757,7 +12067,16 @@ export const AbandonGameActionResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -11815,7 +12134,16 @@ export const AbandonGameActionResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -11903,8 +12231,11 @@ export const UndoGameTurnParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const undoGameTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const UndoGameTurnBody = zod.object({
-  "action_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().regex(undoGameTurnBodyActionIdRegExp),
   "target_action_id": zod.string().uuid()
 })
 
@@ -12102,6 +12433,9 @@ export const undoGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const undoGameTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const undoGameTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const undoGameTurnResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const undoGameTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -12662,6 +12996,12 @@ export const UndoGameTurnResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(undoGameTurnResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(undoGameTurnResponseStateSpellcastingOneSlotTurnOneMin).max(undoGameTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(undoGameTurnResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -13202,6 +13542,9 @@ export const acceptGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const acceptGameQuestResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const acceptGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -13785,6 +14128,12 @@ export const AcceptGameQuestResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(acceptGameQuestResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMin).max(acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(acceptGameQuestResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -14347,6 +14696,9 @@ export const cancelGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const cancelGameQuestResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const cancelGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -14930,6 +15282,12 @@ export const CancelGameQuestResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(cancelGameQuestResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMin).max(cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(cancelGameQuestResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -15501,6 +15859,9 @@ export const resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne = 
 export const resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const resolveAmbientEventActionResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -16066,6 +16427,12 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMin).max(resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resolveAmbientEventActionResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -16616,6 +16983,9 @@ export const acceptLegacyQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const acceptLegacyQuestResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const acceptLegacyQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -17199,6 +17569,12 @@ export const AcceptLegacyQuestResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(acceptLegacyQuestResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin).max(acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(acceptLegacyQuestResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -17762,6 +18138,9 @@ export const cancelLegacyQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const cancelLegacyQuestResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const cancelLegacyQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -18345,6 +18724,12 @@ export const CancelLegacyQuestResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(cancelLegacyQuestResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin).max(cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(cancelLegacyQuestResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -18917,6 +19302,9 @@ export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotsMin
 export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const resolveAmbientEventActionCompatResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -19482,6 +19870,12 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMin).max(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -22181,6 +22575,9 @@ export const createCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 export const createCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const createCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const createCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const createCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -22281,6 +22678,11 @@ export const createCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesM
 export const createCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const createCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const createCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const createCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const createCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -22299,6 +22701,11 @@ export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSav
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -22316,6 +22723,11 @@ export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathS
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -22811,6 +23223,12 @@ export const CreateCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(createCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(createCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(createCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -23238,6 +23656,15 @@ export const CreateCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(createCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -23307,7 +23734,16 @@ export const CreateCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -23365,7 +23801,16 @@ export const CreateCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -23588,6 +24033,9 @@ export const getCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 export const getCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const getCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const getCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const getCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const getCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -23688,6 +24136,11 @@ export const getCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax 
 export const getCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const getCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const getCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const getCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const getCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -23706,6 +24159,11 @@ export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOn
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -23723,6 +24181,11 @@ export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSave
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -24228,6 +24691,12 @@ export const GetCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(getCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -24655,6 +25124,15 @@ export const GetCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(getCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -24724,7 +25202,16 @@ export const GetCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -24782,7 +25269,16 @@ export const GetCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -24992,6 +25488,9 @@ export const resumeCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 export const resumeCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resumeCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const resumeCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const resumeCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resumeCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -25092,6 +25591,11 @@ export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesM
 export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -25110,6 +25614,11 @@ export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSav
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -25127,6 +25636,11 @@ export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathS
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -25622,6 +26136,12 @@ export const ResumeCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resumeCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resumeCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(resumeCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resumeCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -26049,6 +26569,15 @@ export const ResumeCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -26118,7 +26647,16 @@ export const ResumeCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -26176,7 +26714,16 @@ export const ResumeCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -27556,6 +28103,9 @@ export const createLegacySessionResponseStateSpellcastingOneSlotsMinOne = 0;
 export const createLegacySessionResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const createLegacySessionResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const createLegacySessionResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const createLegacySessionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createLegacySessionResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -28112,6 +28662,12 @@ export const CreateLegacySessionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(createLegacySessionResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createLegacySessionResponseStateSpellcastingOneSlotTurnOneMin).max(createLegacySessionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(createLegacySessionResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -28648,6 +29204,9 @@ export const getLegacySessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
 export const getLegacySessionStateResponseSpellcastingOneSlotTurnOneMin = 3;
 export const getLegacySessionStateResponseSpellcastingOneSlotTurnOneMax = 3;
+
+export const getLegacySessionStateResponseConcentrationOneSlotLevelMax = 9;
+
 
 export const getLegacySessionStateResponseCombatParticipantRecordsItemIdMax = 128;
 
@@ -29203,6 +29762,12 @@ export const GetLegacySessionStateResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getLegacySessionStateResponseSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getLegacySessionStateResponseSpellcastingOneSlotTurnOneMin).max(getLegacySessionStateResponseSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getLegacySessionStateResponseConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -29864,6 +30429,9 @@ export const playLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 export const playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const playLegacyTurnResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const playLegacyTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const playLegacyTurnResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -29946,6 +30514,11 @@ export const playLegacyTurnResponseCombatResultOneDeathSaveOneSuccessesMax = 3;
 export const playLegacyTurnResponseCombatResultOneDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatResultOneDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseCombatResultOneConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatResultOneConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatResultOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -29964,6 +30537,11 @@ export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSucc
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -29981,6 +30559,11 @@ export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSu
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playLegacyTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
@@ -30003,6 +30586,11 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneSucces
 export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax = 4;
+
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -30021,6 +30609,11 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeat
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -30038,6 +30631,11 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDe
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const playLegacyTurnResponseSkillCheckResultOneTacticalMindRollMax = 10;
 
@@ -30577,6 +31175,12 @@ export const PlayLegacyTurnResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(playLegacyTurnResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin).max(playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(playLegacyTurnResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -30970,6 +31574,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatResultOneConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatResultOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -31039,7 +31652,16 @@ export const PlayLegacyTurnResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -31097,7 +31719,16 @@ export const PlayLegacyTurnResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -31165,6 +31796,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -31234,7 +31874,16 @@ export const PlayLegacyTurnResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -31292,7 +31941,16 @@ export const PlayLegacyTurnResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -31376,8 +32034,11 @@ export const UndoLegacyTurnParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const undoLegacyTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const UndoLegacyTurnBody = zod.object({
-  "action_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().regex(undoLegacyTurnBodyActionIdRegExp),
   "target_action_id": zod.string().uuid()
 })
 
@@ -31575,6 +32236,9 @@ export const undoLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const undoLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const undoLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const undoLegacyTurnResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const undoLegacyTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -32135,6 +32799,12 @@ export const UndoLegacyTurnResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(undoLegacyTurnResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(undoLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin).max(undoLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(undoLegacyTurnResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -32653,6 +33323,8 @@ export const ApplyLegacySessionLevelUpParams = zod.object({
   "session_id": zod.coerce.string()
 })
 
+export const applyLegacySessionLevelUpBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const applyLegacySessionLevelUpBodyCampaignIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const applyLegacySessionLevelUpBodyExpectedRevisionMin = 0;
 
 export const applyLegacySessionLevelUpBodyTargetLevelMin = 2;
@@ -33091,8 +33763,8 @@ export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneCharism
 
 
 export const ApplyLegacySessionLevelUpBody = zod.object({
-  "action_id": zod.string().uuid(),
-  "campaign_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().regex(applyLegacySessionLevelUpBodyActionIdRegExp),
+  "campaign_id": zod.string().uuid().regex(applyLegacySessionLevelUpBodyCampaignIdRegExp),
   "expected_revision": zod.number().int().min(applyLegacySessionLevelUpBodyExpectedRevisionMin),
   "target_level": zod.number().int().min(applyLegacySessionLevelUpBodyTargetLevelMin).max(applyLegacySessionLevelUpBodyTargetLevelMax),
   "choices": zod.union([zod.object({
@@ -34677,6 +35349,9 @@ export const createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 export const createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const createLegacyCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -34777,6 +35452,11 @@ export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSucc
 export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -34795,6 +35475,11 @@ export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDe
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -34812,6 +35497,11 @@ export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItem
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -35307,6 +35997,12 @@ export const CreateLegacyCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(createLegacyCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -35734,6 +36430,15 @@ export const CreateLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -35803,7 +36508,16 @@ export const CreateLegacyCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -35861,7 +36575,16 @@ export const CreateLegacyCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -36086,6 +36809,9 @@ export const getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 export const getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const getLegacyCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -36186,6 +36912,11 @@ export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccess
 export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -36204,6 +36935,11 @@ export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeath
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -36221,6 +36957,11 @@ export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDea
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -36726,6 +37467,12 @@ export const GetLegacyCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getLegacyCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -37153,6 +37900,15 @@ export const GetLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -37222,7 +37978,16 @@ export const GetLegacyCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -37280,7 +38045,16 @@ export const GetLegacyCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
@@ -37491,6 +38265,9 @@ export const resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 export const resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
+export const resumeLegacyCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
+
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -37591,6 +38368,11 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSucc
 export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -37609,6 +38391,11 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDe
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -37626,6 +38413,11 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItem
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -38121,6 +38913,12 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -38548,6 +39346,15 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -38617,7 +39424,16 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -38675,7 +39491,16 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),
   "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')

@@ -117,7 +117,7 @@ export const getGetGameSessionLevelUpQueryKey = (sessionId: string,) => {
     }
 
 
-export const getGetGameSessionLevelUpQueryOptions = <TData = Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError = ErrorType<unknown>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetGameSessionLevelUpQueryOptions = <TData = Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -136,14 +136,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetGameSessionLevelUpQueryResult = NonNullable<Awaited<ReturnType<typeof getGameSessionLevelUp>>>
-export type GetGameSessionLevelUpQueryError = ErrorType<unknown>
+export type GetGameSessionLevelUpQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
 
 
 /**
  * @summary Preview Earned Level Up
  */
 
-export function useGetGameSessionLevelUp<TData = Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError = ErrorType<unknown>>(
+export function useGetGameSessionLevelUp<TData = Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(
  sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -204,7 +204,7 @@ return customFetch<LevelUpCommandResult>(getApplyGameSessionLevelUpUrl(sessionId
 
 export const getApplyGameSessionLevelUpMutationKey = () => ['applyGameSessionLevelUp'] as const;
 
-export const getApplyGameSessionLevelUpMutationOptions = <TError = ErrorType<unknown>,
+export const getApplyGameSessionLevelUpMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyGameSessionLevelUp>>, TError,ApplyGameSessionLevelUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof applyGameSessionLevelUp>>, TError,ApplyGameSessionLevelUpMutationVariables, TContext> => {
 
@@ -233,13 +233,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ApplyGameSessionLevelUpMutationResult = NonNullable<Awaited<ReturnType<typeof applyGameSessionLevelUp>>>
     export type ApplyGameSessionLevelUpMutationBody = BodyType<LevelUpApplyRequest>
-    export type ApplyGameSessionLevelUpMutationError = ErrorType<unknown>
+    export type ApplyGameSessionLevelUpMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type ApplyGameSessionLevelUpMutationVariables = {sessionId: string;data: BodyType<LevelUpApplyRequest>}
 
     /**
  * @summary Apply Earned Level Up
  */
-export const useApplyGameSessionLevelUp = <TError = ErrorType<unknown>,
+export const useApplyGameSessionLevelUp = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyGameSessionLevelUp>>, TError,ApplyGameSessionLevelUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof applyGameSessionLevelUp>>,
@@ -3657,7 +3657,7 @@ export const getGetLegacySessionLevelUpQueryKey = (sessionId: string,) => {
     }
 
 
-export const getGetLegacySessionLevelUpQueryOptions = <TData = Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError = ErrorType<unknown>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetLegacySessionLevelUpQueryOptions = <TData = Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -3676,14 +3676,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetLegacySessionLevelUpQueryResult = NonNullable<Awaited<ReturnType<typeof getLegacySessionLevelUp>>>
-export type GetLegacySessionLevelUpQueryError = ErrorType<unknown>
+export type GetLegacySessionLevelUpQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
 
 
 /**
  * @summary Legacy earned level up preview alias
  */
 
-export function useGetLegacySessionLevelUp<TData = Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError = ErrorType<unknown>>(
+export function useGetLegacySessionLevelUp<TData = Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(
  sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionLevelUp>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -3745,7 +3745,7 @@ return customFetch<LevelUpCommandResult>(getApplyLegacySessionLevelUpUrl(session
 
 export const getApplyLegacySessionLevelUpMutationKey = () => ['applyLegacySessionLevelUp'] as const;
 
-export const getApplyLegacySessionLevelUpMutationOptions = <TError = ErrorType<unknown>,
+export const getApplyLegacySessionLevelUpMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>, TError,ApplyLegacySessionLevelUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>, TError,ApplyLegacySessionLevelUpMutationVariables, TContext> => {
 
@@ -3774,13 +3774,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ApplyLegacySessionLevelUpMutationResult = NonNullable<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>>
     export type ApplyLegacySessionLevelUpMutationBody = BodyType<LevelUpApplyRequest>
-    export type ApplyLegacySessionLevelUpMutationError = ErrorType<unknown>
+    export type ApplyLegacySessionLevelUpMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type ApplyLegacySessionLevelUpMutationVariables = {sessionId: string;data: BodyType<LevelUpApplyRequest>}
 
     /**
  * @summary Legacy earned level up apply alias
  */
-export const useApplyLegacySessionLevelUp = <TError = ErrorType<unknown>,
+export const useApplyLegacySessionLevelUp = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyLegacySessionLevelUp>>, TError,ApplyLegacySessionLevelUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof applyLegacySessionLevelUp>>,

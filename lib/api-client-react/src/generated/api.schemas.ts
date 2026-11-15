@@ -443,7 +443,9 @@ export interface ClericLevel4Choices {
 }
 
 export interface LevelUpApplyRequest {
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   action_id: string;
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   campaign_id: string;
   /** @minimum 0 */
   expected_revision: number;
@@ -1782,6 +1784,21 @@ export interface GameSpellcasting {
   slot_turn: (string | number)[] | null;
 }
 
+/**
+ * The held Concentration spell (D-073), from the engine's own record.
+ */
+export interface GameConcentration {
+  spell_id: string;
+  /**
+     * @minimum 1
+     * @maximum 9
+     */
+  slot_level: number;
+  /** @minimum 1 */
+  started_round: number;
+  targets: string[];
+}
+
 export interface GameNpc {
   id: string;
   name: string;
@@ -2445,6 +2462,8 @@ export interface GameState {
   character: GameCharacter;
   /** Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision. */
   spellcasting?: GameSpellcasting | null;
+  /** Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell. */
+  concentration: GameConcentration | null;
   inventory: string[];
   npcs: GameNpc[];
   shops: GameShop[];
@@ -2956,6 +2975,44 @@ export const GameActionStatusState = {
 export type GameActionStatusDetail = { [key: string]: unknown } | null;
 
 /**
+ * @nullable
+ */
+export type ConcentrationCheckResultReason = typeof ConcentrationCheckResultReason[keyof typeof ConcentrationCheckResultReason] | null;
+
+
+export const ConcentrationCheckResultReason = {
+  incapacitated: 'incapacitated',
+  duration_ended: 'duration_ended',
+  combat_ended: 'combat_ended',
+} as const;
+
+/**
+ * The player's Concentration after one damage instance (D-052), from the engine's own save.
+ */
+export interface ConcentrationCheckResult {
+  spell_id: string;
+  kept: boolean;
+  /**
+     * @minimum 10
+     * @maximum 30
+     * @nullable
+     */
+  dc?: number | null;
+  /** @nullable */
+  roll?: number | null;
+  /** @nullable */
+  total?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 4
+     * @nullable
+     */
+  bless_roll?: number | null;
+  /** @nullable */
+  reason?: ConcentrationCheckResultReason;
+}
+
+/**
  * Where a healing event came from; potion is reserved (no engine path yet).
  */
 export type CombatTurnResultHealSource = typeof CombatTurnResultHealSource[keyof typeof CombatTurnResultHealSource] | null;
@@ -3054,6 +3111,7 @@ export interface CombatAttackResult {
   resolution?: CombatAttackResultResolution;
   death_save?: DeathSaveResult | null;
   death_resolution?: DeathResolutionResult | null;
+  concentration_check?: ConcentrationCheckResult | null;
 }
 
 export type CombatTurnResultEconomyStepsItem = { [key: string]: unknown };
@@ -3152,6 +3210,7 @@ export interface CombatTurnResult {
   resolution?: CombatTurnResultResolution;
   death_save?: DeathSaveResult | null;
   death_resolution?: DeathResolutionResult | null;
+  concentration_check?: ConcentrationCheckResult | null;
   /** @nullable */
   spell?: string | null;
   /** @nullable */
@@ -3403,6 +3462,7 @@ export interface GameActionStatus {
 }
 
 export interface GameTurnUndoInput {
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   action_id: string;
   target_action_id: string;
 }
@@ -3570,6 +3630,7 @@ export interface SpellPrepareInput {
      */
   prepared?: string[] | null;
   close?: boolean;
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   action_id: string;
 }
 

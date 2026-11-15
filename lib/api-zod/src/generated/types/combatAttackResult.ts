@@ -7,6 +7,7 @@
  */
 import type { CombatAttackResultResolution } from './combatAttackResultResolution';
 import type { CombatAttackResultSpeciesEffectsItem } from './combatAttackResultSpeciesEffectsItem';
+import type { ConcentrationCheckResult } from './concentrationCheckResult';
 import type { DeathResolutionResult } from './deathResolutionResult';
 import type { DeathSaveResult } from './deathSaveResult';
 
@@ -90,4 +91,5 @@ export interface CombatAttackResult {
   resolution?: CombatAttackResultResolution;
   death_save?: DeathSaveResult | null;
   death_resolution?: DeathResolutionResult | null;
+  concentration_check?: ConcentrationCheckResult | null;
 }

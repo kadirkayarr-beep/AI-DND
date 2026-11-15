@@ -133,6 +133,7 @@ from api.serializers import (
     serialize_session_state,
 )
 from api.schemas import LevelUpApplyRequest, LevelUpPreviewResponse, LevelUpCommandResult, ShopCounterResponse
+from api.schemas import ActionIdPath
 from api.session_manager import SessionManager, UnknownSessionError
 from api.world_metadata import (
     set_session_world_metadata,
@@ -1028,7 +1029,8 @@ def create_app(
             receipt = manager.get_turn_action(record, action_id) or {}
             stored = receipt.get("response")
             payload["response"] = None
-            if isinstance(stored, dict):
+            # D-162: an Undo receipt also fits TurnResponse (extra keys are ignored), but it is another command kind.
+            if isinstance(stored, dict) and "undone_action_id" not in stored:
                 try:
                     payload["response"] = replay_action_response(stored, TurnResponse, session_id)
                 except HTTPException:
@@ -1064,7 +1066,8 @@ def create_app(
         "/api/game/sessions/{session_id}/actions/{action_id}",
         response_model=dict[str, Any],
     )
-    def read_action_status(session_id: str, action_id: str) -> dict[str, Any]:
+    def read_action_status(session_id: str, action_id: ActionIdPath) -> dict[str, Any]:
+        action_id = str(action_id)
         record = get_record(session_id)
         if record.revoked:
             raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
@@ -1077,8 +1080,9 @@ def create_app(
         "/api/game/sessions/{session_id}/actions/{action_id}/abandon",
         response_model=dict[str, Any],
     )
-    def abandon_action(session_id: str, action_id: str) -> dict[str, Any]:
+    def abandon_action(session_id: str, action_id: ActionIdPath) -> dict[str, Any]:
         """Player-initiated close of an action id; the answer comes from the stored receipt or refusal only."""
+        action_id = str(action_id)
         record = get_record(session_id)
         if not record.turn_lock.acquire(timeout=2.0):
             # A turn of this session is running: its outcome is not known yet, so the identity is kept.
