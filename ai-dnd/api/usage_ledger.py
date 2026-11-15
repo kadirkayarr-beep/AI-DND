@@ -22,7 +22,9 @@ from pathlib import Path
 
 if sys.platform == "win32":
     import msvcrt
+    fcntl = None
 else:  # POSIX appends one whole write at the end atomically (O_APPEND); no extra lock is needed.
+    import fcntl  # only for one_writer: the Haiku count reads and rewrites its file, so it needs turns
     msvcrt = None
 
 USAGE_FILE_NAME = "model-usage.jsonl"
@@ -44,6 +46,37 @@ _LOCK_WAIT_SECONDS = 2.0
 
 def _local_now() -> datetime:
     return datetime.now().astimezone()
+
+
+@contextmanager
+def one_writer(side_file: Path) -> Iterator[None]:
+    """Make writers take turns across processes: a byte lock on a small side file (Windows and POSIX).
+
+    The lock belongs to this open handle, so two writers in one process take turns as well.
+    The wait is bounded; past it the OSError is raised and the caller decides what that means.
+    """
+    with open(side_file, "a+b") as handle:
+        deadline = time.monotonic() + _LOCK_WAIT_SECONDS
+        while True:
+            handle.seek(0)
+            try:
+                if msvcrt is not None:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.002)
+        try:
+            yield
+        finally:
+            handle.seek(0)
+            if msvcrt is not None:
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def _count(value: object) -> int:
@@ -85,23 +118,8 @@ class UsageLedger:
         if msvcrt is None:
             yield
             return
-        side_file = self._path.with_name(self._path.name + ".lock")
-        with open(side_file, "a+b") as handle:
-            deadline = time.monotonic() + _LOCK_WAIT_SECONDS
-            while True:
-                handle.seek(0)
-                try:
-                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-                    break
-                except OSError:
-                    if time.monotonic() >= deadline:
-                        raise
-                    time.sleep(0.002)
-            try:
-                yield
-            finally:
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        with one_writer(self._path.with_name(self._path.name + ".lock")):
+            yield
 
     def day(self) -> str:
         """The ledger's day: the clock's local date."""
@@ -116,19 +134,21 @@ class UsageLedger:
         thought_tokens: int = 0,
         seconds: float | None = None,
         outcome: str = "answered",
+        usage_known: bool = True,
     ) -> None:
         """Append one line. Never raises: a call must not wait on, or fail from, its own log.
 
         A token count that is not a whole number of zero or more is written as 0, and a seconds value that is not
         a real duration (NaN, infinity, negative, not a number) as None: the line stays readable and the call counts.
+        A call whose usage never came back gets ``"usage": "unknown"``: its zeros are not a known zero.
         """
         try:
-            line = json.dumps(
-                {"day": self.day(), "provider": provider, "input": _count(input_tokens),
-                 "output": _count(output_tokens), "thought": _count(thought_tokens),
-                 "seconds": _duration(seconds), "outcome": outcome},
-                separators=(",", ":"),
-            ) + "\n"
+            fields = {"day": self.day(), "provider": provider, "input": _count(input_tokens),
+                      "output": _count(output_tokens), "thought": _count(thought_tokens),
+                      "seconds": _duration(seconds), "outcome": outcome}
+            if not usage_known:
+                fields["usage"] = "unknown"
+            line = json.dumps(fields, separators=(",", ":")) + "\n"
             with self._lock:
                 self._path.parent.mkdir(parents=True, exist_ok=True)
                 # One open and one write of one whole line, one writer at a time across processes.
@@ -137,32 +157,41 @@ class UsageLedger:
         except Exception as error:  # noqa: BLE001 - fail-open by design; only the error type is logged
             _logger.warning("Usage ledger could not record a call (%s).", type(error).__name__)
 
-    def today(self) -> dict[str, dict[str, float]]:
-        """Per provider: calls, input, output, thought, seconds for today. Unreadable lines are skipped."""
+    def _read_day(self) -> tuple[dict[str, dict[str, float]], dict[str, int]]:
+        """Today's rows per provider, and per provider today's calls whose usage is unknown. Unreadable lines are
+        skipped; a file that cannot be there yet is an empty day; a file that cannot be read raises."""
         day = self.day()
         totals: dict[str, dict[str, float]] = {}
+        unknown: dict[str, int] = {}
         try:
             with self._lock, open(self._path, encoding="utf-8", errors="replace") as handle:
                 for raw in handle:
                     entry = self._read_line(raw, day)
                     if entry is None:
                         continue
-                    provider, counts, seconds = entry
+                    provider, counts, seconds, usage_known = entry
                     row = totals.setdefault(
                         provider, {"calls": 0, "input": 0, "output": 0, "thought": 0, "seconds": 0})
                     row["calls"] += 1
                     for name, count in zip(_COUNT_FIELDS, counts):
                         row[name] += count
                     row["seconds"] += seconds
-        except FileNotFoundError:
-            return {}
-        except Exception as error:  # noqa: BLE001 - an unreadable file reads as an empty day
+                    if not usage_known:
+                        unknown[provider] = unknown.get(provider, 0) + 1
+        except (FileNotFoundError, NotADirectoryError):
+            return {}, {}
+        return totals, unknown
+
+    def today(self) -> dict[str, dict[str, float]]:
+        """Per provider: calls, input, output, thought, seconds for today. Unreadable lines are skipped."""
+        try:
+            return self._read_day()[0]
+        except Exception as error:  # noqa: BLE001 - an unreadable file reads as an empty day here; warning() says so
             _logger.warning("Usage ledger could not read the day (%s).", type(error).__name__)
             return {}
-        return totals
 
     @staticmethod
-    def _read_line(raw: str, day: str) -> tuple[str, tuple[int, int, int], float] | None:
+    def _read_line(raw: str, day: str) -> tuple[str, tuple[int, int, int], float, bool] | None:
         try:
             entry = json.loads(raw)
         except ValueError:
@@ -180,12 +209,15 @@ class UsageLedger:
             seconds = 0
         elif type(seconds) not in (int, float) or seconds < 0:
             return None
-        return provider, counts, seconds
+        return provider, counts, seconds, entry.get("usage") != "unknown"
 
     def known_usd_today(self) -> float:
         """Today's cost over providers with a known price. An unknown price adds nothing."""
+        return self._known_usd(self.today())
+
+    def _known_usd(self, totals: Mapping[str, Mapping[str, float]]) -> float:
         total = 0.0
-        for provider, row in self.today().items():
+        for provider, row in totals.items():
             price = self._prices.get(provider)
             if price is None:
                 continue
@@ -195,8 +227,21 @@ class UsageLedger:
         return total
 
     def warning(self) -> str | None:
-        """A line once today's known cost reaches the limit; it never stops anything."""
-        spent = self.known_usd_today()
+        """A line once today's known cost reaches the limit, or whenever today's known cost may be short (the file
+        cannot be read, or a paid call's usage never came back); it never stops anything."""
+        try:
+            totals, unknown = self._read_day()
+        except Exception as error:  # noqa: BLE001 - an unreadable file is not an empty, free day
+            _logger.warning("Usage ledger could not read the day (%s).", type(error).__name__)
+            return (f"Model usage today could not be read, so today's cost is unknown "
+                    f"(warning at {self._warn_usd:.2f} USD).")
+        spent = self._known_usd(totals)
+        # Unknown usage costs something only on a provider with a known, non-zero price.
+        short = sum(count for provider, count in unknown.items() if any(self._prices.get(provider) or ()))
+        if short:
+            return (f"Model usage today is at least {spent:.2f} USD on providers with a known price "
+                    f"(warning at {self._warn_usd:.2f}); {short} paid call(s) came back without usage, "
+                    f"so the real cost may be higher.")
         if round(spent, 6) < self._warn_usd:
             return None
         return (f"Model usage today has reached {spent:.2f} USD on providers with a known price "

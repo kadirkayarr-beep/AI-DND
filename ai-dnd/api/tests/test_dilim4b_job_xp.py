@@ -163,8 +163,9 @@ class JobXpRules(_JobCase):
             newer.append(row)
         ids = lambda: [t["thread_id"] for t in state["history"]]  # noqa: E731
         state["history"] = [copy.deepcopy(record), *copy.deepcopy(newer)]
-        world_threads._trim_history(state)                          # without the world (the old rule): it is lost
-        self.assertNotIn(record["thread_id"], ids())
+        with self.assertRaises(TypeError):                          # D-011: no caller can leave the world out
+            world_threads._trim_history(state)
+        self.assertIn(record["thread_id"], ids())
         state["history"] = [copy.deepcopy(record), *copy.deepcopy(newer)]
         world_threads._trim_history(state, self.world)              # unpaid: kept
         self.assertIn(record["thread_id"], ids())

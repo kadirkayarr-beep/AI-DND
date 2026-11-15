@@ -151,10 +151,49 @@ class TheLedger(unittest.TestCase):
                 ledger.record("haiku", input_tokens=1, output_tokens=1)
                 self.assertEqual(ledger.today(), {})
                 self.assertEqual(ledger.known_usd_today(), 0.0)
-                self.assertIsNone(ledger.warning())
+                warning = ledger.warning()
             self.assertIn("could not record a call", captured.output[0])
+            if path is as_directory:
+                # ORTA-07 (D-150): a file that is there but cannot be read is not an empty, free day.
+                self.assertIn("could not be read", warning)
+                self.assertIn("3.00", warning)
+            else:
+                # No file can be there (its parent is a file): the same as a file that does not exist yet.
+                self.assertIsNone(warning)
         # A file that does not exist yet reads as an empty day.
         self.assertEqual(UsageLedger(base / "nothing-yet.jsonl", now=noon()).today(), {})
+        self.assertIsNone(UsageLedger(base / "nothing-yet.jsonl", now=noon()).warning())
+
+    def test_a_paid_call_whose_usage_is_unknown_is_marked_and_the_warning_says_the_total_is_short(self):
+        """ORTA-07 (D-150): a call whose usage never came back is not a known zero. Its line says so, and the
+        warning shows even below the limit, because the known total may be lower than what was paid."""
+        path = ledger_file()
+        clock = noon()
+        ledger = UsageLedger(path, now=clock)
+        ledger.record("haiku", input_tokens=1_000_000, output_tokens=0, seconds=1.0)
+        self.assertIsNone(ledger.warning())
+        ledger.record("haiku", input_tokens=0, output_tokens=0, seconds=30.0, outcome="skipped", usage_known=False)
+        lines = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        self.assertNotIn("usage", lines[0])
+        self.assertEqual(lines[1]["usage"], "unknown")
+        self.assertEqual(ledger.today()["haiku"],
+                         {"calls": 2, "input": 1_000_000, "output": 0, "thought": 0, "seconds": 31.0})
+        self.assertAlmostEqual(ledger.known_usd_today(), 0.10)
+        message = ledger.warning()
+        self.assertIn("at least 0.10 USD", message)
+        self.assertIn("1 paid call", message)
+        self.assertIn("3.00", message)
+        # Over the limit too, the warning still says the total is short.
+        ledger.record("haiku", input_tokens=30_000_000, output_tokens=0)
+        self.assertIn("at least 3.10 USD", ledger.warning())
+        # A new day starts with nothing unknown.
+        clock.moment = clock.moment + timedelta(days=1)
+        self.assertIsNone(ledger.warning())
+        # Unknown usage on a free provider costs nothing, and one with no price is never counted anyway.
+        free = UsageLedger(ledger_file(), now=noon())
+        for provider in ("gemini", "gemma", "mystery"):
+            free.record(provider, input_tokens=0, output_tokens=0, usage_known=False)
+        self.assertIsNone(free.warning())
 
     def test_broken_lines_are_skipped_and_good_ones_still_count(self):
         path = ledger_file()

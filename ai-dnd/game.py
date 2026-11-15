@@ -8819,6 +8819,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     journey = world.get("journey")
     if journey and journey.get("status") != "ARRIVED":
         return None
+    saved = None
     try:
         person = _thread_person(player_input, target_id)
         gate = world_threads.turn_gate(world, person, player_input) if isinstance(person, dict) else None
@@ -8835,11 +8836,14 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
                 and _physical_line(player_input)):
             return None
         session.require_player_can_act()
+        saved = session._capture_runtime_snapshot()
         return _carry_out_thread_turn(session, world, gate, person, player_input)
     except PlayerCannotAct:
         raise
     except Exception:
         town_knowledge.log_failure()
+        if saved is not None:  # D-011: a writer that broke half way leaves no coin, hour or item of it behind
+            session._restore_runtime_snapshot(saved)  # in place: the turn above still holds these very dicts
         session._thread_turn = None
         return None
 
