@@ -241,8 +241,9 @@ class BoundaryTests(NativeBase):
         self.session.character["exhaustion"] = 5
         with patch.object(self.session.rng, "randint", return_value=20):
             result = self.session.resolve_species_trait_action("long_rest")
-        self.assertTrue(result["time_advance"]["condition_death"])
-        self.assertEqual(result["time_advance"]["elapsed_seconds"], 3600)
+        self.assertFalse(result["effects"]["rest_completed"])  # D-145: the death answers in every rest's shape
+        self.assertTrue(result["effects"]["time_result"]["condition_death"])
+        self.assertEqual(result["effects"]["time_result"]["elapsed_seconds"], 3600)
         self.assertEqual(self.session.character["current_hp"], 0)
         self.assertEqual(self.session.character["exhaustion"], 6)
         self.assertTrue(world["death_state"]["dead"])
