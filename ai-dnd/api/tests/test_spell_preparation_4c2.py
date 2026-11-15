@@ -296,7 +296,8 @@ class PrepareWindow(unittest.TestCase):
         view = spell_preparation.view(w)
         self.assertEqual(view, {"supported": True, "blocked_reason": None, "class_name": "Wizard", "open": True,
                                 "reason": "creation",
-                                "limit": 4, "candidates": BOOK, "prepared": [], "spellbook": BOOK})
+                                "limit": 4, "candidates": BOOK, "prepared": [], "spellbook": BOOK,
+                                "spellbook_options": [], "suggested_spellbook": []})  # D-039: only a bookless Wizard gets these
         c = prepper("Cleric")
         self.assertEqual(spell_preparation.view(c)["candidates"], [s["id"] for s in SPELLS_CATALOG["Cleric"]["spells_level_1"]])
 
