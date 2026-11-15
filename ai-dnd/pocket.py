@@ -292,11 +292,33 @@ def _tells_the_purse(words: list[str]) -> bool:
         _YOUR_MONEY.search(joined) or _BARE_KESEN.search(joined)))
 
 
+# Coin going into or out of the player's purse (D-209): the purse named with a way in or out ('kesene', 'kesenden',
+# 'kesenin içine', 'your purse'), coin named, and a verb of coin moving, all in one sentence. 'Kesene bakıyorsun' (no
+# coin) and 'bakır fenerli bir adam giriyor' (no purse) are story. Verb forms are spelled out where a bare stem is
+# another word: 'dokuz' (nine), 'düşün' (think), 'düşman', 'akşam', 'alın'.
+_PURSE_WAY = re.compile(r"\b(?:kesen(?:iz)?(?:e|den)|kesen(?:iz)?in (?:ic|dis)\w*|your (?:coin )?(?:purse|pouch))\b")
+# 'altına/altında/altından' is 'under it' ('masanın altına düşüyor'), not gold. 'ekle' narrows to 'ekli-' ('ekliyor'),
+# 'öde' to 'ödü-' ('ödüyor'); 'at', 'al' and 'dol' are spelled out ('at' a horse, 'alın', 'dolu' full).
+_COIN_WORD = re.compile(r"\b(?:bakir|gumus|altin(?!(?:a|da|dan)\b)|sikke|para|akce|copper|silver|gold|coins?)\w*")
+_COIN_MOVES = re.compile(
+    r"\b(?:gir\w*|cik\w*|eksil\w*|azal\w*|ekle\w*|ekli\w*|harc\w*|gid\w*|git\w*|gel\w*|dus(?:u|t|er|mus|up|en)\w*"
+    r"|ode\w*|oduy\w*|at(?:iyor|ti|ar|ip|mis)\w*|al(?:iyor|di|ip|ir|mis)\w*|dol(?:uyor|du|ar|up|mus)\w*"
+    r"|dok(?:uy|ul|t|er|up)\w*|ak(?:iyor|ti|ar|ip|mis)\w*|koy(?:u|d|ar|mus|up)\w*|say(?:i|d|ar)\w*|ver(?:i|d|ec|ir)\w*"
+    r"|goes|go|went|gone|enters?|entered|leaves?|leaving|falls?|fell|drops?|dropped|slips?|slipped|added|puts?"
+    r"|taken|spent|spend)\b")
+
+
+def _tells_coin_moving(sentence: str) -> bool:
+    folded = living_world.normalize_text(sentence)
+    return bool(_PURSE_WAY.search(folded) and _COIN_WORD.search(folded) and _COIN_MOVES.search(folded))
+
+
 def without_false_purse(narration: Any, world: dict[str, Any]) -> Any:
     """Repair (D-142): a sentence that tells the player's purse a sum the engine does not hold leaves the line.
 
     Only the figure of the clause that names the purse counts; a figure in coin no unit can price ('90 sikke') cannot
-    be the purse either, so it goes too.
+    be the purse either, so it goes too. D-209: it is only called on a turn that moved no coin, so a sentence that tells
+    coin going into or out of the purse ('Kesene 20 bakır giriyor.') is false whatever its figure, and goes too.
     """
     if not isinstance(narration, str) or not narration.strip():
         return narration
@@ -304,7 +326,7 @@ def without_false_purse(narration: Any, world: dict[str, Any]) -> Any:
     held = shop_trade.purse_cp(world)
     kept = []
     for sentence in re.split(r"(?<=[.!?…])\s+", narration.strip()):
-        false = False
+        false = _tells_coin_moving(sentence)
         for words in _purse_clauses(sentence):
             if not _tells_the_purse(words):
                 continue

@@ -80,7 +80,7 @@ TURKISH_NAMES = {
     "agir tatar yayi": "heavy_crossbow", "buyuk kilic": "greatsword",
     "pala": "scimitar", "mizrak": "spear", "buyuk balta": "greataxe",
     "el baltasi": "handaxe", "sopa": "club", "gurz": "mace", "mec": "rapier",
-    "kirbac": "whip",
+    "kirbac": "whip", "cirit": "javelin",
 }
 # Everyday stems that only ever mean a weapon the speaker already owns.
 OWNED_STEMS = {**TURKISH_NAMES, "balta": "greataxe", "yay": "shortbow"}

@@ -199,6 +199,25 @@ class StartupSafetyTests(unittest.TestCase):
         # Once complete, a plain reopen needs no approval.
         CampaignStore(path)
 
+    def test_complete_file_keeps_its_journal_mode_without_migration_approval(self):
+        # D-195: an unapproved open of a complete current-version file must not rewrite its header to WAL.
+        path = _temporary(self.directory.name)
+        CampaignStore(path)
+        connection = sqlite3.connect(path)
+        try:
+            self.assertEqual(connection.execute("PRAGMA journal_mode = DELETE").fetchone()[0], "delete")
+        finally:
+            connection.close()
+        before = path.read_bytes()
+        self.assertEqual(before[18:20], b"\x01\x01")
+        CampaignStore(path)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertFalse(Path(str(path) + "-wal").exists())
+
+        # With approval the store still sets WAL, as a new file gets on first open.
+        CampaignStore(path, allow_schema_migration=True)
+        self.assertEqual(path.read_bytes()[18:20], b"\x02\x02")
+
     def test_explicit_migration_approval_upgrades_a_temporary_database(self):
         path = _temporary(self.directory.name)
         _version_five(path)
