@@ -13,7 +13,10 @@
         "role": "Muhafız",
         "current_hp": 12,
         "inventory": [
-          "Kalkan"
+          {
+            "item_id": "item_900003",
+            "name": "Kalkan"
+          }
         ]
       }
     ],
@@ -41,6 +44,11 @@
         "kese": 40,
         "kisi_kese": {
           "kavsim": 30
+        },
+        "kisi_esya": {
+          "kavsim": {
+            "Kalkan": 1
+          }
         }
       }
     }
