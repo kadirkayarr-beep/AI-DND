@@ -15970,7 +15970,7 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
         r'(?:onu korkutmaya|gozdagi vermeye) calisiyorum|tehdit ediyorum|'
         r'(?:bir sey fark etmeye|tehlikeyi fark etmeye|bir sey duymaya) calisiyorum|'
         r'ses dinliyorum|(?:etrafi|cevreyi) gozlemliyorum|'
-        r'(?:gizleniyorum|saklaniyorum)|'
+        r'(?:(?:golgelere|karanliga|kalabaliga) )?(?:gizleniyorum|saklaniyorum)|'  # D-171: a hide may name its cover
         r'(?:yolumu|yonumu) (?:buluyorum|bulmaya calisiyorum)|'
         r'yiyecek (?:ariyorum|aramaya calisiyorum)|barinak kurmaya calisiyorum'
         r')[.! ]*', text,
@@ -15986,6 +15986,8 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
         raise _immediate_check_refusal(check_feature, 'This wording or route does not support an immediate {feature} check.')
     selected = deterministic_check_for_action(player_input)
     skill = selected.get('skill') if isinstance(selected, dict) and selected.get('action_type') == 'check' else None
+    if skill == 'Stealth' and _stealth_skill(player_input) != 'Stealth':
+        skill = None  # D-171: no cover, no hide to use the feature on
     if check_feature == 'tactical_mind':
         import fighter_features
         fighter_features.require_tactical_mind(_session())
