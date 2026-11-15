@@ -73,6 +73,21 @@ class DialogueJobTests(unittest.IsolatedAsyncioTestCase):
   again=await self.http.post(url+'/accept');self.assertEqual(again.status_code,200,again.text)
   cancel=await self.http.post(url+'/cancel');self.assertEqual(cancel.status_code,200,cancel.text)
   self.assertFalse(any(isinstance(i,dict) and i.get('item_id')=='parcel:'+q['quest_id'] for i in self.world['inventory']))
+ async def test_journal_cancel_gives_a_carried_parcel_back_to_its_giver(self):
+  # D-134: the journal's cancel closes the job like walking away in words; the parcel in hand goes back, in the ledger.
+  await self.setup_job();q=await self.offer();qid=q['quest_id'];self.reply.raw=None
+  url=f'/api/game/sessions/{self.session_id}/quests/{qid}'
+  accept=await self.http.post(url+'/accept');self.assertEqual(accept.status_code,200,accept.text)
+  take=await self.send('Paketi alıyorum',mode='do');self.assertEqual(take.status_code,200,take.text)
+  self.assertTrue(any(isinstance(i,dict) and i.get('item_id')=='parcel:'+qid for i in self.world['inventory']))
+  cancel=await self.http.post(url+'/cancel');self.assertEqual(cancel.status_code,200,cancel.text)
+  self.assertEqual(q['status'],'ABANDONED')
+  self.assertFalse(any(isinstance(i,dict) and i.get('item_id')=='parcel:'+qid for i in self.world['inventory']))
+  giver=next(n for n in self.world['npcs'] if n['id']==q['bindings']['source_npc_id'])
+  self.assertEqual([i.get('item_id') for i in giver.get('inventory',[]) if isinstance(i,dict) and i.get('item_id')=='parcel:'+qid],['parcel:'+qid])
+  ops=(self.world.get('flags',{}).get('economic_ledger') or {}).get('operations') or {}
+  self.assertEqual([(e['source_id'],e['recipient_id']) for e in ops.values() if e.get('purpose')=='item_transfer' and e.get('item_id')=='parcel:'+qid],
+                   [(q['bindings']['source_npc_id'],'player'),('player',q['bindings']['source_npc_id'])])
  async def test_urban_investigation_real_chain(self):
   await self.setup_job('URBAN_INVESTIGATION');q=await self.offer();qid=q['quest_id'];self.reply.raw=None
   accept=await self.http.post(f'/api/game/sessions/{self.session_id}/quests/{qid}/accept');self.assertEqual(accept.status_code,200,accept.text)

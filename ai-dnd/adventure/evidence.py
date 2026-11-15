@@ -43,6 +43,8 @@ def apply_dynamic_evidence(world, before_world, action_result):
             continue
         if quest.get("status") not in {"DISCOVERED", "ACTIVE", "BLOCKED"}:
             continue
+        if _fail_dead_rescue(world, quest):
+            continue
         for evidence in _evidence_from_turn(quest, world, before_world, action_result):
             note = _apply_one(quest, evidence)
             if note is not None:
@@ -85,9 +87,7 @@ def _evidence_from_turn(quest, world, before_world, action_result):
             found.extend(_matching(
                 quest, "defeat_entity", npc.get("id"), "combat", f"defeat:{turn}:{npc.get('id')}",
             ))
-            found.extend(_matching(
-                quest, "rescue_person", npc.get("id"), "combat", f"defeat:{turn}:{npc.get('id')}",
-            ))
+            # A beaten captive, dead or senseless, is not a rescued one (D-117).
     before_node = _dungeon_node(before_world)
     after_node = _dungeon_node(world)
     if isinstance(after_node, str) and after_node != before_node:
@@ -136,7 +136,11 @@ def _skill_targets(quest, world, kind):
     if kind == "investigation" and isinstance(world.get("location"), str):
         targets = [world["location"]]
         giver = quest.get("giver_npc_id")
-        if isinstance(giver, str):
+        # The giver counts only when present here; a check elsewhere never reaches them.
+        if isinstance(giver, str) and any(
+            isinstance(npc, dict) and npc.get("id") == giver and npc.get("location") == world["location"]
+            for npc in world.get("npcs", [])
+        ):
             targets.append(giver)
         return targets
     if kind in {"persuasion", "intimidation", "stealth"} and _dungeon_node(world) == "captive":
@@ -222,6 +226,28 @@ def _leave_unfinished_threat(quest, before_world, world):
     threat["visibility"] = "known"
 
 
+def _fail_dead_rescue(world, quest):
+    """A dead person cannot be rescued: the rescue and the whole adventure fail, unpaid, before this turn's
+    evidence applies; earlier steps or the kill itself never turn it into a partial success (D-117)."""
+    dead = {
+        npc.get("id") for npc in world.get("npcs", [])
+        if isinstance(npc, dict) and npc.get("combat_status") == "dead"
+    }
+    failed = False
+    for objective in quest.get("objectives", []):
+        if objective.get("type") != "rescue_person" or objective.get("target") not in dead:
+            continue
+        if objective.get("graph_state") not in {"ACTIVE", "HIDDEN"}:
+            continue
+        objective["graph_state"] = "FAILED"
+        objective["status"] = "failed"
+        objective["visibility"] = "known"
+        failed = True
+    if failed:
+        _close(world, quest, "FAILED", "failed")
+    return failed
+
+
 def fail_objective(quest, objective_id):
     objective = next(
         (item for item in quest.get("objectives", []) if item.get("objective_id") == objective_id),
@@ -266,6 +292,10 @@ def _close_if_resolved(world, quest):
     else:
         outcome = "success"
         state = "COMPLETED"
+    _close(world, quest, state, outcome)
+
+
+def _close(world, quest, state, outcome):
     turn = world.get("flags", {}).get("turn_index", quest["updated_turn"])
     if not isinstance(turn, int) or turn < quest["updated_turn"]:
         turn = quest["updated_turn"]
