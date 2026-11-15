@@ -17,6 +17,15 @@ class ForeignObjectTokenTests(unittest.TestCase):
         self.assertIsNone(grounded_action._foreign_object(['dalia','hanini','kiriyorum'],2,{},candidates))
 
 
+class SomeoneIsNoPlaceTests(unittest.TestCase):
+    def test_someone_is_not_a_typo_of_a_place_noun(self):
+        # D-075: "Yakınımdaki birine yaklaşıyorum" walked the player to the town's bakery ("birin" ~ "firin").
+        for token in ('birine','birini','biri','birisine','birinin','biriyle'):
+            self.assertFalse(grounded_action._noun_hit('firin',['yakinimdaki',token,'yaklasiyorum']),token)
+        self.assertTrue(grounded_action._noun_hit('firin',['firina','gidiyorum']))
+        self.assertTrue(grounded_action._noun_hit('firin',['firna','gidiyorum']),'a real typo of the noun still binds')
+
+
 class ForeignObjectHttpTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):await fixture.CampaignApiTests.asyncSetUp(self)
     async def asyncTearDown(self):await fixture.CampaignApiTests.asyncTearDown(self)
