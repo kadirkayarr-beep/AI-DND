@@ -157,7 +157,14 @@ _STATE_CLAIM = re.compile(
     r"|\bsana\s+(?:dogru\s+|kadar\s+)?(?:getir|uzat|ver|birak|tasi|ulastir|gonder|firlat)\w*"
     r"|\b(?:artik|simdi)\s+(?:sende|elinde)(?:dir)?\b|\bsende\s+kal\w*|\bkucagina\s+(?:birak|koy|dus)\w*"
     r"|\b(?:brings?|brought|hands|handed|gives?|gave|passe[sd]|carrie[sd]|delivers?|delivered|drops|dropped"
-    r"|tosse[sd])(?:\s+\w+){0,4}?\s+to\s+you\b")
+    r"|tosse[sd])(?:\s+\w+){0,4}?\s+to\s+you\b"
+    # D-210: a thing put on the player's body ("yüzüğü parmağına geçirir") or called theirs ("artık senin."); a body
+    # with no putting ("parmağının ucunda", "omzuna dokunur") and a turn ("artık senin sıran") are not a claim.
+    # Review: 'koluna doğru' is a way past the body, and a choice, a verdict, a turn or a victory called yours is no thing.
+    r"|\b(?:parmagin|parmaklarin|boynun|bilegin|bileklerin|kolun|kollarin|belin|omzun|omuzlarin)[ae](?!\s+dogru\b)"
+    r"(?:\s+\S+){0,2}?\s+(?:gec|tak(?!ip)|dolan|giy|yerles)\w*"
+    r"|(?<!secim )(?<!karar )(?<!zafer )(?<!tercih )(?<!sira )(?<!soz )"
+    r"(?:\bartik\s+senin\s*(?:[.!;,]|$)|\bsenin\s+olsun\b)|\bonto\s+your\s+(?:fingers?|neck|wrists?|arms?)\b")
 
 
 def claims_state_change(text: Any) -> bool:

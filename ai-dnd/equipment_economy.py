@@ -675,6 +675,10 @@ def price(item):
     if not weapon:
         fail("price_source_unavailable")
     value = Decimal(str(weapon["cost_gp"])) * 100
+    # D-199: a counted line ("10 Dart", "5 Hançer") is that many of its own weapon, so it is worth that many.
+    counted = re.match(r"\s*(\d+)\s+", item.get("name")) if isinstance(item.get("name"), str) else None
+    if counted and (lookup(item["name"]) or {}).get("weapon_id") == weapon["weapon_id"]:
+        value *= int(counted.group(1))
     if value != value.to_integral_value() or value < 0:
         fail("invalid_catalog_price")
     return int(value)

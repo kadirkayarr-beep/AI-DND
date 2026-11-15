@@ -225,6 +225,12 @@ def arm_table_absence(world, location_id):
         sequence = 0
     number = max([sequence, *used]) + 1
     world["table_absence_sequence"] = number
+    # D-219: a finished absence is hidden history nobody reads; drop it so
+    # departures do not grow the list. The sequence above keeps ids unique.
+    needed = {d for event in events for d in event.get("dependencies", [])}
+    events[:] = [event for event in events if not (
+        _table_absence(event) and event.get("status") != "PENDING"
+        and not event.get("player_observed") and event.get("event_id") not in needed)]
     return register_event(
         world, event_id=f"absence:{number}", window_start=now,
         window_end=now + ABSENCE_WINDOW, location_id=location_id,
