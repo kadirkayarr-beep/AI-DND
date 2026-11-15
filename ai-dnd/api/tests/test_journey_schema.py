@@ -512,6 +512,21 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
             ["tezgah: beklenen {'key': 'bira'}, gözlenen yok"],
         )
 
+    def test_kisi_kese_null_means_the_purse_was_never_counted(self):
+        """D-207: a purse a step opened and undo took away again is pinned as null (no wallet at all); a wallet that
+        holds 0 is a different state and does not pass for it."""
+        (step,) = load_scenario(write_scenario(small_scenario(
+            steps=[{"say": "x", "expect": {"kisi_kese": {"kavsim": None, "barman": 4}}}]))).steps
+        self.assertEqual(step.expect, {"kisi_kese": {"kavsim": None, "barman": 4}})
+        self.assertEqual(check_expect({"kisi_kese": {"kavsim": None}}, {"kisi_kese": {"barman": 4}}), [])
+        self.assertEqual(check_expect({"kisi_kese": {"kavsim": None}}, {"kisi_kese": {"kavsim": 0}}),
+                         ["kisi_kese.kavsim: beklenen yok, gözlenen 0"])
+        self.assertEqual(check_expect({"kisi_kese": {"kavsim": 16}}, {"kisi_kese": {}}),
+                         ["kisi_kese.kavsim: beklenen 16, gözlenen yok"])
+        for value in ({"kavsim": "0"}, {}, {"kavsim": False}):
+            with self.subTest(value=value), self.assertRaises(ScenarioError):
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"kisi_kese": value}}])))
+
     def test_check_expect_forbidden_text_is_case_insensitive(self):
         problems = check_expect(
             {"yasak_metin": "/__DIRECT_shop_buy__"},

@@ -123,8 +123,9 @@ EXPECT_VALUE_RULES = {
     "envanter": (lambda value: _count_map(value) and all(count > 0 for count in value.values()),
                  "ad -> 1 ya da daha büyük adet nesnesi"),
     "cephane": (_count_map, "tür -> 0 ya da daha büyük sayı nesnesi"),
-    "kisi_kese": (lambda value: _filled_mapping(value) and all(type(cp) is int for cp in value.values()),
-                  "boş olmayan kişi -> bakır nesnesi"),
+    # null: that person has no purse at all (never counted, or undo took the opened one away; D-207)
+    "kisi_kese": (lambda value: _filled_mapping(value) and all(cp is None or type(cp) is int for cp in value.values()),
+                  "boş olmayan kişi -> bakır (ya da null: kesesi yok) nesnesi"),
     "gorev": (_filled_mapping, "boş olmayan nesne"),
     "kip": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
     "kart": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
@@ -379,7 +380,10 @@ def _trail_matches(want: Mapping, seen: Mapping) -> bool:
 def _check_subset(key: str, want: Mapping, seen: Mapping) -> list[str]:
     problems = []
     for name in want:
-        if name not in seen or seen[name] != want[name]:
+        if key == "kisi_kese" and want[name] is None:  # D-207: null is a purse that is not there at all
+            if name in seen:
+                problems.append(_mismatch(f"{key}.{name}", None, seen[name]))
+        elif name not in seen or seen[name] != want[name]:
             problems.append(_mismatch(f"{key}.{name}", want[name], seen.get(name)))
     return problems
 

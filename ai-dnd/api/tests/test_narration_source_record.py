@@ -481,6 +481,7 @@ class FileWithoutTheSourceTable(unittest.IsolatedAsyncioTestCase):
     asyncTearDown = TypedTurnSource.asyncTearDown
     history = TypedTurnSource.history
     turn = TypedTurnSource.turn
+    undo = TypedTurnSource.undo
 
     def plain_rows(self):
         return saved_rows_without_sidecar(self.store.path, self.campaign_id)
@@ -509,11 +510,22 @@ class FileWithoutTheSourceTable(unittest.IsolatedAsyncioTestCase):
         # Reading wrote nothing: the table is still absent.
         self.assertNotIn(SIDECAR, tables(self.store.path))
 
-    async def test_a_turn_still_saves_and_its_source_is_kept_from_then_on(self):
+    async def test_a_turn_still_saves_and_its_source_is_kept_from_then_on_only_with_migration_approval(self):
         await self.turn()
         drop_source_table(self.store.path)
-        old = self.plain_rows()
+        # D-194: without migration approval the turn still saves, but the save makes no table and keeps no source.
+        unapproved_old = self.plain_rows()
         _, played, reported = await self.turn()
+        self.assertIn(reported, ENGINE_SOURCES)
+        self.assertEqual(len(self.plain_rows()), len(unapproved_old) + 1)
+        self.assertNotIn(SIDECAR, tables(self.store.path))
+        self.assertEqual(self.history()[-1]["narration"], played["narration"])
+        for row in self.history():
+            self.assertNotIn("narration_source", row)
+        # With approval the save makes the table, and the source is kept from then on.
+        old = self.plain_rows()
+        with patch.object(self.store, "_allow_schema_migration", True):
+            _, played, reported = await self.turn()
         self.assertIn(reported, ENGINE_SOURCES)
         self.assertEqual(len(self.plain_rows()), len(old) + 1)
         self.assertEqual(saved_rows(self.store.path, self.campaign_id),
@@ -551,6 +563,77 @@ class FileWithoutTheSourceTable(unittest.IsolatedAsyncioTestCase):
                                      "response": {"action_id": action_id}})
         self.assertEqual(self.plain_rows(), before)
         self.assertNotIn(SIDECAR, tables(self.store.path))
+
+    async def test_undo_still_works_and_its_rows_come_back_without_sources(self):
+        # D-080. Accepted loss: the sources saved before the table went are gone, so the undone row comes back
+        # without its source; the undo itself lands, and a reload reads the same story.
+        first_id, played, reported = await self.turn()
+        self.assertEqual(self.history()[-1]["narration_source"], reported)
+        drop_source_table(self.store.path)
+        before = self.plain_rows()
+        # Without migration approval the undo saves its marker row and makes no table.
+        await self.undo(first_id)
+        rows = self.plain_rows()
+        self.assertEqual(rows[:-1], before)
+        self.assertEqual((rows[-1][0], rows[-1][1]), (before[-1][0] + 1, UNDO_HISTORY_MARKER))
+        self.assertNotIn(SIDECAR, tables(self.store.path))
+        undone, marker = self.history()[-2:]
+        self.assertEqual((undone.get("undone"), undone["narration"]), (True, played["narration"]))
+        self.assertTrue(marker.get("undo_note"))
+        for row in self.history():
+            self.assertNotIn("narration_source", row)
+        detail = await self.http.get(f"/api/game/campaigns/{self.campaign_id}")
+        self.assertEqual(detail.status_code, 200, detail.text)
+        self.assertEqual(len(detail.json()["history"]), len(rows))
+        for row in detail.json()["history"]:
+            self.assertNotIn("narration_source", row)
+        # With approval the undo makes the table and keeps only its own marker's source; the undone row has none.
+        second_id, played, _ = await self.turn()
+        old = self.plain_rows()
+        with patch.object(self.store, "_allow_schema_migration", True):
+            await self.undo(second_id)
+        self.assertEqual(saved_rows(self.store.path, self.campaign_id),
+                         [*((sequence, message, None) for sequence, message, _ in old),
+                          (old[-1][0] + 1, UNDO_HISTORY_MARKER, "deterministic_system")])
+        # The read-time `undone`/`undo_note` marks are not checked here: the two turns and the two undo rows share one
+        # narration each and may share one second, and history_view.undo_links then proves no link (it never
+        # guesses). The sources, which D-080 asks about, are checked by row.
+        undone, marker = self.history()[-2:]
+        self.assertEqual(undone["narration"], played["narration"])
+        self.assertNotIn("narration_source", undone)
+        self.assertEqual((marker["player_message"], marker["narration_source"]),
+                         (UNDO_HISTORY_MARKER, "deterministic_system"))
+        for row in self.history()[:-1]:
+            self.assertNotIn("narration_source", row)
+        # The table is back, so a plain reopen (no approval) reads the same story with the same sources.
+        reopened = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        self.assertEqual(self.history(reopened), self.history())
+
+    async def test_a_table_the_save_made_again_is_the_first_opens_table_and_delete_takes_its_rows(self):
+        # D-081. The save path makes the table with the same DDL as the first open, so the cascade holds there too.
+        await self.turn()
+        first_open_sql = table_sql(self.store.path)
+        drop_source_table(self.store.path)
+        with patch.object(self.store, "_allow_schema_migration", True):
+            _, _, reported = await self.turn()
+        self.assertEqual(table_sql(self.store.path), first_open_sql)
+        self.assertEqual(saved_rows(self.store.path, self.campaign_id)[-1][2], reported)
+        self.assertTrue(self.store.delete_campaign(self.campaign_id))
+        connection = sqlite3.connect(self.store.path)
+        try:
+            self.assertEqual(connection.execute(f"SELECT COUNT(*) FROM {SIDECAR}").fetchone()[0], 0)
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM campaign_history").fetchone()[0], 0)
+        finally:
+            connection.close()
+
+
+def table_sql(path):
+    connection = sqlite3.connect(path)
+    try:
+        return connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", (SIDECAR,)).fetchone()[0]
+    finally:
+        connection.close()
 
 
 def reported_sources(source):

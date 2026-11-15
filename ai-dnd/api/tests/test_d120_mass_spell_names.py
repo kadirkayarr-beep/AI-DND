@@ -13,9 +13,30 @@ from api.tests.test_dilim4c_spell_resolvers import CombatRequestError, cleric, h
 
 
 class MassSpellNameTests(unittest.TestCase):
+    def test_a_typed_english_mass_healing_word_gets_the_not_yet_line_without_spending(self):
+        # D-214 (boundary moved, approval list): the English name now reaches the layer-3 owner like Fireball, so the
+        # turn ends with "not in the engine yet" instead of an unsupported_spell error. Nothing is spent or healed: the
+        # character is unchanged; the world moves only by the turn's own bookkeeping (turn index, the player's combat
+        # record copying the character's unchanged HP).
+        s, _enemy = cleric()
+        s.character["current_hp"] = 10
+        world_before, character_before = held(s)
+        result = typed(s, "I cast Mass Healing Word on myself", dice=2)
+        action = result["action_result"]
+        self.assertEqual((action["status"], action["reason"], action["spell"], action["slot_spent"]),
+                         ("unsupported", "spell_not_in_engine", "Mass Healing Word", False))
+        self.assertIn("Mass Healing Word büyüsü henüz motorda yok", result["narration"])
+        world_after, character_after = held(s)
+        self.assertEqual(character_after, character_before)
+        self.assertEqual(world_after["flags"].pop("turn_index"), world_before["flags"].pop("turn_index") + 1)
+        record = world_after["combat"]["participant_records"][0]
+        self.assertEqual((record["id"], record["current_hp"], record["max_hp"]),
+                         ("player", character_before["current_hp"], character_before["max_hp"]))
+        world_after["combat"]["participant_records"][0] = world_before["combat"]["participant_records"][0]
+        self.assertEqual(world_after, world_before)
+
     def test_a_typed_mass_healing_word_is_refused_without_spending(self):
-        for line in ("I cast Mass Healing Word on myself",
-                     "Toplu Şifa Sözü büyüsünü kendime yapıyorum",
+        for line in ("Toplu Şifa Sözü büyüsünü kendime yapıyorum",
                      "toplu sifa sozu buyusunu kendime yapiyorum"):
             with self.subTest(line=line):
                 s, _enemy = cleric()

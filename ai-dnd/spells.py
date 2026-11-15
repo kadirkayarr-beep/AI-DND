@@ -224,8 +224,10 @@ def classify_cast_phrase(player_input: str) -> dict[str, str] | None:
 
     A match is deterministic. The model must not relabel it as a weapon attack.
     """
+    import spell_effects
     folded = fold_text(player_input)
-    if not _CAST_VERB.search(folded):
+    # D-215: "cast" in an everyday phrase ("cast a glance") is no casting verb; spell names are kept (D-071's rule).
+    if not _CAST_VERB.search(spell_effects._CAST_IDIOM.sub(" ", spell_effects._spell_names().sub(" spell ", folded))):
         return None
     named = without_names(folded, _LONGER_NAMES)
     for alias, spell_id in _V1_ALIASES:

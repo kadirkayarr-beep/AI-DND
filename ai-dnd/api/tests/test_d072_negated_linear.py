@@ -19,9 +19,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import spell_effects  # noqa: E402
 
 # The pattern as it stood before D-072 (no word boundary before the two ``\w+`` alternatives); answers must not change.
+# D-213 narrowed the question-particle alternative to a closed set of endings; the reference carries that same
+# alternative, so this test still checks only what D-072 changed.
 _OLD_NEGATED = re.compile(
     r"\b(?:not|don't|dont|never|degil|should|would|could|shall|if|maybe|acaba|keske|eger|belki)\b"
-    r"|\bm[iu](?:s\w*|y\w*)?\b|istem(?:iyor|em|ez|edi|eyece)|\w+(?:sam|sem|saydim|seydim)\b|\w+m[ae]li\b"
+    r"|\bm[iu](?:y?d[iu](?:m|n|k|n[iu]z|lar|ler)?|y?m[iu]s(?:[iu]m|s[iu]n(?:[iu]z)?|[iu]z|lar|ler)?|y[iu]m"
+    r"|s[iu]n(?:[iu]z)?|y[iu]z|d[iu]r)?\b"
+    r"|istem(?:iyor|em|ez|edi|eyece)|\w+(?:sam|sem|saydim|seydim)\b|\w+m[ae]li\b"
     r"|\b(?:kullan|yap|at|dene)m(?:a\b|iyor|am\b|ayacag|adi)")
 
 
