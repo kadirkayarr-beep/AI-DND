@@ -1496,8 +1496,9 @@ def consume(session, action_result, before_world, player_input=""):
             for route in objective["routes"]:
                 kind, target = route["kind"], route["target"]
                 matched = (
-                    (kind == "visit" and action_result.get("action") == "travel"
-                     and action_result.get("status") == "completed"
+                    # D-146: arrival owners name their receipts differently (travel "completed"/"resolved",
+                    # grounded walk "completed"); the visit is the committed move into the target itself.
+                    (kind == "visit" and action_result.get("success") is not False
                      and before_world.get("location") != world["location"]
                      and target == world["location"])
                     or (kind == "talk" and action_result.get("action") == "dialogue"
