@@ -283,7 +283,7 @@ class TurnRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     interaction_mode: Literal["say", "do", "ask_dm"] | None = None
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
-    action_id: UUID | None = None
+    action_id: UUID
     combat_action: CombatActionInput | None = None
     check_feature: Literal["primal_knowledge", "tactical_mind"] | None = None
     combat_id: str | None = Field(default=None, min_length=1, max_length=128)
@@ -750,7 +750,7 @@ class SpeciesTraitActionRequest(BaseModel):
     armed: bool | None = None
     healing_amount: int | None = Field(default=None, gt=0, strict=True)
     remove_poisoned: StrictBool | None = None
-    action_id: UUID | None = None
+    action_id: UUID
 
     @field_validator("action_id")
     @classmethod
@@ -797,7 +797,7 @@ class SpellPrepareRequest(BaseModel):
     # so an oversized value is refused before it can reach a stored receipt through `dropped`.
     prepared: Annotated[list[Annotated[StrictStr, Field(max_length=64)]], Field(max_length=32)] | None = None
     close: StrictBool = False
-    action_id: UUID | None = None
+    action_id: UUID
 
 
 class SpellPrepareDropped(BaseModel):

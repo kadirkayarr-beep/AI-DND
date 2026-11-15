@@ -151,7 +151,7 @@ class WieldFront(JourneyCase):
     async def test_a_dagger_the_hand_will_not_take_is_an_olmadi_note_not_a_turn_error(self):
         self.world["inventory"].append("Hançer")                         # a dagger, and no longsword in the bag
         equipment_economy.materialize(self.world)                         # given an item id, so the reading lists it
-        # A hand alias nothing in the bag answers to and no catalog weapon names. (D-178: a new world's catalog hand,
+        # A hand alias nothing in the bag answers to and no catalog weapon names. (D-184: a new world's catalog hand,
         # "longsword" with no longsword in the bag, now holds nothing, so the dagger is drawn into it.)
         self.world["equipment"] = {"main_hand": "Paslı Kanca", "off_hand": None}
         self.manager.save_campaign(self.campaign_id)

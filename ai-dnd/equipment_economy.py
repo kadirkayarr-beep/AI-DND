@@ -815,7 +815,7 @@ def _apply(world, operation, args):
             fail("hand_occupied")
         hands[hand] = item["item_id"]
         if None not in hands.values():
-            # D-116/D-178: a creation shield has no hand entry but holds one; a weapon in each hand puts it down,
+            # D-116/D-184: a creation shield has no hand entry but holds one; a weapon in each hand puts it down,
             # as a two-handed weapon does, and `gear.settle_shield` takes its Armor Class share off.
             shield = _shield_in_hand(world, hands)
             if shield is not None and shield["item_id"] not in hands.values():

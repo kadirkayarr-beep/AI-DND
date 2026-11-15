@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import sys
 from typing import Any
+from uuid import uuid4
 
 import httpx
 
@@ -52,7 +53,7 @@ def main() -> int:
             for label, message in steps:
                 response = client.post(
                     api_path(f"/sessions/{session_id}/turn"),
-                    json={"message": message},
+                    json={"message": message, "action_id": str(uuid4())},
                 )
                 response.raise_for_status()
                 turn = response.json()

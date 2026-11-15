@@ -60,12 +60,12 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(manager.get(resumed['session_id']).game_session.serialize_game_state(),s.serialize_game_state())
 
     async def test_old_actual_con_receipt_replays_without_schema_hash_drift(self):
-        fixture=json.loads(FIXTURE.read_text())
+        fixture=json.loads(FIXTURE.read_text(encoding='utf-8'))
         path=Path(self.temporary_directory.name)/'old-con.sqlite3'
         with sqlite3.connect(path) as connection:
             connection.executescript(fixture['sqlite_dump'])
             connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
-        store=CampaignStore(path,bound_principal=TEST_PLAYER); manager=SessionManager(campaign_store=store)
+        store=CampaignStore(path,bound_principal=TEST_PLAYER,allow_schema_migration=True); manager=SessionManager(campaign_store=store)  # D-125: frozen older file, approved migration
         sid,r,*_=manager.resume_campaign(fixture['campaign']['campaign_id'])
         self.assertEqual(r.game_session.serialize_game_state(),fixture['runtime'])
         literal={'command':'level_up', **{k:v for k,v in fixture['request'].items() if k!='action_id'}}
@@ -192,7 +192,7 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
 
 
     async def test_live_options_expand_without_mutating_old_recorded_preview(self):
-        fixture=json.loads(FIXTURE.read_text())
+        fixture=json.loads(FIXTURE.read_text(encoding='utf-8'))
         self.assertEqual(fixture['preview']['supported_asi_choices'],[{'feat':'Ability Score Improvement','increase':{'constitution':2}}])
         body,r=await self.earned();before=r.game_session._capture_runtime_snapshot()
         preview=await self.ready(body)

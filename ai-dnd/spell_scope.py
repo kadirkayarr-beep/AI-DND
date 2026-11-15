@@ -211,9 +211,10 @@ def _validate_v2(state, character):
         raise ValueError("Only a Wizard keeps a spellbook.")
     if window is None:
         return
-    if (cls not in PREPARING or not isinstance(window, dict) or set(window) != {"opened_second", "reason"}
+    if (cls not in PREPARING or not isinstance(window, dict) or set(window) - {"rest_swap"} != {"opened_second", "reason"}
             or type(window["opened_second"]) is not int or window["opened_second"] < 0
-            or not isinstance(window["reason"], str) or window["reason"] not in WINDOW_REASONS):
+            or not isinstance(window["reason"], str) or window["reason"] not in WINDOW_REASONS
+            or ("rest_swap" in window and (window["rest_swap"] is not True or window["reason"] != "level_up"))):  # D-069
         raise ValueError("Invalid saved spell preparation window.")
 
 

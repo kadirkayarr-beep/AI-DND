@@ -220,9 +220,13 @@ class PreparedCaster(ClassProgression):
                 state["cantrips"].extend(choices["cantrips"])
                 changes.append({"kind": "cantrips", "added": list(choices["cantrips"])})
             window = state["prepare_window"]
+            # D-069: a step inside the open Long Rest moment keeps that moment's swap (`rest_swap`) until the moment ends.
+            rest_open = window is not None and window["reason"] == "long_rest" and spell_preparation.window_open(session)
             if window is None or window["reason"] not in spell_preparation.STANDING:
                 # The grown list is chosen by the player in a window that waits for the first list (PHB: choose additional spells).
                 state["prepare_window"] = {"opened_second": spell_scope.clock_second(session.world_state), "reason": "level_up"}
+                if rest_open:
+                    state["prepare_window"]["rest_swap"] = True
             character["cantrips"] = list(state["cantrips"])
             character["spell_slots_remaining"] = copy.deepcopy(state["slots"])
             gain = (projection["unpaid_base_gain"] if projection

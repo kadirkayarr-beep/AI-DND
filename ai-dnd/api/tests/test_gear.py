@@ -129,7 +129,7 @@ class GearRules(JourneyCase):
 
     def test_a_hand_the_owner_will_not_change_is_refused_without_an_error(self):
         w = self.world(bag=["Hançer"], main=None, off=None)
-        # A hand alias nothing in the bag answers to and no catalog weapon names. (D-178: a new world's catalog hand,
+        # A hand alias nothing in the bag answers to and no catalog weapon names. (D-184: a new world's catalog hand,
         # "longsword" with no longsword owned, now holds nothing, so the dagger is drawn into it.)
         w["equipment"]["main_hand"] = "Paslı Kanca"
         before = copy.deepcopy(w)

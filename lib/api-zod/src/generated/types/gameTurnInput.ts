@@ -49,11 +49,8 @@ export interface GameTurnInput {
      * @nullable
      */
   target_id?: string | null;
-  /**
-     * @nullable
-     * @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
-     */
-  action_id?: string | null;
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
+  action_id: string;
   /** One economic step (prepare, confirm or cancel a card), run on its own path with no free-text turn and no model call. A dead or unconscious player cannot prepare or confirm one (409 player_cannot_act, nothing applied). */
   economic_action?: EconomicAction | null;
 }

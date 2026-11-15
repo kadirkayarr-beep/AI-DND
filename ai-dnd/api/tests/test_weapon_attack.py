@@ -495,7 +495,7 @@ class WeaponTests(unittest.TestCase):
             self.assertEqual(s.world_state["equipment"], {"main_hand": lookup("Dagger")["weapon_id"], "off_hand": None})
 
     def test_worn_creation_shield_leaves_no_loading_hand_for_a_one_handed_ammunition_weapon(self):
-        # D-179: a creation shield (no hand entry) holds the other hand, as one registered in off_hand does; a
+        # D-185: a creation shield (no hand entry) holds the other hand, as one registered in off_hand does; a
         # one-handed ammunition weapon needs a free hand to load, so it does not fire beside the worn shield.
         for shield in ({"item_id": "shield_1", "name": "Kalkan"}, "Kalkan"):
             s, n = armed("Hand Crossbow", distance=30)

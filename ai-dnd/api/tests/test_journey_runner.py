@@ -703,7 +703,7 @@ class TheRunnerSortsEveryStep(JourneyCase):
                 (before, after), = seen
                 changed = {key for key in before.keys() | after.keys() if before.get(key) != after.get(key)}
                 self.assertLessEqual(changed, {"inventory", "item_sequence", "equipment"}, changed)
-                # D-178: the one hand change it may make is a player hand naming a catalog weapon the bag does not
+                # D-184: the one hand change it may make is a player hand naming a catalog weapon the bag does not
                 # hold at all (a new world's default "longsword"): that hand now holds nothing.
                 for hand, held in before["equipment"].items():
                     if after["equipment"][hand] != held:

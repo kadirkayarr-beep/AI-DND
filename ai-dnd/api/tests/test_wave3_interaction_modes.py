@@ -55,10 +55,10 @@ class Wave3InteractionModeApiTests(unittest.IsolatedAsyncioTestCase):
 
     def test_turn_request_accepts_only_supported_modes(self):
         for mode in ("say", "do", "ask_dm", None):
-            request = TurnRequest(message="test", interaction_mode=mode)
+            request = TurnRequest(message="test", action_id=uuid4(), interaction_mode=mode)
             self.assertEqual(request.interaction_mode, mode)
         with self.assertRaises(ValidationError):
-            TurnRequest(message="test", interaction_mode="chat")
+            TurnRequest(message="test", action_id=uuid4(), interaction_mode="chat")
 
     async def test_ask_dm_ignores_client_npc_target_before_engine_routing(self):
         original_plan = self.session.plan_living_world_turn
@@ -74,7 +74,7 @@ class Wave3InteractionModeApiTests(unittest.IsolatedAsyncioTestCase):
         self.session.plan_living_world_turn = capture_plan
         response = await self.http.post(
             f"/api/game/sessions/{self.session_id}/turn",
-            json={
+            json={"action_id": str(uuid4()), 
                 "message": "Envanterimde neler var?",
                 "interaction_mode": "ask_dm",
                 "target_id": "npc_forged",
@@ -100,7 +100,7 @@ class Wave3InteractionModeApiTests(unittest.IsolatedAsyncioTestCase):
         world["npcs"].append(npc)
         response = await self.http.post(
             f"/api/game/sessions/{self.session_id}/turn",
-            json={
+            json={"action_id": str(uuid4()), 
                 "message": "Ad\u0131n ne?",
                 "interaction_mode": "say",
                 "target_id": npc["id"],
@@ -128,7 +128,7 @@ class Wave3InteractionModeApiTests(unittest.IsolatedAsyncioTestCase):
                 with self.subTest(mode=mode):
                     response = await self.http.post(
                         f"/api/game/sessions/{self.session_id}/turn",
-                        json={"message": "Ona kılıcımla saldırıyorum", "interaction_mode": mode},
+                        json={"action_id": str(uuid4()), "message": "Ona kılıcımla saldırıyorum", "interaction_mode": mode},
                     )
                     self.assertEqual(response.status_code, 200, response.text)
                     self.assertEqual(captured[-1], ("Ona kılıcımla saldırıyorum", mode))
@@ -150,7 +150,7 @@ class Wave3InteractionModeApiTests(unittest.IsolatedAsyncioTestCase):
              patch.object(self.session, "run_player_turn", capture_turn):
             response = await self.http.post(
                 f"/api/game/sessions/{self.session_id}/turn",
-                json={
+                json={"action_id": str(uuid4()), 
                     "message": "Hamle", "interaction_mode": "ask_dm", "target_id": "npc_selected",
                     "combat_action": {"steps": [{"kind": "end_turn"}]},
                 },

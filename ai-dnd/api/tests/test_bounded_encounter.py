@@ -292,7 +292,7 @@ class HttpPersistenceAcceptanceTests(NativeBase):
 
     def test_unrelated_free_text_still_requires_existing_model_service(self):
         before = self.canonical()
-        response = self.client.post(f"/api/sessions/{self.sid}/turn", json={"message": "Etrafa bakıyorum"})
+        response = self.client.post(f"/api/sessions/{self.sid}/turn", json={"action_id": str(uuid4()), "message": "Etrafa bakıyorum"})
         self.assertEqual(response.status_code, 503)
         self.assertEqual(before, self.canonical())
 

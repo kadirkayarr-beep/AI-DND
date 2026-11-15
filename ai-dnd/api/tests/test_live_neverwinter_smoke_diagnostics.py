@@ -1,5 +1,6 @@
 """Offline regression tests for isolated Neverwinter live-smoke diagnostics."""
 
+from uuid import uuid4
 from pathlib import Path
 import shutil
 import tempfile
@@ -112,7 +113,7 @@ class NeverwinterShopHttpTests(unittest.IsolatedAsyncioTestCase):
                             ("Never add or create a local shop or merchant in this campaign.", "explicitly_declined"),
                         ):
                             with self.subTest(status=status):
-                                response = await http.post(f"/api/game/sessions/{session_id}/turn", json={"message": message})
+                                response = await http.post(f"/api/game/sessions/{session_id}/turn", json={"action_id": str(uuid4()), "message": message})
                                 self.assertEqual(response.status_code, 200, response.text)
                                 body = response.json()
                                 self.assertEqual(body["state"]["shops"], [])

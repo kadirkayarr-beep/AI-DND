@@ -1,4 +1,4 @@
-"""D-116 on the item command (`/item equip`), D-178 and the new shield-wearer's default hand.
+"""D-116 on the item command (`/item equip`), D-184 and the new shield-wearer's default hand.
 
 A creation shield has no hand entry, yet while it is in use its share is in the Armor Class and it holds a hand: a
 weapon taken into the second hand puts it down, as a two-handed weapon does (`equipment_economy._apply` "equip", then

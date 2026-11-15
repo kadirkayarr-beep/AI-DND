@@ -2,6 +2,7 @@
 import copy
 import unittest
 from unittest.mock import patch
+from uuid import uuid4
 
 import game
 import local_dialogue
@@ -46,7 +47,7 @@ class PairedHistoryTests(unittest.IsolatedAsyncioTestCase):
             contexts.append(copy.deepcopy(result))
             return result
         with patch.object(game, "_experimental_npc_dialogue_context", side_effect=capture):
-            await self.post(url, client, {"message": "Peki neden?", "interaction_mode": "say"})
+            await self.post(url, client, {"action_id": str(uuid4()), "message": "Peki neden?", "interaction_mode": "say"})
         self.assertEqual(client.chat_calls, 1)
         self.assertEqual(contexts[-1]["last_exchange"], {"player": expected["player"], "npc_reply": expected["npc"]})
         self.assertIn(expected["player"], str(client.message_batches[-1]))
