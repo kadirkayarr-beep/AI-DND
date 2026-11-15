@@ -1,0 +1,59 @@
+{
+  "id": "54b_baskasinin_kesesi_okuma",
+  "title": "Başkasının kesesini incelemek oyuncunun kesesini göstermez (D-095 YÜKSEK; Kadir oynayışı 2026-11-14): \"muhafızın kesesi var mı diye inceliyorum\" oyuncunun parasını söylemez; oyuncu kendi kesesini sorunca yine kendi kesesi gösterilir",
+  "source_items": [
+    95
+  ],
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 4000,
+      "kavsim": 30
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 5802,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "muhafızın kesesi var mı diye inceliyorum",
+      "expect": {
+        "kese": 4000,
+        "kisi_kese": {
+          "kavsim": 30
+        },
+        "yasak_metin": [
+          "Kesende",
+          "kesende 40",
+          "40 altın",
+          "4000"
+        ]
+      },
+      "script": {
+        "front": {
+          "kind": "bag"
+        }
+      }
+    },
+    {
+      "say": "kesemde ne var",
+      "script": {
+        "front": {
+          "kind": "bag"
+        }
+      },
+      "expect": {
+        "kese": 4000,
+        "gerekli_metin": "Kesende"
+      }
+    }
+  ]
+}
