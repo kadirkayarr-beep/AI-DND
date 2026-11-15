@@ -181,7 +181,7 @@ test('a success notice carries a check, not a warning', () => {
 });
 test('the play screen maps history through one helper', async () => {
   const source = readGameBrowserSource();
-  assert.equal((source.match(/historyToEntries\(/g) ?? []).length, 4);
+  assert.equal((source.match(/historyToEntries\(/g) ?? []).length, 5);
   assert.doesNotMatch(source, /history\.flatMap\(\(entry/);
   assert.match(source, /combatActive=\{Boolean\(visibleLastTurn\) && state\.combat\.active\}/);
 });

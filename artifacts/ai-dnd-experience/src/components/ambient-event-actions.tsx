@@ -81,7 +81,8 @@ export function ambientFollowUpMove(
   action: AmbientEventActionInputAction,
   status: AmbientEventResult['status'],
 ): string | null {
-  if (action === 'interact' && status === 'APPLIED') return 'Yanlarına gidip ne olduğunu soruyorum.';
+  // D-128: a joined event is already a story turn on the server (history row and undo checkpoint);
+  // an automatic second turn would split one click into two records and Undo would take back only the second.
   if (action === 'observe' && status === 'NO_EFFECT') return 'Bir süre durup çevremi gözlemliyorum.';
   return null;
 }

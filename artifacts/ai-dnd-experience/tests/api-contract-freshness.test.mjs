@@ -58,3 +58,9 @@ test('generated API carries the read-only counter quote and the trade refusal re
   // A quote is a read: no generated mutation may exist for it.
   assert.doesNotMatch(operations, /useApplyGameSessionShop|postGameSessionShop/);
 });
+
+test('generated action status carries the D-110 undo hint', async () => {
+  const [contract, schemas] = await Promise.all([readFile(contractPath, 'utf8'), readFile(schemasPath, 'utf8')]);
+  assert.match(contract, /^\s+undo_available:/m);
+  assert.match(interfaceBlock(schemas, 'GameActionStatus'), /^\s+undo_available\?: boolean;/m);
+});

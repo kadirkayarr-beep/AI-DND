@@ -41,6 +41,7 @@ from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignNotActiveError,
     CampaignNotFoundError,
+    CampaignStaleError,
     CampaignStorageError,
 )
 from api.persistence.campaign_serializer import restore_stored_campaign
@@ -670,6 +671,9 @@ class SessionManager:
             else record.narrative_memory
         )
         if record.campaign_id is None:
+            # D-127: the same rule the campaign store applies inside its commit: a refused id never gains a receipt.
+            if turn_action_receipt is not None and turn_action_receipt["action_id"] in record.refused_actions:
+                raise CampaignStaleError("This action was already refused and can no longer be applied.")
             record.narrative_memory = candidate_memory
             self._remember_combat_entry(record, combat_history_entry)
             if turn_action_receipt is not None:
