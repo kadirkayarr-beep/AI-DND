@@ -2451,9 +2451,11 @@ def create_app(
                 # D-003: an award this command paid (a fight it ended, a bounty it closed) is announced by this
                 # command and its history entry, not one turn late by the next play turn (whose Undo would repeat it).
                 paid = session._publish_level_up({}).get("level_up")
-                if paid is not None:
-                    import xp
-                    result["message"] = f"{result['message']} {xp.award_line(paid)}"
+                import xp
+                lines = [xp.award_line(paid)] if paid is not None else []
+                lines += session._take_xp_unrecorded()  # D-061: a forfeited award's line goes the same way
+                if lines:
+                    result["message"] = f"{result['message']} {' '.join(lines)}"
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
                     action_id=action_id,
