@@ -1284,7 +1284,27 @@ def open_scare_try(player_input) -> bool:
 
 
 def deterministic_check_for_action(player_input):
-    """Map clear, known actions before consulting the model classifier."""
+    """Map clear, known actions before consulting the model classifier.
+
+    D-094: the front reading may name this turn's social try (``_front_check``). It fills a line the words found no
+    check for and corrects a social guess of theirs (D-175: "yalan söyleyip söylemediğini" is Insight); a skill the
+    player names, a world check (a climb, a hide, a lock) and a narrative answer stay the words' (R-4, R-5). A
+    pickpocket is the theft route's, where the coin is.
+    """
+    found = _word_check_for_action(player_input)
+    reading = getattr(_session(), "_front_check", "")
+    if reading not in _READING_CHECKS or named_skill(player_input):
+        return found
+    if found is None or (found.get("action_type") == "check" and found.get("skill") in _READING_CHECKS):
+        return {"action_type": "check", "skill": reading, "difficulty": "medium"}
+    return found
+
+
+_READING_CHECKS = frozenset({"Intimidation", "Deception", "Persuasion", "Insight"})
+
+
+def _word_check_for_action(player_input):
+    """The engine's own word rules for a check, before any reading."""
     text = player_input.casefold()
     normalized_text = _normalize_turkish_typos(player_input)
     skill = named_skill(player_input)
@@ -19173,6 +19193,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     import world_happenings
     import world_threads
     session._front_deed = front_proposal.deed_in(reply)
+    session._front_check = "" if fighting else front_proposal.check_in(reply, player_input)  # D-094
     session._front_found = front_proposal.found_in(reply, player_input)
     session._front_rest = front_proposal.rest_in(reply, player_input)
     world_threads.note_want(world, front_proposal.want_in(reply, listed))

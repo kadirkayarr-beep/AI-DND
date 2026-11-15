@@ -34,12 +34,26 @@ _STEAL_TRY = re.compile(
 # A wish or plan, a time or a condition, speech, a refusal, somebody else's purse or friend, an attack: not a try now.
 _NOT_NOW = re.compile(
     r"\b(?:yarin|sonra|once|eger|degil|ama|ancak|yoksa|diyorum|soyluyorum|fisildiyorum|diye|keske|belki|sanki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*|kesemi|cebimi|cuzdanimi|"
-    r"keseni|cebini|arkadasim|dostum|ortagim|saldir\w*|vur\w*|oldur\w*|kilic\w*|bicakla\w*|hancerle\w*|bogazla\w*|tekmele\w*|yumrukla\w*|sapla\w*|des(?:ip|erek))\b|\w{2,}(?:unca|ince|inca|unce|sam|sem)\b"
+    r"keseni|arkadasim|dostum|ortagim|saldir\w*|vur\w*|oldur\w*|kilic\w*|bicakla\w*|hancerle\w*|bogazla\w*|tekmele\w*|yumrukla\w*|sapla\w*|des(?:ip|erek))\b|\w{2,}(?:unca|ince|inca|unce|sam|sem)\b"
 )
 # Any "...ip/-up/-arak/-erek" deed before the purse ("boğup", "yere serip", "kesip") makes it more than a pickpocket; a
 # quiet approach does not.
 _FIRST_DEED = re.compile(
     r"\b(?!(?:yaklasip|karisip|sokulup|carpip|itip|egilip|uzanip|yanasip|sinsip)\b)\w{2,}(?:ip|up|arak|erek)\b")
+# The end of a line that is no try this turn: past ("çaldım", "çalıştım"), refused ("çalmıyorum"), future
+# ("çalacağım"), wished ("çalsam"). A reading's steal or check is no theft on such a line.
+_NOT_THIS_TURN_END = re.compile(r"(?:d[iu]m|t[iu]m|m[iu]yorum|acag[iu]m|ecegim|s[ae]m|[aeiu]r[iu]m)$")  # + "çalarım"
+_PAST_OR_LATER = re.compile(r"\b(?:dun|yarin)\b")
+# A steal the reading read on a line that is a pretence, a change of mind, a giving back or a refusal in the plain
+# present ("çalmam", never "tamam").
+_NOT_DONE = re.compile(r"\b(?:vazgec\w*|gibi\s+yapiyorum|geri\s+ver(?!m[ei]y)\w*)\b|\b(?!tamam\b)\w+m[ae]m$")
+# What the reading's own steal deed may not ride on: a time or condition, a dream or supposition, speech, one's own
+# or "your" purse. Unlike a word-found try, a sequence in the present ("dönünce", "sonra") is fine.
+_DEED_NOT_NOW = re.compile(
+    r"\b(?:yarin|eger|keske|belki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*|diyorum|soyluyorum|fisildiyorum|once|"
+    r"\w+m[ae]dan|kesemi|cebimi|cuzdanimi|keseni)\b"
+    r"|\bdiye\s+(?:\w+\s+)?(?:bagir|seslen|fisild|soyl|sor)\w*")  # "kimse görmesin diye" is no speech
+_ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\b")
 _NOT_A_TRY = re.compile(
     r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"
     r"kaval|boru|alarm|kalp|dikkat)\w*\s+cal(?:mak|maya)"
@@ -1129,7 +1143,14 @@ def _steals(session, text: Any, deed: str | None) -> bool:
         return False
     if _NOT_STOLEN.search(fold(session, text)):
         return False
-    return deed == "steal" or (deed == "" and _tries_to_steal(session, text))
+    if deed == "steal":  # the reading's own deed, never on speech, a past, refused, later, wished or pretended line
+        bare = _bare(session, text)
+        return (":" not in text and getattr(session, "_front_kind", None) not in {"speak_to", "say"}
+                and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
+                and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare))
+    # D-094 R-7: a reading's check never moves coin (Sleight of Hand is also hiding, palming, putting, giving back);
+    # with no deed only the engine's own open-try words can.
+    return deed == "" and _tries_to_steal(session, text)
 
 
 # "Muhafızın üstünü inceliyorum": a present, first-person, finished sentence; "... söylüyorum", "... dedim", a wish or a
@@ -1158,6 +1179,9 @@ def is_act_not_talk(session, text: Any) -> bool:
     import game
     if not isinstance(text, str) or "?" in text:
         return False
+    if (getattr(session, "_front_check", "") in {"Intimidation", "Deception", "Persuasion", "Insight"}
+            and getattr(session, "_front_kind", None) in {"attempt", "unclear", "grab"}):
+        return True  # D-094: the reading named a social try it did not hear as speech; the dice answer, not a stock line
     return game.open_scare_try(text) or looks_person_over(session, text)
 
 
