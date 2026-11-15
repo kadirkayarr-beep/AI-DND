@@ -71,13 +71,16 @@ jobs:
           LOG="$RUNNER_TEMP/ai-dnd-evidence/d218-full-discovery.log"
           START=$(date +%s)
           set +e
-          timeout 120m python -m unittest discover -s api/tests -t . -p "test_*.py" > "$LOG" 2>&1
+          MODS=$(ls api/tests/test_*.py | sed 's#/#.#g;s#\.py$##')  # api/tests has no __init__.py, so discover cannot start there
+          echo "modules: $(echo $MODS | wc -w)" > "$LOG"
+          timeout 120m python -m unittest $MODS >> "$LOG" 2>&1
           CODE=$?
           set -e
           END=$(date +%s)
           {
             echo "## D-218 full discovery"
             echo "exit code: $CODE, seconds: $((END-START))"
+            head -1 "$LOG"
             grep -a -E "^Ran |^OK|^FAILED" "$LOG" | tail -3
             echo "### failing tests"
             grep -a -E "^(FAIL|ERROR): test" "$LOG" | sort | uniq | head -200
