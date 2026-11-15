@@ -282,6 +282,11 @@ class DevelopmentToolingTests(unittest.TestCase):
                        "api.tests.test_d211_undone_fight_answer"):
             self.assertIn(module, selectors)
 
+    def test_old_save_spellbook_choice_tests_are_in_the_gate(self):
+        # D-039: the one-time spellbook choice touches the save; its regression runs in the CI list.
+        self.assertIn("api.tests.test_d039_spellbook_choice",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
     def test_regression_groups_are_unique_and_browser_ui_is_an_explicit_check(self):
         config = owner.load_config(owner.DEFAULT_CONFIG)
         selectors = config["regression_selectors"]
