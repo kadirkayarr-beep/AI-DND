@@ -14,7 +14,10 @@
         "role": "Muhafız",
         "current_hp": 12,
         "inventory": [
-          "Hançer"
+          {
+            "item_id": "item_900001",
+            "name": "Hançer"
+          }
         ]
       }
     ],

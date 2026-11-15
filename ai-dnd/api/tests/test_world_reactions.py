@@ -413,6 +413,7 @@ class StolenBurntAndBroken(ReactionScene):
     async def test_a_stolen_thing_is_missed_and_talked_of_by_those_beside_the_victim(self):
         await self.town()
         master = self.add_person("Kalila", "Usta", location="shop")
+        master["inventory"] = ["Kolye"]  # D-108: only a thing the victim carries can be stolen
         boy = self.add_person("Baern", "Çırak", location="shop")
         far = self.add_person("Tariq", "Rahip", location="elsewhere")
         self.walk_to("shop")

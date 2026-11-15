@@ -1,0 +1,48 @@
+{
+  "id": "53d_takili_esya",
+  "title": "Eşya yoktan var olmaz (D-108 Opus incelemesi; SIFIR TOLERANS): kurbanın üstündeki ama çıkarılamayan eşya (kolundaki kalkan) başarılı zarla da çalınamaz; tur hata vermez (HTTP 500 yok), envanter ve kurbanın eşyası değişmez",
+  "source_items": [
+    108
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12,
+        "inventory": [
+          "Kalkan"
+        ]
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 30
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5704,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "Kavşim'in kalkanını çalıyorum",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "envanter": {},
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 30
+        }
+      }
+    }
+  ]
+}

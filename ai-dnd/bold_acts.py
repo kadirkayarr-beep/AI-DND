@@ -537,6 +537,8 @@ def _check(session, skill: str, dc: int) -> dict[str, Any]:
     )
 
 
+_COUNTER = re.compile(r"\btezgah\w*")
+_PURSE_WORD = re.compile(r"\b(?:kese\w*|cuzdan\w*|para(?:si\w*|sini|yi)?)\b")
 _SOFTENED = {"k": "[kg]", "p": "[pb]", "t": "[td]"}  # "yüzük" -> "yüzüğünü", "kitap" -> "kitabını", "paket" -> "paketi"
 
 
@@ -632,7 +634,8 @@ def _steal(session, text: str) -> dict[str, Any]:
     watcher = victim or (present[0] if present else None)  # with several in the room, somebody sees the hand
     check = _check(session, "Sleight of Hand", _steal_dc(session, folded, watcher))
     world = session.world_state
-    thing = _thing_named(folded)
+    # a purse named in the line is a coin theft, whatever else it names ("bıçağıyla oynayan adamın kesesini")
+    thing = None if _PURSE_WORD.search(folded) else _thing_named(folded)
     if check["result"] != "BAŞARILI":
         if watcher is None:
             return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "failed", check, [])
@@ -662,15 +665,25 @@ def _steal(session, text: str) -> dict[str, Any]:
                      seen=False)["till"] = True
         narration = f"Parmakların sessizce işini görüyor: kesende {coins} bakır daha var. Kimse fark etmedi."
         return _reply(session, narration, "theft", "stolen", check, ["currency"], coins_cp=coins)
-    # D-108: the thing leaves the victim's own inventory; a thing nobody here carries is not there to take
-    if _carried(session, victim, thing) is None:
+    # D-108: the thing leaves the victim's own inventory; a good on a counter is the place's stock (sold here
+    # without a count, R-12); anything else nobody here carries is not there to take
+    if _carried(session, victim, thing) is not None:
+        import equipment_economy
+        try:
+            equipment_economy.materialize(world)
+            item = _carried(session, victim, thing)
+            equipment_economy.move(world, item, victim["inventory"], world.setdefault("inventory", []), victim["id"])
+        except equipment_economy.EquipmentError:  # worn armour, an unreachable or unresolved hand: not to be lifted
+            return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+        if isinstance(item, dict) and isinstance(victim.get("item_consents"), dict):
+            victim["item_consents"].pop(item.get("item_id"), None)  # a stolen thing carries no leave to give it
+        remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",
+                 victim_id=victim["id"], seen=False)["item"] = thing
+    elif _COUNTER.search(folded) and any(key == fold(session, thing) for key, _label, _cp in _PRICES):
+        world.setdefault("inventory", []).append(thing)
+        remember(session, "theft_unseen", f"{_place_name(world, world.get('location'))} tezgâhından {thing.lower()} eksildi", seen=False)["item"] = thing
+    else:
         return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
-    import equipment_economy
-    equipment_economy.materialize(world)
-    item = _carried(session, victim, thing)
-    equipment_economy.move(world, item, victim["inventory"], world.setdefault("inventory", []), victim["id"])
-    remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",
-             victim_id=victim["id"], seen=False)["item"] = thing
     narration = f"Elin hızlı: {thing.lower()} artık sende, kimse bakmıyor."
     return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=thing)
 
