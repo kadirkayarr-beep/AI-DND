@@ -214,45 +214,31 @@ class TheReadingsStealDeed(unittest.TestCase):
         self.assertFalse(bold_acts._steals(self.session(), "kesesini çalıyorum", "burn"))
 
 
-class SomebodyElsesTheftOrSpeechIsNoTheft(unittest.TestCase):
-    """D-177: a line about somebody else's theft ("çalmaya çalışan hırsızı yakalıyorum") is no theft of the player's,
-    whatever the reading's deed says; with no reading, a steal word in speech ("Cebini çalıyorum diyorum") is none."""
+class RealTheftsStillCount(unittest.TestCase):
+    """Guard (D-177 tried and reverted): first-person thefts with a participle, a colon or a stray "alan/kapan"
+    word in the line must stay thefts. A later D-177 fix must keep every one of these true."""
+
+    LINES = (
+        "Kaçmaya çalışan adamın kesesini çalıyorum", "Uyumaya çalışan muhafızın anahtarını aşırıyorum",
+        "Yardım etmek isteyen adamın kesesini çalıyorum", "Kadının pazardan aldığı ekmeği aşırıyorum",
+        "Hırsızın çaldığı keseyi geri çalıyorum", "Kapıyı çalan adamın kesesini aşırıyorum",
+        "Ekmeği kapan çocuğun kesesini aşırıyorum", "Sessizce yaklaşıyorum: kesesini çalıyorum",
+        "Planım şu: kesesini çalıyorum",
+    )
 
     def session(self):
         return SimpleNamespace(_normalize_turkish_typos=game._normalize_turkish_typos, _front_check="",
                                _front_kind="attempt")
 
-    def test_somebody_elses_theft_is_no_theft_with_or_without_a_reading(self):
-        for deed in ("steal", None):
-            for line in ("Kesesini çalmaya çalışan hırsızı yakalıyorum", "Kesesini çalan hırsızı yakalıyorum",
-                         "Kesesini aşıran çocuğu kovalıyorum", "Kesesini çalmak isteyen adamı durduruyorum",
-                         "Muhafızın kesesini çalan adama bakıyorum", "Hırsızın çaldığı keseyi bileğinden yakalıyorum"):
-                with self.subTest(deed=deed, line=line):
-                    self.assertFalse(bold_acts._steals(self.session(), line, deed))
-
-    def test_a_steal_word_in_speech_is_no_theft_without_a_reading(self):
-        for line in ("Cebini çalıyorum diyorum", "“Cebini çalıyorum” diyorum", "Kesesini aşırıyorum diye fısıldıyorum",
-                     "Muhafız: kesesini çalıyorum", "“Cebini çalıyorum, sessizce” diyorum"):
+    def test_first_person_thefts_are_thefts(self):
+        for line in self.LINES:
             with self.subTest(line=line):
-                self.assertFalse(bold_acts._steals(self.session(), line, None))
+                self.assertTrue(bold_acts.is_theft(self.session(), line))
 
-    def test_the_players_own_theft_still_is_one(self):
-        for deed in ("steal", None):
-            for line in ("Cebini çalıyorum", "kesesini aşırıyorum", "Kavşim arkasını dönünce kesesini çalıyorum",
-                         # a name or a noun that reads like a participle ("Alan", "Alen", "alan") is no thief
-                         "Alan'ın kesesini çalıyorum", "Alen kesesini çalıyorum", "Muhafız Alan'ın kesesini çalıyorum",
-                         "Şimdi Alan'ın kesesini çalıyorum", "Pazar alanında kesesini çalıyorum"):
-                with self.subTest(deed=deed, line=line):
-                    self.assertTrue(bold_acts._steals(self.session(), line, deed))
-                    if deed is None:
-                        self.assertTrue(bold_acts.is_theft(self.session(), line))
-
-    def test_a_theft_with_a_colon_or_words_said_after_it_still_is_one_without_a_reading(self):
-        for line in ("Tüccarın kesesini çalıyorum, sonra 'dur' diyorum", "Kesesini çalıyorum: sessizce, parmaklarım hızlı",
-                     "Kesesini çalıyorum. Kimse görmüyor diyorum", "Kesesini çalıyorum ve “sağ ol” diyorum"):
+    def test_first_person_thefts_are_steals_without_a_reading(self):
+        for line in self.LINES:
             with self.subTest(line=line):
                 self.assertTrue(bold_acts._steals(self.session(), line, None))
-                self.assertTrue(bold_acts.is_theft(self.session(), line))
 
 
 if __name__ == "__main__":
