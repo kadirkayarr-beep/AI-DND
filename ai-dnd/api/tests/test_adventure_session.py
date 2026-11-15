@@ -223,12 +223,35 @@ class AdventureSessionTests(unittest.TestCase):
         # YENİDEN YAZIM (D-117 / YÜK-14 inceleme): the old test closed the quest as success on the
         # captive's defeat alone; a beaten captive is not rescued, so the rescue needs its own act.
         self.assertEqual(_objective(quest, "rescue")["graph_state"], "ACTIVE")
+        # YENİDEN YAZIM (D-183): beating the captive also no longer "defeats the threat"; the threat
+        # needs its own act (here the persuasion at the cell), and only then does the job pay.
+        self.assertEqual(_objective(quest, "threat")["graph_state"], "ACTIVE")
         self.assertIsNone(quest["outcome"])
         session.world_state["flags"]["turn_index"] += 1
         before = copy.deepcopy(session.world_state)
         session.evaluate_quest_events(before, {
             "action": "skill_check", "success": True, "skill": "Stealth",
             "target": "npc.missing", "action_id": "check:rescue-real",
+        })
+        self.assertEqual(_objective(quest, "rescue")["graph_state"], "COMPLETE")
+        self.assertEqual(_objective(quest, "threat")["graph_state"], "ACTIVE")
+        self.assertIsNone(quest["outcome"])
+        session.world_state["flags"]["turn_index"] += 1
+        before = copy.deepcopy(session.world_state)
+        session.evaluate_quest_events(before, {
+            "action": "skill_check", "success": True, "skill": "Persuasion",
+            "target": "npc.missing", "action_id": "check:threat-senseless",
+        })
+        # D-183 review: words never reach the beaten, senseless captive; the threat stays.
+        self.assertEqual(_objective(quest, "threat")["graph_state"], "ACTIVE")
+        self.assertIsNone(quest["outcome"])
+        target["current_hp"] = 9
+        target["combat_status"] = "active"
+        session.world_state["flags"]["turn_index"] += 1
+        before = copy.deepcopy(session.world_state)
+        session.evaluate_quest_events(before, {
+            "action": "skill_check", "success": True, "skill": "Persuasion",
+            "target": "npc.missing", "action_id": "check:threat-real",
         })
         self.assertEqual(quest["outcome"], "success")
         marker = "quest:adv.session-missing:success"
@@ -661,6 +684,89 @@ class HideoutTurnTests(unittest.TestCase):
             isinstance(item, dict) and item.get("weapon_id") == "dagger"
             for item in session.world_state["inventory"]
         ))
+
+    def _rescued_then_struck(self, text):
+        # D-183: the captive is taken out by stealth, then struck in the same room.
+        session, quest = self._entered_after_site()
+        target = next(npc for npc in session.world_state["npcs"] if npc["id"] == "npc.missing")
+        target.update(current_hp=1, max_hp=1, armor_class=10, distance_ft=5, initiative_modifier=0)
+        self._reach_captive(session)
+        session.run_player_turn("Onu gizlice kaçırıyorum.")
+        self.assertEqual(_objective(quest, "rescue")["graph_state"], "COMPLETE")
+        self.assertEqual(_objective(quest, "threat")["graph_state"], "ACTIVE")
+        import random
+
+        class _HighDie(random.Random):
+            def randint(self, _start, stop):
+                return stop
+
+        session.rng = _HighDie(1)
+        gold = session.world_state.get("currency", {}).get("player", 0)
+        session.run_player_turn(text, target_id="npc.missing")
+        return session, quest, target, gold
+
+    def test_killing_the_rescued_captive_is_not_defeating_the_threat(self):
+        # D-183: the threat's target is the captive; the kill closed the job as success (80 XP, 50 gold, dagger).
+        session, quest, target, gold = self._rescued_then_struck("Elin'e saldırıyorum.")
+        self.assertEqual(target["combat_status"], "dead")
+        self.assertNotEqual(_objective(quest, "threat")["graph_state"], "COMPLETE")
+        self.assertEqual(quest["status"], "FAILED")
+        self.assertEqual(quest["outcome"], "failed")
+        self.assertEqual(session.world_state.get("currency", {}).get("player", 0), gold)
+        for branch in ("success", "partial_success"):
+            self.assertNotIn(
+                f"quest:{quest['quest_id']}:{branch}",
+                session.world_state.get("xp_awarded_event_ids") or [],
+            )
+        self.assertFalse(any(
+            isinstance(item, dict) and item.get("weapon_id") == "dagger"
+            for item in session.world_state["inventory"]
+        ))
+
+    def test_knocking_out_the_rescued_captive_is_not_defeating_the_threat(self):
+        # D-183: beating the one you came to save never "disperses the threat".
+        session, quest, target, gold = self._rescued_then_struck("Elin'i bayıltıyorum.")
+        self.assertEqual(target["combat_status"], "unconscious")
+        self.assertEqual(_objective(quest, "threat")["graph_state"], "ACTIVE")
+        self.assertEqual(quest["status"], "ACTIVE")
+        self.assertIsNone(quest["outcome"])
+        self.assertEqual(session.world_state.get("currency", {}).get("player", 0), gold)
+
+    def test_persuading_the_knocked_out_captive_does_not_disperse_the_threat(self):
+        # D-183 review: one turn after the knockout, talking to the senseless captive closed the job as success.
+        session, quest, target, gold = self._rescued_then_struck("Elin'i bayıltıyorum.")
+        self.assertEqual(target["combat_status"], "unconscious")
+        session.run_player_turn("Elin'i ikna ediyorum.")
+        self.assertEqual(_objective(quest, "threat")["graph_state"], "ACTIVE")
+        self.assertEqual(quest["status"], "ACTIVE")
+        self.assertIsNone(quest["outcome"])
+        self.assertEqual(session.world_state.get("currency", {}).get("player", 0), gold)
+        self.assertNotIn(
+            f"quest:{quest['quest_id']}:success",
+            session.world_state.get("xp_awarded_event_ids") or [],
+        )
+
+    def test_persuading_a_captive_knocked_out_before_rescue_frees_nothing(self):
+        # D-183 review: the senseless captive is neither talked out of the cell nor the threat talked down.
+        session, quest = self._entered_after_site()
+        target = next(npc for npc in session.world_state["npcs"] if npc["id"] == "npc.missing")
+        target.update(current_hp=1, max_hp=1, armor_class=10, distance_ft=5, initiative_modifier=0)
+        self._reach_captive(session)
+        import random
+
+        class _HighDie(random.Random):
+            def randint(self, _start, stop):
+                return stop
+
+        session.rng = _HighDie(1)
+        gold = session.world_state.get("currency", {}).get("player", 0)
+        session.run_player_turn("Elin'i bayıltıyorum.", target_id="npc.missing")
+        self.assertEqual(target["combat_status"], "unconscious")
+        session.run_player_turn("Elin'i ikna ediyorum.")
+        self.assertEqual(_objective(quest, "rescue")["graph_state"], "ACTIVE")
+        self.assertEqual(_objective(quest, "threat")["graph_state"], "ACTIVE")
+        self.assertEqual(quest["status"], "ACTIVE")
+        self.assertEqual(session.world_state.get("currency", {}).get("player", 0), gold)
 
     def test_courier_job_first_in_list_does_not_steal_the_hideout_rescue(self):
         # D-122 / YÜK-21: an earlier active courier job must not become the hideout's captive.
