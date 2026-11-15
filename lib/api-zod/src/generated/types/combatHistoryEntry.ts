@@ -13,4 +13,6 @@ export interface CombatHistoryEntry {
   /** @minimum 0 */
   turn_index: number;
   result: CombatTurnResult;
+  /** True when a later undo took this turn back; the row stays as evidence. Absent otherwise. */
+  undone?: boolean;
 }

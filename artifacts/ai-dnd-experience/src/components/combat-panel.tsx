@@ -8,6 +8,8 @@ export interface CombatLogEntry {
   id: string;
   turnIndex: number;
   result: CombatTurnResult;
+  /** D-140: the server's read-time undo mark (receipt-backed), shown like an undone story turn. */
+  undone?: boolean;
 }
 
 type AttackResult = CombatTurnResult;
@@ -377,12 +379,18 @@ function InitiativeStrip({ state }: { state: GameState }) {
   );
 }
 
+function undoneMark(entry: CombatLogEntry) {
+  return entry.undone ? <span className="transcript-undone-label" data-testid={`combat-log-entry-${entry.id}-undone`}>Geri alındı</span> : null;
+}
+
 function EntryCard({ entry }: { entry: CombatLogEntry }) {
   const result = entry.result;
+  const entryClass = entry.undone ? 'combat-entry transcript-undone' : 'combat-entry';
   if (result.action === 'action_economy') {
-    return <div className="combat-entry" data-testid={`combat-log-entry-${entry.id}`}>
+    return <div className={entryClass} data-testid={`combat-log-entry-${entry.id}`}>
       <div className="combat-entry-index">{String(entry.turnIndex).padStart(2, '0')}</div>
       <div className="combat-entry-body">
+        {undoneMark(entry)}
         {(result.economy_steps ?? []).map((step, index) => {
           const kind = typeof step.kind === 'string' ? step.kind : 'hamle';
           const rawAttack = kind === 'attack' ? step.result : kind === 'react' ? step.response : null;
@@ -414,9 +422,10 @@ function EntryCard({ entry }: { entry: CombatLogEntry }) {
   const heading = result.action ? `${actionLabel(result.action)}${target}` : result.target_name ?? 'Yapılan hamle';
 
   return (
-    <div className="combat-entry" data-testid={`combat-log-entry-${entry.id}`}>
+    <div className={entryClass} data-testid={`combat-log-entry-${entry.id}`}>
       <div className="combat-entry-index" aria-hidden="true">{String(entry.turnIndex).padStart(2, '0')}</div>
       <div className="combat-entry-body">
+        {undoneMark(entry)}
         {result.combat_started && <div className="combat-event combat-event-started" data-testid={`combat-log-entry-${entry.id}-started`}>ÇATIŞMA BAŞLADI</div>}
         <AttackReadout result={result} entryId={entry.id} heading={heading} />
         {enemyActions.map((enemyAction, index) => (
