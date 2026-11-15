@@ -265,7 +265,7 @@ class TheFightsOwnMoves(unittest.TestCase):
         self.assertIn("target_dodging", blows[0]["disadvantage_sources"])
         self.assertIn("Dodge", result["narration"])
 
-    def test_in_a_town_fight_dodge_gives_only_the_dexterity_save_advantage(self):
+    def test_in_a_town_fight_dodge_gives_the_dexterity_save_advantage_and_the_attack_disadvantage(self):
         # 4A.3 [GEVSETME OLABILIR]: the sight fact is derived (never written) in a plain fight, so Dodge gives both the
         # Dexterity-save Advantage and the attack Disadvantage against a seen attacker.
         import weapon_attack

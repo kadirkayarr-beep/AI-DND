@@ -9,9 +9,8 @@ measurements as plain mappings (so this module does not depend on the runner's m
   skipped try still cost its seconds (``latency_row`` makes a row from a ``ChainAttempt``);
 - ``usage_today``: provider -> ``{"calls", "input", "output", "thought", "seconds"}`` (``UsageLedger.today()``).
 
-The headline counts use the rule of ``runner.summary_line`` (a new break beats a known break, which beats a pass),
-with one deliberate difference: a scenario with no results, or only unreached steps, is counted as "koşulmadı"
-instead of as passed.
+The headline counts and ``runner.summary_line`` share one rule, ``scenario_outcome`` (a new break beats a known
+break, which beats a pass; a scenario with no results, or only unreached steps, is counted as "koşulmadı").
 
 Nothing here reads a key file; any key-like text that reaches a step's narration or failure is scrubbed from the
 finished report.
@@ -105,21 +104,26 @@ def real_run_flags(passed: Sequence[bool]) -> list[int]:
     return [int(run) for run in passed]
 
 
+def scenario_outcome(steps: Sequence[StepResult]) -> str:
+    """One scenario's outcome, shared by this report and ``runner.summary_line``: a new break beats a known break,
+    which beats a pass; a scenario with no results, or only unreached steps, did not run."""
+    statuses = {step.status for step in steps}
+    if "new_break" in statuses:
+        return "new_break"
+    if "known_broken" in statuses:
+        return "known_broken"
+    if not statuses or statuses == {"unreached"}:
+        return "not_run"
+    return "pass"
+
+
 class _Row:
     """One scenario with its step results and its one outcome."""
 
     def __init__(self, scenario: Scenario, steps: Sequence[StepResult]):
         self.scenario = scenario
         self.steps = tuple(steps)
-        statuses = {step.status for step in self.steps}
-        if "new_break" in statuses:
-            self.outcome = "new_break"
-        elif "known_broken" in statuses:
-            self.outcome = "known_broken"
-        elif not self.steps or statuses == {"unreached"}:
-            self.outcome = "not_run"
-        else:
-            self.outcome = "pass"
+        self.outcome = scenario_outcome(self.steps)
         self.stale = [step for step in self.steps if step.status == "marker_stale"]
         self.known = [step for step in self.steps if step.status == "known_broken"]
         self.passed = sum(step.status in ("pass", "marker_stale") for step in self.steps)
