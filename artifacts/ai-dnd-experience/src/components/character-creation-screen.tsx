@@ -11,7 +11,7 @@ import { readFighterStartingCreationOptions, fighterStartingCreationFields, prun
 import { readMonkStartingCreationOptions, monkStartingCreationFields, pruneMonkDraft } from '@/lib/monk-starting-creation';
 import { readPaladinStartingCreationOptions, paladinStartingCreationFields, prunePaladinDraft } from '@/lib/paladin-starting-creation';
 import { readRogueStartingCreationOptions, rogueStartingCreationFields, pruneRogueDraft } from '@/lib/rogue-starting-creation';
-import { StartingLevelControl, StartingLevelChoices, StartingHitPoints, StartingDerivedValue, ProgressionEffectsNotice, StaleInitialSpellChoices } from '@/components/sorcerer-starting-creation';
+import { StartingLevelControl, StartingLevelChoices, StartingHitPoints, StartingArmorClass, StartingDerivedValue, ProgressionEffectsNotice, StaleInitialSpellChoices } from '@/components/sorcerer-starting-creation';
 import { emptyStartingDraft, changeStartingLevel, pruneStartingDraft, readStartingCreationOptions, validateStartingDraft, startingCreationFields } from '@/lib/sorcerer-starting-creation';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import {
@@ -2246,7 +2246,7 @@ export function CharacterCreationScreen({
                       </div>
                       <div className="cc-vital-box">
                         <span className="cc-vital-label">Zırh Sınıfı</span>
-                        <strong className="cc-vital-val">{derivedStats.ac}</strong>
+                        <strong className="cc-vital-val"><StartingArmorClass level={startingDraft.startingLevel} characterClass={characterClass} armorClass={derivedStats.ac} /></strong>
                       </div>
                       <div className="cc-vital-box">
                         <span className="cc-vital-label">İnisiyatif</span>
@@ -2435,7 +2435,7 @@ export function CharacterCreationScreen({
                   </div>
                 )}
                 {abilityMethod && (
-                  <p className="cc-summary-note">Can <StartingHitPoints level={startingDraft.startingLevel} hitPoints={derivedStats.hp} />. Zırh {derivedStats.ac}. İnisiyatif <StartingDerivedValue level={startingDraft.startingLevel} value={formatModifier(derivedStats.initiative)} />. Hız {derivedStats.speed}.</p>
+                  <p className="cc-summary-note">Can <StartingHitPoints level={startingDraft.startingLevel} hitPoints={derivedStats.hp} />. Zırh <StartingArmorClass level={startingDraft.startingLevel} characterClass={characterClass} armorClass={derivedStats.ac} />. İnisiyatif <StartingDerivedValue level={startingDraft.startingLevel} value={formatModifier(derivedStats.initiative)} />. Hız {derivedStats.speed}.</p>
                 )}
                 {derivedStats.allSkills.length > 0 && (
                   <p className="cc-summary-note">Beceriler: {derivedStats.allSkills.map(skillLabel).join(', ')}.</p>

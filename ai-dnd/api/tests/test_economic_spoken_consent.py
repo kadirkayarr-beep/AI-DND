@@ -27,6 +27,11 @@ class SpokenConsentHttp(JourneyCase):
             steps[1]=replace(steps[1],expect={'kese':100,'kart':None,'kisi_kese':{'caravaner':0}})
         elif response=='accept' and not malformed:
             steps[2]=replace(steps[2],expect={'kese':95,'kisi_kese':{'caravaner':5}})
+        else:
+            # D-096: no consent was spoken, so the card that could only be refused never opens; the reason is said.
+            steps=steps[:2]
+            steps[1]=replace(steps[1],expect={'kese':100,'kart':None,'kisi_kese':{'caravaner':0},
+                                              'gerekli_metin':'alacağını söylemedi'})
         first_script=copy.deepcopy(steps[0].script)
         first_script['front']['economic_intent']='gift'
         if response=='accept' and not malformed:
@@ -50,9 +55,11 @@ class SpokenConsentHttp(JourneyCase):
 
     async def test_validated_offer_without_semantic_reply_cannot_debit(self):
         s=await self.run_consent()
-        [entry]=s.world_state['flags']['economic_ledger']['operations'].values()
-        self.assertEqual(entry['net_debit_cp'],0)
-        self.assertEqual(entry['reason_code'],'npc_consent_required')
+        # D-096: nothing was consumed or debited, no card waits, and the unclear reply is what holds the coin back.
+        self.assertEqual(s.world_state['flags'].get('economic_ledger',{}).get('operations',{}),{})
+        self.assertEqual([v for v in ea.offer_records(s.world_state).values() if v['status']=='prepared'],[])
+        npc=next(n for n in s.world_state['npcs'] if n['id']=='caravaner')
+        self.assertEqual({k:v['status'] for k,v in npc['coin_responses'].items()},{'offer:5':'unknown'})
 
     async def test_explicit_refusal_of_same_offer_prevents_new_tip_card(self):
         await self.run_consent('refuse',refuse=True)
@@ -74,13 +81,14 @@ class RecordedConsent(OfferFixture):
     def response(self, npc='barman', amount=5, status='unknown'):
         next(n for n in self.w['npcs'] if n['id']==npc).setdefault('coin_responses',{})[str(amount)]=status
 
-    def test_unknown_reply_card_cannot_apply_and_warns_may_refuse(self):
+    def test_unknown_reply_opens_no_card_and_says_why(self):
+        # D-096: the card could only be refused at confirmation, so it never opens and the reason is said now.
         self.response()
+        before=copy.deepcopy(self.w)
         result=self.prepare(proposal(amount_cp=5))
-        self.assertEqual(result.status,'prepared')
-        self.assertTrue(ea.public_offer(self.state(),result.offer).may_refuse)
-        resolved=ea.resolve_offer(self.state(),result.offer,operation_id='test',check=lambda *a:None)
-        self.assertEqual((resolved.status,resolved.reason_code,resolved.net_debit_cp),('refused','npc_consent_required',0))
+        self.assertEqual((result.status,result.reason_code,result.offer),('refused','npc_consent_required',None))
+        self.assertIn('alacağını söylemedi',result.public_message)
+        self.assertEqual(self.w,before)
 
     def test_explicit_refusal_is_same_recipient_and_same_amount_only(self):
         self.response(status='refuse')
@@ -115,23 +123,23 @@ class NoOfferAdmission(JourneyCase):
 
 class ConsentPersistence(OfferFixture):
     response=RecordedConsent.response
-    def test_consuming_refusal_cannot_be_retried_after_turn_advance(self):
+    def test_unclear_reply_still_holds_after_turn_advance(self):
+        # D-096: no card opens to be consumed; the unclear reply keeps refusing the same coin on later turns too.
         self.response()
         before=copy.deepcopy(self.w['currency'])
         for index in range(2):
             card=ea.prepare_from_panel(self.state(),proposal(amount_cp=5),campaign_id='campaign-1',actor_id='player',turn_index=3+index)
-            with resolution_action_scope(f'consent-{index}','session'):
-                result=ea.confirm_offer(self.state(),offer_id=card.offer.offer_id,confirmation_digest=card.offer.confirmation_digest,operation_id=f'consent-{index}',check=lambda *a:None)
-            self.assertEqual((result.status,result.reason_code,result.net_debit_cp),('refused','npc_consent_required',0))
+            self.assertEqual((card.status,card.reason_code,card.offer),('refused','npc_consent_required',None))
+            self.assertEqual([v for v in ea.offer_records(self.w).values() if v['status']=='prepared'],[])
             self.w['flags']['turn_index']+=1
         self.assertEqual(self.w['currency'],before)
+        self.assertNotIn('operations',self.w['flags'].get('economic_ledger',{}))
 
     def test_saved_reply_survives_reload(self):
         self.response()
         self.w=json.loads(json.dumps(self.w))
         result=self.prepare(proposal(amount_cp=5))
-        resolved=ea.resolve_offer(self.state(),result.offer,operation_id='reload',check=lambda *a:None)
-        self.assertEqual((resolved.status,resolved.reason_code),('refused','npc_consent_required'))
+        self.assertEqual((result.status,result.reason_code,result.offer),('refused','npc_consent_required',None))
 
     def test_new_bound_acceptance_clears_only_same_amount_conversation_gate(self):
         self.response()
@@ -148,13 +156,13 @@ class EarlyReplyCompletion(OfferFixture):
     def test_deterministic_reply_cannot_silently_drop_pending_gift(self):
         self.s._spoken_coin_proposal=ea.turn_proposal('gift','barman',amount_cp=5)
         self.s._front_economic_none=True
-        self.s._tell_the_coin({'narration':'Marek yanıt verir.','action_result':{'action':'dialogue'}})
-        cards=[v for v in ea.offer_records(self.w).values() if v['status']=='prepared']
-        self.assertEqual(len(cards),1,'the pending offer must reach the economic owner')
-        [data]=cards
-        offer=ea.offer_from_record(data)
-        result=ea.resolve_offer(self.state(),offer,operation_id='early',check=lambda *a:None)
-        self.assertEqual((result.status,result.reason_code),('refused','npc_consent_required'))
+        result={'narration':'Marek yanıt verir.','action_result':{'action':'dialogue'}}
+        self.s._tell_the_coin(result)
+        # D-096: the pending offer reaches the economic owner, whose answer (no consent, no card) is said in the turn.
+        self.assertEqual([v for v in ea.offer_records(self.w).values() if v['status']=='prepared'],[])
+        self.assertEqual((result['action_result']['status'],result['action_result']['reason_code']),
+                         ('refused','npc_consent_required'),'the pending offer must reach the economic owner')
+        self.assertIn('alacağını söylemedi',result['narration'])
         self.assertIsNone(self.s._spoken_coin_proposal)
 
 class FailedSpeechRollback(JourneyCase):
