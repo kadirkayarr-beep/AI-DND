@@ -163,6 +163,25 @@ def _lacks_unversioned_schema(path: Path) -> bool:
     return not set(_UNVERSIONED_TABLES) <= tables or not set(_UNVERSIONED_RECEIPT_COLUMNS) <= columns
 
 
+def _has_archive(connection: sqlite3.Connection) -> bool:
+    """True when this file has the receipt archive table (read only; never creates it)."""
+    return connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'campaign_turn_actions_archive'"
+    ).fetchone() is not None
+
+
+def _has_receipt(connection: sqlite3.Connection, campaign_id: str, action_id: str) -> bool:
+    """A receipt, live or archived, exists for this id; a file without the archive table archived nothing (D-077)."""
+    for table in ("campaign_turn_actions", "campaign_turn_actions_archive"):
+        if table == "campaign_turn_actions_archive" and not _has_archive(connection):
+            return False
+        if connection.execute(
+            f"SELECT 1 FROM {table} WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
+        ).fetchone() is not None:
+            return True
+    return False
+
+
 _OWNED_SQL = (
     "ownership_state = 'owned' AND owner_issuer = ? AND owner_subject = ?"
 )
@@ -758,12 +777,18 @@ class CampaignStore:
                         """
                         SELECT request_hash FROM campaign_turn_actions
                         WHERE campaign_id = ? AND action_id = ?
-                        UNION ALL
-                        SELECT request_hash FROM campaign_turn_actions_archive
-                        WHERE campaign_id = ? AND action_id = ?
                         """,
-                        (campaign_id, turn_action_receipt["action_id"], campaign_id, turn_action_receipt["action_id"]),
+                        (campaign_id, turn_action_receipt["action_id"]),
                     ).fetchone()
+                    # D-077: a file without the archive table (an older file put under the open store) archived nothing.
+                    if prior_action is None and _has_archive(connection):
+                        prior_action = connection.execute(
+                            """
+                            SELECT request_hash FROM campaign_turn_actions_archive
+                            WHERE campaign_id = ? AND action_id = ?
+                            """,
+                            (campaign_id, turn_action_receipt["action_id"]),
+                        ).fetchone()
                     if prior_action is not None:
                         raise CampaignValidationError(
                             "Turn action has already been committed."
@@ -1115,12 +1140,7 @@ class CampaignStore:
                 ).fetchone()
                 if owned is None:
                     raise CampaignNotFoundError("Campaign was not found.")
-                has_receipt = connection.execute(
-                    "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ? "
-                    "UNION ALL SELECT 1 FROM campaign_turn_actions_archive WHERE campaign_id = ? AND action_id = ?",
-                    (campaign_id, action_id, campaign_id, action_id),
-                ).fetchone()
-                if has_receipt is not None:
+                if _has_receipt(connection, campaign_id, action_id):
                     connection.commit()
                     return False
                 connection.execute(
@@ -1166,11 +1186,17 @@ class CampaignStore:
         WHERE intents.campaign_id = ?
           AND NOT EXISTS (SELECT 1 FROM campaign_turn_actions AS receipts
                           WHERE receipts.campaign_id = intents.campaign_id AND receipts.action_id = intents.action_id)
-          AND NOT EXISTS (SELECT 1 FROM campaign_turn_actions_archive AS archived
-                          WHERE archived.campaign_id = intents.campaign_id AND archived.action_id = intents.action_id)
           AND NOT EXISTS (SELECT 1 FROM campaign_refused_actions AS refused
                           WHERE refused.campaign_id = intents.campaign_id AND refused.action_id = intents.action_id)
     """
+    # D-077: added only when the file has the archive table; a file without it archived nothing.
+    _OPEN_INTENT_ARCHIVE_SQL = """
+          AND NOT EXISTS (SELECT 1 FROM campaign_turn_actions_archive AS archived
+                          WHERE archived.campaign_id = intents.campaign_id AND archived.action_id = intents.action_id)
+    """
+
+    def _open_intent_sql(self, connection: sqlite3.Connection) -> str:
+        return self._OPEN_INTENT_SQL + (self._OPEN_INTENT_ARCHIVE_SQL if _has_archive(connection) else "")
 
     def _owned_connection(self, campaign_id: str, principal: Principal | None):
         """Connection inside BEGIN IMMEDIATE for an owned campaign, intent and refusal tables ensured."""
@@ -1219,12 +1245,12 @@ class CampaignStore:
         connection = self._owned_connection(campaign_id, principal)
         try:
             try:
-                for table in ("campaign_turn_actions", "campaign_turn_actions_archive", "campaign_refused_actions"):
-                    if connection.execute(
-                        f"SELECT 1 FROM {table} WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
-                    ).fetchone() is not None:
-                        connection.commit()
-                        return {"outcome": "closed"}
+                if _has_receipt(connection, campaign_id, action_id) or connection.execute(
+                    "SELECT 1 FROM campaign_refused_actions WHERE campaign_id = ? AND action_id = ?",
+                    (campaign_id, action_id),
+                ).fetchone() is not None:
+                    connection.commit()
+                    return {"outcome": "closed"}
                 same = connection.execute(
                     "SELECT request_hash FROM campaign_action_intents WHERE campaign_id = ? AND action_id = ?",
                     (campaign_id, action_id),
@@ -1233,7 +1259,8 @@ class CampaignStore:
                     connection.commit()
                     return {"outcome": "existing" if same["request_hash"] == request_hash else "hash_conflict"}
                 other = connection.execute(
-                    self._OPEN_INTENT_SQL + " ORDER BY intents.created_at, intents.action_id LIMIT 1", (campaign_id,),
+                    self._open_intent_sql(connection) + " ORDER BY intents.created_at, intents.action_id LIMIT 1",
+                    (campaign_id,),
                 ).fetchone()
                 if other is not None:
                     connection.commit()
@@ -1262,7 +1289,8 @@ class CampaignStore:
         connection = self._owned_connection(campaign_id, principal)
         try:
             row = connection.execute(
-                self._OPEN_INTENT_SQL + " ORDER BY intents.created_at, intents.action_id LIMIT 1", (campaign_id,),
+                self._open_intent_sql(connection) + " ORDER BY intents.created_at, intents.action_id LIMIT 1",
+                (campaign_id,),
             ).fetchone()
             connection.commit()
             return None if row is None else {"action_id": str(row["action_id"]), "state": "open",
@@ -1280,11 +1308,7 @@ class CampaignStore:
         connection = self._owned_connection(campaign_id, principal)
         try:
             connection.commit()
-            if connection.execute(
-                "SELECT 1 FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ? "
-                "UNION ALL SELECT 1 FROM campaign_turn_actions_archive WHERE campaign_id = ? AND action_id = ?",
-                (campaign_id, action_id, campaign_id, action_id),
-            ).fetchone() is not None:
+            if _has_receipt(connection, campaign_id, action_id):
                 return "applied"
             if connection.execute(
                 "SELECT 1 FROM campaign_refused_actions WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
@@ -1387,7 +1411,8 @@ class CampaignStore:
             ).fetchone()
             if row is None:
                 # An archived action is still applied: only its full reply was replaced by a verified tombstone (R08).
-                archived = connection.execute(
+                # D-077: a file without the archive table archived nothing.
+                archived = None if not _has_archive(connection) else connection.execute(
                     """
                     SELECT archive.request_hash, archive.result_digest
                     FROM campaign_turn_actions_archive AS archive
@@ -1731,7 +1756,8 @@ class CampaignStore:
                         ambiguous.add(turn_number)
                     else:
                         accepted[turn_number] = validated
-                for archived_row in connection.execute(
+                # D-077: a file without the archive table (see save_campaign) archived nothing.
+                for archived_row in [] if not _has_archive(connection) else connection.execute(
                     "SELECT action_id, turn_index, narration_digest, skill_json FROM campaign_turn_actions_archive "
                     "WHERE campaign_id = ? AND skill_json IS NOT NULL ORDER BY rowid ASC",
                     (campaign_id,),
