@@ -1351,6 +1351,9 @@ def _word_check_for_action(player_input):
             normalized_text,
         ):
             return {"action_type": "check", "skill": "Persuasion", "difficulty": "medium"}
+        # D-175: spotting a lie ("yalan söyleyip söylemediğini", "yalan mı söylüyor") is Insight, not Deception.
+        if re.search(r"\byalan\s+(?:soyleyip\s+soyleme\w*|mi\s+soyl\w*|soyl\w*\s+mu\b)", normalized_text):
+            return {"action_type": "check", "skill": "Insight", "difficulty": "medium"}
         if re.search(
             r"\byalan\s+soyle(?!m)\w*|\b(?:kandir|aldat)(?!m)\w*|\bblof\s+yap(?!m)\w*",
             normalized_text,
@@ -20054,6 +20057,13 @@ def _dispatch_player_turn(
         _session()._front_ahead = True
     if getattr(_session(), "_front_strike", None):
         target_id, interaction_mode = _session()._front_strike["id"], "do"
+    elif (target_id is not None and combat_action is None
+          and not _session().world_state.get("combat", {}).get("active")):
+        import bold_acts
+        if bold_acts.is_act_not_talk(_session(), player_input):
+            # D-172: with the person chosen by the talk button, a scare or a look-over is still an act on them, not a
+            # line to them; it takes the same route as without the button, so the dice and the narrator answer.
+            interaction_mode, target_id = "do", None
     import spell_effects
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"}
             and not getattr(_session(), "_front_strike", None) and spell_effects.named(player_input) is not None):

@@ -63,6 +63,18 @@ _NOT_STOLEN = re.compile(
     r"\b(?:(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz)\w*|can[ia]?)\b"
     r".*\bcal(?:iyorum|ip)"
 )
+# D-177: somebody else's theft ("çalmaya çalışan hırsızı", "çalan adamı", "çaldığı keseyi") is no try of the player's,
+# whatever the reading made of the line; nor, with no reading, a steal word said aloud ("Cebini çalıyorum diyorum").
+_SOMEONE_ELSES_THEFT = re.compile(
+    r"\b(?:calan|asiran|araklayan|yuruten|(?:cal|asir|yurut|arakla|kap|al)[dt][iu]g[iu](?!m)\w*)\b"  # "çaldığım": own
+    # "alan"/"kapan" only after their object ("kesesini alan"), never a name or noun ("Alan'ın", "Şimdi Alan'ın")
+    r"|\b\w+[iu]\s+(?:al|kap)an\b(?!\s+(?:[iu]n|n[iu]n|y?[aeiu]|la|le|da|de|dan|den)\b)"
+    r"|\b\w+(?:maya|meye)\s+calisan\w*|\b\w+(?:mak|mek)\s+isteyen\w*")
+_SAID_ALOUD = re.compile(
+    r"\b(?:diyorum|soyluyorum|fisildiyorum)\b|\bdiye\s+(?:\w+\s+)?(?:bagir|seslen|fisild|soyl|sor)\w*")
+# The steal word itself is what is said ("Cebini çalıyorum diyorum"), not an act followed by words ("..., 'dur' diyorum").
+_STEAL_SAID = re.compile(
+    r"\b(?:cal|asir|yurut|arakla)\w*\s+(?:diyorum|soyluyorum|fisildiyorum|diye\s+(?:\w+\s+)?(?:bagir|seslen|fisild|soyl|sor)\w*)")
 _ASKS = re.compile(r"\b(?:mi|mu|ne olur)\W*$")  # the owner leaves the question mark out
 _DISTRACTED = re.compile(r"\w+(?:ken|[iu]nc[ae])\b")  # 'bakarken', 'dönünce': the eye is elsewhere
 _ARSON = re.compile(r"\b(?:ates\w*\s+ver\w*|ates\w*\s+yak\w*|tutustur\w*|alev\w*\s+ver\w*|\w+\s+yakiyorum|\w+\s+yakacagim)")
@@ -115,6 +127,13 @@ def is_theft(session, text: Any) -> bool:
     if not isinstance(text, str) or "?" in text:
         return False
     folded = fold(session, text)
+    head, colon, _ = text.partition(":")
+    if colon and not _STEAL.search(fold(session, head)):
+        return False  # D-177: "Muhafız: kesesini çalıyorum" is a speaker's line; "Çalıyorum: sessizce" is the act
+    if _STEAL_SAID.search(folded) or _SOMEONE_ELSES_THEFT.search(folded):
+        return False  # D-177
+    if _SAID_ALOUD.search(folded) and not _STEAL.search(_bare(session, text)):
+        return False  # D-177: the steal word is only inside the quoted words ("“Cebini çalıyorum, sessizce” diyorum")
     if bool(_STEAL.search(folded)) and not _NOT_STOLEN.search(folded):
         return True
     return _tries_to_steal(session, text)
@@ -1209,7 +1228,8 @@ def _steals(session, text: Any, deed: str | None) -> bool:
         bare = _bare(session, text)
         return (":" not in text and getattr(session, "_front_kind", None) not in {"speak_to", "say"}
                 and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
-                and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare))
+                and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare)
+                and not _SOMEONE_ELSES_THEFT.search(bare))  # D-177
     # D-094 R-7: a reading's check never moves coin (Sleight of Hand is also hiding, palming, putting, giving back);
     # with no deed only the engine's own open-try words can.
     return deed == "" and _tries_to_steal(session, text)

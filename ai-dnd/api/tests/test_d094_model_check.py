@@ -87,6 +87,20 @@ class TheEngineRollsTheReadingsCheck(unittest.TestCase):
         self.assertEqual(game.deterministic_check_for_action(
             "muhafızın yalan söyleyip söylemediğini anlamaya çalışıyorum")["skill"], "Insight")
 
+    def test_spotting_a_lie_is_insight_without_a_reading_telling_one_stays_deception(self):
+        self.session._front_check = ""  # D-175: the reading is off, the words alone decide
+        for line, skill in (
+            ("muhafızın yalan söyleyip söylemediğini anlamaya çalışıyorum", "Insight"),
+            ("adamın yalan söyleyip söylemediğine bakıyorum", "Insight"),
+            ("yalan mı söylüyor anlamaya çalışıyorum", "Insight"),
+            ("yalan söylüyor mu diye yüzüne bakıyorum", "Insight"),
+            ("muhafıza yalan söyleyip içeri giriyorum", "Deception"),
+            ("Gromm'a yalan söyleyerek kendimi nöbetçi olarak tanıtıyorum.", "Deception"),
+        ):
+            with self.subTest(line=line):
+                self.assertEqual(game.deterministic_check_for_action(line),
+                                 {"action_type": "check", "skill": skill, "difficulty": "medium"})
+
     def test_a_named_skill_and_the_words_still_decide_without_a_reading(self):
         self.session._front_check = ""
         self.assertEqual(game.deterministic_check_for_action("muhafıza dik dik bakıp sesimi alçaltıyorum"), None)
@@ -198,6 +212,48 @@ class TheReadingsStealDeed(unittest.TestCase):
         self.assertFalse(bold_acts._steals(self.session(kind="speak_to"), "kesesini çalıyorum", "steal"))
         self.assertFalse(bold_acts._steals(self.session(), "kesesini alsam mı?", "steal"))
         self.assertFalse(bold_acts._steals(self.session(), "kesesini çalıyorum", "burn"))
+
+
+class SomebodyElsesTheftOrSpeechIsNoTheft(unittest.TestCase):
+    """D-177: a line about somebody else's theft ("çalmaya çalışan hırsızı yakalıyorum") is no theft of the player's,
+    whatever the reading's deed says; with no reading, a steal word in speech ("Cebini çalıyorum diyorum") is none."""
+
+    def session(self):
+        return SimpleNamespace(_normalize_turkish_typos=game._normalize_turkish_typos, _front_check="",
+                               _front_kind="attempt")
+
+    def test_somebody_elses_theft_is_no_theft_with_or_without_a_reading(self):
+        for deed in ("steal", None):
+            for line in ("Kesesini çalmaya çalışan hırsızı yakalıyorum", "Kesesini çalan hırsızı yakalıyorum",
+                         "Kesesini aşıran çocuğu kovalıyorum", "Kesesini çalmak isteyen adamı durduruyorum",
+                         "Muhafızın kesesini çalan adama bakıyorum", "Hırsızın çaldığı keseyi bileğinden yakalıyorum"):
+                with self.subTest(deed=deed, line=line):
+                    self.assertFalse(bold_acts._steals(self.session(), line, deed))
+
+    def test_a_steal_word_in_speech_is_no_theft_without_a_reading(self):
+        for line in ("Cebini çalıyorum diyorum", "“Cebini çalıyorum” diyorum", "Kesesini aşırıyorum diye fısıldıyorum",
+                     "Muhafız: kesesini çalıyorum", "“Cebini çalıyorum, sessizce” diyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(bold_acts._steals(self.session(), line, None))
+
+    def test_the_players_own_theft_still_is_one(self):
+        for deed in ("steal", None):
+            for line in ("Cebini çalıyorum", "kesesini aşırıyorum", "Kavşim arkasını dönünce kesesini çalıyorum",
+                         # a name or a noun that reads like a participle ("Alan", "Alen", "alan") is no thief
+                         "Alan'ın kesesini çalıyorum", "Alen kesesini çalıyorum", "Muhafız Alan'ın kesesini çalıyorum",
+                         "Şimdi Alan'ın kesesini çalıyorum", "Pazar alanında kesesini çalıyorum"):
+                with self.subTest(deed=deed, line=line):
+                    self.assertTrue(bold_acts._steals(self.session(), line, deed))
+                    if deed is None:
+                        self.assertTrue(bold_acts.is_theft(self.session(), line))
+
+    def test_a_theft_with_a_colon_or_words_said_after_it_still_is_one_without_a_reading(self):
+        for line in ("Tüccarın kesesini çalıyorum, sonra 'dur' diyorum", "Kesesini çalıyorum: sessizce, parmaklarım hızlı",
+                     "Kesesini çalıyorum. Kimse görmüyor diyorum", "Kesesini çalıyorum ve “sağ ol” diyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(bold_acts._steals(self.session(), line, None))
+                self.assertTrue(bold_acts.is_theft(self.session(), line))
+
 
 if __name__ == "__main__":
     unittest.main()
