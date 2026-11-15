@@ -1,0 +1,54 @@
+{
+  "id": "52c_kese_sayilmamis_kurban",
+  "title": "Para yoktan var olmaz (D-170; SIFIR TOLERANS): kesesi henüz sayılmamış birinden (kurulumda cüzdanı yok) çalınan para onun kesesinden düşer; kesesi kim olduğuna göre bir kez sabitlenir (Kavşim 26 bakır), sonra sıradan cüzdan olur",
+  "source_items": [
+    170
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5603,
+    "front_proposal": false
+  },
+  "steps": [
+    {
+      "say": "kesesini fark ettirmeden çalmak için zar atıyorum",
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "kese": 50,
+        "kisi_kese": {
+          "kavsim": 16
+        }
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 40,
+        "gerekli_metin": "Son tur geri alındı"
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 40
+      }
+    }
+  ]
+}

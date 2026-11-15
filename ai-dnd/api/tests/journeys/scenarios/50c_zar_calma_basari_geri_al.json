@@ -1,6 +1,6 @@
 {
   "id": "50c_zar_calma_basari_geri_al",
-  "title": "Zar motorun işi, para yolu (D-094; SIFIR TOLERANS; kelimeler karar verir, ön okuma kapalı): 'çalmak için zar atıyorum' başarılı zarla zar kartı gösterir ve kese bir kez artar; Geri Al kese ve kişi kesesini eski hâline getirir; yenilemede de aynı kalır",
+  "title": "Zar motorun işi, para yolu (D-094; SIFIR TOLERANS; kelimeler karar verir, ön okuma kapalı): 'çalmak için zar atıyorum' başarılı zarla zar kartı gösterir ve kese bir kez artar; Geri Al kese ve kişi kesesini eski hâline getirir; yenilemede de aynı kalır; çalınan para kurbanın kesesinden düşer (D-170)",
   "source_items": [
     94
   ],
@@ -33,7 +33,10 @@
           "zar_var": true
         },
         "kese": 50,
-        "gerekli_metin": "Kimse fark etmedi"
+        "gerekli_metin": "Kimse fark etmedi",
+        "kisi_kese": {
+          "kavsim": 50
+        }
       }
     },
     {

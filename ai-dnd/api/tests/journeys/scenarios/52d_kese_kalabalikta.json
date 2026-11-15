@@ -1,0 +1,48 @@
+{
+  "id": "52d_kese_kalabalikta",
+  "title": "Para yoktan var olmaz (D-170 Opus incelemesi; SIFIR TOLERANS): iki kişi varken hedef söylenmeden yapılan başarılı çalma, bakan kişiyi kasa saymaz; oyuncunun kazancı birinin kesesinden çıkmadıysa kese değişmez",
+  "source_items": [
+    170
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      },
+      {
+        "id": "sera",
+        "name": "Sera",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 3,
+      "sera": 3
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5604,
+    "front_proposal": false
+  },
+  "steps": [
+    {
+      "say": "kesesini fark ettirmeden çalmak için zar atıyorum",
+      "expect": {
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 3,
+          "sera": 3
+        },
+        "yasak_metin": [
+          "bakır daha var"
+        ]
+      }
+    }
+  ]
+}

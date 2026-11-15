@@ -599,6 +599,17 @@ def _coin_to_take(world: dict[str, Any], person: dict[str, Any] | None) -> bool:
         for deed in deeds(world))
 
 
+def _purse_of(wallets: dict[str, Any], person: dict[str, Any]) -> int:
+    """What a person carries. A purse nobody has counted yet holds 5-40 copper, fixed by who they are (no die is
+    rolled, so every seeded roll after it stays the same); from then on it is their wallet like any other (D-170)."""
+    if person["id"] in wallets:
+        return max(0, int(wallets[person["id"]]))
+    if person.get("role") == "Shopkeeper":
+        return 1000  # the till a shopkeeper opens with (equipment_native.market), so the shop keeps its cash
+    import zlib
+    return 5 + zlib.crc32(str(person["id"]).encode("utf-8")) % 36
+
+
 def _steal(session, text: str) -> dict[str, Any]:
     folded = fold(session, text)
     victim = _hand_to_whom(session, text)
@@ -615,11 +626,18 @@ def _steal(session, text: str) -> dict[str, Any]:
             f"{living_world.public_npc_name(watcher)} soyulmak istenmiş")
         return _reply(session, _pick_line(session, watcher), "theft", "caught", check,
                       ["relationships"], npc_id=watcher["id"])
-    if thing is None and not _coin_to_take(world, victim or watcher):
+    # D-170: only the victim's own purse or a real till holds coin; somebody merely watching is no till
+    if thing is None and not _coin_to_take(world, victim):
         return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
     if thing is None:
         coins = session.rng.randint(5, 40)
         wallets = world.setdefault("currency", {})
+        if victim is not None:  # D-170: the coin comes out of their purse; none is made
+            purse = _purse_of(wallets, victim)
+            coins = min(coins, purse)
+            if coins <= 0:
+                return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+            wallets[victim["id"]] = purse - coins
         wallets["player"] = wallets.get("player", 0) + coins
         if victim is not None:
             remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} soyuldu",
