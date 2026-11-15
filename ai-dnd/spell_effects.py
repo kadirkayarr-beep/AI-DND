@@ -51,9 +51,12 @@ def _spell_names() -> re.Pattern[str]:
     return re.compile(rf"(?<![a-z0-9])(?:{'|'.join(map(re.escape, names))})(?![a-z0-9])")
 _QUESTION = re.compile(r"\?|\b(?:nedir|nasil|what|how|describe|anlat)\b")
 # Negated, wished, asked or weighed forms are no cast: "yapmak istemiyorum", "yapsam mı", "kullanmalı mıyım", "keşke".
+# D-213: the question particle is a closed set of endings (as in game._QUESTION_CUE_RE), so "Misty", "Mislead" and
+# "Mistik" are no question.
 _NEGATED = re.compile(
     r"\b(?:not|don't|dont|never|degil|should|would|could|shall|if|maybe|acaba|keske|eger|belki)\b"
-    r"|\bm[iu](?:s\w*|y\w*)?\b|istem(?:iyor|em|ez|edi|eyece)|\b\w+(?:sam|sem|saydim|seydim)\b|\b\w+m[ae]li\b"
+    r"|\bm[iu](?:y?d[iu](?:m|n|k|n[iu]z|lar|ler)?|y?m[iu]s(?:[iu]m|s[iu]n(?:[iu]z)?|[iu]z|lar|ler)?|y[iu]m"
+    r"|s[iu]n(?:[iu]z)?|y[iu]z|d[iu]r)?\b|istem(?:iyor|em|ez|edi|eyece)|\b\w+(?:sam|sem|saydim|seydim)\b|\b\w+m[ae]li\b"
     r"|\b(?:kullan|yap|at|dene)m(?:a\b|iyor|am\b|ayacag|adi)")
 # K2: money, an item, a container, a hand/bag/pocket to put something in, or a taking verb is no narrative cast:
 # when it is not plainly a pure effect, the line goes on to today's paths (economic, theft, item owners).
@@ -99,6 +102,15 @@ def _range_tr(value: str) -> str:
     return f"{feet.group(1)} fit içinde" if feet else value
 
 
+@functools.lru_cache(maxsize=1)
+def _longer_names() -> list[str]:
+    """Folded spellings of PHB spells whose name holds a resolver's name ("mass healing word"), longest first (D-120)."""
+    import spell_scope
+    import spells
+    names = {name.casefold(): name for name in spell_scope.CATALOG} | spell_scope.ALIASES
+    return sorted({_fold(name) for name in spells.longer_spell_names(names)}, key=len, reverse=True)
+
+
 def named(message: Any) -> tuple[str, str] | None:
     """Read only, words alone: ("narrative", spell) or ("not_yet", spell) for a casting line, else None.
 
@@ -109,7 +121,8 @@ def named(message: Any) -> tuple[str, str] | None:
     folded = _fold(message)
     if _QUESTION.search(folded) or _NEGATED.search(folded):
         return None
-    if any(re.search(rf"(?<![a-z0-9]){re.escape(_fold(alias))}(?![a-z0-9])", folded)
+    plain = spells.without_names(folded, _longer_names())  # "mass healing word" is not Healing Word (D-214)
+    if any(re.search(rf"(?<![a-z0-9]){re.escape(_fold(alias))}(?![a-z0-9])", plain)
            for alias in [*spell_scope.CATALOG, *spell_scope.ALIASES]):
         return None
     hits = {spell for alias, spell in _ALIASES if re.search(rf"(?<![a-z0-9]){alias}(?![a-z0-9])", folded)}
@@ -122,7 +135,7 @@ def named(message: Any) -> tuple[str, str] | None:
     if not _CAST_WORD.search(_CAST_IDIOM.sub(" ", _spell_names().sub(" spell ", folded))):
         return None
     for alias, spell in spells._UNSUPPORTED_ALIASES:
-        if spell not in NARRATIVE and re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", folded):
+        if spell not in NARRATIVE and re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", plain):
             return "not_yet", spell
     for spell in sorted(_manifest_names(), key=len, reverse=True):
         if re.search(rf"(?<![a-z0-9]){re.escape(_fold(spell))}(?![a-z0-9])", folded):
