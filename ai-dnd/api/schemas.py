@@ -366,7 +366,8 @@ class DeathResolutionResult(BaseModel):
 
     mode: Literal["NORMAL", "PERMADEATH", "IRONMAN"]
     outcome: Literal["rolled_back", "dead"]
-    cause: Literal["massive_damage", "failed_death_saves"]
+    # Exhaustion 6 kills (PHB 2024); its owners name the cause: thirst, hunger or a forced march (D-145).
+    cause: Literal["massive_damage", "failed_death_saves", "dehydration", "malnutrition", "extended_travel"]
     rolled_back: bool
     terminal: bool
 
@@ -490,6 +491,8 @@ class CombatHistoryEntry(BaseModel):
     )
     turn_index: int = Field(ge=0)
     result: CombatTurnResult
+    # D-140: read-time undo flag from the receipts' own link (api.history_view); never saved.
+    undone: bool | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class SkillCheckResult(BaseModel):

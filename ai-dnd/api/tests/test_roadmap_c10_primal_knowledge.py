@@ -46,7 +46,8 @@ def roll(session, skill='Acrobatics', *, feature='primal_knowledge', **kwargs):
     return session.perform_skill_check(skill, 15, c['modifiers'], c['proficient_skills'], c['proficiency_bonus'], **kwargs)
 
 
-WORDS = ('Takla atıyorum', 'Onu korkutmaya çalışıyorum', 'Bir şey fark etmeye çalışıyorum', 'Gizleniyorum', 'Yolumu buluyorum')
+WORDS = ('Takla atıyorum', 'Onu korkutmaya çalışıyorum', 'Bir şey fark etmeye çalışıyorum',
+         'Gölgelere gizleniyorum', 'Yolumu buluyorum')  # D-171: a hide names its cover (dice guide 4.4)
 
 
 def turn(session, text='Takla atıyorum', *, feature='primal_knowledge', evidence=None, **kwargs):
@@ -369,7 +370,7 @@ class PrimalKnowledgeCoreTests(unittest.TestCase):
                  'Gözdağı vermeye çalışıyorum', 'Tehdit ediyorum',
                  'Ses dinliyorum', 'Etrafı gözlemliyorum',
                  'Tehlikeyi fark etmeye çalışıyorum', 'Bir şey duymaya çalışıyorum',
-                 'Saklanıyorum', 'Yönümü buluyorum',
+                 'Kalabalığa saklanıyorum', 'Yönümü buluyorum',  # D-171: a hide names its cover
                  'Yiyecek arıyorum', 'Barınak kurmaya çalışıyorum')
         reply = {'message': {'content': '{"world_updates": {}, "narration": "Hamlen çözülür.", "lore_claims": []}'}}
         for text in texts:

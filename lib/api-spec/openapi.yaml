@@ -4102,6 +4102,9 @@ components:
           enum:
           - massive_damage
           - failed_death_saves
+          - dehydration
+          - malnutrition
+          - extended_travel
         rolled_back:
           type: boolean
         terminal:
@@ -4231,6 +4234,9 @@ components:
           minimum: 0
         result:
           $ref: '#/components/schemas/CombatTurnResult'
+        undone:
+          type: boolean
+          description: True when a later undo took this turn back; the row stays as evidence. Absent otherwise.
       required:
       - event_id
       - turn_index
