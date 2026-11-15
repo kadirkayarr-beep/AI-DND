@@ -644,13 +644,19 @@ def _burn(session) -> dict[str, Any]:
         return _reply(session, "Kıvılcım bir türlü tutmuyor; elinde yalnız is kokusu kalıyor.",
                       "arson", "failed", check, [])
     world = session.world_state
-    feature = session.create_local_feature({
-        "name": _FIRE_STAGES[0][1], "description": _FIRE_STAGES[0][2], "location": world.get("location"),
-    })
-    if isinstance(feature, dict) and not any(fire["location"] == world.get("location") for fire in _fires(world)):
+    here = world.get("location")
+    # The flame, its clock and the deed are one fact: a place still ablaze keeps its one fire,
+    # a burnt-out one takes a new fire with its own clock, and no room for a flame means no fire at all.
+    if not any(fire["location"] == here and fire["stage"] < len(_FIRE_STAGES) - 1 for fire in _fires(world)):
+        feature = session.create_local_feature({
+            "name": _FIRE_STAGES[0][1], "description": _FIRE_STAGES[0][2], "location": here,
+        })
+        if not isinstance(feature, dict):
+            return _reply(session, "Kıvılcım tutacak gibi oluyor ama alev bir yere tutunamadan sönüyor.",
+                          "arson", "failed", check, [])
         world.setdefault("flags", {}).setdefault("fires", []).append(
-            {"location": world.get("location"), "lit_at": _now(world), "stage": 0, "feature_id": feature.get("id")})
-    remember(session, "arson", f"{_place_name(world, world.get('location'))} içinde ateş yaktı")
+            {"location": here, "lit_at": _now(world), "stage": 0, "feature_id": feature.get("id")})
+    remember(session, "arson", f"{_place_name(world, here)} içinde ateş yaktı")
     narration = "Kıvılcım tutuyor; duman yükselmeye, ardından alev yalamaya başlıyor."
     if present:
         narration += f" {living_world.public_npc_name(present[0])} sana dönüp bağırıyor: “Deli misin sen?”"

@@ -8,6 +8,7 @@ the next turn's "before" already holds the fallen target and can no longer see t
 from __future__ import annotations
 
 import unittest
+import uuid
 from unittest.mock import patch
 
 import httpx
@@ -92,7 +93,7 @@ class SpeciesActionQuestEvidenceTests(unittest.IsolatedAsyncioTestCase):
         xp_before = session.character.get("xp", 0)
         with patch.object(session.rng, "randint", return_value=1):
             response = await self.http.post(f"/api/game/sessions/{session_id}/species-actions",
-                                            json={"action": "healing_hands"})
+                                            json={"action": "healing_hands", "action_id": str(uuid.uuid4())})
         self.assertEqual(response.status_code, 200, response.text)
         radiance = [e for e in response.json()["result"]["effects"]["turn_end"] if e.get("target_id") == foe["id"]]
         self.assertEqual([e["target_hp_after"] for e in radiance], [0], "Inner Radiance drops the bounty target")
@@ -143,7 +144,7 @@ class SpeciesActionQuestEvidenceTests(unittest.IsolatedAsyncioTestCase):
         purse_before = session.world_state.get("currency", {}).get("player", 0)
         with patch.object(session.rng, "randint", return_value=1):
             response = await self.http.post(f"/api/game/sessions/{session_id}/species-actions",
-                                            json={"action": "healing_hands"})
+                                            json={"action": "healing_hands", "action_id": str(uuid.uuid4())})
         self.assertEqual(response.status_code, 200, response.text)
         bounty = self.bounty(session)
         self.assertEqual(bounty["status"], "ACTIVE")
@@ -168,7 +169,7 @@ class SpeciesActionQuestEvidenceTests(unittest.IsolatedAsyncioTestCase):
         quests_before = [(q.get("quest_id"), q.get("status")) for q in session.world_state["quests"]]
         with patch.object(session.rng, "randint", return_value=1):
             response = await self.http.post(f"/api/game/sessions/{session_id}/species-actions",
-                                            json={"action": "healing_hands"})
+                                            json={"action": "healing_hands", "action_id": str(uuid.uuid4())})
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual([(q.get("quest_id"), q.get("status")) for q in session.world_state["quests"]], quests_before)
 
@@ -200,7 +201,7 @@ class SpeciesActionFactionLoreTests(unittest.IsolatedAsyncioTestCase):
         return campaign, record, session, foe
 
     async def radiance(self, campaign, session, action_id=None):
-        body = {"action": "healing_hands", **({"action_id": action_id} if action_id else {})}
+        body = {"action": "healing_hands", "action_id": action_id or str(uuid.uuid4())}  # D-111: the id is required
         with patch.object(session.rng, "randint", return_value=1):
             return await self.http.post(f"/api/game/sessions/{campaign['session_id']}/species-actions", json=body)
 

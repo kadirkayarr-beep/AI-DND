@@ -413,7 +413,8 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
         finally:
             connection.close()
         self.assertTrue({"campaign_action_intents", "campaign_refused_actions"} <= names, "created at open, not lazily inside a request")
-        # An older database without them is upgraded on open (no version bump, IF NOT EXISTS), and reopening is idempotent.
+        # An older database without them is upgraded on open only with migration approval (D-125: refused unchanged
+        # without it; no version bump, IF NOT EXISTS), and reopening is idempotent.
         connection = sqlite3.connect(self.store.path)
         try:
             connection.execute("DROP TABLE campaign_action_intents")
@@ -421,7 +422,10 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
             connection.commit()
         finally:
             connection.close()
-        reopened = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        with self.assertRaisesRegex(CampaignStorageError, "explicit migration approval"):
+            CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        self.assertFalse({"campaign_action_intents", "campaign_refused_actions"} & self._tables())
+        reopened = CampaignStore(self.store.path, bound_principal=TEST_PLAYER, allow_schema_migration=True)
         CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         self.assertTrue({"campaign_action_intents", "campaign_refused_actions"} <= self._tables())
         self.assertIsNone(reopened.unresolved_action(self.campaign_id))

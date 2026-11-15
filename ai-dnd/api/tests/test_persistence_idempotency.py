@@ -173,24 +173,26 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt["response"], accepted.json())
         self.assertEqual(len(committed.history), 1)
 
+        # D-124: an edited reply models a row from before result digests (NULL); a recorded digest that no longer
+        # matches its text is refused in the store (test_d124_replay_digest), before these reply checks.
         if corruption == "hash":
             # Hash shape corruption is not an ordinary request mismatch.
             sql = "UPDATE campaign_turn_actions SET request_hash = ? WHERE campaign_id = ? AND action_id = ?"
             value = malformed_hash
             expected_status, expected_code = 409, "campaign_unavailable"
         elif corruption == "json":
-            sql = "UPDATE campaign_turn_actions SET response_json = ? WHERE campaign_id = ? AND action_id = ?"
+            sql = "UPDATE campaign_turn_actions SET response_json = ?, result_digest = NULL WHERE campaign_id = ? AND action_id = ?"
             value = '{"action_id":'
             expected_status, expected_code = 503, "campaign_storage_unavailable"
         elif corruption == "action_id":
-            sql = "UPDATE campaign_turn_actions SET response_json = ? WHERE campaign_id = ? AND action_id = ?"
+            sql = "UPDATE campaign_turn_actions SET response_json = ?, result_digest = NULL WHERE campaign_id = ? AND action_id = ?"
             response = copy.deepcopy(accepted.json())
             response["action_id"] = str(uuid4())
             value = json.dumps(response)
             expected_status, expected_code = 409, "campaign_unavailable"
         elif isinstance(corruption, tuple):
             field_path, mode, invalid_value = corruption
-            sql = "UPDATE campaign_turn_actions SET response_json = ? WHERE campaign_id = ? AND action_id = ?"
+            sql = "UPDATE campaign_turn_actions SET response_json = ?, result_digest = NULL WHERE campaign_id = ? AND action_id = ?"
             response = copy.deepcopy(accepted.json())
             parent = response
             for field in field_path[:-1]:
@@ -2868,6 +2870,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         receipt_update = f"""UPDATE campaign_turn_actions SET {damaged_column} = ?
                             WHERE campaign_id = ? AND action_id = ?"""
         if damaged_value is not None:
+            if response_corruption is not None:
+                # D-124: the damaged reply models a row from before result digests (NULL); a recorded digest that no
+                # longer matches its text is refused in the store (test_d124_replay_digest), before these reply checks.
+                with self.store._transaction() as db:
+                    db.execute("UPDATE campaign_turn_actions SET result_digest = NULL WHERE campaign_id = ? AND action_id = ?",
+                               (a["campaign_id"], command["action_id"]))
             original_row = receipt_row(self.store)
             with self.store._transaction() as db:
                 updated = db.execute(
@@ -5550,3 +5558,24 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                          applied.json()["result"]["canonical_event_id"])
         self.assertEqual((await self.post(a, {"message": "1 saat bekle.", "action_id": action_id})).status_code, 409)
         self.assertEqual(self.snapshot(record), legacy_before)
+
+    async def test_turn_species_and_prepare_refuse_a_missing_action_id(self):
+        # D-111: without a client action ID a lost response cannot be retried safely; the server must refuse
+        # the request before it touches the session instead of minting a fresh ID on every delivery.
+        from api.tests.town_seed import fixed_town
+        with fixed_town(self, 11101):
+            created = await self.create_campaign()
+        record = self.manager.get(created["session_id"])
+        sid = created["session_id"]
+        before = self.snapshot(record)
+        for path, body in (
+            (f"/api/game/sessions/{sid}/turn", {"message": "Etrafa bak."}),
+            (f"/api/sessions/{sid}/turn", {"message": "Etrafa bak."}),
+            (f"/api/game/sessions/{sid}/species-actions", {"action": "short_rest"}),
+            (f"/api/game/sessions/{sid}/spellcasting/prepare", {"close": True}),
+        ):
+            with self.subTest(path=path):
+                response = await self.http.post(path, json=body)
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertIn("action_id", [error["loc"][-1] for error in response.json()["detail"]])
+                self.assertEqual(self.snapshot(record), before)

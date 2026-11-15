@@ -524,6 +524,72 @@ class LevelUpWindowIsAdditive(unittest.TestCase):
         result = spell_preparation.prepare(session, ["Magic Missile", "Shield", "Thunderwave", "Feather Fall", "Sleep", "Mage Armor"])
         self.assertEqual((result["status"], result["excess"]), ("too_many", 1))
 
+    def rested_list_then_level_two(self):
+        """D-069: Wizard 1 finishes a Long Rest, saves a list of two and steps to level 2 in the same rest moment."""
+        session = earned(self, "Wizard", 1)
+        session.resolve_species_trait_action("long_rest")
+        self.assertEqual(spell_preparation.prepare(session, ["Magic Missile", "Shield"])["status"], "prepared")
+        rest_second = spells(session)["prepare_window"]["opened_second"]
+        self.assertEqual(spells(session)["prepare_window"]["reason"], "long_rest")
+        earn(session, 2)
+        step(self, session, 2)
+        self.assertEqual(spells(session)["prepare_window"],
+                         {"opened_second": rest_second, "reason": "level_up", "rest_swap": True})
+        return session
+
+    def test_d069_a_level_step_inside_an_open_long_rest_window_keeps_the_swap(self):
+        """D-069: in the rest moment the player swaps AND fills the grown limit; the view still reads as the Long Rest."""
+        session = self.rested_list_then_level_two()
+        view = spell_preparation.view(session)
+        self.assertEqual((view["open"], view["reason"], view["limit"]), (True, "long_rest", 5))
+        restored = roundtrip(session)  # the marked window survives a save and a load
+        self.assertEqual(spells(restored)["prepare_window"], spells(session)["prepare_window"])
+        wanted = ["Thunderwave", "Feather Fall", "Sleep", "Mage Armor", "Magic Missile"]  # Shield swapped out, limit 5 at level 2
+        result = spell_preparation.prepare(session, wanted)
+        self.assertEqual((result["status"], result["prepared"]), ("prepared", wanted))
+        self.assertEqual(spells(session)["prepared"], wanted)
+        self.assertIsNone(spells(session)["prepare_window"])  # the first saved list ends the level-up window
+
+    def test_d069_after_the_rest_moment_the_level_up_window_still_waits_and_only_adds(self):
+        """Review of D-069: time passes before the player prepares; the grown limit can still be filled, but not swapped."""
+        session = self.rested_list_then_level_two()
+        session.advance_campaign_time(60, "wait")
+        self.assertTrue(spell_preparation.window_open(session))
+        view = spell_preparation.view(session)
+        self.assertEqual((view["open"], view["reason"], view["limit"], view["prepared"]),
+                         (True, "level_up", 5, ["Magic Missile", "Shield"]))
+        before = copy.deepcopy(session.serialize_game_state())
+        with self.assertRaises(spell_preparation.PrepareRefused) as caught:
+            spell_preparation.prepare(session, ["Magic Missile", "Thunderwave"])
+        self.assertEqual(caught.exception.code, "prepare_level_up_additive_only")
+        self.assertEqual(session.serialize_game_state(), before)
+        wanted = ["Magic Missile", "Shield", "Thunderwave", "Feather Fall", "Sleep"]
+        result = spell_preparation.prepare(session, wanted)
+        self.assertEqual((result["status"], result["prepared"]), ("prepared", wanted))
+        self.assertIsNone(spells(session)["prepare_window"])
+
+    def test_d069_a_fight_ends_the_swap_but_not_the_level_up_window(self):
+        """A fight ends the Long Rest moment (the clock does not move in a fight); the level-up window keeps waiting."""
+        session = self.rested_list_then_level_two()
+        rest_second = spells(session)["prepare_window"]["opened_second"]
+        fight_and_cast_magic_missile(self, session)
+        self.assertEqual(spells(session)["prepare_window"], {"opened_second": rest_second, "reason": "level_up"})
+        self.assertTrue(spell_preparation.window_open(session))
+        self.assertEqual(spell_preparation.view(session)["reason"], "level_up")
+        with self.assertRaises(spell_preparation.PrepareRefused) as caught:
+            spell_preparation.prepare(session, ["Magic Missile", "Thunderwave"])
+        self.assertEqual(caught.exception.code, "prepare_level_up_additive_only")
+
+    def test_d069_the_swap_marker_is_only_saved_on_a_level_up_window(self):
+        session = self.rested_list_then_level_two()
+        for window in ({"opened_second": 0, "reason": "long_rest", "rest_swap": True},
+                       {"opened_second": 0, "reason": "level_up", "rest_swap": False},
+                       {"opened_second": 0, "reason": "level_up", "rest_swap": 1}):
+            with self.subTest(window):
+                state = {**copy.deepcopy(spells(session)), "prepare_window": window}
+                with self.assertRaises(ValueError):
+                    spell_scope.validate(state, session.character)
+
 
 class LevelUpApiHigherLevels(LevelUpApi):
     async def step(self, body, session, target, amount, choices, expected_required):

@@ -41,6 +41,7 @@ from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignNotActiveError,
     CampaignNotFoundError,
+    CampaignStaleError,
     CampaignStorageError,
 )
 from api.persistence.campaign_serializer import restore_stored_campaign
@@ -670,6 +671,9 @@ class SessionManager:
             else record.narrative_memory
         )
         if record.campaign_id is None:
+            # D-127: the same rule the campaign store applies inside its commit: a refused id never gains a receipt.
+            if turn_action_receipt is not None and turn_action_receipt["action_id"] in record.refused_actions:
+                raise CampaignStaleError("This action was already refused and can no longer be applied.")
             record.narrative_memory = candidate_memory
             self._remember_combat_entry(record, combat_history_entry)
             if turn_action_receipt is not None:
@@ -802,6 +806,8 @@ class SessionManager:
                 record.campaign_id, action_id, request_hash, status_code, detail,
                 principal=self._sealed_principal(record),
             )
+        if action_id in record.turn_action_receipts:
+            return False  # a receipt always wins, as in the campaign store
         record.refused_actions[action_id] = {
             "request_hash": request_hash, "status_code": status_code, "detail": detail,
         }
@@ -821,13 +827,6 @@ class SessionManager:
         return self._require_campaign_store().claim_action_intent(
             record.campaign_id, action_id, request_hash, principal=self._sealed_principal(record),
             session=record.game_session,  # the server-held session, never a client token
-        )
-
-    def release_action_intent(self, record: ManagedSession, action_id: str, request_hash: str) -> bool:
-        if record.campaign_id is None:
-            return action_id not in record.turn_action_receipts
-        return self._require_campaign_store().release_action_intent(
-            record.campaign_id, action_id, request_hash, principal=self._sealed_principal(record),
         )
 
     def unresolved_action(self, record: ManagedSession) -> dict[str, Any] | None:

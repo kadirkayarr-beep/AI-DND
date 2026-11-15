@@ -24,7 +24,7 @@ from api.history_view import UNDO_HISTORY_MARKER
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence import campaign_store
-from api.persistence.campaign_models import CampaignStaleError, CampaignValidationError
+from api.persistence.campaign_models import CampaignStaleError, CampaignStorageError, CampaignValidationError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_ambient_actions as ambient
@@ -233,8 +233,12 @@ class TypedTurnSource(unittest.IsolatedAsyncioTestCase):
         old_rows = saved_rows_without_sidecar(path, self.campaign_id)
         self.assertGreaterEqual(len(old_rows), 2)
 
-        # Opened like a running server opens it: no migration approval is given.
-        store = CampaignStore(path, bound_principal=TEST_PLAYER)
+        # D-125: without migration approval the open is refused and the file keeps its tables.
+        with self.assertRaisesRegex(CampaignStorageError, "explicit migration approval"):
+            CampaignStore(path, bound_principal=TEST_PLAYER)
+        self.assertEqual(tables(path), V6_TABLES)
+        self.assertEqual(user_version(path), 6)
+        store = CampaignStore(path, bound_principal=TEST_PLAYER, allow_schema_migration=True)
         self.assertEqual(user_version(path), 6)
         self.assertEqual(tables(path), V6_TABLES | {SIDECAR})
         loaded = store.get_campaign(self.campaign_id).history
@@ -340,7 +344,7 @@ class CommandSource(unittest.IsolatedAsyncioTestCase):
         session.initialize_species_trait_state()
         with patch.object(session.rng, "randint", return_value=1):
             response = await self.http.post(f"/api/game/sessions/{created['session_id']}/species-actions",
-                                            json={"action": "healing_hands"})
+                                            json={"action_id": str(uuid.uuid4()), "action": "healing_hands"})
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(saved_rows(self.store.path, created["campaign_id"])[-1][1:],
                          ("healing_hands", "deterministic_system"))

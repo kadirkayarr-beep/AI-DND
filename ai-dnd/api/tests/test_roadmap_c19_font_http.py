@@ -30,7 +30,8 @@ class FontHttpTests(unittest.IsolatedAsyncioTestCase):
             connection.executescript(fixture['sqlite_dump'])
             # SQL iterdump omits the database header version; restore the captured value, no migration.
             connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
-        self.store = CampaignStore(path, bound_principal=TEST_PLAYER)
+        # D-125: the frozen file predates later tables and receipt columns; opening it is an approved migration.
+        self.store = CampaignStore(path, bound_principal=TEST_PLAYER, allow_schema_migration=True)
         a = copy.deepcopy(fixture['campaign'])
         r = await self.reopen(a)
         return fixture, a, r

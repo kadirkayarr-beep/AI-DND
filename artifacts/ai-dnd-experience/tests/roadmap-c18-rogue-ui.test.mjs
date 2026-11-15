@@ -87,7 +87,7 @@ test('generated validator keeps the exact creation bundle under the Rogue class 
   const { fields } = helper.rogueStartingCreationFields(draftN(5), source);
   const forged = { ...fields, level_choices: { ...fields.level_choices, '3': { subclass_id: 'thief' } } };
   assert.equal(CreateCampaignBody.safeParse({ character: { mode: 'custom', class: 'Rogue', ...forged } }).success, false);
-  assert.ok(PlayGameTurnBody.parse({ message: 'x', combat_action: { steps: [{ kind: 'attack', target_id: 'a', cunning_strike: 'trip' }] } }));
+  assert.ok(PlayGameTurnBody.parse({ action_id: '8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d', message: 'x', combat_action: { steps: [{ kind: 'attack', target_id: 'a', cunning_strike: 'trip' }] } }));
 });
 
 function levelHarness(p) {
@@ -292,7 +292,7 @@ test('Cunning Action, Steady Aim and Uncanny Dodge send the exact typed steps an
   assert.equal(byId(lowTree, 'button-cunning-dash'), undefined);
   assert.equal(byId(lowTree, 'uncanny-dodge-toggle'), undefined);
   const { PlayGameTurnBody } = await import('../../../lib/api-zod/src/generated/api.ts');
-  for (const step of sent) assert.equal(PlayGameTurnBody.parse({ message: 'x', combat_action: { steps: [step] } }).combat_action.steps[0].kind, step.kind);
+  for (const step of sent) assert.equal(PlayGameTurnBody.parse({ action_id: '8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d', message: 'x', combat_action: { steps: [step] } }).combat_action.steps[0].kind, step.kind);
 });
 
 test('Cunning Strike fields go on the attack only when the pick can be sent', () => {

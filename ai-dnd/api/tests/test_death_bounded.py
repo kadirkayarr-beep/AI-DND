@@ -226,7 +226,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             method = self.http.get if not suffix else self.http.post
             self.assertEqual((await method(f"/api/game/campaigns/{a['campaign_id']}{suffix}")).status_code, 404)
         self.assertEqual((await self.http.get(f"/api/game/sessions/{a['session_id']}/state")).status_code, 404)
-        self.assertEqual((await self.http.post(f"/api/game/sessions/{a['session_id']}/turn", json={"message": "Bekle."})).status_code, 404)
+        self.assertEqual((await self.http.post(f"/api/game/sessions/{a['session_id']}/turn", json={"action_id": str(uuid.uuid4()), "message": "Bekle."})).status_code, 404)
         with self.assertRaises(Exception):
             self.manager.autosave_turn(record, "old", "old")
         again = await self.http.delete(f"/api/game/campaigns/{a['campaign_id']}")

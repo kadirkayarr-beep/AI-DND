@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PlayGameTurnBody, PlayLegacyTurnBody } from '../../../lib/api-zod/src/generated/api.ts';
 for (const [name, schema] of [['canonical', PlayGameTurnBody], ['legacy', PlayLegacyTurnBody]]) {
-  const request = (slot) => ({message: 'Convert slot', combat_action: {steps: [{kind: 'convert_spell_slot', slot_level: slot}]}});
+  const request = (slot) => ({action_id: '8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d', message: 'Convert slot', combat_action: {steps: [{kind: 'convert_spell_slot', slot_level: slot}]}});
   test(`${name} retains explicit slot-to-point conversion step`, () => {
     for (const slot of [1,2,3]) {
       const parsed = schema.parse(request(slot)).combat_action.steps[0];

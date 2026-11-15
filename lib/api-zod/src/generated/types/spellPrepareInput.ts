@@ -17,6 +17,5 @@ export interface SpellPrepareInput {
      */
   prepared?: string[] | null;
   close?: boolean;
-  /** @nullable */
-  action_id?: string | null;
+  action_id: string;
 }

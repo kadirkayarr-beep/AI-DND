@@ -627,19 +627,28 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
             if target_id is None and combat_id is None:
                 return  # asked in the world by unbound_attack_reply, not refused
             raise CombatRequestError("invalid_combat_target", "Select one valid local target.", 400)
-        if not combat.get("active"):
+        opening_step = not combat.get("active") and "distance_ft" not in targets[0]
+        if opening_step:
             # A person in the scene with no recorded distance is within a step:
             # an opening strike must not end as an HTTP refusal.
-            targets[0].setdefault("distance_ft", 5)
-        if combat.get("active") and targets[0]["id"] not in combat["participants"]:
-            raise CombatRequestError("invalid_combat_target", "Target is not a participant.", 400)
-        if combat.get("active") and combat["current_actor_id"] != "player":
-            raise CombatRequestError("out_of_turn", "It is not the player's action turn.")
-        import action_economy
-        command = action_economy.natural_command(session, message, targets[0]["id"])
-        origin = (command["steps"][0].get("attack_origin", "action")
-                  if command and command["steps"][0]["kind"] == "attack" else "action")
-        weapon_attack.preview(session, "player", targets[0]["id"], weapon, choice, origin=origin)
+            targets[0]["distance_ft"] = 5
+        try:
+            if combat.get("active") and targets[0]["id"] not in combat["participants"]:
+                raise CombatRequestError("invalid_combat_target", "Target is not a participant.", 400)
+            if combat.get("active") and combat["current_actor_id"] != "player":
+                raise CombatRequestError("out_of_turn", "It is not the player's action turn.")
+            import action_economy
+            command = action_economy.natural_command(session, message, targets[0]["id"])
+            origin = (command["steps"][0].get("attack_origin", "action")
+                      if command and command["steps"][0]["kind"] == "attack" else "action")
+            weapon_attack.preview(session, "player", targets[0]["id"], weapon, choice, origin=origin)
+        except BaseException:
+            # D-119: a refused preview changed nothing; the step it assumed is taken back, so the last turn stays undoable.
+            if opening_step:
+                targets[0].pop("distance_ft", None)
+            raise
+        if opening_step:
+            return targets[0]  # D-119: the caller takes this step back if it refuses the turn later
     if combat.get("active"):
         session._validate_combat_v3_payload(combat)
         if attack and session.character.get("current_hp", 0) > 0:

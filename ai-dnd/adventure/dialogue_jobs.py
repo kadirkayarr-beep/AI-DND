@@ -400,18 +400,36 @@ def abandon_thread_job(session,thread,owner):
     world=session.world_state
     kept=_keep(world)
     try:
-        if holds_parcel(world,thread):
-            # The one sourced transfer, so the parcel's way back is written in the ledger like every other move.
-            import item_transfers
-            moved=item_transfers.transfer_now(world,item_id=f"parcel:{thread['quest_id']}",source_id='player',recipient_id=owner['id'])
-            if moved.status!='applied': equipment_economy.fail(moved.reason_code or 'item_transfer_refused')
-            equipment_economy.validate_world(world)
+        _give_parcel_back(world,thread['quest_id'],owner['id'])
         play.abandon(session,thread['quest_id'])
         world_threads.sync_from_quests(world)
         return True
     except Exception:
         _restore(world,kept)
         raise
+
+
+def cancel_job(session,quest):
+    """The journal's cancel: the job closes as when walked away from in words, a parcel in hand goes back to its giver."""
+    from adventure import play
+    world=session.world_state
+    kept=_keep(world)
+    try:
+        if quest.get('status') in {'DISCOVERED','ACTIVE','BLOCKED'}:  # an ended job keeps its parcel where it is (a late hand-over)
+            _give_parcel_back(world,quest['quest_id'],(quest.get('bindings') or {}).get('source_npc_id'))
+        return play.abandon(session,quest['quest_id'])
+    except Exception:
+        _restore(world,kept)
+        raise
+
+
+def _give_parcel_back(world,quest_id,owner_id):
+    if holds_parcel(world,{'quest_id':quest_id}):
+        # The one sourced transfer, so the parcel's way back is written in the ledger like every other move.
+        import item_transfers
+        moved=item_transfers.transfer_now(world,item_id=f"parcel:{quest_id}",source_id='player',recipient_id=owner_id)
+        if moved.status!='applied': equipment_economy.fail(moved.reason_code or 'item_transfer_refused')
+        equipment_economy.validate_world(world)
 
 
 def eligible_targets(world,npc_id):

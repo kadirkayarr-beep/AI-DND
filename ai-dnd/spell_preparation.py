@@ -59,6 +59,13 @@ def _open(world: dict[str, Any], state: Any) -> bool:
     return window["reason"] in STANDING or window["opened_second"] == spell_scope.clock_second(world)
 
 
+def _reason(world: dict[str, Any], window: dict[str, Any]) -> str:
+    """D-069: a level-up window opened in the Long Rest moment reads as that Long Rest (swap allowed) until the moment ends."""
+    if window.get("rest_swap") and window["opened_second"] == spell_scope.clock_second(world):
+        return "long_rest"
+    return window["reason"]
+
+
 def window_open(session: Any) -> bool:
     return _open(session.world_state, session.world_state.get("spellcasting_v1"))
 
@@ -76,6 +83,8 @@ def close_window(session: Any) -> None:
     window = state.get("prepare_window") if isinstance(state, dict) else None
     if window is not None and window["reason"] not in STANDING:
         state["prepare_window"] = None
+    elif window is not None:
+        window.pop("rest_swap", None)  # D-069: the fight ends the Long Rest moment's swap; the level-up window waits
 
 
 def _candidates(state: dict[str, Any], character: dict[str, Any]) -> list[str]:
@@ -94,7 +103,7 @@ def view(session: Any) -> dict[str, Any]:
                 "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None}
     window = state["prepare_window"]
     return {"supported": True, "blocked_reason": None, "class_name": state["class"], "open": _open(session.world_state, state),
-            "reason": window["reason"] if window else None, "limit": spell_scope.prepare_limit(session.character),
+            "reason": _reason(session.world_state, window) if window else None, "limit": spell_scope.prepare_limit(session.character),
             "candidates": _candidates(state, session.character), "prepared": list(state["prepared"]),
             "spellbook": copy.deepcopy(state["spellbook"])}
 
@@ -125,7 +134,7 @@ def prepare(session: Any, requested: list[str] | None, close: bool = False) -> d
             kept.append(spell)
             continue
         dropped.append({"spell_id": spell, "reason": reason})
-    if requested is not None and state["prepare_window"]["reason"] == "level_up":
+    if requested is not None and _reason(session.world_state, state["prepare_window"]) == "level_up":
         # A level step only grows the list (PHB: "choose additional spells"); replacing spells needs a finished Long Rest.
         removed = [spell for spell in state["prepared"] if spell not in kept]
         if removed:

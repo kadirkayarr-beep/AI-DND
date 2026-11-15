@@ -1437,7 +1437,7 @@ def _stop(process: subprocess.Popen[bytes], handle: Any) -> None:
 
 def _turn(client: httpx.Client, base: str, session_id: str, message: str,
           target_id: str | None = None, *, request_id: str | None = None) -> dict[str, Any]:
-    payload: dict[str, Any] = {"message": message}
+    payload: dict[str, Any] = {"message": message, "action_id": str(uuid.uuid4())}
     if target_id:
         payload["target_id"] = target_id
     response = client.post(f"{base}/api/sessions/{session_id}/turn",

@@ -243,6 +243,22 @@ test('test_undone_replay_does_not_restore_old_success', { timeout: 30_000 }, asy
   assert.equal(postCount(view, posts), 1, 'paymentPostCount === 1');
 });
 
+test('test_lost_reply_keeps_the_live_undo_target', { timeout: 30_000 }, async () => {
+  // D-110: only the reply was lost. The server still holds this payment as its one-step undo target and says so;
+  // the screen keeps the undo button for it instead of dropping it with the old receipt.
+  const { key, posts } = confirmPressed();
+  const reply = { narration: 'Hancıya 4 bakır verdin.', economic_resolution: { status: 'applied', net_debit_cp: 4, public_summary: '4 bakır ödendi.' }, state: { wallet: { total_cp: 96 }, economic_offer: null }, turn_outcome: { kind: 'paid' } };
+  const present = { revision: 'r2', turn_index: 5, combat: { active: false }, quests: [], scene: null, wallet: { total_cp: 96 }, economic_offer: null };
+  const view = render({
+    status: async (actionId) => ({ action_id: actionId, state: 'applied', response: reply, undo_available: true }),
+    campaign: () => ({ state: present, history: [], combat_history: [] }),
+  });
+  await view.env.serverRecovery('check');
+  assert.deepEqual(JSON.parse(JSON.stringify(view.lastTurns)), [{ sessionId: SESSION, actionId: key.actionId, outcome: { kind: 'paid' }, label: '4 bakır ödendi.', purseSpentCp: null }],
+    'the server-confirmed undo target is put back as the last turn');
+  assert.equal(postCount(view, posts), 1, 'paymentPostCount === 1');
+});
+
 test('test_campaign_switch_drops_stale_promise', { timeout: 30_000 }, async () => {
   const { key, posts } = confirmPressed();
   let answer;

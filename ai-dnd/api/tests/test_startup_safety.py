@@ -163,6 +163,42 @@ class StartupSafetyTests(unittest.TestCase):
         self.assertEqual(path.read_bytes(), before)
         self.assertEqual(_read_user_version(path), 5)
 
+    def test_older_version_six_layout_is_unchanged_without_migration_approval(self):
+        # D-125 (ORTA-04): a version 6 file written before the receipt columns and the later tables still needs approval.
+        path = _temporary(self.directory.name)
+        _version_five(path)
+        connection = sqlite3.connect(path)
+        try:
+            connection.execute("ALTER TABLE campaigns ADD COLUMN owner_issuer TEXT")
+            connection.execute("ALTER TABLE campaigns ADD COLUMN owner_subject TEXT")
+            connection.execute("ALTER TABLE campaigns ADD COLUMN ownership_state TEXT NOT NULL DEFAULT 'unowned'")
+            connection.execute("PRAGMA user_version = 6")
+            connection.commit()
+        finally:
+            connection.close()
+        before = path.read_bytes()
+        with self.assertRaisesRegex(CampaignStorageError, "explicit migration approval"):
+            CampaignStore(path)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(_read_user_version(path), 6)
+        self.assertFalse(Path(str(path) + "-wal").exists())
+
+        CampaignStore(path, allow_schema_migration=True)
+        connection = sqlite3.connect(path)
+        try:
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+            receipt_columns = {row[1] for row in connection.execute("PRAGMA table_info(campaign_turn_actions)")}
+        finally:
+            connection.close()
+        self.assertTrue({
+            "campaign_refused_actions", "campaign_action_intents",
+            "campaign_turn_actions_archive", "campaign_history_sources",
+        } <= tables)
+        self.assertTrue({"base_revision", "committed_revision", "result_digest"} <= receipt_columns)
+        self.assertEqual(_read_user_version(path), 6)
+        # Once complete, a plain reopen needs no approval.
+        CampaignStore(path)
+
     def test_explicit_migration_approval_upgrades_a_temporary_database(self):
         path = _temporary(self.directory.name)
         _version_five(path)

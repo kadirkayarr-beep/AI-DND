@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
 import json
 import os
 import tempfile
@@ -1243,7 +1244,7 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
     async def turn(self, narrate):
         created = (await self.http.post("/api/sessions")).json()
         self.manager.get(created["session_id"]).game_session.run_player_turn = narrate
-        return await self.http.post(f"/api/sessions/{created['session_id']}/turn", json={"message": "Bekle"})
+        return await self.http.post(f"/api/sessions/{created['session_id']}/turn", json={"action_id": str(uuid4()), "message": "Bekle"})
 
     async def test_the_turn_log_names_the_provider_that_answered(self):
         self.adapter._chain = chain_for(FakeCloud(gemini=ok(gemini_reply())))
