@@ -195,13 +195,13 @@ class Narrate(Fixture):
             "unregistered_person": "Rüzgâr esiyor. Torvald adında bir adam seni bekliyor.",
             "money": "Rüzgâr esiyor. Yerde 5 altın parlıyor.",
             "quoted_speech": "Rüzgâr esiyor. “Hoş geldin,” diyor biri.",
-            "too_long": "Bir. İki. Üç. Dört. Beş. Altı.",
+            "too_long": "Bir. İki. Üç. Dört. Beş. Altı. Yedi. Sekiz.",
             "empty": "",
         }
         for case, answer in cases.items():
             with self.subTest(case=case):
                 text, info = self.narrate(answer=answer)
-                for bad in ("Torvald", "5 altın", "“Hoş geldin", "Beş."):
+                for bad in ("Torvald", "5 altın", "“Hoş geldin", "Yedi."):
                     self.assertNotIn(bad, text)
                 if case in ("world_updates", "empty"):
                     self.assertEqual(info["source"], "python")
@@ -287,10 +287,38 @@ class Narrate(Fixture):
 
     def test_a_return_tells_the_absence_in_words(self):
         scene = self.return_after(3 * 3600)
-        facts = arrival_narration.facts(scene, [{"role": "assistant", "content": "x" * 600}])
+        facts = arrival_narration.facts(scene, [{"role": "assistant", "content": "x" * 1500}])
         self.assertEqual((facts["ziyaret"], facts["yokluk"]), ("dönüş", "birkaç saat"))
-        self.assertEqual(facts["son_anlatim"], "x" * 400)
+        self.assertEqual(facts["son_anlatim"], "x" * 1200)
         self.assertEqual(arrival_narration.facts(self.return_after(3 * 86400), [])["yokluk"], "birkaç gün")
+
+    def test_first_visit_keeps_six_sentences_return_keeps_four(self):
+        eight = "Bir. İki. Üç. Dört. Beş. Altı. Yedi. Sekiz."
+        text, _ = self.narrate(answer=eight)
+        self.assertEqual(text.split(" ")[:6], ["Bir.", "İki.", "Üç.", "Dört.", "Beş.", "Altı."])
+        self.assertNotIn("Yedi.", text)
+        scene = self.return_after(3 * 3600)
+        shaped = arrival_narration._shaped(game, eight, scene)
+        self.assertEqual(shaped, "Bir. İki. Üç. Dört.")
+        first = arrival_narration._shaped(game, eight, self.scene())
+        self.assertEqual(first, "Bir. İki. Üç. Dört. Beş. Altı.")
+
+    def test_weather_sentence_is_no_longer_banned_by_rules(self):
+        self.assertNotIn("Havadan söz etme", arrival_narration.RULES)
+        self.assertIn("en çok 6", arrival_narration.RULES)
+        self.assertIn("en çok 4", arrival_narration.RULES)
+
+    def test_quotes_still_dropped_and_no_new_things_rule_kept(self):
+        self.assertIn("Yeni kişi, eşya, çıkış, yol, ücret, para ya da görev ekleme.", arrival_narration.RULES)
+        self.assertIn("Tırnak içinde konuşma yazma.", arrival_narration.RULES)
+        shaped = arrival_narration._shaped(game, "Rüzgâr esiyor. “Hoş geldin,” diyor biri. Kapı gıcırdıyor.",
+                                           self.scene())
+        self.assertNotIn("Hoş geldin", shaped)
+        self.assertIn("Kapı gıcırdıyor.", shaped)
+
+    def test_last_narration_passed_up_to_1200_chars(self):
+        facts = arrival_narration.facts(self.scene(), [{"role": "assistant", "content": "y" * 1500}])
+        self.assertEqual(facts["son_anlatim"], "y" * 1200)
 
     def world(self):
         return {"locations": {}, "npcs": [], "flags": {}}

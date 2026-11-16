@@ -21,9 +21,9 @@ SCHEMA = {
     "additionalProperties": False,
 }
 
-RULES = ("Bir yere varışı anlat. Yalnız verilen yeri, verilen vakti ve oradakileri kullan. İlk ziyarette en çok 4, "
-         "dönüşte en çok 3 cümle yaz. Verilen vakit dışında vakit söyleme; vakit verilmediyse vakitten söz etme. "
-         "Havadan söz etme. Yeni kişi, eşya, çıkış, yol, ücret, para ya da görev ekleme. Tırnak içinde konuşma "
+RULES = ("Bir yere varışı anlat. Yalnız verilen yeri, verilen vakti ve oradakileri kullan. İlk ziyarette en çok 6, "
+         "dönüşte en çok 4 cümle yaz. Verilen vakit dışında vakit söyleme; vakit verilmediyse vakitten söz etme. "
+         "Yeni kişi, eşya, çıkış, yol, ücret, para ya da görev ekleme. Tırnak içinde konuşma "
          "yazma. Oyuncu adına karar, söz ya da duygu yazma. Soru sorma, seçenek sunma. Model, veri, kayıt ya da "
          "Python'dan söz etme. Yalnız narration yaz; arrival true olsun.")
 
@@ -90,14 +90,14 @@ def facts(scene: dict[str, Any], messages) -> dict[str, Any]:
                  if isinstance(message, dict) and message.get("role") == "assistant"
                  and isinstance(message.get("content"), str) and message["content"].strip()), None)
     if last:
-        out["son_anlatim"] = last[:400]
+        out["son_anlatim"] = last[:1200]
     return out
 
 
 def _shaped(game, narration: str, scene: dict[str, Any]) -> str:
     """Form limits, not word lists: quoted speech goes, the scene stays short, unbacked money goes."""
     import town_knowledge
-    limit = 4 if scene["visit"] == "first" else 3
+    limit = 6 if scene["visit"] == "first" else 4
     sentences = [sentence.strip() for sentence in game._split_sentences_keep_speech(narration.strip())
                  if sentence.strip() and not any(mark in sentence for mark in _QUOTES)]
     return town_knowledge.without_unbacked_money(" ".join(sentences[:limit])) or ""
