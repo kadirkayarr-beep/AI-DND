@@ -2438,9 +2438,12 @@ def create_app(
                     # A reward's faction standing is written onto the session's lore copy; that copy can be missing
                     # or older than the record's, so it starts from the record and the record takes the result.
                     session.campaign_lore_state = record.lore_authority
+                    # D-187: a fight this command ended reaches the adventure hooks (aftermath offer, combat count).
+                    ended = ({"combat_ended": True, "end_reason": session.world_state["combat"].get("end_reason")}
+                             if not session.world_state["combat"].get("active") else {})
                     transitions = session.evaluate_quest_events(
                         quest_before, {"action": "species_action", "species_action": request.action,
-                                       "status": "resolved"},
+                                       "status": "resolved", **ended},
                     )
                     record.lore_authority = session.campaign_lore_state
                     # A session without a copy stays without one: a later turn moves only the record's lore, so a copy

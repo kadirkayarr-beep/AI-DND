@@ -300,6 +300,12 @@ class DevelopmentToolingTests(unittest.TestCase):
                        "api.tests.test_d109_timing"):  # D-109: the crime/threat question, the same way
             self.assertIn(module, selectors)
 
+    def test_heard_job_evidence_test_is_in_the_gate(self):
+        # D-203 (Kadir kararı 2026-11-15): evidence kept on a heard job, saved, counted on acceptance, consistent with Undo.
+        selectors = owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"]
+        self.assertIn("api.tests.test_d203_heard_job_evidence", selectors)
+
+
     def test_coin_ask_roll_tests_are_in_the_gate(self):
         # D-166: a coin ask without its Persuasion roll, or paying the model's figure, must not reach main green.
         self.assertIn("api.tests.test_coin_ask_persuasion",
