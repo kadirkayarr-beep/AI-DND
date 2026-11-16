@@ -582,6 +582,8 @@ def arrival_parts(world: dict[str, Any], record: dict[str, Any], npc, feature, *
     burning = bold_acts.is_burnt_or_burning(world, record["id"])
     back = (f"Yeniden buradasın: {record['name']}." if spec.get("open_air")
             else f"Yeniden {record['name']} içindesin.")
+    if spec.get("outdoors"):
+        back = f"Yeniden surların dışındasın: {record['name']}."
     time_lines = _OPEN_AIR_TIME_LINES if spec.get("open_air") or spec.get("outdoors") else _TIME_OF_DAY_LINES
     if first_visit and spec.get("outdoors"):
         parts.append(spec.get("first_line", "Kent kapısı geride kalıyor; yol seni surların dışına çıkarıyor: {name}.")
@@ -635,6 +637,7 @@ def arrival_parts(world: dict[str, Any], record: dict[str, Any], npc, feature, *
         "away_seconds": int(away),
         "clock": clock,
         "present": present,
+        "back": back,
         "fallback": _joined(parts),
         "presence_line": presence_line,
         "facts_line": _joined(facts),
