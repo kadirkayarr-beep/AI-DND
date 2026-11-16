@@ -78,7 +78,10 @@ class ShownInTheNarration(unittest.TestCase):
 
     def test_a_none_in_another_clause_does_not_hide_the_shown_one(self):
         for told in ("Askıda bir mızrak asılı, ama kese yok.", "Kese boş; askıda bir mızrak duruyor.",
-                     "Kimse bakmıyor değil, askıda bir mızrak var."):
+                     "Kimse bakmıyor değil, askıda bir mızrak var.",
+                     # fourth review: words that only begin like a none ("yokuş", "bostan", "boşluk", "değirmen")
+                     "Yokuşta bir mızrak duruyor.", "Bostan korkuluğuna dayalı bir mızrak var.",
+                     "Duvardaki boşlukta bir mızrak duruyor.", "Değirmenin kapısında bir mızrak asılı."):
             with self.subTest(told=told):
                 self.assertEqual(bold_acts._shown(session(told), "Mızrak"), told)
 
