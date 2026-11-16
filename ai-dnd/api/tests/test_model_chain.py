@@ -5,7 +5,10 @@ from __future__ import annotations
 from uuid import uuid4
 import json
 import os
+import subprocess
+import sys
 import tempfile
+import threading
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -725,6 +728,50 @@ class TheSpendCap(unittest.TestCase):
         self.assertIsNone(chain.chat(CALL, LocalModel())[1])
         self.assertEqual(self.cloud.hosts(), [GOOGLE, ANTHROPIC, GOOGLE])
 
+    def test_two_counters_on_one_file_never_lose_an_add(self):
+        # D-151: two processes each hold their own HaikuSpend, so a thread lock cannot make them take turns.
+        path = spend_file()
+        first, second = model_chain.HaikuSpend(path, Clock()), model_chain.HaikuSpend(path, Clock())
+        reply = model_chain.haiku_read(haiku_reply())
+        first_has_read = threading.Event()
+        real_load = model_chain.HaikuSpend._load
+
+        def slow_load(spend):
+            tokens = real_load(spend)
+            if spend is first and not first_has_read.is_set():
+                first_has_read.set()
+                time.sleep(0.3)  # the second counter reads and writes here unless it must wait its turn
+            return tokens
+
+        with patch.object(model_chain.HaikuSpend, "_load", slow_load):
+            worker = threading.Thread(target=first.add, args=(reply,))
+            worker.start()
+            self.assertTrue(first_has_read.wait(5))
+            second.add(reply)
+            worker.join(5)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 2000, "output_tokens": 400})
+
+    def test_two_processes_on_one_file_never_lose_an_add(self):
+        # D-151: the played API and a separate run command share the one monthly file (temporary here).
+        path = spend_file()
+        path.parent.mkdir(parents=True)
+        script = (
+            "import sys\n"
+            "from datetime import datetime, timezone\n"
+            "from pathlib import Path\n"
+            "from api import model_chain\n"
+            "spend = model_chain.HaikuSpend(Path(sys.argv[1]), lambda: datetime(2026, 10, 31, tzinfo=timezone.utc))\n"
+            "reply = model_chain.Reply(text='', input_tokens=1, output_tokens=2)\n"
+            "for _ in range(150):\n"
+            "    spend.add(reply)\n"
+            "    spend.allows_a_call()\n"
+        )
+        root = Path(model_chain.__file__).resolve().parents[1]
+        workers = [subprocess.Popen([sys.executable, "-c", script, str(path)], cwd=root) for _ in range(2)]
+        self.assertEqual([worker.wait(timeout=120) for worker in workers], [0, 0])
+        self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 300, "output_tokens": 600})
+
 
 class TheSetting(unittest.TestCase):
     def setUp(self):
@@ -1171,6 +1218,37 @@ class TheUsageLedgerWiring(unittest.TestCase):
             self.assertIsInstance(row["seconds"], float)
             self.assertGreaterEqual(row["seconds"], 0.0)
         self.assertEqual(self.ledger.today()["haiku"]["calls"], 1)
+
+    def usage_marks(self, cloud):
+        """The rows one engine call writes to a fresh ledger file, as (provider, outcome, usage mark)."""
+        self.path.unlink(missing_ok=True)
+        self.engine_call(self.adapter(cloud))
+        return [(row["provider"], row["outcome"], row.get("usage")) for row in self.rows()]
+
+    def test_a_cloud_try_whose_usage_never_came_back_is_not_a_known_zero(self):
+        """ORTA-07 (D-150): a reply without usage, a read that runs out of time after the request left, and a
+        200 body that cannot be read are marked unknown. A refused request (HTTP error) and one that never
+        connected are a known zero and carry no mark."""
+        no_usage = {key: value for key, value in haiku_reply().items() if key != "usage"}
+        self.assertEqual(self.usage_marks(FakeCloud(gemini=httpx.Response(500), haiku=ok(no_usage))),
+                         [("gemini", "skipped", None), ("haiku", "answered", "unknown")])
+        message = self.ledger.warning()
+        self.assertIn("1 paid call", message)
+        self.assertIn("at least 0.00 USD", message)
+        self.assertEqual(
+            self.usage_marks(FakeCloud(gemini=httpx.ConnectError("down"), haiku=httpx.ReadTimeout("slow"))),
+            [("gemini", "skipped", None), ("haiku", "skipped", "unknown"), ("gemma", "answered", None)])
+        self.assertEqual(
+            self.usage_marks(FakeCloud(gemini=httpx.Response(429), haiku=httpx.Response(200, text="{not json"))),
+            [("gemini", "skipped", None), ("haiku", "skipped", "unknown"), ("gemma", "answered", None)])
+        # The Gemini free tier: its unknown usage is marked, but costs nothing, so no warning.
+        no_metadata = {key: value for key, value in gemini_reply().items() if key != "usageMetadata"}
+        self.assertEqual(self.usage_marks(FakeCloud(gemini=ok(no_metadata))), [("gemini", "answered", "unknown")])
+        self.assertIsNone(self.ledger.warning())
+        # Usage that did come back carries no mark.
+        self.assertEqual(self.usage_marks(FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))),
+                         [("gemini", "skipped", None), ("haiku", "answered", None)])
+        self.assertIsNone(self.ledger.warning())
 
     def test_a_cloud_answer_gets_no_second_line_from_the_adapter(self):
         self.engine_call(self.adapter(FakeCloud(gemini=ok(gemini_reply()))))

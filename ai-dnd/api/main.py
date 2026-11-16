@@ -133,7 +133,7 @@ from api.serializers import (
     serialize_session_state,
 )
 from api.schemas import LevelUpApplyRequest, LevelUpPreviewResponse, LevelUpCommandResult, ShopCounterResponse
-from api.session_manager import SessionManager, UnknownSessionError
+from api.session_manager import SessionManager, TransientReplyDroppedError, UnknownSessionError
 from api.world_metadata import (
     set_session_world_metadata,
     world_metadata_for_state,
@@ -1025,7 +1025,10 @@ def create_app(
     def action_status_payload(record: Any, session_id: str, action_id: str, state: str) -> dict[str, Any]:
         payload: dict[str, Any] = {"action_id": action_id, "state": state}
         if state == "applied":
-            receipt = manager.get_turn_action(record, action_id) or {}
+            try:
+                receipt = manager.get_turn_action(record, action_id) or {}
+            except TransientReplyDroppedError:
+                receipt = {}  # D-152: applied long ago, its reply no longer kept; only a retried turn is refused
             stored = receipt.get("response")
             payload["response"] = None
             if isinstance(stored, dict):

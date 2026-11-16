@@ -616,7 +616,7 @@ def _unpaid(world, thread):
     return not (isinstance(held, list) and xp._job_award_id(thread["thread_id"]) in held)
 
 
-def _trim_history(state, world=None):
+def _trim_history(state, world):
     """Old closings go; one the player had a hand in stays until they have learned how it ended, and was paid for it."""
     waiting = [t for t in state["history"] if fires_at(t) is not None
                or (t.get("offered_at") is not None and t.get("outcome_known_turn") is None) or _unpaid(world, t)]
