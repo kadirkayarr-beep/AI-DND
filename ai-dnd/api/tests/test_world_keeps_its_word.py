@@ -31,8 +31,15 @@ class Stealing(OneTownScene):
         self.world["flags"].pop("active_npc_id", None)
 
     async def steal(self, line, roll):
+        before = (self.world.get("currency", {}).get("player", 0), len(self.world["flags"].get("deeds", [])))
         with patch.object(self.session.rng, "randint", return_value=roll):
-            return await self.say(line, PlayClient())
+            # D-109: a crime is asked about first; the asked turn rolls nothing and moves nothing, the yes plays it
+            asked = await self.say(line, PlayClient())
+            self.assertEqual(self.session._heavy_asked["deed"], "steal", asked["narration"])
+            self.assertIsNone(asked.get("skill_check_result"), asked["narration"])
+            self.assertEqual((self.world.get("currency", {}).get("player", 0),
+                              len(self.world["flags"].get("deeds", []))), before)
+            return await self.say("evet", PlayClient())
 
     async def test_an_empty_room_can_be_robbed_and_the_roll_is_shown(self):
         await self.room()

@@ -800,6 +800,8 @@ class SpellPrepareRequest(BaseModel):
     # so an oversized value is refused before it can reach a stored receipt through `dropped`.
     prepared: Annotated[list[Annotated[StrictStr, Field(max_length=64)]], Field(max_length=32)] | None = None
     close: StrictBool = False
+    # D-039: an old save's Wizard sends the spellbook once (exactly six is checked by the engine); never with `prepared`/`close`.
+    spellbook: Annotated[list[Annotated[StrictStr, Field(max_length=64)]], Field(max_length=32)] | None = None
     action_id: UUID
 
 
@@ -823,6 +825,9 @@ class SpellPrepareView(BaseModel):
     prepared: list[str]
     spellbook: list[str] | None = None
     not_in_engine: list[str] = []
+    # D-039: only while `blocked_reason` is "spellbook_missing": the spells the book may hold and the engine's offer.
+    spellbook_options: list[str] = []
+    suggested_spellbook: list[str] = []
 
 
 class SpellPrepareViewResponse(SpellPrepareView):
@@ -832,7 +837,7 @@ class SpellPrepareViewResponse(SpellPrepareView):
 class SpellPrepareResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    status: Literal["prepared", "too_many"]
+    status: Literal["prepared", "too_many", "spellbook_saved"]
     prepared: list[str]
     dropped: list[SpellPrepareDropped]
     limit: int

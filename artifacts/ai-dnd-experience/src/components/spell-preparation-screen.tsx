@@ -14,7 +14,7 @@ import { currentAccountOwner } from '@/lib/account-session';
 import { readPending } from '@/lib/pending-action';
 import { spellLabel } from '@/lib/spell-names';
 import {
-  droppedText, isActionArchived, isPrepareRefusal, lockedSpells, prepareActionSignature, prepareRefusalText, prepareRequest, resultText, sameSpellList, spellChoices, toggleSpell,
+  bookSize, choosingBook, droppedText, initialDraft, isActionArchived, isPrepareRefusal, lockedSpells, prepareActionSignature, prepareRefusalText, prepareRequest, resultText, sameSpellList, spellChoices, toggleSpell,
   UNVERIFIED_SAVE, windowReasonText,
 } from '@/lib/spell-preparation';
 import { SpellStatusRows } from './spellcasting-panel';
@@ -28,17 +28,21 @@ export function SpellPreparationPanel({ view, draft, combatActive, expanded, sen
   feedback: Feedback | null; label?: (id: string) => string;
   onToggle: (id: string) => void; onSave: () => void; onExpand: () => void; onReset: () => void;
 }) {
-  const editable = view.supported && view.open;
+  const book = choosingBook(view);  // D-039: an old save's Wizard writes the spellbook once, before any preparation
+  const editable = (view.supported && view.open) || book;
   const locked = lockedSpells(view);
   const request = prepareRequest(view, draft);
-  const atCap = draft.length >= view.limit;
-  const unchanged = draft.length === view.prepared.length && draft.every((id, index) => view.prepared[index] === id);
+  const cap = book ? bookSize(view) : view.limit;
+  const pickable = book ? spellChoices(view) : view.candidates;
+  const atCap = draft.length >= cap;
+  const start = initialDraft(view);
+  const unchanged = draft.length === start.length && draft.every((id, index) => start[index] === id);
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (request && !sending && !disabled) onSave(); };
   return <section className="spell-prep dnd-card" data-testid="spell-preparation" aria-labelledby="spell-prep-title">
     <div className="spell-prep-head">
       <h2 id="spell-prep-title">Büyü hazırlığı</h2>
       <button type="button" className="dnd-button secondary" data-testid="button-toggle-spell-preparation" aria-expanded={expanded} aria-controls="spell-prep-body" onClick={onExpand}>
-        {expanded ? 'Gizle' : editable ? 'Hazırlığı aç' : 'Ayrıntılar'}
+        {expanded ? 'Gizle' : book ? 'Büyü kitabını seç' : editable ? 'Hazırlığı aç' : 'Ayrıntılar'}
       </button>
     </div>
     <SpellStatusRows view={view} combatActive={combatActive} label={label} />
@@ -46,15 +50,15 @@ export function SpellPreparationPanel({ view, draft, combatActive, expanded, sen
       <p className="spell-prep-reason" data-testid="spell-prepare-reason">{windowReasonText(view, combatActive)}</p>
       {editable && <form onSubmit={submit}>
         <fieldset disabled={disabled || sending}>
-          <legend>Hazırlanacak büyüler</legend>
-          <p className="spell-prep-count" data-testid="spell-prepare-count">{`${draft.length} / ${view.limit} hazır`}</p>
+          <legend>{book ? 'Büyü kitabına yazılacak büyüler' : 'Hazırlanacak büyüler'}</legend>
+          <p className="spell-prep-count" data-testid="spell-prepare-count">{book ? `${draft.length} / ${cap} seçili` : `${draft.length} / ${view.limit} hazır`}</p>
           {atCap && <p className="spell-prep-note">Sınıra ulaştın: yeni bir büyü eklemek için önce birini çıkar.</p>}
           <ul className="spell-prep-list">
             {spellChoices(view).map(id => {
               const checked = draft.includes(id);
               const isLocked = checked && locked.has(id);
               return <li key={id}><label className="spell-prep-choice">
-                <input type="checkbox" value={id} checked={checked} disabled={isLocked || (!checked && (atCap || !view.candidates.includes(id)))} onChange={() => onToggle(id)} />
+                <input type="checkbox" value={id} checked={checked} disabled={isLocked || (!checked && (atCap || !pickable.includes(id)))} onChange={() => onToggle(id)} />
                 <span>{label(id)}</span>
                 {view.not_in_engine?.includes(id) && <small data-testid="spell-not-in-engine">henüz yok · hazırlanır ama oyunda atılamaz</small>}
                 {isLocked && <small>önceki hazırlık · uzun dinlenmede değişir</small>}
@@ -63,7 +67,7 @@ export function SpellPreparationPanel({ view, draft, combatActive, expanded, sen
           </ul>
           <p className="spell-prep-note">Bazı büyüler yalnız katalogda: hazırlanabilir ama oyunda henüz atılamayabilir.</p>
           <div className="spell-prep-actions">
-            <button type="submit" className="dnd-button" data-testid="button-save-prepared" disabled={!request}>{sending ? 'Kaydediliyor…' : 'Listeyi kaydet'}</button>
+            <button type="submit" className="dnd-button" data-testid="button-save-prepared" disabled={!request}>{sending ? 'Kaydediliyor…' : book ? 'Büyü kitabını kaydet' : 'Listeyi kaydet'}</button>
             <button type="button" className="dnd-button secondary" data-testid="button-reset-prepared" disabled={unchanged} onClick={onReset}>Seçimi sıfırla</button>
           </div>
         </fieldset>
@@ -105,8 +109,8 @@ export function SpellPreparationControls({ state, sessionId, campaignId, catalog
       if (!operation.isCurrent() || result.session_id !== sessionId) return;
       setLoadFailed(false);
       setView(result);
-      if (!busy.current) setDraft([...result.prepared]);
-      if (result.open) setExpanded(true);
+      if (!busy.current) setDraft(initialDraft(result));
+      if (result.open || choosingBook(result)) setExpanded(true);
     } catch { if (operation.isCurrent()) setLoadFailed(true); }
     finally { operation.close(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,6 +146,17 @@ export function SpellPreparationControls({ state, sessionId, campaignId, catalog
       if (response.action_id !== actionId) throw new ReconciliationError();
       const fresh = await refreshState();
       if (!fresh) return;
+      if ('spellbook' in body) {  // D-039: the public state carries no book; the server's own view is re-read instead
+        const saved = await getGameSessionSpellPreparation(sessionId, { signal: operation.signal });
+        if (!operation.isCurrent()) return;
+        clearPendingTurnAction(scope, actionId);
+        if (saved.session_id !== sessionId || !sameSpellList(saved.spellbook, body.spellbook)) {
+          setFeedback({ tone: 'warning', text: UNVERIFIED_SAVE });
+          return 'settled';
+        }
+        setFeedback({ tone: 'success', text: resultText(response.result, label) });
+        return 'settled';
+      }
       clearPendingTurnAction(scope, actionId);
       if (!sameSpellList(fresh.spellcasting?.prepared, response.result.prepared)) {  // never claim a save the re-read does not show
         setFeedback({ tone: 'warning', text: UNVERIFIED_SAVE });
@@ -178,5 +193,5 @@ export function SpellPreparationControls({ state, sessionId, campaignId, catalog
   </section>;
   return <SpellPreparationPanel view={view} draft={draft} combatActive={combatActive} expanded={expanded} sending={sending} disabled={disabled} feedback={feedback} label={label}
     onToggle={id => { setFeedback(null); setDraft(current => toggleSpell(view, current, id)); }}
-    onSave={save} onExpand={() => setExpanded(value => !value)} onReset={() => setDraft([...view.prepared])} />;
+    onSave={save} onExpand={() => setExpanded(value => !value)} onReset={() => setDraft(initialDraft(view))} />;
 }

@@ -71,14 +71,14 @@ jobs:
           retention-days: 30
 
   full-python-tests:
-    # D-218 (Kadir, 2026-11-15): every Python test module runs on every PR and main push, split into 4 shards.
+    # D-218 (Kadir, 2026-11-15): every Python test module runs on every PR and main push, split into 6 shards (Kadir 2026-11-15: 6 instead of 4 to shorten the wait).
     # Measured once on draft PR #85: 564 modules, 9437 tests, 29.7 minutes in one process, 0 failures.
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -119,6 +119,6 @@ jobs:
           fi
           "$CHROMIUM_PATH" --version
           printf 'CHROMIUM_PATH=%s\n' "$CHROMIUM_PATH" >> "$GITHUB_ENV"
-      - name: Python tests (shard ${{ matrix.shard }} of 4)
+      - name: Python tests (shard ${{ matrix.shard }} of 6)
         working-directory: ai-dnd
-        run: python scripts/full_python_suite.py --shard ${{ matrix.shard }} --of 4
+        run: python scripts/full_python_suite.py --shard ${{ matrix.shard }} --of 6

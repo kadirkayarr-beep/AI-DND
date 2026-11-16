@@ -946,6 +946,7 @@ def _execute(session, command, action_id=None, session_id=None):
     ensure(session)
     results = []
     combat_id = session.world_state["combat"].get("combat_id")
+    was_active = session.world_state["combat"].get("active") is True
     with resolution_action_scope(action_id or str(uuid4()), session_id):
         for step in steps:
             kind = step["kind"]
@@ -1062,11 +1063,14 @@ def _execute(session, command, action_id=None, session_id=None):
     if session.world_state["combat"]["active"]:
         session._sync_combat_participant_records(session.world_state["combat"])
     session.world_state["flags"]["turn_index"] = session.world_state["flags"].get("turn_index", 0) + 1
+    # A step that ended this fight says so, like every other combat receipt (D-217): the UI notice and the adventure hooks read it.
+    ended = ({"combat_ended": True, "end_reason": session.world_state["combat"].get("end_reason")}
+             if was_active and not session.world_state["combat"]["active"] else {})
     return {
         "messages": session.messages,
         "narration": resolved_narration(session, results),
         "action_result": {"action": "action_economy", "status": "resolved", "success": True,
-                          "combat_id": combat_id, "economy_steps": results, **event_fields(results)},
+                          "combat_id": combat_id, "economy_steps": results, **event_fields(results), **ended},
         "action_economy_result": {"combat_id": combat_id, "steps": results, "state": projection(session)},
         "model_calls": 0,
     }

@@ -289,3 +289,60 @@ test('screen source: id keyed by saved state, success verified, archived re-read
   assert.doesNotMatch(tooMany, /reconcileState|applyGameState|setDraft|load\(/, 'too_many saves nothing and re-reads nothing');
   assert.match(lib.resultText({ status: 'too_many', prepared: [], dropped: [], limit: 2, excess: 1, open: true, message: '' }, plainLabel), /Liste kaydedilmedi/);
 });
+
+// D-039 (Kadir 2026-11-15): an old save's Wizard chooses the spellbook once; the server sends the options and its offer.
+const OPTIONS = ['Magic Missile', 'Shield', 'Mage Armor', 'Detect Magic', 'Sleep', 'Burning Hands', 'Thunderwave', 'Feather Fall', 'Identify', 'Charm Person'];
+const SUGGESTED = OPTIONS.slice(0, 6);
+const bookView = (extra = {}) => view({ supported: false, blocked_reason: 'spellbook_missing', open: false, reason: null, limit: 0, candidates: [], prepared: [], spellbook: null,
+  spellbook_options: OPTIONS, suggested_spellbook: SUGGESTED, ...extra });
+
+test('D-039: a bookless Wizard starts from the offer, may change it, and only an exact six-spell book is sent', () => {
+  const v = bookView();
+  assert.equal(lib.choosingBook(v), true);
+  assert.equal(lib.choosingBook(view()), false);
+  assert.equal(lib.choosingBook(bookView({ suggested_spellbook: [], spellbook_options: [] })), false, 'no offer from the server: nothing to choose');
+  assert.equal(lib.bookSize(v), 6);
+  assert.deepEqual(lib.initialDraft(v), SUGGESTED);
+  assert.deepEqual(lib.initialDraft(view()), ['Magic Missile']);
+  assert.deepEqual(lib.spellChoices(v), OPTIONS);
+  assert.deepEqual(lib.prepareRequest(v, SUGGESTED), { spellbook: SUGGESTED });
+  const changed = lib.toggleSpell(v, lib.toggleSpell(v, SUGGESTED, 'Sleep'), 'Identify');
+  assert.deepEqual(changed, ['Magic Missile', 'Shield', 'Mage Armor', 'Detect Magic', 'Burning Hands', 'Identify']);
+  assert.deepEqual(lib.prepareRequest(v, changed), { spellbook: changed });
+  assert.deepEqual(lib.toggleSpell(v, SUGGESTED, 'Identify'), SUGGESTED, 'a seventh spell is not added');
+  assert.deepEqual(lib.toggleSpell(v, SUGGESTED.slice(0, 5), 'Fireball'), SUGGESTED.slice(0, 5), 'never a spell the server did not offer');
+  assert.equal(lib.prepareRequest(v, SUGGESTED.slice(0, 5)), null);
+  assert.equal(lib.prepareRequest(v, [...SUGGESTED.slice(0, 5), 'Shield']), null);
+  assert.equal(lib.prepareRequest(v, [...SUGGESTED.slice(0, 5), 'Fireball']), null);
+  assert.match(lib.windowReasonText(v, false), /Büyü kitabın kayıtta yok.*6 birinci seviye Wizard büyüsü seç.*Geri Al ile geri alınamaz/);
+  assert.match(lib.resultText({ status: 'spellbook_saved', prepared: [], dropped: [], limit: 4, excess: 0, open: true, message: 'English' }, plainLabel), /Büyü kitabın kaydedildi/);
+  const err = code => ({ status: 409, data: { detail: { code, message: 'English' } } });
+  for (const code of ['prepare_spellbook_invalid', 'prepare_spellbook_not_missing', 'prepare_request_mixed']) {
+    assert.match(lib.prepareRefusalText(err(code)), /kaydedilmedi/, code);
+    assert.doesNotMatch(lib.prepareRefusalText(err(code)), /English/, code);
+  }
+});
+
+test('D-039: the panel shows the book choice with the offer ticked, a cap of six and its own save button', () => {
+  const html = screenHtml({ view: bookView(), draft: SUGGESTED });
+  assert.equal((html.match(/type="checkbox"/g) ?? []).length, OPTIONS.length);
+  assert.equal((html.match(/<input[^>]*checked=""[^>]*>/g) ?? []).length, 6);
+  assert.match(html, /data-testid="spell-prepare-count"[^>]*>6 \/ 6 seçili</);
+  assert.match(html, /Büyü kitabına yazılacak büyüler/);
+  assert.match(html, /data-testid="button-save-prepared"[^>]*>Büyü kitabını kaydet</);
+  assert.doesNotMatch(html, /data-testid="button-save-prepared"[^>]*disabled/);
+  assert.match(html, /data-testid="button-reset-prepared"[^>]*disabled/, 'the offer itself is the starting point');
+  assert.match(html, /Geri Al ile geri alınamaz/);
+  const short = screenHtml({ view: bookView(), draft: SUGGESTED.slice(0, 5) });
+  assert.match(short, /data-testid="button-save-prepared"[^>]*disabled/);
+  assert.match(rows({ view: bookView() }), /spell-window-row"[^>]*>Önce büyü kitabı seçilecek</);
+});
+
+test('D-039: the screen sends the book alone and checks the saved book in the server view before saying it is saved', async () => {
+  const source = await readFile('src/components/spell-preparation-screen.tsx', 'utf8');
+  const block = source.slice(source.indexOf("if ('spellbook' in body)"), source.indexOf('if (!sameSpellList(fresh.spellcasting'));
+  assert.match(block, /getGameSessionSpellPreparation/);
+  assert.match(block, /sameSpellList\(saved\.spellbook, body\.spellbook\)/);
+  assert.match(block, /UNVERIFIED_SAVE/);
+  assert.match(source, /setDraft\(initialDraft\(result\)\)/);
+});
