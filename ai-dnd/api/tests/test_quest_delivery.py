@@ -250,6 +250,37 @@ class QuestDelivery(JourneyCase):
         self.assert_not_delivered()
         self.assertEqual(self.purse(), 100)
 
+    async def test_d239_a_tip_or_gift_line_with_no_money_reading_delivers_nothing(self):
+        # review: a bare hand-over reading (no deal, no coin) on the line's own money words still delivered
+        await self.accept(); await self.at_recipient()
+        for line in ("bahşiş veriyorum", "sana küçük bir hediye veriyorum", "biraz harçlık veriyorum"):
+            with self.subTest(line=line):
+                await self.say(line, front={"kind": "hand_over"})
+                self.assert_not_delivered()
+                self.assertEqual(self.purse(), 100)
+
+    async def test_d239_a_common_word_in_the_parcel_name_does_not_name_it(self):
+        # review: 'yol kapanışı duyurusu' matched 'yolun', 'bir saat değişikliği notu' matched 'saat'
+        await self.accept(); await self.at_recipient()
+        for noun, line in (("yol kapanışı duyurusu", "Tuna, al şu 5 bakırı bahşiş olarak, yolun açık olsun"),
+                           ("bir saat değişikliği notu", "saat geç oldu, bahşiş veriyorum")):
+            with self.subTest(noun=noun):
+                self.thread()["item_noun"] = noun
+                self.save()
+                await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none",
+                                            "deal": "tip"})
+                self.assert_not_delivered()
+                self.assertEqual(self.purse(), 100)
+
+    async def test_d239_a_parcel_word_with_an_ending_names_the_parcel(self):
+        # review: 'emanetini' was not a parcel word (whole-word list), so a coin line naming the parcel did not deliver
+        await self.accept(); await self.at_recipient()
+        await self.say("Tuna, emanetini getirdim, al şu 2 bakırı da",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "deal": "tip",
+                              "coin_cp": 2})
+        self.assertEqual((self.bag(), self.open_quests(), self.thread()["status"]), ({}, [], "done"))
+        self.assertEqual((self.thread()["paid_cp"], len(self.paid_rows())), (12, 1))
+
     async def test_d239_the_parcel_note_tells_the_reader_a_tip_is_no_hand_over(self):
         # the note asked for hand_over on 'veriyorum' alone, so 'bahşiş veriyorum' read as the parcel going
         note = front_proposal._at_hand({"offers": [], "jobs": [], "bag": [{"id": "parcel:q1", "name": "Mektup"}]})
