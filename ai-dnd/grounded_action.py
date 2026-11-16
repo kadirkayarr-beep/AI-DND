@@ -1607,14 +1607,15 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
         run.local_place = {"kind": record["place_kind"], "created": first,
                            "npc_id": npc.get("id") if isinstance(npc, dict) else None}
         arrival, told = arrival_narration.arrive(run.game, run.world, record, npc, feature, first_visit=first,
-                                                 player_input=run.text, messages=run.session.messages)
+                                                 player_input=run.text, messages=run.session.messages,
+                                                 lead=f"{prefix}{opened}")
     else:
         people = run.game.active_npcs(place["id"])[:3]
         arrival, told = arrival_narration.narrate(
             run.game, arrival_narration.venue_scene(run.world, record, people, seen_before=seen_before),
-            player_input=run.text, messages=run.session.messages)
+            player_input=run.text, messages=run.session.messages, lead=f"{prefix}{opened}")
     run.arrival_calls += told["calls"]
-    return _receipt("enter", "completed", place, text=f"{prefix}{opened}{arrival}".strip(),
+    return _receipt("enter", "completed", place, text=arrival.strip(),
                     arrival_narration={"source": told["source"], "reason_code": told["reason_code"]})
 
 

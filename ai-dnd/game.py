@@ -8740,15 +8740,19 @@ def _has_spoken_to_player(npc):
     return bool(npc_statements.view(_session().world_state)["statements"].get(npc.get("id")))
 
 
-def _with_job_news(world, place_id, narration):
-    """Coming back to a place you had a job at, how it ended is simply there to see."""
+def _job_news_line(world, place_id):
+    """Coming back to a place you had a job at, how it ended is simply there to see ("" when nothing)."""
     import town_knowledge
     import world_threads
     try:
-        line = world_threads.arrival_line(world, place_id)
+        return world_threads.arrival_line(world, place_id) or ""
     except Exception:
         town_knowledge.log_failure()
-        return narration
+        return ""
+
+
+def _with_job_news(world, place_id, narration):
+    line = _job_news_line(world, place_id)
     return f"{narration} {line}" if line else narration
 
 
