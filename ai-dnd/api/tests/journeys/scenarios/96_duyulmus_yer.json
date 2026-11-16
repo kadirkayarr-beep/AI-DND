@@ -1,0 +1,118 @@
+{
+  "id": "96_duyulmus_yer",
+  "title": "Duyulmuş yer (D-249/D-250; SIFIR TOLERANS): bir kişi bir yerin adını söyler, söylenti olarak kaydedilir; kasabayı soran başka bir kişi onu bilir; oyuncu oraya gidebilir; yenileme ve Geri Al söylentiyi korur",
+  "source_items": [
+    249,
+    250
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "gezgin",
+        "name": "Selim",
+        "role": "Gezgin",
+        "current_hp": 10
+      },
+      {
+        "id": "yolcu",
+        "name": "Nermin",
+        "role": "Yolcu",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 9601,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "Selim, bu kasabada görülecek bir yer var mı?",
+      "script": {
+        "spoken": "Eski Mahzen'i duydum; eski kayıtlar orada saklanırmış.",
+        "speech": {
+          "mentions": {
+            "kind": "place",
+            "name": "Eski Mahzen",
+            "place_kind": "archive",
+            "about": "Eski kayıtların saklandığı yer."
+          }
+        },
+        "front": {
+          "person_id": "gezgin",
+          "kind": "speak_to"
+        }
+      },
+      "expect": {
+        "duyulan": [
+          {
+            "ad": "Eski Mahzen",
+            "metin": "Eski Mahzen"
+          }
+        ],
+        "kese": 100
+      }
+    },
+    {
+      "say": "Nermin, bu kasabada neler biliyorsun?",
+      "script": {
+        "spoken": "Pek bir şey bilmem.",
+        "front": {
+          "person_id": "yolcu",
+          "kind": "speak_to"
+        }
+      },
+      "expect": {
+        "konusmaya_giden": "Eski Mahzen",
+        "duyulan": [
+          {
+            "ad": "Eski Mahzen"
+          }
+        ]
+      }
+    },
+    {
+      "say": "Eski Mahzen'e gidiyorum",
+      "expect": {
+        "konum": "$duyulan:Eski Mahzen",
+        "duyulan": [
+          {
+            "ad": "Eski Mahzen"
+          }
+        ]
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "konum": "fr:city:neverwinter",
+        "duyulan": [
+          {
+            "ad": "Eski Mahzen"
+          }
+        ]
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "konum": "fr:city:neverwinter",
+        "duyulan": [
+          {
+            "ad": "Eski Mahzen"
+          }
+        ]
+      }
+    }
+  ]
+}
