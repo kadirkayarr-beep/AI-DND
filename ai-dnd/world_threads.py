@@ -1380,6 +1380,26 @@ def parcel_thread(world: dict[str, Any], item_id: Any) -> dict[str, Any] | None:
                  if t.get("quest_id") and item_id == f"parcel:{t['quest_id']}"), None) if state else None
 
 
+# D-276: the hand-over verb itself said in the negative ('getirmedim', 'vermiyorum', 'vermeyeceğim', 'teslim etmiyorum',
+# 'veremem', 'veremiyorum'). Only the verb's own ending is read, so 'vermek istiyorum', 'rica ederim', 'umarım' and
+# 'getirmişim' refuse nothing. `_REFUSED_DOING` reads the present and the plain 'won't'; the past, the soft-g 'will
+# not' and the hearsay past are read here.
+_GIVE_VERB = re.compile(r"\b(?:getir|ver|teslim e[td]|birak|uzat)(\w*)")
+_NOT_GIVEN = re.compile(r"[ae]?m[ae](?:d[iu]|y[ae]ce[gk]|m[iu]s)")
+
+
+def _giving(tokens: list[str]) -> bool | None:
+    """None: no hand-over verb in the clause; True: one is said in the negative; False: said plainly."""
+    endings = [verb.group(1) for verb in _GIVE_VERB.finditer(" ".join(tokens))]
+    return any(_REFUSED_DOING.search(end) or _NOT_GIVEN.match(end) for end in endings) if endings else None
+
+
+def hand_over_clauses(text: Any) -> list[tuple[str, bool | None]]:
+    """Each clause of the player's own line (folded), with `_giving` of it; [] for anyone else's words."""
+    line = _own_line(text, answer_table()) if isinstance(text, str) and text.strip() else None
+    return [(" ".join(tokens), _giving(tokens)) for tokens, _, _ in _clauses(line)] if line else []
+
+
 def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     """'Paketi getirdim', 'buyur paketini', 'teslim': a handing-over, said now and not asked about."""
     table = answer_table()
@@ -1391,7 +1411,7 @@ def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     verbs = table["give"] | table["give_verbs"]
     for tokens, asked, _ in _clauses(text):
         body = [word for word in tokens if word not in names and word not in table["fillers"]]
-        if asked or not body:
+        if asked or not body or _giving(tokens):  # D-276: 'paketi teslim etmiyorum' hands nothing over
             continue
         if " ".join(body) in table["give"] or all(word in table["give"] for word in body):
             return True
