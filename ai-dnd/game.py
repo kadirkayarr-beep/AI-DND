@@ -1276,11 +1276,12 @@ _OPEN_SCARE = re.compile(
 def open_scare_try(player_input) -> bool:
     """D-099: "muhafızı korkutmaya çalışıyorum" is an attempt the dice settle, whoever it is aimed at. Only a present,
     first-person, finished sentence outside quotes counts (never "korkutmaya çalıştım", "beni korkutmaya çalışıyor", a
-    quoted threat, a plan, or words said to somebody)."""
-    if not isinstance(player_input, str) or "?" in player_input or ":" in player_input:
+    quoted threat, a plan, or words said to somebody). D-226: before a colon is the try, after it what is said."""
+    if not isinstance(player_input, str) or "?" in player_input:
         return False
     import living_world
-    bare = " ".join(re.findall(r"\w+", _normalize_turkish_typos(living_world._text_outside_quotes(player_input))))
+    told = living_world._text_outside_quotes(player_input).split(":", 1)[0]
+    bare = " ".join(re.findall(r"\w+", _normalize_turkish_typos(told)))
     return bool(_OPEN_SCARE.search(bare))
 
 
@@ -12123,6 +12124,9 @@ def _narration_safety_decision(
         contradicted_failure = re.search(r"başarısız olur|başaramaz", text)
         if contradicted_failure:
             return reject("SKILL_RESULT_CONTRADICTION", contradicted_failure.group(0))
+        unmoved = _UNMOVED.search(_normalize_turkish_typos(text)) if action_result.get("skill") == "Intimidation" else None
+        if unmoved:
+            return reject("SKILL_RESULT_CONTRADICTION", unmoved.group(0))  # D-226: a won scare moves the person
     if ("kapı" in input_text or "kilit" in input_text) and outcome in (
         "failure", "critical_failure"
     ):
@@ -14757,6 +14761,14 @@ def _resolved_skill_result_narration(result):
 
 
 _TELLS_FAILURE = re.compile(r"\w+m[iu]yor\w*|\w+(?:ama|eme)(?:z|di|yacak)\w*|\bbasarisiz|\bsonuc vermedi|\byok\b|\bdegil\b")
+
+
+# D-226: what tells a scared person unmoved ("geri adım atmıyor", "sözlerin ona işlemiyor", "korkmuyorum").
+_UNMOVED = re.compile(
+    r"\b(?:geri\s+adim\s+atm(?:iyor|az|adi)|cekilm(?:iyor|ez|edi)|kipirdam(?:iyor|az|adi)|"
+    r"kimildam(?:iyor|az|adi)|islem(?:iyor|ez|edi)|etkilen?m(?:iyor|ez|edi)|umursam(?:iyor|az|adi)|"
+    r"aldirm(?:iyor|az|adi)|korkm(?:uyor|az|adi)|yol\s+verm(?:iyor|ez|edi)|istifini\s+bozm(?:uyor|az|adi)|"
+    r"gozunu\s+(?:bile\s+)?kirpm(?:iyor|az|adi))\w*")
 
 
 def _states_the_failed_check(narration, result, player_input):
