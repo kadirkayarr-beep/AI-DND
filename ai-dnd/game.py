@@ -20098,7 +20098,6 @@ def _names_no_parcel(world, person, item_id, player_input):
 
 def _front_hand_over(route, player_input):
     """The model read a hand-over and named a listed thing. Python moves it; failing that the person hears the line."""
-    import front_proposal
     import town_knowledge
     import world_threads
     from adventure import dialogue_jobs
@@ -20111,10 +20110,7 @@ def _front_hand_over(route, player_input):
     item_id = route["item"]
     if _coin_not_parcel(session, world, person, item_id, player_input):
         return heard  # D-239: a tip or coin that names no parcel is money for its card, never the job's delivery
-    clauses = world_threads.hand_over_clauses(player_input)
-    refused = [clause for clause, refuses in clauses if refuses]
-    if refused and not (any(refuses is False for _, refuses in clauses) and all(
-            front_proposal.says_money(clause) and _names_no_parcel(world, person, item_id, clause) for clause in refused)):
+    if world_threads.refuses_hand_over(player_input, lambda clause: not _names_no_parcel(world, person, item_id, clause)):
         # D-276: 'takımı getirmedim', 'paketi vermiyorum': said, not done. Only a 'not' on the coin alone beside a plain
         # hand-over ('takımı getirdim, bahşiş vermiyorum') refuses no parcel. Nothing changes hands; the person hears so.
         refusals.note(session, "hand_over_refused", npc_id=person["id"])

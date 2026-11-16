@@ -356,6 +356,46 @@ class QuestDelivery(JourneyCase):
                 self.assertEqual((self.thread()["paid_cp"], len(self.paid_rows())), (12, 1))
                 await self.undo()
 
+    # Opus review of D-276 (rev_t5): a refusal said through a wish or a casual ending, the word reader's first clause,
+    # and lines that only sound negative.
+    async def test_d276_review_a_refusal_said_through_a_wish_or_a_casual_ending_delivers_nothing(self):
+        await self.accept(); await self.at_recipient()
+        for line in ("takımı vermek istemiyorum", "takımı vermeyi düşünmüyorum", "takımı vermeye niyetim yok",
+                     "takımı vermekten vazgeçtim", "takımı vermiyom", "takımı sana vermiycem"):
+            for item_id in (self.parcel_id, "none"):
+                with self.subTest(line=line, item_id=item_id):
+                    await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": item_id})
+                    self.assert_not_delivered()
+                    self.assertEqual(self.purse(), 100)
+                    self.assertIn((self.tuna, self._REFUSED), self.notes())
+                    await self.undo()
+
+    async def test_d276_review_the_word_reader_reads_the_whole_line(self):
+        # the loop returned on the first clause that gave; a later 'ama vermiyorum' took the hand-over back
+        await self.accept(); await self.at_recipient()
+        tuna = self.person(self.tuna)
+        for line in ("takımı getirdim ama vermiyorum", "al, ama aslında vermiyorum", "takımı vermek istemiyorum, al"):
+            with self.subTest(line=line):
+                self.assertFalse(world_threads.gives_item(line, tuna, self.thread()))
+                self.assertIsNone(world_threads.turn_gate(self.world, tuna, line))
+        for line in ("vermem gereken takımı getirdim", "getirmem gereken takım bu, al",
+                     "takımı getirdim, ücretimi vermiyorsun daha"):
+            with self.subTest(line=line):
+                self.assertTrue(world_threads.gives_item(line, tuna, self.thread()))
+
+    async def test_d276_review_a_line_that_only_sounds_negative_still_delivers(self):
+        # '-mem gereken' is 'the one I must give', a 'not' on the fee or a rhetorical 'getirmedim mi' is no refusal
+        await self.accept(); await self.at_recipient()
+        for line in ("işte teslim etmem gereken emanet, buyur", "işte vermem gereken takım", "getirmem gereken takım bu, al",
+                     "takımı getirdim, ücretimi vermedin daha", "takımı getirdim, ücretimi vermiyorsun daha",
+                     "getirmedim mi sanıyorsun, al işte", "lafı uzatmıyorum, al takımın"):
+            with self.subTest(line=line):
+                await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id})
+                self.assertEqual((self.purse(), self.bag(), self.open_quests(), self.thread()["status"]),
+                                 (112, {}, [], "done"))
+                self.assertEqual((self.thread()["paid_cp"], len(self.paid_rows())), (12, 1))
+                await self.undo()
+
     async def test_d276_undo_after_a_refused_and_after_a_real_hand_over_returns_the_turn_whole(self):
         await self.accept(); await self.at_recipient()
         front = {"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id}

@@ -1381,23 +1381,64 @@ def parcel_thread(world: dict[str, Any], item_id: Any) -> dict[str, Any] | None:
 
 
 # D-276: the hand-over verb itself said in the negative ('getirmedim', 'vermiyorum', 'vermeyeceğim', 'teslim etmiyorum',
-# 'veremem', 'veremiyorum'). Only the verb's own ending is read, so 'vermek istiyorum', 'rica ederim', 'umarım' and
-# 'getirmişim' refuse nothing. `_REFUSED_DOING` reads the present and the plain 'won't'; the past, the soft-g 'will
-# not' and the hearsay past are read here.
-_GIVE_VERB = re.compile(r"\b(?:getir|ver|teslim e[td]|birak|uzat)(\w*)")
-_NOT_GIVEN = re.compile(r"[ae]?m[ae](?:d[iu]|y[ae]ce[gk]|m[iu]s)")
+# 'veremem', 'veremiyorum'), or its infinitive with a 'no' after it ('vermek istemiyorum', 'vermeyi düşünmüyorum',
+# 'vermeye niyetim yok', 'vermekten vazgeçtim'). Only the verb's own ending and the words after an infinitive are read,
+# so 'vermek istiyorum', 'rica ederim', 'umarım' and 'getirmişim' refuse nothing.
+_GIVE_ROOT = re.compile(r"(?:getir|ver|birak|uzat)(\w*)")
+# What `_REFUSED_DOING` does not read: the first person past ('getirmedim', 'veremedik'), the soft-g and casual 'will
+# not' ('vermeyeceğim', 'vermeyecem', 'vermiycem', 'vermicem'), the casual present ('vermiyom') and the hearsay past
+# ('vermemişim'). 'Vermedin' is somebody else's not giving.
+_NOT_GIVEN = re.compile(r"[ae]?m(?:[ae]d[iu][mk]|[ae]y[ae]ce[gk]|(?:[ae]y[ae]|[iu]y[ae]?|[iu])c[ae]|[iu]yo|[ae]m[iu]s[iu][mz])")
+_INFINITIVE = re.compile(r"m[ae](?:k\w*|y[iuea])")
+_NEED = ("gerek", "lazim", "icin", "sart")  # 'vermem gereken': the one I am to give, no 'I won't'
+_TALK = ("laf", "soz", "konu", "muhabbet")  # 'lafı uzatmıyorum' holds out no hand
+
+
+def _says_no(word: str, table: dict[str, Any]) -> bool:
+    """A word after an infinitive that says no: 'istemiyorum', 'düşünmüyorum', 'yok', 'vazgeçtim', 'değilim'."""
+    return word not in table["accept"] and (word == "yok" or word.startswith(("vazgec", "degil"))
+                                            or bool(_REFUSED_DOING.search(word) or _NOT_GIVEN.search(word)))
 
 
 def _giving(tokens: list[str]) -> bool | None:
     """None: no hand-over verb in the clause; True: one is said in the negative; False: said plainly."""
-    endings = [verb.group(1) for verb in _GIVE_VERB.finditer(" ".join(tokens))]
-    return any(_REFUSED_DOING.search(end) or _NOT_GIVEN.match(end) for end in endings) if endings else None
+    table = answer_table()
+    found = None
+    for at, word in enumerate(tokens):
+        if word == "teslim" and at + 1 < len(tokens) and tokens[at + 1][:2] in {"et", "ed"}:
+            at, end = at + 1, tokens[at + 1][2:]
+        elif (verb := _GIVE_ROOT.fullmatch(word)) and not (word.startswith("uzat") and at and tokens[at - 1].startswith(_TALK)):
+            end = verb.group(1)
+        else:
+            continue
+        after = tokens[at + 1:]
+        if after[:1] in (["mi"], ["mu"]):
+            no = False  # 'getirmedim mi sanıyorsun': asked back, not refused
+        elif _INFINITIVE.fullmatch(end):
+            no = any(_says_no(word, table) for word in after)
+        else:
+            no = bool(_REFUSED_DOING.search(end) or _NOT_GIVEN.match(end)) and not (
+                re.search(r"m[ae]m$", end) and after[:1] and after[0].startswith(_NEED))
+        found = found or no
+    return found
 
 
 def hand_over_clauses(text: Any) -> list[tuple[str, bool | None]]:
     """Each clause of the player's own line (folded), with `_giving` of it; [] for anyone else's words."""
     line = _own_line(text, answer_table()) if isinstance(text, str) and text.strip() else None
     return [(" ".join(tokens), _giving(tokens)) for tokens, _, _ in _clauses(line)] if line else []
+
+
+def refuses_hand_over(text: Any, names_a_parcel: Any) -> bool:
+    """D-276: a clause of the line takes the hand-over back, read over the whole line. Only a 'not' on coin alone (the
+    clause speaks of money or pay and `names_a_parcel` finds no parcel in it) beside a clause that hands over plainly
+    refuses nothing: 'takımı getirdim, bahşiş vermiyorum'."""
+    import front_proposal
+    clauses = hand_over_clauses(text)
+    refused = [clause for clause, no in clauses if no]
+    return bool(refused) and not (any(no is False for _, no in clauses) and all(
+        (front_proposal.says_money(clause) or speaks_of_pay(clause)) and not names_a_parcel(clause)
+        for clause in refused))
 
 
 def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
@@ -1407,6 +1448,9 @@ def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     if text is None:
         return False
     stems = _item_stems(thread)
+    if refuses_hand_over(text, lambda clause: any(word in table["item_words"] or word.startswith(stems)
+                                                  for word in clause.split())):
+        return False  # D-276: 'takımı getirdim ama vermiyorum' hands nothing over
     names = _names_of(npc)
     verbs = table["give"] | table["give_verbs"]
     for tokens, asked, _ in _clauses(text):
