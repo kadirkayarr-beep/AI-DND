@@ -31,3 +31,10 @@ export function packageGoods(pack: unknown): string[] {
   const list = Array.isArray(items) ? items.filter((item): item is string => typeof item === 'string') : [];
   return Array.isArray(coinItems) ? list.filter((item) => !coinItems.includes(item)) : list;
 }
+
+/** Background kit items without the coin (option A only; option B trades the kit for gold). Unknown: none. */
+export function backgroundGoods(catalog: unknown, background: string | undefined, backgroundOption: string | undefined): string[] {
+  if (backgroundOption !== 'A' || !background) return [];
+  const record = asRecord(asRecord(asRecord(catalog).backgrounds)[background]);
+  return packageGoods({ items: record.equipment, coin_items: record.coin_items });
+}

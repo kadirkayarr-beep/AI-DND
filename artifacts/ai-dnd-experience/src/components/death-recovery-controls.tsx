@@ -54,6 +54,19 @@ function buttonLabel(resumable: boolean, running: boolean, label: string): strin
   return label;
 }
 
+function Pips({ filled, kind }: { filled: number; kind: 'success' | 'failure' }) {
+  return <span className={`death-pips death-pips-${kind}`} aria-hidden="true">{[0, 1, 2].map(i => <i key={i} className={i < filled ? 'on' : ''} />)}</span>;
+}
+
+/** Death-save count as pips (hidden from screen readers) plus the same numbers as text. */
+function DeathTally({ death }: { death: GameState['death_state'] }) {
+  if (!death || !(death.status === 'unconscious' || death.status === 'stable')) return null;
+  return <div className="death-tally" data-testid="death-save-tally">
+    <span><Pips filled={death.successes} kind="success" /> Başarı {death.successes}/3</span>
+    <span><Pips filled={death.failures} kind="failure" /> Başarısızlık {death.failures}/3</span>
+  </div>;
+}
+
 /**
  * Asks for the next death move only: all rolls, recovery and returned state are server-owned.
  * With onSend the move goes through the play turn, so its story lands in the transcript.
@@ -120,6 +133,7 @@ export function DeathRecoveryControls({ state, sessionId, campaignId, onSend, se
     }
   };
   return <div className="mt-3">
+    <DeathTally death={state.death_state} />
     <button type="button" className="dnd-button secondary" disabled={turn.isPending || sending}
       data-testid="button-death-wait" onClick={send}>
       {buttonLabel(resumable, turn.isPending, label)}
@@ -133,8 +147,8 @@ export function DeathRecoveryControls({ state, sessionId, campaignId, onSend, se
 export function DeathEndNotice({ state, onNewAdventure }: { state: GameState; onNewAdventure: () => void }) {
   const death = state.death_state;
   if (death?.status !== 'dead') return null;
-  return <div className="data-row mt-3" role="status" data-testid="death-end-notice">
-    <strong>{state.character.name} öldü.</strong>
+  return <div className="death-card mt-3" role="status" data-testid="death-end-notice">
+    <h3 className="death-card-title">{state.character.name} öldü.</h3>
     <p className="data-row-desc">
       {death.terminal
         ? 'Bu kampanya burada kapandı.'

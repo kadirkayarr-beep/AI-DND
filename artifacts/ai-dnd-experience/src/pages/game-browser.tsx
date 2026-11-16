@@ -57,7 +57,8 @@ import {
   useSaveCampaign,
 } from '@workspace/api-client-react';
 import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
-import type { EconomicAction, TurnOutcome } from '@workspace/api-client-react';
+import type { EconomicAction, LevelUpResult, TurnOutcome } from '@workspace/api-client-react';
+import { LevelUpCard } from '@/components/level-up-card';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
 import { LastTurnBar, undoOffered } from '@/components/last-turn-bar';
 import { type Notice, type RecoveryState } from '@/components/notice-banner';
@@ -112,6 +113,7 @@ export default function GameBrowser() {
   }, [readingPreferences]);
   const [combatEntries, setCombatEntries] = useState<CombatLogEntry[]>([]);
   const [combatEndNotice, setCombatEndNotice] = useState<string | null>(null);
+  const [levelUpCard, setLevelUpCard] = useState<LevelUpResult | null>(null);
   const [combatStartNotice, setCombatStartNotice] = useState<string | null>(null);
   const [combatTargetId, setCombatTargetId] = useState('');
   const [conversationTargetId, setConversationTargetId] = useState('');
@@ -646,7 +648,7 @@ export default function GameBrowser() {
     setPhase('opening');
     setEntries([]);
     setCombatEntries([]);
-    setCombatEndNotice(null);
+    setCombatEndNotice(null); setLevelUpCard(null);
     setCombatStartNotice(null);
     setConversationTargetId('');
     setInteractionMode('do');
@@ -1006,6 +1008,7 @@ export default function GameBrowser() {
           const actor = result.state.combat.participant_records?.find((participant) => participant.is_current_actor);
           setCombatStartNotice(combatResult?.combat_started === true ? `Sıra: ${actor?.name ?? result.state.combat.current_actor_id ?? ''}` : null);
         }
+        if (stillVisible) setLevelUpCard(result.level_up ?? null);
         applyGameState(queryClient, sessionId, result.state, { revision: readRevision, isCurrent: operation.isCurrent });
         if (stillVisible && !stored) setConversationTargetId('');
         const outcomeMessages = (result.quest_outcomes ?? []).map((outcome) => {
@@ -1353,6 +1356,7 @@ export default function GameBrowser() {
             <>
       <StoryColumn
                 topControls={<>
+      <LevelUpCard levelUp={levelUpCard} onClose={() => setLevelUpCard(null)} />
       {campaignId && levelUpEarned(state.character) && <LevelUpControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} sessionId={sessionId} campaignId={campaignId}
         disabled={turnSending || undoBusy || Boolean(blockingMutation())} onConfirm={submitLevelUp} />}
       {campaignId && preparesSpells(state) && <SpellPreparationControls key={`${currentAccountOwner() ?? LOCAL_OWNER}:${campaignId}:${sessionId}`} state={state} sessionId={sessionId} campaignId={campaignId} catalog={characterCatalogQuery.data}

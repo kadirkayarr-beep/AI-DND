@@ -1,5 +1,6 @@
+import { StepDice } from '@/components/step-dice';
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
-import { packageGoods } from '@/lib/starting-purse';
+import { backgroundGoods, packageGoods } from '@/lib/starting-purse';
 import { asiChoiceLabel, sourceAsiChoice } from '@/lib/asi-choices';
 import { BarbarianStartingChoices, BarbarianStartingLevelControl, BarbarianStartingSummary } from '@/components/barbarian-starting-creation';
 import { FighterStartingChoices, FighterStartingLevelControl, FighterStartingSummary } from '@/components/fighter-starting-creation';
@@ -21,7 +22,6 @@ import {
   Check,
   ChevronDown,
   Compass,
-  Dice5,
   Feather,
   Heart,
   RefreshCw,
@@ -170,9 +170,9 @@ const POINT_BUY_COSTS: Record<number, number> = {
 };
 
 const STEPS = [
-  { id: 'class', label: '1. Sınıf', desc: 'Mesleğin ve dövüş tarzın' },
-  { id: 'background', label: '2. Geçmiş', desc: 'Kökenin ve geçmiş yeteneklerin' },
-  { id: 'species', label: '3. Tür', desc: 'Soyun ve ırksal özelliklerin' },
+  { id: 'species', label: '1. Tür', desc: 'Soyun ve ırksal özelliklerin' },
+  { id: 'class', label: '2. Sınıf', desc: 'Mesleğin ve dövüş tarzın' },
+  { id: 'background', label: '3. Geçmiş', desc: 'Kökenin ve geçmiş yeteneklerin' },
   { id: 'abilities', label: '4. Yetenekler', desc: 'Nitelik puanları ve bonuslar' },
   { id: 'choices', label: '5. Beceriler & Büyü', desc: 'Uzmanlıklar ve büyüler' },
   { id: 'equipment', label: '6. Ekipman', desc: 'Başlangıç teçhizatı' },
@@ -242,7 +242,7 @@ export function CharacterCreationScreen({
   startOptionsError,
   creating,
   notice,
-  initialStep = 'class',
+  initialStep = 'species',
   onBack,
   onCreate,
   onRetryOptions,
@@ -645,15 +645,15 @@ export function CharacterCreationScreen({
       case 'class':
         return Boolean(characterClass) && (startingDraft.startingLevel === 1 || (characterClass === 'Sorcerer' && !!startingMetadata) || (characterClass === 'Barbarian' && !!barbarianStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Rogue' && !!rogueStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Monk' && !!monkStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Fighter' && !!fighterStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Paladin' && !!paladinStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)));
       case 'background':
-        return Boolean(background);
-      case 'species':
         return Boolean(
-          species &&
+          background &&
           (
             !(Number(speciesData?.origin_feat_bonus_count) > 0) ||
             originFeatOptions.some((feat) => feat.id === speciesBonusFeat)
           )
         );
+      case 'species':
+        return Boolean(species);
       case 'abilities': {
         if (!abilityMethod) return false;
         if (abilityMethod === 'standard_array' && !isStandardArrayValid) return false;
@@ -706,17 +706,18 @@ export function CharacterCreationScreen({
       case 'class':
         return startingDraft.startingLevel > 1 && !(characterClass === 'Barbarian' ? barbarianStartingMetadata : characterClass === 'Fighter' ? fighterStartingMetadata : characterClass === 'Rogue' ? rogueStartingMetadata : characterClass === 'Monk' ? monkStartingMetadata : characterClass === 'Paladin' ? paladinStartingMetadata : startingMetadata) ? 'Seviye kataloğunu yeniden deneyin veya seviye 1 seçin.' : 'İlerlemek için bir sınıf seçin.';
       case 'background':
-        return 'İlerlemek için bir geçmiş seçin.';
-      case 'species':
-        if (!species) return 'İlerlemek için bir tür seçin.';
-        if (species === 'Goliath' && !giantAncestry) {
-          return 'Devsoylu karakterin için bir Dev Atası seçmelisin.';
-        }
+        if (!background) return 'İlerlemek için bir geçmiş seçin.';
         if (
           Number(speciesData?.origin_feat_bonus_count) > 0 &&
           !originFeatOptions.some((feat) => feat.id === speciesBonusFeat)
         ) {
           return 'İnsan için geçmiş hünerinden farklı bir ek Başlangıç Hüneri seçmelisin.';
+        }
+        return '';
+      case 'species':
+        if (!species) return 'İlerlemek için bir tür seçin.';
+        if (species === 'Goliath' && !giantAncestry) {
+          return 'Devsoylu karakterin için bir Dev Atası seçmelisin.';
         }
         return '';
       case 'abilities': {
@@ -786,20 +787,6 @@ export function CharacterCreationScreen({
     isStepValid('equipment') &&
     hasCampaignStart
   );
-
-  // Authoritative Random Character Creation (delegates roll and mechanics authority to Python engine)
-  const handleRandomizeCharacter = () => {
-    if (!selectedSetting || !selectedRegion || !selectedLocation || creating) return;
-
-    const campaignStart: CampaignStartSelection = {
-      setting_id: selectedSetting.setting_id,
-      region_pack_id: selectedRegion.region_pack_id,
-      region_id: selectedRegion.region_id,
-      starting_location_id: selectedLocation.entity_id,
-    };
-
-    onCreate({ mode: 'random' }, campaignStart, deathMode);
-  };
 
   // Submit final character to start campaign
   const handleSubmit = (e: FormEvent) => {
@@ -1050,10 +1037,6 @@ export function CharacterCreationScreen({
             </span>
           </div>
 
-          <div className="cc-header-caption">
-            <span /> <span>D&D 2024 Kuralları ile Karakter Yaratımı</span>
-          </div>
-
           <button
             type="button"
             className="cc-back"
@@ -1068,22 +1051,9 @@ export function CharacterCreationScreen({
         <section className="cc-content">
           <div className="cc-intro">
             <div>
-              <div className="cc-label">Karakter Defteri · Seviye {startingDraft.startingLevel}</div>
+              <div className="cc-label">Karakter Defteri</div>
               <h1 className="cc-display">Karakterini Yarat.</h1>
               <p className="cc-literary">Her karar sana ait; kurallar ve zarlar yolunu belirleyecek.</p>
-            </div>
-
-            <div className="cc-quick-actions">
-              <button
-                type="button"
-                className="cc-random-btn"
-                onClick={handleRandomizeCharacter}
-                data-testid="button-mode-random"
-                aria-describedby="random-creation-help"
-              >
-                <Dice5 size={14} /> Rastgele Karakterle Macera Oluştur
-              </button>
-              <p id="random-creation-help">Rastgele bir karakter seçilir ve yeni macera kaydedilir. Başlangıç seviyesi: 1.</p>
             </div>
           </div>
 
@@ -1137,14 +1107,15 @@ export function CharacterCreationScreen({
             {currentStep === 'class' && (
               <section className="cc-step-panel">
                 <div className="cc-step-header">
-                  <div className="cc-label">Adım 1</div>
+                  <div className="cc-label">Adım 2</div>
                   <h2 className="cc-step-title-text">Sınıfını Seç</h2>
+                  <StepDice label="Sınıf için zar at" testId="button-dice-class" current={characterClass}
+                    keys={Object.keys((catalog?.classes ?? {}) as Record<string, unknown>)} onPick={setCharacterClass} />
                   <p className="cc-literary">Sınıfın, karakterinin dövüş tarzını, can zarını ve temel yeteneklerini belirler.</p>
                 </div>
 
                 {characterClass && (
                   <div className="cc-starting-level" data-testid="starting-level-block">
-                    <p>Yeni bir maceracı 1. seviyede başlar; deneyimli başlamak istersen seviyeni buradan seç.</p>
                     {characterClass === 'Sorcerer' && <StartingLevelControl draft={startingDraft} metadata={startingMetadata}
                       disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
                     {characterClass === 'Paladin' && <PaladinStartingLevelControl draft={startingDraft} metadata={paladinStartingMetadata}
@@ -1200,8 +1171,10 @@ export function CharacterCreationScreen({
             {currentStep === 'background' && (
               <section className="cc-step-panel">
                 <div className="cc-step-header">
-                  <div className="cc-label">Adım 2</div>
+                  <div className="cc-label">Adım 3</div>
                   <h2 className="cc-step-title-text">Geçmişini Seç</h2>
+                  <StepDice label="Geçmiş için zar at" testId="button-dice-background" current={background}
+                    keys={Object.keys((catalog?.backgrounds ?? {}) as Record<string, unknown>)} onPick={setBackground} />
                   <p className="cc-literary">Geçmişin; kazandığın 2 beceriyi, köken hünerini ve nitelik bonusu alabileceğin 3 alanı belirler.</p>
                 </div>
 
@@ -1230,6 +1203,57 @@ export function CharacterCreationScreen({
                     );
                   })}
                 </div>
+                {Number(speciesData?.origin_feat_bonus_count) > 0 && (
+                  <div className="cc-sub-section" data-testid="section-species-bonus-feat">
+                    <div className="cc-sub-header">
+                      <span className="cc-label">İnsan Tür Hüneri</span>
+                      <small>Geçmiş hünerinden farklı bir 1. seviye Başlangıç Hüneri seç.</small>
+                    </div>
+                    {originFeatOptions.length > 0 ? (
+                      <>
+                        <label className="cc-form-group" htmlFor="select-species-bonus-feat">
+                          <span className="cc-label">Ek Başlangıç Hüneri</span>
+                          <div className="cc-select-wrap">
+                            <select
+                              id="select-species-bonus-feat"
+                              data-testid="select-species-bonus-feat"
+                              value={speciesBonusFeat}
+                              onChange={(event) => setSpeciesBonusFeat(event.target.value)}
+                              aria-describedby={
+                                selectedSpeciesBonusFeat?.description
+                                  ? 'species-bonus-feat-description'
+                                  : undefined
+                              }
+                            >
+                              <option value="">Bir hüner seç...</option>
+                              {originFeatOptions.map((feat) => (
+                                <option key={feat.id} value={feat.id}>{feat.label}</option>
+                              ))}
+                            </select>
+                            <ChevronDown size={16} aria-hidden="true" />
+                          </div>
+                        </label>
+                        {selectedSpeciesBonusFeat?.description && (
+                          <p id="species-bonus-feat-description" className="cc-card-desc">
+                            {selectedSpeciesBonusFeat.description}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="cc-inline-notice" data-testid="status-origin-feats-unavailable">
+                        Başlangıç hünerleri kataloğu yüklenemedi.
+                        <button
+                          type="button"
+                          className="text-button"
+                          data-testid="button-retry-origin-feats"
+                          onClick={onRetryOptions}
+                        >
+                          Yeniden dene
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             )}
 
@@ -1237,8 +1261,11 @@ export function CharacterCreationScreen({
             {currentStep === 'species' && (
               <section className="cc-step-panel">
                 <div className="cc-step-header">
-                  <div className="cc-label">Adım 3</div>
+                  <div className="cc-label">Adım 1</div>
                   <h2 className="cc-step-title-text">Türünü Seç</h2>
+                  <StepDice label="Tür için zar at" testId="button-dice-species" current={species}
+                    keys={Object.keys((catalog?.races ?? {}) as Record<string, unknown>)}
+                    onPick={key => { if (key !== species) setGiantAncestry(''); setSpecies(key); }} />
                   <p className="cc-literary">Türün hareket hızını, duyularını ve doğuştan gelen ırksal özelliklerini belirler.</p>
                 </div>
 
@@ -1326,57 +1353,6 @@ export function CharacterCreationScreen({
                       )}
                     </div>
                   </section>
-                )}
-                {Number(speciesData?.origin_feat_bonus_count) > 0 && (
-                  <div className="cc-sub-section" data-testid="section-species-bonus-feat">
-                    <div className="cc-sub-header">
-                      <span className="cc-label">İnsan Tür Hüneri</span>
-                      <small>Geçmiş hünerinden farklı bir 1. seviye Başlangıç Hüneri seç.</small>
-                    </div>
-                    {originFeatOptions.length > 0 ? (
-                      <>
-                        <label className="cc-form-group" htmlFor="select-species-bonus-feat">
-                          <span className="cc-label">Ek Başlangıç Hüneri</span>
-                          <div className="cc-select-wrap">
-                            <select
-                              id="select-species-bonus-feat"
-                              data-testid="select-species-bonus-feat"
-                              value={speciesBonusFeat}
-                              onChange={(event) => setSpeciesBonusFeat(event.target.value)}
-                              aria-describedby={
-                                selectedSpeciesBonusFeat?.description
-                                  ? 'species-bonus-feat-description'
-                                  : undefined
-                              }
-                            >
-                              <option value="">Bir hüner seç...</option>
-                              {originFeatOptions.map((feat) => (
-                                <option key={feat.id} value={feat.id}>{feat.label}</option>
-                              ))}
-                            </select>
-                            <ChevronDown size={16} aria-hidden="true" />
-                          </div>
-                        </label>
-                        {selectedSpeciesBonusFeat?.description && (
-                          <p id="species-bonus-feat-description" className="cc-card-desc">
-                            {selectedSpeciesBonusFeat.description}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <div className="cc-inline-notice" data-testid="status-origin-feats-unavailable">
-                        Başlangıç hünerleri kataloğu yüklenemedi.
-                        <button
-                          type="button"
-                          className="text-button"
-                          data-testid="button-retry-origin-feats"
-                          onClick={onRetryOptions}
-                        >
-                          Yeniden dene
-                        </button>
-                      </div>
-                    )}
-                  </div>
                 )}
               </section>
             )}
@@ -2374,7 +2350,10 @@ export function CharacterCreationScreen({
                       <ul className="cc-sheet-items">
                         {(() => {
                           const selected = classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage);
-                          return selected?.items ? packageGoods(selected).map((it: string) => <li key={it}>{it}</li>) : <li>Standart Başlangıç Teçhizatı</li>;
+                          return <>
+                            {selected?.items ? packageGoods(selected).map((it: string) => <li key={it}>{it}</li>) : <li>Standart Başlangıç Teçhizatı</li>}
+                            {backgroundGoods(propCatalog, background, backgroundEquipmentOption).map((it: string) => <li key={`background-${it}`}>{it}</li>)}
+                          </>;
                         })()}
                       </ul>
                     </div>
@@ -2386,19 +2365,19 @@ export function CharacterCreationScreen({
                     <div className="cc-sheet-identity-grid">
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Köken:</span>
-                        <p>{origin.trim() || 'Belirtilmedi'}</p>
+                        <p>{origin.trim() || 'Kayıtta yok'}</p>
                       </div>
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Görünüş:</span>
-                        <p>{appearance.trim() || 'Belirtilmedi'}</p>
+                        <p>{appearance.trim() || 'Kayıtta yok'}</p>
                       </div>
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Kişilik:</span>
-                        <p>{personality.trim() || 'Belirtilmedi'}</p>
+                        <p>{personality.trim() || 'Kayıtta yok'}</p>
                       </div>
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Hikaye:</span>
-                        <p>{backstory.trim() || 'Belirtilmedi'}</p>
+                        <p>{backstory.trim() || 'Kayıtta yok'}</p>
                       </div>
                     </div>
                   </div>
@@ -2454,7 +2433,7 @@ export function CharacterCreationScreen({
             {/* Stepper Footer Controls */}
             <div className="cc-wizard-footer">
               <div>
-                {currentStep !== 'class' && (
+                {currentStep !== STEPS[0].id && (
                   <button
                     type="button"
                     className="cc-nav-btn cc-nav-prev"

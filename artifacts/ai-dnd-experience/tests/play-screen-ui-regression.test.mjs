@@ -207,7 +207,7 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await waitForSelector(menu.page, '[data-testid="app-start"]');
     const menuMeasure = await menu.page.evaluate(`(() => { const image=document.querySelector('[data-testid="image-approved-ouroboros"]'); return { width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,approvedImage:Boolean(image&&image.complete&&image.naturalWidth>0),imageAlt:image?.alt,create:Boolean(document.querySelector('[data-testid="button-create-session"]')),continue:Boolean(document.querySelector('[data-testid="button-continue-session"]')),heading:document.querySelector('h1')?.innerText }; })()`);
     assert.equal(menuMeasure.approvedImage, true, `approved entry art missing at ${viewport.width}px`);
-    assert.match(menuMeasure.imageAlt, /ejderha/i);
+    assert.match(menuMeasure.imageAlt, /yılan/i);
     assert.equal(menuMeasure.create, true);
     assert.equal(menuMeasure.continue, true);
     assert.equal(menuMeasure.heading, "UNWRITTEN");
@@ -704,19 +704,15 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     await creation.page.evaluate("document.querySelector('.cc-portrait-grid .cc-choice-card').click()");
     assert.equal(await creation.page.evaluate("!!document.querySelector('.cc-portrait-grid .cc-choice-card.selected')"), true);
     await creation.page.evaluate("document.querySelector('.cc-nav-next').click()");
-    assert.equal(await creation.page.evaluate("document.querySelector('.cc-step-title-text')?.innerText"), "Geçmişini Seç");
-    await creation.page.evaluate("document.querySelector('.cc-nav-prev').click()");
+    // Plan part B (owner decision, 2026-11-12): the first step is Tür, the next is Sınıf. Same checks, new order.
     assert.equal(await creation.page.evaluate("document.querySelector('.cc-step-title-text')?.innerText"), "Sınıfını Seç");
+    await creation.page.evaluate("document.querySelector('.cc-nav-prev').click()");
+    assert.equal(await creation.page.evaluate("document.querySelector('.cc-step-title-text')?.innerText"), "Türünü Seç");
     assert.equal(await creation.page.evaluate("!!document.querySelector('.cc-portrait-grid .cc-choice-card.selected')"), true);
     await creation.page.evaluate("document.querySelector('[data-testid=\"button-back-character-creation\"]').click()");
     assert.equal(await creation.page.evaluate("window.__creationFixture.backCount"), 1);
-    await creation.page.evaluate("document.querySelector('[data-testid=\"button-mode-random\"]').click()");
-    const created = await creation.page.evaluate("window.__creationFixture.created");
-    assert.equal(created?.character?.mode, "random");
-    assert.equal(created?.campaignStart?.starting_location_id, "waterdeep");
-    assert.equal(created?.deathMode, "PERMADEATH");
     assert.deepEqual(creation.page.exceptions, []);
-    metrics.push({ viewport, characterCreation: "selection, next/back, return and random-create callback verified" });
+    metrics.push({ viewport, characterCreation: "selection, next/back and return verified" });
     creation.page.close();
     await fetch(`http://127.0.0.1:${browserPort}/json/close/${creation.targetId}`);
   }

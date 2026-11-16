@@ -228,7 +228,7 @@ function harness({ sessionStorage = memoryStorage(), localStorage = memoryStorag
     getCampaign: async () => ({ state, history: [{ player_message: 'x', narration: 'y' }], combat_history: [] }),
     mergeCombatHistory: (value) => value,
     getGetCampaignsQueryKey: () => ['campaigns'], entries: [], TRANSCRIPT_KEY: 'transcript-',
-    setEntries: (value) => { entries.push(value); }, setNewResponseEntryIndex() {}, setCombatEntries() {}, setCombatEndNotice() {},
+    setEntries: (value) => { entries.push(value); }, setNewResponseEntryIndex() {}, setCombatEntries() {}, setCombatEndNotice() {}, setLevelUpCard() {},
     setCombatTargetId() {}, setConversationTargetId() {}, setMessage: (value) => { messages.push(value); }, setComposerOpen() {},
     statusCode: (error) => error?.status, friendlyError: (error) => error?.message ?? 'Synthetic error',
   };

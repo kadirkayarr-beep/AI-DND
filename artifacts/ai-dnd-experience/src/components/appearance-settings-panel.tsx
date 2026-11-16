@@ -82,6 +82,18 @@ export function AppearanceSettingsPanel() {
       </fieldset>
       <p className="appearance-note">Yeni anlatı satırları bu hızda belirir. Efekt seviyesi Kapalı ya da hareketi azalt açıkken metin hemen görünür.</p>
       <fieldset>
+        <legend>Ses</legend>
+        <label className="appearance-option">
+          <input
+            type="checkbox"
+            checked={settings.menuMusic}
+            onChange={(event) => setSetting('menuMusic', event.currentTarget.checked)}
+            data-testid="checkbox-menu-music"
+          />
+          <span>Ana menü müziği</span>
+        </label>
+      </fieldset>
+      <fieldset>
         <legend>Okunabilirlik</legend>
         <label className="appearance-option">
           <input
