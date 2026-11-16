@@ -19017,7 +19017,7 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             or (walk and not walked)  # stopped short: nobody the rest was for is here
             or (session.world_state.get("location") != place_before and not walked)  # the one asked is left behind
             or (walked and (getattr(session, "_front_coin", 0) or getattr(session, "_coin_paid", None)))  # coin read once
-            or action_result.get("action") in {"dialogue", "query", "lodging"}  # a room taken has answered its own price
+            or action_result.get("action") in {"dialogue", "query", "lodging", "shop_inquiry"}  # a room taken has answered its own price
             or action_result.get("status") in {"experimental_attributed_speech", "clarification"}
             or not ollama_adapter.model_calls_left()):
         return result
@@ -19069,7 +19069,8 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
     line = said.get("narration") or ""
     if hearer is not None and _is_stock(line):
         line = _person_fallback(session.world_state, hearer, rest)
-    result["narration"] = f"{result.get('narration') or ''} {line}".strip()
+    first_line = (result.get("narration") or "").strip()
+    result["narration"] = first_line if line.strip() == first_line else f"{first_line} {line}".strip()
     # Both parts are one turn: what each proved is handed on together, under that one turn's index.
     first, last = result.get("_engine_event_evidence"), said.get("_engine_event_evidence")
     if last and not first and action_result.get("quest_outcomes"):
@@ -22900,7 +22901,9 @@ def _run_player_turn_internal(
             safety_handling="python_fallback",
         )
 
-    if _shop_presence_question(player_input):
+    if (_shop_presence_question(player_input)
+            and target_id is None and not isinstance(npc_target, dict)
+            and (getattr(_session(), "_front_read", None) or {}).get("kind") != "speak_to"):
         current_location = world_state.get("location")
         local_shops = [
             shop
@@ -23022,8 +23025,7 @@ def _run_player_turn_internal(
         if safe_name:
             # Hearing the same name again is no moment for the greeting a second time.
             compound_speech = _known_player_name(npc_target) == safe_name or (
-                _npc_speech_enabled()
-                and local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
+                local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
             )
             if compound_speech:
                 local_dialogue.remember_explicit_player_name(npc_target, safe_name)
