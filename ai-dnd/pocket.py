@@ -299,7 +299,7 @@ def _tells_the_purse(words: list[str]) -> bool:
 _PURSE_WAY = re.compile(r"\b(?:kesen(?:iz)?(?:e|den)|kesen(?:iz)?in (?:ic|dis)\w*|your (?:coin )?(?:purse|pouch))\b")
 # 'altına/altında/altından' is 'under it' ('masanın altına düşüyor'), not gold. 'ekle' narrows to 'ekli-' ('ekliyor'),
 # 'öde' to 'ödü-' ('ödüyor'); 'at', 'al' and 'dol' are spelled out ('at' a horse, 'alın', 'dolu' full).
-_COIN_WORD = re.compile(r"\b(?:bakir|gumus|altin(?!(?:a|da|dan)\b)|sikke|para|akce|copper|silver|gold|coins?)\w*")
+_COIN_WORD = re.compile(r"\b(?:bakir|gumus|altin|sikke|para|akce|copper|silver|gold|coins?)\w*")
 _COIN_MOVES = re.compile(
     r"\b(?:gir\w*|cik\w*|eksil\w*|azal\w*|ekle\w*|ekli\w*|harc\w*|gid\w*|git\w*|gel\w*|dus(?:u|t|er|mus|up|en)\w*"
     r"|ode\w*|oduy\w*|at(?:iyor|ti|ar|ip|mis)\w*|al(?:iyor|di|ip|ir|mis)\w*|dol(?:uyor|du|ar|up|mus)\w*"
@@ -308,9 +308,37 @@ _COIN_MOVES = re.compile(
     r"|taken|spent|spend)\b")
 
 
+# D-254: 'altına/altında/altından' is 'under it', unless a figure stands right before it ('on altından fazlası').
+_UNDER_IT = frozenset({"altina", "altinda", "altindan"})
+# D-255/D-266: a verb said as not done ('çıkmıyor', 'girmedi', 'eksilmez', 'vermem', 'vermeyeceğim') moves nothing.
+# 'düşmeye' (positive) and 'dolmuş' are no denial.
+_NOT_DONE = re.compile(r"\w+?m(?:[iu]yor\w*|[ae]d[iu]\w*|[ae]z\w*|[ae]m[iu]s\w*|[ae]y[ae]c[ae]k\w*|[ae]m|[ae]y[iu]z)")
+_METALS = frozenset({"bakir", "gumus", "altin"})
+_LOOK_WORD = re.compile(r"\w+l[iu]")  # 'gümüş yüzüklü', 'bakır renkli': the metal is a look, not coin
+
+
+def under_it(words: list[str], at: int) -> bool:
+    """'masanın altına' is a place; 'on altına' is ten gold."""
+    import front_proposal
+    return words[at] in _UNDER_IT and front_proposal._number_before(words, at) is None
+
+
+def said_not_done(word: str) -> bool:
+    return bool(_NOT_DONE.fullmatch(word))
+
+
+def _coin_at(words: list[str], at: int) -> bool:
+    word, after = words[at], words[at + 1] if at + 1 < len(words) else ""
+    if not _COIN_WORD.match(word) or under_it(words, at):
+        return False
+    return not (word in _METALS and _LOOK_WORD.fullmatch(after) and not _HOLDING.fullmatch(after))
+
+
 def _tells_coin_moving(sentence: str) -> bool:
     folded = living_world.normalize_text(sentence)
-    return bool(_PURSE_WAY.search(folded) and _COIN_WORD.search(folded) and _COIN_MOVES.search(folded))
+    words = folded.split()
+    return bool(_PURSE_WAY.search(folded) and any(_coin_at(words, at) for at in range(len(words)))
+                and any(not said_not_done(word) for word in _COIN_MOVES.findall(folded)))
 
 
 def without_false_purse(narration: Any, world: dict[str, Any]) -> Any:
