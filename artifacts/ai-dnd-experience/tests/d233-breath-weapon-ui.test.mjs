@@ -20,12 +20,18 @@ after(async () => await vite?.close());
 
 const record = (id, kind, name, status = 'active') => ({ id, kind, name, status, current_hp: 10, max_hp: 10, armor_class: 12, primary_action_available: true, is_current_actor: id === 'player' });
 
-function state({ ancestry = 'red', uses = 2, active = true, actor = 'player' } = {}) {
+// The player's slice of the server's action economy: the Attack action still open, or attacks left of one taken.
+const economy = (attackLegal, remaining) => ({ actors: { player: {
+  legal_actions: [{ kind: 'attack', legal: attackLegal, reason: attackLegal ? null : 'No matching rule-defined resource is available.' }],
+  attack_action: remaining ? { remaining_attacks: remaining } : null } } });
+
+function state({ ancestry = 'red', uses = 2, active = true, actor = 'player', attackLegal = true, remaining = 0 } = {}) {
   return {
     character: { name: 'Arven', race: 'Dragonborn', species: 'Dragonborn', level: 5, max_hp: 30, current_hp: 30,
       draconic_ancestry: ancestry, breath_weapon_uses_remaining: uses, species_trait_state: null },
     combat: { active, current_actor_id: actor, participant_records: active
-      ? [record('player', 'player', 'Arven'), record('npc-a', 'npc', 'Haydut'), record('npc-b', 'npc', 'Düşmüş', 'dead')] : [] },
+      ? [record('player', 'player', 'Arven'), record('npc-a', 'npc', 'Haydut'), record('npc-b', 'npc', 'Düşmüş', 'dead')] : [],
+      action_economy: active ? economy(attackLegal, remaining) : null },
   };
 }
 
@@ -45,6 +51,18 @@ test('in a fight the chosen dragon, the uses and the breath controls show', () =
 test('no uses left or not the player\'s turn: the breath button is off', () => {
   assert.match(render(state({ uses: 0 })), /data-testid="species-action-breath-weapon"[^>]*disabled/);
   assert.match(render(state({ actor: 'npc-a' })), /data-testid="species-action-breath-weapon"[^>]*disabled/);
+});
+
+test('no attack of the Attack action left this turn: the breath button is off', () => {
+  // Review: the breath takes one attack's place; with the Action spent elsewhere the server refuses, so the panel does too.
+  assert.match(render(state({ attackLegal: false })), /data-testid="species-action-breath-weapon"[^>]*disabled/);
+  assert.match(render(state({ attackLegal: false, remaining: 0 })), /data-testid="species-action-breath-weapon"[^>]*disabled/);
+  // The second attack of Extra Attack is still open although the Action itself is taken.
+  assert.doesNotMatch(render(state({ attackLegal: false, remaining: 1 })), /data-testid="species-action-breath-weapon"[^>]*disabled/);
+  assert.equal(species.breathAttackLeft(state({ attackLegal: false, remaining: 1 })), true);
+  assert.equal(species.breathAttackLeft(state({ attackLegal: false })), false);
+  // No action economy in the state is no evidence of an attack left.
+  assert.equal(species.breathAttackLeft({ combat: { active: true, action_economy: null } }), false);
 });
 
 test('before the choice the dragon is chosen out of combat only', () => {

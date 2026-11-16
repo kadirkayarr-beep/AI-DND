@@ -20,6 +20,7 @@ from typing import Any
 import action_economy
 import effect_targeting
 import weapon_attack
+from combat_lifecycle import CombatRequestError
 
 ANCESTRY_KEY = "draconic_ancestry"
 SPENT_KEY = "breath_weapon_spent"
@@ -83,6 +84,18 @@ def choose_ancestry(session: Any, ancestry: Any) -> tuple[str, dict[str, Any]]:
     return "Ejderha Soyu seçimi kaydedildi.", {"draconic_ancestry": ancestry, "damage_type": ANCESTRIES[ancestry]}
 
 
+def _attack_left(session: Any) -> bool:
+    """An attack of the Attack action is still open: the next of one already taken, or a fresh Action for it."""
+    ongoing = action_economy.ensure(session)["player"].get("attack_action")
+    if ongoing and ongoing.get("remaining_attacks", 0) > 0:
+        return True
+    try:
+        action_economy.action_slot(session, "player", "attack")
+    except CombatRequestError:
+        return False
+    return True
+
+
 def _spend_one_attack(session: Any) -> None:
     """One attack of the Attack action: the next of an Attack action already taken, else a new one (as attack_step)."""
     resources = action_economy.ensure(session)["player"]
@@ -126,7 +139,12 @@ def breathe(session: Any, shape: Any, target_id: Any) -> tuple[str, dict[str, An
     if target_id not in reach[shape]:
         raise ValueError(f"Nefesin ({_SHAPE_TR[shape]}) o hedefe ulaşmıyor.")
     target = next(npc for npc in session.world_state["npcs"] if isinstance(npc, dict) and npc.get("id") == target_id)
-    spell_scope._save_bonus_known(target, "dexterity")  # the save owner's zero fallback is never taken without evidence
+    try:
+        spell_scope._save_bonus_known(target, "dexterity")  # the save owner's zero fallback is never taken without evidence
+    except CombatRequestError:
+        raise ValueError("Hedefin Çeviklik kurtulma zarı bilinmiyor; nefes ona yöneltilemez.") from None
+    if not _attack_left(session):
+        raise ValueError("Bu turda Saldırı eylemine yer kalmadı; Nefes Silahı bir saldırının yerine kullanılır.")
     _spend_one_attack(session)
     character[SPENT_KEY] = character.get(SPENT_KEY, 0) + 1
     count = dice(character.get("level", 1))

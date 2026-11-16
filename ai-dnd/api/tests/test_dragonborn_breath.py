@@ -85,6 +85,22 @@ class BreathWeaponTests(unittest.TestCase):
         limit = action_economy.attacks_per_action(session, "player")
         self.assertEqual(resources["attack_action"]["remaining_attacks"], limit - 1)
 
+    def test_no_attack_left_or_an_unknown_save_is_refused_in_turkish_and_changes_nothing(self):
+        # Review (DÜŞÜK): these came back as an English 409 ("No matching rule-defined resource is available.").
+        session, npc = dragonborn()
+        action_economy.consume_action(session, "player", "dodge")  # the Action is gone, no Attack action taken
+        before = copy.deepcopy((session.world_state, session.character))
+        with self.assertRaisesRegex(ValueError, "Saldırı"):
+            breathe(session, target_id=npc["id"])
+        self.assertEqual((session.world_state, session.character), before)
+        unknown, foe = dragonborn()
+        for key in ("dexterity_mod", "dexterity_save_bonus"):
+            foe.pop(key, None)
+        before = copy.deepcopy((unknown.world_state, unknown.character))
+        with self.assertRaisesRegex(ValueError, "Çeviklik"):
+            breathe(unknown, target_id=foe["id"])
+        self.assertEqual((unknown.world_state, unknown.character), before)
+
     def test_the_shape_sets_the_reach(self):
         session, npc = dragonborn(distance=20)
         before = copy.deepcopy((session.world_state, session.character))

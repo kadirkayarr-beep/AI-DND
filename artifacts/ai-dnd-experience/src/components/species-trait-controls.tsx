@@ -60,6 +60,17 @@ export function breathTargets(state: GameState): { id: string; name: string }[] 
     .map((item) => ({ id: item.id, name: item.name }));
 }
 
+// The breath takes one attack's place (as the server's _attack_left): the next attack of an Attack action already taken,
+// or the Attack action itself still legal. No action economy in the state is no evidence of either.
+export function breathAttackLeft(state: Pick<GameState, 'combat'>): boolean {
+  const player = (state.combat.action_economy as { actors?: Record<string, {
+    attack_action?: { remaining_attacks: number } | null; legal_actions?: { kind: string; legal: boolean }[];
+  }> } | null | undefined)?.actors?.player;
+  if (!player) return false;
+  return (player.attack_action?.remaining_attacks ?? 0) > 0
+    || (player.legal_actions ?? []).some((item) => item.kind === 'attack' && item.legal);
+}
+
 const REVELATION_FORMS = [
   { id: 'heavenly_wings', label: 'Göksel Kanatlar' },
   { id: 'inner_radiance', label: 'İçsel Işıltı' },
@@ -456,7 +467,7 @@ export function SpeciesTraitControls({
                     type="button"
                     className="species-trait-button"
                     data-testid="species-action-breath-weapon"
-                    disabled={!notBusy || state.combat.current_actor_id !== 'player' || (character.breath_weapon_uses_remaining ?? 0) <= 0 || breathTargets(state).length === 0}
+                    disabled={!notBusy || state.combat.current_actor_id !== 'player' || !breathAttackLeft(state) || (character.breath_weapon_uses_remaining ?? 0) <= 0 || breathTargets(state).length === 0}
                     onClick={() => send({
                       action: 'breath_weapon',
                       shape: selectedShape ?? 'cone',
