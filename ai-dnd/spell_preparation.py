@@ -95,6 +95,12 @@ def _candidates(state: dict[str, Any], character: dict[str, Any]) -> list[str]:
     return listed + sorted(character_progression.extra_spell_ids(character, "prepared") - set(listed))
 
 
+def _not_in_engine(state: dict[str, Any], character: dict[str, Any]) -> list[str]:
+    """D-228: the candidates no engine resolver casts yet; the screen marks them "henüz yok" (they stay preparable)."""
+    import spell_registry
+    return [spell for spell in _candidates(state, character) if spell_registry.spell_state(spell) != "resolver"]
+
+
 def _book_options() -> list[str]:
     """D-039: what an old save's Wizard may write into the book: the Wizard level-1 list, in catalog order."""
     return [s["id"] for s in SPELLS_CATALOG["Wizard"]["spells_level_1"]]
@@ -114,13 +120,15 @@ def view(session: Any) -> dict[str, Any]:
         missing = blocked == "spellbook_missing"
         return {"supported": False, "blocked_reason": blocked, "class_name": session.character.get("class"),
                 "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None,
+                "not_in_engine": [],
                 "spellbook_options": _book_options() if missing else [],
                 "suggested_spellbook": _book_suggestion() if missing else []}
     window = state["prepare_window"]
     return {"supported": True, "blocked_reason": None, "class_name": state["class"], "open": _open(session.world_state, state),
             "reason": _reason(session.world_state, window) if window else None, "limit": spell_scope.prepare_limit(session.character),
             "candidates": _candidates(state, session.character), "prepared": list(state["prepared"]),
-            "spellbook": copy.deepcopy(state["spellbook"]), "spellbook_options": [], "suggested_spellbook": []}
+            "spellbook": copy.deepcopy(state["spellbook"]), "not_in_engine": _not_in_engine(state, session.character),
+            "spellbook_options": [], "suggested_spellbook": []}
 
 
 def choose_spellbook(session: Any, requested: list[str]) -> dict[str, Any]:

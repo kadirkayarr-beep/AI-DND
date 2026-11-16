@@ -249,8 +249,15 @@ class AnUnusableEconomicReadingDoesNotSwallowTheLine(unittest.TestCase):
         self.assertIsNone(self.route(economic_intent="steal"))
 
     def test_a_coin_deal_to_nobody_listed_still_asks_who(self):
-        route = self.route(person_id="none")
+        # D-097 rewrite (gevşetme olabilir, onay listesi): the old case had a talk going on (speaking_with npc_a); a
+        # reading with no person now binds to the one talked to, so "asks who" holds when nobody is being talked to.
+        reply = {"front": {"kind": "speak_to", "economic_intent": "purchase", "person_id": "none", "keep_change": False}}
+        route = front_proposal.economic_route(reply, {**self.LISTED, "speaking_with": None})
         self.assertEqual((route["valid"], route["purpose"], route["id"]), (False, None, None))
+
+    def test_a_coin_deal_with_no_person_in_a_talk_is_for_the_one_talked_to(self):
+        route = self.route(person_id="none")
+        self.assertEqual((route["valid"], route["purpose"], route["id"]), (True, "purchase", "npc_a"))
 
 
 class ATypedLineKeepsAValidDeal(routes.Routes):

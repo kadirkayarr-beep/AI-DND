@@ -26,7 +26,7 @@ from typing import Any, Literal
 import httpx
 import ollama
 
-from api import usage_ledger
+from api import model_phase, usage_ledger
 
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 HAIKU_MODEL = "claude-haiku-5-5"
@@ -62,7 +62,8 @@ _logger = logging.getLogger("ai_dnd.api.ollama")
 @dataclass(frozen=True)
 class ChainAttempt:
     """One provider try inside a chat call, for an optional observer. A skipped try carries the tokens of a reply
-    that came back and was billed but could not be used, and zero tokens otherwise."""
+    that came back and was billed but could not be used, and zero tokens otherwise. usage_known is False when
+    the request may have been billed but its usage never came back: then the zeros are not a known zero."""
 
     provider: str
     outcome: Literal["answered", "skipped"]
@@ -71,6 +72,7 @@ class ChainAttempt:
     input_tokens: int
     output_tokens: int
     thought_tokens: int
+    usage_known: bool = True
 
 
 @dataclass(frozen=True)
@@ -80,6 +82,7 @@ class Reply:
     input_tokens: int = 0
     output_tokens: int = 0
     thought_tokens: int = 0
+    usage_known: bool = True
 
 
 def _prompt(call: Mapping[str, Any]) -> tuple[str, list[tuple[str, str]]]:
@@ -214,6 +217,7 @@ def gemini_read(payload: Mapping[str, Any]) -> Reply:
         input_tokens=usage.get("promptTokenCount", 0),
         output_tokens=usage.get("candidatesTokenCount", 0),
         thought_tokens=usage.get("thoughtsTokenCount", 0),
+        usage_known=type(usage.get("promptTokenCount")) is int,
     )
 
 
@@ -226,6 +230,7 @@ def haiku_read(payload: Mapping[str, Any]) -> Reply:
         done_reason="length" if stop == "max_tokens" else "stop",
         input_tokens=usage.get("input_tokens", 0),
         output_tokens=usage.get("output_tokens", 0),
+        usage_known=all(type(usage.get(name)) is int for name in ("input_tokens", "output_tokens")),
     )
 
 
@@ -254,25 +259,34 @@ class HaikuSpend:
             return None
         return tokens if month == self._month() else (0, 0)
 
+    def _turn(self):
+        """Every process that shares the file reads and rewrites it in turn, or one add is lost (D-151)."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        return usage_ledger.one_writer(self._path.with_name(self._path.name + ".lock"))
+
     def allows_a_call(self) -> bool:
         with self._lock:
-            tokens = self._load()
+            try:
+                with self._turn():
+                    tokens = self._load()
+            except OSError:  # no turn in time or no folder: when in doubt, no Haiku
+                return False
             if tokens is None or self._save_failed:
                 return False
             return True
 
     def add(self, reply: Reply) -> None:
         with self._lock:
-            tokens = self._load()
-            if tokens is None:
-                return
-            saved = {"month": self._month(), "input_tokens": tokens[0] + reply.input_tokens,
-                     "output_tokens": tokens[1] + reply.output_tokens}
-            temporary = self._path.with_suffix(".tmp")
             try:
-                self._path.parent.mkdir(parents=True, exist_ok=True)
-                temporary.write_text(json.dumps(saved), encoding="utf-8")
-                os.replace(temporary, self._path)
+                with self._turn():
+                    tokens = self._load()
+                    if tokens is None:
+                        return
+                    saved = {"month": self._month(), "input_tokens": tokens[0] + reply.input_tokens,
+                             "output_tokens": tokens[1] + reply.output_tokens}
+                    temporary = self._path.with_suffix(".tmp")
+                    temporary.write_text(json.dumps(saved), encoding="utf-8")
+                    os.replace(temporary, self._path)
             except OSError:
                 self._save_failed = True
                 _logger.warning("Model chain could not save the Haiku count; Haiku stops for this run.")
@@ -308,14 +322,19 @@ class _Skipped(Exception):
     """A provider gave no usable answer. Carries a fixed reason, never provider text, and the reply when one
     came back and was billed (only its token counts are read)."""
 
-    def __init__(self, reason: str, reply: Reply | None = None):
+    def __init__(self, reason: str, reply: Reply | None = None, cause: str | None = None):
         self.reason = reason
         self.reply = reply
+        self.cause = cause  # which check the reply failed (a name, never the reply's text)
         super().__init__(reason)
 
 
 class _Unfit(Exception):
-    """A reply no repair can bring inside the call's schema."""
+    """A reply no repair can bring inside the call's schema. `field` is the schema property it failed at, if any."""
+
+    def __init__(self, field: str = ""):
+        super().__init__(field)
+        self.field = field
 
 
 def _is_kind(value: Any, kind: str) -> bool:
@@ -335,12 +354,13 @@ def _shaped(value: Any, schema: Mapping[str, Any], definitions: Mapping[str, Any
     if "$ref" in schema:
         return _shaped(value, definitions[schema["$ref"].rsplit("/", 1)[-1]], definitions)
     if "anyOf" in schema:
+        failed = _Unfit()
         for branch in sorted(schema["anyOf"], key=lambda branch: branch.get("type") == "null"):
             try:
                 return _shaped(value, branch, definitions)
-            except _Unfit:
-                continue
-        raise _Unfit
+            except _Unfit as error:
+                failed = error
+        raise failed
     kinds = schema.get("type")
     kinds = [kinds] if isinstance(kinds, str) else kinds
     if kinds == ["null"]:
@@ -362,25 +382,39 @@ def _shaped(value: Any, schema: Mapping[str, Any], definitions: Mapping[str, Any
             raise _Unfit
         return [_shaped(item, schema.get("items", {}), definitions) for item in kept]
     if isinstance(value, dict):
-        if any(name not in value for name in schema.get("required", ())):
-            raise _Unfit
+        missing = next((name for name in schema.get("required", ()) if name not in value), None)
+        if missing is not None:
+            raise _Unfit(missing)
         properties = schema.get("properties", {})
         closed = schema.get("additionalProperties") is False
-        return {
-            name: _shaped(item, properties[name], definitions) if name in properties else item
-            for name, item in value.items()
-            if name in properties or not closed
-        }
+        shaped = {}
+        for name, item in value.items():
+            if name not in properties:
+                if not closed:
+                    shaped[name] = item
+                continue
+            try:
+                shaped[name] = _shaped(item, properties[name], definitions)
+            except _Unfit as error:
+                raise _Unfit(f"{name}.{error.field}" if error.field else name) from None
+        return shaped
     return value
 
 
-def _for_the_game(reply: Reply, call: Mapping[str, Any]) -> str | None:
-    """The text the game should receive, or None when the next provider should answer."""
+def _for_the_game(reply: Reply, call: Mapping[str, Any]) -> str:
+    """The text the game should receive, or _Skipped (with the failed check) when the next provider should answer."""
     text = reply.text
+
+    def unusable(cause: str) -> _Skipped:
+        # D-238: a reply stopped at its token cap is named apart, so a log shows why the line was lost.
+        return _Skipped("cut_at_token_cap" if cause == "cut" else "unusable_reply", reply, cause)
+
+    if not text.strip():
+        raise unusable("empty")
     # A reply cut at the token cap is never an answer, even when its JSON parses: the game drops it
     # (game.ollama_reply_was_cut), so the next provider must be asked here instead (D-141).
-    if not text.strip() or reply.done_reason == "length":
-        return None
+    if reply.done_reason == "length":
+        raise unusable("cut")
     if not call.get("format"):
         return text
     fence = _FENCE.match(text)
@@ -388,11 +422,14 @@ def _for_the_game(reply: Reply, call: Mapping[str, Any]) -> str | None:
     schema = _schema(call)
     try:
         parsed = json.loads(text)
+    except ValueError:
+        raise unusable("not_json") from None
+    try:
         shaped = parsed if schema is None else _shaped(parsed, schema, schema.get("$defs", {}))
-    except (ValueError, _Unfit):
-        return None
+    except _Unfit as error:
+        raise unusable(f"schema:{error.field}" if error.field else "schema") from None
     if not (isinstance(shaped, dict) and shaped):
-        return None
+        raise unusable("not_object")
     return text if shaped == parsed else json.dumps(shaped, ensure_ascii=False)
 
 
@@ -490,10 +527,7 @@ class ModelChain:
         reply = provider.read(json.loads(text))
         if provider.spend is not None:
             provider.spend.add(reply)  # billed whether or not the game can use it
-        text = _for_the_game(reply, call)
-        if text is None:
-            raise _Skipped("unusable_reply", reply)
-        return replace(reply, text=text)
+        return replace(reply, text=_for_the_game(reply, call))
 
     def chat(self, call: Mapping[str, Any], local: Callable[[], Any]) -> tuple[Any, str | None]:
         """One engine call: the response in Ollama's shape, and the cloud provider that answered it.
@@ -514,13 +548,20 @@ class ModelChain:
                     # A dead route would cost this wait again on every call. A 5xx answers at once, so it rests nobody.
                     self._resting_until[provider.name] = self._now() + timedelta(seconds=DEFAULT_COOLDOWN_SECONDS)
                 reason = error.reason if isinstance(error, _Skipped) else type(error).__name__
+                model_phase.note_cause(
+                    provider.name, f"{reason}:{error.cause}" if isinstance(error, _Skipped) and error.cause else reason)
                 seconds = time.monotonic() - started
                 _logger.info("Model chain skipped (provider=%s, reason=%s, seconds=%.2f)",
                              provider.name, reason, seconds)
                 billed = error.reply if isinstance(error, _Skipped) else None
+                # A refused request (an HTTP error) or one that never connected was not billed: a known zero.
+                # Anything else (a read that ran out of time, a body that cannot be read) may have been billed.
+                usage_known = billed.usage_known if billed else isinstance(
+                    error, (_Skipped, httpx.ConnectError, httpx.ConnectTimeout))
                 self._notify(ChainAttempt(
                     provider.name, "skipped", reason, seconds,
                     *((billed.input_tokens, billed.output_tokens, billed.thought_tokens) if billed else (0, 0, 0)),
+                    usage_known,
                 ))
                 continue
             seconds = time.monotonic() - started
@@ -528,7 +569,7 @@ class ModelChain:
                          provider.name, seconds, reply.thought_tokens)
             self._notify(ChainAttempt(
                 provider.name, "answered", None, seconds,
-                reply.input_tokens, reply.output_tokens, reply.thought_tokens,
+                reply.input_tokens, reply.output_tokens, reply.thought_tokens, reply.usage_known,
             ))
             return ollama.ChatResponse(
                 model=provider.model, done=True, done_reason=reply.done_reason,
@@ -565,6 +606,7 @@ def ledger_observer(ledger: usage_ledger.UsageLedger) -> Callable[[ChainAttempt]
             attempt.provider,
             input_tokens=attempt.input_tokens, output_tokens=attempt.output_tokens,
             thought_tokens=attempt.thought_tokens, seconds=attempt.seconds, outcome=attempt.outcome,
+            usage_known=attempt.usage_known, reason=attempt.reason,
         )
     return observe
 

@@ -443,7 +443,9 @@ export interface ClericLevel4Choices {
 }
 
 export interface LevelUpApplyRequest {
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   action_id: string;
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   campaign_id: string;
   /** @minimum 0 */
   expected_revision: number;
@@ -1604,6 +1606,26 @@ export const GameCharacterGiantAncestry = {
 } as const;
 
 /**
+ * Dragonborn's chosen dragon; null before the choice and for other species.
+ * @nullable
+ */
+export type GameCharacterDraconicAncestry = typeof GameCharacterDraconicAncestry[keyof typeof GameCharacterDraconicAncestry] | null;
+
+
+export const GameCharacterDraconicAncestry = {
+  black: 'black',
+  blue: 'blue',
+  brass: 'brass',
+  bronze: 'bronze',
+  copper: 'copper',
+  gold: 'gold',
+  green: 'green',
+  red: 'red',
+  silver: 'silver',
+  white: 'white',
+} as const;
+
+/**
  * @nullable
  */
 export type SpeciesTraitStateActiveCelestialForm = typeof SpeciesTraitStateActiveCelestialForm[keyof typeof SpeciesTraitStateActiveCelestialForm] | null;
@@ -1669,6 +1691,17 @@ export interface GameCharacter {
   species?: string;
   /** @nullable */
   giant_ancestry?: GameCharacterGiantAncestry;
+  /**
+     * Dragonborn's chosen dragon; null before the choice and for other species.
+     * @nullable
+     */
+  draconic_ancestry?: GameCharacterDraconicAncestry;
+  /**
+     * Dragonborn Breath Weapon uses left until a Long Rest; null for other species.
+     * @minimum 0
+     * @nullable
+     */
+  breath_weapon_uses_remaining?: number | null;
   species_trait_state?: SpeciesTraitState | null;
   /** @minimum 0 */
   speed_ft?: number;
@@ -1780,6 +1813,21 @@ export interface GameSpellcasting {
   slots: GameSpellcastingSlots;
   /** Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal. */
   slot_turn: (string | number)[] | null;
+}
+
+/**
+ * The held Concentration spell (D-073), from the engine's own record.
+ */
+export interface GameConcentration {
+  spell_id: string;
+  /**
+     * @minimum 1
+     * @maximum 9
+     */
+  slot_level: number;
+  /** @minimum 1 */
+  started_round: number;
+  targets: string[];
 }
 
 export interface GameNpc {
@@ -2447,6 +2495,8 @@ export interface GameState {
   character: GameCharacter;
   /** Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision. */
   spellcasting?: GameSpellcasting | null;
+  /** Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell. */
+  concentration: GameConcentration | null;
   inventory: string[];
   npcs: GameNpc[];
   shops: GameShop[];
@@ -2958,6 +3008,44 @@ export const GameActionStatusState = {
 export type GameActionStatusDetail = { [key: string]: unknown } | null;
 
 /**
+ * @nullable
+ */
+export type ConcentrationCheckResultReason = typeof ConcentrationCheckResultReason[keyof typeof ConcentrationCheckResultReason] | null;
+
+
+export const ConcentrationCheckResultReason = {
+  incapacitated: 'incapacitated',
+  duration_ended: 'duration_ended',
+  combat_ended: 'combat_ended',
+} as const;
+
+/**
+ * The player's Concentration after one damage instance (D-052), from the engine's own save.
+ */
+export interface ConcentrationCheckResult {
+  spell_id: string;
+  kept: boolean;
+  /**
+     * @minimum 10
+     * @maximum 30
+     * @nullable
+     */
+  dc?: number | null;
+  /** @nullable */
+  roll?: number | null;
+  /** @nullable */
+  total?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 4
+     * @nullable
+     */
+  bless_roll?: number | null;
+  /** @nullable */
+  reason?: ConcentrationCheckResultReason;
+}
+
+/**
  * Where a healing event came from; potion is reserved (no engine path yet).
  */
 export type CombatTurnResultHealSource = typeof CombatTurnResultHealSource[keyof typeof CombatTurnResultHealSource] | null;
@@ -3056,6 +3144,7 @@ export interface CombatAttackResult {
   resolution?: CombatAttackResultResolution;
   death_save?: DeathSaveResult | null;
   death_resolution?: DeathResolutionResult | null;
+  concentration_check?: ConcentrationCheckResult | null;
 }
 
 export type CombatTurnResultEconomyStepsItem = { [key: string]: unknown };
@@ -3154,6 +3243,7 @@ export interface CombatTurnResult {
   resolution?: CombatTurnResultResolution;
   death_save?: DeathSaveResult | null;
   death_resolution?: DeathResolutionResult | null;
+  concentration_check?: ConcentrationCheckResult | null;
   /** @nullable */
   spell?: string | null;
   /** @nullable */
@@ -3405,6 +3495,7 @@ export interface GameActionStatus {
 }
 
 export interface GameTurnUndoInput {
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   action_id: string;
   target_action_id: string;
 }
@@ -3493,6 +3584,8 @@ export const SpeciesTraitActionInputAction = {
   second_wind: 'second_wind',
   lay_on_hands: 'lay_on_hands',
   divine_sense: 'divine_sense',
+  choose_draconic_ancestry: 'choose_draconic_ancestry',
+  breath_weapon: 'breath_weapon',
 } as const;
 
 /**
@@ -3522,6 +3615,38 @@ export const SpeciesTraitActionInputAncestry = {
   storm: 'storm',
 } as const;
 
+/**
+ * Dragonborn only, with choose_draconic_ancestry; chosen once.
+ * @nullable
+ */
+export type SpeciesTraitActionInputDraconicAncestry = typeof SpeciesTraitActionInputDraconicAncestry[keyof typeof SpeciesTraitActionInputDraconicAncestry] | null;
+
+
+export const SpeciesTraitActionInputDraconicAncestry = {
+  black: 'black',
+  blue: 'blue',
+  brass: 'brass',
+  bronze: 'bronze',
+  copper: 'copper',
+  gold: 'gold',
+  green: 'green',
+  red: 'red',
+  silver: 'silver',
+  white: 'white',
+} as const;
+
+/**
+ * Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.
+ * @nullable
+ */
+export type SpeciesTraitActionInputShape = typeof SpeciesTraitActionInputShape[keyof typeof SpeciesTraitActionInputShape] | null;
+
+
+export const SpeciesTraitActionInputShape = {
+  cone: 'cone',
+  line: 'line',
+} as const;
+
 export interface SpeciesTraitActionInput {
   /** UUIDv4 action receipt identity; reuse on network retry. */
   action_id: string;
@@ -3539,6 +3664,18 @@ export interface SpeciesTraitActionInput {
   ancestry?: SpeciesTraitActionInputAncestry;
   /** @nullable */
   armed?: boolean | null;
+  /**
+     * Dragonborn only, with choose_draconic_ancestry; chosen once.
+     * @nullable
+     */
+  draconic_ancestry?: SpeciesTraitActionInputDraconicAncestry;
+  /**
+     * Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.
+     * @nullable
+     */
+  shape?: SpeciesTraitActionInputShape;
+  /** Breath Weapon only; the creature the breath is aimed at. */
+  target_id?: string | null;
 }
 
 export type SpeciesTraitActionResultEffects = { [key: string]: unknown };
@@ -3579,6 +3716,7 @@ export interface SpellPrepareInput {
      * @items.maxLength 64
      */
   spellbook?: string[] | null;
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   action_id: string;
 }
 
@@ -3636,6 +3774,7 @@ export interface SpellPrepareViewResponse {
   prepared: string[];
   /** @nullable */
   spellbook?: string[] | null;
+  not_in_engine?: string[];
   /** D-039, only while blocked_reason is spellbook_missing; the spells the book may hold. */
   spellbook_options?: string[];
   /** D-039, only while blocked_reason is spellbook_missing; the engine's offer, which the player may change. */
@@ -4201,6 +4340,22 @@ export interface ApiErrorDetail {
 
 export interface ApiErrorResponse {
   detail: ApiErrorDetail;
+}
+
+/**
+ * Level-up error detail. code is an open string: besides fixed codes (campaign_persistence_required, unresolved_action, action_id_conflict, level_up_campaign_mismatch, level_up_preview_stale, level_up_choice_class_mismatch, level_up_unavailable, level_up_failed, campaign_stale and the ApiErrorDetail codes) the server forwards the engine's own refusal reason for the chosen level and choices.
+ */
+export interface LevelUpErrorDetail {
+  code: string;
+  message?: string;
+  /** Present and true when the refusal was recorded durably and nothing was applied. */
+  not_applied?: boolean;
+  /** Present with code unresolved_action; the earlier action that must be resolved first. */
+  unresolved_action_id?: string;
+}
+
+export interface LevelUpErrorResponse {
+  detail: LevelUpErrorDetail;
 }
 
 export interface RequestValidationIssue {

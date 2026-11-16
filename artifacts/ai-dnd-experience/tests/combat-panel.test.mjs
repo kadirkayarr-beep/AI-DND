@@ -710,3 +710,27 @@ test('D-147: a spell step is not logged as an attack, and a fight a spell ended 
   } }], []));
   assert.ok(attack.includes('Saldırı Eylem çözüldü'), 'an attack step keeps its label');
 });
+
+// D-065 (D-052's event line): the enemy hit's `concentration_check` (the engine's own save) is shown on its card.
+test('D-065: an enemy hit shows the Concentration save it caused, on both log paths, without inventing one', () => {
+  const hit = (check) => ({ action: 'enemy_attack', actor: 'npc_bandit', actor_name: 'Bandit', success: true, outcome: 'hit',
+    target_id: 'player', target_name: 'Arven', attack_roll: 15, attack_bonus: 3, attack_total: 18, target_ac: 13, damage: 6,
+    ...(check === undefined ? {} : { concentration_check: check }) });
+  const broken = { spell_id: 'Bless', kept: false, dc: 10, roll: 4, total: 6 };
+  const freeText = renderCombatPanel(makeState(), [{ id: 'c1', turnIndex: 1, result: { ...criticalExchange, enemy_actions: [hit(broken)] } }]);
+  assert.match(freeText, /data-testid="combat-entry-c1-enemy-0-enemy-concentration"[^>]*>[^<]*Konsantrasyon bozuldu · Kutsama \(Bless\) · Kurtarma 6 \/ DC 10</);
+
+  const kept = { spell_id: 'Bless', kept: true, dc: 10, roll: 9, total: 12, bless_roll: 3 };
+  const economy = renderCombatPanel(makeState(), mergeCombatHistory([{ event_id: 'd065-turn', turn_index: 2, result: {
+    action: 'action_economy', economy_steps: [{ kind: 'end_turn', enemy_actions: [hit(kept)] }],
+  } }], []));
+  assert.match(economy, /data-testid="combat-entry-d065-turn-0-0-enemy-concentration"[^>]*>[^<]*Konsantrasyon korundu · Kutsama \(Bless\) · Kurtarma 12 \/ DC 10 · Kutsama zarı \+3</);
+
+  const downed = renderCombatPanel(makeState(), [{ id: 'c3', turnIndex: 3, result: { ...criticalExchange,
+    enemy_actions: [hit({ spell_id: 'Bless', kept: false, reason: 'incapacitated' })] } }]);
+  assert.match(downed, /data-testid="combat-entry-c3-enemy-0-enemy-concentration"[^>]*>[^<]*Konsantrasyon bitti · Kutsama \(Bless\) · bilincini yitirdin</);
+  assert.doesNotMatch(downed, /Kurtarma undefined|DC undefined|incapacitated/);
+
+  const none = renderCombatPanel(makeState(), [{ id: 'c4', turnIndex: 4, result: { ...criticalExchange, enemy_actions: [hit(undefined), hit(null)] } }]);
+  assert.doesNotMatch(none, /-concentration"|Konsantrasyon/);
+});

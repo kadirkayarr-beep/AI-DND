@@ -92,27 +92,46 @@ _CAUGHT = (
     "{n} bileğini yakalıyor. “Elini çek! Bir daha görürsem bu kadar nazik olmam.”",
     "{n} bir anda dönüp sana bakıyor. “Ne yaptığını sanıyorsun sen?”",
     "{n} elini tokatlıyor. “Hırsız mısın, deli mi? Defol!”",
+    "{n} bileğini kıvırıp bırakıyor. “Bir daha uzatırsan o parmakları tek tek kırarım.”",
+    "{n} yakana yapışıyor. “Gözüm üstünde, sıçan. Muhafız çağırmadan siktir git.”",
+    "{n} elini havada yakalıyor, tırnakları etine geçiyor. “Yanlış kişiyi seçtin.”",
+    "{n} soğuk soğuk gülüyor. “O kadar kolay mı sandın? Defol, yoksa pişman olursun.”",
+    "{n} kolunu sertçe itiyor. “Bir dahakine o eli keser, kapıya çivilerim.”",
 )
 _NOTHING_THERE = (
     "Karıştırıp bakıyorsun; alınacak değerde bir şey çıkmıyor.",
     "Elini attığın yerden işe yarar bir şey çıkmıyor; elin boş dönüyor.",
     "Yokluyorsun ama para eden bir şey bulamıyorsun.",
+    "Parmakların yalnız toz ve kırıntı buluyor; çalmaya değer bir şey yok.",
+    "Aradığın yerde işe yarar hiçbir şey yok; boşuna risk aldın.",
+    "Didikleyip bakıyorsun; birkaç değersiz kırıntıdan başka bir şey çıkmıyor.",
 )
 _NO_SUCH_THING = (  # D-229: a named thing that does not come to hand; never a money line
     "Elini attığın yerden bir {t} çıkaramıyorsun; elin boş dönüyor.",
     "Uzanıyorsun ama hiçbir {t} eline geçmiyor.",
     "Bir {t} için yokluyorsun ama elin boş dönüyor.",
+    "Gözünle aradığın {t} orada yok; parmakların boşluğu kavrıyor.",
+    "Elini uzatıyorsun ama ortada alınacak bir {t} yok.",
+    "Aradığın {t} sandığın şey değilmiş; ortada öyle bir şey yok.",
 )
 _WONT_LIFT = (  # D-229: armour and shields never change hands this way (equipment_economy.is_armor_or_shield)
     "Uzanıyorsun ama {t} el çabukluğuyla alınacak bir şey değil: zırh ve kalkan bu yolla el değiştirmiyor.",
     "O {t} yerinden oynamıyor; zırh ve kalkan bu yolla el değiştirmiyor, elin boş dönüyor.",
     "Elin {t} kenarına değiyor ama zırh ve kalkan bu yolla el değiştirmiyor; geri çekiliyorsun.",
+    "O {t} sırtta ve kayışlarla bağlı; zırh ve kalkan bu yolla el değiştirmiyor.",
+    "Kayışlara uzanıyorsun ama {t} çekilip alınacak bir şey değil; zırh ve kalkan bu yolla el değiştirmiyor.",
+    "Parmakların {t} tokasında takılıyor; zırh ve kalkan bu yolla el değiştirmiyor, eli boş çekiyorsun.",
 )
 _PURSE_EMPTY = (  # D-230: a lifted purse with no coin in it says so
     "Parmakların keseye ulaşıyor ama {n} kesesi boş dolaşıyor; tek bakır yok.",
     "Keseyi fark ettirmeden yokluyorsun; kesesi boş, {n} üzerinde tek bakır taşımıyor.",
     "Elin keseye giriyor ama kesesi boş: {n} bugün parasız.",
+    "Kesenin ağzını açıyorsun ama {n} kesesi boş; içinde tek kuruş yok.",
+    "Keseyi yokluyorsun; {n} kesesi boş, dibinde yalnız toz var.",
+    "Parmakların kesenin dibine değiyor: {n} kesesi boş, bugün beş parasız.",
 )
+# D-251: which line of each table was said last; the next draw skips it (an old save has none).
+_LINES_SAID = "bold_lines_said"
 
 
 def fold(session, text: str) -> str:
@@ -559,9 +578,20 @@ def answer_to_known_doer(session, result: Any) -> None:
     result["narration"] = " ".join([str(result.get("narration") or ""), line]).strip()
 
 
+def _fresh(session, kind: str, table: tuple[str, ...]) -> str:
+    """A line from the table, never the one this table gave last time (D-251)."""
+    flags = session.world_state.setdefault("flags", {})
+    said = flags.get(_LINES_SAID)
+    if not isinstance(said, dict):
+        said = flags[_LINES_SAID] = {}
+    index = session.rng.choice([i for i in range(len(table)) if i != said.get(kind)])
+    said[kind] = index
+    return table[index]
+
+
 def _pick_line(session, npc: dict[str, Any]) -> str:
     name = living_world.public_npc_name(npc)
-    return session.rng.choice(_CAUGHT).format(n=name)
+    return _fresh(session, "caught", _CAUGHT).format(n=name)
 
 
 def _check(session, skill: str, dc: int) -> dict[str, Any]:
@@ -675,13 +705,14 @@ def _carried(session, person: dict[str, Any] | None, thing: str) -> Any:
     return None
 
 
-def _empty_line(session, thing: str | None) -> str:
+def _empty_line(session, thing: str | None = None) -> str:
     """What an empty hand says: a named thing is told as that thing (armour as armour), never as money (D-229)."""
     if thing is None:
-        return session.rng.choice(_NOTHING_THERE)
+        return _fresh(session, "empty", _NOTHING_THERE)
     import equipment_economy
-    lines = _WONT_LIFT if equipment_economy.is_armor_or_shield({"name": thing}) else _NO_SUCH_THING
-    return session.rng.choice(lines).format(t=thing.lower())
+    if equipment_economy.is_armor_or_shield({"name": thing}):
+        return _fresh(session, "wont_lift", _WONT_LIFT).format(t=thing.lower())
+    return _fresh(session, "no_such_thing", _NO_SUCH_THING).format(t=thing.lower())
 
 
 def _hand_to_whom(session, text: str) -> dict[str, Any] | None:
@@ -771,7 +802,7 @@ def _steal(session, text: str) -> dict[str, Any]:
                       ["relationships"], npc_id=watcher["id"])
     # D-170: only the victim's own purse or a real till holds coin; somebody merely watching is no till
     if thing is None and not _coin_to_take(world, victim):
-        return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+        return _reply(session, _empty_line(session), "theft", "empty", check, [])
     if thing is None:
         coins = session.rng.randint(5, 40)
         wallets = world.setdefault("currency", {})
@@ -779,7 +810,7 @@ def _steal(session, text: str) -> dict[str, Any]:
             purse = _purse_of(world, victim)
             coins = min(coins, purse)
             if coins <= 0:  # D-230: same draw as before, so the seeded rolls after it stay the same
-                line = session.rng.choice(_PURSE_EMPTY).format(n=living_world.public_npc_name(victim))
+                line = _fresh(session, "purse_empty", _PURSE_EMPTY).format(n=living_world.public_npc_name(victim))
                 return _reply(session, line, "theft", "empty", check, [])
             wallets[victim["id"]] = purse - coins
         wallets["player"] = wallets.get("player", 0) + coins

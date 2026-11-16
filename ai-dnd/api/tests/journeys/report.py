@@ -35,7 +35,7 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     # The owner's 19-item test: money paid or earned by the wrong move, and the quest record that goes with it.
     # 36: the messenger chain (3a), money and records through a delivery, a broken seal and the word it sends.
     # 41: a job heard in the street: its trail, taken only from its owner, undo and reload.
-    ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b", "19c", "19d", "19e", "29", "36", "41", "45")),
+    ("Para ve kayıt", ("17", "18", "18b", "18c", "18d", "19", "19b", "19c", "19d", "19e", "19f", "29", "36", "41", "45")),
     ("Oda, uyku ve çıkış", ("03", "07", "39")),
     ("Eşya, silah ve tüketim", ("04", "04b", "05", "05b", "05c", "28", "30", "43")),
     ("Savaş eylemleri", ("06", "20", "21", "22", "22b", "42", "44", "46")),
@@ -51,7 +51,7 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     # A spell the engine does not resolve with dice: a narrative fact, or the "not in the engine yet" line (4C.5).
     ("Büyü anlatısı", ("49",)),
     # An act the dice settle (a steal, a scare) shows its dice card whatever the model's reading says; a look-over is told.
-    ("Zar ve beceri kontrolleri", ("50", "50b", "50c", "50d", "51", "51b", "52", "52b", "52c", "52d", "53", "53b", "53c", "53d", "53e", "53f", "53g", "54", "54b", "54c", "55", "55b", "55c", "86", "95")),
+    ("Zar ve beceri kontrolleri", ("50", "50b", "50c", "50d", "51", "51b", "52", "52b", "52c", "52d", "53", "53b", "53c", "53d", "53e", "53f", "53g", "54", "54b", "54c", "55", "55b", "55c", "86", "87", "95")),
 )
 _OTHER_KIND = "Diğer"
 _NUMBER = re.compile(r"^(\d+[a-z]?)_")

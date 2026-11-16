@@ -5,6 +5,8 @@ from contextvars import ContextVar
 _PHASE = ContextVar("resolved_model_phase", default="unresolved")
 _CLASSIFIER = ContextVar("classifier_model_call", default=False)
 _FRONT = ContextVar("front_model_call", default=False)
+_CAUSES = ContextVar("unusable_call_causes", default=None)
+MAX_CAUSES = 10
 
 
 class ModelFailure(str):
@@ -56,3 +58,19 @@ def only_resolved_narration_failures(failures):
         isinstance(failure, ModelFailure) and failure.phase == "resolved_narration"
         for failure in failures
     )
+
+
+def begin_causes():
+    """A new turn's list of why a model call came back unusable. Names only, never text from the player or the model."""
+    _CAUSES.set([])
+
+
+def note_cause(source, cause):
+    """One line: which kind of call (front or other), who answered, and which check failed."""
+    rows = _CAUSES.get()
+    if rows is not None and len(rows) < MAX_CAUSES:
+        rows.append(f"{'front' if in_front_call() else 'call'}:{source}:{cause}")
+
+
+def causes():
+    return list(_CAUSES.get() or [])

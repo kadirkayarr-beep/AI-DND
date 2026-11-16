@@ -1632,6 +1632,8 @@ class ContractParityTests(unittest.TestCase):
                 payload["form"] = "heavenly_wings"
             elif action == "choose_giant_ancestry":
                 payload["ancestry"] = "cloud"
+            elif action == "choose_draconic_ancestry":
+                payload["draconic_ancestry"] = "red"
             elif action == "lay_on_hands":
                 payload["healing_amount"] = 1
             with self.subTest(action=action):
@@ -1639,6 +1641,7 @@ class ContractParityTests(unittest.TestCase):
         for field, action in (
             ("form", "celestial_revelation"),
             ("ancestry", "choose_giant_ancestry"),
+            ("draconic_ancestry", "choose_draconic_ancestry"),
         ):
             for value in _schema_enum(request_schema[field]) - {None}:
                 with self.subTest(field=field, value=value):
@@ -3118,10 +3121,15 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                 mutations.append((field_path, None))
                 mutations.append((field_path, {"type": "integer"}))
                 if _is_nullable(field_schema):
-                    nonnullable = deepcopy(field_schema)
-                    nonnullable["type"] = [
-                        value for value in field_schema["type"] if value != "null"
-                    ]
+                    if "anyOf" in field_schema:  # nullable written as anyOf: keep only the non-null branch
+                        nonnullable = next(
+                            deepcopy(branch) for branch in field_schema["anyOf"] if not _is_nullable(branch)
+                        )
+                    else:
+                        nonnullable = deepcopy(field_schema)
+                        nonnullable["type"] = [
+                            value for value in field_schema["type"] if value != "null"
+                        ]
                     mutations.append((field_path, nonnullable))
                     mutations.append((
                         schema_path + ("required",),
@@ -3138,7 +3146,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     [value for value in published["required"] if value != required_field],
                 ))
         input_path = ("components", "schemas", "SpeciesTraitActionInput", "properties")
-        for field_name in ("action", "form", "ancestry"):
+        for field_name in ("action", "form", "ancestry", "draconic_ancestry", "shape"):
             values = _enum_values("SpeciesTraitActionInput", field_name)
             mutations.append((input_path + (field_name, "enum"), [*values, "unsupported"]))
             mutations.append((input_path + (field_name, "enum"), None))

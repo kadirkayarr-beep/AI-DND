@@ -171,12 +171,60 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
 ECONOMIC_INTENTS = ("room", "room_quote", "gift", "tip", "purchase")
 
 
-def economic_route(reply: Any, listed: Mapping[str, Any], *, target_id: str | None = None) -> dict | None:
+def _asks_not_pays(purpose: Any, line: Any) -> bool:
+    """D-097: a question that hands no coin now is no coin deal: a price asked ('ne kadar?', 'bira var mı?') is
+    answered by whoever serves, and a tip or gift asked about ('bahşiş versem mi', with or without '?') opens no card.
+    A buy said with its goods ('bir bira alayım, ne kadar?') is still the counter's."""
+    import bold_acts
+    import living_world
+    import shop_trade
+    if not isinstance(line, str) or purpose == "room_quote":
+        return False
+    folded = living_world.normalize_text(line)
+    asked = "?" in line or bool(bold_acts._ASKS.search(folded))
+    if names_coin(line):  # 'versem mi' asks as '?' does (_coin_clauses)
+        return False
+    if purpose == "purchase" and shop_trade.priced_in(folded) and bold_acts._ROOM_ASK.search(folded):
+        return False
+    return bool(bold_acts._PRICE_ASKED.search(folded)) or (asked and purpose in ("gift", "tip"))
+
+
+def _names_someone_else(listed: Mapping[str, Any], person: Any, line: Any) -> bool:
+    """D-097 review: the line names another listed person ('Selin'e ...' while Marek is talked to)."""
+    import living_world
+    if not isinstance(line, str):
+        return False
+    words = living_world.normalize_text(living_world._text_outside_quotes(line)).split()
+    for row in listed["people"]:
+        name = living_world.normalize_text(row.get("name")).split()[:1]
+        if row["id"] != person and name and len(name[0]) >= 3 and any(word.startswith(name[0]) for word in words):
+            return True
+    return False
+
+
+def _coin_named(line: Any) -> bool:
+    """Coin the words name, with a figure ('10 altın') or without ('biraz para'); a thing given names none."""
+    import living_world
+    return isinstance(line, str) and (says_money(line, coin_only=True)
+                                      or _coin_said(living_world.normalize_text(line).split()) is not None)
+
+
+def economic_route(reply: Any, listed: Mapping[str, Any], *, target_id: str | None = None,
+                   line: Any = None) -> dict | None:
     """Admit a purpose only with this reading's listed, explicitly bound recipient. Never read a price."""
     front = reply.get("front") if isinstance(reply, dict) else None
     if not isinstance(front, dict) or front.get("economic_intent") in (None, NONE):
         return None
     purpose, person = front.get("economic_intent"), front.get("person_id")
+    if _asks_not_pays(purpose, line):
+        return None  # D-097: the line goes to its kind (said to the person), never "kime vermek istiyorsun?"
+    if purpose == "gift" and line is not None and not _coin_named(line):
+        return None  # 'hançerimi hediye ediyorum': a thing given, never a coin amount asked
+    if person in (None, NONE):
+        # D-097: 'ona' names nobody; the one chosen in the talk panel, else the one being talked to, is who it is for,
+        # unless the line names someone else here: then nobody is guessed and who is asked, as before.
+        bound = target_id or listed["speaking_with"]
+        person = None if _names_someone_else(listed, bound, line) else bound
     valid = (isinstance(purpose, str) and purpose in ECONOMIC_INTENTS and front.get("kind") == "speak_to"
              and isinstance(person, str) and person != NONE and person in _ids(listed["people"])
              and (target_id is None or target_id == person)
@@ -201,7 +249,8 @@ def _at_hand(listed: Mapping[str, Any]) -> str:
                      "ne kadar süreceğini söylese de kind work.")
     if any(str(row["id"]).startswith("parcel:") for row in listed["bag"]):
         notes.append("Oyuncunun çantasında teslim edeceği bir şey var: 'al', 'buyur', 'işte', 'getirdim', 'veriyorum' "
-                     "diyorsa kind hand_over ve item_id o parcel.")
+                     "diyorsa kind hand_over ve item_id o parcel. Yalnız para ya da bahşiş veriyorsa bu teslim "
+                     "değildir: o şeyi anmıyorsa item_id none.")  # D-239
     return " ".join(notes)
 
 
@@ -381,6 +430,10 @@ def _coin_clauses(line: str) -> list[str]:
     import game
     import living_world
     import world_threads
+    import bold_acts
+    # D-097 review: the owner leaves the question mark out ('ona 10 bakır versem mi'): such a line asks as '?' does.
+    if "?" not in str(line) and bold_acts._ASKS.search(living_world.normalize_text(line)):
+        line = f"{line}?"
     # Each clause that names coin speaks for itself: 'bi altın atıyorum, ... laf isterim' pays, 'veririm' alone does not.
     pieces = re.split(r"([,.;!?])", str(line))
     clauses = [(pieces[i], pieces[i + 1] if i + 1 < len(pieces) else "") for i in range(0, len(pieces), 2)]
@@ -402,19 +455,43 @@ def _coin_clauses(line: str) -> list[str]:
     return found
 
 
+# D-239/D-097 review: money said with no figure the coin reader holds to ('bahşiş veriyorum', 'biraz para'). The coin
+# words alone (no 'bahşiş', 'hediye') tell a coin gift from a thing given as a gift ('hançerimi hediye ediyorum').
+_MINUS_FIGURE = re.compile(r"(?<![\w])-\s*\d")
+_COIN_SAID = re.compile(r"\b(?:para|bakir|gumus|sikke|harclik)\w*")
+_MONEY_GIFT_SAID = re.compile(r"\b(?:bahsis|hediye)\w*")
+
+
+def says_money(line: Any, *, coin_only: bool = False) -> bool:
+    """Whether the line's own words (outside quotes) speak of money given; no model is asked."""
+    import living_world
+    if not isinstance(line, str):
+        return False
+    folded = living_world.normalize_text(living_world._text_outside_quotes(line))
+    return bool(_COIN_SAID.search(folded) or (not coin_only and _MONEY_GIFT_SAID.search(folded)))
+
+
 def names_coin(line: str) -> bool:
     """Whether a clause of the line hands coin now, the same test coin_in makes, with no model asked."""
     return bool(_coin_clauses(line))
 
 
-def coin_in(reply: Any, line: str) -> int:
-    """Coin leaving the hand now, for a line that names money and asks nothing: the reading says it moves, the line how much."""
+def coin_in(reply: Any, line: str, *, moves: bool = False) -> int:
+    """Coin leaving the hand now, for a line that names money and asks nothing: the reading says it moves, the line how much.
+
+    `moves`: a validated tip or gift route already says the coin moves (D-097): a figure the line names stands even
+    when the reading left `coin_cp` at 0, so the card never asks an amount the player said."""
     import living_world
     front = reply.get("front") if isinstance(reply, dict) else None
     amount = front.get("coin_cp") if isinstance(front, dict) else None
     if type(amount) is not int or amount <= 0:
-        return 0
-    words = [word for clause in _coin_clauses(line) for word in living_world.normalize_text(clause).split()]
+        if not moves:
+            return 0
+        amount = 0  # only a figure the words name counts: no unnamed 'biraz para' is guessed
+    clauses = _coin_clauses(line)
+    if any(_MINUS_FIGURE.search(clause) for clause in clauses):
+        return 0  # '-10 bakır' is no figure to hold out: nothing is held, the amount is asked (D-097 review)
+    words = [word for clause in clauses for word in living_world.normalize_text(clause).split()]
     if not words:
         return 0
     said = _coin_said(words)
@@ -584,6 +661,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_route = ("skipped:combat" if combat.get("active")
                             else "skipped:typed" if typed else "owner_first")
     session._front_reached = False
+    session._speech_checks = None  # D-252: set by a person's reply this turn, names only
 
 
 def end(session) -> None:
@@ -614,6 +692,9 @@ def log_turn(session, result: Any) -> None:
         "owner": action.get("action"),
         "status": action.get("status"),
     }
+    checks = getattr(session, "_speech_checks", None)
+    if isinstance(checks, list):
+        entry["speech"] = list(checks)  # D-252: which speech checks changed or replaced the reply
     _logger.info("Turn route %s", json.dumps(entry, ensure_ascii=False))
     path = os.environ.get(ROUTE_LOG, "").strip()
     if not path:

@@ -616,7 +616,7 @@ def _unpaid(world, thread):
     return not (isinstance(held, list) and xp._job_award_id(thread["thread_id"]) in held)
 
 
-def _trim_history(state, world=None):
+def _trim_history(state, world):
     """Old closings go; one the player had a hand in stays until they have learned how it ended, and was paid for it."""
     waiting = [t for t in state["history"] if fires_at(t) is not None
                or (t.get("offered_at") is not None and t.get("outcome_known_turn") is None) or _unpaid(world, t)]
@@ -1015,6 +1015,55 @@ def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = Fal
     ends = tuple(table["first_person_ends"])  # 'tamam, nereden başlayım': going straight on to the doing of it
     return any(kind != "accept" and any(word.endswith(ends) and word not in table["fillers"] for word in tokens)
                for kind, (tokens, _, _) in zip(read, clauses))
+
+
+_FINITE_ENDS = ("yorum", "yoruz", "dum", "dim", "tum", "tim", "rim", "yim", "lim", "cagim", "cegim", "cam", "cem")
+_NOT_A_YES = frozenset({"degil", "sanma", "yalan", "diye", "asla", "hayir", "yok"})  # a no, a lie or a pretence beside it
+
+
+def finite_verbs(text: Any) -> list[str]:
+    """The folded words of the line that are a verb said of the speaker ('soyuyorum', 'çekeyim'): a second thing done."""
+    return [word for word in _folded(text).split() if word.endswith(_FINITE_ENDS)]
+
+
+_ACCEPT_VERBS = frozenset({"ediyorum", "ederim", "ettim", "edecegim", "ediom", "ediorum", "ediyoruz", "ederiz"})
+
+
+def says_yes_in_a_longer_line(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+    """D-240, for when no model read the line: 'görevi kabul ediyorum ve eşyayı alıyorum'. The clause reader calls a
+    yes that runs on into more of the same clause 'other', so this looks for the yes itself (a listed phrase of two
+    words or more, or 'kabul' with its own verb), and only where nothing in the line says no, maybe, later, if or asks.
+    A model's yes never needed this; Python's own reading of the player's words is all that stands behind it."""
+    if isinstance(text, str) and set(_folded(text).split()) & _NOT_A_YES:
+        return False
+    if holds_a_yes(text, npc, thread, firm=True):
+        return True
+    table = answer_table()
+    text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
+    if text is None or "?" in text:
+        return False
+    names = _names_of(npc)
+    clauses = _clauses(text)
+    kinds = {_read_clause(tokens, asked, table, names, _item_stems(thread)) for tokens, asked, _ in clauses}
+    if {"decline", "withdraw", "unclear", "question", "terms"} & kinds or any(after for _, _, after in clauses):
+        return False
+    tokens = [word for clause, _, _ in clauses for word in clause]
+    if (any(_REFUSED_DOING.search(word) or word.endswith(_CONDITIONAL_ENDS) for word in tokens)
+            or set(tokens) & (table["hedges"] | _REPORTED | table["later_words"]) or says_later(text)
+            or any(_has_phrase(tokens, table[meaning]) for meaning in ("decline", "withdraw"))):
+        return False
+    window = next(((start, end) for start in range(len(tokens)) for end in range(start + 2, min(start + 4, len(tokens)) + 1)
+                   if " ".join(tokens[start:end]) in table["accept"]), None)
+    if window is None:
+        window = next(((at, at + 2) for at, (word, following) in enumerate(zip(tokens, tokens[1:]))
+                       if word == "kabul" and following in _ACCEPT_VERBS), None)
+    if window is None:
+        return False
+    # Whatever else the line does must be taking or handing over the offer's own thing, or talk: any other deed is left
+    # to the old chain, which reads it as its own act.
+    rest = [*tokens[:window[0]], *tokens[window[1]:]]
+    allowed = table["take"] | table["start"] | table["give_verbs"]
+    return not any(word.endswith(_FINITE_ENDS) and word not in allowed for word in rest)
 
 
 _REFUSED_DOING = re.compile(r"(?:m[aeiu]yor|mam$|mem$|mayacag|meyecek|meyecen|mayacan|amam$|emem$)")

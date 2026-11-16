@@ -133,7 +133,8 @@ from api.serializers import (
     serialize_session_state,
 )
 from api.schemas import LevelUpApplyRequest, LevelUpPreviewResponse, LevelUpCommandResult, ShopCounterResponse
-from api.session_manager import SessionManager, UnknownSessionError
+from api.schemas import ActionIdPath
+from api.session_manager import SessionManager, TransientReplyDroppedError, UnknownSessionError
 from api.world_metadata import (
     set_session_world_metadata,
     world_metadata_for_state,
@@ -231,11 +232,15 @@ def _adopt_undo_checkpoint(record: Any, build: Any) -> None:
 
 
 def _final_death(session: Any) -> bool:
-    """D-112: an Ironman death is final; no undo may bring the hero back, whichever turn set the undo point."""
+    """D-112: an Ironman death is final; no undo may bring the hero back, whichever turn set the undo point.
+
+    D-178 (Kadir): "PERMADEATH'te ölüm kesin; ölüm turu Geri Al ile geri alınamaz." The same holds for a real death.
+    """
     world = getattr(session, "world_state", None)
     death = world.get("death_state") if isinstance(world, dict) else None
     return isinstance(death, dict) and (
-        death.get("terminal") is True or (death.get("mode") == "IRONMAN" and death.get("dead") is True)
+        death.get("terminal") is True
+        or (death.get("mode") in ("IRONMAN", "PERMADEATH") and death.get("dead") is True)
     )
 
 
@@ -1025,10 +1030,14 @@ def create_app(
     def action_status_payload(record: Any, session_id: str, action_id: str, state: str) -> dict[str, Any]:
         payload: dict[str, Any] = {"action_id": action_id, "state": state}
         if state == "applied":
-            receipt = manager.get_turn_action(record, action_id) or {}
+            try:
+                receipt = manager.get_turn_action(record, action_id) or {}
+            except TransientReplyDroppedError:
+                receipt = {}  # D-152: applied long ago, its reply no longer kept; only a retried turn is refused
             stored = receipt.get("response")
             payload["response"] = None
-            if isinstance(stored, dict):
+            # D-162: an Undo receipt also fits TurnResponse (extra keys are ignored), but it is another command kind.
+            if isinstance(stored, dict) and "undone_action_id" not in stored:
                 try:
                     payload["response"] = replay_action_response(stored, TurnResponse, session_id)
                 except HTTPException:
@@ -1064,7 +1073,8 @@ def create_app(
         "/api/game/sessions/{session_id}/actions/{action_id}",
         response_model=dict[str, Any],
     )
-    def read_action_status(session_id: str, action_id: str) -> dict[str, Any]:
+    def read_action_status(session_id: str, action_id: ActionIdPath) -> dict[str, Any]:
+        action_id = str(action_id)
         record = get_record(session_id)
         if record.revoked:
             raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
@@ -1077,8 +1087,9 @@ def create_app(
         "/api/game/sessions/{session_id}/actions/{action_id}/abandon",
         response_model=dict[str, Any],
     )
-    def abandon_action(session_id: str, action_id: str) -> dict[str, Any]:
+    def abandon_action(session_id: str, action_id: ActionIdPath) -> dict[str, Any]:
         """Player-initiated close of an action id; the answer comes from the stored receipt or refusal only."""
+        action_id = str(action_id)
         record = get_record(session_id)
         if not record.turn_lock.acquire(timeout=2.0):
             # A turn of this session is running: its outcome is not known yet, so the identity is kept.
@@ -2150,7 +2161,9 @@ def create_app(
             if _final_death(session):
                 raise HTTPException(status_code=409, detail={
                     "code": "undo_final_death",
-                    "message": "Ironman ölümü kesindir; geri alınamaz.",
+                    "message": "Ironman ölümü kesindir; geri alınamaz."
+                    if session.world_state["death_state"].get("mode") == "IRONMAN"
+                    else "Gerçek ölüm kesindir; geri alınamaz.",
                 })
             if _state_fingerprint(session) != checkpoint["post_turn_fingerprint"]:
                 record.undo_checkpoint = None
@@ -2369,7 +2382,8 @@ def create_app(
         record = get_record(session_id)
         action_id = str(request.action_id)
         request_hash = hashlib.sha256(json.dumps(
-            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"})},
+            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"} | {
+                field for field in ("draconic_ancestry", "shape", "target_id") if getattr(request, field) is None})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
@@ -2429,6 +2443,9 @@ def create_app(
                     armed=request.armed,
                     **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
                        if request.action == "lay_on_hands" else {}),
+                    **({"draconic_ancestry": request.draconic_ancestry} if request.action == "choose_draconic_ancestry"
+                       else {"shape": request.shape, "target_id": request.target_id} if request.action == "breath_weapon"
+                       else {}),
                 )
                 # D-105: a combat species action can end the turn and its damage (Inner Radiance) can drop a quest
                 # target; like the play turn, the quest owner reads this command's own before/after world. The

@@ -27,9 +27,11 @@ class FakeOllamaClient:
 class SpellApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.manager = SessionManager()
+        adapter = AuthenticatedOllamaAdapter(FakeOllamaClient())
+        self.enterContext(adapter.engine_binding())  # gives the engine its model callbacks back after the test
         self.app = create_app(
             session_manager=self.manager,
-            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+            ollama_adapter=adapter,
             authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=self.app),
@@ -171,3 +173,15 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stored["result"]["action"], "cast")
         self.assertEqual(stored["result"]["healing"], 6)
         self.assertTrue(stored["result"]["slot_spent"])
+
+
+class SpellApiSetupLeavesTheEngineAlone(unittest.TestCase):
+    """The shared SpellApiTests setup (borrowed by other modules) must give the engine its model callbacks back."""
+
+    def test_a_finished_spell_api_test_restores_the_engines_model_calls(self):
+        import game
+        before = (game.ollama.list, game.ollama.chat)
+        result = unittest.TestResult()
+        SpellApiTests("test_client_cannot_submit_spell_damage_or_healing").run(result)
+        self.assertTrue(result.wasSuccessful(), result.errors + result.failures)
+        self.assertEqual((game.ollama.list, game.ollama.chat), before)

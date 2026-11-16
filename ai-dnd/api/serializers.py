@@ -12,6 +12,7 @@ from typing import Any
 import game
 import character_progression
 import sorcery_points
+import spell_concentration
 import barbarian_rage
 import fighter_features
 import paladin_features
@@ -159,6 +160,7 @@ _COMBAT_ATTACK_FIELDS = (
     "resolution",
     "death_save",
     "death_resolution",
+    "concentration_check",
 )
 _COMBAT_TURN_FIELDS = (
     *_COMBAT_ATTACK_FIELDS,
@@ -715,6 +717,10 @@ def serialize_session_state(
     )
     character["species"] = player.get("species", player.get("race"))
     character["giant_ancestry"] = player.get("giant_ancestry")
+    import dragonborn_breath  # D-233: the chosen dragon and the Breath Weapon uses left (Dragonborn only)
+    character["draconic_ancestry"] = player.get("draconic_ancestry")
+    character["breath_weapon_uses_remaining"] = (
+        dragonborn_breath.uses_left(player) if dragonborn_breath.is_dragonborn(player) else None)
     trait_state = player.get("species_trait_state")
     character["species_trait_state"] = copy.deepcopy(
         trait_state
@@ -834,6 +840,7 @@ def serialize_session_state(
                 if points is not None else {})}
             if world.get("spellcasting_v1") is not None else None
         ),
+        "concentration": spell_concentration.projection(session) if isinstance(session, game.GameSession) else None,
         "npcs": [
             {**dict.fromkeys(_NPC_NULLABLE_REQUIRED_FIELDS), **npc}
             for npc in _project_list(visible_world["npcs"], _NPC_FIELDS)
