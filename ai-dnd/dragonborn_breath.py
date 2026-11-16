@@ -174,8 +174,10 @@ def named(session: Any, text: str) -> bool:
     if not is_dragonborn(session.character) or not session.world_state.get("combat", {}).get("active"):
         return False
     folded = session._normalize_turkish_typos(text)
-    # "sal" (salmak) never as the head of "saldır": "nefes nefese saldırıyorum" is a winded blow, not the breath.
-    return bool(re.search(r"nefes\s*silah|breath\s*weapon|ejderha\s*nefes|nefes\w*\s+(?:puskurt|ufle|sal(?!d[iı]r))", folded))
+    # "sal" only as salmak's own forms (folded: salıyor, salıver, salar, salma, saldı, salacak, bare "sal"); never the head
+    # of another word: "nefes nefese saldırıyorum / sallıyorum / salonda / salata / salgın" is not the breath.
+    return bool(re.search(r"nefes\s*silah|breath\s*weapon|ejderha\s*nefes|"
+                          r"nefes\w*\s+(?:puskurt|ufle|sal(?:iyor|iver|ar|ma|di(?!r)|ac|\b))", folded))
 
 
 def shape_in(text: str) -> str | None:

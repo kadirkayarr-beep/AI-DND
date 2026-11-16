@@ -154,9 +154,14 @@ class BreathWeaponTests(unittest.TestCase):
         session, npc = dragonborn()
         token = game._ACTIVE_SESSION.set(session)
         try:
-            self.assertFalse(dragonborn_breath.named(session, "nefes nefese saldırıyorum"))
+            # Re-review (ORTA): any other word that only begins with "sal" is not the breath either.
+            for line in ("nefes nefese saldırıyorum", "nefes nefese sallıyorum", "nefes nefese salonda bekliyorum",
+                         "nefes nefese salata yiyorum", "nefes nefese salgından kaçıyorum"):
+                with self.subTest(line=line):
+                    self.assertFalse(dragonborn_breath.named(session, line))
             for line in ("nefes salıyorum", "nefesimi salıveriyorum", "ejderha nefesimi püskürtüyorum",
-                         "nefes silahımı kullanıyorum"):
+                         "nefes silahımı kullanıyorum", "nefes sal", "nefesimi salarak", "nefesimi salmak istiyorum",
+                         "nefesimi saldım", "nefesimi salacağım"):
                 with self.subTest(line=line):
                     self.assertTrue(dragonborn_breath.named(session, line))
         finally:
