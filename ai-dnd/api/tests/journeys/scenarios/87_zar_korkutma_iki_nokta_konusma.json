@@ -1,0 +1,58 @@
+{
+  "id": "87_zar_korkutma_iki_nokta_konusma",
+  "title": "Konuşma yolunda korkutma zarı sonuca bağlı (D-226): 'Muhafızı korkutmaya çalışıyorum: Önümden çekil, yoksa başın belaya girer!' ön okuma konuşma dese de gözdağı zarı atar ve anlatıcıya gider (kişinin zarı bilmeden yazılan konuşma cevabına değil); başarılı zarda muhafızın direndiği metin geçmez",
+  "source_items": [
+    99,
+    226
+  ],
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 60
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 8701,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "Muhafızı korkutmaya çalışıyorum: Önümden çekil, yoksa başın belaya girer!",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "check": "Intimidation",
+          "person_id": "kavsim"
+        },
+        "narration": "Kavşim kollarını kavuşturup sana yukarıdan bakıyor; geri adım atmıyor, sözlerin ona işlemiyor."
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Intimidation",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "yasak_metin": [
+          "geri adım atmıyor",
+          "sözlerin ona işlemiyor",
+          "Anladım.",
+          "Hı. Duydum.",
+          "Devam et, dinliyorum.",
+          "Sen bilirsin.",
+          "Peki.",
+          "Bak sen.",
+          "Öyle olsun bakalım.",
+          "Yavaş ol."
+        ]
+      }
+    }
+  ]
+}

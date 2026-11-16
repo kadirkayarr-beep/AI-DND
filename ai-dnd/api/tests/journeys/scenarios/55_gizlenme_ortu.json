@@ -1,9 +1,10 @@
 {
   "id": "55_gizlenme_ortu",
-  "title": "Gizlenme yalnız örtüyle (D-094 kalanı, D-171; zar rehberi 4.4/H01): gün ortasında açıkta 'saklanıyorum' zar atmaz ve görüldüğünü söyler; söylenen somut örtü ('fıçının arkasına') zar atar",
+  "title": "Gizlenme yalnız örtüyle (D-094 kalanı, D-171, D-225; zar rehberi 4.4/H01): gün ortasında açıkta 'saklanıyorum' zar atmaz ve görüldüğünü söyler; söylenen somut örtü ('fıçının arkasına') zar atar",
   "source_items": [
     94,
-    171
+    171,
+    225
   ],
   "setup": {
     "npcs": [
@@ -78,6 +79,13 @@
   "steps": [
     {
       "say": "saklanıyorum",
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "saklanacak bir yer yok"
+      }
+    },
+    {
+      "say": "Hiçbir siper ya da gölge olmayan aydınlık boş alanda saklanmaya çalışıyorum",
       "expect": {
         "zar": null,
         "gerekli_metin": "saklanacak bir yer yok"
