@@ -514,7 +514,10 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         client.chat = recording_chat
         await self.say(turn_url, client, npc, "Merhaba!")
         options = captured["options"]
-        self.assertLessEqual(options["num_predict"], 240)
+        # D-238: 240 cut 4 of 26 real Haiku replies mid-JSON and a stock "I don't know" spoke instead.
+        # The runaway guard stays (a ceiling), at a size a full reply with its fields fits in.
+        self.assertGreaterEqual(options["num_predict"], 480)
+        self.assertLessEqual(options["num_predict"], 480)
         self.assertGreater(options["temperature"], 0.0)
         self.assertGreater(options["repeat_penalty"], 1.0)
         self.assertLessEqual(options["repeat_penalty"], 1.08)

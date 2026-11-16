@@ -409,7 +409,8 @@ def role_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
     profile = profiles[chosen[_percent(world, npc.get("id"), "role") % len(chosen)]]
     return (f" İşin gereği bildiğin konular: {'; '.join(profile['known_topics'])}."
             f" Bilmediğin konular: {'; '.join(profile['unknown_topics'][:2])}."
-            " Bunlar sorulursa bilmediğini söyle; ayrıntı uydurma.")
+            " Bunlar sorulursa ayrıntı uydurma; kimin ya da nerenin bilebileceğini söyle."
+            " Kentin genel hâli bunlara girmez.")
 
 
 def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None = None) -> str:
@@ -444,7 +445,8 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
             "duyduğun kadarıyla söyle. Sorulmadıkça sayıp dökme."
         )
     else:
-        lines.append(" Kentte iş veya olan bitene dair bir şey duymadın; sorulursa bilmediğini söyle.")
+        lines.append(" Kentte iş veya olan bitene dair bir şey duymadın; sorulursa çıplak bir “bilmiyorum” deme, "
+                     "kimin ya da nerenin bilebileceğini söyle (hancı, muhafız, pazar gibi; yeni ad uydurmadan).")
     lines.append(world_happenings.speech_line(world, npc, {item["thread_id"] for item in known if item["kind"] == "news"}
                                               | _own_past(world, npc)))
     lines.append(" Bunların dışında kişi, yer veya iş adı uydurma.")
@@ -742,7 +744,10 @@ def _open_offer(world, npc, shown_text, turn, job_talk, offer_talk):
 
 
 def fallback_line(world: dict[str, Any], npc: Any) -> str | None:
-    """What this person says when no model reply could be used: a real lead, or nothing."""
+    """What this person says when no model reply could be used: a real lead, a place to ask, or nothing."""
+    if isinstance(npc, dict) and _settlement(world) and is_closed_mouthed(world, npc):
+        place = _brush_off_place(world, npc)  # D-247: even a closed mouth points somewhere real
+        return f"Benden laf çıkmaz; {place} tarafına sor." if place else None
     known = public_knowledge(world, npc)
     lead = next((item for item in known if item["kind"] == "thread"), None)
     if lead:

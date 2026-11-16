@@ -8354,7 +8354,9 @@ _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
     # a speech of one to three sentences never needs more than ~220 tokens, plus the optional proposal.
     "repeat_penalty": 1.05,
     "repeat_last_n": 64,
-    "num_predict": 240,
+    # D-238: 240 cut 4 of 26 real Haiku replies mid-JSON (spoken text, gesture, threat and fields together),
+    # and a cut reply is thrown away for a stock line. Still a ceiling against a runaway loop.
+    "num_predict": 480,
 }
 _NPC_SPEECH_LOG_KEY = "npc_speech_log"
 _NPC_SPEECH_KEEP = 4
@@ -8475,6 +8477,27 @@ def _strip_pictographs(text):
     return "".join(kept)
 
 
+# D-100: a Faerûn person never greets or swears by a real-world faith; these fixed phrases get this world's words.
+_REAL_WORLD_FAITH = (
+    (re.compile(r"\b(?:[Vv]e\s+)?[Aa]leyk[uü]m\s*(?:es)?\s*[Ss]elam\b"), "selam"),
+    (re.compile(r"\b[Ss]elam(?:[uü]n|[ıi]n)\s*[Aa]leyk[uü]m\b"), "selam"),
+    (re.compile(r"(?<!\w)[iİI]n[sş]allah\b"), "tanrılar izin verirse"),
+    (re.compile(r"\b[Mm]a[sş]allah\b"), "vay be"),
+    (re.compile(r"\b[Ee]lhamd[uü]lillah\b"), "tanrılara şükür"),
+    (re.compile(r"\bAllah['’]?a\s+emanet(?:\s+ol(?:un)?)?\b"), "Tymora yar olsun"),
+)
+
+
+def _without_real_world_faith(text):
+    """D-100: the fixed real-world faith phrases swapped for this world's, capitalised where a sentence starts."""
+    for pattern, words in _REAL_WORLD_FAITH:
+        def put(match, words=words, text=text):
+            before = text[:match.start()].rstrip()
+            return words[0].upper() + words[1:] if not before or before[-1] in ".!?…“\"" else words
+        text = pattern.sub(put, text)
+    return text
+
+
 def _clean_npc_speech(raw):
     """Return the NPC's own words from a model string, or "" when none survive.
 
@@ -8488,7 +8511,7 @@ def _clean_npc_speech(raw):
     cut = _SPEECH_CUT_RE.search(raw)
     text = raw[:cut.start()] if cut else raw
     text = _strip_pictographs(text)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = _without_real_world_faith(re.sub(r"\s+", " ", text).strip())
     if not text or _SPEECH_META_RE.search(text):
         return ""
     # A cut or the token limit can leave a half sentence: keep the whole
@@ -8640,15 +8663,19 @@ def _spoken_name_answer(spoken_text, npc):
 
 _SPEECH_ANSWER_RULES = (
     "Önce oyuncunun sorusunu cevapla; sorulan şey senin işin değilse kendi işini anlatma. "
-    "Biliyorsan söyle, bilmiyorsan bilmediğini kendi sesinle tam bir cümleyle söyle; gizem, kaçamak veya "
-    "fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
+    "Biliyorsan söyle. Bilmiyorsan çıplak bir “bilmiyorum” ile bitirme: kendi sesinle, aşağıda duyduğun bir "
+    "söylentiyi ya da yeri aktar veya bunu kimin ya da nerenin bilebileceğini söyle (aşağıdaki adlar ya da hancı, "
+    "muhafız, pazar gibi; yeni ad uydurmadan); gizem, kaçamak veya fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
     "Sıradan ifadeleri konuşmanın bağlamıyla anla; konu belliyse yeniden sordurma. "
     "Pazarlık ve yaratıcı denemelere alan aç, başarıyı garanti etme; yeni kilit, şart veya ücret "
     "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
-    "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir, "
-    "aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
+    "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir; ama kenti, "
+    "bir yeri ya da olan biteni anlatman istenirse iki ile dört cümleyle, bildiğin yerlerden ve duyduklarından somut "
+    "ayrıntı ver. Aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
     "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan. "
-    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz.\n"
+    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz. "
+    "Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet denmez; yerine “Selam”, “Tymora yar olsun”, "
+    "“Tanrılar korusun” gibi sözler söylenir.\n"
 )
 
 
@@ -8948,10 +8975,19 @@ def _overheard_work(world):
         return None
 
 
+_ASKS_WHO_YOU_ARE = re.compile(r"\b(?:adin|adiniz|isim|ismin|isminiz|kimsin|kimsiniz)\b")
+
+
 def _town_fallback(world, npc, player_input):
-    """Only when no model reply could be used and the player asked about the town."""
+    """Only when no model reply could be used: work, the news, or any question not about the person or the player.
+
+    D-237/D-247 (K7, Kadir): such a question gets a real lead or a place to ask, never a bare "I don't know".
+    """
     import town_knowledge
-    if local_dialogue.personal_question_kind(player_input) != "local_work" and not _asks_what_is_going_on(player_input):
+    kind = local_dialogue.personal_question_kind(player_input)
+    open_question = (kind is None and interaction_adventure._asks(player_input)
+                     and not _ASKS_WHO_YOU_ARE.search(_normalize_turkish_typos(player_input)))
+    if kind != "local_work" and not _asks_what_is_going_on(player_input) and not open_question:
         return None
     try:
         return town_knowledge.fallback_line(world, npc)
@@ -9153,7 +9189,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     if local_dialogue.personal_question_kind(player_input) == "local_work":
         lines.append(
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
-            "varsa onu söyle, yoksa bilmediğini söyle."
+            "varsa onu söyle, yoksa kimin ya da nerenin bilebileceğini söyle."
         )
     handed = getattr(_session(), "_handed_note", None)
     if handed:
@@ -10000,7 +10036,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                 format=schema,
                 think=False,
                 options=(
-                    ({**_EXPERIMENTAL_NPC_SPEECH_OPTIONS, "num_predict": 400} if price_targets else _EXPERIMENTAL_NPC_SPEECH_OPTIONS) if experimental_npc_dialogue
+                    ({**_EXPERIMENTAL_NPC_SPEECH_OPTIONS, "num_predict": 640} if price_targets else _EXPERIMENTAL_NPC_SPEECH_OPTIONS) if experimental_npc_dialogue
                     # A normal proposal is under 150 tokens; anything far beyond it is a loop.
                     else {"temperature": 0.0,
                           # D-240: the front reading alone is cut at 400 (4 turns of 397-523 output tokens), so it gets the full 700
@@ -14132,7 +14168,7 @@ def ask_dungeon_master(
             "gerçekleşti. Bir eşya aktarımı, yeni gerçek, ödül, sözün yerine getirilmesi, "
             "görev başarısı veya oyuncunun sonraki adımını uydurma. NPC'nin onayı henüz "
             "alınmadıysa onay vermiş gibi yazma. İddia/inanç/söylenti gerçek değildir. "
-            "Bilmeyen NPC doğal biçimde bilmediğini söyler; AI, veri, model, kayıt, "
+            "Bilmeyen NPC çıplak bir “bilmiyorum” ile bitirmez, kimin ya da nerenin bilebileceğini söyler; AI, veri, model, kayıt, "
             "Python veya sunucudan söz etme. Başka NPC adına konuşma. "
             "world_updates ve lore_claims boş kalmalı; yalnızca narration yaz.\n"
             + json.dumps({"where_now": living_world.place_in_plain_words(world_state),
@@ -14313,7 +14349,7 @@ def ask_dungeon_master(
             "veya bilmediğini söylesin. Gündelik küçük sohbete kısa, doğal ve karaktere uygun bir yanıt ver; "
             "soruyu gerçekten yanıtlayan, tek kısa ve dilbilgisel bir repliği önce ver; çevreyi veya oyuncuyu anlatma. "
             "Python action result açıkça bir teklif içermedikçe iş, ödül, görev veya yardım sözü verme; "
-            "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmediğini sade biçimde söyle. "
+            "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmiyorsa kimin ya da nerenin bilebileceğini söylesin. "
             f"Diğer NPC'lerin bildiklerini veya geçmiş diyaloglarını {living_world.public_npc_name(npc_target)} biliyormuş gibi anlatma. "
             "Bu geçici tepkiyi lore gibi sunma veya 'doğrulanmış bilgi yok' kalıbına sığınma. "
             "Önceki cevabı tekrar etme; sadece güncel soruyu yanıtla."
@@ -23595,7 +23631,24 @@ def _run_player_turn_internal(
             if stock_swapped:
                 # A clear line never earns "say it again": the person answers from what Python has for them.
                 text = _person_fallback(world_state, npc_target, player_input)
+            speech_checks = None
             if experimental_npc_dialogue:
+                # D-252: the names of the checks that changed or replaced this reply, for the route log. Never words.
+                kept = attributed_speech["spoken_text"].strip() if attributed_speech else ""
+                said = raw_spoken.strip() if isinstance(raw_spoken, str) else ""
+                speech_checks = [name for name, fired in (
+                    ("invalid_or_empty", invalid_or_empty),
+                    ("spoken_trimmed", attributed_speech is not None and kept != said),
+                    ("history_echo", unverified_history_echo),
+                    ("world_updates", bool(raw_intent.get("world_updates"))),
+                    ("lore_claims", bool(raw_intent.get("lore_claims"))),
+                    ("unsafe", not invalid_or_empty and not interaction_adventure.safe_narration(text_before_finalize)),
+                    ("python_town_lead", python_town_response is not None),
+                    ("finalize_changed", text != text_before_finalize and not stock_swapped),
+                    ("stock_swapped", stock_swapped),
+                ) if fired]
+                if final_safety_reason_code:
+                    speech_checks.append(f"safety:{str(final_safety_reason_code)[:40]}")
                 _speech_debug_trail({
                     "player": player_input,
                     "npc_id": npc_target.get("id"),
@@ -23637,6 +23690,9 @@ def _run_player_turn_internal(
                 accepted_model_speech = False
                 text = (_job_fallback(world_state) or _town_fallback(world_state, npc_target, player_input)
                         or interaction_adventure.immersive_unknown(npc_target, player_input))
+                speech_checks.append("unbacked_money")
+            if speech_checks is not None:
+                _session()._speech_checks = speech_checks
             if experimental_unverified_claim:
                 action_result.update(status="unverified", success=False)
             if experimental_npc_dialogue:
@@ -23677,7 +23733,9 @@ def _run_player_turn_internal(
                 if experimental_npc_dialogue:
                     terms = _offer_terms_shown(world_state, npc_target, player_input, text)
                     if terms:
-                        text = f"{text} “{terms}”"
+                        # D-247: a stock "I don't know" never sits beside the job's own terms; the terms are the answer.
+                        bare = text == interaction_adventure.immersive_unknown(npc_target, player_input)
+                        text = f"{living_world.public_npc_name(npc_target)}, “{terms}”" if bare else f"{text} “{terms}”"
                     _remember_experimental_npc_speech(
                         npc_target["id"], player_input, text, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True
                     )

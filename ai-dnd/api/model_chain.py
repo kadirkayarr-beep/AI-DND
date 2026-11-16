@@ -406,7 +406,8 @@ def _for_the_game(reply: Reply, call: Mapping[str, Any]) -> str:
     text = reply.text
 
     def unusable(cause: str) -> _Skipped:
-        return _Skipped("unusable_reply", reply, cause)
+        # D-238: a reply stopped at its token cap is named apart, so a log shows why the line was lost.
+        return _Skipped("cut_at_token_cap" if cause == "cut" else "unusable_reply", reply, cause)
 
     if not text.strip():
         raise unusable("empty")
@@ -605,7 +606,7 @@ def ledger_observer(ledger: usage_ledger.UsageLedger) -> Callable[[ChainAttempt]
             attempt.provider,
             input_tokens=attempt.input_tokens, output_tokens=attempt.output_tokens,
             thought_tokens=attempt.thought_tokens, seconds=attempt.seconds, outcome=attempt.outcome,
-            usage_known=attempt.usage_known,
+            usage_known=attempt.usage_known, reason=attempt.reason,
         )
     return observe
 

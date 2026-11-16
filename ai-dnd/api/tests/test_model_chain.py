@@ -609,7 +609,7 @@ class TheSkipCause(unittest.TestCase):
         return model_phase.causes()
 
     def test_a_reply_cut_at_the_token_cap_is_named_a_cut(self):
-        self.assertIn("front:gemini:unusable_reply:cut", self.cause_of(ok(gemini_reply(finish="MAX_TOKENS"))))
+        self.assertIn("front:gemini:cut_at_token_cap:cut", self.cause_of(ok(gemini_reply(finish="MAX_TOKENS"))))
 
     def test_a_reply_that_is_no_json_is_named_so(self):
         self.assertIn("front:gemini:unusable_reply:not_json", self.cause_of(ok(gemini_reply("tamam, anladım"))))
@@ -1252,6 +1252,22 @@ class TheUsageLedgerWiring(unittest.TestCase):
             self.assertIsInstance(row["seconds"], float)
             self.assertGreaterEqual(row["seconds"], 0.0)
         self.assertEqual(self.ledger.today()["haiku"]["calls"], 1)
+
+    def test_a_reply_cut_at_the_token_cap_says_so_in_the_ledger(self):
+        """D-238: a cut reply was thrown away with no word why; the usage line names the cause, and a
+        reply the game cannot use for another reason keeps its own name."""
+        cut = self.adapter(FakeCloud(gemini=ok(gemini_reply(finish="MAX_TOKENS")), haiku=ok(haiku_reply("yarım"))))
+        self.engine_call(cut)
+        rows = self.rows()
+        self.assertEqual([(row["provider"], row["outcome"], row.get("reason")) for row in rows],
+                         [("gemini", "skipped", "cut_at_token_cap"), ("haiku", "skipped", "unusable_reply"),
+                          ("gemma", "answered", None)])
+
+    def test_an_answered_line_carries_no_reason(self):
+        self.engine_call(self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))))
+        skipped, answered = self.rows()
+        self.assertEqual(skipped.get("reason"), "http_500")
+        self.assertNotIn("reason", answered)
 
     def usage_marks(self, cloud):
         """The rows one engine call writes to a fresh ledger file, as (provider, outcome, usage mark)."""

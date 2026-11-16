@@ -135,6 +135,7 @@ class UsageLedger:
         seconds: float | None = None,
         outcome: str = "answered",
         usage_known: bool = True,
+        reason: str | None = None,
     ) -> None:
         """Append one line. Never raises: a call must not wait on, or fail from, its own log.
 
@@ -148,6 +149,8 @@ class UsageLedger:
                       "seconds": _duration(seconds), "outcome": outcome}
             if not usage_known:
                 fields["usage"] = "unknown"
+            if reason:
+                fields["reason"] = str(reason)[:40]  # a fixed skip name from the chain, never provider text
             line = json.dumps(fields, separators=(",", ":")) + "\n"
             with self._lock:
                 self._path.parent.mkdir(parents=True, exist_ok=True)
