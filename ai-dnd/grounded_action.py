@@ -3135,6 +3135,18 @@ def walks_out(session, player_input: Any) -> str | None:
     return exits.outside(world, world.get("location")) if going_out is not None else None
 
 
+def walks_out_of_town(session, player_input: Any) -> bool:
+    """D-240: a line that plainly goes out past the town ("şehrin dışına gidiyorum"), by Python's own reading alone:
+    a walk really taken (not asked, denied, put off or told about), naming the town's edge and no place of the town."""
+    if way_out_label(session) is None or "?" in str(player_input) or not leaves_town(session, player_input):
+        return False
+    steps = [s for s in plan(session, player_input)["steps"] if not s.get("reported") and not s.get("not_now")]
+    taken = [s for s in steps if not (s.get("question") or s.get("negated") or s.get("condition"))]
+    if len(taken) != len(steps) or any(s["verb"] in {"go", "enter", "approach"} and s.get("target") for s in taken):
+        return False  # a refusal or a doubt anywhere in the line, or a walk to a named place of the town
+    return any(s["verb"] in {"go", "leave"} and not s.get("target") for s in taken)
+
+
 def walk_to_talk(session, player_input: Any) -> str | None:
     """The place a line goes to in order to talk to someone there ("Javrek ile konuşmaya gidiyorum"), or None."""
     p = plan(session, player_input)

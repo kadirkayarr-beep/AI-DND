@@ -1017,6 +1017,35 @@ def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = Fal
                for kind, (tokens, _, _) in zip(read, clauses))
 
 
+_ACCEPT_VERBS = frozenset({"ediyorum", "ederim", "ettim", "edecegim", "ediom", "ediorum", "ediyoruz", "ederiz"})
+
+
+def says_yes_in_a_longer_line(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+    """D-240, for when no model read the line: 'görevi kabul ediyorum ve eşyayı alıyorum'. The clause reader calls a
+    yes that runs on into more of the same clause 'other', so this looks for the yes itself (a listed phrase of two
+    words or more, or 'kabul' with its own verb), and only where nothing in the line says no, maybe, later, if or asks.
+    A model's yes never needed this; Python's own reading of the player's words is all that stands behind it."""
+    if holds_a_yes(text, npc, thread, firm=True):
+        return True
+    table = answer_table()
+    text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
+    if text is None or "?" in text:
+        return False
+    names = _names_of(npc)
+    clauses = _clauses(text)
+    kinds = {_read_clause(tokens, asked, table, names, _item_stems(thread)) for tokens, asked, _ in clauses}
+    if {"decline", "withdraw", "unclear", "question", "terms"} & kinds or any(after for _, _, after in clauses):
+        return False
+    tokens = [word for clause, _, _ in clauses for word in clause]
+    if (any(_REFUSED_DOING.search(word) or word.endswith(_CONDITIONAL_ENDS) for word in tokens)
+            or set(tokens) & (table["hedges"] | _REPORTED | table["later_words"]) or says_later(text)
+            or any(_has_phrase(tokens, table[meaning]) for meaning in ("decline", "withdraw"))):
+        return False
+    return any(" ".join(tokens[start:end]) in table["accept"] for start in range(len(tokens))
+               for end in range(start + 2, min(start + 4, len(tokens)) + 1)) or any(
+        word == "kabul" and following in _ACCEPT_VERBS for word, following in zip(tokens, tokens[1:]))
+
+
 _REFUSED_DOING = re.compile(r"(?:m[aeiu]yor|mam$|mem$|mayacag|meyecek|meyecen|mayacan|amam$|emem$)")
 
 
