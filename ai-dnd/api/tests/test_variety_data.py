@@ -230,7 +230,8 @@ class RoleKnowledgeTests(unittest.TestCase):
         note = self.note("Demirci")
         self.assertIn("metal işlerinin", note)
         self.assertIn("gizli ya da büyülü", note)
-        self.assertIn("bilmediğini söyle", note)
+        # D-248 (K7, Kadir): the unknown topics send the player onward instead of ending on "I don't know".
+        self.assertIn("kimin ya da nerenin bilebileceğini söyle", note)
 
     def test_a_role_with_no_profile_gets_nothing(self):
         self.assertEqual(self.note("Hamal"), "")

@@ -584,6 +584,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_route = ("skipped:combat" if combat.get("active")
                             else "skipped:typed" if typed else "owner_first")
     session._front_reached = False
+    session._speech_checks = None  # D-252: set by a person's reply this turn, names only
 
 
 def end(session) -> None:
@@ -614,6 +615,9 @@ def log_turn(session, result: Any) -> None:
         "owner": action.get("action"),
         "status": action.get("status"),
     }
+    checks = getattr(session, "_speech_checks", None)
+    if isinstance(checks, list):
+        entry["speech"] = list(checks)  # D-252: which speech checks changed or replaced the reply
     _logger.info("Turn route %s", json.dumps(entry, ensure_ascii=False))
     path = os.environ.get(ROUTE_LOG, "").strip()
     if not path:
