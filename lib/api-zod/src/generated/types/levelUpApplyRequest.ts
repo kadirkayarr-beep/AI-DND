@@ -26,7 +26,9 @@ import type { WizardLevel4Choices } from './wizardLevel4Choices';
 import type { WizardSpellbookChoices } from './wizardSpellbookChoices';
 
 export interface LevelUpApplyRequest {
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   action_id: string;
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   campaign_id: string;
   /** @minimum 0 */
   expected_revision: number;
