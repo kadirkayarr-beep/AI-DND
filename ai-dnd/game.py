@@ -19277,15 +19277,26 @@ def _front_recovery(player_input, listed):
     import world_threads
     session = _session()
     world = session.world_state
+    if getattr(session, "_attack_asked", False) or getattr(session, "_heavy_asked", None):
+        return None  # a question put to the player is waiting for its answer
     offers = listed["offers"]
     offer = next((row for row in offers if row["person_id"] == listed["speaking_with"]), None) or (
         offers[0] if len(offers) == 1 else None)
     if offer is not None:
+        said = living_world.normalize_text(player_input).split()
+        named_elsewhere = any(
+            len(part) >= 3 and any(word.startswith(part[:4]) for word in said)
+            for row in offers if row is not offer
+            for part in (*living_world.normalize_text(next((p["name"] for p in listed["people"] if p["id"] == row["person_id"]), "")).split(),
+                         *living_world.normalize_text(row.get("item") or "").split()))
+        if named_elsewhere:
+            return None  # the line names another open offer's owner or thing: not for the one spoken to
         person = next((npc for npc in active_npcs() if npc.get("id") == offer["person_id"]), None)
         thread = world_threads.by_id(world, offer["id"])
         if (person is not None and thread is not None and thread.get("status") == "offered"
                 and world_threads.says_yes_in_a_longer_line(player_input, person, thread)):
-            return {"kind": "offer_answer", "id": offer["id"], "person_id": offer["person_id"], "answer": "accept"}
+            return {"kind": "offer_answer", "id": offer["id"], "person_id": offer["person_id"], "answer": "accept",
+                    "recovered": True}
     if grounded_action.walks_out_of_town(session, player_input):
         return {"kind": "go_to", "id": front_proposal.WAY_OUT, "inside": False}
     return None
@@ -19364,6 +19375,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                      else _front_recovery(player_input, listed))
         if recovered is not None:
             front_proposal.note(session, f"{label}:{recovered['kind']}", reached=answered)
+            recovered["recovered_from"] = label  # the gate may still overrule: the label then goes back
             return recovered
         front_proposal.note(session, label, reached=answered)
         return None
@@ -20398,6 +20410,10 @@ def _dispatch_player_turn(
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
                     else _front_work(front, player_input) if front is not None and front["kind"] == "work"
                     else _thread_gate(player_input, target_id, interaction_mode, front=front))
+        if front is not None and front.get("recovered_from") and front["kind"] == "offer_answer" and not (
+                gate is not None and gate.get("decision") == "accepted"):
+            import front_proposal
+            front_proposal.note(_session(), front["recovered_from"])  # the gate did not take the yes: no recovery to claim
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]
         if gate is not None and gate.get("paid_line"):

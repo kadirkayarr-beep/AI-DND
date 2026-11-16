@@ -7,6 +7,7 @@ import json
 import unittest
 
 import front_proposal
+import world_threads
 from api.tests import test_front_proposal as front_tests
 from api.tests.town_seed import fixed_town
 
@@ -99,6 +100,74 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
         self.client.fails = ConnectionError("gone")
         await self.line("hayır, yapmıyorum")
         self.assertNotEqual(self.status(), "accepted")
+
+    # Review of D-240: the fallback is conservative. In doubt it answers nothing and the old chain decides.
+
+    async def no_yes(self, line):
+        await self.begin()
+        self.offer()
+        self.client.fails = ConnectionError("gone")
+        await self.line(line)
+        # the old chain may still decide such a line by its own readers; the fallback must not claim it
+        self.assertNotIn(":offer_answer", self.routes()[-1]["route"], line)
+
+    async def test_a_deferred_denied_or_untrue_yes_is_no_yes_when_the_reading_failed(self):
+        for line in ("Şimdi değil, kabul ederim.", "Kabul ettim sanma.", "Kabul ediyorum diye yalan söylüyorum.",
+                     "Kabul ediyorum demedim, eşyayı alıyorum."):
+            with self.subTest(line=line):
+                await self.no_yes(line)
+
+    async def test_a_yes_that_also_does_something_else_is_left_to_the_old_chain(self):
+        for line in ("Kabul ediyorum ve adamı soyuyorum.", "Kabul ediyorum ve kılıcımı çekiyorum.",
+                     "Adamı soyuyorum ve kabul ediyorum."):
+            with self.subTest(line=line):
+                await self.no_yes(line)
+
+    async def no_walk(self, line):
+        await self.begin()
+        here = self.world["location"]
+        self.client.fails = ConnectionError("gone")
+        await self.line(line)
+        self.assertEqual(self.world["location"], here, line)
+
+    async def test_a_walk_out_that_is_late_untrue_or_not_alone_is_no_walk_when_the_reading_failed(self):
+        for line in ("Yarın şehrin dışına giderim.", "Şehirden çıkıyorum diye yalan söylüyorum.",
+                     "Şehrin dışına gidiyorum ve Zivanel'i soyuyorum.", "Şehrin dışına gidiyorum ve kılıcımı çekiyorum."):
+            with self.subTest(line=line):
+                await self.no_walk(line)
+
+    async def test_a_yes_naming_another_offer_s_owner_is_not_taken_for_the_one_spoken_to(self):
+        await self.begin()
+        import copy
+        self.offer()
+        other = copy.deepcopy(self.npc)
+        other.update(id="npc_borvan", name="Borvan", public_name="Borvan", place_role_of="place_borvan")
+        self.world["npcs"].append(other)
+        state = world_threads.view(self.world)
+        second = copy.deepcopy(self.thread)
+        second.update(thread_id="thread_900", place_id="place_borvan", status="open", item_noun="mühür")
+        state["threads"].append(second)
+        world_threads.mark_offered(self.world, second, other, "On bakır, bir gün.", 0)
+        self.client.fails = ConnectionError("gone")
+        await self.line("Borvan'ın teklifini kabul ediyorum ve eşyayı alıyorum.")
+        self.assertNotEqual(self.status(), "accepted")
+        self.assertEqual(world_threads.by_id(self.world, "thread_900")["status"], "offered")
+
+    def test_nothing_is_recovered_while_a_question_waits_for_its_answer(self):
+        import game
+        listed = {"offers": [{"id": "t", "person_id": "n", "item": None}], "people": [], "speaking_with": "n"}
+        for flag in ({"_attack_asked": True}, {"_heavy_asked": {"what": "threat"}}):
+            session = game.GameSession()
+            for name, value in flag.items():
+                setattr(session, name, value)
+            self.assertIsNone(game._front_recovery("Kabul ediyorum ve eşyayı alıyorum.", listed, session=session))
+
+    async def test_the_label_follows_the_gate_when_it_overruled_the_yes(self):
+        await self.begin()
+        self.offer()
+        self.client.fails = ConnectionError("gone")
+        await self.line("Kabul ediyorum, parayı ver.")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
 
     async def test_a_plain_walk_out_of_town_still_walks_when_the_reading_failed(self):
         with fixed_town(self, TOWN_SEED):
