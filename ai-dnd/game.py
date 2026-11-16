@@ -7871,7 +7871,8 @@ def clean_location_description(text):
     """A place description on one line, at most 240 characters and free of game mechanics; "" otherwise."""
     description = _clean_world_text(text, 240) or ""
     mechanical_terms = ("hp", "damage", "hasar", "inventory", "envanter", "altın", "d20", "dc", "zar", "kapı açık", "öldü")
-    if any(term in description.casefold() for term in mechanical_terms):
+    # Whole words only: 'altında', 'pazar', 'zarar', 'öldürdü' are ordinary words, not 'altın', 'zar', 'öldü'.
+    if any(re.search(rf"\b{re.escape(term)}\b", description.casefold()) for term in mechanical_terms):
         return ""
     return description
 

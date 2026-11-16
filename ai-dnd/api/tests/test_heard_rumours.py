@@ -20,7 +20,7 @@ _WORDS = (
 )
 
 
-# A claim with no mechanical word inside it ("altında" holds "altın" and is dropped by the location cleaner).
+# A claim with no mechanical word in it (the location cleaner drops whole words such as "altın", not "altında").
 CLAIM = "Kuyunun dibinde bir kapı var"
 
 
@@ -260,6 +260,21 @@ class RumourLane(unittest.TestCase):
         self.assertEqual(game.clean_location_description(None), "")
         self.assertEqual(game.clean_location_description("a" * 240), "a" * 240)
         self.assertEqual(game.clean_location_description("a" * 241), "")  # validate_location_proposal's own rule
+
+    def test_mechanical_words_match_whole_words_only(self):
+        for text in ("Kuyunun altında bir kapı var", "Pazarın arkasında bir kuyu", "Duvar zarar görmüş",
+                     "Bekçiyi biri öldürdü", "Öldüğü gece kapı kilitlendi"):
+            with self.subTest(kept=text):
+                self.assertEqual(game.clean_location_description(text), text)
+        for text in ("Sandıkta altın var", "Bir zar at", "Bekçi öldü", "Girene 5 hasar verir", "Kilit DC 15",
+                     "Kapı açık kaldı"):
+            with self.subTest(dropped=text):
+                self.assertEqual(game.clean_location_description(text), "")
+
+    def test_a_claim_under_an_existing_place_is_kept(self):
+        smithy = local_places.create_local_place(self.world, "city", "smithy")
+        entry = self.say(name=smithy["name"], place_kind="smithy", about="Kuyunun altında bir kapı var")
+        self.assertEqual(entry["text"], f"{smithy['name']}: Kuyunun altında bir kapı var")
 
     def test_every_speaker_carries_the_rumour_in_town_talk(self):
         self.world["npcs"].append({"id": "npc_002", "name": "Oduncu", "public_name": "Oduncu", "location": "city"})
