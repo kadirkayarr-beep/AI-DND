@@ -1,0 +1,58 @@
+{
+  "id": "86_zar_korkutma_konusma_hedefli",
+  "title": "Konuşma düğmesiyle kişi seçilmişken (açık hedef) 'muhafızı korkutmaya çalışıyorum' gözdağı zarı atar ve sonucu anlatıya geçer; kişinin hazır satırı ('Sen bilirsin.', 'Hı. Duydum.') gelmez (D-172, D-099'un konuşma yolu)",
+  "source_items": [
+    99,
+    172
+  ],
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 60
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 8601,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "muhafızı korkutmaya çalışıyorum",
+      "konus": "kavsim",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "kavsim"
+        },
+        "narration": "Kavşim kollarını kavuşturup sana yukarıdan bakıyor; sözlerin ona işlemiyor."
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Intimidation",
+          "zar_var": true
+        },
+        "gerekli_metin": [
+          "sözlerin ona işlemiyor"
+        ],
+        "yasak_metin": [
+          "Anladım.",
+          "Hı. Duydum.",
+          "Devam et, dinliyorum.",
+          "Sen bilirsin.",
+          "Peki.",
+          "Bak sen.",
+          "Öyle olsun bakalım.",
+          "Yavaş ol."
+        ]
+      }
+    }
+  ]
+}

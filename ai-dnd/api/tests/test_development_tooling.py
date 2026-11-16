@@ -300,6 +300,27 @@ class DevelopmentToolingTests(unittest.TestCase):
                        "api.tests.test_d109_timing"):  # D-109: the crime/threat question, the same way
             self.assertIn(module, selectors)
 
+    def test_unknown_usage_spend_warning_tests_are_in_the_gate(self):
+        # D-150: a paid call whose usage never came back, or an unreadable usage file, must not read as zero spend.
+        self.assertIn("api.tests.test_usage_ledger",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
+    def test_two_process_haiku_count_tests_are_in_the_gate(self):
+        # D-151: two processes sharing the monthly Haiku file must take turns; CI also runs the POSIX lock.
+        self.assertIn("api.tests.test_model_chain.TheSpendCap",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
+    def test_transient_session_memory_bound_tests_are_in_the_gate(self):
+        # D-152: abandoned transient sessions and old whole replies are dropped; an old action id never runs twice.
+        self.assertIn("api.tests.test_transient_session_bounds",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
+    def test_half_written_job_turn_tests_are_in_the_gate(self):
+        # D-011: a job writer that breaks after the pay must leave no coin or hour of it in the save.
+        self.assertIn("api.tests.test_thread_hiring.HiringTable."
+                      "test_a_shift_that_breaks_after_the_pay_leaves_no_coin_or_hour_behind",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
     def test_heard_job_evidence_test_is_in_the_gate(self):
         # D-203 (Kadir kararı 2026-11-15): evidence kept on a heard job, saved, counted on acceptance, consistent with Undo.
         selectors = owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"]

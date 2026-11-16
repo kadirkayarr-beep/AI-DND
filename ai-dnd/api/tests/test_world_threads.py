@@ -552,7 +552,7 @@ class TheJobMachine(unittest.TestCase):
         for number in range(12):
             state["history"].append(dict(copy.deepcopy(thread), thread_id=f"later_{number}", offered_at=None,
                                          status="expired"))
-        world_threads._trim_history(state)
+        world_threads._trim_history(state, world)
         self.assertIsNotNone(world_threads.by_id(world, thread["thread_id"]))
         self.assertLessEqual(len(state["history"]), world_threads.MAX_HISTORY * 2)
         world_threads.validate(state)

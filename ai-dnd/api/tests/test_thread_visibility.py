@@ -152,7 +152,7 @@ class WhatNeverShows(unittest.TestCase):
         state = world[world_threads.KEY]
         for number in range(9):
             state["history"].append(dict(copy.deepcopy(thread), thread_id=f"later_{number}", offered_at=None))
-            world_threads._trim_history(state)
+            world_threads._trim_history(state, world)
         self.assertIsNotNone(world_threads.by_id(world, thread["thread_id"]))
         self.assertTrue(world_threads.arrival_line(world, thread["place_id"]))
 
