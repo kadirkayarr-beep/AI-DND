@@ -20974,6 +20974,31 @@ def _singular_narrator(text):
     return "".join(parts)
 
 
+def _keep_town_portrait(action_result, narration):
+    """D-249: the first model-written arrival at a settlement leaves its two opening lines on the record.
+
+    Quoted speech and unbacked money go (same form limits as arrival_narration); never overwritten, never the Python line.
+    """
+    if not isinstance(action_result, dict) or action_result.get("action") != "travel" or not action_result.get("success"):
+        return
+    if action_result.get("status") != "completed" or not isinstance(narration, str):
+        return
+    import local_places
+    world = _session().world_state
+    place = world.get("location")
+    record = world.get("locations", {}).get(place)
+    if not isinstance(record, dict) or record.get("town_portrait") or local_places.settlement_of(world, place) != place:
+        return
+    import town_knowledge
+    from arrival_narration import _QUOTES
+    sentences = [part.strip() for part in _split_sentences_keep_speech(narration.strip())
+                 if part.strip() and not any(mark in part for mark in _QUOTES)]
+    clean = town_knowledge.without_unbacked_money(" ".join(sentences)) or ""
+    portrait = " ".join(_split_sentences_keep_speech(clean)[:2]).strip()
+    if portrait:
+        record["town_portrait"] = portrait
+
+
 def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, target_id):
     if messages is None:
         messages = resolved_turn.messages or _session().messages
@@ -21297,6 +21322,9 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         narration_source = "qwen"
     else:
         narration_source = "deterministic_fallback"
+
+    if narration_source == "qwen":
+        _keep_town_portrait(resolved_turn.action_result, finalized_narration)
 
     intent_calls = resolved_turn.intent_model_calls
     total_calls = intent_calls + narration_model_calls + emergence["model_calls"]
