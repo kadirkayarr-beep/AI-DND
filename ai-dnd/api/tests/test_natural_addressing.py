@@ -166,7 +166,8 @@ class AddressGoesToThePlausiblePerson(TownCase):
 
     async def test_two_people_sharing_a_label_are_no_wall(self):
         twin = copy.deepcopy(self.other)
-        twin.update(id="npc_twin", name="Ilva", memory=[], personal_profile=None)
+        # D-231: a copied record must not carry the original's item instances (one item, one owner)
+        twin.update(id="npc_twin", name="Ilva", memory=[], personal_profile=None, inventory=[])
         self.world["npcs"].append(twin)
         data = await self.say("Yakındaki kişiye yolu soruyorum.")
         self.assert_no_wall(data)

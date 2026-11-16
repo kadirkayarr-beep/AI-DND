@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 import httpx
+import equipment_economy
 from api.auth import FixedAuthenticator
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
@@ -67,7 +68,8 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
             connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
         store=CampaignStore(path,bound_principal=TEST_PLAYER,allow_schema_migration=True); manager=SessionManager(campaign_store=store)  # D-125: frozen older file, approved migration
         sid,r,*_=manager.resume_campaign(fixture['campaign']['campaign_id'])
-        self.assertEqual(r.game_session.serialize_game_state(),fixture['runtime'])
+        runtime=copy.deepcopy(fixture['runtime']);equipment_economy.give_old_save_gear(runtime['world_state'])  # D-231: the one additive load-time write
+        self.assertEqual(r.game_session.serialize_game_state(),runtime)
         literal={'command':'level_up', **{k:v for k,v in fixture['request'].items() if k!='action_id'}}
         self.assertEqual(digest(literal),fixture['request_hash'])
         app=create_app(session_manager=manager,authenticator=FixedAuthenticator(TEST_PLAYER))
@@ -77,7 +79,7 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code,200,response.text)
         expected=copy.deepcopy(fixture['response']);expected['session_id']=sid
         self.assertEqual(response.json(),expected)
-        self.assertEqual(r.game_session.serialize_game_state(),fixture['runtime'])
+        self.assertEqual(r.game_session.serialize_game_state(),runtime)
         self.assertEqual(manager.get_turn_action(r,fixture['request']['action_id'])['request_hash'],fixture['request_hash'])
 
     async def test_invalid_shapes_reject_before_claim_without_partial_asi(self):
