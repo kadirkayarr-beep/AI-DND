@@ -52,6 +52,17 @@ class ShownInTheNarration(unittest.TestCase):
         old = session("askıda bir mızrak var.", "a", "b", "c")
         self.assertFalse(bold_acts._shown(old, "Mızrak"))
 
+    def test_a_longer_name_shown_is_not_the_shorter_one(self):
+        # fourth review 2026-11-16: "kılıç" matched inside "büyük kılıç", so a shown greatsword also showed a longsword
+        for told, shown, not_shown in (("Askıda tek bir büyük kılıç asılı.", "Büyük Kılıç", "Kılıç"),
+                                       ("Askıda tek bir kısa kılıç asılı.", "Kısa Kılıç", "Kılıç"),
+                                       ("Askıda bir uzun kılıç asılı.", "Uzun Kılıç", "Kılıç")):
+            with self.subTest(told=told):
+                self.assertEqual(bold_acts._shown(session(told), shown), told)
+                self.assertIsNone(bold_acts._shown(session(told), not_shown))
+        both = "Masada bir kılıç, duvarda bir büyük kılıç var."
+        self.assertEqual(bold_acts._shown(session(both), "Kılıç"), both)
+
     def test_a_narration_that_says_there_is_none_shows_none(self):
         # third review 2026-11-16: "burada hiç mızrak yok" counted as a showing and made a spear
         for told in ("Burada hiç mızrak yok.", "Askıdaki mızrak artık yok.", "Elindeki şey mızrak değil, bir sopa.",
@@ -196,6 +207,28 @@ class AShownItemIsMadeOnce(unittest.TestCase):
         self.session.recent_dm_narrations.append("arven'in sırtında da bir mızrak var.")
         self.steal(self.person("Muhafız", "Arven"))
         self.assertEqual(len(self.spears(self.world["inventory"])), 1)
+
+    def made(self, before):
+        """The things the player got beyond the ones held before."""
+        return len(self.world["inventory"]) - before
+
+    def test_a_shown_greatsword_gives_one_item_whatever_the_word(self):
+        # fourth review: "kılıcı çalıyorum" took a longsword never shown, then "büyük kılıcı" the greatsword too
+        self.session.recent_dm_narrations = ["kavşim'in arkasındaki askıda tek bir büyük kılıç asılı."]
+        before = len(self.world["inventory"])
+        guard = self.person("Muhafız")
+        for line in ("askıdaki kılıcı çalıyorum", "askıdaki büyük kılıcı çalıyorum", "askıdaki uzun kılıcı çalıyorum"):
+            guard["inventory"] = []  # the guard carries none of their own
+            self.steal(guard, line)
+        self.assertEqual(self.made(before), 1)
+
+    def test_two_weapons_shown_in_one_place_give_one(self):
+        # the cap that holds whatever word the next review finds: one narration-made item per place, ever
+        self.session.recent_dm_narrations = ["askıda bir mızrak ile bir pala asılı."]
+        before = len(self.world["inventory"])
+        self.steal(self.person("Muhafız"), "askıdaki mızrağı çalıyorum")
+        self.steal(self.person("Muhafız", "Arven"), "askıdaki palayı çalıyorum")
+        self.assertEqual(self.made(before), 1)
 
     def test_another_place_may_show_its_own(self):
         self.steal(self.person("Muhafız"))

@@ -598,6 +598,16 @@ def _named_gear(folded: str) -> str | None:
 _SAID_NONE = re.compile(r"\b(?:yok|degil|bos|kalma(?:di|mis))\w*")
 
 
+def _longer_names_out(folded: str, thing: str) -> str:
+    """D-229 fourth review: the clause with every longer catalog name blanked, so "büyük kılıç" shows no "kılıç"."""
+    import weapon_catalog
+    own = weapon_catalog.fold(thing)
+    for key in sorted(weapon_catalog.TURKISH_LABELS, key=len, reverse=True):
+        if len(key) > len(own) and own in key:
+            folded = re.sub(_gear_pattern(key), " ", folded)
+    return folded
+
+
 def _shown(session, thing: str) -> str | None:
     """D-229: the latest of the scene's narrations (the last three the player read) that showed the thing, or None.
 
@@ -607,21 +617,28 @@ def _shown(session, thing: str) -> str | None:
     pattern = _gear_pattern(weapon_catalog.fold(thing))
     told = list(getattr(session, "recent_dm_narrations", None) or [])[-3:]
     for text in reversed(told):
-        clauses = [clause for clause in re.split(r"[.;:!?,\n]", weapon_catalog.fold(text)) if re.search(pattern, clause)] \
-            if isinstance(text, str) else []
+        clauses = [clause for clause in re.split(r"[.;:!?,\n]", weapon_catalog.fold(text))
+                   if re.search(pattern, _longer_names_out(clause, thing))] if isinstance(text, str) else []
         if clauses:
             return text if any(not _SAID_NONE.search(clause) for clause in clauses) else None
     return None
 
 
-# D-229 review: the showings (place, weapon) already turned into a real item; one weapon kind shown in a place gives one
-# item, ever, whoever is robbed of it (third review: the narration's words are not in the mark, since the model
-# describes the same rack again each turn)
+# D-229 review: the showings (place, weapon) already turned into a real item; a place gives one narration-made item,
+# ever, whatever the weapon and whoever is robbed of it (third review: the narration's words are not in the mark, since
+# the model describes the same rack again each turn; fourth review: the place alone caps it)
 SHOWN_GEAR_MADE = "shown_gear_made"
 
 
 def _showing(world: dict[str, Any], weapon_id: str) -> str:
     return f"{world.get('location')}|{weapon_id}"
+
+
+def _place_used_its_showing(world: dict[str, Any]) -> bool:
+    """D-229 fourth review: one narration-made item per place, ever, whatever the weapon; a word list the next review
+    finds a gap in cannot make more than one thing anywhere."""
+    place = str(world.get("location"))
+    return any(key.partition("|")[0] == place for key in _showings_made(world))
 
 
 def _showings_made(world: dict[str, Any]) -> list[str]:
@@ -781,7 +798,7 @@ def _steal(session, text: str) -> dict[str, Any]:
         # D-229 (K5 b): a catalog weapon the narration showed is a real thing of the person in the scene; one showing
         # gives one item, since the same narration stays shown for turns and names no one person
         equipment_economy.give_person_gear(world, victim)  # what they carry anyway is written first, never lost
-        if _showing(world, weapon["weapon_id"]) not in _showings_made(world):
+        if not _place_used_its_showing(world):
             showing = _showing(world, weapon["weapon_id"])
             if _carried(session, victim, thing) is None:
                 made = len(victim.setdefault("inventory", []))
