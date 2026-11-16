@@ -23,4 +23,6 @@ export const SpeciesTraitActionInputAction = {
   second_wind: 'second_wind',
   lay_on_hands: 'lay_on_hands',
   divine_sense: 'divine_sense',
+  choose_draconic_ancestry: 'choose_draconic_ancestry',
+  breath_weapon: 'breath_weapon',
 } as const;

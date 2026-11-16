@@ -1169,6 +1169,8 @@ export const createGameSessionResponseStateCharacterMonkFocusOnePointsRemainingM
 
 export const createGameSessionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const createGameSessionResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -1701,6 +1703,8 @@ export const CreateGameSessionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -2274,6 +2278,8 @@ export const getGameSessionStateResponseCharacterMonkFocusOnePointsRemainingMin 
 
 export const getGameSessionStateResponseCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getGameSessionStateResponseCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -2804,6 +2810,8 @@ export const GetGameSessionStateResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -3226,16 +3234,21 @@ export const ResolveSpeciesTraitActionParams = zod.object({
 })
 
 
+export const resolveSpeciesTraitActionBodyTargetIdOneMax = 200;
+
 
 
 export const ResolveSpeciesTraitActionBody = zod.object({
   "action_id": zod.string().uuid().describe('UUIDv4 action receipt identity; reuse on network retry.'),
-  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense']),
+  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense', 'choose_draconic_ancestry', 'breath_weapon']),
   "healing_amount": zod.number().int().min(1).nullish(),
   "remove_poisoned": zod.boolean().nullish(),
   "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
   "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
-  "armed": zod.boolean().nullish()
+  "armed": zod.boolean().nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn only, with choose_draconic_ancestry; chosen once.'),
+  "shape": zod.union([zod.literal('cone'),zod.literal('line'),zod.literal(null)]).nullish().describe('Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.'),
+  "target_id": zod.union([zod.string().min(1).max(resolveSpeciesTraitActionBodyTargetIdOneMax),zod.null()]).optional().describe('Breath Weapon only; the creature the breath is aimed at.')
 })
 
 export const resolveSpeciesTraitActionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -3388,6 +3401,8 @@ export const resolveSpeciesTraitActionResponseStateCharacterMonkFocusOnePointsRe
 
 
 export const resolveSpeciesTraitActionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -3924,6 +3939,8 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -4549,6 +4566,8 @@ export const prepareGameSessionSpellsResponseStateCharacterMonkFocusOnePointsRem
 
 export const prepareGameSessionSpellsResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const prepareGameSessionSpellsResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -5082,6 +5101,8 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -5518,16 +5539,21 @@ export const ResolveSpeciesTraitActionCompatParams = zod.object({
 })
 
 
+export const resolveSpeciesTraitActionCompatBodyTargetIdOneMax = 200;
+
 
 
 export const ResolveSpeciesTraitActionCompatBody = zod.object({
   "action_id": zod.string().uuid().describe('UUIDv4 action receipt identity; reuse on network retry.'),
-  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense']),
+  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense', 'choose_draconic_ancestry', 'breath_weapon']),
   "healing_amount": zod.number().int().min(1).nullish(),
   "remove_poisoned": zod.boolean().nullish(),
   "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
   "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
-  "armed": zod.boolean().nullish()
+  "armed": zod.boolean().nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn only, with choose_draconic_ancestry; chosen once.'),
+  "shape": zod.union([zod.literal('cone'),zod.literal('line'),zod.literal(null)]).nullish().describe('Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.'),
+  "target_id": zod.union([zod.string().min(1).max(resolveSpeciesTraitActionCompatBodyTargetIdOneMax),zod.null()]).optional().describe('Breath Weapon only; the creature the breath is aimed at.')
 })
 
 export const resolveSpeciesTraitActionCompatResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -5680,6 +5706,8 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterMonkFocusOnePo
 
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -6216,6 +6244,8 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -6918,6 +6948,8 @@ export const playGameTurnResponseStateCharacterMonkFocusOnePointsRemainingMin = 
 
 
 export const playGameTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
+export const playGameTurnResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
 
 export const playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -7638,6 +7670,8 @@ export const PlayGameTurnResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -8802,6 +8836,8 @@ export const getGameActionStatusResponseResponseTwoStateCharacterMonkFocusOnePoi
 
 export const getGameActionStatusResponseResponseTwoStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getGameActionStatusResponseResponseTwoStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -9524,6 +9560,8 @@ export const GetGameActionStatusResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -10614,6 +10652,8 @@ export const abandonGameActionResponseResponseTwoStateCharacterMonkFocusOnePoint
 
 export const abandonGameActionResponseResponseTwoStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const abandonGameActionResponseResponseTwoStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -11336,6 +11376,8 @@ export const AbandonGameActionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -12433,6 +12475,8 @@ export const undoGameTurnResponseStateCharacterMonkFocusOnePointsRemainingMin = 
 
 export const undoGameTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const undoGameTurnResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -12968,6 +13012,8 @@ export const UndoGameTurnResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -13546,6 +13592,8 @@ export const acceptGameQuestResponseStateCharacterMonkFocusOnePointsRemainingMin
 
 export const acceptGameQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const acceptGameQuestResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -14104,6 +14152,8 @@ export const AcceptGameQuestResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -14704,6 +14754,8 @@ export const cancelGameQuestResponseStateCharacterMonkFocusOnePointsRemainingMin
 
 export const cancelGameQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const cancelGameQuestResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -15262,6 +15314,8 @@ export const CancelGameQuestResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -15870,6 +15924,8 @@ export const resolveAmbientEventActionResponseStateCharacterMonkFocusOnePointsRe
 
 export const resolveAmbientEventActionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resolveAmbientEventActionResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -16411,6 +16467,8 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -16999,6 +17057,8 @@ export const acceptLegacyQuestResponseStateCharacterMonkFocusOnePointsRemainingM
 
 export const acceptLegacyQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const acceptLegacyQuestResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -17557,6 +17617,8 @@ export const AcceptLegacyQuestResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -18158,6 +18220,8 @@ export const cancelLegacyQuestResponseStateCharacterMonkFocusOnePointsRemainingM
 
 export const cancelLegacyQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const cancelLegacyQuestResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -18716,6 +18780,8 @@ export const CancelLegacyQuestResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -19325,6 +19391,8 @@ export const resolveAmbientEventActionCompatResponseStateCharacterMonkFocusOnePo
 
 export const resolveAmbientEventActionCompatResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resolveAmbientEventActionCompatResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -19866,6 +19934,8 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -22602,6 +22672,8 @@ export const createCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin 
 
 export const createCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const createCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -23223,6 +23295,8 @@ export const CreateCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -24064,6 +24138,8 @@ export const getCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin = 0
 
 export const getCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -24695,6 +24771,8 @@ export const GetCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -25523,6 +25601,8 @@ export const resumeCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin 
 
 export const resumeCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resumeCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -26144,6 +26224,8 @@ export const ResumeCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -28142,6 +28224,8 @@ export const createLegacySessionResponseStateCharacterMonkFocusOnePointsRemainin
 
 export const createLegacySessionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const createLegacySessionResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -28674,6 +28758,8 @@ export const CreateLegacySessionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -29248,6 +29334,8 @@ export const getLegacySessionStateResponseCharacterMonkFocusOnePointsRemainingMi
 
 export const getLegacySessionStateResponseCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getLegacySessionStateResponseCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -29778,6 +29866,8 @@ export const GetLegacySessionStateResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -30475,6 +30565,8 @@ export const playLegacyTurnResponseStateCharacterMonkFocusOnePointsRemainingMin 
 
 
 export const playLegacyTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
+
+export const playLegacyTurnResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
 
 export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
@@ -31195,6 +31287,8 @@ export const PlayLegacyTurnResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -32288,6 +32382,8 @@ export const undoLegacyTurnResponseStateCharacterMonkFocusOnePointsRemainingMin 
 
 export const undoLegacyTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const undoLegacyTurnResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -32823,6 +32919,8 @@ export const UndoLegacyTurnResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -35404,6 +35502,8 @@ export const createLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemaini
 
 export const createLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const createLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -36025,6 +36125,8 @@ export const CreateLegacyCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -36868,6 +36970,8 @@ export const getLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemainingM
 
 export const getLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -37499,6 +37603,8 @@ export const GetLegacyCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -38328,6 +38434,8 @@ export const resumeLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemaini
 
 export const resumeLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resumeLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -38949,6 +39057,8 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
