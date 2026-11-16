@@ -599,9 +599,12 @@ def _offer(world, *, reason, trigger, source_id, evidence_id, campaign_id):
         return None
     from adventure.templates import prepared_bindings
 
+    from adventure.evidence import _downed_npcs
+    down = _downed_npcs(world)  # D-270 review: a person who is down or dead is no target of an offer
     present = [
         npc for npc in world.get("npcs", [])
         if isinstance(npc, dict) and npc.get("location") == world.get("location") and isinstance(npc.get("id"), str)
+        and npc["id"] not in down
     ]
     if len(present) < 2:
         return None
