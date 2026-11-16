@@ -541,7 +541,7 @@ def _unbacked(sentence: str, table: dict[str, frozenset[str]], allowed: set[int]
     """The sentence promises money nothing stands behind, or hands over coin that did not move."""
     words = world_threads._folded(sentence).split()
     has_coin = _names_coin(words, table)
-    if has_coin and not moved and _hands_money(words, table):
+    if has_coin and not moved and _hands_money(sentence, table):
         return True
     if not set(words) & table["promises"]:
         return False
@@ -566,10 +566,12 @@ _HANDING_REST = frozenset({"bakalim", "sunu", "bunu", "sunlari", "bunlari", "had
 _SAID_NO = frozenset({"yok", "degil", "asla", "hayir"})
 
 
-def _hands_money(words: list[str], table: dict[str, frozenset[str]]) -> bool:
+def _hands_money(sentence: str, table: dict[str, frozenset[str]]) -> bool:
     """A handing verb ('uzatıyorum', 'sayıyor'); or an opener ('al', 'tut', 'işte') that names a sum, names coin or the
-    purse without saying no ('İşte bu yüzden sana para vermem' is a refusal), or stands with handing words only.
-    'Tut dilini' and 'Al başını git' hand nothing."""
+    purse in a clause that does not say no ('İşte bu yüzden sana para vermem' is a refusal; review: in 'Al şu parayı,
+    ama bir daha vermem' the no belongs to another clause), or stands with handing words only. 'Tut dilini' and
+    'Al başını git' hand nothing."""
+    words = world_threads._folded(sentence).split()
     if not words:
         return False
     if set(words) & table["hands_any"]:
@@ -580,8 +582,12 @@ def _hands_money(words: list[str], table: dict[str, frozenset[str]]) -> bool:
     import pocket
     if front_proposal._coin_said(words) is not None:
         return True  # a sum named is never let through, whatever else the sentence says
-    if _names_coin(words, table) or any(word.startswith("kese") for word in words):
-        return not any(word in _SAID_NO or pocket.said_not_done(word) for word in words)
+    money_clauses = [clause for clause in (world_threads._folded(piece).split()
+                                           for piece in pocket._CLAUSE_BREAK.split(sentence))
+                     if _names_coin(clause, table) or any(word.startswith("kese") for word in clause)]
+    if money_clauses:
+        return any(not any(word in _SAID_NO or pocket.said_not_done(word) for word in clause)
+                   for clause in money_clauses)
     return all(word in _HANDING_REST for word in words[1:])
 
 
@@ -590,22 +596,27 @@ def _without_handing(text: Any) -> Any:
     table = _money_words()
     if not isinstance(text, str) or not text.strip() or not table:
         return text
-    return " ".join(part for part in _SENTENCE_END.split(text.strip())
-                    if not _hands_money(world_threads._folded(part).split(), table))
+    return " ".join(part for part in _SENTENCE_END.split(text.strip()) if not _hands_money(part, table))
 
 
 def _without_other_sum(text: Any, moved: int) -> Any:
     """D-267: after a payment, a sentence that hands a sum other than the one that moved leaves the line; the sum
-    the line speaks decides, not the model's proposed figure. A sentence that hands the moved sum stays."""
+    the line speaks decides, not the model's proposed figure. A sentence that hands the moved sum stays. Review: with
+    no figure, a handing that names silver or gold goes too ('Al, bir avuç altın'); the engine's note counts copper."""
     table = _money_words()
     if not isinstance(text, str) or not text.strip() or not table:
         return text
     import front_proposal
+    import pocket
 
     def other(sentence: str) -> bool:
         words = world_threads._folded(sentence).split()
         said = front_proposal._coin_said(words)
-        return said is not None and said != moved and _hands_money(words, table)
+        if said is None:
+            said_metal = any(word.startswith(("gumus", "altin")) and not pocket.under_it(words, at)
+                             for at, word in enumerate(words))
+            return said_metal and _hands_money(sentence, table)
+        return said != moved and _hands_money(sentence, table)
     return " ".join(part for part in _SENTENCE_END.split(text.strip()) if not other(part))
 
 

@@ -114,6 +114,49 @@ class TheSpokenSumDecides(LostRoll):
         self.assertEqual(settled["spoken"], "İşte on bakır. Yolun açık olsun.")
 
 
+class ReviewNegationOnlyInItsOwnClause(LostRoll):
+    """Review (YÜKSEK): a 'no' elsewhere in the sentence does not keep a handing of money or the purse."""
+
+    HANDINGS = ("Al şu parayı, ama bir daha vermem.", "Al bu parayı, bir daha gelmiyorsun buraya.",
+                "Buyur paran, geri istemem.", "İşte paran, hayır deme.", "Al, bir avuç altın, daha fazlası yok.",
+                "Al şu keseyi, kimseye söylemem.")
+    REFUSALS = ("İşte bu yüzden sana para vermem.", "Tut dilini.")
+
+    def test_a_lost_ask_drops_each_handing(self):
+        for line in self.HANDINGS:
+            with self.subTest(line=line):
+                self.setUp()
+                self.assertEqual(self.reply(f"Hmm. {line} Yolun açık olsun.")["spoken"], "Hmm. Yolun açık olsun.")
+
+    def test_the_no_move_gate_drops_each_handing(self):
+        # This gate holds coin only; the purse line with no coin ('Al şu keseyi…') is held by the lost ask above, as
+        # it was before D-266.
+        for line in self.HANDINGS[:-1]:
+            with self.subTest(line=line):
+                self.assertEqual(town_knowledge.without_unbacked_money(line), "")
+
+    def test_the_refusals_still_stay(self):
+        for line in self.REFUSALS:
+            with self.subTest(line=line):
+                self.setUp()
+                self.assertEqual(self.reply(f"Hmm. {line}")["spoken"], f"Hmm. {line}")
+                self.assertEqual(town_knowledge.without_unbacked_money(line), line)
+
+
+class ReviewAnotherMetalWithoutAFigure(LostRoll):
+    """Review (ORTA): after a won roll, a handing that names a metal the engine did not pay goes, figure or not."""
+
+    def test_gold_or_silver_with_no_figure_goes(self):
+        for line in ("Al, bir avuç altın.", "Kesesinden bir avuç altın çıkarıp uzatıyor.", "Al, birkaç gümüş."):
+            with self.subTest(line=line):
+                self.assertEqual(town_knowledge._without_other_sum(f"{line} Gülümsüyor.", 5), "Gülümsüyor.")
+
+    def test_copper_or_bare_coin_with_no_figure_stays(self):
+        for line in ("Al, biraz bakır.", "Al, paran burada.", "Al bakalım."):
+            with self.subTest(line=line):
+                self.assertEqual(town_knowledge._without_other_sum(line, 5), line)
+
+
 class StageDirectionHanding(LostRoll):
     """D-264: the stage direction goes through the same handing cleanup as the spoken line."""
 
