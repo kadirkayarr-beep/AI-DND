@@ -479,6 +479,7 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
             + job
             + role_note(world, npc)
         )
+    import heard_rumours  # heard_rumours imports this module, so the import waits for the call
     known = public_knowledge(world, npc)
     lines = []
     if known:
@@ -490,10 +491,12 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
         )
     else:
         lines.append(" Kentte iş veya olan bitene dair bir şey duymadın; sorulursa çıplak bir “bilmiyorum” deme, "
-                     "kimin ya da nerenin bilebileceğini söyle (hancı, muhafız, pazar gibi; yeni ad uydurmadan).")
+                     "kimin ya da nerenin bilebileceğini söyle (hancı, muhafız, pazar gibi; "
+                     + ("yeni kişi ya da iş adı uydurmadan)." if heard_rumours.lane_enabled() else "yeni ad uydurmadan)."))
     lines.append(world_happenings.speech_line(world, npc, {item["thread_id"] for item in known if item["kind"] == "news"}
                                               | _own_past(world, npc)))
-    lines.append(" Bunların dışında kişi, yer veya iş adı uydurma.")
+    lines.append(" Bunların dışında kişi ya da iş adı uydurma; yer ya da iz adı verebilirsin, adını konuşmanda açıkça söyle."
+                 if heard_rumours.lane_enabled() else " Bunların dışında kişi, yer veya iş adı uydurma.")
     lines.append(job)
     lines.append(role_note(world, npc))
     return "".join(lines)
@@ -579,6 +582,12 @@ def _names_coin(words: list[str], table: dict[str, frozenset[str]]) -> bool:
     """D-254: 'masanın altına' is no gold, as in `pocket`; 'on altına' is."""
     import pocket
     return any(word.startswith(tuple(table["coin"])) and not pocket.under_it(words, at) for at, word in enumerate(words))
+
+
+def names_coin(text: Any) -> bool:
+    """True when the text names a coin ('50 gümüş', 'beş bakır', 'yüz sikke'): a price or sum, whatever the verb."""
+    table = _money_words()
+    return bool(table) and isinstance(text, str) and _names_coin(world_threads._folded(text).split(), table)
 
 
 def _unbacked(sentence: str, table: dict[str, frozenset[str]], allowed: set[int], moved: bool) -> bool:

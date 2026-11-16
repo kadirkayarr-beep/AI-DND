@@ -151,6 +151,28 @@ class WhoKnowsWhat(unittest.TestCase):
         self.assertIsNone(town_knowledge.fallback_line(world, person("npc_001")))
 
 
+class SpeechNoteNamesLane(unittest.TestCase):
+    """Owner decision B (2026-11-16): lane on, the person may name places and trails; people and jobs stay unnamed."""
+
+    NEW = "Bunların dışında kişi ya da iş adı uydurma; yer ya da iz adı verebilirsin, adını konuşmanda açıkça söyle."
+    OLD = "Bunların dışında kişi, yer veya iş adı uydurma."
+
+    def test_lane_on_allows_place_and_trail_names(self):
+        world = seeded()
+        with patch.dict("os.environ", {"AI_DND_RUMOUR_LANE": "1"}), patch.object(town_knowledge, "is_closed_mouthed", return_value=False):
+            note = town_knowledge.speech_note(world, person("npc_001", "Barmen"))
+        self.assertIn(self.NEW, note)
+        self.assertNotIn("yer veya iş adı uydurma", note)
+
+    def test_lane_off_keeps_the_old_text(self):
+        world = seeded()
+        with patch.dict("os.environ", {"AI_DND_RUMOUR_LANE": "0"}), patch.object(town_knowledge, "is_closed_mouthed", return_value=False):
+            note = town_knowledge.speech_note(world, person("npc_001", "Barmen"))
+        self.assertIn(self.OLD, note)
+        self.assertNotIn("yer ya da iz adı verebilirsin", note)
+        self.assertNotIn("yeni kişi ya da iş adı uydurmadan", note)
+
+
 class WhatWasSaidIsTiedToTheRecord(unittest.TestCase):
     def setUp(self):
         self.world = seeded("bind")

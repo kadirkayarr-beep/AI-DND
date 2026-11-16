@@ -20992,10 +20992,16 @@ def _keep_town_portrait(action_result, narration):
     record = world.get("locations", {}).get(place)
     if not isinstance(record, dict) or record.get("town_portrait") or local_places.settlement_of(world, place) != place:
         return
+    # First arrival only: a trip that began inside this settlement (or at an unknown place) is a return, not an arrival.
+    start = action_result.get("previous_location")
+    if not start or local_places.settlement_of(world, start) == place:
+        return
     import town_knowledge
     from arrival_narration import _QUOTES
+    # «…» and ‘…’ are speech too: written as “…” so the shared speech-span split and the quote check see them.
+    narration = re.sub(r"«([^»]*)»|‘([^’]*)’", lambda span: f"“{span.group(1) or span.group(2)}”", narration)
     sentences = [part.strip() for part in _split_sentences_keep_speech(narration.strip())
-                 if part.strip() and not any(mark in part for mark in _QUOTES)]
+                 if part.strip() and not any(mark in part for mark in _QUOTES) and not town_knowledge.names_coin(part)]
     clean = town_knowledge.without_unbacked_money(" ".join(sentences)) or ""
     portrait = " ".join(_split_sentences_keep_speech(clean)[:2]).strip()
     if portrait:

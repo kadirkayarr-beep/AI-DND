@@ -8,6 +8,7 @@ from typing import Any
 import local_places
 import npc_statements
 import town_knowledge
+import world_threads
 
 MAX_RUMOURED_PER_SETTLEMENT = 24
 MAX_HEARD = 64
@@ -34,7 +35,13 @@ def _rumoured_places(world: dict[str, Any], settlement_id: str) -> list[dict[str
 
 
 def _evict_oldest_unvisited(world: dict[str, Any], rumours: list[dict[str, Any]], settlement_id: str) -> bool:
-    unvisited = [record for record in _rumoured_places(world, settlement_id) if not record.get("visited")]
+    """Never a place something still points at: a thread's place, a resident's home, the pending destination."""
+    state = world_threads.view(world)
+    in_use = set(world_threads._used_places(state, settlement_id)) if state else set()
+    pending = (world.get("flags") or {}).get("pending_destination")
+    unvisited = [record for record in _rumoured_places(world, settlement_id)
+                 if not record.get("visited") and not record.get("resident_name")
+                 and record["id"] not in in_use and record["id"] != pending]
     if not unvisited:
         return False
     oldest = min(unvisited, key=lambda record: int((record.get("provenance") or {}).get("turn", 0) or 0))
@@ -56,7 +63,10 @@ def said_in(text: Any, name: Any) -> bool:
     if not isinstance(text, str) or not isinstance(name, str):
         return False
     folded = npc_statements.fold(base_name(name))
-    return bool(folded) and folded in npc_statements.fold(text)
+    if not folded:
+        return False
+    # "birebir": the name starts a word and ends at a word edge or an apostrophe suffix ("Eski Mahzen'e"), never inside one.
+    return re.search(rf"(?<!\w){re.escape(folded)}(?!\w)", npc_statements.fold(text)) is not None
 
 
 def _exact_place(world: dict[str, Any], settlement_id: str, folded: str) -> str | None:
@@ -91,6 +101,8 @@ def record_mention(game: Any, world: dict[str, Any], npc: dict[str, Any], mentio
             return None
     about = mention.get("about")
     about = " ".join(about.split())[:MAX_ABOUT] if isinstance(about, str) else ""
+    if town_knowledge.names_coin(about):
+        about = ""  # a price, sum or item value is no place description: the place is kept, the claim is not
     proposal = game.validate_location_proposal({"name": name, "type": "building", "description": about})
     about = town_knowledge.without_unbacked_money(proposal["description"]) if proposal else ""
     settlement_id = local_places.settlement_of(world, npc.get("location"))

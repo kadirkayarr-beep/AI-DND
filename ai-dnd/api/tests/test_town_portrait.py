@@ -101,6 +101,31 @@ class TownPortrait(unittest.IsolatedAsyncioTestCase):
         self.assertIn(portrait, self.last.json()["narration"])
         self.assertEqual(len(portrait.split(". ")), 2)
 
+    async def test_money_sentence_is_not_in_the_portrait(self):
+        """Direct on the keeper: the finalizer may not catch every figure, the portrait itself must."""
+        import game
+        world = self.world
+        result = {"action": "travel", "success": True, "status": "completed", "previous_location": FAR}
+        with patch.object(game._DEFAULT_SESSION, "world_state", world):
+            world["location"] = HOME
+            world["locations"][HOME].pop("town_portrait", None)
+            game._keep_town_portrait(result, f"Kapının üstüne 20 gümüş yazılmış. {FIRST} {SECOND} {THIRD}")
+        self.assertEqual(world["locations"][HOME]["town_portrait"], f"{FIRST} {SECOND}")
+
+    async def test_guillemet_and_single_quote_speech_is_dropped(self):
+        await self.travel(FAR, f"Bir çocuk bağırıyor: «Yeni gelen!» Biri fısıldıyor: ‘Yabancı.’ {FIRST} {SECOND} {THIRD}")
+        portrait = self.world["locations"][FAR]["town_portrait"]
+        for mark in ("«", "»", "‘", "’", "Yeni gelen", "Yabancı"):
+            self.assertNotIn(mark, portrait)
+        self.assertTrue(portrait)
+
+    async def test_return_from_a_local_place_writes_no_portrait(self):
+        import local_places
+        place = local_places.create_local_place(self.world, HOME, "smithy")
+        self.world["location"] = place["id"]
+        await self.travel(HOME, "Ana caddeye çıkıyorsun. Pazar kalabalık.")
+        self.assertNotIn("town_portrait", self.world["locations"][HOME])
+
 
 if __name__ == "__main__":
     unittest.main()

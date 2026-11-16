@@ -63,6 +63,61 @@ class RumourLane(unittest.TestCase):
         self.assertNotIn("altın", entry["text"].casefold())
         self.assertEqual({k: self.world[k] for k in ("gold", "purse")}, before)
 
+    def test_figure_and_coin_claims_in_about_empty_it_but_the_place_stays(self):
+        self.world["gold"] = 7
+        self.world["purse"] = {"gp": 7}
+        before = copy.deepcopy({k: self.world[k] for k in ("gold", "purse")})
+        for index, about in enumerate(("İçeride 50 gümüş saklı.", "Girişi beş bakır.", "Hazinesi yüz sikke değerinde.")):
+            with self.subTest(about=about):
+                entry = self.say(name=f"{_WORDS[index]} Mahzeni", about=about)
+                self.assertIsNotNone(entry)
+                self.assertEqual(entry["text"], f"{_WORDS[index]} Mahzeni")
+                place = self.world["locations"][entry["place_id"]]
+                self.assertEqual(place["name"], f"{_WORDS[index]} Mahzeni")
+                self.assertNotIn(about, place.get("description", ""))
+        self.assertEqual({k: self.world[k] for k in ("gold", "purse")}, before)
+
+    def test_a_figure_in_the_place_name_is_a_name_not_a_claim(self):
+        entry = self.say(name="Yüz Altın Hanı", place_kind="archive", about="Köşede eski bir han.")
+        self.assertEqual(self.world["locations"][entry["place_id"]]["name"], "Yüz Altın Hanı")
+        self.assertEqual(entry["text"], "Yüz Altın Hanı: Köşede eski bir han.")
+
+    def test_eviction_spares_places_a_thread_a_resident_or_a_destination_uses(self):
+        import world_threads
+        for turn in range(1, 25):
+            self.say(name=f"{_WORDS[turn]} Mahzeni", turn=turn)
+        by_turn = {r["provenance"]["turn"]: r for r in self.rumoured()}
+        state = world_threads._new_state()
+        state["threads"].append({"settlement_id": "city", "place_id": by_turn[1]["id"], "target_place_id": None})
+        self.world[world_threads.KEY] = state
+        by_turn[2]["resident_name"] = "Bekçi Alp"
+        self.world["flags"]["pending_destination"] = by_turn[3]["id"]
+        for turn in (25, 26, 27):
+            self.say(name=f"{_WORDS[turn]} Mahzeni", turn=turn)
+        for kept in (1, 2, 3):
+            self.assertIn(by_turn[kept]["id"], self.world["locations"])
+        self.assertNotIn(by_turn[4]["id"], self.world["locations"])
+        self.assertNotIn(by_turn[5]["id"], self.world["locations"])
+        self.assertEqual(world_threads._used_places(state, "city"), [by_turn[1]["id"]])
+
+    def test_nothing_evictable_still_records_the_new_mention(self):
+        for turn in range(1, 25):
+            self.say(name=f"{_WORDS[turn]} Mahzeni", turn=turn)
+        for record in self.rumoured():
+            record["resident_name"] = "Bekçi"
+        entry = self.say(name=f"{_WORDS[25]} Mahzeni", turn=25)
+        self.assertIsNotNone(entry)
+        self.assertIn(entry["place_id"], self.world["locations"])
+        self.assertEqual(len(self.rumoured()), 25)
+
+    def test_said_in_needs_word_edges(self):
+        self.assertFalse(heard_rumours.said_in("Hanımlar toplandı.", "Han"))
+        self.assertFalse(heard_rumours.said_in("Kuyucak yakında.", "Kuyu'ya"))
+        self.assertTrue(heard_rumours.said_in("Eski Mahzen'e git.", "Eski Mahzen"))
+        self.assertTrue(heard_rumours.said_in("Kuyu'ya in.", "Kuyu'ya"))
+        self.assertTrue(heard_rumours.said_in("Git, Han.", "Han"))
+        self.assertFalse(heard_rumours.said_in("Eski Mahzenin kapısı", "Eski Mahzen"))
+
     def test_existing_place_name_links_instead_of_creating(self):
         smithy = local_places.create_local_place(self.world, "city", "smithy")
         count = len(self.world["locations"])
