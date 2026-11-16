@@ -267,6 +267,60 @@ def apply_xp_grants(character: dict[str, Any], world: dict[str, Any], grants: Se
     return {**summary, "xp_gained": total}
 
 
+class UnrecordableXp(ValueError):
+    """B1 (D-061): an award the campaign's own record cannot take, for a known reason. The session forfeits it and
+    shows the player one line, ``"<amount> XP kaydedilemedi: <reason>."``; any other ``ValueError`` is a bug and is
+    raised, so the turn is put back whole."""
+
+    def __init__(self, amount: int, reason: str, event_ids: Sequence[str] = ()):
+        super().__init__(f"{amount} XP kaydedilemedi: {reason}.")
+        self.amount = amount
+        self.reason = reason
+        self.event_ids = tuple(event_ids)  # the receipts this award would have written (one line per award, D-061)
+
+
+# The player's words for each known reason (plain Turkish, no numbers from the model).
+REASON_FULL = "kampanyanın ödül kaydı doldu"
+REASON_CAP = "deneyim puanın kaydın tutabileceği en yüksek değere ulaştı"
+REASON_CLASS = "karakterinin sınıfı tanınmadığı için yeni seviyenin canı hesaplanamıyor"
+REASON_OLD_SAVE = "eski kayıt dosyan 5. seviyeye geçişi taşıyamıyor"
+REASON_CROSSING = "kayıt 5. seviyeye geçişi kabul etmedi"
+
+
+def refusal(character: Mapping[str, Any], world: Mapping[str, Any],
+            grants: Sequence[tuple[str, int]]) -> UnrecordableXp | None:
+    """Why these well-formed grants cannot be recorded (read only): the receipt list is full, the XP cap is reached,
+    or a level step needs a class with no hit-point rule. ``None`` when nothing new is due or they fit."""
+    held = world.get("xp_awarded_event_ids")
+    held = held if isinstance(held, list) else []
+    held_set = set(held)
+    fresh = [(event_id, amount) for event_id, amount in grants if event_id not in held_set]
+    if not fresh:
+        return None
+    total = sum(amount for _, amount in fresh)
+    ids = [event_id for event_id, _ in fresh]
+    if len(held) + len(fresh) > MAX_AWARD_IDS:
+        return UnrecordableXp(total, REASON_FULL, ids)
+    current_xp = character.get("xp")
+    if type(current_xp) is not int or current_xp < 0:
+        current_xp = 0
+    if current_xp + total > MAX_STORED_XP:
+        return UnrecordableXp(total, REASON_CAP, ids)
+    level = character.get("level")
+    level = level if type(level) is int and level >= 1 else 1
+    if level_for_xp(current_xp + total) > min(level, MAX_LEVEL) and character.get("class") not in FIXED_HP_BY_CLASS:
+        return UnrecordableXp(total, REASON_CLASS, ids)
+    return None
+
+
+def _grant_or_refuse(character: dict[str, Any], world: dict[str, Any], grants: list[tuple[str, int]]):
+    """``apply_xp_grants``, but a grant refused for a known reason raises ``UnrecordableXp`` instead of ``None``."""
+    refused = refusal(character, world, grants)
+    if refused is not None:
+        raise refused
+    return apply_xp_grants(character, world, grants)
+
+
 def _foe_award_id(npc_id: str) -> str:
     event_id = f"combat:foe:{npc_id}"
     if len(event_id) > 187 or _AWARD_ID.fullmatch(event_id) is None:  # the receipt pattern allows 180 chars after 'combat:'
@@ -279,7 +333,7 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
     """Pay every beaten foe of an ended encounter in one all-or-nothing grant, once per creature for the campaign.
 
     A beaten foe is one that went down or accepted-surrendered in this fight (a foe that merely retreats is not). The caller must still have
-    the participant list. The player leaving, or falling unconscious, is not this function's job and pays nothing.
+    the participant list. The caller (game.end_combat) runs it for target_defeated, parley, relocated, player_stable and participants_left; a kill or knock-out is also paid at once by award_downed under the same receipt, so a later run pays nothing twice.
     """
     import monster_combat
     if not isinstance(combat, dict) or not isinstance(world, dict):
@@ -311,7 +365,7 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
         grants.append((_foe_award_id(participant_id), reward))
     if not grants:
         return None
-    return apply_xp_grants(character, world, grants)
+    return _grant_or_refuse(character, world, grants)
 
 
 def award_downed(npc: Mapping[str, Any], world: dict[str, Any], character: dict[str, Any], *,
@@ -326,10 +380,10 @@ def award_downed(npc: Mapping[str, Any], world: dict[str, Any], character: dict[
     reward = reward_for(npc, person_kind)
     if reward <= 0:
         return None
-    return apply_xp_grants(character, world, [(_foe_award_id(identity), reward)])
+    return _grant_or_refuse(character, world, [(_foe_award_id(identity), reward)])
 
 
-class JobXpRefused(ValueError):
+class JobXpRefused(UnrecordableXp):
     """A finished job's experience is due and could not be recorded (the session forfeits it: ``forfeit_jobs``)."""
 
 
@@ -364,17 +418,20 @@ def job_grants_due(world: Mapping[str, Any]) -> list[tuple[str, int]]:
 def award_finished_jobs(world: dict[str, Any], character: dict[str, Any]):
     """Pay every finished job's ``xp_due`` once, all together, under its ``job:<thread_id>`` receipt.
 
-    ``None`` when nothing new is due (every finished job already paid). A due grant the receipt list or the XP cap
-    refuses raises ``JobXpRefused``: the job's money and its close happened in this same turn, so the caller's turn
-    boundary puts them back with it instead of leaving a finished, paid job without its experience.
+    ``None`` when nothing new is due (every finished job already paid). A due grant refused for a known reason (the
+    receipt list, the XP cap, a level step without a known class) raises ``JobXpRefused`` (the session forfeits it,
+    ``forfeit_jobs``); any other refusal is a bug and raises a plain ``ValueError``.
     ``xp_due`` is never removed: the receipt is the one record of payment.
     """
     grants = job_grants_due(world)
     if not grants:
         return None
+    refused = refusal(character, world, grants)
+    if refused is not None:
+        raise JobXpRefused(refused.amount, refused.reason, refused.event_ids)
     summary = apply_xp_grants(character, world, grants)
     if summary is None:
-        raise JobXpRefused("A finished job's experience could not be recorded.")
+        raise ValueError("A finished job's experience could not be recorded.")
     return summary
 
 
@@ -393,7 +450,11 @@ def forfeit_jobs(world: dict[str, Any], grants: Sequence[tuple[str, int]]) -> No
 
 
 def award_reward_branch(character: dict[str, Any], world: dict[str, Any], amount: int, marker: str):
-    """An adventure branch's XP under its ``quest:<id>:<outcome>`` receipt; a grant that cannot be recorded raises."""
+    """An adventure branch's XP under its ``quest:<id>:<outcome>`` receipt; a grant that cannot be recorded raises
+    (``UnrecordableXp`` for a known reason, a plain ``ValueError`` otherwise)."""
+    refused = refusal(character, world, [(marker, amount)])
+    if refused is not None:
+        raise refused
     summary = apply_xp(character, world, amount, marker)
     if summary is None:
         raise ValueError("Deneyim ödülü uygulanamadı.")
@@ -410,7 +471,7 @@ def award_completed_quest(world: dict[str, Any], character: dict[str, Any], ques
     amount = definition.get("xp")
     if type(amount) is not int or amount <= 0 or amount > MAX_GRANT:
         return None
-    return apply_xp(character, world, amount, f"quest:{quest_id}")
+    return _grant_or_refuse(character, world, [(f"quest:{quest_id}", amount)])  # a known refusal raises UnrecordableXp (D-060)
 
 
 def validate_saved_advancement(player: Mapping[str, Any], world: Mapping[str, Any], *, policy: int = 5) -> None:

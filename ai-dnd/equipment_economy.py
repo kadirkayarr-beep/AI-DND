@@ -535,7 +535,7 @@ def _shield_in_hand(world, hands):
         return None
     bag = [item for item in world.get("inventory", []) if isinstance(item, dict)
            and any(token in label(item).casefold() for token in SHIELD_ITEM_TOKENS)]
-    held = [item for item in bag if item["item_id"] == hands.get("off_hand")]
+    held = [item for item in bag if item.get("item_id") == hands.get("off_hand")]
     return (held or bag or [None])[0]
 
 
@@ -1079,9 +1079,11 @@ def public_inventory(world):
     """Preserve the API string-list contract; labels expose IDs and hand state."""
     hands = world.get("equipment", {})
     hands = hands if isinstance(hands, dict) else {}
+    shield = _shield_in_hand(world, hands)
+    worn = {*hands.values(), shield.get("item_id") if shield else None}
     return [
         f'{i.get("name") or i.get("weapon_id", "Eşya")} [{i.get("item_id", "kimlik doğrulanmamış")}]'
-        + (" (kuşanılmış)" if i.get("item_id") and i["item_id"] in hands.values() else "")
+        + (" (kuşanılmış)" if i.get("item_id") and i["item_id"] in worn else "")
         if isinstance(i, dict) else i
         for i in world.get("inventory", [])
     ]

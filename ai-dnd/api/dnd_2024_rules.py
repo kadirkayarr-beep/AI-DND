@@ -540,7 +540,7 @@ SPECIES_DEFINITIONS = {
             {"id": "cloud", "name_tr": "Bulut Devi", "desc": "Bonus eylemle 30 fit ışınlan."},
             {"id": "fire", "name_tr": "Ateş Devi", "desc": "İsabetten sonra ek ateş hasarı ver."},
             {"id": "frost", "name_tr": "Ayaz Devi", "desc": "İsabetten sonra soğuk hasarı ver ve hedefi yavaşlat."},
-            {"id": "hill", "name_tr": "Tepe Devi", "desc": "İsabetten sonra hedefi yere düşürmeye çalış."},
+            {"id": "hill", "name_tr": "Tepe Devi", "desc": "İsabetten sonra Büyük ya da daha küçük hedefi yere düşür."},
             {"id": "stone", "name_tr": "Taş Devi", "desc": "Hasar aldığında hasarı azalt."},
             {"id": "storm", "name_tr": "Fırtına Devi", "desc": "60 fit içindeki bir yaratıktan hasar aldığında, tepkinle ona gök gürültüsü hasarı ver."},
         ],

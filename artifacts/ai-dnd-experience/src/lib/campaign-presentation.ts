@@ -11,6 +11,9 @@ const SPECIES_LABELS: Record<string, string> = {
   Aasimar: 'Aasimar', 'Half-Elf': 'Yarı Elf', 'Half-Orc': 'Yarı Ork',
 };
 export const classLabel = (value: string) => CLASS_LABELS[value] ?? value;
+/** The engine has no level-up table for these four classes (selected_progression_not_supported): say so before the player picks one. */
+const NO_LEVEL_UP_CLASSES = new Set(['Bard', 'Druid', 'Ranger', 'Warlock']);
+export const classLevelingNote = (value: string) => NO_LEVEL_UP_CLASSES.has(value) ? 'seviye atlamaz (deneysel)' : null;
 export const speciesLabel = (value: string) => SPECIES_LABELS[value] ?? value;
 
 /** Resolve supplied identifiers only through existing canonical catalog names. */

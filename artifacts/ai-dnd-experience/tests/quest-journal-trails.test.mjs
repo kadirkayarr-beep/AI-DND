@@ -17,7 +17,7 @@ after(async () => { await vite?.close(); });
 const base = { quests: [], offers: [], knownNpcs: [], adventures: undefined, onAccept() {}, onCancel() {},
                acceptPending: false, cancelPending: false, hasError: false, commandNotice: null };
 const row = (title, extra = {}) => ({ quest_id: title, title, summary: 's', giver: null, recipient: null, place: null,
-                                      status: 'active', objectives: [], result: null, record_kind: 'dynamic', raw_status: 'ACTIVE', ...extra });
+                                      status: 'active', objectives: [], result: null, promised_cp: null, record_kind: 'dynamic', raw_status: 'ACTIVE', ...extra });
 const log = (trails) => ({ active_count: 1, active: [row('Teslimat: Revomar İskelesi')], offered: [], let_go: [], rumors: [],
                            done: [row('Kayıp mektup', { status: 'done', raw_status: 'COMPLETED', result: '12 bakır ödendi' })], trails });
 test('the journal shows trails with where, source and followed', () => {
@@ -81,4 +81,16 @@ test('a done job shows the engine result and the badge counts quest_log', () => 
   assert.match(html, /Süren maceralar/);
   assert.match(html, /Teslimat: Revomar İskelesi/);
   assert.match(html, />01</);                                          // the badge reads active_count, not quests.length (0)
+});
+test('D-232: an offered and a running job card show the promised pay', () => {
+  const offered = row('Teslimat: Fezlok Karakolu', { quest_id: 'dyn.q2', status: 'offered', raw_status: 'DISCOVERED', promised_cp: 14 });
+  const running = row('Kayıp mektup', { quest_id: 'dyn.q3', promised_cp: 9 });
+  const html = render(React.createElement(ui.QuestJournalSection, { ...base,
+    questLog: { ...log([]), offered: [offered], active: [running] } }));
+  assert.match(html, /Vaat edilen ücret: 14 bakır/);
+  assert.match(html, /Vaat edilen ücret: 9 bakır/);
+});
+test('D-232: a job without terms shows no pay line', () => {
+  const html = render(React.createElement(ui.QuestJournalSection, { ...base, questLog: log([]) }));
+  assert.doesNotMatch(html, /Vaat edilen ücret/);
 });

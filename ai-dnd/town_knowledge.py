@@ -552,6 +552,18 @@ def without_unbacked_money(text: Any, *, allowed: set[int] | None = None, moved:
     return " ".join(kept)
 
 
+def _without_handing(text: Any) -> Any:
+    """A coin ask that moved nothing (D-166): the sentences that hand anything over leave the line ('Al bakalım')."""
+    table = _money_words()
+    if not isinstance(text, str) or not text.strip() or not table:
+        return text
+
+    def hands(sentence: str) -> bool:
+        words = world_threads._folded(sentence).split()
+        return bool(words) and (words[0] in table["hands_first"] or bool(set(words) & table["hands_any"]))
+    return " ".join(part for part in _SENTENCE_END.split(text.strip()) if not hands(part))
+
+
 def money_backed_by(world: dict[str, Any], npc: Any) -> set[int]:
     """The figures this person really has behind them: the terms of their own jobs."""
     backed: set[int] = set()
@@ -603,18 +615,22 @@ def _settle_offer(world, npc, proposal, spoken, *, allowed):
 
 
 def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, raw: Any, spoken: str,
-                 *, accept_job: Any, moved: int = 0, threat: Any = None, purchase: bool = False) -> dict[str, Any]:
+                 *, accept_job: Any, moved: int = 0, threat: Any = None, purchase: bool = False,
+                 persuade: Any = None) -> dict[str, Any]:
     """Python's half of 'the model proposes': commit what checks out.
 
     moved: copper a gate already paid this turn. The result says what money stands behind
     the line, so whatever else it claims can be taken off it. Nothing here can stop the reply.
     purchase: the player's line was read as buying; a figure in the reply is a price then, never coin for the player.
+    persuade: (dc, advantage) -> {"success", "card"?} or None, the Persuasion roll a coin ask takes (D-166); without
+    it no coin is given. "check" in the result is the card of a fresh roll, for the turn to show.
     """
     proposal = read_proposal(raw)
     kind = proposal["kind"] if proposal else None
     allowed = money_backed_by(world, npc)
     world_happenings.threat_said(world, npc, threat)
     note = None
+    check = None
     if moved:
         allowed.add(moved)
     if kind == "job_offer":
@@ -639,19 +655,42 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
     elif kind == "give" and proposal["amount_cp"]:
         import shop_trade
         sale = shop_trade.is_vendor(world, npc) and (proposal["item"] or shop_trade.sells(world, npc, player_text))
-        if not moved and not sale and not purchase and world_threads.speaks_of_pay(player_text):
+        if not moved and not sale and not purchase and world_threads.asks_for_pay(player_text):
             # C5: the NPC pays from their own purse, so no card: the one owner moves it once, or nothing moves
             # (not here, or the purse is short). The note is built only from what was really applied.
+            # D-166 (Kadir kararı 2026-11-15): asking for coin takes a Persuasion roll (guide 4.5, `influence`), and
+            # the engine sets the sum from the purse and the attitude; the model's figure only stood for "give".
+            # Only a line that asks for coin rolls (`asks_for_pay`); one that only speaks of money rolls nothing.
             import economic_actions
-            given = economic_actions.npc_gift(economic_actions.EconomicState(world=world, character=None),
-                                              npc_id=str(npc.get("id")), amount_cp=proposal["amount_cp"])
-            if given.status == "applied":
-                moved = given.net_debit_cp
-                allowed.add(moved)
-                note = world_threads.paid_line(moved, False)
+            import front_proposal
+            import influence
+            import living_world
+            npc_id = str(npc.get("id"))
+            cap = economic_actions.npc_gift_cap(world, npc_id)
+            # The cap is a ceiling, not the sum: a smaller sum the player names is what moves.
+            asked = front_proposal._coin_said(living_world.normalize_text(str(player_text or "")).split())
+            amount = min(asked, cap) if type(asked) is int and asked > 0 else cap
+            if persuade is not None and influence.coin_willingness(world, npc_id, cap) == "hesitant":
+                rolled = persuade(influence.dc(npc), influence.attitude(world, npc_id) == "friendly")
+                if rolled is not None:
+                    influence.note_coin_ask(world, npc_id)
+                    check = rolled.get("card")
+                if rolled is not None and rolled.get("success") is True:
+                    given = economic_actions.npc_gift(economic_actions.EconomicState(world=world, character=None),
+                                                      npc_id=npc_id, amount_cp=amount)
+                    if given.status == "applied":
+                        moved = given.net_debit_cp
+                        allowed.add(moved)
+                        note = world_threads.paid_line(moved, False)
+                        if proposal["amount_cp"] != moved:  # the reply handed another sum: the note alone tells it
+                            spoken = without_unbacked_money(spoken, allowed=allowed)
+            if persuade is not None and not moved:
+                # The reply was written before the roll: when no coin moved, its handing leaves and the engine says so.
+                spoken = _without_handing(spoken)
+                note = world_threads.job_lines("text", "coin_ask_refused") or None
     elif kind in {"give", "escort", "show", "meet", "help"} and not proposal["item"]:
         npc_statements.commit(world, npc, kind, proposal["terms"], spoken, str(player_text or ""))
-    return {"spoken": spoken, "note": note, "allowed": allowed, "moved": moved}
+    return {"spoken": spoken, "note": note, "allowed": allowed, "moved": moved, "check": check}
 
 
 def asks_about_work(player_text: Any, thread: dict[str, Any]) -> bool:

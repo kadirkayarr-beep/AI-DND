@@ -45,6 +45,7 @@ def apply_dynamic_evidence(world, before_world, action_result):
             continue
         if _fail_dead_rescue(world, quest):
             continue
+        # A heard (DISCOVERED) job keeps the steps done before acceptance; they count once it is accepted (D-203).
         for evidence in _evidence_from_turn(quest, world, before_world, action_result):
             note = _apply_one(quest, evidence)
             if note is not None:
@@ -312,6 +313,9 @@ def _close_if_resolved(world, quest):
     else:
         outcome = "success"
         state = "COMPLETED"
+    if state == "COMPLETED" and quest.get("status") == "DISCOVERED":
+        # Not accepted, so not done: the kept steps wait, and the first turn after acceptance closes it (D-203).
+        return
     _close(world, quest, state, outcome)
 
 

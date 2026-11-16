@@ -90,6 +90,31 @@ export function speciesEffectText(effect: Record<string, unknown>): string {
   return details.length ? `${trait}: ${details.join(' · ')}` : trait;
 }
 
+export type HitDiceOffer = { die: number; remaining: number; total: number };
+
+// D-154: the server opens a Hit Dice window when a Short Rest finishes and reports it in effects.hit_dice.
+export function readHitDiceOffer(effects: Record<string, unknown> | undefined): HitDiceOffer | null {
+  const raw = effects?.hit_dice as Record<string, unknown> | undefined;
+  if (!raw || typeof raw !== 'object') return null;
+  const { die, remaining, total, can_spend: canSpend } = raw;
+  if (canSpend !== true || typeof die !== 'number' || typeof remaining !== 'number' || typeof total !== 'number' || remaining <= 0) return null;
+  return { die, remaining, total };
+}
+
+// The server keeps the window open only in the second the rest finished, out of combat, with the same Hit Points; mirror that against the live state.
+export function hitDiceWindowStillOpen(offered: GameState | undefined, now: GameState): boolean {
+  if (!offered || now.combat.active || offered.combat.active) return false;
+  return offered.character.current_hp === now.character.current_hp
+    && JSON.stringify(offered.campaign_time) === JSON.stringify(now.campaign_time);
+}
+
+export function hitDiceReceiptText(effects: Record<string, unknown> | undefined): string | null {
+  const hitDice = effects?.hit_dice as Record<string, unknown> | undefined;
+  const roll = Array.isArray(effects?.dice) ? effects.dice[0] : undefined;
+  if (!hitDice || typeof roll !== 'number' || typeof effects?.healing !== 'number') return null;
+  return `d${hitDice.die} zarı: ${roll} · ${effects.healing} can yenilendi · ${hitDice.remaining} / ${hitDice.total} zar kaldı`;
+}
+
 export function SpeciesTraitControls({
   state,
   sessionId,
@@ -130,6 +155,7 @@ export function SpeciesTraitControls({
       ?.primary_action_available === true
   );
   const notBusy = !sending && !retryInput;
+  const hitDiceOffer = !inCombat && hitDiceWindowStillOpen(feedback?.state, state) ? readHitDiceOffer(feedback?.result.effects) : null;
   const send = (data: Omit<SpeciesTraitActionInput, 'action_id'> & { action_id?: string }) => {
     if (busy.current) return;
     // An unresolved play move in this campaign must be settled first; this path never overtakes it.
@@ -431,6 +457,17 @@ export function SpeciesTraitControls({
         >
           Kısa dinlen · 1 saat
         </button>
+        {hitDiceOffer && (
+          <button
+            type="button"
+            className="species-trait-button species-trait-button-secondary"
+            data-testid="species-action-spend-hit-die"
+            disabled={!notBusy || character.current_hp >= character.max_hp}
+            onClick={() => send({ action: 'spend_hit_die' })}
+          >
+            Can zarı harca · d{hitDiceOffer.die} · {hitDiceOffer.remaining} / {hitDiceOffer.total} zar
+          </button>
+        )}
         <button
           type="button"
           className="species-trait-button species-trait-button-secondary"
@@ -451,6 +488,7 @@ export function SpeciesTraitControls({
       {feedback && (
         <div className="species-trait-feedback" data-testid="species-action-result" aria-live="polite">
           <strong>{playerAbilityMessage(feedback.result.message)}</strong>
+          {hitDiceReceiptText(feedback.result.effects) && <div data-testid="species-action-hit-dice-receipt">{hitDiceReceiptText(feedback.result.effects)}</div>}
           {import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1' && Object.keys(feedback.result.effects).filter((key) => key !== 'time_result').length > 0 && (
             <details>
               <summary>Geliştirici tanılaması</summary>
