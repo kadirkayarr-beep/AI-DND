@@ -22,6 +22,14 @@ PLACE = {"proposal_key": "l1", "name": NAME, "type": "building",
          "description": "Kuyunun altında kalmış eski bir depo.", "aliases": []}
 
 
+class BaseName(unittest.TestCase):
+    def test_only_a_trailing_lowercase_case_suffix_goes(self):
+        for given, expected in (("Eski Mahzen'de", "Eski Mahzen"), ("Eski Mahzen’e", "Eski Mahzen"),
+                                ("D'Arcy Meyhanesi", "D'Arcy Meyhanesi"), ("Dun'Morogh", "Dun'Morogh"),
+                                ("D'Arcy Meyhanesi'ne", "D'Arcy Meyhanesi"), ("Eski Mahzen'de.", "Eski Mahzen.")):
+            self.assertEqual(heard_rumours.base_name(given), expected)
+
+
 class HeardInSpeech(unittest.TestCase):
     def world(self, location="city_a", *, said=SPOKEN):
         world = {
@@ -101,6 +109,23 @@ class FollowTheName(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([place["name"] for place in places], [NAME])
         self.assertEqual(places[0]["provenance"]["source"], "npc_rumour")
         self.assertEqual(self.world["location"], places[0]["id"])
+
+    async def test_an_apostrophe_name_said_by_an_npc_is_kept_whole(self):
+        await self.scene(said="Dun'Morogh Mahzeni diye bir yer varmış, öyle duydum.")
+        await self.go(TravellingClient({"create_locations": [{**PLACE, "name": "Dun'Morogh Mahzeni"}]},
+                                       reference="Dun'Morogh Mahzeni'ne"), "Dun'Morogh Mahzeni'ne gidiyorum.")
+        places = self.new_places()
+        self.assertEqual([place["name"] for place in places], ["Dun'Morogh Mahzeni"])
+        self.assertEqual(places[0]["provenance"]["source"], "npc_rumour")
+
+    async def test_open_street_proposal_keeps_the_apostrophe_name(self):
+        await self.scene(said="Hiçbir şey bilmiyorum.")
+        self.world["location"] = self.city
+        await self.go(TravellingClient({"create_locations": [{**PLACE, "name": "D'Arcy Meyhanesi"}]},
+                                       reference="D'Arcy Meyhanesi'ne"), "D'Arcy Meyhanesi'ne gidiyorum.")
+        places = self.new_places()
+        self.assertEqual([place["name"] for place in places], ["D'Arcy Meyhanesi"])
+        self.assertNotIn("provenance", places[0])
 
     async def test_name_nobody_said_keeps_todays_behaviour(self):
         await self.scene(said="Kuzeyde bir yer varmış, öyle duydum.")

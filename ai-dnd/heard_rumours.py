@@ -21,8 +21,8 @@ def lane_enabled() -> bool:
 
 
 def base_name(text: str) -> str:
-    """'Eski Mahzen'de' -> 'Eski Mahzen': the Turkish suffix after an apostrophe goes."""
-    cleaned = re.sub(r"['’]\w*", "", str(text))
+    """'Eski Mahzen'de' -> 'Eski Mahzen': a lowercase Turkish suffix ending a word after an apostrophe goes; D'Arcy stays."""
+    cleaned = re.sub(r"['’][a-zçğıöşü]{1,6}(?=[\s.,!?;:]|$)", "", str(text))
     return " ".join(cleaned.split())
 
 
