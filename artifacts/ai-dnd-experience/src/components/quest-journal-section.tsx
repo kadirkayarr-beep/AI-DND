@@ -140,6 +140,7 @@ export function QuestJournalSection({
               </div>
               <p className="data-row-desc">{item.summary}</p>
               {item.giver && <div className="data-row-meta">Görevi veren: {item.giver}</div>}
+              {typeof item.promised_cp === 'number' && <div className="data-row-meta">Vaat edilen ücret: {item.promised_cp} bakır</div>}
               <ul className="journal-objectives">
                 {item.objectives.map((line) => <li key={line}><span>{line}</span></li>)}
               </ul>
@@ -222,6 +223,7 @@ export function QuestJournalSection({
                 <article className="data-row journal-record" key={item.quest_id}>
                   <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Sürüyor</span></div>
                   <p className="data-row-desc">{item.summary}</p>
+                  {typeof item.promised_cp === 'number' && <div className="data-row-meta">Vaat edilen ücret: {item.promised_cp} bakır</div>}
                   <ul className="journal-objectives">
                     {item.objectives.map((line) => <li key={line}><span>{line}</span></li>)}
                   </ul>

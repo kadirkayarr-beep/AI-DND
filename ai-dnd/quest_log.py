@@ -60,6 +60,12 @@ def _result(thread: dict[str, Any] | None) -> str | None:
     return f"mühür kırıktı: {paid} bakır" if thread.get("seal_broken") is True else f"{paid} bakır ödendi"
 
 
+def _promised(thread: dict[str, Any] | None) -> int | None:
+    """The pay the job's own terms promise (D-232), shown on the offered and the running card; no terms, no figure."""
+    pay = ((thread or {}).get("terms") or {}).get("pay")
+    return pay if type(pay) is int else None
+
+
 def _objectives(quest: dict[str, Any], dynamic: bool) -> list[str]:
     if dynamic:
         return [objective["description"] for objective in quest.get("objectives", [])
@@ -90,6 +96,7 @@ def _records(world: dict[str, Any]) -> list[_Record]:
             "status": section or "other",
             "objectives": _objectives(quest, dynamic),
             "result": _result(thread) if section in {"done", "let_go"} else None,
+            "promised_cp": _promised(thread),
             "record_kind": quest.get("record_kind"),
             "raw_status": quest.get("status"),
         }
