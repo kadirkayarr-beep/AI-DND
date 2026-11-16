@@ -733,6 +733,7 @@ _SERVER = shop_trade.SERVER  # one rule for who serves
 
 
 def _search_body(session, text: str) -> dict[str, Any] | None:
+    import equipment_economy
     import fallen
     folded = fold(session, text)
     corpse = bool(_CORPSE.search(folded) and _CORPSE_VERB.search(folded))
@@ -752,14 +753,37 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     who = living_world.public_npc_name(body)
     if body.get("searched"):
         return _reply(session, f"{who} üzerinde alınacak başka bir şey kalmamış.", "loot", "already_searched", None, [])
+    taken = _strip_body(world, body)  # D-231: what they carried comes too, through the one owner of items
     body["searched"] = True
     wallets = session.world_state.setdefault("currency", {})
     coins = _purse_of(wallets, body)  # D-206: what the dead carried, and no more; the purse is emptied
     wallets[body["id"]] = 0
     wallets["player"] = wallets.get("player", 0) + coins
-    narration = (f"{who} üzerinde {coins} bakır buluyorsun; artık senin." if coins
+    found = ([f"{coins} bakır"] if coins else []) + [equipment_economy.label(item) for item in taken]
+    narration = (f"{who} üzerinde {' ve '.join(found)} buluyorsun; artık senin." if found
                  else f"{who} üzerinde işe yarar bir şey çıkmıyor.")
-    return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)
+    changes = ["currency"] + (["player.inventory"] if taken else [])
+    return _reply(session, narration, "loot", "searched", None, changes, coins_cp=coins)
+
+
+def _strip_body(world: dict[str, Any], body: dict[str, Any]) -> list[Any]:
+    """Every item a body carries moves to the player's bag, as a loot does (corpse source); armour and anything the
+    owner refuses stays on the body."""
+    import equipment_economy
+    if not body.get("inventory"):
+        return []
+    equipment_economy.materialize(world)
+    taken = []
+    for item in list(body["inventory"]):
+        try:
+            equipment_economy.move(world, item, body["inventory"], world.setdefault("inventory", []),
+                                   f"corpse:{body['id']}")
+        except equipment_economy.EquipmentError:
+            continue
+        if isinstance(body.get("item_consents"), dict):
+            body["item_consents"].pop(item.get("item_id"), None)  # a looted thing carries no leave to give it
+        taken.append(item)
+    return taken
 
 
 def coin_label_gp(name: object) -> int | None:

@@ -482,6 +482,42 @@ def npc_can_act(npc):
                 or npc.get("combat_status") in {"dead", "unconscious", "defeated"})
 
 
+# D-231: what a person of the town carries, by what they fight as (game.person_fight_kind). Catalog weapons only, so a
+# body gives real items priced by the catalog; no armour, since no transfer may move armour (is_armor_or_shield).
+PERSON_GEAR = {
+    "armed": ("Mızrak", "Kısa Kılıç", "Gürz", "El Baltası"),
+    "strong": ("Sopa", "Gürz", "El Baltası"),
+    "plain": ("Hançer", "Sopa"),
+}
+GEAR_WRITTEN = "npc_gear_written"  # a world without it is a save from before D-231
+
+
+def give_person_gear(world, npc):
+    """D-231: write the one weapon a person carries, fixed by the campaign seed and who they are (no die is rolled, so
+    every seeded roll after it stays the same). Only possessions never written get it: a shopkeeper's are the shop's
+    stock and a stat-block creature carries none."""
+    if "inventory" in npc or npc.get("role") == "Shopkeeper" or "statblock" in npc:
+        return
+    import hashlib
+    import game
+    import living_world
+    options = PERSON_GEAR[game.person_fight_kind(npc)]
+    digest = hashlib.sha256(f"{living_world._campaign_seed(world)}\x00{npc['id']}\x00gear".encode("utf-8")).digest()
+    name = options[int.from_bytes(digest[:4], "big") % len(options)]
+    npc["inventory"] = [{"item_id": f"gear_{npc['id']}", "name": name, "weapon_id": lookup(name)["weapon_id"]}]
+
+
+def give_old_save_gear(world):
+    """D-231: a save from before people carried gear writes it once, on its first load. A body already searched gets
+    none: its search took all it carried, and fresh gear on it would be a second loot of the same body."""
+    if world.get(GEAR_WRITTEN) is True:
+        return
+    for npc in world.get("npcs", []):
+        if isinstance(npc, dict) and isinstance(npc.get("id"), str) and not npc.get("searched"):
+            give_person_gear(world, npc)
+    world[GEAR_WRITTEN] = True
+
+
 def is_armor_or_shield(item):
     """Armor or a shield: its owner is the creation's AC fact, so no item transfer may move it."""
     from api.dnd_2024_rules import ARMOR_NAME_ALIASES

@@ -1913,6 +1913,7 @@ world_state = {
     "events": [],
     "flags": {**talk_mode.fresh(), "turn_index": 0, "pending_destination": None},
     "next_npc_number": 1,
+    equipment_economy.GEAR_WRITTEN: True,  # D-231: every person of a new world gets their gear when made
     "combat": {
         "schema_version": 3,
         "active": False,
@@ -2965,6 +2966,7 @@ def load_game(path):
         _repair_dilim1_fields(world_state)
         _repair_dilim2_fields(world_state)
         living_world.ensure_scene_state(world_state)
+        equipment_economy.give_old_save_gear(world_state)  # D-231: after the scene state, so the seed is read
         for field in ("name", "race", "class"):
             character[field] = str(player[field])
         character["species"] = str(player.get("species", player["race"]))
@@ -4167,6 +4169,7 @@ def create_npc_from_ai(proposal, request_key=None, *, allow_other_location=False
     local_dialogue.ensure_personal_profile(npc)
     npc["voice_trait"] = local_dialogue.voice_trait(world_state, npc)
     ensure_npc_combat_stats(npc)
+    equipment_economy.give_person_gear(world_state, npc)  # D-231
     world_state["npcs"].append(npc)
     return npc
 
