@@ -1,6 +1,6 @@
 # NPC dünya bilgisi ve anlatıcı: tasarım (D-249, D-250) — 2026-11-16
 
-Durum: taslak, Kadir onayı bekliyor. Üst belge: `MOTOR_HAKEM_MODEL_YAZAR_TASARIM_20261113.md` bölüm 4b (öneri şeritleri; onaylı, Kadir 2026-11-13). Bu belge o bölümdeki Ş4 "Söylenti ve iz" şeridini açar ve Ş6 "Yer" şeridini NPC konuşmasına genişletir.
+Durum: onaylı (Kadir, 2026-11-16). Üst belge: `MOTOR_HAKEM_MODEL_YAZAR_TASARIM_20261113.md` bölüm 4b (öneri şeritleri; onaylı, Kadir 2026-11-13). Bu belge o bölümdeki Ş4 "Söylenti ve iz" şeridini açar ve Ş6 "Yer" şeridini NPC konuşmasına genişletir.
 
 ## 1. Neden
 
