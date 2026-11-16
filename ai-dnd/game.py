@@ -8450,6 +8450,27 @@ def _strip_pictographs(text):
     return "".join(kept)
 
 
+# D-100: a Faerûn person never greets or swears by a real-world faith; these fixed phrases get this world's words.
+_REAL_WORLD_FAITH = (
+    (re.compile(r"\b(?:[Vv]e\s+)?[Aa]leyk[uü]m\s*(?:es)?\s*[Ss]elam\b"), "selam"),
+    (re.compile(r"\b[Ss]elam(?:[uü]n|[ıi]n)\s*[Aa]leyk[uü]m\b"), "selam"),
+    (re.compile(r"(?<!\w)[iİI]n[sş]allah\b"), "tanrılar izin verirse"),
+    (re.compile(r"\b[Mm]a[sş]allah\b"), "vay be"),
+    (re.compile(r"\b[Ee]lhamd[uü]lillah\b"), "tanrılara şükür"),
+    (re.compile(r"\bAllah'?a\s+emanet(?:\s+ol)?\b"), "Tymora yar olsun"),
+)
+
+
+def _without_real_world_faith(text):
+    """D-100: the fixed real-world faith phrases swapped for this world's, capitalised where a sentence starts."""
+    for pattern, words in _REAL_WORLD_FAITH:
+        def put(match, words=words, text=text):
+            before = text[:match.start()].rstrip()
+            return words[0].upper() + words[1:] if not before or before[-1] in ".!?…“\"" else words
+        text = pattern.sub(put, text)
+    return text
+
+
 def _clean_npc_speech(raw):
     """Return the NPC's own words from a model string, or "" when none survive.
 
@@ -8463,7 +8484,7 @@ def _clean_npc_speech(raw):
     cut = _SPEECH_CUT_RE.search(raw)
     text = raw[:cut.start()] if cut else raw
     text = _strip_pictographs(text)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = _without_real_world_faith(re.sub(r"\s+", " ", text).strip())
     if not text or _SPEECH_META_RE.search(text):
         return ""
     # A cut or the token limit can leave a half sentence: keep the whole
@@ -8621,10 +8642,13 @@ _SPEECH_ANSWER_RULES = (
     "Sıradan ifadeleri konuşmanın bağlamıyla anla; konu belliyse yeniden sordurma. "
     "Pazarlık ve yaratıcı denemelere alan aç, başarıyı garanti etme; yeni kilit, şart veya ücret "
     "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
-    "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir, "
-    "aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
+    "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir; ama kenti, "
+    "bir yeri ya da olan biteni anlatman istenirse iki ile dört cümleyle, bildiğin yerlerden ve duyduklarından somut "
+    "ayrıntı ver. Aynı kalıbı ve kapanış sorusunu alışkanlık yapma.Cevabın yanına bir insani dokunuş ekleyebilirsin: "
     "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan. "
-    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz.\n"
+    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler "
+    "(Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet) kullanılmaz; yerine “Selam”, “Tymora yar olsun”, "
+    "“Tanrılar korusun” gibi sözler söylenir.\n"
 )
 
 
@@ -15704,7 +15728,8 @@ NARRATOR_VOICE = (
     "(Kapıyı itiyorsun; menteşe gıcırdıyor). -dı, -mıştı, -yordu yazma; yalnız bu turdan önce "
     "olan biten için kullanılır. Anlatıya oyuncu kelimesini yazma, ağzından konuşma; adına söz, his, "
     "karar, eylem uydurma. Atmosfer girişlerini tekrarlama. NPC hitabı serbesttir. "
-    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz."
+    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler "
+    "(Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet) kullanılmaz."
 )
 
 system_prompt = """
