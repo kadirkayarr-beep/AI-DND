@@ -220,6 +220,23 @@ class DevelopmentToolingTests(unittest.TestCase):
         self.assertEqual(timeout["status"], "FAIL")
         self.assertTrue(timeout["timed_out"])
 
+    def test_failed_frontend_command_summary_has_output_tail(self):
+        code = "import sys;print('noise');print('src/App.tsx(3,1): error TS2322');sys.exit(2)"
+        with (self.repo / "command.log").open("w") as log:
+            print("earlier command output that must not leak", file=log)
+            row = owner.run_command("Frontend typecheck", [sys.executable, "-c", code],
+                                    self.repo, 10, log)
+        self.assertEqual(row["status"], "FAIL")
+        text = owner.failure_summary([row], self.repo)
+        self.assertIn("`Frontend typecheck` FAIL", text)
+        self.assertIn("error TS2322", text)
+        self.assertNotIn("must not leak", text)
+
+    def test_passed_command_has_no_output_tail(self):
+        with (self.repo / "command.log").open("w") as log:
+            row = owner.run_command("ok", [sys.executable, "-c", "print('x')"], self.repo, 10, log)
+        self.assertNotIn("output_tail", row)
+
     def test_required_not_run_unverified_never_pass(self):
         for status in ("NOT RUN", "UNVERIFIED", "FAIL"):
             self.assertEqual(owner.exit_code([owner.check("required", status, "fixture")]), 1)
@@ -279,8 +296,25 @@ class DevelopmentToolingTests(unittest.TestCase):
         # D-211 review: PR #58's Undo/surrender regression reached main green because CI runs only this list.
         selectors = owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"]
         for module in ("api.tests.test_dilim4c_surrender_spells_http", "api.tests.test_d115_undone_fight_question",
-                       "api.tests.test_d211_undone_fight_answer"):
+                       "api.tests.test_d211_undone_fight_answer",
+                       "api.tests.test_d109_timing"):  # D-109: the crime/threat question, the same way
             self.assertIn(module, selectors)
+
+    def test_heard_job_evidence_test_is_in_the_gate(self):
+        # D-203 (Kadir kararı 2026-11-15): evidence kept on a heard job, saved, counted on acceptance, consistent with Undo.
+        selectors = owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"]
+        self.assertIn("api.tests.test_d203_heard_job_evidence", selectors)
+
+
+    def test_coin_ask_roll_tests_are_in_the_gate(self):
+        # D-166: a coin ask without its Persuasion roll, or paying the model's figure, must not reach main green.
+        self.assertIn("api.tests.test_coin_ask_persuasion",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
+
+    def test_old_save_spellbook_choice_tests_are_in_the_gate(self):
+        # D-039: the one-time spellbook choice touches the save; its regression runs in the CI list.
+        self.assertIn("api.tests.test_d039_spellbook_choice",
+                      owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
 
     def test_the_unrecorded_xp_line_test_is_in_the_gate(self):
         # D-061: a forfeited award's line and the rule that an unrelated error is raised are guarded in CI.
