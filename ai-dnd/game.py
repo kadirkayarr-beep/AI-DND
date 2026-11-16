@@ -9062,7 +9062,7 @@ def _show_coin_roll(action_result, card):
                              coin_ask_roll=True)
 
 
-def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None, persuade=None):
+def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None, persuade=None, stage=None):
     """What the reply proposed reaches the record if it checks out. A failure here costs the turn nothing."""
     import town_knowledge
     session = _session()
@@ -9077,14 +9077,14 @@ def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=N
             world, npc, player_input, raw, spoken,
             accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
             moved=(gate or {}).get("paid_cp") or 0, threat=threat, purchase=getattr(session, "_purchase_said", False),
-            persuade=persuade,
+            persuade=persuade, stage=stage,
         )
         import pocket
         settled["spoken"], settled["unbacked"] = pocket.settle_claim(session, raw, settled["spoken"], npc)
         return settled
     except Exception:
         town_knowledge.log_failure()
-        return {"spoken": spoken, "note": None, "allowed": set(), "moved": 0}
+        return {"spoken": spoken, "note": None, "allowed": set(), "moved": 0, "stage": stage}
 
 
 def _with_only_backed_money(speech, settled):
@@ -23545,9 +23545,10 @@ def _run_player_turn_internal(
                                 world_state, npc_target, player_input, cleaned_stage, stage=True)
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
-                        threat=raw_intent.get("threat"), persuade=_coin_persuasion(action_result),
+                        threat=raw_intent.get("threat"), persuade=_coin_persuasion(action_result), stage=cleaned_stage,
                     )
                     cleaned_spoken = settled_money["spoken"]
+                    cleaned_stage = settled_money["stage"]  # D-264: a coin ask cleans the gesture as it cleans the line
                     if getattr(_session(), "_empty_handed", False):
                         cleaned_stage = ""  # nothing was held out, so no gesture takes it
                     elif settled_money.get("unbacked"):

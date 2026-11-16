@@ -531,11 +531,17 @@ def _figure_before(words: list[str], at: int) -> int | None:
     return total or None
 
 
+def _names_coin(words: list[str], table: dict[str, frozenset[str]]) -> bool:
+    """D-254: 'masanın altına' is no gold, as in `pocket`; 'on altına' is."""
+    import pocket
+    return any(word.startswith(tuple(table["coin"])) and not pocket.under_it(words, at) for at, word in enumerate(words))
+
+
 def _unbacked(sentence: str, table: dict[str, frozenset[str]], allowed: set[int], moved: bool) -> bool:
     """The sentence promises money nothing stands behind, or hands over coin that did not move."""
     words = world_threads._folded(sentence).split()
-    has_coin = any(word.startswith(tuple(table["coin"])) for word in words)
-    if has_coin and not moved and words and (words[0] in table["hands_first"] or set(words) & table["hands_any"]):
+    has_coin = _names_coin(words, table)
+    if has_coin and not moved and _hands_money(words, table):
         return True
     if not set(words) & table["promises"]:
         return False
@@ -554,16 +560,53 @@ def without_unbacked_money(text: Any, *, allowed: set[int] | None = None, moved:
     return " ".join(kept)
 
 
+# D-266: after 'al/tut/işte/buyur', only words that go with handing ('Al bakalım', 'Al, senin olsun', 'Tut şunu').
+_HANDING_REST = frozenset({"bakalim", "sunu", "bunu", "sunlari", "bunlari", "hadi", "haydi", "senin", "sizin", "olsun",
+                           "sana", "size", "iste", "al", "alin", "tut", "buyur", "buyurun"})
+_SAID_NO = frozenset({"yok", "degil", "asla", "hayir"})
+
+
+def _hands_money(words: list[str], table: dict[str, frozenset[str]]) -> bool:
+    """A handing verb ('uzatıyorum', 'sayıyor'); or an opener ('al', 'tut', 'işte') that names a sum, names coin or the
+    purse without saying no ('İşte bu yüzden sana para vermem' is a refusal), or stands with handing words only.
+    'Tut dilini' and 'Al başını git' hand nothing."""
+    if not words:
+        return False
+    if set(words) & table["hands_any"]:
+        return True
+    if words[0] not in table["hands_first"]:
+        return False
+    import front_proposal
+    import pocket
+    if front_proposal._coin_said(words) is not None:
+        return True  # a sum named is never let through, whatever else the sentence says
+    if _names_coin(words, table) or any(word.startswith("kese") for word in words):
+        return not any(word in _SAID_NO or pocket.said_not_done(word) for word in words)
+    return all(word in _HANDING_REST for word in words[1:])
+
+
 def _without_handing(text: Any) -> Any:
-    """A coin ask that moved nothing (D-166): the sentences that hand anything over leave the line ('Al bakalım')."""
+    """A coin ask that moved nothing (D-166): the sentences that hand money over leave the line ('Al bakalım')."""
     table = _money_words()
     if not isinstance(text, str) or not text.strip() or not table:
         return text
+    return " ".join(part for part in _SENTENCE_END.split(text.strip())
+                    if not _hands_money(world_threads._folded(part).split(), table))
 
-    def hands(sentence: str) -> bool:
+
+def _without_other_sum(text: Any, moved: int) -> Any:
+    """D-267: after a payment, a sentence that hands a sum other than the one that moved leaves the line; the sum
+    the line speaks decides, not the model's proposed figure. A sentence that hands the moved sum stays."""
+    table = _money_words()
+    if not isinstance(text, str) or not text.strip() or not table:
+        return text
+    import front_proposal
+
+    def other(sentence: str) -> bool:
         words = world_threads._folded(sentence).split()
-        return bool(words) and (words[0] in table["hands_first"] or bool(set(words) & table["hands_any"]))
-    return " ".join(part for part in _SENTENCE_END.split(text.strip()) if not hands(part))
+        said = front_proposal._coin_said(words)
+        return said is not None and said != moved and _hands_money(words, table)
+    return " ".join(part for part in _SENTENCE_END.split(text.strip()) if not other(part))
 
 
 def money_backed_by(world: dict[str, Any], npc: Any) -> set[int]:
@@ -618,7 +661,7 @@ def _settle_offer(world, npc, proposal, spoken, *, allowed):
 
 def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, raw: Any, spoken: str,
                  *, accept_job: Any, moved: int = 0, threat: Any = None, purchase: bool = False,
-                 persuade: Any = None) -> dict[str, Any]:
+                 persuade: Any = None, stage: Any = None) -> dict[str, Any]:
     """Python's half of 'the model proposes': commit what checks out.
 
     moved: copper a gate already paid this turn. The result says what money stands behind
@@ -626,6 +669,7 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
     purchase: the player's line was read as buying; a figure in the reply is a price then, never coin for the player.
     persuade: (dc, advantage) -> {"success", "card"?} or None, the Persuasion roll a coin ask takes (D-166); without
     it no coin is given. "check" in the result is the card of a fresh roll, for the turn to show.
+    stage: the reply's stage direction; a coin ask cleans it as it cleans the spoken line (D-264), "stage" in the result.
     """
     proposal = read_proposal(raw)
     kind = proposal["kind"] if proposal else None
@@ -671,7 +715,8 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
             cap = economic_actions.npc_gift_cap(world, npc_id)
             # The cap is a ceiling, not the sum: a smaller sum the player names is what moves.
             asked = front_proposal._coin_said(living_world.normalize_text(str(player_text or "")).split())
-            amount = min(asked, cap) if type(asked) is int and asked > 0 else cap
+            # D-268: a sum under one copper ('yarım bakır') asks for the smallest coin, never the whole cap.
+            amount = min(max(asked, 1), cap) if type(asked) is int else cap
             if persuade is not None and influence.coin_willingness(world, npc_id, cap) == "hesitant":
                 rolled = persuade(influence.dc(npc), influence.attitude(world, npc_id) == "friendly")
                 if rolled is not None:
@@ -684,15 +729,17 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
                         moved = given.net_debit_cp
                         allowed.add(moved)
                         note = world_threads.paid_line(moved, False)
-                        if proposal["amount_cp"] != moved:  # the reply handed another sum: the note alone tells it
-                            spoken = without_unbacked_money(spoken, allowed=allowed)
+                        # A line that hands another sum leaves; the note alone tells it (D-267: by the spoken sum).
+                        spoken = _without_other_sum(spoken, moved)
+                        stage = _without_other_sum(stage, moved)
             if persuade is not None and not moved:
                 # The reply was written before the roll: when no coin moved, its handing leaves and the engine says so.
                 spoken = _without_handing(spoken)
+                stage = _without_handing(stage)
                 note = world_threads.job_lines("text", "coin_ask_refused") or None
     elif kind in {"give", "escort", "show", "meet", "help"} and not proposal["item"]:
         npc_statements.commit(world, npc, kind, proposal["terms"], spoken, str(player_text or ""))
-    return {"spoken": spoken, "note": note, "allowed": allowed, "moved": moved, "check": check}
+    return {"spoken": spoken, "note": note, "allowed": allowed, "moved": moved, "check": check, "stage": stage}
 
 
 def asks_about_work(player_text: Any, thread: dict[str, Any]) -> bool:
