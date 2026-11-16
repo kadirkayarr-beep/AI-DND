@@ -21,6 +21,7 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
+from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.speech_double import routed_chat, speech_packet
 from api.tests.test_world_threads import city
@@ -195,6 +196,30 @@ class MentionOverHttp(MentionTurnFixture):
         response, _, _ = await self.say(None)
         self.assertIn(SPOKEN, response.json()["narration"])
         self.assertEqual(self.world["heard_rumours"], [])
+
+
+class AskedAboutHerOwnRumour(MentionTurnFixture):
+    async def test_a_person_asked_about_her_own_rumour_does_not_deny_it(self):
+        # D-249 F2: "X hakkında ne biliyorsun?" with no backing evidence goes to her own speech, not a bare "Hiç duymadım".
+        await self.say({**MENTION, "about": "Çizelgeden bir isim silinmiş"})
+        entry = self.world["heard_rumours"][0]
+        self.assertEqual(entry["said_by"], "npc_t2_edric")
+        self.assertIn("Çizelgeden bir isim silinmiş", entry["text"])
+        reply = "Çizelgeden bir isim silinmiş, dedim ya."
+        client = speech.ScriptedNpcSpeechClient(
+            reply, operation="information",
+            conversation={"addressee_id": "npc_t2_edric", "subject_phrase": "Eski Mahzen",
+                          "subject_role": "world_entity", "meaning": "lore", "topic_relation": "new",
+                          "candidate_evidence_ids": []})
+        body = {"message": "Eski Mahzen hakkında ne biliyorsun?", "action_id": str(uuid.uuid4()),
+                "target_id": "npc_t2_edric"}
+        with patch.object(self.app.state.ollama_adapter, "_client", client):
+            response = await self.http.post(f"/api/game/sessions/{self.session_id}/turn", json=body)
+        self.assertEqual(response.status_code, 200, response.text)
+        text = response.json()["narration"]
+        self.assertNotIn("Hiç duymadım", text)
+        self.assertIn(reply, text)
+        self.assertLessEqual(client.chat_calls, 2)
 
 
 class MentionOffline(unittest.TestCase):

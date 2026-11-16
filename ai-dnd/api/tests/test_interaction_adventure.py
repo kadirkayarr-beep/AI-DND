@@ -300,6 +300,22 @@ class InteractionContracts(unittest.TestCase):
         self.assertTrue(adventure.safe_narration(unknown["direct_response"]))
         self.assertEqual(self.w["player_knowledge"], [])
 
+    def test_information_without_evidence_is_unbacked(self):
+        # D-249 F2: nothing backs the answer, so it is not final; the person answers in her own words.
+        result = self.resolve("information", "Bu sembolü biliyor musun?")
+        self.assertEqual(result["status"], "unbacked")
+        self.assertFalse(result["success"])
+
+    def test_information_with_evidence_is_still_answered(self):
+        state = adventure.State().model_dump()
+        state["perspectives"]["gromm"] = [
+            adventure.PerspectiveEntry(entry_id="heard", kind="rumor",
+                text="Mahzende bir sandık varmış.", source_id="profile:3").model_dump()]
+        self.w[adventure.KEY] = state
+        result = self.resolve("information", "Ne biliyorsun?", evidence_id="heard")
+        self.assertEqual(result["status"], "answered")
+        self.assertIn("Duyduğuma göre", result["direct_response"])
+
     def test_social_proposal_cannot_set_roll_consent_or_impossible_outcome(self):
         raw = envelope("negotiate", "Her şeyi bana ver.")
         raw.update(roll=20, npc_consent=True)

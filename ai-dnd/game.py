@@ -22791,6 +22791,8 @@ def _run_player_turn_internal(
         if action_result.get("status") == "proposal_rejected" and _has_spoken_to_player(npc_target):
             # Someone mid-conversation answers for themselves; a stock "I know nothing" disowns their own words.
             answer_in_person = True
+        if action_result.get("status") == "unbacked" and isinstance(npc_target, dict):
+            answer_in_person = True  # D-249 F2: nothing backs the answer, so it is theirs to give, not a stock line
         if (action_result.get("status") in {"proposal_rejected", "no_effect"} and isinstance(npc_target, dict)
                 and (getattr(_session(), "_front_read", None) or {}).get("kind") == "speak_to"):
             answer_in_person = True  # the reading said this is for that person: a proposal with nothing in it changes no ear
@@ -23738,13 +23740,13 @@ def _run_player_turn_internal(
                 or raw_intent.get("lore_claims")
                 or not interaction_adventure.safe_narration(text)
             ):
-                text = (
-                    historical_claim_denial(npc_target, player_input)
-                    if experimental_unverified_claim
-                    else interaction_adventure.immersive_unknown(
-                        npc_target, player_input
-                    )
-                )
+                if experimental_unverified_claim:
+                    text = historical_claim_denial(npc_target, player_input)
+                else:
+                    # D-249 F1: the person passes on a lead (job, town, place to ask) before any bare "I don't know".
+                    text = _person_fallback(world_state, npc_target, player_input)
+                    if text != interaction_adventure.immersive_unknown(npc_target, player_input):
+                        python_town_response = text
 
             text_before_finalize = text
             text = finalize_narration(
@@ -23773,6 +23775,13 @@ def _run_player_turn_internal(
             if stock_swapped:
                 # A clear line never earns "say it again": the person answers from what Python has for them.
                 text = _person_fallback(world_state, npc_target, player_input)
+            elif (experimental_npc_dialogue and final_safety_handling == "python_fallback"
+                    and not experimental_unverified_claim and action_result.get("action") != "skill_check"):
+                # D-249 F1: a speech the safety check rejected is replaced by what the person has to say from Python
+                # (job, town lead, place to ask), never by the stock "I don't know" the fallback wrote.
+                text = _person_fallback(world_state, npc_target, player_input)
+                if text != interaction_adventure.immersive_unknown(npc_target, player_input):
+                    python_town_response = text
             speech_checks = None
             if experimental_npc_dialogue:
                 # D-252: the names of the checks that changed or replaced this reply, for the route log. Never words.
@@ -24010,7 +24019,8 @@ def _run_player_turn_internal(
             action_result = interaction_adventure.resolve(
                 _session(), player_input, raw_intent["interaction"], npc_target,
             )
-            if action_result["status"] != "proposal_rejected":
+            if action_result["status"] != "proposal_rejected" and not (
+                    action_result["status"] == "unbacked" and isinstance(npc_target, dict)):
                 return finish_turn(
                     action_result, action_result["direct_response"],
                     is_final=action_result["status"] in {"no_effect", "answered", "blocked"},
