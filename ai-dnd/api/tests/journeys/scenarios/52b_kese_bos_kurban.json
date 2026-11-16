@@ -2,7 +2,8 @@
   "id": "52b_kese_bos_kurban",
   "title": "Para yoktan var olmaz (D-170; SIFIR TOLERANS): kesesi boş birinden başarılı çalma oyuncuya para yazmaz; kurbanın kesesi eksiye düşmez",
   "source_items": [
-    170
+    170,
+    230
   ],
   "zero_tolerance": true,
   "setup": {
@@ -48,7 +49,11 @@
           "kavsim": 0
         },
         "yasak_metin": [
-          "bakır daha var"
+          "bakır daha var",
+          "para eden bir şey"
+        ],
+        "gerekli_metin": [
+          "kesesi boş"
         ]
       }
     }

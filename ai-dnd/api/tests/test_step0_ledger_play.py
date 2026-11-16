@@ -64,6 +64,7 @@ class CoinLedgerPlay(ThreePlaysTests):
         self.log = []          # (step, label, player, npcs, sinks, total, expected_total, expected_purse)
         self.expected_purse = START_PURSE
         self.minted = 0        # wage paid from the day's pool: the one declared source of new coin
+        self.brought = 0       # D-207: the written purses of people the town makes during the play
         self.step_no = 0
 
     # --- the world --------------------------------------------------------------------------------------------
@@ -99,6 +100,7 @@ class CoinLedgerPlay(ThreePlaysTests):
         self.session.character.update(current_hp=5)
         self.save()
         self.start_total = self.coin_total()
+        self.purses_met = set(world["currency"])  # D-207: a person met later brings their written purse
         self.assertEqual(coin_in_labels(self.w), 0)
 
     def save(self):
@@ -132,13 +134,24 @@ class CoinLedgerPlay(ThreePlaysTests):
         _sid, record, *_ = fresh.resume_campaign(self.campaign_id, principal=TEST_PLAYER)
         return record.game_session.world_state
 
+    def purses_brought(self):
+        """D-207: a person the town makes during the play arrives with the purse written from the campaign seed and
+        their id: that exact amount is declared coin, and a wallet with no person behind it is not."""
+        brought = 0
+        for owner in set(self.w.get("currency") or {}) - self.purses_met - {"player"}:
+            person = self.npc(owner)
+            brought += equipment_economy.person_purse(self.w, person)
+            self.purses_met.add(owner)
+        return brought
+
     def books(self, label, paid=0):
         """Checks the four promises after one action; `paid` is what this action took from the purse (+ gives)."""
         self.step_no += 1
         self.expected_purse -= paid
         world = self.w
         total = self.coin_total()
-        expected_total = self.start_total + self.minted
+        self.brought += self.purses_brought()
+        expected_total = self.start_total + self.minted + self.brought
         self.log.append((self.step_no, label, self.purse(), self.npc_coin(), self.sinks(), total, expected_total,
                          self.expected_purse))
         where = f"step {self.step_no} ({label})"
@@ -419,4 +432,4 @@ class CoinLedgerPlay(ThreePlaysTests):
         self.books("çantaya bak")
         self.assertGreaterEqual(self.step_no, 30)
         self.assertEqual(self.purse(), START_PURSE - 4 - 55 - 4 - 10 - 30 + 40)
-        self.assertEqual(json.loads(json.dumps(self.log, ensure_ascii=False))[-1][5], self.start_total + 40)
+        self.assertEqual(json.loads(json.dumps(self.log, ensure_ascii=False))[-1][5], self.start_total + 40 + self.brought)
