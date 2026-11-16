@@ -10039,8 +10039,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                     ({**_EXPERIMENTAL_NPC_SPEECH_OPTIONS, "num_predict": 640} if price_targets else _EXPERIMENTAL_NPC_SPEECH_OPTIONS) if experimental_npc_dialogue
                     # A normal proposal is under 150 tokens; anything far beyond it is a loop.
                     else {"temperature": 0.0,
-                          "num_predict": (700 if interaction_context is not None and front_list is not None
-                                          else 400 if interaction_context is not None or front_list is not None or price_targets
+                          # D-240: the front reading alone is cut at 400 (4 turns of 397-523 output tokens), so it gets the full 700
+                          "num_predict": (700 if front_list is not None
+                                          else 400 if interaction_context is not None or price_targets
                                           else 120)}
                 ),
             )
@@ -10049,6 +10050,8 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             return data if isinstance(data, dict) else {"intent": "unknown"}
         if isinstance(data, dict) and not ollama_reply_was_cut(response):
             return data
+        from api import model_phase
+        model_phase.note_cause("local", "cut" if ollama_reply_was_cut(response) else "not_json")  # D-240: the failed check
         if strict:
             raise IntentInfrastructureError("intent_json_invalid")
         return {"intent": "unknown", "classifier_unusable": True}
@@ -19301,6 +19304,40 @@ def _addressed_in(player_input, *, or_the_talk=True):
     return found.get("npc") or (_active_interlocutor() if or_the_talk else None)
 
 
+def _front_recovery(player_input, listed):
+    """D-240: the front reading came back unusable. Two lines need no model: a plain yes to the one offer that is open
+    (the offer gate then checks it again against the line), and a plain walk out of town. Both go the way a read line
+    would; anything less clear stays with the old chain."""
+    import front_proposal
+    import grounded_action
+    import world_threads
+    session = _session()
+    world = session.world_state
+    if getattr(session, "_attack_asked", False) or getattr(session, "_heavy_asked", None):
+        return None  # a question put to the player is waiting for its answer
+    offers = listed["offers"]
+    offer = next((row for row in offers if row["person_id"] == listed["speaking_with"]), None) or (
+        offers[0] if len(offers) == 1 else None)
+    if offer is not None:
+        said = living_world.normalize_text(player_input).split()
+        named_elsewhere = any(
+            len(part) >= 3 and any(word.startswith(part[:4]) for word in said)
+            for row in offers if row is not offer
+            for part in (*living_world.normalize_text(next((p["name"] for p in listed["people"] if p["id"] == row["person_id"]), "")).split(),
+                         *living_world.normalize_text(row.get("item") or "").split()))
+        if named_elsewhere:
+            return None  # the line names another open offer's owner or thing: not for the one spoken to
+        person = next((npc for npc in active_npcs() if npc.get("id") == offer["person_id"]), None)
+        thread = world_threads.by_id(world, offer["id"])
+        if (person is not None and thread is not None and thread.get("status") == "offered"
+                and world_threads.says_yes_in_a_longer_line(player_input, person, thread)):
+            return {"kind": "offer_answer", "id": offer["id"], "person_id": offer["person_id"], "answer": "accept",
+                    "recovered": True}
+    if grounded_action.walks_out_of_town(session, player_input):
+        return {"kind": "go_to", "id": front_proposal.WAY_OUT, "inside": False}
+    return None
+
+
 def _front_step(player_input, target_id, interaction_mode, combat_action, check_feature):
     """Roadmap step 5: the model reads a free line once; Python checks its ids. None leaves the old chain."""
     import front_proposal
@@ -19368,8 +19405,15 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     session._front_reply = held
     if "front" not in reply:
         answered = len(reply) > 1  # a dead provider leaves only the bare unknown intent
-        front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable")
-                            else "fallback:no_front" if answered else "fallback:failed", reached=answered)
+        label = ("fallback:unusable" if reply.get("classifier_unusable")
+                 else "fallback:no_front" if answered else "fallback:failed")
+        recovered = (None if fighting or typed_economic or label == "fallback:no_front"
+                     else _front_recovery(player_input, listed))
+        if recovered is not None:
+            front_proposal.note(session, f"{label}:{recovered['kind']}", reached=answered)
+            recovered["recovered_from"] = label  # the gate may still overrule: the label then goes back
+            return recovered
+        front_proposal.note(session, label, reached=answered)
         return None
     raw_front = reply.get("front")
     session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
@@ -20402,6 +20446,10 @@ def _dispatch_player_turn(
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
                     else _front_work(front, player_input) if front is not None and front["kind"] == "work"
                     else _thread_gate(player_input, target_id, interaction_mode, front=front))
+        if front is not None and front.get("recovered_from") and front["kind"] == "offer_answer" and not (
+                gate is not None and gate.get("decision") == "accepted"):
+            import front_proposal
+            front_proposal.note(_session(), front["recovered_from"])  # the gate did not take the yes: no recovery to claim
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]
         if gate is not None and gate.get("paid_line"):
