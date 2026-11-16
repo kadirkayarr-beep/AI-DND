@@ -29,6 +29,12 @@ class APersonsPurse(unittest.TestCase):
         bold_acts._purse_of(wallets, {"id": "kavsim"})
         self.assertEqual(wallets, {"player": 40})
 
+    def test_every_empty_purse_line_says_the_purse_is_empty(self):
+        # D-230: a lifted purse with no coin says so; journey 52b pins the turn route with one seeded line
+        for line in bold_acts._PURSE_EMPTY:
+            self.assertIn("kesesi boş", line.format(n="Kavşim"))
+            self.assertIn("Kavşim", line.format(n="Kavşim"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -81,6 +81,11 @@ _NOTHING_THERE = (
     "Elini attığın yerden işe yarar bir şey çıkmıyor; elin boş dönüyor.",
     "Yokluyorsun ama para eden bir şey bulamıyorsun.",
 )
+_PURSE_EMPTY = (  # D-230: a lifted purse with no coin in it says so
+    "Parmakların keseye ulaşıyor ama {n} kesesi boş dolaşıyor; tek bakır yok.",
+    "Keseyi fark ettirmeden yokluyorsun; kesesi boş, {n} üzerinde tek bakır taşımıyor.",
+    "Elin keseye giriyor ama kesesi boş: {n} bugün parasız.",
+)
 
 
 def fold(session, text: str) -> str:
@@ -657,8 +662,9 @@ def _steal(session, text: str) -> dict[str, Any]:
         if victim is not None:  # D-170: the coin comes out of their purse; none is made
             purse = _purse_of(wallets, victim)
             coins = min(coins, purse)
-            if coins <= 0:
-                return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+            if coins <= 0:  # D-230: same draw as before, so the seeded rolls after it stay the same
+                line = session.rng.choice(_PURSE_EMPTY).format(n=living_world.public_npc_name(victim))
+                return _reply(session, line, "theft", "empty", check, [])
             wallets[victim["id"]] = purse - coins
         wallets["player"] = wallets.get("player", 0) + coins
         if victim is not None:
