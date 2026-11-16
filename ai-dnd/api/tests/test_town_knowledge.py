@@ -612,3 +612,26 @@ class WiderKnowledge(unittest.TestCase):
             known = town_knowledge.public_knowledge(world, person(f"npc_{index}", "Barmen"))
             self.assertLessEqual(len(known), 10)
             self.assertLessEqual(sum(len(i["text"].encode("utf-8")) for i in known), 1500)
+
+    def test_speaker_keeps_own_rumour_when_the_cap_bites(self):
+        # (a) a trouble rumour takes one slot: the own heard one must beat another heard one; (b) 3 heard, own ranks last
+        percent = lambda npc_id, kind, key: 0  # noqa: E731
+        npc = person("npc_s", "Kent sakini")
+        for index in range(40):
+            world, _ = self.world_with_place(f"cap-speaker-{index}")
+            if town_rumours.rumour_for(world, npc, "city", percent, set()):
+                break
+        else:
+            self.fail("no seed gives a trouble rumour")
+        self.heard(world, 2, speaker="someone")
+        world["heard_rumours"][1]["said_by"] = "npc_s"  # rumour_002 is the speaker's and ranks last
+        items = town_rumours.rumour_for(world, npc, "city",
+                                        lambda n, k, key: 99 if (k == "rumour_order" and key == "rumour_002") else 0, set())
+        self.assertEqual([i["thread_id"] is not None for i in items], [True, False])
+        self.assertEqual(items[1]["text"], world["heard_rumours"][1]["text"])
+        world, _ = self.world_with_place()
+        self.heard(world, 3, speaker="someone")
+        world["heard_rumours"][2]["said_by"] = "npc_s"
+        texts = [i["text"] for i in town_rumours.rumour_for(
+            world, npc, "city", lambda n, k, key: 99 if (k == "rumour_order" and key == "rumour_003") else 0, set())]
+        self.assertIn(world["heard_rumours"][2]["text"], texts)

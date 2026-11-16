@@ -42,7 +42,7 @@ def _heard(world: dict[str, Any], npc: dict[str, Any], settlement_id: str, perce
             continue
         if entry.get("said_by") == npc.get("id") or percent(npc.get("id"), "rumour", entry["id"]) < HEARD_PERCENT:
             found.append(entry)
-    found.sort(key=lambda entry: percent(npc.get("id"), "rumour_order", entry["id"]))
+    found.sort(key=lambda entry: (entry.get("said_by") != npc.get("id"), percent(npc.get("id"), "rumour_order", entry["id"])))  # own words first
     return [{"kind": "rumour", "text": entry["text"], "location_id": entry.get("place_id"), "thread_id": None} for entry in found]
 
 
