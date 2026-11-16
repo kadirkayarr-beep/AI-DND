@@ -501,9 +501,14 @@ def after_event(session):
     event = session.world_state["combat"].get("monster_event", {})
     source = "legendary" if event.get("kind") == "after_turn" else "reaction"
     outcomes = []
+    here = session.world_state.get("location")
+    local = {n.get("id") for n in session.world_state.get("npcs", [])
+             if isinstance(n, dict) and n.get("location") == here}
     for actor in list(session.world_state["combat"]["participants"]):
         if actor == "player":
             continue
+        if actor not in local:
+            continue  # carried off the scene mid-fight (record 'inactive'): no reaction, no legendary action (D-216)
         if source == "legendary" and actor == event.get("actor_id"):
             continue
         if not any(c["action_source"] == source for c in caps.capabilities(session, actor)):
