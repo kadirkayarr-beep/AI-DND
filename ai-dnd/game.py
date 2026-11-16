@@ -23506,7 +23506,24 @@ def _run_player_turn_internal(
             if stock_swapped:
                 # A clear line never earns "say it again": the person answers from what Python has for them.
                 text = _person_fallback(world_state, npc_target, player_input)
+            speech_checks = None
             if experimental_npc_dialogue:
+                # D-252: the names of the checks that changed or replaced this reply, for the route log. Never words.
+                kept = attributed_speech["spoken_text"].strip() if attributed_speech else ""
+                said = raw_spoken.strip() if isinstance(raw_spoken, str) else ""
+                speech_checks = [name for name, fired in (
+                    ("invalid_or_empty", invalid_or_empty),
+                    ("spoken_trimmed", attributed_speech is not None and kept != said),
+                    ("history_echo", unverified_history_echo),
+                    ("world_updates", bool(raw_intent.get("world_updates"))),
+                    ("lore_claims", bool(raw_intent.get("lore_claims"))),
+                    ("unsafe", not invalid_or_empty and not interaction_adventure.safe_narration(text_before_finalize)),
+                    ("python_town_lead", python_town_response is not None),
+                    ("finalize_changed", text != text_before_finalize and not stock_swapped),
+                    ("stock_swapped", stock_swapped),
+                ) if fired]
+                if final_safety_reason_code:
+                    speech_checks.append(f"safety:{str(final_safety_reason_code)[:40]}")
                 _speech_debug_trail({
                     "player": player_input,
                     "npc_id": npc_target.get("id"),
@@ -23548,6 +23565,9 @@ def _run_player_turn_internal(
                 accepted_model_speech = False
                 text = (_job_fallback(world_state) or _town_fallback(world_state, npc_target, player_input)
                         or interaction_adventure.immersive_unknown(npc_target, player_input))
+                speech_checks.append("unbacked_money")
+            if speech_checks is not None:
+                _session()._speech_checks = speech_checks
             if experimental_unverified_claim:
                 action_result.update(status="unverified", success=False)
             if experimental_npc_dialogue:
