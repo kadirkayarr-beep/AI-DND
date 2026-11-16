@@ -18,6 +18,19 @@ export function undoConfirmText(turnLabel: string | null | undefined, purseSpent
 }
 
 /**
+ * Whether the last turn can be offered for undo, on the server's rule (api/main.py `_final_death`): never while a
+ * fight runs, never after an Ironman death, and never after a real death (PERMADEATH, D-178).
+ */
+export function undoOffered(
+  state: { combat: { active: boolean }; death_state: { mode: string; dead: boolean; terminal: boolean } },
+  hasLastTurn: boolean,
+): boolean {
+  const death = state.death_state;
+  const finalDeath = death.terminal || (death.dead && (death.mode === 'IRONMAN' || death.mode === 'PERMADEATH'));
+  return hasLastTurn && !state.combat.active && !finalDeath;
+}
+
+/**
  * LR00-P7 small undo control for the last completed turn, with an explicit
  * confirmation. Disabled while a turn or an undo is in flight. When there is no
  * undo to offer it says why: a fight is on (`combatActive`: there is a last turn

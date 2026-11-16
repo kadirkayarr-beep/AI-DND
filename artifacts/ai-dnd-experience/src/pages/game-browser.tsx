@@ -59,7 +59,7 @@ import {
 import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import type { EconomicAction, TurnOutcome } from '@workspace/api-client-react';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
-import { LastTurnBar } from '@/components/last-turn-bar';
+import { LastTurnBar, undoOffered } from '@/components/last-turn-bar';
 import { type Notice, type RecoveryState } from '@/components/notice-banner';
 import { historyToEntries } from '@/lib/transcript-history';
 import { resumeComposerMode } from '@/lib/resume-mode';
@@ -1417,7 +1417,7 @@ export default function GameBrowser() {
               />
               <LastTurnBar
                 summary={summarizeTurnOutcome(visibleLastTurn?.outcome)}
-                canUndo={Boolean(visibleLastTurn) && !state.combat.active && !state.death_state.terminal}
+                canUndo={undoOffered(state, Boolean(visibleLastTurn))}
                 recoveringUndo={undoRequestsRef.current.has(sessionId)}
                 busy={undoBusy || turnSending}
                 onUndo={undoLastTurn}

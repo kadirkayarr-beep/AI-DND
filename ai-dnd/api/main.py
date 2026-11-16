@@ -231,11 +231,15 @@ def _adopt_undo_checkpoint(record: Any, build: Any) -> None:
 
 
 def _final_death(session: Any) -> bool:
-    """D-112: an Ironman death is final; no undo may bring the hero back, whichever turn set the undo point."""
+    """D-112: an Ironman death is final; no undo may bring the hero back, whichever turn set the undo point.
+
+    D-178 (Kadir): "PERMADEATH'te ölüm kesin; ölüm turu Geri Al ile geri alınamaz." The same holds for a real death.
+    """
     world = getattr(session, "world_state", None)
     death = world.get("death_state") if isinstance(world, dict) else None
     return isinstance(death, dict) and (
-        death.get("terminal") is True or (death.get("mode") == "IRONMAN" and death.get("dead") is True)
+        death.get("terminal") is True
+        or (death.get("mode") in ("IRONMAN", "PERMADEATH") and death.get("dead") is True)
     )
 
 
@@ -2150,7 +2154,9 @@ def create_app(
             if _final_death(session):
                 raise HTTPException(status_code=409, detail={
                     "code": "undo_final_death",
-                    "message": "Ironman ölümü kesindir; geri alınamaz.",
+                    "message": "Ironman ölümü kesindir; geri alınamaz."
+                    if session.world_state["death_state"].get("mode") == "IRONMAN"
+                    else "Gerçek ölüm kesindir; geri alınamaz.",
                 })
             if _state_fingerprint(session) != checkpoint["post_turn_fingerprint"]:
                 record.undo_checkpoint = None
