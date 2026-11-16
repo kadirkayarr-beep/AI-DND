@@ -9067,7 +9067,7 @@ def _show_coin_roll(action_result, card):
                              coin_ask_roll=True)
 
 
-def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None, persuade=None):
+def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None, persuade=None, stage=None):
     """What the reply proposed reaches the record if it checks out. A failure here costs the turn nothing."""
     import town_knowledge
     session = _session()
@@ -9082,14 +9082,14 @@ def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=N
             world, npc, player_input, raw, spoken,
             accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
             moved=(gate or {}).get("paid_cp") or 0, threat=threat, purchase=getattr(session, "_purchase_said", False),
-            persuade=persuade,
+            persuade=persuade, stage=stage,
         )
         import pocket
         settled["spoken"], settled["unbacked"] = pocket.settle_claim(session, raw, settled["spoken"], npc)
         return settled
     except Exception:
         town_knowledge.log_failure()
-        return {"spoken": spoken, "note": None, "allowed": set(), "moved": 0}
+        return {"spoken": spoken, "note": None, "allowed": set(), "moved": 0, "stage": stage}
 
 
 def _with_only_backed_money(speech, settled):
@@ -20079,13 +20079,18 @@ def _coin_not_parcel(session, world, person, item_id, player_input):
     it names no parcel this person could take: no word of it meets the parcel's head noun ('duyurusu' of 'yol kapanışı
     duyurusu', never 'yol') or a parcel word ('mektup', 'paket', 'emanet'; 'bunu' only points)."""
     import front_proposal
-    import world_threads
-    from adventure import dialogue_jobs
     if (money_owner.current(session) is None and not front_proposal.names_coin(player_input)
             and not front_proposal.says_money(player_input)):
         return False
     if item_id is not None and not item_id.startswith("parcel:"):
         return False  # a plain thing from the bag goes only if the line means it (_line_gives)
+    return _names_no_parcel(world, person, item_id, player_input)
+
+
+def _names_no_parcel(world, person, item_id, player_input):
+    """No word of the line meets a parcel this person could take (see `_coin_not_parcel`)."""
+    import world_threads
+    from adventure import dialogue_jobs
     threads = ([world_threads.parcel_thread(world, item_id)] if item_id is not None
                else [job for job in [*world_threads.deliveries_to(world, person),
                                      *world_threads.late_parcels(world, person)]
@@ -20112,7 +20117,12 @@ def _front_hand_over(route, player_input):
     item_id = route["item"]
     if _coin_not_parcel(session, world, person, item_id, player_input):
         return heard  # D-239: a tip or coin that names no parcel is money for its card, never the job's delivery
-    asked = "?" in player_input or world_threads.says_later(player_input)
+    if world_threads.refuses_hand_over(player_input, lambda clause: not _names_no_parcel(world, person, item_id, clause)):
+        # D-276: 'takımı getirmedim', 'paketi vermiyorum': said, not done. Only a 'not' on the coin alone beside a plain
+        # hand-over ('takımı getirdim, bahşiş vermiyorum') refuses no parcel. Nothing changes hands; the person hears so.
+        refusals.note(session, "hand_over_refused", npc_id=person["id"])
+        return heard
+    asked ="?" in player_input or world_threads.says_later(player_input)
     due = dialogue_jobs.due_parcel(world, person) if item_id is None and not asked else None
     if item_id is None and not asked and due is None and any(
             dialogue_jobs.holds_parcel(world, job) for job in world_threads.deliveries_to(world, person)):
@@ -23552,9 +23562,10 @@ def _run_player_turn_internal(
                                 world_state, npc_target, player_input, cleaned_stage, stage=True)
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
-                        threat=raw_intent.get("threat"), persuade=_coin_persuasion(action_result),
+                        threat=raw_intent.get("threat"), persuade=_coin_persuasion(action_result), stage=cleaned_stage,
                     )
                     cleaned_spoken = settled_money["spoken"]
+                    cleaned_stage = settled_money["stage"]  # D-264: a coin ask cleans the gesture as it cleans the line
                     if getattr(_session(), "_empty_handed", False):
                         cleaned_stage = ""  # nothing was held out, so no gesture takes it
                     elif settled_money.get("unbacked"):

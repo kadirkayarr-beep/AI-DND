@@ -168,11 +168,14 @@ def maybe_refresh_on_arrival(world, before_world, campaign_id=""):
 
     if living_world.scene_kind(world, current) not in {"tavern", "city"}:
         return None
+    from adventure.evidence import _downed_npcs
+    down = _downed_npcs(world)
     present = [
         npc for npc in world.get("npcs", [])
         if isinstance(npc, dict)
         and npc.get("location") == current
         and isinstance(npc.get("id"), str)
+        and npc["id"] not in down
     ]
     if len(present) < 2:
         return None
@@ -240,11 +243,13 @@ def active_count(quests):
 def _entities_exist(world, bindings):
     if not isinstance(bindings, dict):
         return False
+    from adventure.evidence import _downed_npcs
     npcs = {npc.get("id") for npc in world.get("npcs", []) if isinstance(npc, dict)}
+    down = _downed_npcs(world)  # D-270 review: nobody who is down or dead gives or is the object of a job
     locations = set(world.get("locations", {}))
     for key in ("source_npc_id", "target_npc_id"):
         identity = bindings.get(key)
-        if identity is not None and identity not in npcs:
+        if identity is not None and (identity not in npcs or identity in down):
             return False
     for identity in bindings.get("location_ids", []):
         if identity not in locations:

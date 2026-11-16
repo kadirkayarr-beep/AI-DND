@@ -315,6 +315,10 @@ test('D-039: a bookless Wizard starts from the offer, may change it, and only an
   assert.equal(lib.prepareRequest(v, [...SUGGESTED.slice(0, 5), 'Shield']), null);
   assert.equal(lib.prepareRequest(v, [...SUGGESTED.slice(0, 5), 'Fireball']), null);
   assert.match(lib.windowReasonText(v, false), /Büyü kitabın kayıtta yok.*6 birinci seviye Wizard büyüsü seç.*Geri Al ile geri alınamaz/);
+  // D-259: the engine opens the migration window only outside a fight, so the text must not promise it in one.
+  assert.match(lib.windowReasonText(v, false), /Kitabı kaydedince hazırlık penceresi açılır/);
+  assert.doesNotMatch(lib.windowReasonText(v, true), /Kitabı kaydedince hazırlık penceresi açılır/);
+  assert.match(lib.windowReasonText(v, true), /Çatışma sürerken.*açılmaz.*uzun dinlenmeyi bitirince ya da yeni bir seviyeye geçince açılır/);
   assert.match(lib.resultText({ status: 'spellbook_saved', prepared: [], dropped: [], limit: 4, excess: 0, open: true, message: 'English' }, plainLabel), /Büyü kitabın kaydedildi/);
   const err = code => ({ status: 409, data: { detail: { code, message: 'English' } } });
   for (const code of ['prepare_spellbook_invalid', 'prepare_spellbook_not_missing', 'prepare_request_mixed']) {

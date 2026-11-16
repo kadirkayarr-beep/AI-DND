@@ -498,6 +498,9 @@ def serialize_skill_check_result(
         ),
         None,
     )
+    if difficulty is None and 15 <= dc <= max(game.DIFFICULTY_DC.values()):
+        # D-269: max(15, Intelligence score) falls between two steps; the card names the first step at or above it.
+        difficulty = next(label for label, configured_dc in game.DIFFICULTY_DC.items() if configured_dc >= dc)
     if difficulty is None:
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
 

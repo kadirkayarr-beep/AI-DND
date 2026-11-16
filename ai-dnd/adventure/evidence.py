@@ -90,6 +90,13 @@ def _evidence_from_turn(quest, world, before_world, action_result):
                 quest, "defeat_entity", npc.get("id"), "combat", f"defeat:{turn}:{npc.get('id')}",
             ))
             # A beaten captive, dead or senseless, is not a rescued one (D-117).
+    # D-270: a target that fell before its step opened (notice and mark still undone) leaves no change on a later turn;
+    # the step counts that fall once it is open.
+    for objective in quest.get("objectives", []):
+        target = objective.get("target")
+        if (objective.get("type") == "defeat_entity" and objective.get("graph_state") == "ACTIVE"
+                and target in _downed_npcs(world) and target not in _rescue_targets(quest)):
+            found.extend(_matching(quest, "defeat_entity", target, "combat", f"defeat:{turn}:{target}"))
     before_node = _dungeon_node(before_world)
     after_node = _dungeon_node(world)
     if isinstance(after_node, str) and after_node != before_node:

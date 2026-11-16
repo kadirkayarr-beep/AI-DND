@@ -127,6 +127,25 @@ class RefusedPreviewDistanceTests(unittest.IsolatedAsyncioTestCase):
         })
         self.assertEqual(undone.status_code, 200, undone.text)
 
+    async def test_an_unexpected_error_after_a_passed_preview_leaves_no_opening_step(self):
+        # D-256: the preview passes, then something unexpected (not a refusal) breaks before the turn's snapshot.
+        turn_id = str(uuid.uuid4())
+        played = await self.http.post(self.turn_url, json={"message": "Etrafa bakıyorum.", "action_id": turn_id})
+        self.assertEqual(played.status_code, 200, played.text)
+        with mock.patch.object(
+            AuthenticatedOllamaAdapter, "ensure_required_model", side_effect=RuntimeError("unexpected"),
+        ):
+            try:  # the test client re-raises an unhandled app error; a real server answers 500
+                refused = await self.http.post(self.turn_url, json={
+                    "message": "Haydut'a hançerle saldırıyorum", "action_id": str(uuid.uuid4()),
+                    "target_id": self.npc["id"],
+                })
+                self.assertGreaterEqual(refused.status_code, 500, refused.text)
+            except RuntimeError:
+                pass
+        npc = next(item for item in self.session().world_state["npcs"] if item["id"] == self.npc["id"])
+        self.assertNotIn("distance_ft", npc)
+
 
 if __name__ == "__main__":
     unittest.main()
