@@ -14925,7 +14925,9 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
                 f"{place} konumuna ulaştın."
                 + (f" {presence}" if presence else "")
             )
-        return "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin."
+        import grounded_action
+        return (grounded_action.road_ends_line(_session())
+                or "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin.")
     if action == "explore" and isinstance(result.get("inspection"), dict):
         return str(result["inspection"].get("text") or "")
     if result.get("scene_look") and result.get("direct_response"):
@@ -19546,6 +19548,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             route = {"kind": "go_to", "id": out, "inside": False}
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
+        if (isinstance(raw_front, dict) and raw_front.get("kind") == "go_to"
+                and interaction_mode not in {"say", "ask_dm"}):
+            return {"kind": "walk_failed"}  # E5: a walk to nowhere listed is a failed walk, never a person to follow
         return None
     import grounded_action
     import npc_speech_boundary
@@ -20585,6 +20590,13 @@ def _dispatch_player_turn(
             flags["turn_index"] = flags.get("turn_index", 0) + 1
             return {"messages": _session().messages, "narration": passed["direct_response"], "model_calls": 0,
                     "action_result": passed}
+    if front is not None and front["kind"] == "walk_failed" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        text = _fallback_for_action_result(player_input, {"action": "travel", "status": "failed"})
+        flags = _session().world_state.setdefault("flags", {})
+        flags["turn_index"] = flags.get("turn_index", 0) + 1
+        return {"messages": _session().messages, "narration": text, "model_calls": 1,
+                "action_result": {"action": "travel", "status": "failed", "success": False,
+                                  "state_changes": [], "direct_response": text}}
     if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         import front_proposal
         import grounded_action
