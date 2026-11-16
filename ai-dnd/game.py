@@ -7867,13 +7867,23 @@ def normalize_location_id(value):
     return resolve_location_reference(value)
 
 
+def clean_location_description(text):
+    """A place description on one line, at most 240 characters and free of game mechanics; "" otherwise."""
+    description = _clean_world_text(text, 240) or ""
+    mechanical_terms = ("hp", "damage", "hasar", "inventory", "envanter", "altın", "d20", "dc", "zar", "kapı açık", "öldü")
+    # Whole words only: 'altında', 'pazar', 'zarar', 'öldürdü' are ordinary words, not 'altın', 'zar', 'öldü'.
+    if any(re.search(rf"\b{re.escape(term)}\b", description.casefold()) for term in mechanical_terms):
+        return ""
+    return description
+
+
 def validate_location_proposal(proposal):
     """Validate creative location data while assigning no model-provided ID."""
     if not isinstance(proposal, dict):
         return None
     name = _clean_world_text(proposal.get("name"), 60)
     location_type = _clean_world_text(proposal.get("type", "other"), 24) or "other"
-    description = _clean_world_text(proposal.get("description", ""), 240) or ""
+    description = clean_location_description(proposal.get("description", ""))
     if not name or not re.fullmatch(r"[\w .’'-]+", name, flags=re.UNICODE) or "_" in name:
         return None
     if resolve_location_reference(name):
@@ -7888,9 +7898,6 @@ def validate_location_proposal(proposal):
         location_type = "other"
     elif location_type.casefold() in ("city_gate", "city gate"):
         location_type = "city"
-    mechanical_terms = ("hp", "damage", "hasar", "inventory", "envanter", "altın", "d20", "dc", "zar", "kapı açık", "öldü")
-    if any(term in description.casefold() for term in mechanical_terms):
-        description = ""
     aliases = _clean_world_text_list(proposal.get("aliases", []), 60, 8)
     safe_aliases = []
     for alias in aliases:

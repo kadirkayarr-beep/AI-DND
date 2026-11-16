@@ -76,10 +76,10 @@ class MentionTurnFixture(unittest.IsolatedAsyncioTestCase):
     def rumoured(self):
         return [r for r in self.world["locations"].values() if isinstance(r, dict) and r.get("rumoured")]
 
-    async def say(self, mentions, action_id=None, spoken=SPOKEN):
+    async def say(self, mentions, action_id=None, spoken=SPOKEN, target_id="npc_t2_edric"):
         client = _Client(mentions, spoken)
         body = {"message": "Buralarda duyduğun bir şey var mı?", "action_id": action_id or str(uuid.uuid4()),
-                "target_id": "npc_t2_edric", "interaction_mode": "say"}
+                "target_id": target_id, "interaction_mode": "say"}
         with patch.object(self.app.state.ollama_adapter, "_client", client):
             response = await self.http.post(f"/api/game/sessions/{self.session_id}/turn", json=body)
         self.assertEqual(response.status_code, 200, response.text)
@@ -135,6 +135,42 @@ class MentionOverHttp(MentionTurnFixture):
         self.assertEqual(self.world["heard_rumours"], [])
         self.assertEqual(self.rumoured(), [])
         self.assertEqual(self.world["locations"], before)
+
+    def add_second_speaker(self):
+        npc = {"id": "npc_t2_mara", "name": "Mara", "role": "Oduncu", "location": self.world["location"],
+               "reality_layer": "PROCEDURAL_LOCAL_FICTION"}
+        local_dialogue.ensure_personal_profile(npc)
+        self.world["npcs"].append(npc)
+
+    async def test_undo_removes_the_second_speaker(self):
+        self.add_second_speaker()
+        await self.say({**MENTION, "about": "Kuyunun dibinde bir kapı var"})
+        _, _, action_id = await self.say({**MENTION, "about": ""}, target_id="npc_t2_mara")
+        self.assertEqual(len(self.world["heard_rumours"]), 1)
+        self.assertEqual(self.world["heard_rumours"][0]["speakers"], ["npc_t2_edric", "npc_t2_mara"])
+        self.assertEqual(self.world["heard_rumours"][0]["text"], "Eski Mahzen: Kuyunun dibinde bir kapı var")
+        undone = await self.http.post(f"/api/game/sessions/{self.session_id}/undo",
+                                      json={"action_id": str(uuid.uuid4()), "target_action_id": action_id})
+        self.assertEqual(undone.status_code, 200, undone.text)
+        self.assertEqual(self.world["heard_rumours"][0]["speakers"], ["npc_t2_edric"])
+        self.assertEqual(self.world["heard_rumours"][0]["said_by"], "npc_t2_edric")
+
+    async def test_save_load_keeps_every_speaker(self):
+        self.add_second_speaker()
+        await self.say(MENTION)
+        await self.say({**MENTION, "about": ""}, target_id="npc_t2_mara")
+        rumours = copy.deepcopy(self.world["heard_rumours"])
+        self.assertEqual(rumours[0]["speakers"], ["npc_t2_edric", "npc_t2_mara"])
+        saved = await self.http.post(f"/api/game/campaigns/{self.campaign_id}/save")
+        self.assertEqual(saved.status_code, 200, saved.text)
+        manager = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
+        app = create_app(session_manager=manager, ollama_adapter=AuthenticatedOllamaAdapter(fixtures.FakeOllamaClient()),
+                         authenticator=FixedAuthenticator(TEST_PLAYER))
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as http:
+            resumed = await http.post(f"/api/game/campaigns/{self.campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            world = manager.get(resumed.json()["session_id"]).game_session.world_state
+        self.assertEqual(world["heard_rumours"], rumours)
 
     async def test_save_load_keeps_rumour_and_place(self):
         await self.say(MENTION)
