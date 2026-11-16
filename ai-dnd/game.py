@@ -19338,12 +19338,14 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     raw_front = reply.get("front")
     session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
     session._front_economic_none = True  # only the validated owner may prepare room/gift cards in a front-enabled turn
-    economic = front_proposal.economic_route(reply, listed, target_id=target_id if typed_economic else None)
+    economic = front_proposal.economic_route(reply, listed, target_id=target_id if typed_economic else None,
+                                             line=player_input)
     if economic is not None:
         if fighting:
             front_proposal.note(session, "skipped:combat", reached=True)
             return None
-        session._front_coin = front_proposal.coin_in(reply, player_input) if economic["valid"] else 0
+        session._front_coin = front_proposal.coin_in(
+            reply, player_input, moves=economic["purpose"] in ("gift", "tip")) if economic["valid"] else 0
         session._front_economic_front = raw_front  # the owner route reads the model's `deal` from it, if it gave one
         front_proposal.note(session, "front:economic", reached=True)
         return economic

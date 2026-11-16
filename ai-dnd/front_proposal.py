@@ -171,12 +171,30 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
 ECONOMIC_INTENTS = ("room", "room_quote", "gift", "tip", "purchase")
 
 
-def economic_route(reply: Any, listed: Mapping[str, Any], *, target_id: str | None = None) -> dict | None:
+def _asks_not_pays(purpose: Any, line: Any) -> bool:
+    """D-097: a question that hands no coin now is no coin deal: a price asked ('ne kadar?', 'bira var mı?') is
+    answered by whoever serves, and a tip or gift asked about ('bahşiş versem mi?') opens no card."""
+    import bold_acts
+    import living_world
+    if not isinstance(line, str) or purpose == "room_quote" or names_coin(line):
+        return False
+    folded = living_world.normalize_text(line)
+    asked = "?" in line or bool(bold_acts._ASKS.search(folded))
+    return bool(bold_acts._PRICE_ASKED.search(folded)) or (asked and purpose in ("gift", "tip"))
+
+
+def economic_route(reply: Any, listed: Mapping[str, Any], *, target_id: str | None = None,
+                   line: Any = None) -> dict | None:
     """Admit a purpose only with this reading's listed, explicitly bound recipient. Never read a price."""
     front = reply.get("front") if isinstance(reply, dict) else None
     if not isinstance(front, dict) or front.get("economic_intent") in (None, NONE):
         return None
     purpose, person = front.get("economic_intent"), front.get("person_id")
+    if _asks_not_pays(purpose, line):
+        return None  # D-097: the line goes to its kind (said to the person), never "kime vermek istiyorsun?"
+    if person in (None, NONE):
+        # D-097: 'ona' names nobody; the one chosen in the talk panel, else the one being talked to, is who it is for
+        person = target_id or listed["speaking_with"]
     valid = (isinstance(purpose, str) and purpose in ECONOMIC_INTENTS and front.get("kind") == "speak_to"
              and isinstance(person, str) and person != NONE and person in _ids(listed["people"])
              and (target_id is None or target_id == person)
@@ -408,13 +426,18 @@ def names_coin(line: str) -> bool:
     return bool(_coin_clauses(line))
 
 
-def coin_in(reply: Any, line: str) -> int:
-    """Coin leaving the hand now, for a line that names money and asks nothing: the reading says it moves, the line how much."""
+def coin_in(reply: Any, line: str, *, moves: bool = False) -> int:
+    """Coin leaving the hand now, for a line that names money and asks nothing: the reading says it moves, the line how much.
+
+    `moves`: a validated tip or gift route already says the coin moves (D-097): a figure the line names stands even
+    when the reading left `coin_cp` at 0, so the card never asks an amount the player said."""
     import living_world
     front = reply.get("front") if isinstance(reply, dict) else None
     amount = front.get("coin_cp") if isinstance(front, dict) else None
     if type(amount) is not int or amount <= 0:
-        return 0
+        if not moves:
+            return 0
+        amount = 0  # only a figure the words name counts: no unnamed 'biraz para' is guessed
     words = [word for clause in _coin_clauses(line) for word in living_world.normalize_text(clause).split()]
     if not words:
         return 0
