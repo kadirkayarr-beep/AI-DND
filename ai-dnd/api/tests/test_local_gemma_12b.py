@@ -20,6 +20,7 @@ from api.local_model_config import (
 from api.main import create_app
 from api.model_phase import classifier_call, front_call
 from api.ollama_adapter import (
+    CLOUD_STYLE_RULES,
     CONTEXT_WINDOW_TOKENS,
     LOCAL_DM_EXAMPLE,
     LOCAL_REPLY_RESERVE_TOKENS,
@@ -201,10 +202,14 @@ class TheHistoryFitsTheWindow(unittest.TestCase):
         AuthenticatedOllamaAdapter(client, model_name=DM, chain=chain).chat(
             model='qwen3:8b', messages=messages, options={'num_predict': 700})
         cloud = chain.calls[0]
-        self.assertEqual(cloud['messages'], messages)
+        # D-250: the cloud gets the engine's words plus its own style block, never the local rules; the rest is whole.
+        self.assertEqual(cloud['messages'][0]['content'], f'{ENGINE_SYSTEM}\n\n{CLOUD_STYLE_RULES}')
+        self.assertEqual(cloud['messages'][1:], messages[1:])
         self.assertEqual(cloud['options']['num_predict'], 700)
         local = client.requests[0]['messages']
         self.assertEqual(local[0]['content'], local_system())
+        self.assertNotIn('BULUT ANLATIM', local[0]['content'])
+        self.assertNotIn('YEREL ANLATIM', cloud['messages'][0]['content'])
         self.assertLess(characters(local), characters(cloud['messages']))
 
 
@@ -291,6 +296,49 @@ class TheLocalRules(unittest.TestCase):
         messages = dm_messages(200)
         before = [dict(message) for message in messages]
         self.sent(messages)
+        self.assertEqual(messages, before)
+
+
+class TheCloudStyle(unittest.TestCase):
+    """D-250: the cloud models get their own style block on narration calls; the local call and readings do not."""
+
+    def ask(self, messages, scope=None):
+        chain = FakeChain()
+        client = RecordingClient((DM,))
+        adapter = AuthenticatedOllamaAdapter(client, model_name=DM, chain=chain)
+        if scope is None:
+            adapter.chat(model='qwen3:8b', messages=messages)
+        else:
+            with scope():
+                adapter.chat(model='qwen3:8b', messages=messages)
+        return chain.calls[0]['messages'], client.requests[0]['messages']
+
+    def test_the_text_asks_for_senses_and_dark_adult_tone_and_yields_to_the_rules(self):
+        for words in ('duyularla', 'karanlık fantezi', 'yumuşatma', 'Tek satırlık kuru cevap verme',
+                      'Verilen kurallar ve sınırlar bu kuralların üstündedir'):
+            self.assertIn(words, CLOUD_STYLE_RULES)
+
+    def test_a_narration_call_hands_the_cloud_the_block_at_the_end_of_the_system_text(self):
+        cloud, local = self.ask(dm_messages(2))
+        self.assertTrue(cloud[0]['content'].endswith(CLOUD_STYLE_RULES))
+        self.assertTrue(cloud[0]['content'].startswith(ENGINE_SYSTEM))
+        self.assertEqual(local[0]['content'], local_system())
+        self.assertNotIn('BULUT ANLATIM', local[0]['content'])
+
+    def test_classifier_and_front_readings_get_no_cloud_block(self):
+        for scope in (classifier_call, front_call):
+            with self.subTest(scope=scope.__name__):
+                cloud, _ = self.ask(dm_messages(2), scope)
+                self.assertEqual(cloud[0]['content'], ENGINE_SYSTEM)
+
+    def test_a_call_without_a_system_message_gets_none_added(self):
+        cloud, _ = self.ask([{'role': 'user', 'content': 'Selam'}])
+        self.assertEqual(cloud, [{'role': 'user', 'content': 'Selam'}])
+
+    def test_the_engine_messages_are_not_changed_in_place(self):
+        messages = dm_messages(4)
+        before = [dict(message) for message in messages]
+        self.ask(messages)
         self.assertEqual(messages, before)
 
 

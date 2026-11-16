@@ -128,9 +128,23 @@ class TheLoaderIsStrict(unittest.TestCase):
                 "kart", "tezgah", "kisi_kese", "kisi_esya", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
                 "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
-                "olay", "zirh", "varis", "seviye", "buyu_olgusu", "zar", "kisi_hp",
+                "olay", "zirh", "varis", "seviye", "buyu_olgusu", "zar", "kisi_hp", "duyulan",
             },
         )
+
+    def test_duyulan_names_each_heard_rumour_and_must_match_in_number_and_order(self):
+        """D-249/D-250: ``duyulan`` lists the heard rumours (place name, text part); a wrong shape fails at load, a
+        wrong count, name or text fails at check time."""
+        for bad in ("x", [{}], [{"ad": 3}], [{"yer": "a"}], [{"metin": ""}], None):
+            with self.subTest(bad=bad), self.assertRaises(ScenarioError) as raised:
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"duyulan": bad}}])))
+            self.assertIn("duyulan", str(raised.exception))
+        load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"duyulan": []}}])))
+        seen = {"duyulan": [{"ad": "Eski Mahzen", "metin": "Eski Mahzen: kayıtlar"}]}
+        self.assertEqual(check_expect({"duyulan": [{"ad": "Eski Mahzen", "metin": "kayıtlar"}]}, seen), [])
+        self.assertTrue(check_expect({"duyulan": []}, seen))
+        self.assertTrue(check_expect({"duyulan": [{"ad": "Başka"}]}, seen))
+        self.assertTrue(check_expect({"duyulan": [{"metin": "yok"}]}, seen))
 
     def test_kisi_hp_names_each_persons_hit_points_and_is_checked_as_a_subset(self):
         """D-031: a person's hit points (``kisi_hp``: person -> current HP) can be pinned, so a journey can say the

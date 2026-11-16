@@ -380,8 +380,12 @@ def create_local_place(
     kind: str,
     *,
     name: str | None = None,
+    rumoured: bool = False,
 ) -> dict[str, Any] | None:
-    """Create a saved place; unnamed discoveries remain idempotent per kind."""
+    """Create a saved place; unnamed discoveries remain idempotent per kind.
+
+    A rumoured place (heard from an NPC) skips the per-settlement cap, as it is not counted by it; the global cap stays.
+    """
     existing = (
         next((
             record for record in world.get("locations", {}).values()
@@ -399,9 +403,10 @@ def create_local_place(
         r for r in locations.values()
         if isinstance(r, dict) and r.get("parent_location_id") == settlement_id and r.get("place_kind")
         and not PLACE_KINDS.get(r["place_kind"], {}).get("outdoors")
+        and not r.get("rumoured")
     ]
     spec = PLACE_KINDS[kind]
-    if (len(local) >= MAX_LOCAL_PLACES_PER_SETTLEMENT and not spec.get("outdoors")) or len(locations) >= 80:
+    if (len(local) >= MAX_LOCAL_PLACES_PER_SETTLEMENT and not spec.get("outdoors") and not rumoured) or len(locations) >= 80:
         return None
     number = max(1, int(world.get("next_location_number", 1)))
     while f"location_{number:03d}" in locations:
@@ -568,6 +573,7 @@ def arrival_parts(world: dict[str, Any], record: dict[str, Any], npc, feature, *
     parts = []
     first_visit = first_visit or not record.get("visited")
     record["visited"] = True
+    record.pop("rumoured", None)
     now = int((world.get("campaign_time") or {}).get("elapsed_seconds", 0) or 0)
     away = now - record.get("seen_at", now)
     record["seen_at"] = now

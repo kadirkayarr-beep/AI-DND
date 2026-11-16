@@ -63,3 +63,17 @@ Kadir 2026-11-16'da 10 dakika oynadı (main 221e6d98) ve "Onaylıyorum" dedi. Oy
 | #114 | D-267 söylenen tutar metinde kalır; 'İşte bu yüzden sana para vermem.' silinir; D-266 kapsamı: para ya da kese adı geçen al/tut/işte/buyur cümleleri silinir | onaylandı |
 | #113 | D-120 Türkçe 'Toplu Şifa Sözü' testi hata yerine 'henüz motorda yok' bekler (aynı sıkılık) | onaylandı |
 | D-109, D-166, kalan-sayaç, D-231, #84 | önceki dalgalarda yeniden yazılan testler (KOD 2 devir notu listesi) | onaylandı |
+
+## 5. D-249 + D-250 dilimi (dal `task/d249-tasarim-20261116`, onay bekliyor)
+
+Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden tanımlar. Kadir oynayıştan sonra onaylar.
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_experimental_npc_dialogue`, `test_default_npc_targeting`, `test_npc_p2_continuity` | konuşma şemasının anahtar kümesine `mentions` girdi; şerit açıkken `required` listesine `mentions`, `kind` seçeneklerine `none` eklendi | gevşetme olabilir |
+| `test_meaning_boundary_acceptance` (satır 33), `test_spoken_promises` (`TheField`), `test_default_focus_acceptance` (bayrak kapalı), `test_query_request_acceptance` (yer bilgisi) | `required` listesi `[..., "threat", "mentions"]` oldu (aynı sıkılık) | gevşetme olabilir |
+| `test_story_links.test_a_person_carries_one_at_most` | üst sınır 5 yerine `town_knowledge.MAX_ITEMS` (10) | gevşetme olabilir |
+| `test_arrival_narration` | uzun anlatım durumu 8 cümle (tavan 6); son anlatım 400 yerine 1200 harf | gevşetme olabilir |
+| `test_local_gemma_12b` | bulut mesajları testi bulut üslup bloğunu bekler | gevşetme olabilir |
+| `test_game_name.ProtectedIdsTests.test_env_variable_name_set_is_unchanged` | `AI_DND_*` ad sayısı 36'dan 37'ye (`AI_DND_RUMOUR_LANE`) | gevşetme olabilir |
+| `test_journey_schema` beklenti anahtarı kümesi | `duyulan` eklendi (yalnız ekleme) | - |

@@ -101,6 +101,9 @@ JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "no
 LETTER_KEYS = frozenset({"owner", "pay", "line", "noun", "recipient", "target_kind"})
 # An expected ``konum`` naming the setup errand's target place (see ``_with_job_target``).
 JOB_TARGET = "$is_hedefi"
+# An expected ``konum`` of ``$duyulan:AD`` is the place of the heard rumour whose place is named AD (the engine
+# numbers a rumoured place, never the scenario).
+HEARD_PLACE = "$duyulan:"
 # An expected ``konum`` of ``$kurulum_yeri`` is the place the setup stood the player in: a new campaign's town work
 # opens places first (Task 18), so the place's number is the engine's, never the scenario's.
 SETUP_PLACE = "$kurulum_yeri"
@@ -116,7 +119,7 @@ TOWN_PLACE = "$yer:"
 # ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
 # too, so a scenario can try a missing or broken answer). ``spoken`` stays the spoken line.
 SPEECH_SCRIPT_KEYS = frozenset({"coin_answer", "coin_answer_for", "remember_player_line", "asks_for",
-                                 "stage_direction"})
+                                 "stage_direction", "mentions"})
 
 _DEFAULT_NARRATION = "Etraf sakin; bir süre hiçbir şey değişmiyor."
 _DEFAULT_SPOKEN = "Ne istiyorsun?"
@@ -416,6 +419,11 @@ def _with_job_target(case: Any, expect: Mapping[str, Any], session_id: str) -> M
     place = expect.get("konum")
     if isinstance(place, str) and place.startswith(TOWN_PLACE):
         return {**expect, "konum": _resolved_place(case, place)}
+    if isinstance(place, str) and place.startswith(HEARD_PLACE):
+        world = case.manager.get(session_id).game_session.world_state
+        found = [row["yer"] for row in _heard(world) if row["ad"] == place[len(HEARD_PLACE):] and row["yer"]]
+        # No such place (or more than one): the marker stays, and the step fails as a plain ``konum`` mismatch.
+        return {**expect, "konum": found[0]} if len(found) == 1 else expect
     if expect.get("konum") == SETUP_PLACE:
         if getattr(case, "setup_place_id", None) is None:
             raise ScenarioError(f"'{SETUP_PLACE}': kurulumda bir yer (setup 'place') yok")
@@ -777,6 +785,7 @@ def read_observed(case: Any, session_id: str) -> dict[str, Any]:
         "yuva": _spell_slots(world),
         "buyu_olgusu": [fact.get("spell_id") for fact in world.get("spell_effects_v1") or [] if isinstance(fact, dict)],
         "anlatilan": _told(world),
+        "duyulan": [{"ad": row["ad"], "metin": row["metin"]} for row in _heard(world)],
         "narration": getattr(case, "last_narration", ""),
         "anlaticiya_giden": getattr(case, "last_narrator_input", None),
         "konusmaya_giden": getattr(case, "last_speech_input", None),
@@ -827,6 +836,21 @@ def _journal(log: Any) -> dict[str, Any] | None:
                       for row in rows("done")],
             "iz": [{"ne": row.get("what"), "nerede": row.get("where"), "kaynak": row.get("source"),
                     "izlendi": row.get("followed")} for row in rows("trails")]}
+
+
+def _heard(world: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """The heard rumours of the settlement the player stands in (``world.heard_rumours``), in saved order: the name of
+    the place each one points at (None: a trail, or its place is gone), that place's id and the rumour text."""
+    town = local_places.settlement_of(world, world.get("location"))
+    locations = world.get("locations") if isinstance(world.get("locations"), Mapping) else {}
+    rows = []
+    for entry in world.get("heard_rumours") or []:
+        if isinstance(entry, Mapping) and entry.get("settlement_id") == town:
+            place = locations.get(entry.get("place_id")) if entry.get("place_id") else None
+            rows.append({"ad": place.get("name") if isinstance(place, Mapping) else None,
+                         "yer": entry.get("place_id") if isinstance(place, Mapping) else None,
+                         "metin": str(entry.get("text", ""))})
+    return rows
 
 
 def _told(world: Mapping[str, Any]) -> dict[str, list[str]]:

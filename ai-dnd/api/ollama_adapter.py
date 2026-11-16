@@ -46,7 +46,15 @@ LOCAL_REPLY_RESERVE_TOKENS = 600
 # After the 12B could not be loaded, its fallback answers for this long before the 12B is tried again,
 # so a full card does not swap models on every call.
 LOCAL_FALLBACK_REST_SECONDS = 600
-# Owner's rules for the local model's prose (Nov 2026). Local path only: the cloud models' prompt stays as it is.
+# D-250: the cloud models' own prose block, added to the first system text of a narration call (never to the local call).
+CLOUD_STYLE_RULES = (
+    "BULUT ANLATIM KURALLARI: Sahneyi duyularla kur: ses, koku, ışık, dokunuş. "
+    "Cümle uzunluğunu değiştir; kısa vuruşlu cümleyi uzun betimlemeyle dengele. "
+    "Ton karanlık fantezi: sert, somut, yetişkin; yumuşatma. "
+    "Tek satırlık kuru cevap verme; cevabı sahnedeki kişiye, yere ve ana bağla. "
+    "Verilen kurallar ve sınırlar bu kuralların üstündedir."
+)
+# Owner's rules for the local model's prose (Nov 2026). Local path only.
 LOCAL_STYLE_RULES = (
     "YEREL ANLATIM KURALLARI: Kısa ve yalın cümleler kur. NPC ve yer adları Türkçe olsun. "
     "Parantez içinde İngilizce terim yazma; kural ve beceri adlarını yalnız Türkçe yaz "
@@ -140,6 +148,18 @@ def _cache_friendly(messages: list[Any], *, style: bool, metadata_at_end: bool) 
     if metadata:
         result[user_at] = {**result[user_at], "content": f"{result[user_at]['content']}\n\n{metadata}"}
     return result
+
+
+def _with_cloud_style(prepared: Mapping[str, Any]) -> dict[str, Any]:
+    """A copy of the call for the cloud chain: the first system text gets CLOUD_STYLE_RULES at its end."""
+    messages = list(prepared.get("messages") or ())
+    system_at = next((index for index, message in enumerate(messages) if isinstance(message, Mapping)
+                      and message.get("role") == "system" and isinstance(message.get("content"), str)), None)
+    if system_at is None:
+        return dict(prepared)
+    content = messages[system_at]["content"]
+    messages[system_at] = {**messages[system_at], "content": f"{content}\n\n{CLOUD_STYLE_RULES}"}
+    return {**prepared, "messages": messages}
 
 
 def _first_sentence(item: str) -> str:
@@ -579,7 +599,7 @@ class AuthenticatedOllamaAdapter:
                 self._note_local_call(response, local_seconds[0])
                 note_usage(self.model_name, response)
                 return response
-            response, provider = self._chain.chat(prepared, ask_local)
+            response, provider = self._chain.chat(_with_cloud_style(prepared) if style else prepared, ask_local)
             if provider is None and local_seconds:
                 self._note_local_call(response, local_seconds[0])
             if provider is not None and calls is not None:
