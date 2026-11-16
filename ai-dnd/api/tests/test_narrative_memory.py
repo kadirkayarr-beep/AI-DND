@@ -8,7 +8,7 @@ import living_world
 from pathlib import Path
 import sys
 import unittest
-
+from unittest.mock import patch
 
 from api.tests.auth_fixture import TEST_PLAYER
 AI_DND_DIR = Path(__file__).resolve().parents[2]
@@ -481,6 +481,11 @@ class NpcMemoryIsolationAndSpeakerBindingTests(unittest.TestCase):
         self.db_path = Path(self.temp_dir.name) / "campaigns.sqlite3"
         self.store = CampaignStore(self.db_path, bound_principal=TEST_PLAYER)
         self.manager = SessionManager(campaign_store=self.store)
+        # No live model: a local Ollama on the developer machine would write the NPC lines (D-223). The game's
+        # own fallback lines answer, as they do where no model runs.
+        model_patch = patch("game.ollama.chat", side_effect=ConnectionError("no model in this test"))
+        model_patch.start()
+        self.addCleanup(model_patch.stop)
 
     def tearDown(self):
         self.temp_dir.cleanup()
