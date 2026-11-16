@@ -163,6 +163,7 @@ class EarlyReplyCompletion(OfferFixture):
         self.assertEqual((result['action_result']['status'],result['action_result']['reason_code']),
                          ('refused','npc_consent_required'),'the pending offer must reach the economic owner')
         self.assertIn('alacağını söylemedi',result['narration'])
+        self.assertNotIn('yeniden uzat',result['narration'])  # D-208: the re-offer hint is only for a walk's second part
         self.assertIsNone(self.s._spoken_coin_proposal)
 
 class FailedSpeechRollback(JourneyCase):

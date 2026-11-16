@@ -269,6 +269,8 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
         body = reply.json()
         self.assertIsNone(body["state"]["economic_offer"], body["narration"])
         self.assertEqual(body["narration"].count("alacağını söylemedi"), 1, body["narration"])
+        # D-208 (Kadir, option D): the refusal stays, and the line says to hold the coin out again now that you are in.
+        self.assertEqual(body["narration"].count("İçerideyken parayı yeniden uzatabilirsin."), 1, body["narration"])
         offers = self.live().world_state["flags"].get("economic_offers", {}).values()
         self.assertEqual([row["status"] for row in offers].count("prepared"), 0)
         self.assertEqual(self.purse_cp(), before)

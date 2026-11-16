@@ -18524,6 +18524,7 @@ def _clear_turn_transients(session) -> None:
     session._front_economic_front = None
     session._spoken_coin_proposal = None
     session._spoken_coin_result = None
+    session._coin_rest_hint = ""
     session._bribe_held_out = 0
     session._counter_held = None
     session._economic_turn_key = None
@@ -18619,13 +18620,19 @@ def _tell_the_coin(result):
         declined = getattr(session, "_coin_answer", None) == "declines"
         # The person's spoken answer about the coin and the card this turn's decision names (D1) come first: a spoken
         # decline is written per part and closes what it covers, with its own line.
-        money_owner.open_card_after_reply(session, result)
+        opened = money_owner.open_card_after_reply(session, result)
         if spoken is not None and isinstance(result, dict):
             # The validated gift or tip was put to this person; the card (or the refusal) is the engine's word.
             if not declined:
                 result["narration"] = f"{result.get('narration') or ''} {spoken.public_message}".strip()
             result.setdefault("action_result", {}).update(status=spoken.status, success=spoken.status == "prepared",
                                                           reason_code=spoken.reason_code)
+        hint = getattr(session, "_coin_rest_hint", "")
+        if hint and isinstance(result, dict) and any(
+                getattr(told, "reason_code", None) == "npc_consent_required"
+                for told in (opened, None if declined else spoken)):
+            # D-208: a walk's second part refused for want of the person's word says the coin can be held out again.
+            result["narration"] = f"{result.get('narration') or ''} {hint}".strip()
         if pending is None and spoken is None:
             # Asked for a room or goods while talking: after the answer's own money fields, and only with no money
             # moved or decided this turn (one consumer); the card or offer still waits for the player's confirmation.
@@ -18635,6 +18642,7 @@ def _tell_the_coin(result):
             result["narration"] = f"{result.get('narration') or ''} {note}".strip()
     finally:
         session._asks_for = None
+        session._coin_rest_hint = ""
         session._coin_paid = None
         session._counter_held = None
         session._coin_answer = None
@@ -18900,6 +18908,12 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             said = _dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
         finally:
             session._thread_gate_done = False
+    import front_proposal
+    if walked and front_proposal.names_coin(rest):
+        # D-208 (Kadir, option D): the person's answer on arrival carries no word on the coin, so a refusal for want
+        # of consent stands and says the coin can be held out again now that the player is there.
+        inside = session.world_state.get("location") != place_before
+        session._coin_rest_hint = f"{'İçerideyken parayı' if inside else 'Parayı'} yeniden uzatabilirsin."
     if flags.get("turn_index", 0) > turn:
         flags["turn_index"] = turn  # one line is one turn: the second part stands under the first part's index
     line = said.get("narration") or ""

@@ -321,7 +321,7 @@ def read_answer(session: Any, packet: Any, npc_id: str, parts: list[str]) -> Non
     session._coin_answer_npc = npc_id
 
 def open_card_after_reply(session: Any, result: dict[str, Any], coin_answer: str | None = None,
-                          coin_answer_for: str | None = None) -> None:
+                          coin_answer_for: str | None = None) -> Any:
     """After the person answered, the card this turn's decision names opens for the coin held out, and no other.
 
     A gift decision opens a Hediye card and a tip decision a Bahşiş card; neither moves coin before it is confirmed.
@@ -390,6 +390,7 @@ def open_card_after_reply(session: Any, result: dict[str, Any], coin_answer: str
     prepared = economic_actions.prepare_from_turn(
         session, economic_actions.turn_proposal(purpose, recipient, amount_cp=decision.amount_cp))
     _tell(result, prepared.public_message)
+    return prepared  # the caller adds a walk's re-offer hint to a refusal for want of consent (D-208)
 
 
 def price_negotiation_offers(world: dict) -> list[dict]:
