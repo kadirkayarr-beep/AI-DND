@@ -8327,7 +8327,9 @@ _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
     # a speech of one to three sentences never needs more than ~220 tokens, plus the optional proposal.
     "repeat_penalty": 1.05,
     "repeat_last_n": 64,
-    "num_predict": 240,
+    # D-238: 240 cut 4 of 26 real Haiku replies mid-JSON (spoken text, gesture, threat and fields together),
+    # and a cut reply is thrown away for a stock line. Still a ceiling against a runaway loop.
+    "num_predict": 480,
 }
 _NPC_SPEECH_LOG_KEY = "npc_speech_log"
 _NPC_SPEECH_KEEP = 4
@@ -9973,7 +9975,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                 format=schema,
                 think=False,
                 options=(
-                    ({**_EXPERIMENTAL_NPC_SPEECH_OPTIONS, "num_predict": 400} if price_targets else _EXPERIMENTAL_NPC_SPEECH_OPTIONS) if experimental_npc_dialogue
+                    ({**_EXPERIMENTAL_NPC_SPEECH_OPTIONS, "num_predict": 640} if price_targets else _EXPERIMENTAL_NPC_SPEECH_OPTIONS) if experimental_npc_dialogue
                     # A normal proposal is under 150 tokens; anything far beyond it is a loop.
                     else {"temperature": 0.0,
                           "num_predict": (700 if interaction_context is not None and front_list is not None

@@ -506,7 +506,8 @@ class ModelChain:
             provider.spend.add(reply)  # billed whether or not the game can use it
         text = _for_the_game(reply, call)
         if text is None:
-            raise _Skipped("unusable_reply", reply)
+            # D-238: a reply stopped at its token cap is named apart, so a log shows why the line was lost.
+            raise _Skipped("cut_at_token_cap" if reply.done_reason == "length" else "unusable_reply", reply)
         return replace(reply, text=text)
 
     def chat(self, call: Mapping[str, Any], local: Callable[[], Any]) -> tuple[Any, str | None]:
@@ -584,7 +585,7 @@ def ledger_observer(ledger: usage_ledger.UsageLedger) -> Callable[[ChainAttempt]
             attempt.provider,
             input_tokens=attempt.input_tokens, output_tokens=attempt.output_tokens,
             thought_tokens=attempt.thought_tokens, seconds=attempt.seconds, outcome=attempt.outcome,
-            usage_known=attempt.usage_known,
+            usage_known=attempt.usage_known, reason=attempt.reason,
         )
     return observe
 
