@@ -407,6 +407,17 @@ class WholeArrivalCap(Fixture):
         self.assertIn(scene["name"], text)
         self.assertTrue(text.startswith("Kapı kilitliydi."), text)
 
+    def test_a_full_lead_on_a_return_never_cuts_the_job_news(self):
+        # Opus review: the tail (job news) is written to the save as learned before it is shown; the cap never drops it.
+        scene = self.return_after(3 * 3600)
+        lead = f"Kent kapısından geçip giriyorsun. {scene['name']} önüne geliyorsun. Kapı kapalı. Kapı kolunu çevirip açıyorsun. "
+        for answer in ("Rüzgâr esiyor. Otlar eğiliyor.", RuntimeError("down")):
+            with self.subTest(answer=answer):
+                text, _ = self.whole(answer=answer, scene=scene, lead=lead)
+                self.assertIn(NOTICE, text)
+                self.assertLessEqual(len(self.sentences(text)), 4, text)
+                self.assertIn(scene["name"], text)
+
     def test_the_model_is_told_its_sentence_budget(self):
         scene = self.crowded()
         self.whole(answer="Rüzgâr esiyor.", scene=scene)

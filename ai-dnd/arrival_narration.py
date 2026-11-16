@@ -141,7 +141,8 @@ def narrate(game, scene: dict[str, Any], *, player_input, messages, lead: str = 
         named = scene["name"].casefold() in _joined(lead, body).casefold()
         if model and scene["visit"] != "first" and (not named or len(_sentences(game, body)) < RETURN_FLOOR):
             pieces.append((1, scene.get("back") or ""))  # a return names its place and is never one bare sentence
-        pieces += [(5, presence), (2, scene["facts_line"]), (3, tail)]
+        # The tail (job news) is saved as learned before it is shown, so the cap keeps it first (rank -1).
+        pieces += [(5, presence), (2, scene["facts_line"]), (-1, tail)]
         return fit(game, pieces, limit)
 
     def done(body, source, reason_code, calls, *, presence="", model=False):
