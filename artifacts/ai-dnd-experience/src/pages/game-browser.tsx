@@ -1421,7 +1421,6 @@ export default function GameBrowser() {
                 recoveringUndo={undoRequestsRef.current.has(sessionId)}
                 busy={undoBusy || turnSending}
                 onUndo={undoLastTurn}
-                combatActive={Boolean(visibleLastTurn) && state.combat.active}
                 justUndone={undoneJustNow}
                 turnLabel={visibleLastTurn?.label}
                 purseSpentCp={visibleLastTurn?.purseSpentCp}

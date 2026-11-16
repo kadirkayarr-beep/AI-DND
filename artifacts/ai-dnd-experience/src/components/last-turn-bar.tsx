@@ -18,24 +18,24 @@ export function undoConfirmText(turnLabel: string | null | undefined, purseSpent
 }
 
 /**
- * Whether the last turn can be offered for undo, on the server's rule (api/main.py `_final_death`): never while a
- * fight runs, never after an Ironman death, and never after a real death (PERMADEATH, D-178).
+ * Whether the last turn can be offered for undo, on the server's rule (api/main.py `_final_death`): never after an
+ * Ironman death and never after a real death (PERMADEATH, D-178). A fight turn is offered too (D-234: the engine's
+ * undo puts a fight back whole, tested in api/tests/test_d234_combat_undo.py).
  */
 export function undoOffered(
-  state: { combat: { active: boolean }; death_state: { mode: string; dead: boolean; terminal: boolean } },
+  state: { death_state: { mode: string; dead: boolean; terminal: boolean } },
   hasLastTurn: boolean,
 ): boolean {
   const death = state.death_state;
   const finalDeath = death.terminal || (death.dead && (death.mode === 'IRONMAN' || death.mode === 'PERMADEATH'));
-  return hasLastTurn && !state.combat.active && !finalDeath;
+  return hasLastTurn && !finalDeath;
 }
 
 /**
  * LR00-P7 small undo control for the last completed turn, with an explicit
  * confirmation. Disabled while a turn or an undo is in flight. When there is no
- * undo to offer it says why: a fight is on (`combatActive`: there is a last turn
- * and combat is running), or the one step the engine allows was just taken
- * (`justUndone`, until the next turn reply). The engine's rules stay as they are.
+ * undo to offer right after one it says why: the one step the engine allows was
+ * just taken (`justUndone`, until the next turn reply). The engine's rules stay as they are.
  */
 export function LastTurnBar({
   summary,
@@ -43,7 +43,6 @@ export function LastTurnBar({
   recoveringUndo,
   busy,
   onUndo,
-  combatActive,
   justUndone,
   turnLabel,
   purseSpentCp,
@@ -53,13 +52,12 @@ export function LastTurnBar({
   recoveringUndo: boolean;
   busy: boolean;
   onUndo: () => void;
-  combatActive: boolean;
   justUndone: boolean;
   turnLabel?: string | null;
   purseSpentCp?: number | null;
 }) {
   const [confirming, setConfirming] = useState(false);
-  if (!summary && !canUndo && !recoveringUndo && !combatActive && !justUndone) return null;
+  if (!summary && !canUndo && !recoveringUndo && !justUndone) return null;
   return (
     <div className="last-turn-bar mt-2 flex flex-wrap items-center gap-2 text-sm" data-testid="last-turn-bar">
       {summary && <span className="text-(color:--unw-text-soft)" data-testid="text-turn-outcome">Sonuç: {summary}</span>}
@@ -83,10 +81,7 @@ export function LastTurnBar({
           <RotateCcw size={14} aria-hidden="true" />Geri al
         </button>
       )}
-      {combatActive && (
-        <span className="text-(color:--unw-text-soft)" data-testid="text-undo-combat">Savaş sürerken son tur geri alınamaz.</span>
-      )}
-      {justUndone && !canUndo && !combatActive && (
+      {justUndone && !canUndo && (
         <span className="text-(color:--unw-text-soft)" data-testid="text-undo-once">Yalnız son tur geri alınır; yeni bir tur oynayınca Geri al yeniden açılır.</span>
       )}
       {canUndo && confirming && (

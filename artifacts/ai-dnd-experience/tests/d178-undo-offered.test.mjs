@@ -22,10 +22,10 @@ test('a real death (PERMADEATH) offers no undo; a living hero after a turn does'
   assert.equal(lastTurn.undoOffered(state({ dead: true }), true), false);
 });
 
-test('an Ironman death, a missing last turn and a running fight offer no undo', () => {
+test('an Ironman death and a missing last turn offer no undo; a death in a fight stays final', () => {
   assert.equal(lastTurn.undoOffered(state({ mode: 'IRONMAN', dead: true, terminal: true }), true), false);
   assert.equal(lastTurn.undoOffered(state(), false), false);
-  assert.equal(lastTurn.undoOffered(state({ combat: true }), true), false);
+  assert.equal(lastTurn.undoOffered(state({ combat: true, dead: true }), true), false);  // D-234 opened fights, not deaths
 });
 
 test('the game screen asks undoOffered for the button', () => {
