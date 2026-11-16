@@ -1909,6 +1909,7 @@ world_state = {
         },
     },
     "next_location_number": 1,
+    "heard_rumours": [],
     "npcs": [],
     "shops": [],
     "next_shop_number": 1,
