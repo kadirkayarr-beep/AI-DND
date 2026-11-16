@@ -538,6 +538,44 @@ class AdventurePhase8Tests(unittest.TestCase):
         self.assertEqual(session.world_state["currency"]["player"], 0)
         self.assertIsNone(quest["outcome"])
 
+    def _missing_person_threat(self):
+        session, place = _session()
+        quest = templates.instantiate(
+            "MISSING_PERSON",
+            quest_id="adv.threat",
+            turn=1,
+            opportunity_key="opportunity:threat",
+            creation_evidence="event:threat",
+            bindings=_bindings(place),
+            rumor="Biri kaybolmuş.",
+        )
+        return session, quest, next(item for item in quest["objectives"] if item["objective_id"] == "threat")
+
+    def test_missing_person_threat_step_is_not_closed_by_combat(self):
+        # D-221 (owner decision a, interim): the abductors are not a separate NPC yet, so combat cannot close this step.
+        _, quest, threat = self._missing_person_threat()
+        self.assertNotIn("combat", threat["resolution_kinds"])
+        self.assertEqual(set(threat["resolution_kinds"]), {"persuasion", "intimidation"})
+        threat.update(graph_state="ACTIVE", visibility="known")
+        for dep in ("hook", "clue", "site"):
+            next(item for item in quest["objectives"] if item["objective_id"] == dep).update(graph_state="COMPLETE")
+        self.assertEqual(
+            evidence._matching(quest, "defeat_entity", "npc.missing", "combat", "defeat:1:npc.missing"), [],
+        )
+        self.assertEqual(
+            len(evidence._matching(quest, "defeat_entity", "npc.missing", "intimidation", "check:sindir")), 1,
+        )
+
+    def test_missing_person_threat_label_is_persuade_or_intimidate_not_encounter(self):
+        _, quest, threat = self._missing_person_threat()
+        quest.update(status="ACTIVE")
+        next(item for item in quest["objectives"] if item["objective_id"] == "hook").update(graph_state="COMPLETE")
+        threat.update(graph_state="ACTIVE", visibility="known")
+        self.assertEqual(projection.affordances(quest), ["İkna et / Sindir"])
+        # A defeat step that combat can close keeps the old label.
+        threat["resolution_kinds"] = ["combat"]
+        self.assertEqual(projection.affordances(quest), ["Karşılaş"])
+
     def test_one_active_one_follow_up_and_one_faction_gate(self):
         session, place = _session()
         bindings = _bindings(place)
