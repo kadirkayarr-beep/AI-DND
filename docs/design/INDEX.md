@@ -6,6 +6,7 @@ Kural: önce bu dizine bak. Güncel belgeler depo kökünde durur (çalışan aj
 | Belge | Durum |
 |---|---|
 | docs/design/ZAR_KURALLARI_DND2024_20261114.md (depoda) | zar kuralları rehberi, D&D 2024 / SRD 5.2.1; bağlayıcı (Kadir, 2026-11-14): oyundaki her zar, test, kurtarma ve saldırı buna uyar |
+| docs/design/NPC_BILGI_ANLATICI_TASARIM_20261116.md (depoda) | D-249 + D-250 dilimi: NPC bilgisi genişler, duyulmuş yer ve söylenti kayda girer (Ş4), anlatıcı sınırları gevşer; taslak, Kadir onayı bekliyor |
 | YOL_HARITASI_20261112.md | güncel yol haritası, onaylı (Kadir, 2026-11-12); şu an Faz 0 |
 | KARAR_LISTESI_20261112.md | Kadir'i bekleyen onay ve kararlar |
 | HANDOFF.md | canlı devir notu (4B ve 4A bölümleri; eskisi HANDOFF_ARSIV_20261112.md) |
