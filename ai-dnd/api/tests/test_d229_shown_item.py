@@ -52,6 +52,21 @@ class ShownInTheNarration(unittest.TestCase):
         old = session("askıda bir mızrak var.", "a", "b", "c")
         self.assertFalse(bold_acts._shown(old, "Mızrak"))
 
+    def test_a_narration_that_says_there_is_none_shows_none(self):
+        # third review 2026-11-16: "burada hiç mızrak yok" counted as a showing and made a spear
+        for told in ("Burada hiç mızrak yok.", "Askıdaki mızrak artık yok.", "Elindeki şey mızrak değil, bir sopa.",
+                     "Mızrak askısı boş.", "Askıda mızrak kalmadı.", "Mızraktan eser yoktu."):
+            with self.subTest(told=told):
+                self.assertIsNone(bold_acts._shown(session(told), "Mızrak"))
+                # the newest word about the spear decides: an older showing is gone once it is said to be gone
+                self.assertIsNone(bold_acts._shown(session("askıda bir mızrak asılı.", told), "Mızrak"))
+
+    def test_a_none_in_another_clause_does_not_hide_the_shown_one(self):
+        for told in ("Askıda bir mızrak asılı, ama kese yok.", "Kese boş; askıda bir mızrak duruyor.",
+                     "Kimse bakmıyor değil, askıda bir mızrak var."):
+            with self.subTest(told=told):
+                self.assertEqual(bold_acts._shown(session(told), "Mızrak"), told)
+
 
 class ANamedItemNeverGetsAMoneyLine(unittest.TestCase):
     def test_every_no_such_item_line_names_the_item_and_no_coin(self):

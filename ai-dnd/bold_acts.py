@@ -593,13 +593,24 @@ def _named_gear(folded: str) -> str | None:
                  if re.search(_gear_pattern(key), folded)), None)
 
 
+# D-229 third review: a clause that names the thing and says it is not there ("hiç mızrak yok", "askı boş") shows nothing
+_SAID_NONE = re.compile(r"\b(?:yok|degil|bos|kalma(?:di|mis))\w*")
+
+
 def _shown(session, thing: str) -> str | None:
-    """D-229: the latest of the scene's narrations (the last three the player read) that showed the thing, or None."""
+    """D-229: the latest of the scene's narrations (the last three the player read) that showed the thing, or None.
+
+    The newest narration that names the thing decides: it shows the thing only if a clause names it without saying
+    it is gone or not there."""
     import weapon_catalog
     pattern = _gear_pattern(weapon_catalog.fold(thing))
     told = list(getattr(session, "recent_dm_narrations", None) or [])[-3:]
-    return next((text for text in reversed(told)
-                 if isinstance(text, str) and re.search(pattern, weapon_catalog.fold(text))), None)
+    for text in reversed(told):
+        clauses = [clause for clause in re.split(r"[.;:!?,\n]", weapon_catalog.fold(text)) if re.search(pattern, clause)] \
+            if isinstance(text, str) else []
+        if clauses:
+            return text if any(not _SAID_NONE.search(clause) for clause in clauses) else None
+    return None
 
 
 # D-229 review: the showings (place, weapon) already turned into a real item; one weapon kind shown in a place gives one
