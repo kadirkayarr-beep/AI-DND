@@ -361,8 +361,15 @@ class PrimalKnowledgeCoreTests(unittest.TestCase):
         reply = {'message': {'content': '{"world_updates": {}, "narration": "Hamlen çözülür.", "lore_claims": []}'}}
         with patch('game.ollama.chat', return_value=reply):
             ordinary = turn(session, 'Onu korkutmaya çalışıyorum', feature=None, target_id=npc['id'])
-        self.assertNotEqual(ordinary['action_result'].get('action'), 'skill_check')
-        self.assertNotIn('check_feature', ordinary['action_result'])
+        # D-172: a scare at the chosen person is an act the dice settle, with its ordinary ability (never the
+        # feature's strength), and no stock "heard you" line stands in for the result.
+        result = ordinary['action_result']
+        self.assertEqual((result.get('action'), result.get('skill'), result.get('ability')),
+                         ('skill_check', 'Intimidation', 'charisma'))
+        self.assertNotIn('check_feature', result)
+        import interaction_adventure
+        for line in interaction_adventure._HEARD_LINES:
+            self.assertNotIn(line.split('“', 1)[1], ordinary['narration'])
 
     def test_admitted_wording_preserves_actual_ordinary_immediate_owner(self):
         texts = ('Takla atacağım', 'Dengede yürüyorum', 'Dengede kalıyorum',

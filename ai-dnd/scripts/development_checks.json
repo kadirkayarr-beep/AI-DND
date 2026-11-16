@@ -89,9 +89,13 @@
     "api.tests.test_d061_unrecorded_xp_line",
     "api.tests.test_d109_timing",
     "api.tests.test_coin_ask_persuasion",
-    "api.tests.test_d203_heard_job_evidence"
+    "api.tests.test_d203_heard_job_evidence",
+    "api.tests.test_usage_ledger",
+    "api.tests.test_model_chain.TheSpendCap",
+    "api.tests.test_transient_session_bounds",
+    "api.tests.test_thread_hiring.HiringTable.test_a_shift_that_breaks_after_the_pay_leaves_no_coin_or_hour_behind"
   ],
-  "regression_group_sizes": [31, 18, 1, 3, 5, 4, 4, 4],
+  "regression_group_sizes": [31, 18, 1, 3, 5, 4, 4, 8],
   "frontend_package": "artifacts/ai-dnd-experience/package.json",
   "frontend_commands": [
     {"name": "frontend_libraries", "argv": ["pnpm", "run", "typecheck:libs"]},
