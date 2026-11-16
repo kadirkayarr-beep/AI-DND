@@ -21,7 +21,7 @@ class AWonScareIsToldAsWon(unittest.TestCase):
     def test_a_won_scare_cannot_leave_the_person_unmoved(self):
         for narration in ("Kavşim kollarını kavuşturup bakıyor; geri adım atmıyor.",
                           "Sözlerin ona işlemiyor.", "Muhafız seni umursamıyor bile.",
-                          "Kavşim yerinden kıpırdamıyor.", "Muhafız hiç korkmuyor.",
+                          "Muhafız hiç korkmuyor.",
                           "“Senden korkmuyorum,” diyor muhafız.", "Tehdidin onu etkilemiyor."):
             with self.subTest(narration=narration):
                 decision = self.decide(narration, "success")
@@ -30,7 +30,8 @@ class AWonScareIsToldAsWon(unittest.TestCase):
 
     def test_a_won_scare_told_as_won_passes(self):
         for narration in ("Kavşim yutkunuyor ve kenara çekiliyor.",
-                          "Muhafızın yüzü soluyor; tek söz etmeden yolu açıyor."):
+                          "Muhafızın yüzü soluyor; tek söz etmeden yolu açıyor.",
+                          "Muhafız korkudan kıpırdamıyor.", "Kalabalık kıpırdamıyor ama Kavşim geri çekiliyor."):
             with self.subTest(narration=narration):
                 self.assertFalse(self.decide(narration, "success")["unsafe"])
 
