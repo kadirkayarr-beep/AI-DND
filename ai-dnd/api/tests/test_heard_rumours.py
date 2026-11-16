@@ -265,11 +265,26 @@ class RumourLane(unittest.TestCase):
         for text in ("Kuyunun altında bir kapı var", "Pazarın arkasında bir kuyu", "Duvar zarar görmüş",
                      "Bekçiyi biri öldürdü", "Öldüğü gece kapı kilitlendi"):
             with self.subTest(kept=text):
-                self.assertEqual(game.clean_location_description(text), text)
+                self.assertEqual(game.clean_location_description(text, whole_words=True), text)
         for text in ("Sandıkta altın var", "Bir zar at", "Bekçi öldü", "Girene 5 hasar verir", "Kilit DC 15",
                      "Kapı açık kaldı"):
             with self.subTest(dropped=text):
+                self.assertEqual(game.clean_location_description(text, whole_words=True), "")
+
+    def test_a_model_place_proposal_keeps_the_old_substring_filter(self):
+        # Opus review: whole words are for the rumour claim only (which also drops unbacked money); a place the model
+        # proposes has no such cutter, so 'altınlık', 'hasarı', 'zarı', 'öldüğü' still empty its description.
+        for text in ("Yüz altınlık mücevher burada saklı", "Altınları kuyuya gömülü", "Girene hasarı büyük",
+                     "Masada bir zarı duruyor", "Bekçinin öldüğü kule"):
+            with self.subTest(text=text):
                 self.assertEqual(game.clean_location_description(text), "")
+                proposal = game.validate_location_proposal({"name": "Gizli Mahzen", "type": "building", "description": text})
+                self.assertEqual((proposal or {}).get("description", ""), "")
+
+    def test_a_rumour_claim_never_keeps_a_suffixed_sum(self):
+        smithy = local_places.create_local_place(self.world, "city", "smithy")
+        entry = self.say(name=smithy["name"], place_kind="smithy", about="Yüz altınlık mücevher saklı")
+        self.assertNotIn("altınlık", (entry or {}).get("text", "").casefold())
 
     def test_a_claim_under_an_existing_place_is_kept(self):
         smithy = local_places.create_local_place(self.world, "city", "smithy")

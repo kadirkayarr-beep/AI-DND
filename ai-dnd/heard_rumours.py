@@ -120,7 +120,7 @@ def record_mention(game: Any, world: dict[str, Any], npc: dict[str, Any], mentio
     if town_knowledge.names_coin(about):
         about = ""  # a price, sum or item value is no place description: the place is kept, the claim is not
     # D-249 X1: the claim is cleaned on its own, so a place that already exists keeps what was said about it.
-    about = town_knowledge.without_unbacked_money(game.clean_location_description(about))
+    about = town_knowledge.without_unbacked_money(game.clean_location_description(about, whole_words=True))
     settlement_id = local_places.settlement_of(world, npc.get("location"))
     if not settlement_id:
         return None

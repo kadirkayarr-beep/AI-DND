@@ -7881,12 +7881,16 @@ def normalize_location_id(value):
     return resolve_location_reference(value)
 
 
-def clean_location_description(text):
-    """A place description on one line, at most 240 characters and free of game mechanics; "" otherwise."""
+def clean_location_description(text, *, whole_words=False):
+    """A place description on one line, at most 240 characters and free of game mechanics; "" otherwise.
+
+    `whole_words` is for a heard rumour's claim only, which also loses unbacked money afterwards: there 'altında',
+    'pazar', 'zarar', 'öldürdü' stay. A place the model proposes keeps the substring check ('altınlık' goes too).
+    """
     description = _clean_world_text(text, 240) or ""
     mechanical_terms = ("hp", "damage", "hasar", "inventory", "envanter", "altın", "d20", "dc", "zar", "kapı açık", "öldü")
-    # Whole words only: 'altında', 'pazar', 'zarar', 'öldürdü' are ordinary words, not 'altın', 'zar', 'öldü'.
-    if any(re.search(rf"\b{re.escape(term)}\b", description.casefold()) for term in mechanical_terms):
+    folded = description.casefold()
+    if any((re.search(rf"\b{re.escape(term)}\b", folded) if whole_words else term in folded) for term in mechanical_terms):
         return ""
     return description
 
