@@ -47,7 +47,7 @@ class RealFormatThreeSave(unittest.TestCase):
             self.assertEqual((again.character, again.world_state), (session.character, session.world_state))
 
     def test_the_spellbook_window_does_not_see_a_real_format_three_wizard(self):
-        # Observed 2026-11-16 and pinned here, see debt register D-279: a real format-3 file has no spell state, so the
+        # Observed 2026-11-16 and pinned here, see debt register D-281: a real format-3 file has no spell state, so the
         # one-time spellbook choice of D-039 (made for a version-1 state) is not offered to it; the window says
         # "not_preparing_class". The synthetic `bookless()` helper of test_d039_spellbook_choice builds a version-1 state.
         session = game.GameSession()
