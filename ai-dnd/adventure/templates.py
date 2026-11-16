@@ -108,7 +108,7 @@ def _missing_person(*, quest_id, turn, opportunity_key, creation_evidence, bindi
                 "Tehdidi dağıt",
                 "defeat_entity",
                 bindings["target_npc_id"],
-                ["combat", "persuasion"],
+                ["persuasion", "intimidation"],
                 ("site",),
                 hidden=True,
             ),

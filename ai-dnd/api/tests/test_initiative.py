@@ -19,11 +19,13 @@ from api.tests.auth_fixture import TEST_PLAYER
 def actors(configs=None, player=None):
     s = scene()
     s.world_state["npcs"] = []
+    s.world_state["currency"] = {k: v for k, v in s.world_state.get("currency", {}).items() if k == "player"}  # D-207
     s.character.update(current_hp=100, max_hp=100, dexterity_mod=2)
     s.character.update(player or {})
     ns = []
     for i, config in enumerate(configs or [{}]):
         n = s.create_npc_from_ai({"name": f"Rakip {i}", "role": "Guard", "location": "tavern"})
+        s.world_state["currency"][f"npc-{i}"] = s.world_state["currency"].pop(n["id"])  # D-207: purse follows the id
         n.update(id=f"npc-{i}", current_hp=100, max_hp=100, armor_class=20, hostile=True, initiative_modifier=0,
                  distance_ft=5, attack_damage_type="bludgeoning")
         n.update(config)
@@ -40,6 +42,7 @@ def battle(configs=None, player=None, rolls=None):
 
 def newcomer(s, identity="new", **config):
     n = s.create_npc_from_ai({"name": identity, "role": "Guard", "location": "tavern"})
+    s.world_state["currency"][identity] = s.world_state["currency"].pop(n["id"])  # D-207: purse follows the id
     n.update(id=identity, current_hp=100, max_hp=100, armor_class=20, initiative_modifier=0,
              distance_ft=5, attack_damage_type="bludgeoning")
     n.update(config)

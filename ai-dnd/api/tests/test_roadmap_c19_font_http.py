@@ -7,11 +7,20 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
+import equipment_economy
 from api.persistence.campaign_store import CampaignStore
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests import test_roadmap_c19_quickened_http as quickened_fixtures
 
 FIXTURE = Path(__file__).parent / 'fixtures' / 'c19_checkpoint12_adopted_receipt.json'
+
+
+def loaded_runtime(fixture):
+    """The frozen runtime as loading writes it now: D-231 gives the people of a pre-D-231 save their gear, once."""
+    runtime = copy.deepcopy(fixture['runtime'])
+    equipment_economy.give_old_save_gear(runtime['world_state'])
+    return runtime
+
 
 class FontHttpTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = quickened_fixtures.QuickenedHttpTests.asyncSetUp
@@ -38,7 +47,7 @@ class FontHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_checkpoint12_stored_receipt_and_canonical_state_survive_new_code(self):
         fixture, a, r = await self.frozen_campaign()
-        self.assertEqual(r.game_session.serialize_game_state(), fixture['runtime'])
+        self.assertEqual(r.game_session.serialize_game_state(), loaded_runtime(fixture))
         old = self.manager.get_turn_action(r, fixture['command']['action_id'])
         self.assertEqual(old['request_hash'], fixture['request_hash'])
         expected = copy.deepcopy(fixture['response']); expected['session_id'] = a['session_id']
@@ -57,7 +66,7 @@ class FontHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         pending = ' '.join(response.json()['character']['progression_effects_pending'])
         self.assertIn('slot-to-point conversion supported', pending)
-        self.assertEqual(r.game_session.serialize_game_state(), fixture['runtime'])
+        self.assertEqual(r.game_session.serialize_game_state(), loaded_runtime(fixture))
 
     async def conversion(self, outside=False):
         fixture, a, r = await self.frozen_campaign()

@@ -321,7 +321,7 @@ BACKGROUND_DEFINITIONS = {
         "starting_gp": 20,
     },
     "Scribe": {
-        "name_tr": "Katip",
+        "name_tr": "Kâtip",
         "desc": "Büyük loncaların ve kütüphanelerin resmi kayıtlarını tuttun.",
         "abilities": ["dexterity", "intelligence", "wisdom"],
         "skills": ["Investigation", "Perception"],
