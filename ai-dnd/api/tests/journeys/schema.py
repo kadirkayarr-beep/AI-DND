@@ -43,6 +43,7 @@ EXPECT_KEYS = frozenset(
         "yuva",
         "esya_sayisi",
         "anlatilan",
+        "duyulan",
         "konusmaya_giden",
         "inkar",
         "gunluk",
@@ -153,10 +154,24 @@ EXPECT_VALUE_RULES = {
     "seviye": (_integer, "tam sayı"),
     "varis": (lambda value: _varis_rule(value),
               "cagri (tam sayı) ve kaynak (model, python ya da null) alanlarından yalnız bilinenleri taşıyan, boş olmayan nesne"),
+    "duyulan": (lambda value: _heard_rule(value),
+                "ad (boş olmayan metin ya da null) ve metin (boş olmayan metin) alanlarından yalnız bilinenleri taşıyan satırlar listesi (boş liste: duyulmuş yok)"),
     "anlatilan": (lambda value: _filled_mapping(value) and all(isinstance(npc, str) and npc and _needles(needles)
                                                                for npc, needles in value.items()),
                   "boş olmayan kişi -> boş olmayan metin (listesi) nesnesi"),
 }
+
+
+_HEARD_KEYS = frozenset({"ad", "metin"})
+
+
+def _heard_rule(value: Any) -> bool:
+    """``duyulan``: a list of rows naming a heard rumour's place (``ad``, or null for a trail) and/or part of its text."""
+    return isinstance(value, list) and all(
+        _filled_mapping(row) and not set(row) - _HEARD_KEYS
+        and all(isinstance(row[key], str) and row[key] for key in row if key == "metin")
+        and all(row[key] is None or (isinstance(row[key], str) and row[key]) for key in row if key == "ad")
+        for row in value)
 
 
 _VARIS_KEYS = frozenset({"cagri", "kaynak"})
@@ -317,6 +332,8 @@ def check_expect(expected: Mapping, observed: Mapping) -> list[str]:
             problems.extend(_check_spoken_to(want, observed.get(key)))
         elif key == "anlatilan":
             problems.extend(_check_kept(want, observed.get(key)))
+        elif key == "duyulan":
+            problems.extend(_check_heard(want, observed.get(key)))
         elif key == "gunluk":
             problems.extend(_check_journal(want, observed.get(key)))
         elif key in _SUBSET_KEYS and isinstance(want, Mapping) and isinstance(
@@ -334,6 +351,22 @@ def check_invariant(alternatives: Sequence[Mapping], seen: Mapping) -> list[str]
         return []
     return ["sıfır tolerans: izinli durumların hiçbiri tutmadı ("
             + " | ".join("; ".join(check_expect(alt, seen)) for alt in alternatives) + ")"]
+
+
+def _check_heard(want: Sequence[Mapping], seen: Any) -> list[str]:
+    """``duyulan``: the observed rumours are exactly as many as wanted, and each wanted row (in order) matches the
+    row at its place: the place name equal, the wanted text (casefold) inside the rumour text."""
+    if not isinstance(seen, list):
+        return ["duyulan: gözlenemedi"]
+    if len(seen) != len(want):
+        return [_mismatch("duyulan.sayı", len(want), len(seen))]
+    problems = []
+    for number, (row, got) in enumerate(zip(want, seen), start=1):
+        if "ad" in row and got.get("ad") != row["ad"]:
+            problems.append(_mismatch(f"duyulan.{number}.ad", row["ad"], got.get("ad")))
+        if "metin" in row and row["metin"].casefold() not in str(got.get("metin", "")).casefold():
+            problems.append(_mismatch(f"duyulan.{number}.metin", row["metin"], got.get("metin")))
+    return problems
 
 
 def _check_journal(want: Mapping, seen: Any) -> list[str]:

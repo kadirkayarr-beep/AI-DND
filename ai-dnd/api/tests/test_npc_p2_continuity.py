@@ -120,11 +120,11 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             set(client.schemas[0]["properties"]),
             {"spoken_text", "stage_direction", "commitment", "threat",
-             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line"},
+             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line", "mentions"},
         )
         self.assertEqual(
             set(client.schemas[0]["required"]),
-            {"spoken_text", "stage_direction", "threat"},
+            {"spoken_text", "stage_direction", "threat", "mentions"},
         )
 
     # ---- IN-CHARACTER CLAIM HANDLING (no stock "no record" line) ---------------
@@ -762,10 +762,10 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         schema = client.schemas[0]
         self.assertEqual(
             set(schema["properties"]), {"spoken_text", "stage_direction", "commitment", "threat",
-             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line"}
+             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line", "mentions"}
         )
         self.assertEqual(
-            set(schema["required"]), {"spoken_text", "stage_direction", "threat"}
+            set(schema["required"]), {"spoken_text", "stage_direction", "threat", "mentions"}
         )
         self.assertNotIn("intent", schema["properties"])
         self.assertNotIn("interaction", schema["properties"])
@@ -793,11 +793,11 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             set(schema.get("properties", {})),
             {"spoken_text", "stage_direction", "commitment", "threat",
-             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line"},
+             "coin_answer", "coin_answer_for", "asks_for", "remember_player_line", "mentions"},
         )
         self.assertEqual(
             set(schema.get("required", [])),
-            {"spoken_text", "stage_direction", "threat"},
+            {"spoken_text", "stage_direction", "threat", "mentions"},
         )
         self.assertNotIn("narration", schema.get("properties", {}))
 

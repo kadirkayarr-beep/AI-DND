@@ -52,6 +52,8 @@ _KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Büyü anlatısı", ("49",)),
     # An act the dice settle (a steal, a scare) shows its dice card whatever the model's reading says; a look-over is told.
     ("Zar ve beceri kontrolleri", ("50", "50b", "50c", "50d", "51", "51b", "52", "52b", "52c", "52d", "53", "53b", "53c", "53d", "53e", "53f", "53g", "54", "54b", "54c", "55", "55b", "55c", "86", "87", "95")),
+    # A place an NPC named aloud: heard, known by another NPC, followed, saved and undone (D-249/D-250).
+    ("Söylenti ve duyulmuş yer", ("96",)),
 )
 _OTHER_KIND = "Diğer"
 _NUMBER = re.compile(r"^(\d+[a-z]?)_")

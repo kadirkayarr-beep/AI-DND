@@ -1909,6 +1909,7 @@ world_state = {
         },
     },
     "next_location_number": 1,
+    "heard_rumours": [],
     "npcs": [],
     "shops": [],
     "next_shop_number": 1,
@@ -8328,6 +8329,20 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
         # Early on purpose: a small model leaves late optional fields out. The engine lists the values per person.
         "asks_for": {"type": "string", "enum": ["none"]},
         "remember_player_line": {"type": "boolean"},
+        # D-249: the place or trail the NPC names (kind "none" when none); Python records it as a heard rumour. The
+        # engine fills `place_kind`, makes the field required (live Haiku skips optional fields) and drops the whole
+        # field when the rumour lane is off.
+        "mentions": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": ["none", "place", "trail"]},
+                "name": {"type": "string", "maxLength": 60},
+                "place_kind": {"type": "string", "enum": ["archive"]},
+                "about": {"type": "string", "maxLength": 120},
+            },
+            "required": ["kind", "name"],
+            "additionalProperties": False,
+        },
         "commitment": {
             "type": "object",
             "properties": {
@@ -8415,6 +8430,27 @@ def _experimental_recent_exchanges(npc_id):
         ):
             result.append({"player": item["player"], "npc": item["npc"]})
     return result[-_NPC_SPEECH_KEEP:]
+
+
+_MENTIONS_PROMPT_RULE = (
+    "mentions: Konuşmada adını verdiğin bir yer ya da iz varsa onu yaz (kind place ya da trail, name tam ad, "
+    "konuşmada geçtiği gibi); yer için türü listeden seç. Para, ödül, görev ya da eşya yazma. "
+    "Adını verdiğin yer ya da iz yoksa kind none, name boş."
+)
+
+
+def _rumour_lane_on() -> bool:
+    import heard_rumours
+    return heard_rumours.lane_enabled()
+
+
+def _speech_answer_rules() -> str:
+    """The answer rules; with the rumour lane on the model may name places and trails (not new persons, jobs or facts)."""
+    if not _rumour_lane_on():
+        return _SPEECH_ANSWER_RULES
+    return (_SPEECH_ANSWER_RULES
+            .replace("yeni ad uydurmadan)", "yeni kişi ya da iş adı uydurmadan)")
+            .replace("yeni kişi, yer veya olgu uydurmadan", "yeni kişi ya da olgu uydurmadan"))
 
 
 def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False):
@@ -9232,7 +9268,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
                    and decision.kind != "paid_before" else 0)
     card = truth_card.npc_view(world, npc=npc, held_out_cp=held_out_cp,
                                this_turn=getattr(_session(), "_turn_notes", ()))
-    return (_SPEECH_ANSWER_RULES + " ".join(lines) + "\n" + card + "\n" + bold_acts.speech_note(world, npc) + _town_note(world, npc)
+    return (_speech_answer_rules() + " ".join(lines) + "\n" + card + "\n" + bold_acts.speech_note(world, npc) + _town_note(world, npc)
             + town_knowledge.promise_note(world, npc)
             + town_knowledge.money_decided_note(getattr(_session(), "_thread_turn", None)) + "\n")
 
@@ -9795,6 +9831,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + "\n`coin_answer_for`: parayı hangi kalem için alıyor ya da reddediyorsun; emin değilsen `unclear`."
             + "\n`asks_for`: oyuncu senden şimdi oda ya da listedeki bir malı istiyorsa onu seç; istemiyorsa `none`."
             + "\n`remember_player_line`: oyuncunun bu sözünü kişisel hafızaya seçmek istiyorsan true."
+            + (f"\n{_MENTIONS_PROMPT_RULE}" if _rumour_lane_on() else "")
             + _experimental_speech_recap(interaction_context)
             + _local_place_recommendation_guidance(
                 player_input, interaction_context, world_state
@@ -9979,6 +10016,12 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         speech_npc = next((n for n in world_state.get("npcs", [])
                            if isinstance(n, dict) and n.get("id") == speech_npc_id), None)
         schema["properties"]["asks_for"]["enum"] = money_owner.askable(world_state, speech_npc)
+        import local_places
+        if _rumour_lane_on():
+            schema["properties"]["mentions"]["properties"]["place_kind"]["enum"] = list(local_places.PLACE_KINDS)
+            schema["required"] = [*schema["required"], "mentions"]
+        else:
+            del schema["properties"]["mentions"]
     if front_list is not None:
         import front_proposal
         schema = copy.deepcopy(schema)
@@ -20851,16 +20894,22 @@ _NOT_A_LOCAL_PLACE = {
 
 def _may_propose_local_place(resolved_turn, player_input):
     """Only an unknown destination, asked for from the open streets of a settlement."""
+    import heard_rumours
     import local_places
     result = resolved_turn.action_result
     world_state = _session().world_state
+    settlement = local_places.settlement_of(world_state, world_state.get("location"))
     return bool(
         resolved_turn.allow_new_locations
         and isinstance(result, dict)
         and result.get("action") == "travel"
         and result.get("status") == "awaiting_proposal"
-        and living_world.on_open_street(world_state)
-        and local_places.settlement_of(world_state, world_state.get("location"))
+        and (
+            living_world.on_open_street(world_state)
+            # An NPC of this settlement said the name aloud: the player may follow it from indoors too.
+            or heard_rumours.heard_in_speech(world_state, settlement, result.get("target_reference")) is not None
+        )
+        and settlement
         and not is_player_world_assertion(player_input)
     )
 
@@ -20872,9 +20921,10 @@ def _accepted_local_place(packet, action_result):
     proposal = proposals[0] if isinstance(proposals, list) and proposals else None
     if not isinstance(proposal, dict):
         return []
+    import heard_rumours
     validated = validate_location_proposal({
         "type": proposal.get("type"), "description": proposal.get("description"),
-        "name": action_result.get("target_reference"), "aliases": [proposal.get("name")],
+        "name": heard_rumours.base_name(action_result.get("target_reference") or ""), "aliases": [proposal.get("name")],
     })
     if not validated or validated["type"].casefold() in _NOT_A_LOCAL_PLACE:
         return []
@@ -20885,13 +20935,18 @@ def _accepted_local_place(packet, action_result):
 
 def _settle_local_place(action_result):
     """A new local place hangs under its settlement, which also gives it the walking route."""
+    import heard_rumours
     import local_places
     world_state = _session().world_state
     settlement = local_places.settlement_of(world_state, world_state.get("location"))
-    place_id = resolve_location_reference(action_result.get("target_reference", ""))
+    place_id = resolve_location_reference(heard_rumours.base_name(action_result.get("target_reference", "")))
     place = world_state["locations"].get(place_id)
     if settlement and isinstance(place, dict):
         place.update(parent_location_id=settlement, exit_location_id=settlement, tags=["campaign_local"])
+        said_by = heard_rumours.heard_in_speech(world_state, settlement, action_result.get("target_reference"))
+        if said_by:
+            place["provenance"] = {"source": "npc_rumour", "said_by": said_by,
+                                   "turn": world_state.get("flags", {}).get("turn_index", 0)}
         # The kind decides what the scene may hold and which people and street life it gets.
         if place.get("type") == "district":
             place.update(scene_kind="city", environment="city")
@@ -20929,6 +20984,37 @@ def _singular_narrator(text):
         for pattern, replacement in _NARRATOR_PLURAL:
             parts[index] = pattern.sub(replacement, parts[index])
     return "".join(parts)
+
+
+def _keep_town_portrait(action_result, narration):
+    """D-249: the first model-written arrival at a settlement leaves its two opening lines on the record.
+
+    Quoted speech and unbacked money go (same form limits as arrival_narration); never overwritten, never the Python line.
+    """
+    if not isinstance(action_result, dict) or action_result.get("action") != "travel" or not action_result.get("success"):
+        return
+    if action_result.get("status") != "completed" or not isinstance(narration, str):
+        return
+    import local_places
+    world = _session().world_state
+    place = world.get("location")
+    record = world.get("locations", {}).get(place)
+    if not isinstance(record, dict) or record.get("town_portrait") or local_places.settlement_of(world, place) != place:
+        return
+    # First arrival only: a trip that began inside this settlement (or at an unknown place) is a return, not an arrival.
+    start = action_result.get("previous_location")
+    if not start or local_places.settlement_of(world, start) == place:
+        return
+    import town_knowledge
+    from arrival_narration import _QUOTES
+    # «…» and ‘…’ are speech too: written as “…” so the shared speech-span split and the quote check see them.
+    narration = re.sub(r"«([^»]*)»|‘([^’]*)’", lambda span: f"“{span.group(1) or span.group(2)}”", narration)
+    sentences = [part.strip() for part in _split_sentences_keep_speech(narration.strip())
+                 if part.strip() and not any(mark in part for mark in _QUOTES) and not town_knowledge.names_coin(part)]
+    clean = town_knowledge.without_unbacked_money(" ".join(sentences)) or ""
+    portrait = " ".join(_split_sentences_keep_speech(clean)[:2]).strip()
+    if portrait:
+        record["town_portrait"] = portrait
 
 
 def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, target_id):
@@ -21027,7 +21113,8 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             allow_new_locations=resolved_turn.allow_new_locations and not is_assertion,
         )
         if resolved_turn.allow_new_locations and location_updates.get("create_locations"):
-            expected = str(resolved_turn.action_result.get("target_reference", "")).casefold().strip(" .,!?:;\"'")
+            import heard_rumours
+            expected = heard_rumours.base_name(resolved_turn.action_result.get("target_reference", "")).casefold().strip(" .,!?:;\"'")
             expected_words = re.findall(r"[a-z0-9çğıöşü]+", expected)
             matching = []
             for proposal in location_updates["create_locations"]:
@@ -21253,6 +21340,9 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         narration_source = "qwen"
     else:
         narration_source = "deterministic_fallback"
+
+    if narration_source == "qwen":
+        _keep_town_portrait(resolved_turn.action_result, finalized_narration)
 
     intent_calls = resolved_turn.intent_model_calls
     total_calls = intent_calls + narration_model_calls + emergence["model_calls"]
@@ -23473,6 +23563,7 @@ def _run_player_turn_internal(
                         "coin_answer_for",
                         "asks_for",
                         "remember_player_line",
+                        "mentions",
                         "witness_recall",
                         "price_negotiation",
                         "commitment",
@@ -23772,6 +23863,16 @@ def _run_player_turn_internal(
                 coin_reply = ({"takes": "accept", "declines": "refuse"}.get(getattr(_session(), "_coin_answer", None))
                               if accepted_model_speech else None)
                 _record_spoken_coin_response(npc_target, coin_reply)
+                if accepted_model_speech and valid_speech_packet and _rumour_lane_on():
+                    import heard_rumours
+                    named = raw_intent.get("mentions")
+                    named = named.get("name") if isinstance(named, dict) else None
+                    # D-249: what the person named is stored by Python only, and only a name they said aloud;
+                    # a bad mention is dropped without a trace.
+                    if heard_rumours.said_in(attributed_speech["spoken_text"], named):
+                        heard_rumours.record_mention(
+                            sys.modules[__name__], _session().world_state, npc_target, raw_intent.get("mentions"),
+                            _session().world_state.get("flags", {}).get("turn_index", 0))
             if (
                 empty_model_narration
                 or unverified_history_echo

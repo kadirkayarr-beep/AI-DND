@@ -531,8 +531,10 @@ class HalfTruths(unittest.TestCase):
             for index in range(20):
                 npc = {"id": f"npc_{index}", "name": "Biri", "role": "gezgin", "location": "city"}
                 known = town_knowledge.public_knowledge(world, npc)
+                # bound of 1 holds only because this fixture has no heard rumours (an NPC may know up to 2 with them)
                 self.assertLessEqual(sum(item["kind"] == "rumour" for item in known), 1)
-                self.assertLessEqual(len(known), 5)
+                # D-249 (gevşetme olabilir): the item cap is 10 now; this world has no heard rumours, so a trouble gives one
+                self.assertLessEqual(len(known), town_knowledge.MAX_ITEMS)
 
     def test_it_comes_after_news_and_before_places(self):
         world, thread, npc, item = town_with_rumour(false_one=True)

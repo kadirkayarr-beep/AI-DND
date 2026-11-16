@@ -16,8 +16,11 @@ def reply(payload: dict) -> dict:
     return {"message": {"content": json.dumps(payload, ensure_ascii=False)}}
 
 
-def speech_packet(spoken_text: str, stage_direction: str = "") -> dict:
-    return reply({"spoken_text": spoken_text, "stage_direction": stage_direction})
+def speech_packet(spoken_text: str, stage_direction: str = "", mentions: dict | None = None) -> dict:
+    packet = {"spoken_text": spoken_text, "stage_direction": stage_direction}
+    if mentions is not None:
+        packet["mentions"] = mentions
+    return reply(packet)
 
 
 def bare_speech(labelled: str) -> str:
