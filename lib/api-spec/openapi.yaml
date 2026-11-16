@@ -31,6 +31,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LevelUpPreviewResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/LevelUpError'
+        '500':
+          $ref: '#/components/responses/LevelUpError'
+        '503':
+          $ref: '#/components/responses/ApiError'
       tags:
       - game
     post:
@@ -56,6 +66,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LevelUpCommandResult'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/LevelUpError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+        '500':
+          $ref: '#/components/responses/LevelUpError'
+        '503':
+          $ref: '#/components/responses/ApiError'
       tags:
       - game
   /game/health:
@@ -1195,6 +1217,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LevelUpPreviewResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/LevelUpError'
+        '500':
+          $ref: '#/components/responses/LevelUpError'
+        '503':
+          $ref: '#/components/responses/ApiError'
       tags:
       - game
     post:
@@ -1221,6 +1253,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LevelUpCommandResult'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/LevelUpError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+        '500':
+          $ref: '#/components/responses/LevelUpError'
+        '503':
+          $ref: '#/components/responses/ApiError'
       tags:
       - game
   /campaigns:
@@ -1442,10 +1486,12 @@ components:
           type: string
           format: uuid
           title: Action Id
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
         campaign_id:
           type: string
           format: uuid
           title: Campaign Id
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
         expected_revision:
           type: integer
           minimum: 0.0
@@ -2973,6 +3019,7 @@ components:
         action_id:
           type: string
           format: uuid
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
         target_action_id:
           type: string
           format: uuid
@@ -3403,6 +3450,7 @@ components:
         action_id:
           type: string
           format: uuid
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
       required:
       - action_id
     SpellPrepareDropped:
@@ -3468,6 +3516,10 @@ components:
           type:
           - array
           - 'null'
+          items:
+            type: string
+        not_in_engine:
+          type: array
           items:
             type: string
         spellbook_options:
@@ -3714,6 +3766,47 @@ components:
       - difficulty
       - dc
       - outcome
+    ConcentrationCheckResult:
+      type: object
+      additionalProperties: false
+      description: The player's Concentration after one damage instance (D-052), from the engine's own save.
+      properties:
+        spell_id:
+          type: string
+        kept:
+          type: boolean
+        dc:
+          type:
+          - integer
+          - 'null'
+          minimum: 10
+          maximum: 30
+        roll:
+          type:
+          - integer
+          - 'null'
+        total:
+          type:
+          - integer
+          - 'null'
+        bless_roll:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          maximum: 4
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - incapacitated
+          - duration_ended
+          - combat_ended
+          - null
+      required:
+      - spell_id
+      - kept
     CombatAttackResult:
       type: object
       additionalProperties: false
@@ -3862,6 +3955,10 @@ components:
         death_resolution:
           anyOf:
           - $ref: '#/components/schemas/DeathResolutionResult'
+          - type: 'null'
+        concentration_check:
+          anyOf:
+          - $ref: '#/components/schemas/ConcentrationCheckResult'
           - type: 'null'
     CombatTurnResult:
       type: object
@@ -4034,6 +4131,10 @@ components:
         death_resolution:
           anyOf:
           - $ref: '#/components/schemas/DeathResolutionResult'
+          - type: 'null'
+        concentration_check:
+          anyOf:
+          - $ref: '#/components/schemas/ConcentrationCheckResult'
           - type: 'null'
         spell:
           type:
@@ -4697,6 +4798,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/GameSpellcasting'
           - type: 'null'
+        concentration:
+          description: Read-only view of the Concentration spell the player holds right now,
+            or null. It never ends, settles or grants a spell.
+          anyOf:
+          - $ref: '#/components/schemas/GameConcentration'
+          - type: 'null'
         inventory:
           type: array
           items:
@@ -4804,6 +4911,7 @@ components:
       - known_factions
       - economic_offer
       - wallet
+      - concentration
     SceneIncident:
       type: object
       additionalProperties: false
@@ -5766,6 +5874,29 @@ components:
       - prepared
       - slots
       - slot_turn
+    GameConcentration:
+      type: object
+      additionalProperties: false
+      description: The held Concentration spell (D-073), from the engine's own record.
+      properties:
+        spell_id:
+          type: string
+        slot_level:
+          type: integer
+          minimum: 1
+          maximum: 9
+        started_round:
+          type: integer
+          minimum: 1
+        targets:
+          type: array
+          items:
+            type: string
+      required:
+      - spell_id
+      - slot_level
+      - started_round
+      - targets
     RageAvailability:
       type: object
       additionalProperties: false
@@ -7605,6 +7736,35 @@ components:
           $ref: '#/components/schemas/ApiErrorDetail'
       required:
       - detail
+    LevelUpErrorDetail:
+      type: object
+      additionalProperties: false
+      description: >-
+        Level-up error detail. code is an open string: besides fixed codes (campaign_persistence_required,
+        unresolved_action, action_id_conflict, level_up_campaign_mismatch, level_up_preview_stale,
+        level_up_choice_class_mismatch, level_up_unavailable, level_up_failed, campaign_stale and the ApiErrorDetail
+        codes) the server forwards the engine's own refusal reason for the chosen level and choices.
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        not_applied:
+          type: boolean
+          description: Present and true when the refusal was recorded durably and nothing was applied.
+        unresolved_action_id:
+          type: string
+          description: Present with code unresolved_action; the earlier action that must be resolved first.
+      required:
+      - code
+    LevelUpErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        detail:
+          $ref: '#/components/schemas/LevelUpErrorDetail'
+      required:
+      - detail
     RequestValidationIssue:
       type: object
       additionalProperties: false
@@ -8359,6 +8519,12 @@ components:
             anyOf:
             - $ref: '#/components/schemas/RequestValidationError'
             - $ref: '#/components/schemas/ApiErrorResponse'
+    LevelUpError:
+      description: A controlled level-up error returned by FastAPI (refusal, stale preview, open earlier action or failed save).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LevelUpErrorResponse'
     ApiError:
       description: A controlled application error returned by FastAPI.
       content:

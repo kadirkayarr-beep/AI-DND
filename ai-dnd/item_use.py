@@ -42,6 +42,29 @@ def consume(world: dict, item_id: str) -> ConsumeResult:
     name = removed["name"]
     return ConsumeResult("consumed", name, f"{name} {'içildi' if kind == 'drink' else 'yendi'}")
 
+HEALERS_KIT = "Healer's Kit"
+HEALERS_KIT_USES = 10  # PHB 2024: ten uses; a use stabilizes a 0 HP creature with no Medicine check
+
+
+def spend_healers_kit(world: dict) -> dict | None:
+    """Spend one use of the bag's Healer's Kit; the item leaves the bag with its last use."""
+    inventory = world.get("inventory", [])
+    if not any((row.get("name") if isinstance(row, Mapping) else row) == HEALERS_KIT for row in inventory):
+        return None
+    equipment_economy.materialize(world)
+    kit = next(row for row in world["inventory"] if row.get("name") == HEALERS_KIT)
+    uses = kit.get("uses_left")
+    if type(uses) is not int or not 0 < uses <= HEALERS_KIT_USES:
+        uses = HEALERS_KIT_USES  # a damaged record counts as a fresh kit, never a crash or a silent loss
+    left = uses - 1
+    if left <= 0:
+        equipment_economy.remove_item(world, kit["item_id"])
+        left = 0
+    else:
+        kit["uses_left"] = left
+    return {"item_id": kit["item_id"], "uses_left": left}
+
+
 def _unseeded_packs(world):
     for item in world.get("inventory", []):
         if isinstance(item, Mapping) and item.get("ammo_seeded_v1"):

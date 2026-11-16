@@ -3409,8 +3409,11 @@ def attempt_player_stabilization(healer_id):
             or healer.get("hostile") is True
             or weapon_attack.conditions(session, healer_id, healer) & {"incapacitated", "unconscious", "dead"}):
         raise ValueError("Bu kişi ilk yardım uygulayamaz.")
+    import item_use
+    kit_in_bag = any((i.get("name") if isinstance(i, dict) else i) == item_use.HEALERS_KIT
+                     for i in session.world_state.get("inventory", []))
     modifier = healer.get("medicine_bonus")
-    if type(modifier) is not int:
+    if type(modifier) is not int and not kit_in_bag:
         raise ValueError("Bu kişinin Tıp becerisi desteklenmiyor.")
     state = ensure_death_state()
     if state["dead"] or session.character["current_hp"] != 0:
@@ -3418,6 +3421,12 @@ def attempt_player_stabilization(healer_id):
     combat = ensure_combat_state()
     if combat["active"]:
         action_economy.action_slot(session, healer_id, "help")
+    if kit_in_bag:  # D-023: 2024 Healer's Kit stabilizes with no Medicine roll
+        kit = item_use.spend_healers_kit(session.world_state)
+        if combat["active"]:
+            _mark_combat_action_used(healer_id, "help")
+        stabilize_player()
+        return {"action": "stabilize", "status": "resolved", "success": True, "healers_kit": kit}
     result = resolve_skill_check(roll_fn=roll_d20, skill="medicine", ability="wisdom",
                                  dc=10, ability_modifier=modifier)
     if combat["active"]:
@@ -8820,6 +8829,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     journey = world.get("journey")
     if journey and journey.get("status") != "ARRIVED":
         return None
+    saved = None
     try:
         person = _thread_person(player_input, target_id)
         gate = world_threads.turn_gate(world, person, player_input) if isinstance(person, dict) else None
@@ -8836,11 +8846,14 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
                 and _physical_line(player_input)):
             return None
         session.require_player_can_act()
+        saved = session._capture_runtime_snapshot()
         return _carry_out_thread_turn(session, world, gate, person, player_input)
     except PlayerCannotAct:
         raise
     except Exception:
         town_knowledge.log_failure()
+        if saved is not None:  # D-011: a writer that broke half way leaves no coin, hour or item of it behind
+            session._restore_runtime_snapshot(saved)  # in place: the turn above still holds these very dicts
         session._thread_turn = None
         return None
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import unittest
 import uuid
 from unittest.mock import patch
@@ -12,6 +13,7 @@ import game
 import living_world
 import world_threads
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.town_seed import fixed_town
 
 HOUR = 3600
 DAY = 86400
@@ -81,6 +83,33 @@ class HiringTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.t()["days_worked"], 1)
         self.assertIn("20 bakır", reply["narration"])
         self.assertNotIn("shift_until", self.t())
+
+    async def test_a_shift_that_breaks_after_the_pay_leaves_no_coin_or_hour_behind(self):
+        """D-011: the job's writer fails half way; the turn goes on, and nothing it half wrote stays in the save."""
+        with fixed_town(self, 4825):
+            await self.job()
+        start, money, thread = self.now(), self.wallet(), copy.deepcopy(self.t())
+        with patch.object(world_threads, "_shift_text", side_effect=RuntimeError("boom")), \
+                self.assertLogs("town_knowledge", level="ERROR"):
+            await self.line("başlayalım")
+        self.assertEqual((self.now(), self.wallet()), (start, money))
+        self.assertEqual(self.t(), thread)
+        await self.line("başlayalım")  # the same shift, now whole: paid once
+        self.assertEqual((self.now() - start, self.wallet() - money, self.t()["days_worked"]), (8 * HOUR, 20, 1))
+
+    async def test_a_broken_shift_rolls_back_the_engines_whole_runtime_snapshot(self):
+        """D-011 review: the rollback is the engine's own runtime snapshot, so a half-written narration goes too."""
+        with fixed_town(self, 4825):
+            await self.job()
+
+        def half_write(*args, **kwargs):
+            self.session.recent_dm_narrations.append("YARIM-KALAN-ANLATI")
+            raise RuntimeError("boom")
+
+        with patch.object(world_threads, "_shift_text", side_effect=half_write), \
+                self.assertLogs("town_knowledge", level="ERROR"):
+            await self.line("başlayalım")
+        self.assertNotIn("YARIM-KALAN-ANLATI", self.session.recent_dm_narrations)
 
     async def test_a_name_not_yet_learned_stays_off_the_screen(self):
         await self.job()

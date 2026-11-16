@@ -659,8 +659,9 @@ class SharedOwners(unittest.TestCase):
                 spell_scope.cast(session, "Cure Wounds", target, slot)
             self.assertEqual(caught.exception.code, "unsupported_spell_mode")
         outside = created(3)
+        # D-056: Cure Wounds outside a fight now works; a spell with no healing owner (Bless) is still refused there.
         with self.assertRaises(CombatRequestError) as caught:
-            spell_scope.cast(outside, "Cure Wounds", "player")
+            spell_scope.cast(outside, "Bless", "player")
         self.assertEqual(caught.exception.code, "unsupported_spell_mode")
 
     def test_a_long_rest_restores_table_slots_and_a_short_rest_does_not(self):

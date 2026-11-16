@@ -2,6 +2,7 @@ import { TR_TERMS, term, termTitle, type TermKey } from '@/lib/tr-terms';
 import type { CombatTurnResult, GameState } from '@workspace/api-client-react';
 import { SpeciesTraitControls, speciesEffectText } from './species-trait-controls';
 import { DeathRecoveryControls } from './death-recovery-controls';
+import { spellLabel } from '@/lib/spell-names';
 import './combat-panel.css';
 
 export interface CombatLogEntry {
@@ -229,6 +230,21 @@ function RollMetric({
   );
 }
 
+const CONCENTRATION_END_REASONS: Record<string, string> = {
+  incapacitated: 'bilincini yitirdin',
+  duration_ended: 'süresi doldu',
+  combat_ended: 'çatışma bitti',
+};
+
+// D-065 (D-052): the player's Concentration after this hit, as the engine's own save returned it; nothing is inferred.
+function concentrationText(check: NonNullable<AttackResult['concentration_check']>): string {
+  const spell = spellLabel(check.spell_id);
+  if (check.reason) return `Konsantrasyon bitti · ${spell} · ${CONCENTRATION_END_REASONS[check.reason] ?? 'sona erdi'}`;
+  const save = hasValue(check.total) && hasValue(check.dc) ? ` · Kurtarma ${check.total} / DC ${check.dc}` : '';
+  const bless = hasValue(check.bless_roll) ? ` · Kutsama zarı +${check.bless_roll}` : '';
+  return `Konsantrasyon ${check.kept ? 'korundu' : 'bozuldu'} · ${spell}${save}${bless}`;
+}
+
 function AttackReadout({
   result,
   entryId,
@@ -334,6 +350,9 @@ function AttackReadout({
         </div>
       )}
 
+      {result.concentration_check && (
+        <div className="combat-target-status" data-testid={`${prefix}-concentration`}>{concentrationText(result.concentration_check)}</div>
+      )}
       {result.target_status && <div className="combat-target-status" data-testid={`${prefix}-target-status`}>{combatStatusLabel(result.target_status)}</div>}
       {result.death_save && (
         <div className="combat-death-save" data-testid={`${prefix}-death-save`}>

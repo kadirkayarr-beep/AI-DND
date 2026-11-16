@@ -169,6 +169,7 @@ def bless_roll(session: Any, actor: str) -> int | None:
     return session.rng.randint(1, 4)
 
 
-def projection(world: dict[str, Any]) -> dict[str, Any] | None:
-    held = current(world)
-    return copy.deepcopy(held) if held is not None else None
+def projection(session: Any) -> dict[str, Any] | None:
+    """Public read (D-073): the Concentration that holds right now, without its combat id; never settles it."""
+    held = holds(session)
+    return {k: copy.deepcopy(held[k]) for k in ("spell_id", "slot_level", "started_round", "targets")} if held else None

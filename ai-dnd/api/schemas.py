@@ -3,7 +3,7 @@
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, StrictBool, StrictStr, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StrictBool, StrictStr, field_validator, model_validator
 
 from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
 
@@ -413,6 +413,22 @@ class DeathStateProjection(BaseModel):
     last_resolution: DeathResolutionResult | None = None
 
 
+class ConcentrationCheckResult(BaseModel):
+    """The player's Concentration after one damage instance (D-052): `spell_concentration.after_damage`'s result."""
+    model_config = ConfigDict(extra="forbid")
+
+    spell_id: str
+    kept: bool
+    dc: int | None = Field(default=None, ge=10, le=30, exclude_if=lambda value: value is None)
+    roll: int | None = Field(default=None, exclude_if=lambda value: value is None)
+    total: int | None = Field(default=None, exclude_if=lambda value: value is None)
+    bless_roll: int | None = Field(default=None, ge=1, le=4, exclude_if=lambda value: value is None)
+    # Ended outright, no save: the caster dropped to 0 HP (Incapacitated), its minute was over, or its fight had ended.
+    reason: Literal["incapacitated", "duration_ended", "combat_ended"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+
 class CombatAttackResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -451,6 +467,9 @@ class CombatAttackResult(BaseModel):
         default=None, exclude_if=lambda value: value is None
     )
     death_resolution: DeathResolutionResult | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    concentration_check: ConcentrationCheckResult | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
 
@@ -719,6 +738,14 @@ class TurnUndoRequest(BaseModel):
     action_id: UUID
     target_action_id: UUID
 
+    @field_validator("action_id")
+    @classmethod
+    def action_id_must_be_uuid4(cls, value: UUID) -> UUID:
+        # D-159 review: the status route reads only UUIDv4 ids (D-111); the target names an action already stored.
+        if value.version != 4:
+            raise ValueError("Action ID must be a UUIDv4.")
+        return value
+
 
 class TurnUndoResponse(BaseModel):
     session_id: str
@@ -804,6 +831,13 @@ class SpellPrepareRequest(BaseModel):
     spellbook: Annotated[list[Annotated[StrictStr, Field(max_length=64)]], Field(max_length=32)] | None = None
     action_id: UUID
 
+    @field_validator("action_id")
+    @classmethod
+    def action_id_must_be_uuid4(cls, value: UUID) -> UUID:
+        if value.version != 4:  # D-193: the turn and species-action rule (D-111)
+            raise ValueError("Action ID must be a UUIDv4.")
+        return value
+
 
 class SpellPrepareDropped(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -824,6 +858,7 @@ class SpellPrepareView(BaseModel):
     candidates: list[str]
     prepared: list[str]
     spellbook: list[str] | None = None
+    not_in_engine: list[str] = []
     # D-039: only while `blocked_reason` is "spellbook_missing": the spells the book may hold and the engine's offer.
     spellbook_options: list[str] = []
     suggested_spellbook: list[str] = []
@@ -1675,8 +1710,9 @@ class CampaignSessionResponse(BaseModel):
 
 class LevelUpApplyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    action_id: UUID
-    campaign_id: UUID
+    # D-158: `require_uuid4` below refuses any other UUID version; the published contract says so too.
+    action_id: UUID = Field(json_schema_extra={"pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"})
+    campaign_id: UUID = Field(json_schema_extra={"pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"})
     expected_revision: int = Field(strict=True, ge=0)
     target_level: int = Field(strict=True, ge=2, le=5)
     choices: LevelUpChoices | LevelUpFiveChoices | SorcererLevel2Choices | SorcererLevel3Choices | BarbarianLevel2Choices | BarbarianLevel3Choices | BarbarianLevel4Choices | FighterLevel3Choices | MonkLevel3Choices | RogueLevel3Choices | PaladinLevel2Choices | PaladinLevel3Choices | PaladinLevel4Choices | PaladinLevel5Choices | WizardSpellbookChoices | WizardLevel3Choices | WizardLevel4Choices | ClericLevel3Choices | ClericLevel4Choices
@@ -1776,3 +1812,13 @@ class LevelUpCommandResult(BaseModel):
     action_id: str
     state: dict[str, Any]
     result: LevelUpAppliedResult
+
+
+def _action_id_uuid4(value: UUID) -> UUID:
+    if value.version != 4:
+        raise ValueError("Action ID must be a UUIDv4.")
+    return value
+
+
+# D-159: an action id in a path is a UUIDv4 like a turn body's (D-111); anything else is a 422 RequestValidationError.
+ActionIdPath = Annotated[UUID, AfterValidator(_action_id_uuid4)]

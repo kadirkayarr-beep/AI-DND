@@ -609,6 +609,8 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             advantage.append("vex")
         if effect["kind"] == monk_features.OPENING_EFFECT and effect["target_id"] == target:
             advantage.append(monk_features.OPENING_EFFECT)
+        if effect["kind"] == GUIDING_EFFECT and effect["target_id"] == target:
+            advantage.append(GUIDING_EFFECT)
     mastery = None
     if not unarmed and not profile:
         eligible = weapon["weapon_id"] in attacker.get("weapon_masteries", [])
@@ -863,12 +865,15 @@ def push(session, actor, target, distance, *, size_limit="large"):
             "resulting_distance_ft": new_distance}
 
 
+GUIDING_EFFECT = "guiding_bolt"  # Guiding Bolt (PHB 2024 PDF 281): the next attack roll against the target has Advantage until the end of the caster's next turn
+
+
 def effect(session, kind, actor, target):
     counter = session.world_state["combat"].get("turn_resources", {}).get(actor, {}).get("attack_turn_counter", 0)
     effects = session.world_state.setdefault("attack_effects", [])
     effects[:] = [e for e in effects if not (e["kind"] == kind and e["source_actor"] == actor and e["target_id"] == target)]
     effects.append({"kind": kind, "source_actor": actor, "target_id": target,
-                    "expires_turn": counter + 1, "expires_boundary": "end" if kind == "vex" else "begin"})
+                    "expires_turn": counter + 1, "expires_boundary": "end" if kind in ("vex", GUIDING_EFFECT) else "begin"})
 
 
 def boundary(session, actor, event):
@@ -1124,6 +1129,7 @@ def _resolve(session, c):
         effects[:] = [e for e in effects if not (
             (e["kind"] == "sap" and e["target_id"] == actor)
             or (e["kind"] == monk_features.OPENING_EFFECT and e["target_id"] == target)
+            or (e["kind"] == GUIDING_EFFECT and e["target_id"] == target)
             or (e["kind"] == "vex" and e["source_actor"] == actor and e["target_id"] == target))]
         # A newly granted Vex belongs to this hit, not the previous attack.
         if hit and mastery == "vex" and damage > 0:
