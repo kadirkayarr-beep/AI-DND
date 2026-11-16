@@ -1,0 +1,106 @@
+{
+  "id": "51b_zar_model_calma_para",
+  "title": "Zar motorun işi, genel çözüm, para yolu (D-094; SIFIR TOLERANS): ön okuma 'steal' (deed) dediğinde 'kesesini almaya çalışıyorum' motorun çalma yolundan geçer: başarılı zarla kese bir kez artar, Geri Al kese ve kişi kesesini eski hâline getirir, yenilemede de aynı kalır; konuşma diye okunan aynı söz para taşımaz; çalınan para kurbanın kesesinden düşer (D-170)",
+  "source_items": [
+    94
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 60
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5202,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "kesesini almaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      }
+    },
+    {
+      "say": "kesesini almaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?",
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      }
+    },
+    {
+      "say": "evet",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "kese": 50,
+        "kisi_kese": {
+          "kavsim": 50
+        }
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        },
+        "gerekli_metin": "Son tur geri alındı"
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      }
+    }
+  ]
+}

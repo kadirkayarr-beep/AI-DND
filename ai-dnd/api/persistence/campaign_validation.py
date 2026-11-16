@@ -21,6 +21,7 @@ from api.campaign_journal import (
 )
 from api.persistence.campaign_models import (
     CampaignCorruptError,
+    CampaignStorageError,
     CampaignValidationError,
 )
 from api.narrative_memory import (
@@ -356,19 +357,26 @@ def restore_campaign_session(session: Any, payload: dict[str, Any]) -> dict[str,
 
     temporary_path: Path | None = None
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            suffix=".json",
-            delete=False,
-        ) as handle:
-            json.dump(
-                payload["engine_save"],
-                handle,
-                ensure_ascii=False,
-                allow_nan=False,
-            )
-            temporary_path = Path(handle.name)
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                suffix=".json",
+                delete=False,
+            ) as handle:
+                # D-126: keep the path before writing so a half-written file is always removed.
+                temporary_path = Path(handle.name)
+                json.dump(
+                    payload["engine_save"],
+                    handle,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                )
+        except OSError:
+            # D-126: the disk failed, not the save; a sound save is not reported as corrupt.
+            raise CampaignStorageError(
+                "Campaign could not be restored: temporary storage failed."
+            ) from None
         session.load_game(temporary_path)
         session.rng.setstate(_tuple_tree(payload["rng_state"]))
         set_session_world_metadata(
@@ -378,6 +386,8 @@ def restore_campaign_session(session: Any, payload: dict[str, Any]) -> dict[str,
         journal = deepcopy(
             payload.get("journal", empty_campaign_journal())
         )
+    except CampaignStorageError:
+        raise
     except Exception:
         raise CampaignCorruptError(
             "Campaign could not be restored safely."

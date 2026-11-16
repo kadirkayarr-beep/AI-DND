@@ -1,0 +1,59 @@
+{
+  "id": "53b_esya_yoksa_calinmaz",
+  "title": "Eşya yoktan var olmaz (D-108, D-205; SIFIR TOLERANS): kurbanın üstünde olmayan eşya başarılı zarla da çalınamaz; envantere bir şey eklenmez, para da taşınmaz",
+  "source_items": [
+    108,
+    205
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 30
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5702,
+    "front_proposal": false
+  },
+  "steps": [
+    {
+      "say": "yüzüğünü fark ettirmeden çalmak için zar atıyorum",
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?",
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 30
+        },
+        "envanter": {}
+      }
+    },
+    {
+      "say": "evet",
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "envanter": {},
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 30
+        },
+        "yasak_metin": [
+          "artık sende"
+        ]
+      }
+    }
+  ]
+}

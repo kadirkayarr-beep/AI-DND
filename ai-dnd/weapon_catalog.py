@@ -80,7 +80,16 @@ TURKISH_NAMES = {
     "agir tatar yayi": "heavy_crossbow", "buyuk kilic": "greatsword",
     "pala": "scimitar", "mizrak": "spear", "buyuk balta": "greataxe",
     "el baltasi": "handaxe", "sopa": "club", "gurz": "mace", "mec": "rapier",
-    "kirbac": "whip",
+    "kirbac": "whip", "cirit": "javelin",
+}
+# D-229: the Turkish label a weapon named in play is written with (every one looks up to its TURKISH_NAMES weapon).
+# "asa" and "mec" are left out: too short to tell from other words ("masa", "mecburen").
+TURKISH_LABELS = {
+    "kisa kilic": "Kısa Kılıç", "uzun kilic": "Uzun Kılıç", "kilic": "Kılıç", "hancer": "Hançer",
+    "ceyrek asa": "Çeyrek Asa", "kisa yay": "Kısa Yay", "uzun yay": "Uzun Yay",
+    "hafif tatar yayi": "Hafif Tatar Yayı", "agir tatar yayi": "Ağır Tatar Yayı", "buyuk kilic": "Büyük Kılıç",
+    "pala": "Pala", "mizrak": "Mızrak", "buyuk balta": "Büyük Balta", "el baltasi": "El Baltası", "sopa": "Sopa",
+    "gurz": "Gürz", "kirbac": "Kırbaç", "cirit": "Cirit",
 }
 # Everyday stems that only ever mean a weapon the speaker already owns.
 OWNED_STEMS = {**TURKISH_NAMES, "balta": "greataxe", "yay": "shortbow"}

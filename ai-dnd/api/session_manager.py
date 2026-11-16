@@ -7,6 +7,7 @@ import threading
 import uuid
 import copy
 import hashlib
+import itertools
 import json
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -41,6 +42,7 @@ from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignNotActiveError,
     CampaignNotFoundError,
+    CampaignStaleError,
     CampaignStorageError,
 )
 from api.persistence.campaign_serializer import restore_stored_campaign
@@ -66,6 +68,15 @@ class UnknownSessionError(LookupError):
 # Transient (non-campaign) sessions keep refusals only in process memory and only this many: no restart protection,
 # and the oldest are dropped. This is not the durable guarantee campaigns get (see HANDOFF, R08).
 MAX_TRANSIENT_REFUSED_ACTIONS = 256
+# D-152: abandoned transient sessions and their whole replies no longer stay in memory forever. One owner keeps this
+# many transient sessions (the least recently used one is dropped), and a transient session keeps this many whole
+# replies; an older reply keeps only its request hash, so its action id is still "applied" and never runs twice.
+MAX_TRANSIENT_SESSIONS_PER_OWNER = 16
+MAX_TRANSIENT_TURN_RECEIPTS = 256
+
+
+class TransientReplyDroppedError(CampaignStaleError):
+    """D-152: the action was applied, but its whole reply was dropped; a retry is refused, a status read says applied."""
 
 
 @dataclass
@@ -157,7 +168,24 @@ class SessionManager:
                 owner_subject=owner.subject,
             )
             self._sessions[session_id] = record
+            self._drop_idle_transient_sessions_locked(owner)
         return session_id, record
+
+    def _drop_idle_transient_sessions_locked(self, owner: Principal) -> None:
+        """D-152: keep this owner's transient sessions within the cap; oldest-used first, never one mid-turn."""
+        owned = [
+            (sid, record) for sid, record in self._sessions.items()
+            if record.campaign_id is None and self._owned_by(record, owner)
+        ]
+        excess = len(owned) - MAX_TRANSIENT_SESSIONS_PER_OWNER
+        for sid, record in owned[:-1]:  # least-recently-used order (see get); the last is the one just created
+            if excess <= 0:
+                break
+            if record.turn_lock.locked():
+                continue
+            record.revoked = True
+            self._sessions.pop(sid, None)
+            excess -= 1
 
     def create_campaign(
         self,
@@ -375,6 +403,8 @@ class SessionManager:
         owner = self._resolve_principal(principal)
         with self._registry_lock:
             record = self._sessions.get(session_id)
+            if record is not None and self._owned_by(record, owner):
+                self._sessions[session_id] = self._sessions.pop(session_id)  # D-152: most recently used goes last
         if record is None or record.revoked or not self._owned_by(record, owner):
             raise UnknownSessionError(session_id)
         if record.campaign_id is not None and not self._require_campaign_store().campaign_exists(
@@ -670,12 +700,25 @@ class SessionManager:
             else record.narrative_memory
         )
         if record.campaign_id is None:
+            # D-127: the same rule the campaign store applies inside its commit: a refused id never gains a receipt.
+            if turn_action_receipt is not None and turn_action_receipt["action_id"] in record.refused_actions:
+                raise CampaignStaleError("This action was already refused and can no longer be applied.")
             record.narrative_memory = candidate_memory
             self._remember_combat_entry(record, combat_history_entry)
             if turn_action_receipt is not None:
                 record.turn_action_receipts[
                     turn_action_receipt["action_id"]
                 ] = copy.deepcopy(turn_action_receipt)
+                # D-152: receipts are kept in arrival order and replies are dropped oldest first, so the reply that
+                # just fell out of the newest MAX_TRANSIENT_TURN_RECEIPTS sits at this position.
+                position = len(record.turn_action_receipts) - MAX_TRANSIENT_TURN_RECEIPTS - 1
+                if position >= 0:
+                    old_id = next(itertools.islice(record.turn_action_receipts, position, None))
+                    old = record.turn_action_receipts[old_id]
+                    if isinstance(old, dict) and "response" in old:
+                        record.turn_action_receipts[old_id] = {
+                            "request_hash": old.get("request_hash"), "response_dropped": True,
+                        }
             return None
         set_session_world_metadata(
             record.game_session,
@@ -768,6 +811,9 @@ class SessionManager:
         if action_id not in record.turn_action_receipts:
             return None
         receipt = record.turn_action_receipts[action_id]
+        if isinstance(receipt, dict) and receipt.get("response_dropped") is True:
+            # D-152: applied long ago and its reply is no longer kept; refuse rather than run it a second time.
+            raise TransientReplyDroppedError("This action was already applied; its reply is no longer kept.")
         # A retained but damaged receipt still reserves its action ID. Reject
         # before callers compare hashes or execute mechanics; never repair it.
         if (
@@ -802,6 +848,8 @@ class SessionManager:
                 record.campaign_id, action_id, request_hash, status_code, detail,
                 principal=self._sealed_principal(record),
             )
+        if action_id in record.turn_action_receipts:
+            return False  # a receipt always wins, as in the campaign store
         record.refused_actions[action_id] = {
             "request_hash": request_hash, "status_code": status_code, "detail": detail,
         }
@@ -821,13 +869,6 @@ class SessionManager:
         return self._require_campaign_store().claim_action_intent(
             record.campaign_id, action_id, request_hash, principal=self._sealed_principal(record),
             session=record.game_session,  # the server-held session, never a client token
-        )
-
-    def release_action_intent(self, record: ManagedSession, action_id: str, request_hash: str) -> bool:
-        if record.campaign_id is None:
-            return action_id not in record.turn_action_receipts
-        return self._require_campaign_store().release_action_intent(
-            record.campaign_id, action_id, request_hash, principal=self._sealed_principal(record),
         )
 
     def unresolved_action(self, record: ManagedSession) -> dict[str, Any] | None:

@@ -125,12 +125,33 @@ class TheLoaderIsStrict(unittest.TestCase):
             set(EXPECT_KEYS),
             {
                 "kese", "envanter", "oda", "kip", "savas", "konum", "hp",
-                "kart", "tezgah", "kisi_kese", "olu", "yasak_metin", "gerekli_metin",
+                "kart", "tezgah", "kisi_kese", "kisi_esya", "olu", "yasak_metin", "gerekli_metin",
                 "anlaticiya_giden", "cephane", "hareket", "xp", "saat", "gorev", "karsi_saldiri", "yuva",
                 "esya_sayisi", "anlatilan", "konusmaya_giden", "inkar", "gunluk", "elinde",
-                "olay", "zirh", "varis", "seviye", "buyu_olgusu",
+                "olay", "zirh", "varis", "seviye", "buyu_olgusu", "zar", "kisi_hp",
             },
         )
+
+    def test_kisi_hp_names_each_persons_hit_points_and_is_checked_as_a_subset(self):
+        """D-031: a person's hit points (``kisi_hp``: person -> current HP) can be pinned, so a journey can say the
+        model's number did not touch the guard; a wrong type or an empty mapping fails when the file loads."""
+        for bad in ({"guard": "12"}, {"guard": 1.5}, {"guard": True}, {}, 12, None):
+            with self.subTest(bad=bad), self.assertRaises(ScenarioError) as raised:
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"kisi_hp": bad}}])))
+            self.assertIn("kisi_hp", str(raised.exception))
+        load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"kisi_hp": {"guard": 12}}}])))
+        seen = {"kisi_hp": {"guard": 12, "barman": 4}}
+        self.assertEqual(check_expect({"kisi_hp": {"guard": 12}}, seen), [])
+        self.assertEqual(check_expect({"kisi_hp": {"guard": 11}}, seen), ["kisi_hp.guard: beklenen 11, gözlenen 12"])
+        self.assertTrue(check_expect({"kisi_hp": {"rat": 3}}, seen))
+
+    def test_rc14_pins_the_guards_hit_points_before_the_fight_and_after_the_undo(self):
+        """D-031: rc14 says the model's number never changes HP; the guard's HP is checked where no blow lands
+        (the shove that starts no fight) and where the undo takes the fight back."""
+        rc14 = load_scenario(Path(schema.__file__).parent / "scenarios" / "rc14_english_fight_real.json")
+        max_hp = 12
+        self.assertEqual(rc14.steps[0].expect.get("kisi_hp"), {"guard": max_hp})
+        self.assertEqual(rc14.steps[-1].expect.get("kisi_hp"), {"guard": max_hp})
 
     def test_varis_is_an_expect_key_and_its_values_are_checked(self):
         self.assertIn("varis", EXPECT_KEYS)
@@ -490,6 +511,21 @@ class TheCheckerReportsInTurkish(unittest.TestCase):
             check_expect({"tezgah": {"key": "bira"}}, {"tezgah": None}),
             ["tezgah: beklenen {'key': 'bira'}, gözlenen yok"],
         )
+
+    def test_kisi_kese_null_means_the_purse_was_never_counted(self):
+        """D-207: a purse a step opened and undo took away again is pinned as null (no wallet at all); a wallet that
+        holds 0 is a different state and does not pass for it."""
+        (step,) = load_scenario(write_scenario(small_scenario(
+            steps=[{"say": "x", "expect": {"kisi_kese": {"kavsim": None, "barman": 4}}}]))).steps
+        self.assertEqual(step.expect, {"kisi_kese": {"kavsim": None, "barman": 4}})
+        self.assertEqual(check_expect({"kisi_kese": {"kavsim": None}}, {"kisi_kese": {"barman": 4}}), [])
+        self.assertEqual(check_expect({"kisi_kese": {"kavsim": None}}, {"kisi_kese": {"kavsim": 0}}),
+                         ["kisi_kese.kavsim: beklenen yok, gözlenen 0"])
+        self.assertEqual(check_expect({"kisi_kese": {"kavsim": 16}}, {"kisi_kese": {}}),
+                         ["kisi_kese.kavsim: beklenen 16, gözlenen yok"])
+        for value in ({"kavsim": "0"}, {}, {"kavsim": False}):
+            with self.subTest(value=value), self.assertRaises(ScenarioError):
+                load_scenario(write_scenario(small_scenario(steps=[{"say": "x", "expect": {"kisi_kese": value}}])))
 
     def test_check_expect_forbidden_text_is_case_insensitive(self):
         problems = check_expect(

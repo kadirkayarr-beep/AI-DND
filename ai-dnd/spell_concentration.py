@@ -40,15 +40,36 @@ def current(world: dict[str, Any]) -> dict[str, Any] | None:
     return held if isinstance(held, dict) else None
 
 
-def validate_saved(world: dict[str, Any], character: dict[str, Any]) -> None:
-    if KEY not in world or world[KEY] is None:
-        return
-    held = world[KEY]
+def _validate_record(held: Any) -> None:
     if (not isinstance(held, dict) or set(held) != _FIELDS or held["spell_id"] not in CONCENTRATION_SPELLS
             or not isinstance(held["combat_id"], str) or not held["combat_id"]
             or type(held["started_round"]) is not int or held["started_round"] < 1
             or type(held["slot_level"]) is not int or not 1 <= held["slot_level"] <= 9
             or not isinstance(held["targets"], list) or held["targets"] != ["player"]):
+        raise ValueError("Invalid saved spell concentration.")
+
+
+def _class_spell_ids(character: dict[str, Any]) -> set[str]:
+    """Every spell the character's class could ever cast: the same lists `spell_scope.validate` allows (D-068)."""
+    from api.dnd_2024_rules import SPELLS_CATALOG
+    import character_progression
+    catalog = SPELLS_CATALOG.get(character.get("class"), {})
+    return ({s["id"] for field in ("cantrips", "spells_level_1") for s in catalog.get(field, [])}
+            | character_progression.extra_spell_ids(character, "cantrips")
+            | character_progression.extra_spell_ids(character, "prepared"))
+
+
+def validate_saved(world: dict[str, Any], character: dict[str, Any]) -> None:
+    if KEY not in world or world[KEY] is None:
+        return
+    held = world[KEY]
+    _validate_record(held)
+    # D-068: no class ever gave this character the spell (a forged record, stale or not), or it started in a round its
+    # own fight has not reached (which stretches the minute).
+    combat = world.get("combat") or {}
+    if (held["spell_id"] not in _class_spell_ids(character)
+            or (combat.get("active") and combat.get("combat_id") == held["combat_id"]
+                and type(combat.get("round")) is int and held["started_round"] > combat["round"])):
         raise ValueError("Invalid saved spell concentration.")
     # A record whose fight is over is stale, not invalid: it never holds (`holds` reads the fight) and the next cast
     # replaces it. Refusing such a save would lock the campaign (the D-001 class), so it loads.
@@ -103,7 +124,7 @@ def start(session: Any, spell_id: str, slot_level: int, targets: list[str]) -> d
     combat = session.world_state["combat"]
     record = {"spell_id": spell_id, "combat_id": combat["combat_id"], "started_round": combat["round"],
               "slot_level": slot_level, "targets": list(targets)}
-    validate_saved({KEY: record}, session.character)  # copy, validate, then write (design §8: no B1-class record)
+    _validate_record(record)  # copy, validate, then write (design §8: no B1-class record); the cast already checked access
     # A record that no longer holds (a finished fight's) is replaced silently: nothing the player held ends here.
     ended = end(session, "new_concentration_spell") if holds(session) is not None else end(session, "stale")
     ended = ended if ended is not None and ended["reason"] == "new_concentration_spell" else None
@@ -148,6 +169,7 @@ def bless_roll(session: Any, actor: str) -> int | None:
     return session.rng.randint(1, 4)
 
 
-def projection(world: dict[str, Any]) -> dict[str, Any] | None:
-    held = current(world)
-    return copy.deepcopy(held) if held is not None else None
+def projection(session: Any) -> dict[str, Any] | None:
+    """Public read (D-073): the Concentration that holds right now, without its combat id; never settles it."""
+    held = holds(session)
+    return {k: copy.deepcopy(held[k]) for k in ("spell_id", "slot_level", "started_round", "targets")} if held else None

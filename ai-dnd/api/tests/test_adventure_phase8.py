@@ -130,6 +130,132 @@ class AdventurePhase8Tests(unittest.TestCase):
         self.assertTrue(shown["completed"])
         self.assertNotIn("objective_id", str(shown))
 
+    def test_untargeted_investigation_elsewhere_does_not_reach_absent_giver(self):
+        """D-133 / ORTA-28: a targetless check away from the quest giver never counts as hearing them."""
+        for template, first in (("MISSING_PERSON", "hook"), ("BOUNTY", "notice")):
+            with self.subTest(template=template):
+                session, place = _session()
+                quest = templates.instantiate(
+                    template,
+                    quest_id=f"adv.{first}",
+                    turn=1,
+                    opportunity_key=f"opportunity:{first}",
+                    creation_evidence="event:rumor:9",
+                    bindings=_bindings(place),
+                    rumor="Bir söylenti.",
+                )
+                session.world_state["quests"].append(quest)
+                for state, turn in (("DISCOVERED", 2), ("ACTIVE", 2)):
+                    updated = adventure_transition(quest, state, turn)
+                    quest.clear()
+                    quest.update(updated)
+                session.world_state["location"] = "forest"
+                check = {"action": "skill_check", "success": True, "skill": "Investigation"}
+                self._advance(session, quest, dict(check, action_id="adventure-check:3:Investigation"))
+                node = next(item for item in quest["objectives"] if item["objective_id"] == first)
+                self.assertEqual(node["graph_state"], "ACTIVE")
+
+                session.world_state["location"] = place
+                self._advance(session, quest, dict(check, action_id="adventure-check:4:Investigation"))
+                self.assertEqual(node["graph_state"], "COMPLETE")
+
+    def test_heard_job_keeps_evidence_and_counts_it_on_acceptance(self):
+        """D-203 (Kadir kararı 2026-11-15): evidence gathered before acceptance is not thrown away; it is kept on
+        the heard (DISCOVERED) job and counts once the job is accepted. A heard job never closes as done itself,
+        so the illegal DISCOVERED -> COMPLETED jump is never tried; the first turn after acceptance closes it."""
+        import uuid
+
+        session, place = _session()
+        world = session.world_state
+        world["npcs"].append({"id": "npc.mark", "location": "dock", "current_hp": 8, "combat_status": "active"})
+        quest = templates.instantiate(
+            "BOUNTY",
+            quest_id="adv.heard",
+            turn=1,
+            opportunity_key="opportunity:heard",
+            creation_evidence="event:rumor:heard",
+            bindings=templates.prepared_bindings(
+                source_npc_id="npc.source", target_npc_id="npc.mark", location_ids=["dock"],
+            ),
+            rumor="Limanda aranan biri var.",
+        )
+        world["quests"].append(quest)
+        world["flags"]["turn_index"] = 2
+        director.discover(world, quest["quest_id"])
+        purse = copy.deepcopy(world.get("currency"))
+
+        self._advance(session, quest, {"action": "skill_check", "success": True, "skill": "investigation",
+                                       "target": "npc.source", "action_id": str(uuid.uuid4())})
+        before = copy.deepcopy(world)
+        world["location"] = "dock"
+        world["flags"]["turn_index"] += 1
+        evidence.apply_dynamic_evidence(world, before, {})
+        before = copy.deepcopy(world)
+        mark = next(npc for npc in world["npcs"] if npc["id"] == "npc.mark")
+        mark.update(current_hp=0, combat_status="defeated")  # the target falls before the job is accepted
+        world["flags"]["turn_index"] += 1
+        notes = evidence.apply_dynamic_evidence(world, before, {"action_id": str(uuid.uuid4())})
+        self.assertEqual([note["objective_id"] for note in notes], ["resolve"])
+        before = copy.deepcopy(world)
+        world["flags"]["turn_index"] += 1
+        evidence.apply_dynamic_evidence(world, before, {})  # an ordinary later turn: still heard, still open
+
+        self.assertEqual((quest["status"], quest["outcome"]), ("DISCOVERED", None))
+        self.assertEqual({item["objective_id"]: item["graph_state"] for item in quest["objectives"]},
+                         {"notice": "COMPLETE", "mark": "COMPLETE", "resolve": "COMPLETE"})
+        self.assertIsNone(quest.get("reward_application_id"))
+        self.assertEqual(world.get("currency"), purse, "nothing is paid for a job not taken")
+
+        director.accept_dynamic(world, quest["quest_id"])
+        self.assertEqual(quest["status"], "ACTIVE")
+        self.assertTrue(all(item["graph_state"] == "COMPLETE" for item in quest["objectives"]),
+                        "acceptance keeps the stored steps")
+        before = copy.deepcopy(world)
+        world["flags"]["turn_index"] += 1
+        evidence.apply_dynamic_evidence(world, before, {})
+        self.assertEqual((quest["status"], quest["outcome"]), ("COMPLETED", "success"))
+
+    def test_heard_job_step_done_before_acceptance_counts_and_the_rest_follows(self):
+        """D-203: only part of the job done before acceptance; that part counts, the rest is done after."""
+        import uuid
+
+        session, place = _session()
+        world = session.world_state
+        world["npcs"].append({"id": "npc.mark", "location": "dock", "current_hp": 8, "combat_status": "active"})
+        quest = templates.instantiate(
+            "BOUNTY",
+            quest_id="adv.heard",
+            turn=1,
+            opportunity_key="opportunity:heard",
+            creation_evidence="event:rumor:heard",
+            bindings=templates.prepared_bindings(
+                source_npc_id="npc.source", target_npc_id="npc.mark", location_ids=["dock"],
+            ),
+            rumor="Limanda aranan biri var.",
+        )
+        world["quests"].append(quest)
+        world["flags"]["turn_index"] = 2
+        director.discover(world, quest["quest_id"])
+        self._advance(session, quest, {"action": "skill_check", "success": True, "skill": "investigation",
+                                       "target": "npc.source", "action_id": str(uuid.uuid4())})
+        self.assertEqual(quest["status"], "DISCOVERED")
+        states = {item["objective_id"]: item["graph_state"] for item in quest["objectives"]}
+        self.assertEqual(states, {"notice": "COMPLETE", "mark": "ACTIVE", "resolve": "HIDDEN"})
+
+        director.accept_dynamic(world, quest["quest_id"])
+        notice = next(item for item in quest["objectives"] if item["objective_id"] == "notice")
+        self.assertEqual(notice["graph_state"], "COMPLETE", "the step done before acceptance counts; not asked again")
+        before = copy.deepcopy(world)
+        world["location"] = "dock"
+        world["flags"]["turn_index"] += 1
+        evidence.apply_dynamic_evidence(world, before, {})
+        before = copy.deepcopy(world)
+        mark = next(npc for npc in world["npcs"] if npc["id"] == "npc.mark")
+        mark.update(current_hp=0, combat_status="defeated")
+        world["flags"]["turn_index"] += 1
+        evidence.apply_dynamic_evidence(world, before, {"action_id": str(uuid.uuid4())})
+        self.assertEqual((quest["status"], quest["outcome"]), ("COMPLETED", "success"))
+
     def _reach_cell(self, session, quest):
         campaign_id = "campaign-a"
         session.world_state["campaign_id"] = campaign_id
@@ -231,10 +357,20 @@ class AdventurePhase8Tests(unittest.TestCase):
         }
         before_xp = session.character.get("xp", 0)
         broken = copy.deepcopy(quest)
-        with self.assertRaises(ValueError):
-            rewards.apply_plan(session.character, session.world_state, broken, lore_state=None)
+        # YENİDEN YAZIM (D-062) [GEVŞETME OLABİLİR]: the failing standing was a missing bond (``lore_state=None``),
+        # which now forfeits the standing alone; the same rollback after gold and marker is pinned with a refused
+        # standing owner instead (plus the purse, which the old form did not check).
+        from unittest.mock import patch
+        import api.lore_authority.campaign_state as campaign_state
+
+        before_world = copy.deepcopy(session.world_state)
+        refused = ValueError("injected: standing refused")
+        with patch.object(campaign_state, "apply_faction_standing", side_effect=refused):
+            with self.assertRaises(ValueError):
+                rewards.apply_plan(session.character, session.world_state, broken, lore_state=bound_state())
         self.assertEqual(session.character.get("xp", 0), before_xp)
         self.assertIsNone(broken["reward_application_id"])
+        self.assertEqual(session.world_state, before_world)
 
         lore = bound_state()
         paid = rewards.apply_plan(session.character, session.world_state, quest, lore_state=lore)
@@ -402,6 +538,44 @@ class AdventurePhase8Tests(unittest.TestCase):
         self.assertEqual(session.world_state["currency"]["player"], 0)
         self.assertIsNone(quest["outcome"])
 
+    def _missing_person_threat(self):
+        session, place = _session()
+        quest = templates.instantiate(
+            "MISSING_PERSON",
+            quest_id="adv.threat",
+            turn=1,
+            opportunity_key="opportunity:threat",
+            creation_evidence="event:threat",
+            bindings=_bindings(place),
+            rumor="Biri kaybolmuş.",
+        )
+        return session, quest, next(item for item in quest["objectives"] if item["objective_id"] == "threat")
+
+    def test_missing_person_threat_step_is_not_closed_by_combat(self):
+        # D-221 (owner decision a, interim): the abductors are not a separate NPC yet, so combat cannot close this step.
+        _, quest, threat = self._missing_person_threat()
+        self.assertNotIn("combat", threat["resolution_kinds"])
+        self.assertEqual(set(threat["resolution_kinds"]), {"persuasion", "intimidation"})
+        threat.update(graph_state="ACTIVE", visibility="known")
+        for dep in ("hook", "clue", "site"):
+            next(item for item in quest["objectives"] if item["objective_id"] == dep).update(graph_state="COMPLETE")
+        self.assertEqual(
+            evidence._matching(quest, "defeat_entity", "npc.missing", "combat", "defeat:1:npc.missing"), [],
+        )
+        self.assertEqual(
+            len(evidence._matching(quest, "defeat_entity", "npc.missing", "intimidation", "check:sindir")), 1,
+        )
+
+    def test_missing_person_threat_label_is_persuade_or_intimidate_not_encounter(self):
+        _, quest, threat = self._missing_person_threat()
+        quest.update(status="ACTIVE")
+        next(item for item in quest["objectives"] if item["objective_id"] == "hook").update(graph_state="COMPLETE")
+        threat.update(graph_state="ACTIVE", visibility="known")
+        self.assertEqual(projection.affordances(quest), ["İkna et / Sindir"])
+        # A defeat step that combat can close keeps the old label.
+        threat["resolution_kinds"] = ["combat"]
+        self.assertEqual(projection.affordances(quest), ["Karşılaş"])
+
     def test_one_active_one_follow_up_and_one_faction_gate(self):
         session, place = _session()
         bindings = _bindings(place)
@@ -474,7 +648,15 @@ class AdventurePhase8Tests(unittest.TestCase):
             for npc in before["npcs"]
         ]
         evidence.apply_dynamic_evidence(session.world_state, before, {"action_id": "defeat:npc.missing"})
-        self.assertEqual(quest["outcome"], "success")
+        # YENİDEN YAZIM (D-117 / YÜK-14 inceleme): the old test expected success from beating the
+        # captive; a beaten captive is not rescued, so the rescue stays open and the quest unpaid.
+        rescue = next(item for item in quest["objectives"] if item["objective_id"] == "rescue")
+        self.assertEqual(rescue["graph_state"], "ACTIVE")
+        threat = next(item for item in quest["objectives"] if item["objective_id"] == "threat")
+        # YENİDEN YAZIM (D-183): the threat's target is the captive, so beating the captive used to
+        # "defeat the threat"; the one to be saved is never the threat, so it stays open.
+        self.assertEqual(threat["graph_state"], "ACTIVE")
+        self.assertIsNone(quest["outcome"])
         other = game.create_session(seed=9)
         self.assertEqual(other.world_state["quests"], [])
         partial = copy.deepcopy(quest)

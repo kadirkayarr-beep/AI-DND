@@ -161,9 +161,11 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
             if mutate is not None:
                 mutate(damaged)
             self.assertEqual(damaged["action_id"], command["action_id"])
+            # D-124: the edited reply models a row from before result digests (NULL); a recorded digest that no longer
+            # matches its text is refused in the store (test_d124_replay_digest), before these reply checks.
             with self.store._transaction() as db:
                 updated = db.execute(
-                    "UPDATE campaign_turn_actions SET response_json = ? WHERE campaign_id = ? AND action_id = ?",
+                    "UPDATE campaign_turn_actions SET response_json = ?, result_digest = NULL WHERE campaign_id = ? AND action_id = ?",
                     (json.dumps(damaged), campaign_id, command["action_id"]),
                 )
                 self.assertEqual(updated.rowcount, 1)

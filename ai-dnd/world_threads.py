@@ -616,7 +616,7 @@ def _unpaid(world, thread):
     return not (isinstance(held, list) and xp._job_award_id(thread["thread_id"]) in held)
 
 
-def _trim_history(state, world=None):
+def _trim_history(state, world):
     """Old closings go; one the player had a hand in stays until they have learned how it ended, and was paid for it."""
     waiting = [t for t in state["history"] if fires_at(t) is not None
                or (t.get("offered_at") is not None and t.get("outcome_known_turn") is None) or _unpaid(world, t)]
@@ -1017,6 +1017,55 @@ def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = Fal
                for kind, (tokens, _, _) in zip(read, clauses))
 
 
+_FINITE_ENDS = ("yorum", "yoruz", "dum", "dim", "tum", "tim", "rim", "yim", "lim", "cagim", "cegim", "cam", "cem")
+_NOT_A_YES = frozenset({"degil", "sanma", "yalan", "diye", "asla", "hayir", "yok"})  # a no, a lie or a pretence beside it
+
+
+def finite_verbs(text: Any) -> list[str]:
+    """The folded words of the line that are a verb said of the speaker ('soyuyorum', 'çekeyim'): a second thing done."""
+    return [word for word in _folded(text).split() if word.endswith(_FINITE_ENDS)]
+
+
+_ACCEPT_VERBS = frozenset({"ediyorum", "ederim", "ettim", "edecegim", "ediom", "ediorum", "ediyoruz", "ederiz"})
+
+
+def says_yes_in_a_longer_line(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+    """D-240, for when no model read the line: 'görevi kabul ediyorum ve eşyayı alıyorum'. The clause reader calls a
+    yes that runs on into more of the same clause 'other', so this looks for the yes itself (a listed phrase of two
+    words or more, or 'kabul' with its own verb), and only where nothing in the line says no, maybe, later, if or asks.
+    A model's yes never needed this; Python's own reading of the player's words is all that stands behind it."""
+    if isinstance(text, str) and set(_folded(text).split()) & _NOT_A_YES:
+        return False
+    if holds_a_yes(text, npc, thread, firm=True):
+        return True
+    table = answer_table()
+    text = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
+    if text is None or "?" in text:
+        return False
+    names = _names_of(npc)
+    clauses = _clauses(text)
+    kinds = {_read_clause(tokens, asked, table, names, _item_stems(thread)) for tokens, asked, _ in clauses}
+    if {"decline", "withdraw", "unclear", "question", "terms"} & kinds or any(after for _, _, after in clauses):
+        return False
+    tokens = [word for clause, _, _ in clauses for word in clause]
+    if (any(_REFUSED_DOING.search(word) or word.endswith(_CONDITIONAL_ENDS) for word in tokens)
+            or set(tokens) & (table["hedges"] | _REPORTED | table["later_words"]) or says_later(text)
+            or any(_has_phrase(tokens, table[meaning]) for meaning in ("decline", "withdraw"))):
+        return False
+    window = next(((start, end) for start in range(len(tokens)) for end in range(start + 2, min(start + 4, len(tokens)) + 1)
+                   if " ".join(tokens[start:end]) in table["accept"]), None)
+    if window is None:
+        window = next(((at, at + 2) for at, (word, following) in enumerate(zip(tokens, tokens[1:]))
+                       if word == "kabul" and following in _ACCEPT_VERBS), None)
+    if window is None:
+        return False
+    # Whatever else the line does must be taking or handing over the offer's own thing, or talk: any other deed is left
+    # to the old chain, which reads it as its own act.
+    rest = [*tokens[:window[0]], *tokens[window[1]:]]
+    allowed = table["take"] | table["start"] | table["give_verbs"]
+    return not any(word.endswith(_FINITE_ENDS) and word not in allowed for word in rest)
+
+
 _REFUSED_DOING = re.compile(r"(?:m[aeiu]yor|mam$|mem$|mayacag|meyecek|meyecen|mayacan|amam$|emem$)")
 
 
@@ -1331,6 +1380,67 @@ def parcel_thread(world: dict[str, Any], item_id: Any) -> dict[str, Any] | None:
                  if t.get("quest_id") and item_id == f"parcel:{t['quest_id']}"), None) if state else None
 
 
+# D-276: the hand-over verb itself said in the negative ('getirmedim', 'vermiyorum', 'vermeyeceğim', 'teslim etmiyorum',
+# 'veremem', 'veremiyorum'), or its infinitive with a 'no' after it ('vermek istemiyorum', 'vermeyi düşünmüyorum',
+# 'vermeye niyetim yok', 'vermekten vazgeçtim'). Only the verb's own ending and the words after an infinitive are read,
+# so 'vermek istiyorum', 'rica ederim', 'umarım' and 'getirmişim' refuse nothing.
+_GIVE_ROOT = re.compile(r"(?:getir|ver|birak|uzat)(\w*)")
+# What `_REFUSED_DOING` does not read: the first person past ('getirmedim', 'veremedik'), the soft-g and casual 'will
+# not' ('vermeyeceğim', 'vermeyecem', 'vermiycem', 'vermicem'), the casual present ('vermiyom') and the hearsay past
+# ('vermemişim'). 'Vermedin' is somebody else's not giving.
+_NOT_GIVEN = re.compile(r"[ae]?m(?:[ae]d[iu][mk]|[ae]y[ae]ce[gk]|(?:[ae]y[ae]|[iu]y[ae]?|[iu])c[ae]|[iu]yo|[ae]m[iu]s[iu][mz])")
+_INFINITIVE = re.compile(r"m[ae](?:k\w*|y[iuea])")
+_NEED = ("gerek", "lazim", "icin", "sart")  # 'vermem gereken': the one I am to give, no 'I won't'
+_TALK = ("laf", "soz", "konu", "muhabbet")  # 'lafı uzatmıyorum' holds out no hand
+
+
+def _says_no(word: str, table: dict[str, Any]) -> bool:
+    """A word after an infinitive that says no: 'istemiyorum', 'düşünmüyorum', 'yok', 'vazgeçtim', 'değilim'."""
+    return word not in table["accept"] and (word == "yok" or word.startswith(("vazgec", "degil"))
+                                            or bool(_REFUSED_DOING.search(word) or _NOT_GIVEN.search(word)))
+
+
+def _giving(tokens: list[str]) -> bool | None:
+    """None: no hand-over verb in the clause; True: one is said in the negative; False: said plainly."""
+    table = answer_table()
+    found = None
+    for at, word in enumerate(tokens):
+        if word == "teslim" and at + 1 < len(tokens) and tokens[at + 1][:2] in {"et", "ed"}:
+            at, end = at + 1, tokens[at + 1][2:]
+        elif (verb := _GIVE_ROOT.fullmatch(word)) and not (word.startswith("uzat") and at and tokens[at - 1].startswith(_TALK)):
+            end = verb.group(1)
+        else:
+            continue
+        after = tokens[at + 1:]
+        if after[:1] in (["mi"], ["mu"]):
+            no = False  # 'getirmedim mi sanıyorsun': asked back, not refused
+        elif _INFINITIVE.fullmatch(end):
+            no = any(_says_no(word, table) for word in after)
+        else:
+            no = bool(_REFUSED_DOING.search(end) or _NOT_GIVEN.match(end)) and not (
+                re.search(r"m[ae]m$", end) and after[:1] and after[0].startswith(_NEED))
+        found = found or no
+    return found
+
+
+def hand_over_clauses(text: Any) -> list[tuple[str, bool | None]]:
+    """Each clause of the player's own line (folded), with `_giving` of it; [] for anyone else's words."""
+    line = _own_line(text, answer_table()) if isinstance(text, str) and text.strip() else None
+    return [(" ".join(tokens), _giving(tokens)) for tokens, _, _ in _clauses(line)] if line else []
+
+
+def refuses_hand_over(text: Any, names_a_parcel: Any) -> bool:
+    """D-276: a clause of the line takes the hand-over back, read over the whole line. Only a 'not' on coin alone (the
+    clause speaks of money or pay and `names_a_parcel` finds no parcel in it) beside a clause that hands over plainly
+    refuses nothing: 'takımı getirdim, bahşiş vermiyorum'."""
+    import front_proposal
+    clauses = hand_over_clauses(text)
+    refused = [clause for clause, no in clauses if no]
+    return bool(refused) and not (any(no is False for _, no in clauses) and all(
+        (front_proposal.says_money(clause) or speaks_of_pay(clause)) and not names_a_parcel(clause)
+        for clause in refused))
+
+
 def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     """'Paketi getirdim', 'buyur paketini', 'teslim': a handing-over, said now and not asked about."""
     table = answer_table()
@@ -1338,11 +1448,14 @@ def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     if text is None:
         return False
     stems = _item_stems(thread)
+    if refuses_hand_over(text, lambda clause: any(word in table["item_words"] or word.startswith(stems)
+                                                  for word in clause.split())):
+        return False  # D-276: 'takımı getirdim ama vermiyorum' hands nothing over
     names = _names_of(npc)
     verbs = table["give"] | table["give_verbs"]
     for tokens, asked, _ in _clauses(text):
         body = [word for word in tokens if word not in names and word not in table["fillers"]]
-        if asked or not body:
+        if asked or not body or _giving(tokens):  # D-276: 'paketi teslim etmiyorum' hands nothing over
             continue
         if " ".join(body) in table["give"] or all(word in table["give"] for word in body):
             return True

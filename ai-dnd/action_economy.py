@@ -93,9 +93,11 @@ def speed(session, actor):
         if (data.get("species_trait_state") or {}).get("large_form_turns_remaining", 0) > 0:
             value += 10
         value += character_progression.fast_movement_bonus_ft(data, session.world_state)
-    value -= int(data.get("speed_penalty_ft", 0))
+        # Only the player's saved penalty is read: an NPC one was the old, never-ending Frost's Chill (D-049).
+        value -= int(data.get("speed_penalty_ft", 0))
     value -= 5 * weapon_attack.exhaustion(data)
     value -= weapon_attack.slow_penalty(session, actor)
+    value -= weapon_attack.slow_penalty(session, actor, "frost_giant_ancestry")  # Goliath Frost's Chill (D-049)
     import spell_scope
     value -= spell_scope.speed_penalty(session, actor)  # Ray of Frost (4C.4b)
     if weapon_attack.speed_halved(session, actor):
@@ -423,6 +425,7 @@ def monster_routes(session, actor, kind):
     Route facts never come from a client or narration.
     """
     from monster_perception import relationship
+    import spell_scope
     resources = ensure(session)[actor]
     routes = session.world_state.get("monster_routes", {}).get(actor, [])
     legal = []
@@ -482,6 +485,8 @@ def monster_routes(session, actor, kind):
                 valid = False
                 break
             if (old <= 5 < new_distance and relationship(session, actor, target) == "enemy"
+                    and can_act(session, target)  # surrendered/incapacitated: no Reaction, no OA (D-037)
+                    and not spell_scope.opportunity_attacks_blocked(session, target)  # Shocking Grasp (D-051)
                     and not ensure(session)[target]["reaction_spent"] and kind != "disengage"):
                 valid = False  # Missing OA resolver is not permission to escape freely.
                 break
@@ -824,6 +829,7 @@ def wants_rage(session, text):
 
 def natural_command(session, message, selected_target=None):
     """Small extension of existing intent routing, not a second model parser."""
+    import dragonborn_breath
     if not session.world_state.get("combat", {}).get("active"):
         return None
     text = session._normalize_turkish_typos(message)
@@ -878,6 +884,13 @@ def natural_command(session, message, selected_target=None):
             steps.append({"kind": "dash", "resource": "bonus" if "bonus" in part else "action"})
         elif re.search(r"adrenalin|adrenaline", part):
             steps.append({"kind": "species", "ability": "adrenaline_rush"})
+        elif dragonborn_breath.named(session, part):
+            identity = selected_target
+            if identity is None:
+                found = session.resolve_npc_reference(message)
+                identity = found["npc"]["id"] if found["status"] == "found" else None
+            steps.append({"kind": "species", "ability": "breath_weapon", "shape": dragonborn_breath.shape_in(part),
+                          "target_id": identity})
         elif session._has_explicit_attack_verb(part) and not session._is_explicitly_negated_attack(part):
             if not steps and not re.search(r"sonra|ardindan|then", text):
                 continue  # Preserve existing single-attack compatibility.
@@ -941,6 +954,7 @@ def _execute(session, command, action_id=None, session_id=None):
     ensure(session)
     results = []
     combat_id = session.world_state["combat"].get("combat_id")
+    was_active = session.world_state["combat"].get("active") is True
     with resolution_action_scope(action_id or str(uuid4()), session_id):
         for step in steps:
             kind = step["kind"]
@@ -997,7 +1011,10 @@ def _execute(session, command, action_id=None, session_id=None):
             elif kind == "species":
                 with executing(session):
                     try:
-                        result = session.resolve_species_trait_action(step.get("ability"), form=step.get("form"))
+                        result = session.resolve_species_trait_action(
+                            step.get("ability"), form=step.get("form"),
+                            **({"shape": step.get("shape"), "target_id": step.get("target_id")}
+                               if step.get("ability") == "breath_weapon" else {}))
                     except ValueError as error:
                         fail("invalid_species_action", str(error))
                     results.append({"kind": kind, "result": result})
@@ -1039,9 +1056,9 @@ def _execute(session, command, action_id=None, session_id=None):
                 )})
             elif kind == "end_concentration":
                 import spell_scope
-                if any(field != "kind" and value is not None for field, value in step.items()):
+                if any(field not in ("kind", "spell_id") and value is not None for field, value in step.items()):
                     fail("unsupported_action", "Ending Concentration takes no other choice.")
-                results.append({"kind": kind, "result": spell_scope.end_concentration(session)})
+                results.append({"kind": kind, "result": spell_scope.end_concentration(session, step.get("spell_id"))})
             elif kind == "end_turn":
                 if (not session.world_state["combat"]["active"]
                     or session.world_state["combat"]["current_actor_id"] != "player"
@@ -1057,11 +1074,14 @@ def _execute(session, command, action_id=None, session_id=None):
     if session.world_state["combat"]["active"]:
         session._sync_combat_participant_records(session.world_state["combat"])
     session.world_state["flags"]["turn_index"] = session.world_state["flags"].get("turn_index", 0) + 1
+    # A step that ended this fight says so, like every other combat receipt (D-217): the UI notice and the adventure hooks read it.
+    ended = ({"combat_ended": True, "end_reason": session.world_state["combat"].get("end_reason")}
+             if was_active and not session.world_state["combat"]["active"] else {})
     return {
         "messages": session.messages,
         "narration": resolved_narration(session, results),
         "action_result": {"action": "action_economy", "status": "resolved", "success": True,
-                          "combat_id": combat_id, "economy_steps": results, **event_fields(results)},
+                          "combat_id": combat_id, "economy_steps": results, **event_fields(results), **ended},
         "action_economy_result": {"combat_id": combat_id, "steps": results, "state": projection(session)},
         "model_calls": 0,
     }

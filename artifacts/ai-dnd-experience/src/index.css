@@ -290,10 +290,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .data-row-meta { margin-top: 3px; color: var(--unw-text-soft); font-size: 12px; }
 .data-row-desc { margin-top: 7px; color: var(--unw-text-soft); font-family: var(--app-font-serif); font-size: 15px; line-height: 1.35; }
 .status-pill { border: 1px solid var(--unw-border); padding: 4px 6px; color: var(--unw-accent-light); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
-.notice { display: flex; align-items: flex-start; gap: 10px; border: 1px solid color-mix(in srgb, var(--unw-border) 91%, transparent); background: color-mix(in srgb, var(--unw-surface) 14%, transparent); padding: 11px 13px; color: var(--unw-accent-light); font-size: 12px; line-height: 1.4; }
+.notice { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; border: 1px solid color-mix(in srgb, var(--unw-border) 91%, transparent); background: color-mix(in srgb, var(--unw-surface) 14%, transparent); padding: 11px 13px; color: var(--unw-accent-light); font-size: 12px; line-height: 1.4; }
 .notice.error { border-color: color-mix(in srgb, var(--unw-danger) 65%, transparent); background: color-mix(in srgb, var(--unw-danger) 14%, transparent); color: var(--unw-danger-text); }
 .notice.success { border-color: color-mix(in srgb, var(--unw-patina) 65%, transparent); background: color-mix(in srgb, var(--unw-patina) 12%, transparent); color: var(--unw-patina-text); }
-.notice button { margin-left: auto; border: 0; background: transparent; color: inherit; cursor: pointer; text-decoration: underline; }
+.notice > div { flex: 1 1 14rem; min-width: 0; }
+.notice button { margin-left: 0; min-width: 0; max-width: 100%; white-space: normal; text-align: center; border: 0; background: transparent; color: inherit; cursor: pointer; text-decoration: underline; }
 
 @media (max-width: 900px) {
   .dnd-shell, .app-main { width: min(100% - 32px, 720px); }

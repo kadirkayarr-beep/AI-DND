@@ -210,6 +210,16 @@ class ProducerContractTest(unittest.TestCase):
         headline = build_report(results, scenarios, date=DATE).splitlines()[2].strip("*")
         self.assertEqual(headline, summary_line(results))
 
+    def test_console_and_report_agree_that_an_all_unreached_scenario_did_not_run(self):
+        # D-156: the console used to count such a scenario as passed while the report said "koşulmadı".
+        results, scenarios = three_scenarios()
+        scenarios["09_offline"] = scenario("09_offline", [step(), step()])
+        results["09_offline"] = [result(1, "unreached", failures=["x"]), result(2, "unreached", failures=["x"])]
+        report = build_report(results, scenarios, date=DATE)
+        headline = report.splitlines()[2].strip("*")
+        self.assertIn("- 1 koşulmadı", report.splitlines())
+        self.assertEqual(summary_line(results), headline + " (1 senaryo koşulmadı)")
+
     def test_a_chain_attempt_becomes_one_latency_row_skipped_attempts_included(self):
         skipped = ChainAttempt("gemini", "skipped", "http_500", 20.25, 0, 0, 0)
         answered = ChainAttempt("haiku", "answered", None, 3.5, 100, 20, 0)

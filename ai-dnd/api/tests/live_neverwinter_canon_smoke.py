@@ -377,7 +377,7 @@ def _post_turn(
     *,
     target_id: str | None = None,
 ) -> dict[str, Any]:
-    payload: dict[str, Any] = {"message": message}
+    payload: dict[str, Any] = {"message": message, "action_id": str(uuid.uuid4())}
     if target_id is not None:
         payload["target_id"] = target_id
     response = client.post(

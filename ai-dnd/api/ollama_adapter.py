@@ -17,6 +17,7 @@ import ollama
 import game
 from api import model_chain
 from api.usage_ledger import UsageLedger
+from api import model_phase
 from api.model_phase import ModelFailure, in_classifier_call, in_front_call
 from api.local_model_config import (
     DEFAULT_LOCAL_MODEL,
@@ -281,6 +282,7 @@ def _attach_world_metadata(kwargs: dict[str, Any]) -> dict[str, Any]:
 def begin_turn_usage() -> None:
     """A new turn's count. The list is shared, so the planner's reading and the turn proper add to one count."""
     _TURN_USAGE.set([])
+    model_phase.begin_causes()
 
 
 def _spent(response: Any, name: str) -> int:
@@ -305,9 +307,12 @@ def usage_summary() -> dict[str, Any]:
                   "output_tokens": sum(row["output_tokens"] for row in mine)}
                  for name in dict.fromkeys(row["provider"] for row in answered)
                  for mine in ([row for row in answered if row["provider"] == name],)]
-    return {"calls": len(answered), "failed": len(rows) - len(answered),
-            "input_tokens": sum(row["input_tokens"] for row in answered),
-            "output_tokens": sum(row["output_tokens"] for row in answered), "providers": providers}
+    summary = {"calls": len(answered), "failed": len(rows) - len(answered),
+               "input_tokens": sum(row["input_tokens"] for row in answered),
+               "output_tokens": sum(row["output_tokens"] for row in answered), "providers": providers}
+    if model_phase.causes():
+        summary["causes"] = model_phase.causes()  # D-240: which check failed, as names ("front:gemini:unusable_reply:cut")
+    return summary
 
 
 def model_calls_left() -> int | None:
@@ -583,6 +588,7 @@ class AuthenticatedOllamaAdapter:
             return response
         except Exception as error:
             note_usage(self.model_name, failed=True)
+            model_phase.note_cause("local", type(error).__name__)
             failures = _MODEL_FAILURES.get()
             if in_front_call() or (self._chain is not None and in_classifier_call()):
                 # The owner's rule: the chain never fails a turn. The engine carries on with unknown intent.

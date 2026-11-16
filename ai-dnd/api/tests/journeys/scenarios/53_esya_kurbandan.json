@@ -1,0 +1,97 @@
+{
+  "id": "53_esya_kurbandan",
+  "title": "Eşya yoktan var olmaz (D-108 KRİTİK, D-205; SIFIR TOLERANS): adı geçen eşya yalnız kurbanın üstündeyse çalınır ve onun envanterinden oyuncuya geçer; Geri Al ikisini de eski hâline getirir",
+  "source_items": [
+    108,
+    205
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12,
+        "inventory": [
+          {
+            "item_id": "item_900001",
+            "name": "Hançer"
+          }
+        ]
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 30
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5701,
+    "front_proposal": false
+  },
+  "steps": [
+    {
+      "say": "hançerini fark ettirmeden çalmak için zar atıyorum",
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?",
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 30
+        },
+        "envanter": {},
+        "kisi_esya": {
+          "kavsim": {
+            "Hançer": 1
+          }
+        }
+      }
+    },
+    {
+      "say": "evet",
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "envanter": {
+          "Hançer": 1
+        },
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 30
+        },
+        "kisi_esya": {
+          "kavsim": {}
+        }
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "envanter": {},
+        "kese": 40,
+        "gerekli_metin": "Son tur geri alındı",
+        "kisi_esya": {
+          "kavsim": {
+            "Hançer": 1
+          }
+        }
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "envanter": {},
+        "kese": 40,
+        "kisi_esya": {
+          "kavsim": {
+            "Hançer": 1
+          }
+        }
+      }
+    }
+  ]
+}

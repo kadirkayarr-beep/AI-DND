@@ -15,6 +15,11 @@ export function StartingDerivedValue({ level, value, fromLevel = 4 }: { level: n
   return level >= fromLevel ? <span className="cc-deferred-hp">Oluşturulduğunda sunucu hesaplayacak</span> : <span>{value}</span>;
 }
 
+/** The server's level steps move Armor Class at level 4 (Ability Score Improvement) and at a Paladin's level 2 (Defense). */
+export function StartingArmorClass({ level, characterClass, armorClass }: { level: number; characterClass: string; armorClass: number }) {
+  return <StartingDerivedValue level={level} value={armorClass} fromLevel={characterClass === 'Paladin' ? 2 : 4} />;
+}
+
 export function StartingHitPoints({ level, hitPoints }: { level: number; hitPoints: number }) {
   return level > 1 ? <span className="cc-deferred-hp">Oluşturulduğunda sunucu hesaplayacak</span> : <span>{hitPoints}</span>;
 }

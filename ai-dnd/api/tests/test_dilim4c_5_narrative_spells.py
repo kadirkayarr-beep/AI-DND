@@ -66,6 +66,20 @@ class NamedLines(unittest.TestCase):
             with self.subTest(line):
                 self.assertEqual(spell_effects.named(line), expected)
 
+    def test_a_spell_with_no_owner_is_read_by_its_turkish_name(self):
+        # D-257: the Turkish name in content/names/tr_names.json reads like the English one (the longer name wins).
+        table = {
+            "Gizemli Göz büyüsünü yapıyorum": ("not_yet", "Arcane Eye"),
+            "Kehanet büyüsünü yapıyorum": ("not_yet", "Augury"),
+            "Sürgün Darbesi büyüsünü yapıyorum": ("not_yet", "Banishing Smite"),
+            "Sürgün büyüsünü yapıyorum": ("not_yet", "Banishment"),
+            "Beden Değiştirme büyüsünü yapıyorum": ("not_yet", "Alter Self"),
+            "Gizemli Kilit büyüsünü yapıyorum": ("not_yet", "Arcane Lock"),
+        }
+        for line, expected in table.items():
+            with self.subTest(line):
+                self.assertEqual(spell_effects.named(line), expected)
+
     def test_a_money_line_naming_a_narrative_spell_is_no_spell_command(self):
         line = "Mage Hand büyüsünü kullanıp kesesini çalıyorum"
         self.assertIsNone(spell_scope.natural_command(line, None))  # not "unsupported_spell": it goes on to today's paths

@@ -146,7 +146,7 @@ test('an unverifiable undo says so and a typed marker stays the player\'s words'
   assert.doesNotMatch(html, /transcript-undone-/);
 });
 test('right after an undo the bar says why there is no second undo', () => {
-  const base = { summary: null, recoveringUndo: false, busy: false, onUndo() {}, combatActive: false };
+  const base = { summary: null, recoveringUndo: false, busy: false, onUndo() {} };
   const once = render(lastTurn.LastTurnBar, { ...base, canUndo: false, justUndone: true });
   assert.match(once, /data-testid="text-undo-once">Yalnız son tur geri alınır; yeni bir tur oynayınca Geri al yeniden açılır\.</);
   assert.doesNotMatch(once, /button-undo-last-turn/);
@@ -162,16 +162,15 @@ test('a resumed game keeps an open conversation in Söyle', async () => {
   assert.match(source, /resumeComposerMode\(resumed\.state\)/);
   assert.match(source, /justUndone=\{undoneJustNow\}/);
 });
-test('the undo button says Geri al and explains itself in a fight', () => {
+test('the undo button says Geri al, in a fight too (D-234)', () => {
   const base = { summary: null, recoveringUndo: false, busy: false, onUndo() {}, justUndone: false };
-  const idle = render(lastTurn.LastTurnBar, { ...base, canUndo: true, combatActive: false });
+  const idle = render(lastTurn.LastTurnBar, { ...base, canUndo: true });
   assert.match(idle, /data-testid="button-undo-last-turn"[\s\S]*?Geri al<\/button>/);
   assert.match(idle, /aria-label="Son turu geri al"/);
-  assert.doesNotMatch(idle, /text-undo-combat/);
-  const fight = render(lastTurn.LastTurnBar, { ...base, canUndo: false, combatActive: true });
-  assert.match(fight, /data-testid="text-undo-combat">Savaş sürerken son tur geri alınamaz\.</);
-  assert.doesNotMatch(fight, /button-undo-last-turn/);
-  assert.equal(render(lastTurn.LastTurnBar, { ...base, canUndo: false, combatActive: false }), '');
+  assert.doesNotMatch(idle, /text-undo-combat|Savaş sürerken/);
+  // D-234: a fight turn is offered like any other (undoOffered); the bar no longer has a fight refusal line.
+  assert.equal(lastTurn.undoOffered({ combat: { active: true }, death_state: { mode: 'PERMADEATH', dead: false, terminal: false } }, true), true);
+  assert.equal(render(lastTurn.LastTurnBar, { ...base, canUndo: false }), '');
 });
 test('a success notice carries a check, not a warning', () => {
   const ok = render(banner.NoticeBanner, { notice: { tone: 'success', title: 'Geri alındı', detail: 'Son tur geri alındı.' } });
@@ -181,9 +180,10 @@ test('a success notice carries a check, not a warning', () => {
 });
 test('the play screen maps history through one helper', async () => {
   const source = readGameBrowserSource();
-  assert.equal((source.match(/historyToEntries\(/g) ?? []).length, 4);
+  assert.equal((source.match(/historyToEntries\(/g) ?? []).length, 5);
   assert.doesNotMatch(source, /history\.flatMap\(\(entry/);
-  assert.match(source, /combatActive=\{Boolean\(visibleLastTurn\) && state\.combat\.active\}/);
+  assert.match(source, /canUndo=\{undoOffered\(state, Boolean\(visibleLastTurn\)\)\}/);
+  assert.doesNotMatch(source, /combatActive=\{Boolean\(visibleLastTurn\)/);
 });
 test('the local transcript cache gives the undo flags back, and only true ones', async () => {
   // A campaignless session restores its story from the local cache (game-browser.tsx restore effect, run as written).

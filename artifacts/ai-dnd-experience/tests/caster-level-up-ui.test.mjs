@@ -100,7 +100,7 @@ test('Wizard choices use Turkish names where the catalog has them and keep the E
   const page = html(wizard(4));
   assert.equal((page.match(/data-testid="level-up-spellbook-\d"/g) ?? []).length, 2);
   assert.match(page, /<option value="Shield">[^<]*\(Shield\)<\/option>/);
-  assert.match(page, /<option value="Misty Step">Misty Step<\/option>/);
+  assert.match(page, /<option value="Misty Step">Sisli Adım \(Misty Step\)<\/option>/);
   assert.match(page, /data-testid="level-up-cantrip"/);
   assert.match(page, /<option value="Light">[^<]*\(Light\)<\/option>/);
   assert.match(page, /data-testid="level-up-asi-choice"/);

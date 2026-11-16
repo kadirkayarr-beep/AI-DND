@@ -24,6 +24,7 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import fixed_town
 
 START = {"campaign_start": {
     "setting_id": "forgotten_realms",
@@ -156,6 +157,11 @@ class ClassifierCallIsSmall(PlayFixture):
 class RunSixReproduction(PlayFixture):
     """The owner saw this question answer 503 twice in real play; it must answer in the story."""
 
+    async def asyncSetUp(self):
+        # D-075: a fixed town. Seed 1 has a bakery ("fırın"), which "birine" once walked the player to.
+        with fixed_town(self, 1):
+            await super().asyncSetUp()
+
     async def test_a_runaway_reply_with_a_person_being_spoken_to_becomes_speech_to_them(self):
         await self.turn(self.body(SPEECH_TURN))
         self.model.kinds.clear()
@@ -259,7 +265,16 @@ class EveryModelCallFailsSoftly(PlayFixture):
                     self.model.arm(kind, fault)
                     body = self.body(text)
                     first = await self.turn(body)
+                    calls = len(self.model.kinds)
                     retry = await self.turn(body)
+                    if first.status_code == 503:
+                        # D-106: the failure's not_applied answer is final for its id; the player's next try is a new id.
+                        self.assertEqual(retry.status_code, 503, retry.text)
+                        self.assertEqual(retry.json(), first.json(), "the refusal answers, nothing runs again")
+                        self.assertEqual(len(self.model.kinds), calls, "no model call for a closed id")
+                        self.assertEqual(len(self.saved().history), history)
+                        body = self.body(text)
+                        retry = await self.turn(body)
                     self.assertEqual(retry.status_code, 200, retry.text)
                     self.assertEqual(len(self.saved().history), history + 1, "one move, one history entry")
                     replay = await self.turn(body)
@@ -300,12 +315,13 @@ class EveryModelCallFailsSoftly(PlayFixture):
         following = await self.turn(self.body(FREE_TURN))
         self.assertEqual(following.status_code, 200, following.text)
 
-    async def test_a_saved_receipt_is_never_released(self):
+    async def test_a_saved_receipt_is_never_closed_as_refused(self):
         body = self.body(FREE_TURN)
         applied = await self.turn(body)
         self.assertEqual(applied.status_code, 200, applied.text)
         record = self.manager.get(self.session_id)
-        self.assertFalse(self.manager.release_action_intent(record, body["action_id"], "0" * 64))
+        refusal = {"code": "ollama_unavailable", "message": "x", "not_applied": True}
+        self.assertFalse(self.manager.record_refused_action(record, body["action_id"], "0" * 64, 503, refusal))
         self.assertEqual((await self.turn(body)).json(), applied.json())
 
 

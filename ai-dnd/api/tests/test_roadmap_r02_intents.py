@@ -413,7 +413,8 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
         finally:
             connection.close()
         self.assertTrue({"campaign_action_intents", "campaign_refused_actions"} <= names, "created at open, not lazily inside a request")
-        # An older database without them is upgraded on open (no version bump, IF NOT EXISTS), and reopening is idempotent.
+        # An older database without them is upgraded on open only with migration approval (D-125: refused unchanged
+        # without it; no version bump, IF NOT EXISTS), and reopening is idempotent.
         connection = sqlite3.connect(self.store.path)
         try:
             connection.execute("DROP TABLE campaign_action_intents")
@@ -421,10 +422,47 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
             connection.commit()
         finally:
             connection.close()
-        reopened = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        with self.assertRaisesRegex(CampaignStorageError, "explicit migration approval"):
+            CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        self.assertFalse({"campaign_action_intents", "campaign_refused_actions"} & self._tables())
+        reopened = CampaignStore(self.store.path, bound_principal=TEST_PLAYER, allow_schema_migration=True)
         CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         self.assertTrue({"campaign_action_intents", "campaign_refused_actions"} <= self._tables())
         self.assertIsNone(reopened.unresolved_action(self.campaign_id))
+
+    def _drop_intent_and_refusal_tables(self):
+        connection = sqlite3.connect(self.store.path)
+        try:
+            connection.execute("DROP TABLE campaign_action_intents")
+            connection.execute("DROP TABLE campaign_refused_actions")
+            connection.commit()
+        finally:
+            connection.close()
+
+    async def test_a_request_adds_a_missing_intent_or_refusal_table_only_with_migration_approval(self):
+        # D-194: the file under the open store lost both tables (an older file put in its place while the server runs).
+        # D-125 asks approval for that change at open; a request must not make it either, and nothing is recorded.
+        self._drop_intent_and_refusal_tables()
+        action_id = str(uuid.uuid4())
+        calls = {
+            "record_refused_action": lambda store: store.record_refused_action(
+                self.campaign_id, action_id, "a" * 64, 409, {"code": "x", "message": "x"}),
+            "claim_action_intent": lambda store: store.claim_action_intent(self.campaign_id, action_id, "a" * 64),
+            "unresolved_action": lambda store: store.unresolved_action(self.campaign_id),
+            "action_state": lambda store: store.action_state(self.campaign_id, action_id),
+        }
+        for name, call in calls.items():
+            with self.subTest(name):
+                with self.assertRaisesRegex(CampaignStorageError, "explicit migration approval"):
+                    call(self.store)
+                self.assertFalse({"campaign_action_intents", "campaign_refused_actions"} & self._tables())
+        # With approval the same requests make the tables and work as on a current file.
+        approved = CampaignStore(self.store.path, bound_principal=TEST_PLAYER, allow_schema_migration=True)
+        self._drop_intent_and_refusal_tables()
+        self.assertTrue(calls["record_refused_action"](approved))
+        self.assertEqual(calls["action_state"](approved), "not_applied")
+        self.assertIsNone(calls["unresolved_action"](approved))
+        self.assertTrue({"campaign_action_intents", "campaign_refused_actions"} <= self._tables())
 
     async def test_a_damaged_intent_table_makes_the_store_refuse_to_open(self):
         connection = sqlite3.connect(self.store.path)

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
 import json
 import os
+import subprocess
+import sys
 import tempfile
+import threading
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -339,6 +343,26 @@ class TheChain(unittest.TestCase):
                 self.assertEqual(cloud.hosts(), [GOOGLE, ANTHROPIC])
                 self.assertEqual(local.calls, 0)
 
+    def test_a_json_reply_cut_at_the_token_cap_moves_to_the_next_provider(self):
+        # D-141: the intent parser drops a cut reply (game.ollama_reply_was_cut) even when its JSON parses,
+        # so the chain must not hand one over as an answer while a healthy provider is still left.
+        local = LocalModel()
+        cloud = FakeCloud(gemini=ok(gemini_reply(finish="MAX_TOKENS")), haiku=ok(haiku_reply()))
+        response, answered = chain_for(cloud).chat(CALL, local)
+        self.assertEqual(answered, "haiku")
+        self.assertEqual(cloud.hosts(), [GOOGLE, ANTHROPIC])
+        self.assertEqual(response.done_reason, "stop")
+        self.assertFalse(game.ollama_reply_was_cut(response))
+        self.assertEqual(local.calls, 0)
+
+    def test_the_local_model_answers_when_every_cloud_reply_is_cut(self):
+        local = LocalModel()
+        cloud = FakeCloud(gemini=ok(gemini_reply(finish="MAX_TOKENS")), haiku=ok(haiku_reply(stop="max_tokens")))
+        response, answered = chain_for(cloud).chat(CALL, local)
+        self.assertIsNone(answered)
+        self.assertIs(response, local.answer)
+        self.assertEqual(local.calls, 1)
+
     def test_the_local_model_answers_when_every_cloud_provider_fails(self):
         local = LocalModel()
         cloud = FakeCloud(gemini=httpx.Response(500), haiku=httpx.ReadTimeout("slow"))
@@ -574,6 +598,40 @@ class TheObserver(unittest.TestCase):
         self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 1000, "output_tokens": 200})
 
 
+class TheSkipCause(unittest.TestCase):
+    """D-240: a reply the game cannot use says which check failed: a cut, no JSON, or a schema field. Names only."""
+
+    def cause_of(self, gemini):
+        from api import model_phase
+        model_phase.begin_causes()
+        with model_phase.front_call():
+            chain_for(FakeCloud(gemini=gemini, haiku=httpx.Response(500))).chat(CALL, LocalModel())
+        return model_phase.causes()
+
+    def test_a_reply_cut_at_the_token_cap_is_named_a_cut(self):
+        self.assertIn("front:gemini:cut_at_token_cap:cut", self.cause_of(ok(gemini_reply(finish="MAX_TOKENS"))))
+
+    def test_a_reply_that_is_no_json_is_named_so(self):
+        self.assertIn("front:gemini:unusable_reply:not_json", self.cause_of(ok(gemini_reply("tamam, anladım"))))
+
+    def test_an_empty_reply_is_named_so(self):
+        self.assertIn("front:gemini:unusable_reply:empty", self.cause_of(ok(gemini_reply(" "))))
+
+    def test_a_missing_required_field_names_the_field(self):
+        self.assertIn("front:gemini:unusable_reply:schema:narration", self.cause_of(ok(gemini_reply('{"tier": 3}'))))
+
+    def test_a_value_outside_its_range_names_the_field(self):
+        text = '{"narration": "x", "tier": 9}'
+        self.assertIn("front:gemini:unusable_reply:schema:tier", self.cause_of(ok(gemini_reply(text))))
+
+    def test_a_refused_request_names_its_status(self):
+        self.assertIn("front:gemini:http_500", self.cause_of(httpx.Response(500)))
+
+    def test_the_cause_holds_none_of_the_reply_text(self):
+        text = '{"narration": "GIZLI-OYUNCU-SOZU", "tier": 9}'
+        self.assertNotIn("GIZLI", " ".join(self.cause_of(ok(gemini_reply(text)))))
+
+
 class TheReplyShape(unittest.TestCase):
     """A cloud reply leaves shaped as Gemma's grammar would have shaped it, or the next provider is asked."""
 
@@ -703,6 +761,50 @@ class TheSpendCap(unittest.TestCase):
             self.assertEqual(chain.chat(CALL, LocalModel())[1], "haiku")
         self.assertIsNone(chain.chat(CALL, LocalModel())[1])
         self.assertEqual(self.cloud.hosts(), [GOOGLE, ANTHROPIC, GOOGLE])
+
+    def test_two_counters_on_one_file_never_lose_an_add(self):
+        # D-151: two processes each hold their own HaikuSpend, so a thread lock cannot make them take turns.
+        path = spend_file()
+        first, second = model_chain.HaikuSpend(path, Clock()), model_chain.HaikuSpend(path, Clock())
+        reply = model_chain.haiku_read(haiku_reply())
+        first_has_read = threading.Event()
+        real_load = model_chain.HaikuSpend._load
+
+        def slow_load(spend):
+            tokens = real_load(spend)
+            if spend is first and not first_has_read.is_set():
+                first_has_read.set()
+                time.sleep(0.3)  # the second counter reads and writes here unless it must wait its turn
+            return tokens
+
+        with patch.object(model_chain.HaikuSpend, "_load", slow_load):
+            worker = threading.Thread(target=first.add, args=(reply,))
+            worker.start()
+            self.assertTrue(first_has_read.wait(5))
+            second.add(reply)
+            worker.join(5)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 2000, "output_tokens": 400})
+
+    def test_two_processes_on_one_file_never_lose_an_add(self):
+        # D-151: the played API and a separate run command share the one monthly file (temporary here).
+        path = spend_file()
+        path.parent.mkdir(parents=True)
+        script = (
+            "import sys\n"
+            "from datetime import datetime, timezone\n"
+            "from pathlib import Path\n"
+            "from api import model_chain\n"
+            "spend = model_chain.HaikuSpend(Path(sys.argv[1]), lambda: datetime(2026, 10, 31, tzinfo=timezone.utc))\n"
+            "reply = model_chain.Reply(text='', input_tokens=1, output_tokens=2)\n"
+            "for _ in range(150):\n"
+            "    spend.add(reply)\n"
+            "    spend.allows_a_call()\n"
+        )
+        root = Path(model_chain.__file__).resolve().parents[1]
+        workers = [subprocess.Popen([sys.executable, "-c", script, str(path)], cwd=root) for _ in range(2)]
+        self.assertEqual([worker.wait(timeout=120) for worker in workers], [0, 0])
+        self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 300, "output_tokens": 600})
 
 
 class TheSetting(unittest.TestCase):
@@ -895,6 +997,67 @@ class TheCharacterNote(unittest.TestCase):
         on = create_app(session_manager=TestPlayerSessionManager(), ollama_adapter=adapter,
                         authenticator=FixedAuthenticator(TEST_PLAYER))
         self.assertIsNot(on.state.identity_suggestions._provider, identity_suggestion.local_ollama_provider)
+
+
+class TheLocalSecretStaysHome(unittest.TestCase):
+    """D-135: a local Ollama host or token pasted into play never leaves for a cloud provider."""
+
+    TOKEN = "test-proxy-token-not-real-4b2d"
+    HOST = "http://127.0.0.1:11434"
+
+    def setUp(self):
+        patcher = patch.dict(os.environ, {"OLLAMA_HOST": self.HOST, "OLLAMA_PROXY_TOKEN": self.TOKEN})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def pasted_call(self):
+        return dict(CALL, messages=[
+            {"role": "system", "content": f"Kurallar. Sunucu {self.HOST}."},
+            {"role": "user", "content": f"Kapıyı açıyorum {self.TOKEN} ve {self.HOST} diyorum."},
+        ])
+
+    def assert_nothing_local_in(self, request):
+        text = request.content.decode("utf-8")
+        self.assertNotIn(self.TOKEN, text)
+        self.assertNotIn(self.HOST, text)
+        self.assertNotIn("127.0.0.1:11434", text)
+        self.assertIn("[redacted]", text)
+
+    def test_an_engine_call_sends_neither_the_token_nor_the_host_to_gemini_or_haiku(self):
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))
+        local = LocalModel()
+        _, answered = chain_for(cloud).chat(self.pasted_call(), local)
+        self.assertEqual(answered, "haiku")
+        self.assertEqual(cloud.hosts(), [GOOGLE, ANTHROPIC])
+        for request in cloud.requests:
+            self.assert_nothing_local_in(request)
+
+    def test_the_engine_message_through_the_adapter_reaches_the_cloud_masked(self):
+        cloud = FakeCloud(gemini=ok(gemini_reply()))
+        stub = EngineStub()
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4-fast")
+        adapter._chain = chain_for(cloud)
+        adapter.chat(model=ollama_adapter.MODEL_NAME, messages=self.pasted_call()["messages"], format=SCHEMA,
+                     think=False, options={"temperature": 0.3, "num_predict": 400})
+        self.assertEqual(len(cloud.requests), 1)
+        self.assert_nothing_local_in(cloud.requests[0])
+
+    def test_a_character_note_reaches_the_cloud_masked(self):
+        local = EngineStub()
+        local.chat = lambda **call: {"message": {"role": "assistant", "content": "Yerel not."}}
+        with patch.object(identity_suggestion, "_local_client", return_value=local):
+            cloud = FakeCloud(gemini=ok(gemini_reply("Sessiz bir arşivci.")))
+            identity_suggestion.chain_provider(chain_for(cloud))(f"Alan: Kişilik {self.TOKEN}.")
+        self.assert_nothing_local_in(cloud.requests[0])
+
+    def test_the_local_model_still_gets_the_message_as_written(self):
+        cloud = FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500))
+        stub = EngineStub()
+        adapter = AuthenticatedOllamaAdapter(stub, model_name="gemma4-fast")
+        adapter._chain = chain_for(cloud)
+        adapter.chat(model=ollama_adapter.MODEL_NAME, messages=self.pasted_call()["messages"], format=SCHEMA,
+                     think=False, options={"temperature": 0.3, "num_predict": 400})
+        self.assertIn(self.TOKEN, stub.calls[0]["messages"][1]["content"])
 
 
 class EngineStub:
@@ -1090,6 +1253,53 @@ class TheUsageLedgerWiring(unittest.TestCase):
             self.assertGreaterEqual(row["seconds"], 0.0)
         self.assertEqual(self.ledger.today()["haiku"]["calls"], 1)
 
+    def test_a_reply_cut_at_the_token_cap_says_so_in_the_ledger(self):
+        """D-238: a cut reply was thrown away with no word why; the usage line names the cause, and a
+        reply the game cannot use for another reason keeps its own name."""
+        cut = self.adapter(FakeCloud(gemini=ok(gemini_reply(finish="MAX_TOKENS")), haiku=ok(haiku_reply("yarım"))))
+        self.engine_call(cut)
+        rows = self.rows()
+        self.assertEqual([(row["provider"], row["outcome"], row.get("reason")) for row in rows],
+                         [("gemini", "skipped", "cut_at_token_cap"), ("haiku", "skipped", "unusable_reply"),
+                          ("gemma", "answered", None)])
+
+    def test_an_answered_line_carries_no_reason(self):
+        self.engine_call(self.adapter(FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))))
+        skipped, answered = self.rows()
+        self.assertEqual(skipped.get("reason"), "http_500")
+        self.assertNotIn("reason", answered)
+
+    def usage_marks(self, cloud):
+        """The rows one engine call writes to a fresh ledger file, as (provider, outcome, usage mark)."""
+        self.path.unlink(missing_ok=True)
+        self.engine_call(self.adapter(cloud))
+        return [(row["provider"], row["outcome"], row.get("usage")) for row in self.rows()]
+
+    def test_a_cloud_try_whose_usage_never_came_back_is_not_a_known_zero(self):
+        """ORTA-07 (D-150): a reply without usage, a read that runs out of time after the request left, and a
+        200 body that cannot be read are marked unknown. A refused request (HTTP error) and one that never
+        connected are a known zero and carry no mark."""
+        no_usage = {key: value for key, value in haiku_reply().items() if key != "usage"}
+        self.assertEqual(self.usage_marks(FakeCloud(gemini=httpx.Response(500), haiku=ok(no_usage))),
+                         [("gemini", "skipped", None), ("haiku", "answered", "unknown")])
+        message = self.ledger.warning()
+        self.assertIn("1 paid call", message)
+        self.assertIn("at least 0.00 USD", message)
+        self.assertEqual(
+            self.usage_marks(FakeCloud(gemini=httpx.ConnectError("down"), haiku=httpx.ReadTimeout("slow"))),
+            [("gemini", "skipped", None), ("haiku", "skipped", "unknown"), ("gemma", "answered", None)])
+        self.assertEqual(
+            self.usage_marks(FakeCloud(gemini=httpx.Response(429), haiku=httpx.Response(200, text="{not json"))),
+            [("gemini", "skipped", None), ("haiku", "skipped", "unknown"), ("gemma", "answered", None)])
+        # The Gemini free tier: its unknown usage is marked, but costs nothing, so no warning.
+        no_metadata = {key: value for key, value in gemini_reply().items() if key != "usageMetadata"}
+        self.assertEqual(self.usage_marks(FakeCloud(gemini=ok(no_metadata))), [("gemini", "answered", "unknown")])
+        self.assertIsNone(self.ledger.warning())
+        # Usage that did come back carries no mark.
+        self.assertEqual(self.usage_marks(FakeCloud(gemini=httpx.Response(500), haiku=ok(haiku_reply()))),
+                         [("gemini", "skipped", None), ("haiku", "answered", None)])
+        self.assertIsNone(self.ledger.warning())
+
     def test_a_cloud_answer_gets_no_second_line_from_the_adapter(self):
         self.engine_call(self.adapter(FakeCloud(gemini=ok(gemini_reply()))))
         self.assertEqual([row["provider"] for row in self.rows()], ["gemini"])
@@ -1243,7 +1453,7 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
     async def turn(self, narrate):
         created = (await self.http.post("/api/sessions")).json()
         self.manager.get(created["session_id"]).game_session.run_player_turn = narrate
-        return await self.http.post(f"/api/sessions/{created['session_id']}/turn", json={"message": "Bekle"})
+        return await self.http.post(f"/api/sessions/{created['session_id']}/turn", json={"action_id": str(uuid4()), "message": "Bekle"})
 
     async def test_the_turn_log_names_the_provider_that_answered(self):
         self.adapter._chain = chain_for(FakeCloud(gemini=ok(gemini_reply())))

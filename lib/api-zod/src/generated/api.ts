@@ -190,6 +190,8 @@ export const ApplyGameSessionLevelUpParams = zod.object({
   "session_id": zod.string()
 })
 
+export const applyGameSessionLevelUpBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const applyGameSessionLevelUpBodyCampaignIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const applyGameSessionLevelUpBodyExpectedRevisionMin = 0;
 
 export const applyGameSessionLevelUpBodyTargetLevelMin = 2;
@@ -628,8 +630,8 @@ export const applyGameSessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneCharismaM
 
 
 export const ApplyGameSessionLevelUpBody = zod.object({
-  "action_id": zod.string().uuid(),
-  "campaign_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().regex(applyGameSessionLevelUpBodyActionIdRegExp),
+  "campaign_id": zod.string().uuid().regex(applyGameSessionLevelUpBodyCampaignIdRegExp),
   "expected_revision": zod.number().int().min(applyGameSessionLevelUpBodyExpectedRevisionMin),
   "target_level": zod.number().int().min(applyGameSessionLevelUpBodyTargetLevelMin).max(applyGameSessionLevelUpBodyTargetLevelMax),
   "choices": zod.union([zod.object({
@@ -1167,6 +1169,8 @@ export const createGameSessionResponseStateCharacterMonkFocusOnePointsRemainingM
 
 export const createGameSessionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const createGameSessionResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -1210,6 +1214,9 @@ export const createGameSessionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const createGameSessionResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const createGameSessionResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const createGameSessionResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const createGameSessionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -1696,6 +1703,8 @@ export const CreateGameSessionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -1767,6 +1776,12 @@ export const CreateGameSessionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(createGameSessionResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createGameSessionResponseStateSpellcastingOneSlotTurnOneMin).max(createGameSessionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(createGameSessionResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -1857,7 +1872,7 @@ export const CreateGameSessionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -1865,7 +1880,7 @@ export const CreateGameSessionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -1883,6 +1898,7 @@ export const CreateGameSessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -1896,6 +1912,7 @@ export const CreateGameSessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -1909,6 +1926,7 @@ export const CreateGameSessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -1922,6 +1940,7 @@ export const CreateGameSessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -2259,6 +2278,8 @@ export const getGameSessionStateResponseCharacterMonkFocusOnePointsRemainingMin 
 
 export const getGameSessionStateResponseCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getGameSessionStateResponseCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -2302,6 +2323,9 @@ export const getGameSessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
 export const getGameSessionStateResponseSpellcastingOneSlotTurnOneMin = 3;
 export const getGameSessionStateResponseSpellcastingOneSlotTurnOneMax = 3;
+
+export const getGameSessionStateResponseConcentrationOneSlotLevelMax = 9;
+
 
 export const getGameSessionStateResponseCombatParticipantRecordsItemIdMax = 128;
 
@@ -2786,6 +2810,8 @@ export const GetGameSessionStateResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -2857,6 +2883,12 @@ export const GetGameSessionStateResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getGameSessionStateResponseSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getGameSessionStateResponseSpellcastingOneSlotTurnOneMin).max(getGameSessionStateResponseSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getGameSessionStateResponseConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -2947,7 +2979,7 @@ export const GetGameSessionStateResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -2955,7 +2987,7 @@ export const GetGameSessionStateResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -2973,6 +3005,7 @@ export const GetGameSessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -2986,6 +3019,7 @@ export const GetGameSessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -2999,6 +3033,7 @@ export const GetGameSessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -3012,6 +3047,7 @@ export const GetGameSessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -3198,16 +3234,21 @@ export const ResolveSpeciesTraitActionParams = zod.object({
 })
 
 
+export const resolveSpeciesTraitActionBodyTargetIdOneMax = 200;
+
 
 
 export const ResolveSpeciesTraitActionBody = zod.object({
-  "action_id": zod.string().uuid().nullish().describe('UUIDv4 action receipt identity; reuse on network retry.'),
-  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense']),
+  "action_id": zod.string().uuid().describe('UUIDv4 action receipt identity; reuse on network retry.'),
+  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense', 'choose_draconic_ancestry', 'breath_weapon']),
   "healing_amount": zod.number().int().min(1).nullish(),
   "remove_poisoned": zod.boolean().nullish(),
   "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
   "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
-  "armed": zod.boolean().nullish()
+  "armed": zod.boolean().nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn only, with choose_draconic_ancestry; chosen once.'),
+  "shape": zod.union([zod.literal('cone'),zod.literal('line'),zod.literal(null)]).nullish().describe('Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.'),
+  "target_id": zod.union([zod.string().min(1).max(resolveSpeciesTraitActionBodyTargetIdOneMax),zod.null()]).optional().describe('Breath Weapon only; the creature the breath is aimed at.')
 })
 
 export const resolveSpeciesTraitActionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -3361,6 +3402,8 @@ export const resolveSpeciesTraitActionResponseStateCharacterMonkFocusOnePointsRe
 
 export const resolveSpeciesTraitActionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resolveSpeciesTraitActionResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -3404,6 +3447,9 @@ export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne = 
 
 export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const resolveSpeciesTraitActionResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -3893,6 +3939,8 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -3964,6 +4012,12 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMin).max(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -4054,7 +4108,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -4062,7 +4116,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -4080,6 +4134,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -4093,6 +4148,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -4106,6 +4162,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -4119,6 +4176,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -4310,6 +4368,9 @@ export const GetGameSessionSpellPreparationParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const getGameSessionSpellPreparationResponseSpellbookOptionsDefault = [];
+export const getGameSessionSpellPreparationResponseSuggestedSpellbookDefault = [];
+
 export const GetGameSessionSpellPreparationResponse = zod.object({
   "session_id": zod.string().uuid(),
   "supported": zod.boolean(),
@@ -4320,7 +4381,10 @@ export const GetGameSessionSpellPreparationResponse = zod.object({
   "limit": zod.number().int(),
   "candidates": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
-  "spellbook": zod.array(zod.string()).nullish()
+  "spellbook": zod.array(zod.string()).nullish(),
+  "not_in_engine": zod.array(zod.string()).optional(),
+  "spellbook_options": zod.array(zod.string()).default(getGameSessionSpellPreparationResponseSpellbookOptionsDefault).describe('D-039, only while blocked_reason is spellbook_missing; the spells the book may hold.'),
+  "suggested_spellbook": zod.array(zod.string()).default(getGameSessionSpellPreparationResponseSuggestedSpellbookDefault).describe('D-039, only while blocked_reason is spellbook_missing; the engine\'s offer, which the player may change.')
 })
 
 
@@ -4337,11 +4401,18 @@ export const prepareGameSessionSpellsBodyPreparedItemMax = 64;
 export const prepareGameSessionSpellsBodyPreparedMax = 32;
 
 export const prepareGameSessionSpellsBodyCloseDefault = false;
+export const prepareGameSessionSpellsBodySpellbookItemMax = 64;
+
+export const prepareGameSessionSpellsBodySpellbookMax = 32;
+
+export const prepareGameSessionSpellsBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
 
 export const PrepareGameSessionSpellsBody = zod.object({
   "prepared": zod.array(zod.string().max(prepareGameSessionSpellsBodyPreparedItemMax)).max(prepareGameSessionSpellsBodyPreparedMax).nullish(),
   "close": zod.boolean().default(prepareGameSessionSpellsBodyCloseDefault),
-  "action_id": zod.string().uuid().nullish()
+  "spellbook": zod.array(zod.string().max(prepareGameSessionSpellsBodySpellbookItemMax)).max(prepareGameSessionSpellsBodySpellbookMax).nullish().describe('D-039 one-time spellbook choice of an old save\'s Wizard (exactly six distinct Wizard level-1 spells, checked by the server); sent alone, never with prepared or close.'),
+  "action_id": zod.string().uuid().regex(prepareGameSessionSpellsBodyActionIdRegExp)
 }).describe('Omitted (or null) prepared keeps today\'s list; an explicit empty list is an explicit empty list.')
 
 export const prepareGameSessionSpellsResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -4495,6 +4566,8 @@ export const prepareGameSessionSpellsResponseStateCharacterMonkFocusOnePointsRem
 
 export const prepareGameSessionSpellsResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const prepareGameSessionSpellsResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -4538,6 +4611,9 @@ export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotsMinOne = 0
 
 export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const prepareGameSessionSpellsResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const prepareGameSessionSpellsResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -5025,6 +5101,8 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(prepareGameSessionSpellsResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -5096,6 +5174,12 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(prepareGameSessionSpellsResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMin).max(prepareGameSessionSpellsResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(prepareGameSessionSpellsResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -5186,7 +5270,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -5194,7 +5278,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -5212,6 +5296,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -5225,6 +5310,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -5238,6 +5324,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -5251,6 +5338,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -5428,7 +5516,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
 }).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
-  "status": zod.enum(['prepared', 'too_many']),
+  "status": zod.enum(['prepared', 'too_many', 'spellbook_saved']),
   "prepared": zod.array(zod.string()),
   "dropped": zod.array(zod.object({
   "spell_id": zod.string(),
@@ -5451,16 +5539,21 @@ export const ResolveSpeciesTraitActionCompatParams = zod.object({
 })
 
 
+export const resolveSpeciesTraitActionCompatBodyTargetIdOneMax = 200;
+
 
 
 export const ResolveSpeciesTraitActionCompatBody = zod.object({
-  "action_id": zod.string().uuid().nullish().describe('UUIDv4 action receipt identity; reuse on network retry.'),
-  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense']),
+  "action_id": zod.string().uuid().describe('UUIDv4 action receipt identity; reuse on network retry.'),
+  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest', 'spend_hit_die', 'second_wind', 'lay_on_hands', 'divine_sense', 'choose_draconic_ancestry', 'breath_weapon']),
   "healing_amount": zod.number().int().min(1).nullish(),
   "remove_poisoned": zod.boolean().nullish(),
   "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
   "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
-  "armed": zod.boolean().nullish()
+  "armed": zod.boolean().nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn only, with choose_draconic_ancestry; chosen once.'),
+  "shape": zod.union([zod.literal('cone'),zod.literal('line'),zod.literal(null)]).nullish().describe('Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.'),
+  "target_id": zod.union([zod.string().min(1).max(resolveSpeciesTraitActionCompatBodyTargetIdOneMax),zod.null()]).optional().describe('Breath Weapon only; the creature the breath is aimed at.')
 })
 
 export const resolveSpeciesTraitActionCompatResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
@@ -5614,6 +5707,8 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterMonkFocusOnePo
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resolveSpeciesTraitActionCompatResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -5657,6 +5752,9 @@ export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMin
 
 export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const resolveSpeciesTraitActionCompatResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -6146,6 +6244,8 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -6217,6 +6317,12 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMin).max(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -6307,7 +6413,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -6315,7 +6421,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -6333,6 +6439,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -6346,6 +6453,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -6359,6 +6467,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -6372,6 +6481,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -6660,7 +6770,7 @@ export const PlayGameTurnBody = zod.object({
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
   "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish(),
-  "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish(),
+  "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp),
   "economic_action": zod.union([zod.union([zod.object({
   "kind": zod.enum(['prepare']),
   "proposal": zod.object({
@@ -6839,6 +6949,8 @@ export const playGameTurnResponseStateCharacterMonkFocusOnePointsRemainingMin = 
 
 export const playGameTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const playGameTurnResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -6882,6 +6994,9 @@ export const playGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const playGameTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const playGameTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const playGameTurnResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const playGameTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -6965,6 +7080,11 @@ export const playGameTurnResponseCombatResultOneDeathSaveOneSuccessesMax = 3;
 export const playGameTurnResponseCombatResultOneDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatResultOneDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseCombatResultOneConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatResultOneConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatResultOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playGameTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -6983,6 +7103,11 @@ export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSucces
 export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playGameTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -7000,6 +7125,11 @@ export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSucc
 
 export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const playGameTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playGameTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
@@ -7022,6 +7152,11 @@ export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccesse
 export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax = 4;
+
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -7040,6 +7175,11 @@ export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathS
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -7057,6 +7197,11 @@ export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeat
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const playGameTurnResponseSkillCheckResultOneTacticalMindRollMax = 10;
 
@@ -7525,6 +7670,8 @@ export const PlayGameTurnResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -7596,6 +7743,12 @@ export const PlayGameTurnResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(playGameTurnResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(playGameTurnResponseStateSpellcastingOneSlotTurnOneMin).max(playGameTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(playGameTurnResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -7686,7 +7839,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -7694,7 +7847,7 @@ export const PlayGameTurnResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -7712,6 +7865,7 @@ export const PlayGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -7725,6 +7879,7 @@ export const PlayGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -7738,6 +7893,7 @@ export const PlayGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -7751,6 +7907,7 @@ export const PlayGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -7977,7 +8134,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -7985,10 +8142,19 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatResultOneConcentrationCheckOneDcMin).max(playGameTurnResponseCombatResultOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -8047,7 +8213,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8055,10 +8221,19 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMin).max(playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -8105,7 +8280,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8113,10 +8288,19 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin).max(playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -8172,7 +8356,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8180,10 +8364,19 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMin).max(playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -8242,7 +8435,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8250,10 +8443,19 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -8300,7 +8502,7 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -8308,12 +8510,22 @@ export const PlayGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
@@ -8624,6 +8836,8 @@ export const getGameActionStatusResponseResponseTwoStateCharacterMonkFocusOnePoi
 
 export const getGameActionStatusResponseResponseTwoStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getGameActionStatusResponseResponseTwoStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -8667,6 +8881,9 @@ export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotsMinO
 
 export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotTurnOneMin = 3;
 export const getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const getGameActionStatusResponseResponseTwoStateConcentrationOneSlotLevelMax = 9;
+
 
 export const getGameActionStatusResponseResponseTwoStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -8750,6 +8967,11 @@ export const getGameActionStatusResponseResponseTwoCombatResultOneDeathSaveOneSu
 export const getGameActionStatusResponseResponseTwoCombatResultOneDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatResultOneDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -8768,6 +8990,11 @@ export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOne
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -8785,6 +9012,11 @@ export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsIt
 
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneTurnIndexMin = 0;
@@ -8807,6 +9039,11 @@ export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultDe
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax = 4;
+
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -8825,6 +9062,11 @@ export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEn
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -8842,6 +9084,11 @@ export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEn
 
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const getGameActionStatusResponseResponseTwoSkillCheckResultOneTacticalMindRollMax = 10;
 
@@ -9313,6 +9560,8 @@ export const GetGameActionStatusResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getGameActionStatusResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -9384,6 +9633,12 @@ export const GetGameActionStatusResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotTurnOneMin).max(getGameActionStatusResponseResponseTwoStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -9474,7 +9729,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9482,7 +9737,7 @@ export const GetGameActionStatusResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9500,6 +9755,7 @@ export const GetGameActionStatusResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -9513,6 +9769,7 @@ export const GetGameActionStatusResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -9526,6 +9783,7 @@ export const GetGameActionStatusResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -9539,6 +9797,7 @@ export const GetGameActionStatusResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -9765,7 +10024,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9773,10 +10032,19 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatResultOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -9835,7 +10103,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9843,10 +10111,19 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -9893,7 +10170,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9901,10 +10178,19 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -9960,7 +10246,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -9968,10 +10254,19 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -10030,7 +10325,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -10038,10 +10333,19 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -10088,7 +10392,7 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -10096,12 +10400,22 @@ export const GetGameActionStatusResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getGameActionStatusResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
@@ -10174,7 +10488,8 @@ export const GetGameActionStatusResponse = zod.object({
 }).describe('The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.'),zod.null()]).optional().describe('Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte.')
 })]).optional().describe('The stored turn reply of an applied action; null when the receipt belongs to another command kind'),
   "detail": zod.record(zod.string(), zod.unknown()).nullish().describe('The stored refusal body of a not_applied action'),
-  "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock')
+  "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock'),
+  "undo_available": zod.boolean().optional().describe('Sent with an applied action; true while it is still the one-step undo target. A hint only; the undo route checks again')
 })
 
 
@@ -10337,6 +10652,8 @@ export const abandonGameActionResponseResponseTwoStateCharacterMonkFocusOnePoint
 
 export const abandonGameActionResponseResponseTwoStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const abandonGameActionResponseResponseTwoStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -10380,6 +10697,9 @@ export const abandonGameActionResponseResponseTwoStateSpellcastingOneSlotsMinOne
 
 export const abandonGameActionResponseResponseTwoStateSpellcastingOneSlotTurnOneMin = 3;
 export const abandonGameActionResponseResponseTwoStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const abandonGameActionResponseResponseTwoStateConcentrationOneSlotLevelMax = 9;
+
 
 export const abandonGameActionResponseResponseTwoStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -10463,6 +10783,11 @@ export const abandonGameActionResponseResponseTwoCombatResultOneDeathSaveOneSucc
 export const abandonGameActionResponseResponseTwoCombatResultOneDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatResultOneDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneBlessRollMax = 4;
+
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -10481,6 +10806,11 @@ export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneDe
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -10498,6 +10828,11 @@ export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItem
 
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneTurnIndexMin = 0;
@@ -10520,6 +10855,11 @@ export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultDeat
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax = 4;
+
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -10538,6 +10878,11 @@ export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnem
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -10555,6 +10900,11 @@ export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnem
 
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const abandonGameActionResponseResponseTwoSkillCheckResultOneTacticalMindRollMax = 10;
 
@@ -11026,6 +11376,8 @@ export const AbandonGameActionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(abandonGameActionResponseResponseTwoStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -11097,6 +11449,12 @@ export const AbandonGameActionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(abandonGameActionResponseResponseTwoStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(abandonGameActionResponseResponseTwoStateSpellcastingOneSlotTurnOneMin).max(abandonGameActionResponseResponseTwoStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -11187,7 +11545,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11195,7 +11553,7 @@ export const AbandonGameActionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11213,6 +11571,7 @@ export const AbandonGameActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -11226,6 +11585,7 @@ export const AbandonGameActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -11239,6 +11599,7 @@ export const AbandonGameActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -11252,6 +11613,7 @@ export const AbandonGameActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -11478,7 +11840,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11486,10 +11848,19 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatResultOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -11548,7 +11919,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11556,10 +11927,19 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -11606,7 +11986,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11614,10 +11994,19 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -11673,7 +12062,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11681,10 +12070,19 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -11743,7 +12141,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11751,10 +12149,19 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -11801,7 +12208,7 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -11809,12 +12216,22 @@ export const AbandonGameActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(abandonGameActionResponseResponseTwoCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
@@ -11887,7 +12304,8 @@ export const AbandonGameActionResponse = zod.object({
 }).describe('The player-safe receipt of one economic result; no NPC purse, acceptance record or check difficulty.'),zod.null()]).optional().describe('Player-safe receipt of an economic result of this turn. Left out when the turn settled none, so older receipts replay byte for byte.')
 })]).optional().describe('The stored turn reply of an applied action; null when the receipt belongs to another command kind'),
   "detail": zod.record(zod.string(), zod.unknown()).nullish().describe('The stored refusal body of a not_applied action'),
-  "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock')
+  "processing": zod.boolean().optional().describe('True while a turn of this session holds the turn lock'),
+  "undo_available": zod.boolean().optional().describe('Sent with an applied action; true while it is still the one-step undo target. A hint only; the undo route checks again')
 })
 
 
@@ -11898,8 +12316,11 @@ export const UndoGameTurnParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const undoGameTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const UndoGameTurnBody = zod.object({
-  "action_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().regex(undoGameTurnBodyActionIdRegExp),
   "target_action_id": zod.string().uuid()
 })
 
@@ -12054,6 +12475,8 @@ export const undoGameTurnResponseStateCharacterMonkFocusOnePointsRemainingMin = 
 
 export const undoGameTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const undoGameTurnResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -12097,6 +12520,9 @@ export const undoGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const undoGameTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const undoGameTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const undoGameTurnResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const undoGameTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -12586,6 +13012,8 @@ export const UndoGameTurnResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(undoGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -12657,6 +13085,12 @@ export const UndoGameTurnResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(undoGameTurnResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(undoGameTurnResponseStateSpellcastingOneSlotTurnOneMin).max(undoGameTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(undoGameTurnResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -12747,7 +13181,7 @@ export const UndoGameTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -12755,7 +13189,7 @@ export const UndoGameTurnResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -12773,6 +13207,7 @@ export const UndoGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -12786,6 +13221,7 @@ export const UndoGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -12799,6 +13235,7 @@ export const UndoGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -12812,6 +13249,7 @@ export const UndoGameTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -13154,6 +13592,8 @@ export const acceptGameQuestResponseStateCharacterMonkFocusOnePointsRemainingMin
 
 export const acceptGameQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const acceptGameQuestResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -13197,6 +13637,9 @@ export const acceptGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const acceptGameQuestResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const acceptGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -13709,6 +14152,8 @@ export const AcceptGameQuestResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -13780,6 +14225,12 @@ export const AcceptGameQuestResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(acceptGameQuestResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMin).max(acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(acceptGameQuestResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -13870,7 +14321,7 @@ export const AcceptGameQuestResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -13878,7 +14329,7 @@ export const AcceptGameQuestResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -13896,6 +14347,7 @@ export const AcceptGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -13909,6 +14361,7 @@ export const AcceptGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -13922,6 +14375,7 @@ export const AcceptGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -13935,6 +14389,7 @@ export const AcceptGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -14299,6 +14754,8 @@ export const cancelGameQuestResponseStateCharacterMonkFocusOnePointsRemainingMin
 
 export const cancelGameQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const cancelGameQuestResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -14342,6 +14799,9 @@ export const cancelGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const cancelGameQuestResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const cancelGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -14854,6 +15314,8 @@ export const CancelGameQuestResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -14925,6 +15387,12 @@ export const CancelGameQuestResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(cancelGameQuestResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMin).max(cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(cancelGameQuestResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -15015,7 +15483,7 @@ export const CancelGameQuestResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -15023,7 +15491,7 @@ export const CancelGameQuestResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -15041,6 +15509,7 @@ export const CancelGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -15054,6 +15523,7 @@ export const CancelGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -15067,6 +15537,7 @@ export const CancelGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -15080,6 +15551,7 @@ export const CancelGameQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -15452,6 +15924,8 @@ export const resolveAmbientEventActionResponseStateCharacterMonkFocusOnePointsRe
 
 export const resolveAmbientEventActionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resolveAmbientEventActionResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -15495,6 +15969,9 @@ export const resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne = 
 
 export const resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const resolveAmbientEventActionResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -15990,6 +16467,8 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -16061,6 +16540,12 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMin).max(resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resolveAmbientEventActionResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -16151,7 +16636,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -16159,7 +16644,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -16177,6 +16662,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -16190,6 +16676,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -16203,6 +16690,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -16216,6 +16704,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -16568,6 +17057,8 @@ export const acceptLegacyQuestResponseStateCharacterMonkFocusOnePointsRemainingM
 
 export const acceptLegacyQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const acceptLegacyQuestResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -16611,6 +17102,9 @@ export const acceptLegacyQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const acceptLegacyQuestResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const acceptLegacyQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -17123,6 +17617,8 @@ export const AcceptLegacyQuestResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -17194,6 +17690,12 @@ export const AcceptLegacyQuestResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(acceptLegacyQuestResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin).max(acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(acceptLegacyQuestResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -17284,7 +17786,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -17292,7 +17794,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -17310,6 +17812,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -17323,6 +17826,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -17336,6 +17840,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -17349,6 +17854,7 @@ export const AcceptLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -17714,6 +18220,8 @@ export const cancelLegacyQuestResponseStateCharacterMonkFocusOnePointsRemainingM
 
 export const cancelLegacyQuestResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const cancelLegacyQuestResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -17757,6 +18265,9 @@ export const cancelLegacyQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const cancelLegacyQuestResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const cancelLegacyQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -18269,6 +18780,8 @@ export const CancelLegacyQuestResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -18340,6 +18853,12 @@ export const CancelLegacyQuestResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(cancelLegacyQuestResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin).max(cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(cancelLegacyQuestResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -18430,7 +18949,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -18438,7 +18957,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -18456,6 +18975,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -18469,6 +18989,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -18482,6 +19003,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -18495,6 +19017,7 @@ export const CancelLegacyQuestResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -18868,6 +19391,8 @@ export const resolveAmbientEventActionCompatResponseStateCharacterMonkFocusOnePo
 
 export const resolveAmbientEventActionCompatResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resolveAmbientEventActionCompatResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -18911,6 +19436,9 @@ export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotsMin
 
 export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const resolveAmbientEventActionCompatResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -19406,6 +19934,8 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -19477,6 +20007,12 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMin).max(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -19567,7 +20103,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -19575,7 +20111,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -19593,6 +20129,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -19606,6 +20143,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -19619,6 +20157,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -19632,6 +20171,7 @@ export const ResolveAmbientEventActionCompatResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -22132,6 +22672,8 @@ export const createCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin 
 
 export const createCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const createCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -22175,6 +22717,9 @@ export const createCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const createCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const createCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const createCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const createCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -22276,6 +22821,11 @@ export const createCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesM
 export const createCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const createCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const createCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const createCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const createCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -22294,6 +22844,11 @@ export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSav
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -22311,6 +22866,11 @@ export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathS
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -22735,6 +23295,8 @@ export const CreateCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -22806,6 +23368,12 @@ export const CreateCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(createCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(createCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(createCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -22896,7 +23464,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -22904,7 +23472,7 @@ export const CreateCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -22922,6 +23490,7 @@ export const CreateCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -22935,6 +23504,7 @@ export const CreateCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -22948,6 +23518,7 @@ export const CreateCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -22961,6 +23532,7 @@ export const CreateCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -23221,7 +23793,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -23229,10 +23801,19 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(createCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -23291,7 +23872,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -23299,10 +23880,19 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -23349,7 +23939,7 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -23357,12 +23947,22 @@ export const CreateCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -23538,6 +24138,8 @@ export const getCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin = 0
 
 export const getCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -23581,6 +24183,9 @@ export const getCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const getCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const getCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const getCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const getCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -23682,6 +24287,11 @@ export const getCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax 
 export const getCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const getCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const getCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const getCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const getCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -23700,6 +24310,11 @@ export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOn
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -23717,6 +24332,11 @@ export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSave
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -24151,6 +24771,8 @@ export const GetCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -24222,6 +24844,12 @@ export const GetCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(getCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -24312,7 +24940,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24320,7 +24948,7 @@ export const GetCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24338,6 +24966,7 @@ export const GetCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -24351,6 +24980,7 @@ export const GetCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -24364,6 +24994,7 @@ export const GetCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -24377,6 +25008,7 @@ export const GetCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -24637,7 +25269,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24645,10 +25277,19 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(getCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -24707,7 +25348,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24715,10 +25356,19 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -24765,7 +25415,7 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -24773,12 +25423,22 @@ export const GetCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -24941,6 +25601,8 @@ export const resumeCampaignResponseStateCharacterMonkFocusOnePointsRemainingMin 
 
 export const resumeCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resumeCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -24984,6 +25646,9 @@ export const resumeCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const resumeCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resumeCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const resumeCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const resumeCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -25085,6 +25750,11 @@ export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesM
 export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -25103,6 +25773,11 @@ export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSav
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -25120,6 +25795,11 @@ export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathS
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -25544,6 +26224,8 @@ export const ResumeCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -25615,6 +26297,12 @@ export const ResumeCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resumeCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resumeCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(resumeCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resumeCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -25705,7 +26393,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -25713,7 +26401,7 @@ export const ResumeCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -25731,6 +26419,7 @@ export const ResumeCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -25744,6 +26433,7 @@ export const ResumeCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -25757,6 +26447,7 @@ export const ResumeCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -25770,6 +26461,7 @@ export const ResumeCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -26030,7 +26722,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -26038,10 +26730,19 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -26100,7 +26801,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -26108,10 +26809,19 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -26158,7 +26868,7 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -26166,12 +26876,22 @@ export const ResumeCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -27504,6 +28224,8 @@ export const createLegacySessionResponseStateCharacterMonkFocusOnePointsRemainin
 
 export const createLegacySessionResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const createLegacySessionResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -27547,6 +28269,9 @@ export const createLegacySessionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const createLegacySessionResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const createLegacySessionResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const createLegacySessionResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const createLegacySessionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -28033,6 +28758,8 @@ export const CreateLegacySessionResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -28104,6 +28831,12 @@ export const CreateLegacySessionResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(createLegacySessionResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createLegacySessionResponseStateSpellcastingOneSlotTurnOneMin).max(createLegacySessionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(createLegacySessionResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -28194,7 +28927,7 @@ export const CreateLegacySessionResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -28202,7 +28935,7 @@ export const CreateLegacySessionResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -28220,6 +28953,7 @@ export const CreateLegacySessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -28233,6 +28967,7 @@ export const CreateLegacySessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -28246,6 +28981,7 @@ export const CreateLegacySessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -28259,6 +28995,7 @@ export const CreateLegacySessionResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -28597,6 +29334,8 @@ export const getLegacySessionStateResponseCharacterMonkFocusOnePointsRemainingMi
 
 export const getLegacySessionStateResponseCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getLegacySessionStateResponseCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -28640,6 +29379,9 @@ export const getLegacySessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
 export const getLegacySessionStateResponseSpellcastingOneSlotTurnOneMin = 3;
 export const getLegacySessionStateResponseSpellcastingOneSlotTurnOneMax = 3;
+
+export const getLegacySessionStateResponseConcentrationOneSlotLevelMax = 9;
+
 
 export const getLegacySessionStateResponseCombatParticipantRecordsItemIdMax = 128;
 
@@ -29124,6 +29866,8 @@ export const GetLegacySessionStateResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -29195,6 +29939,12 @@ export const GetLegacySessionStateResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getLegacySessionStateResponseSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getLegacySessionStateResponseSpellcastingOneSlotTurnOneMin).max(getLegacySessionStateResponseSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getLegacySessionStateResponseConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -29285,7 +30035,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -29293,7 +30043,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -29311,6 +30061,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -29324,6 +30075,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -29337,6 +30089,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -29350,6 +30103,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -29633,7 +30387,7 @@ export const PlayLegacyTurnBody = zod.object({
   "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
   "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish(),
-  "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish(),
+  "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp),
   "economic_action": zod.union([zod.union([zod.object({
   "kind": zod.enum(['prepare']),
   "proposal": zod.object({
@@ -29812,6 +30566,8 @@ export const playLegacyTurnResponseStateCharacterMonkFocusOnePointsRemainingMin 
 
 export const playLegacyTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const playLegacyTurnResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -29855,6 +30611,9 @@ export const playLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const playLegacyTurnResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const playLegacyTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -29938,6 +30697,11 @@ export const playLegacyTurnResponseCombatResultOneDeathSaveOneSuccessesMax = 3;
 export const playLegacyTurnResponseCombatResultOneDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatResultOneDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseCombatResultOneConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatResultOneConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatResultOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -29956,6 +30720,11 @@ export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSucc
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -29973,6 +30742,11 @@ export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSu
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playLegacyTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
@@ -29995,6 +30769,11 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneSucces
 export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax = 4;
+
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -30013,6 +30792,11 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeat
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -30030,6 +30814,11 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDe
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 export const playLegacyTurnResponseSkillCheckResultOneTacticalMindRollMax = 10;
 
@@ -30498,6 +31287,8 @@ export const PlayLegacyTurnResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -30569,6 +31360,12 @@ export const PlayLegacyTurnResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(playLegacyTurnResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin).max(playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(playLegacyTurnResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -30659,7 +31456,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -30667,7 +31464,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -30685,6 +31482,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -30698,6 +31496,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -30711,6 +31510,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -30724,6 +31524,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -30950,7 +31751,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -30958,10 +31759,19 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatResultOneConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatResultOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -31020,7 +31830,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31028,10 +31838,19 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -31078,7 +31897,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31086,10 +31905,19 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -31145,7 +31973,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31153,10 +31981,19 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -31215,7 +32052,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31223,10 +32060,19 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -31273,7 +32119,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -31281,12 +32127,22 @@ export const PlayLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "check_feature": zod.enum(['primal_knowledge', 'tactical_mind']).optional(),
@@ -31367,8 +32223,11 @@ export const UndoLegacyTurnParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const undoLegacyTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
 export const UndoLegacyTurnBody = zod.object({
-  "action_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().regex(undoLegacyTurnBodyActionIdRegExp),
   "target_action_id": zod.string().uuid()
 })
 
@@ -31523,6 +32382,8 @@ export const undoLegacyTurnResponseStateCharacterMonkFocusOnePointsRemainingMin 
 
 export const undoLegacyTurnResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const undoLegacyTurnResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -31566,6 +32427,9 @@ export const undoLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const undoLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const undoLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const undoLegacyTurnResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const undoLegacyTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -32055,6 +32919,8 @@ export const UndoLegacyTurnResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(undoLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -32126,6 +32992,12 @@ export const UndoLegacyTurnResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(undoLegacyTurnResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(undoLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin).max(undoLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(undoLegacyTurnResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -32216,7 +33088,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -32224,7 +33096,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -32242,6 +33114,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -32255,6 +33128,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -32268,6 +33142,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -32281,6 +33156,7 @@ export const UndoLegacyTurnResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -32644,6 +33520,8 @@ export const ApplyLegacySessionLevelUpParams = zod.object({
   "session_id": zod.coerce.string()
 })
 
+export const applyLegacySessionLevelUpBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const applyLegacySessionLevelUpBodyCampaignIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const applyLegacySessionLevelUpBodyExpectedRevisionMin = 0;
 
 export const applyLegacySessionLevelUpBodyTargetLevelMin = 2;
@@ -33082,8 +33960,8 @@ export const applyLegacySessionLevelUpBodyChoicesOnenineAsiIncreaseTwooneCharism
 
 
 export const ApplyLegacySessionLevelUpBody = zod.object({
-  "action_id": zod.string().uuid(),
-  "campaign_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().regex(applyLegacySessionLevelUpBodyActionIdRegExp),
+  "campaign_id": zod.string().uuid().regex(applyLegacySessionLevelUpBodyCampaignIdRegExp),
   "expected_revision": zod.number().int().min(applyLegacySessionLevelUpBodyExpectedRevisionMin),
   "target_level": zod.number().int().min(applyLegacySessionLevelUpBodyTargetLevelMin).max(applyLegacySessionLevelUpBodyTargetLevelMax),
   "choices": zod.union([zod.object({
@@ -34624,6 +35502,8 @@ export const createLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemaini
 
 export const createLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const createLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -34667,6 +35547,9 @@ export const createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const createLegacyCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -34768,6 +35651,11 @@ export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSucc
 export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -34786,6 +35674,11 @@ export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDe
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -34803,6 +35696,11 @@ export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItem
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -35227,6 +36125,8 @@ export const CreateLegacyCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -35298,6 +36198,12 @@ export const CreateLegacyCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(createLegacyCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -35388,7 +36294,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35396,7 +36302,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35414,6 +36320,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -35427,6 +36334,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -35440,6 +36348,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -35453,6 +36362,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -35713,7 +36623,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35721,10 +36631,19 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -35783,7 +36702,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35791,10 +36710,19 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -35841,7 +36769,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -35849,12 +36777,22 @@ export const CreateLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -36032,6 +36970,8 @@ export const getLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemainingM
 
 export const getLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const getLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -36075,6 +37015,9 @@ export const getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const getLegacyCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -36176,6 +37119,11 @@ export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccess
 export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -36194,6 +37142,11 @@ export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeath
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -36211,6 +37164,11 @@ export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDea
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -36645,6 +37603,8 @@ export const GetLegacyCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -36716,6 +37676,12 @@ export const GetLegacyCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(getLegacyCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -36806,7 +37772,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -36814,7 +37780,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -36832,6 +37798,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -36845,6 +37812,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -36858,6 +37826,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -36871,6 +37840,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -37131,7 +38101,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -37139,10 +38109,19 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -37201,7 +38180,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -37209,10 +38188,19 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -37259,7 +38247,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -37267,12 +38255,22 @@ export const GetLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 
@@ -37436,6 +38434,8 @@ export const resumeLegacyCampaignResponseStateCharacterMonkFocusOnePointsRemaini
 
 export const resumeLegacyCampaignResponseStateCharacterMonkFlurryStrikesRemainingMin = 0;
 
+export const resumeLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin = 0;
+
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
@@ -37479,6 +38479,9 @@ export const resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 export const resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
 export const resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const resumeLegacyCampaignResponseStateConcentrationOneSlotLevelMax = 9;
+
 
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -37580,6 +38583,11 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSucc
 export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
 export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
 
+export const resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin = 10;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax = 30;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax = 4;
+
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -37598,6 +38606,11 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDe
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
 
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin = 10;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax = 30;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax = 4;
+
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -37615,6 +38628,11 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItem
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin = 10;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax = 30;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax = 4;
 
 
 
@@ -38039,6 +39057,8 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "race": zod.string(),
   "species": zod.string().optional(),
   "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "draconic_ancestry": zod.union([zod.literal('black'),zod.literal('blue'),zod.literal('brass'),zod.literal('bronze'),zod.literal('copper'),zod.literal('gold'),zod.literal('green'),zod.literal('red'),zod.literal('silver'),zod.literal('white'),zod.literal(null)]).nullish().describe('Dragonborn\'s chosen dragon; null before the choice and for other species.'),
+  "breath_weapon_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterBreathWeaponUsesRemainingMin).nullish().describe('Dragonborn Breath Weapon uses left until a Long Rest; null for other species.'),
   "species_trait_state": zod.union([zod.object({
   "healing_hands_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
   "celestial_revelation_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
@@ -38110,6 +39130,12 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "slots": zod.record(zod.string(), zod.number().int().min(resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
   "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
 }).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "concentration": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "slot_level": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateConcentrationOneSlotLevelMax),
+  "started_round": zod.number().int().min(1),
+  "targets": zod.array(zod.string())
+}).describe('The held Concentration spell (D-073), from the engine\'s own record.'),zod.null()]).describe('Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -38200,7 +39226,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38208,7 +39234,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "last_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38226,6 +39252,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -38239,6 +39266,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -38252,6 +39280,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -38265,6 +39294,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "status": zod.string(),
   "objectives": zod.array(zod.string()),
   "result": zod.union([zod.string(),zod.null()]).describe('What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise.'),
+  "promised_cp": zod.union([zod.number().int(),zod.null()]).describe('The pay in copper the job\'s own terms promise (offered and running cards); null when the record has no terms.'),
   "record_kind": zod.union([zod.string(),zod.null()]),
   "raw_status": zod.string()
 }).describe('One quest record as the journal shows it, under public names only.')),
@@ -38525,7 +39555,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38533,10 +39563,19 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional(),
   "spell": zod.string().nullish(),
   "casting_ability": zod.string().nullish(),
   "attack_or_save": zod.string().nullish(),
@@ -38595,7 +39634,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38603,10 +39642,19 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -38653,7 +39701,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional()
@@ -38661,12 +39709,22 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "death_resolution": zod.union([zod.object({
   "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
   "outcome": zod.enum(['rolled_back', 'dead']),
-  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves', 'dehydration', 'malnutrition', 'extended_travel']),
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "concentration_check": zod.union([zod.object({
+  "spell_id": zod.string(),
+  "kept": zod.boolean(),
+  "dc": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneDcMax).nullish(),
+  "roll": zod.number().int().nullish(),
+  "total": zod.number().int().nullish(),
+  "bless_roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemConcentrationCheckOneBlessRollMax).nullish(),
+  "reason": zod.union([zod.literal('incapacitated'),zod.literal('duration_ended'),zod.literal('combat_ended'),zod.literal(null)]).nullish()
+}).describe('The player\'s Concentration after one damage instance (D-052), from the engine\'s own save.'),zod.null()]).optional()
 })).nullish()
-})
+}),
+  "undone": zod.boolean().optional().describe('True when a later undo took this turn back; the row stays as evidence. Absent otherwise.')
 }))
 })
 

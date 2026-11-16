@@ -74,6 +74,7 @@ def spellings_for(item_ids, kind: str = "spells") -> dict[str, str]:
         for name in (data[kind].get(item_id), *data.get("aliases", {}).get(item_id, ())):
             if name:
                 result[name.replace("̇", "").casefold()] = item_id
+                result[name.casefold().replace("̇", "")] = item_id  # "İ" typed as plain "i", "ş" kept (D-120)
                 result[fold(name)] = item_id
     return result
 

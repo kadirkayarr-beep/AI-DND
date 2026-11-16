@@ -18,6 +18,7 @@ fight gets the same kind of line (the fight's action economy has no owner for it
 from __future__ import annotations
 
 import copy
+import functools
 import re
 from typing import Any
 
@@ -33,13 +34,30 @@ _ALIASES = (("mage hand", "Mage Hand"), ("buyucu eli", "Mage Hand"), ("minor ill
             ("kucuk yanilsama", "Minor Illusion"), ("prestidigitation", "Prestidigitation"),
             ("hokkabazlik", "Prestidigitation"))
 # "Light" and "Işık" are everyday words: only with a casting word next to them are they the spell.
-_LIGHT = re.compile(r"\b(?:isik|light)\s+(?:buyu\w*|spell|cantrip)\b|\bcast(?:ing)?\s+(?:the\s+)?light\b")
+# D-227: the other-language name in brackets ("Işık (Light) büyüsü") is the same spell.
+_LIGHT = re.compile(r"\b(?:isik\s*\(\s*light\s*\)|light\s*\(\s*isik\s*\)|isik|light)\s+(?:buyu\w*|spell|cantrip)\b|\bcast(?:ing)?\s+(?:the\s+)?light\b")
 _CAST_WORD = re.compile(r"\bcast(?:s|ing)?\b|\bbuyu(?:su\w*|yu|yle|nu)?\b")  # "büyücü" (a wizard) is no casting word
+# D-071: "cast" in an everyday phrase ("cast a glance", "cast aside", "cast the net") is no casting word.
+_CAST_IDIOM = re.compile(
+    r"\bcast(?:s|ing)?\s+(?:(?:a|an|the|my|his|her|their|your|our|one|some)\s+)?(?:\w+\s+)?"
+    r"(?:glances?|looks?|eyes?|gaze|glares?|shadows?|votes?|ballots?|nets?|lines?|lots?|dice|die|doubts?|stones?"
+    r"|anchor)\b|\bcast(?:s|ing)?\s+(?:aside|away|off|around|about)\b")
+
+
+@functools.lru_cache(maxsize=1)
+def _spell_names() -> re.Pattern[str]:
+    """Every PHB 2024 spell name (folded), so an idiom never eats one: "cast Arcane Eye" is a cast."""
+    from class_progression.prepared_caster import _source_spells
+    names = sorted((_fold(name) for name in _source_spells()), key=len, reverse=True)
+    return re.compile(rf"(?<![a-z0-9])(?:{'|'.join(map(re.escape, names))})(?![a-z0-9])")
 _QUESTION = re.compile(r"\?|\b(?:nedir|nasil|what|how|describe|anlat)\b")
 # Negated, wished, asked or weighed forms are no cast: "yapmak istemiyorum", "yapsam mı", "kullanmalı mıyım", "keşke".
+# D-213: the question particle is a closed set of endings (as in game._QUESTION_CUE_RE), so "Misty", "Mislead" and
+# "Mistik" are no question.
 _NEGATED = re.compile(
     r"\b(?:not|don't|dont|never|degil|should|would|could|shall|if|maybe|acaba|keske|eger|belki)\b"
-    r"|\bm[iu](?:s\w*|y\w*)?\b|istem(?:iyor|em|ez|edi|eyece)|\w+(?:sam|sem|saydim|seydim)\b|\w+m[ae]li\b"
+    r"|\bm[iu](?:y?d[iu](?:m|n|k|n[iu]z|lar|ler)?|y?m[iu]s(?:[iu]m|s[iu]n(?:[iu]z)?|[iu]z|lar|ler)?|y[iu]m"
+    r"|s[iu]n(?:[iu]z)?|y[iu]z|d[iu]r)?\b|istem(?:iyor|em|ez|edi|eyece)|\b\w+(?:sam|sem|saydim|seydim)\b|\b\w+m[ae]li\b"
     r"|\b(?:kullan|yap|at|dene)m(?:a\b|iyor|am\b|ayacag|adi)")
 # K2: money, an item, a container, a hand/bag/pocket to put something in, or a taking verb is no narrative cast:
 # when it is not plainly a pure effect, the line goes on to today's paths (economic, theft, item owners).
@@ -52,7 +70,15 @@ _TRANSFER = re.compile(
     r"|\b(?:cal(?:ar|iyor|ip|mak|acag|dim)\w*|asir\w*|yuru(?:t|d)\w*|al(?:iyor|ip|ir|mak|acag|dim)\w*|getir\w*"
     r"|ver(?:iyor|ir|mek)\w*|kap(?:iyor|ar|ip|mak|tim|acag)\w*"
     r"|koy(?:uyor|ar|up|mak|dum)\w*|topla\w*|steal\w*|stole|pickpocket\w*|pilfer\w*|snatch\w*|grab\w*"
-    r"|take|takes|taking|took|fetch\w*|bring\w*|give|giving|carry\w*|carries)\b|\bpick(?:s|ing|ed)?\s+up\b")
+    r"|take|takes|taking|took|fetch\w*|bring\w*|give|giving|carry\w*|carries)\b|\bpick(?:s|ing|ed)?\s+up\b"
+    # D-067: a thing taken off someone's body ("boynundan çıkarıyorum") is a theft; dice and cheating are a stake.
+    # Only with a word of taking off: 'göğsünden ışık yayılan' takes nothing, and 'Zara'nın' is a name, not dice.
+    # 'çıkarmak' is also 'to bring forth': a spark, flame or smoke drawn from a body takes nothing (second review).
+    r"|\b(?:boyn|bileg|parmag|kulag|gogs|kemer)\w*(?:dan|den)\b"
+    r"(?!\s+(?:bir\s+)?(?:kivilcim|alev|duman|isik|ates|ses|koku|buhar|sis|parilti|isilti|kelebek|cicek)\w*\s+cikar)"
+    r"(?=.*\b(?:cikar|cek|coz|kopar|soy|sok|ayir)\w*)"
+    r"|\b(?:lift|remov|pull|slip|unclasp|unhook|tug|yank)\w*\b.*\b(?:off|from)\s+(?:his|her|their|its)\s+"
+    r"(?:neck|wrist|finger|ear|chest|belt)\w*|\bzar(?:i|a(?!')|da|dan|la|lar\w*)?\b|\b(?:dice|hile\w*|cheat\w*)\b")
 _DURATION = {"1 minute": 60, "1 hour": 3600, "Up to 1 hour": 3600}
 _DURATION_TR = {"1 minute": "bir dakika sürer", "1 hour": "bir saat sürer", "Up to 1 hour": "en çok bir saat sürer"}
 _FIELDS = {"id", "spell_id", "kind", "location_id", "cast_second", "until_second"}
@@ -77,6 +103,15 @@ def _range_tr(value: str) -> str:
     return f"{feet.group(1)} fit içinde" if feet else value
 
 
+@functools.lru_cache(maxsize=1)
+def _longer_names() -> list[str]:
+    """Folded spellings of PHB spells whose name holds a resolver's name ("mass healing word"), longest first (D-120)."""
+    import spell_scope
+    import spells
+    names = {name.casefold(): name for name in spell_scope.CATALOG} | spell_scope.ALIASES
+    return sorted({_fold(name) for name in spells.longer_spell_names(names)}, key=len, reverse=True)
+
+
 def named(message: Any) -> tuple[str, str] | None:
     """Read only, words alone: ("narrative", spell) or ("not_yet", spell) for a casting line, else None.
 
@@ -87,7 +122,8 @@ def named(message: Any) -> tuple[str, str] | None:
     folded = _fold(message)
     if _QUESTION.search(folded) or _NEGATED.search(folded):
         return None
-    if any(re.search(rf"(?<![a-z0-9]){re.escape(_fold(alias))}(?![a-z0-9])", folded)
+    plain = spells.without_names(folded, _longer_names())  # "mass healing word" is not Healing Word (D-214)
+    if any(re.search(rf"(?<![a-z0-9]){re.escape(_fold(alias))}(?![a-z0-9])", plain)
            for alias in [*spell_scope.CATALOG, *spell_scope.ALIASES]):
         return None
     hits = {spell for alias, spell in _ALIASES if re.search(rf"(?<![a-z0-9]){alias}(?![a-z0-9])", folded)}
@@ -97,14 +133,19 @@ def named(message: Any) -> tuple[str, str] | None:
         if len(hits) != 1 or _TRANSFER.search(folded):
             return None
         return "narrative", hits.pop()
-    if not _CAST_WORD.search(folded):
+    if not _CAST_WORD.search(_CAST_IDIOM.sub(" ", _spell_names().sub(" spell ", folded))):
         return None
     for alias, spell in spells._UNSUPPORTED_ALIASES:
-        if spell not in NARRATIVE and re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", folded):
+        if spell not in NARRATIVE and re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", plain):
             return "not_yet", spell
     for spell in sorted(_manifest_names(), key=len, reverse=True):
         if re.search(rf"(?<![a-z0-9]){re.escape(_fold(spell))}(?![a-z0-9])", folded):
             return "not_yet", spell
+    import tr_names  # D-257: the Turkish names (and aliases) of those same spells, the longer name first
+    turkish = tr_names.spellings_for(_manifest_names())
+    for spelling in sorted(turkish, key=len, reverse=True):
+        if re.search(rf"(?<![a-z0-9]){re.escape(_fold(spelling))}(?![a-z0-9])", folded):
+            return "not_yet", turkish[spelling]
     return None
 
 
@@ -116,7 +157,20 @@ _STATE_CLAIM = re.compile(
     r"|\belinde(?:\s+\S+){0,4}?\s+kal\w*|\beline\s+(?:gec|al|dus)\w*|\bele\s+gecir\w*|\byour\s+(?:palm|hand|hands|bag|pack|pouch)\b"
     r"|\b(?:bul(?:ur|up|dun|ursun|uyorsun)|kazan\w*|alirsin|edinirsin)\b|\b(?:find|found|gain\w*|receive\w*|earn\w*)\b"
     r"|\byara\w*\s+(?:kapan|iyiles|gec)\w*|\biyiles\w*|\bcan\w*\s+(?:dol|art|yenilen)\w*|\bcan\s+puan\w*"
-    r"|\b(?:heal\w*|wound\w*|hit\s+points?)\b|\bhasar\w*|\bdamage\w*")
+    r"|\b(?:heal\w*|wound\w*|hit\s+points?)\b|\bhasar\w*|\bdamage\w*"
+    # D-067: a thing brought or left to the player ("sana doğru getirir", "artık sende", "kucağına bırakır"); a bare
+    # 'sende' is a gaze or a shiver ('Bütün gözler sende'), not a thing held.
+    r"|\bsana\s+(?:dogru\s+|kadar\s+)?(?:getir|uzat|ver|birak|tasi|ulastir|gonder|firlat)\w*"
+    r"|\b(?:artik|simdi)\s+(?:sende|elinde)(?:dir)?\b|\bsende\s+kal\w*|\bkucagina\s+(?:birak|koy|dus)\w*"
+    r"|\b(?:brings?|brought|hands|handed|gives?|gave|passe[sd]|carrie[sd]|delivers?|delivered|drops|dropped"
+    r"|tosse[sd])(?:\s+\w+){0,4}?\s+to\s+you\b"
+    # D-210: a thing put on the player's body ("yüzüğü parmağına geçirir") or called theirs ("artık senin."); a body
+    # with no putting ("parmağının ucunda", "omzuna dokunur") and a turn ("artık senin sıran") are not a claim.
+    # Review: 'koluna doğru' is a way past the body, and a choice, a verdict, a turn or a victory called yours is no thing.
+    r"|\b(?:parmagin|parmaklarin|boynun|bilegin|bileklerin|kolun|kollarin|belin|omzun|omuzlarin)[ae](?!\s+dogru\b)"
+    r"(?:\s+\S+){0,2}?\s+(?:gec|tak(?!ip)|dolan|giy|yerles)\w*"
+    r"|(?<!secim )(?<!karar )(?<!zafer )(?<!tercih )(?<!sira )(?<!soz )"
+    r"(?:\bartik\s+senin\s*(?:[.!;,]|$)|\bsenin\s+olsun\b)|\bonto\s+your\s+(?:fingers?|neck|wrists?|arms?)\b")
 
 
 def claims_state_change(text: Any) -> bool:
@@ -187,7 +241,9 @@ def resolve(session: Any, reading: tuple[str, str]) -> dict[str, Any]:
                          spell_id, "narrative_spell_in_combat")
     state = world.get("spellcasting_v1")
     spell_scope.validate(state, session.character)
-    if state is None or spell_id not in state["cantrips"]:
+    # Aasimar Light Bearer (PHB 2024 PDF 185): "You know the Light cantrip", with or without class spellcasting (D-132).
+    light_bearer = spell_id == "Light" and session.character.get("species") == "Aasimar"
+    if not light_bearer and (state is None or spell_id not in state["cantrips"]):
         return _not_cast(f"{tr} ({spell_id}) bildiğin büyüler arasında değil; büyü yapılmadı.",
                          spell_id, "spell_not_available")
     import combat_lifecycle

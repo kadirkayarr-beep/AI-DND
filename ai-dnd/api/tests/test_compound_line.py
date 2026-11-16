@@ -252,7 +252,7 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(), before)
 
     async def test_walk_then_pay_opens_one_card_for_the_coin(self):
-        # Money moves only through a confirmed card: the tip said at the inn opens one card of 5 silver, once.
+        # Money moves only through a confirmed card: the tip said at the inn reaches the money owner once (D-096).
         await self.town()
         before = self.purse_cp()
         reply = await self.turn("hana gidiyorum, barmene 5 gümüş veriyorum",
@@ -261,12 +261,21 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
                                  {"kind": "speak_to", "person_id": self.barmen, "economic_intent": "tip",
                                   "coin_cp": 50}])
         self.assertEqual(self.location(), self.inn)
-        card = reply.json()["state"]["economic_offer"]
-        self.assertIsNotNone(card, reply.json()["narration"])
-        self.assertEqual(card["max_total_cp"], 50)
+        self.assert_tip_answered_without_a_dead_card(reply, before)
+
+    def assert_tip_answered_without_a_dead_card(self, reply, before):
+        # D-096: the 5 silver reaches the money owner once and is answered in the turn. The barman's reply on arrival
+        # carries no spoken consent, so a card could only be refused at confirmation: none opens, the reason is said.
+        body = reply.json()
+        self.assertIsNone(body["state"]["economic_offer"], body["narration"])
+        self.assertEqual(body["narration"].count("alacağını söylemedi"), 1, body["narration"])
+        # D-208 (Kadir, option D): the refusal stays, and the line says to hold the coin out again now that you are in.
+        self.assertEqual(body["narration"].count("İçerideyken parayı yeniden uzatabilirsin."), 1, body["narration"])
         offers = self.live().world_state["flags"].get("economic_offers", {}).values()
-        self.assertEqual([row["status"] for row in offers].count("prepared"), 1)
+        self.assertEqual([row["status"] for row in offers].count("prepared"), 0)
         self.assertEqual(self.purse_cp(), before)
+        barman = next(npc for npc in self.live().world_state["npcs"] if npc.get("id") == self.barmen)
+        self.assertEqual({key: row["status"] for key, row in barman["coin_responses"].items()}, {"offer:50": "unknown"})
 
     async def pay_by_name(self, line, rest, seed):
         # Review 11 finding 1: the person named by NAME gets the same card as by role; the stated payment never vanishes.
@@ -276,12 +285,7 @@ class AWalkThenTheRest(unittest.IsolatedAsyncioTestCase):
                                        {"kind": "speak_to", "person_id": self.barmen,
                                         "economic_intent": "tip", "coin_cp": 50}])
         self.assertEqual(self.location(), self.inn)
-        card = reply.json()["state"]["economic_offer"]
-        self.assertIsNotNone(card, reply.json()["narration"])
-        self.assertEqual(card["max_total_cp"], 50)
-        offers = self.live().world_state["flags"].get("economic_offers", {}).values()
-        self.assertEqual([row["status"] for row in offers].count("prepared"), 1)
-        self.assertEqual(self.purse_cp(), before)
+        self.assert_tip_answered_without_a_dead_card(reply, before)
 
     async def test_walk_then_pay_by_name_opens_the_same_card(self):
         await self.pay_by_name("hana gidiyorum ve Osman'a 5 gümüş veriyorum", "Osman'a 5 gümüş veriyorum", 4641)

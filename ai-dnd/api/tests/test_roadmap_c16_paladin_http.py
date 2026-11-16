@@ -117,11 +117,12 @@ class Shapes(unittest.TestCase):
             CombatActionInput.model_validate({"steps": [{"kind": "divine_smite", "resource": "bonus"}, {"kind": "end_turn"}]})
 
     def test_the_rest_route_fields_belong_to_lay_on_hands(self):
-        SpeciesTraitActionRequest.model_validate({"action": "lay_on_hands", "healing_amount": 2})
-        SpeciesTraitActionRequest.model_validate({"action": "divine_sense"})
+        action_id = str(uuid4())
+        SpeciesTraitActionRequest.model_validate({"action": "lay_on_hands", "healing_amount": 2, "action_id": action_id})
+        SpeciesTraitActionRequest.model_validate({"action": "divine_sense", "action_id": action_id})
         for body in ({"action": "lay_on_hands"}, {"action": "short_rest", "healing_amount": 2}, {"action": "lay_on_hands", "remove_poisoned": False}):
             with self.assertRaises(ValidationError):
-                SpeciesTraitActionRequest.model_validate(body)
+                SpeciesTraitActionRequest.model_validate({**body, "action_id": action_id})
 
 
 class PaladinHttp(unittest.IsolatedAsyncioTestCase):

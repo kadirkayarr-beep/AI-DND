@@ -1,0 +1,83 @@
+{
+  "id": "95_ceset_esyasi",
+  "title": "Eşya ve para yoktan var olmaz (D-231; SIFIR TOLERANS): ölünün üstünü aramak kesesindekini ve üzerindeki eşyayı verir, fazlasını değil; ceset boşalır; Geri Al ve yenileme kese ile eşyayı cesede geri koyar",
+  "source_items": [
+    231
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 0,
+        "combat_status": "dead",
+        "inventory": [
+          {
+            "item_id": "item_900001",
+            "name": "Mızrak",
+            "weapon_id": "spear"
+          }
+        ]
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 12
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 9501,
+    "front_proposal": false
+  },
+  "steps": [
+    {
+      "say": "Kavşim'in cesedini arıyorum; kesesindeki parayı ve üzerindeki eşyaları alıyorum",
+      "expect": {
+        "kese": 52,
+        "kisi_kese": {
+          "kavsim": 0
+        },
+        "envanter": {
+          "Mızrak": 1
+        },
+        "kisi_esya": {
+          "kavsim": {}
+        },
+        "gerekli_metin": "Mızrak"
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 40,
+        "gerekli_metin": "Son tur geri alındı",
+        "kisi_kese": {
+          "kavsim": 12
+        },
+        "envanter": {},
+        "kisi_esya": {
+          "kavsim": {
+            "Mızrak": 1
+          }
+        }
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 12
+        },
+        "envanter": {},
+        "kisi_esya": {
+          "kavsim": {
+            "Mızrak": 1
+          }
+        }
+      }
+    }
+  ]
+}

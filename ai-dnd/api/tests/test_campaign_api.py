@@ -7,6 +7,7 @@ from api.tests.fixed_street import use_fixed_street
 import copy
 from contextlib import closing
 from functools import wraps
+import gc
 import json
 from pathlib import Path
 import sqlite3
@@ -47,6 +48,7 @@ from api.persistence.campaign_models import (
     CampaignStorageError,
 )
 from api.persistence.campaign_store import CampaignStore
+from api.persistence.campaign_validation import serialize_campaign_payload
 from api.session_manager import SessionManager
 from api.tests.speech_double import bare_speech
 from api.tests.auth_fixture import TEST_PLAYER
@@ -524,7 +526,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         await self.http.aclose()
-        self.temporary_directory.cleanup()
+        # D-191: an unclosed sqlite connection (``with sqlite3.connect`` only commits) lives in a reference cycle
+        # and keeps the file open until collected; Windows cannot delete an open file (WinError 32).
+        # Collected only when the cleanup met such a file: a full collection in every HTTP test costs time.
+        try:
+            self.temporary_directory.cleanup()
+        except PermissionError:
+            gc.collect()
+            self.temporary_directory.cleanup()
 
     async def create_campaign(self):
         # These tests cover a stored old-mode campaign; the new default has its own test.
@@ -2904,7 +2913,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         ):
             response = await self.http.post(
                 f"/api/game/sessions/{created['session_id']}/turn",
-                json={"message": "Bekle."},
+                json={"action_id": str(uuid.uuid4()), "message": "Bekle."},
             )
 
         self.assertEqual(response.status_code, 200, response.text)
@@ -3128,7 +3137,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Etrafıma bakıyorum."},
+            json={"action_id": str(uuid.uuid4()), "message": "Etrafıma bakıyorum."},
         )
         self.assertEqual(response.status_code, 200, response.text)
         turn = response.json()
@@ -8244,14 +8253,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         look_response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Etrafıma bakıyorum."},
+            json={"action_id": str(uuid.uuid4()), "message": "Etrafıma bakıyorum."},
         )
         self.assertEqual(look_response.status_code, 200, look_response.text)
         npc = session.world_state["npcs"][0]
 
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Adın ne?", "target_id": npc["id"]},
+            json={"action_id": str(uuid.uuid4()), "message": "Adın ne?", "target_id": npc["id"]},
         )
         self.assertEqual(response.status_code, 200, response.text)
         turn = response.json()
@@ -8654,7 +8663,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         created = await self.create_campaign()
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Bandit'e saldırıyorum.", "target_id": "   "},
+            json={"action_id": str(uuid.uuid4()), "message": "Bandit'e saldırıyorum.", "target_id": "   "},
         )
         self.assertEqual(response.status_code, 422, response.text)
 
@@ -8759,7 +8768,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = attack_turn
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Bandit'e saldırıyorum.", "target_id": "npc_bandit"},
+            json={"action_id": str(uuid.uuid4()), "message": "Bandit'e saldırıyorum.", "target_id": "npc_bandit"},
         )
 
         self.assertEqual(response.status_code, 200, response.text)
@@ -8816,7 +8825,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         record.game_session.run_player_turn = fail_after_mutation
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "I attack."},
+            json={"action_id": str(uuid.uuid4()), "message": "I attack."},
         )
 
         self.assertEqual(response.status_code, 500)
@@ -8863,7 +8872,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = perception_turn
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Kapının arkasından ses dinliyorum."},
+            json={"action_id": str(uuid.uuid4()), "message": "Kapının arkasından ses dinliyorum."},
         )
 
         self.assertEqual(response.status_code, 200, response.text)
@@ -8911,7 +8920,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = athletics_turn
         nonproficient_response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Tırmanıyorum."},
+            json={"action_id": str(uuid.uuid4()), "message": "Tırmanıyorum."},
         )
         self.assertEqual(
             nonproficient_response.status_code,
@@ -8970,7 +8979,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 session.run_player_turn = skill_turn
                 response = await self.http.post(
                     f"/api/game/sessions/{created['session_id']}/turn",
-                    json={"message": f"I attempt {skill}."},
+                    json={"action_id": str(uuid.uuid4()), "message": f"I attempt {skill}."},
                 )
                 self.assertEqual(response.status_code, 200, response.text)
                 projected = response.json()["skill_check_result"]
@@ -9009,7 +9018,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = invalid_skill_turn
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Kapının arkasından ses dinliyorum."},
+            json={"action_id": str(uuid.uuid4()), "message": "Kapının arkasından ses dinliyorum."},
         )
 
         self.assertEqual(response.status_code, 500, response.text)
@@ -9021,7 +9030,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         created = await self.create_campaign()
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={
+            json={"action_id": str(uuid.uuid4()), 
                 "message": "Kapının arkasından ses dinliyorum.",
                 "skill": "Perception",
                 "d20": 20,
@@ -9064,7 +9073,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = complete_turn
         turn = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Mira'ya adım Arven diyorum."},
+            json={"action_id": str(uuid.uuid4()), "message": "Mira'ya adım Arven diyorum."},
         )
         self.assertEqual(turn.status_code, 200, turn.text)
         self.assertIsNone(turn.json()["combat_result"])
@@ -9158,7 +9167,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         ):
             response = await self.http.post(
                 f"/api/game/sessions/{created['session_id']}/turn",
-                json={"message": "This write will fail."},
+                json={"action_id": str(uuid.uuid4()), "message": "This write will fail."},
             )
 
         self.assertEqual(response.status_code, 503)
@@ -9233,7 +9242,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = visit_tavern
         turn = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Taverna'ya giriyorum."},
+            json={"action_id": str(uuid.uuid4()), "message": "Taverna'ya giriyorum."},
         )
         self.assertEqual(turn.status_code, 200, turn.text)
         saved = await self.http.post(
@@ -9343,7 +9352,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         for field, value in forged_fields.items():
             response = await self.http.post(
                 f"/api/game/sessions/{created['session_id']}/turn",
-                json={"message": "continue", field: value},
+                json={"action_id": str(uuid.uuid4()), "message": "continue", field: value},
             )
             self.assertEqual(response.status_code, 422, response.text)
         state = await self.http.get(
@@ -9364,7 +9373,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         }
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Ne oldu?"},
+            json={"action_id": str(uuid.uuid4()), "message": "Ne oldu?"},
         )
         self.assertEqual(response.status_code, 200, response.text)
         journal = response.json()["state"]["journal"]
@@ -9635,6 +9644,162 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.serialize_game_state(), before_world)
         self.assertEqual(record.journal, before_journal)
 
+    def assert_live_matches_stored(self, record, action_id):
+        """D-103: the live game, its journal and the stored campaign agree, and the stored receipt is this action's."""
+        stored = self.store.get_campaign(record.campaign_id)
+        self.assertEqual(
+            json.loads(json.dumps(serialize_campaign_payload(
+                record.game_session, record.journal, record.narrative_memory, record.lore_authority,
+            ), ensure_ascii=False)),
+            stored.payload,
+        )
+        self.assertEqual(record.game_session._campaign_persistence_version,
+                         (record.campaign_id, int(stored.metadata["revision"])))
+        self.assertIsNotNone(self.store.get_turn_action(record.campaign_id, action_id))
+        self.assertTrue(any(
+            item.get("event_type") == "ambient_event_outcome"
+            and item.get("event_result", {}).get("action_id") == action_id
+            for item in record.journal["notable_events"]
+        ))
+
+    async def test_ambient_event_post_commit_failure_never_rolls_back_committed_world(self):
+        # D-103 / KRİT-01: a failure AFTER the save committed (the undo fingerprint) must not put the old world back
+        # while the stored campaign, its history row and its receipt hold the new one.
+        from api.tests.town_seed import fixed_town  # module-level import is circular (journeys runner)
+
+        with fixed_town(self, 10301):
+            created = await self.create_campaign()
+        session_id = created["session_id"]
+        record = self.manager.get(session_id)
+        session = record.game_session
+        event_instance_id = self.install_test_ambient_event(session)
+        before_world = copy.deepcopy(session.serialize_game_state())
+        action_id = "00000000-0000-4000-8000-000000010301"
+        real_fingerprint = main_module._state_fingerprint
+        saves = []
+        real_save = self.manager.save_campaign_locked
+
+        def counting_save(*args, **kwargs):
+            saves.append(1)
+            return real_save(*args, **kwargs)
+
+        def failing_after_commit(target):
+            if saves:
+                raise RuntimeError("injected post-commit fingerprint failure")
+            return real_fingerprint(target)
+
+        with patch.object(self.manager, "save_campaign_locked", side_effect=counting_save), \
+             patch.object(main_module, "_state_fingerprint", side_effect=failing_after_commit):
+            try:
+                await self.http.post(
+                    f"/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
+                    json={"action_id": action_id, "action": "interact"},
+                )
+            except RuntimeError:
+                pass  # the test transport may surface the unhandled post-commit error as an exception
+        self.assertEqual(saves, [1])
+        self.assertTrue(record.usable)
+        self.assertNotEqual(session.serialize_game_state(), before_world)
+        self.assert_live_matches_stored(record, action_id)
+        # The undo checkpoint of this click could not be built, so it cannot be undone.
+        self.assertNotEqual((getattr(record, "undo_checkpoint", None) or {}).get("action_id"), action_id)
+        replay = await self.http.post(
+            f"/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
+            json={"action_id": action_id, "action": "interact"},
+        )
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json()["result"]["status"], "ALREADY_APPLIED")
+
+    async def test_ambient_event_unbuildable_undo_point_answers_applied_and_drops_older_point(self):
+        # D-103 review: the click committed, so a checkpoint that cannot be built makes it only not undoable; the player
+        # gets the applied answer (never a raw 500), and the older point no longer describes the live state.
+        from api.tests.town_seed import fixed_town  # module-level import is circular (journeys runner)
+
+        with fixed_town(self, 10302):
+            created = await self.create_campaign()
+        session_id = created["session_id"]
+        record = self.manager.get(session_id)
+        event_instance_id = self.install_test_ambient_event(record.game_session)
+        record.undo_checkpoint = {"action_id": "00000000-0000-4000-8000-000000010399"}
+        action_id = "00000000-0000-4000-8000-000000010302"
+        real_fingerprint = main_module._state_fingerprint
+        saves = []
+        real_save = self.manager.save_campaign_locked
+
+        def counting_save(*args, **kwargs):
+            saves.append(1)
+            return real_save(*args, **kwargs)
+
+        def failing_after_commit(target):
+            if saves:
+                raise RuntimeError("injected post-commit fingerprint failure")
+            return real_fingerprint(target)
+
+        with patch.object(self.manager, "save_campaign_locked", side_effect=counting_save), \
+             patch.object(main_module, "_state_fingerprint", side_effect=failing_after_commit):
+            response = await self.http.post(
+                f"/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
+                json={"action_id": action_id, "action": "interact"},
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["result"]["status"], "APPLIED")
+        self.assertEqual(saves, [1])
+        self.assertIsNone(record.undo_checkpoint)
+        self.assert_live_matches_stored(record, action_id)
+
+    async def test_ambient_event_unacknowledged_commit_keeps_committed_world(self):
+        # D-103: the save committed but raised (lost acknowledgement). The live game must stay on the committed state,
+        # like the quest and turn routes, never roll back under a stored receipt.
+        from api.tests.town_seed import fixed_town
+
+        with fixed_town(self, 10302):
+            created = await self.create_campaign()
+        session_id = created["session_id"]
+        record = self.manager.get(session_id)
+        session = record.game_session
+        event_instance_id = self.install_test_ambient_event(session)
+        before_world = copy.deepcopy(session.serialize_game_state())
+        action_id = "00000000-0000-4000-8000-000000010302"
+        real_save = self.manager.save_campaign_locked
+
+        def commit_then_raise(*args, **kwargs):
+            real_save(*args, **kwargs)
+            raise CampaignStorageError("acknowledgement lost")
+
+        with patch.object(self.manager, "save_campaign_locked", side_effect=commit_then_raise):
+            response = await self.http.post(
+                f"/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
+                json={"action_id": action_id, "action": "interact"},
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["result"]["status"], "APPLIED")
+        self.assertNotIn("acknowledgement lost", response.text)
+        self.assertTrue(record.usable)
+        self.assertNotEqual(session.serialize_game_state(), before_world)
+        self.assert_live_matches_stored(record, action_id)
+        self.assertEqual(record.undo_checkpoint["action_id"], action_id)
+
+    async def test_ambient_event_unreconcilable_save_failure_closes_session(self):
+        # D-103: when it cannot be told whether the save landed, neither rollback nor success is claimed (R05/R06).
+        from api.tests.town_seed import fixed_town
+
+        with fixed_town(self, 10303):
+            created = await self.create_campaign()
+        session_id = created["session_id"]
+        record = self.manager.get(session_id)
+        event_instance_id = self.install_test_ambient_event(record.game_session)
+        with patch.object(self.manager, "save_campaign_locked",
+                          side_effect=CampaignStorageError("private storage detail")), \
+             patch.object(self.manager, "campaign_save_landed", return_value=None):
+            response = await self.http.post(
+                f"/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
+                json={"action_id": "00000000-0000-4000-8000-000000010303", "action": "interact"},
+            )
+        self.assertGreaterEqual(response.status_code, 500, response.text)
+        self.assertEqual(response.json()["detail"]["commit_status"], "outcome_unknown")
+        self.assertNotIn("private storage detail", response.text)
+        self.assertFalse(record.usable)
+
     async def test_quest_commands_are_server_owned_idempotent_and_campaign_scoped(self):
         definition = {
             "quest_id": "quest.api-test",
@@ -9814,7 +9979,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             }
             turn = await self.http.post(
                 f"/api/game/sessions/{created['session_id']}/turn",
-                json={"message": "What happened?"},
+                json={"action_id": str(uuid.uuid4()), "message": "What happened?"},
             )
             self.assertEqual(turn.status_code, 200, turn.text)
             self.assertEqual(turn.json()["quest_outcomes"], [])
@@ -9838,7 +10003,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = enter_forest
         changed = await self.http.post(
             f"/api/game/sessions/{first['session_id']}/turn",
-            json={"message": "Ormana gidiyorum."},
+            json={"action_id": str(uuid.uuid4()), "message": "Ormana gidiyorum."},
         )
         self.assertEqual(changed.status_code, 200, changed.text)
         self.assertEqual(

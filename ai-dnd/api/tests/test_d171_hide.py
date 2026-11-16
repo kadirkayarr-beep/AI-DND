@@ -1,0 +1,62 @@
+"""D-094 rest, D-171, D-176: a hide needs cover or the dark (dice guide 4.4/H01); hiding one's own thing on oneself is
+Sleight of Hand. The turn route is pinned by journeys 55, 55b and 55c."""
+
+from __future__ import annotations
+
+import unittest
+
+import game
+
+
+def folded(line):
+    return " ".join(game.re.findall(r"\w+", game._normalize_turkish_typos(line)))
+
+
+class TheWordsOfAHide(unittest.TestCase):
+    def test_named_cover_counts(self):
+        for line in ("fıçının arkasına saklanıyorum", "gölgelere gizleniyorum", "kalabalığa karışıp gizleniyorum",
+                     "masanın altına saklanıyorum", "çalıların arasına gizleniyorum", "köşeye sinip saklanıyorum",
+                     "perdenin ardına saklanıyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(game._COVER.search(folded(line)))
+
+    def test_a_plain_hide_names_no_cover(self):
+        for line in ("saklanıyorum", "gizleniyorum", "sessizce gizlenmeye çalışıyorum", "kendimi gizliyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(game._COVER.search(folded(line)))
+
+    def test_a_denied_cover_is_no_cover(self):
+        # D-225: a cover word the line denies ("olmayan", "yok", "değil", "hiçbir", "-sız") is no cover.
+        for line in ("Hiçbir siper ya da gölge olmayan aydınlık boş alanda saklanmaya çalışıyorum",
+                     "gölge yok, yine de saklanıyorum", "ortada ağaç bile yok ama gizleniyorum",
+                     "kalabalık yok, saklanıyorum", "burada siper değil, saklanıyorum",
+                     "gölgelerin olmadığı meydanda gizleniyorum", "gölgesiz meydanda saklanıyorum",
+                     "hiçbir gölgeye sığınmadan saklanıyorum", "gölge olmadan saklanıyorum",
+                     "burada gölge yokmuş, yine de saklanıyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(game._COVER.search(folded(line)))
+
+    def test_vanishing_into_cover_is_no_denial(self):
+        # "yok olmak" is to vanish, not "there is none".
+        for line in ("karanlıkta yok olmaya çalışıyorum", "gölgelerde yok oluyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(game._COVER.search(folded(line)))
+
+    def test_a_named_cover_beside_a_denied_one_counts(self):
+        for line in ("gölge yok ama fıçının arkasına saklanıyorum", "ağacın arkasına, yokuşun dibine saklanıyorum",
+                     "ağacın arkasına saklanıyorum, kimse yok", "gölgede saklanıyorum, ışık değil karanlık bu"):
+            with self.subTest(line=line):
+                self.assertTrue(game._COVER.search(folded(line)))
+
+    def test_ones_own_thing_hidden_is_no_hide(self):
+        for line in ("hançerimi kolumun içine gizliyorum", "kesemi pelerinimin altına saklıyorum",
+                     "yüzüğümü cebime saklıyorum", "kılıcımı saklıyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(game._OWN_THING_HIDDEN.search(folded(line)))
+        for line in ("kendimi gizliyorum", "saklanıyorum", "fıçının arkasına saklanıyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(game._OWN_THING_HIDDEN.search(folded(line)))
+
+
+if __name__ == "__main__":
+    unittest.main()

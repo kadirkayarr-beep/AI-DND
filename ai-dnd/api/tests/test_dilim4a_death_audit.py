@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 import game
-import rule_oracles
+from api.tests import rule_oracles
 from api.tests.test_death_system import make_session, start_test_combat
 
 ORACLES = rule_oracles.load_oracles()

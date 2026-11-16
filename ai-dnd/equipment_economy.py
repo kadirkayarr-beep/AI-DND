@@ -323,6 +323,14 @@ def sync_equipment_identities(world):
             ]
             if len(matches) == 1:
                 hands[hand] = matches[0]["item_id"]
+            elif actor == "player" and weapon is not None and not any(
+                    isinstance(item, dict)
+                    and (lookup(item.get("weapon_id") or item.get("name")) or {}).get("weapon_id") == weapon["weapon_id"]
+                    for item in items):
+                # A player hand naming a catalog weapon the bag does not hold at all (a new world's default
+                # "longsword" kept for a Cleric or Druid) holds nothing, as the attack path reads it
+                # (`weapon_attack._names_no_owned_weapon`). An NPC's hand may be its stat-block weapon: it stays.
+                hands[hand] = None
 
 
 def materialize(world):
@@ -474,6 +482,74 @@ def npc_can_act(npc):
                 or npc.get("combat_status") in {"dead", "unconscious", "defeated"})
 
 
+# D-231: what a person of the town carries, by what they fight as (game.person_fight_kind). Catalog weapons only, so a
+# body gives real items priced by the catalog; no armour, since no transfer may move armour (is_armor_or_shield).
+PERSON_GEAR = {
+    "armed": ("Mızrak", "Kısa Kılıç", "Gürz", "El Baltası"),
+    "strong": ("Sopa", "Gürz", "El Baltası"),
+    "plain": ("Hançer", "Sopa"),
+}
+GEAR_WRITTEN = "npc_gear_written"  # a world without it is a save from before D-231
+
+
+def give_person_gear(world, npc):
+    """D-231: write the one weapon a person carries, fixed by the campaign seed and who they are (no die is rolled, so
+    every seeded roll after it stays the same). Only possessions never written get it: a shopkeeper's are the shop's
+    stock and a stat-block creature carries none."""
+    if "inventory" in npc or npc.get("role") == "Shopkeeper" or "statblock" in npc or "monster_stat_block" in npc:
+        return
+    import hashlib
+    import game
+    import living_world
+    options = PERSON_GEAR[game.person_fight_kind(npc)]
+    digest = hashlib.sha256(f"{living_world._campaign_seed(world)}\x00{npc['id']}\x00gear".encode("utf-8")).digest()
+    name = options[int.from_bytes(digest[:4], "big") % len(options)]
+    npc["inventory"] = [{"item_id": f"gear_{npc['id']}", "name": name, "weapon_id": lookup(name)["weapon_id"]}]
+
+
+PURSE_WRITTEN = "npc_purse_written"  # a world without it is a save from before D-207
+
+
+def person_purse(world, npc):
+    """D-207: what a person carries in coin, fixed by the campaign seed and who they are (no die is rolled, so every
+    seeded roll after it stays the same): 5-40 copper; a shopkeeper opens with the till (equipment_native.market)."""
+    if npc.get("role") == "Shopkeeper":
+        return 1000
+    import hashlib
+    import living_world
+    digest = hashlib.sha256(f"{living_world._campaign_seed(world)}\x00{npc['id']}\x00purse".encode("utf-8")).digest()
+    return 5 + int.from_bytes(digest[:4], "big") % 36
+
+
+def give_person_purse(world, npc):
+    """D-207: write the person's purse once; a purse already counted (an emptied one too) stays as it is."""
+    world.setdefault("currency", {}).setdefault(npc["id"], person_purse(world, npc))
+
+
+def give_old_save_purses(world):
+    """D-207: a save from before written purses writes them once, on its first load. A body already searched gets
+    none: its search took its purse."""
+    if world.get(PURSE_WRITTEN) is True:
+        return
+    for npc in world.get("npcs", []):
+        if isinstance(npc, dict) and isinstance(npc.get("id"), str) and not npc.get("searched"):
+            give_person_purse(world, npc)
+    world[PURSE_WRITTEN] = True
+
+
+def give_old_save_gear(world):
+    """D-231: a save from before people carried gear writes it once, on its first load. A body already searched gets
+    none: its search took all it carried, and fresh gear on it would be a second loot of the same body. The purses of
+    D-207 are written in the same load-time step."""
+    give_old_save_purses(world)
+    if world.get(GEAR_WRITTEN) is True:
+        return
+    for npc in world.get("npcs", []):
+        if isinstance(npc, dict) and isinstance(npc.get("id"), str) and not npc.get("searched"):
+            give_person_gear(world, npc)
+    world[GEAR_WRITTEN] = True
+
+
 def is_armor_or_shield(item):
     """Armor or a shield: its owner is the creation's AC fact, so no item transfer may move it."""
     from api.dnd_2024_rules import ARMOR_NAME_ALIASES
@@ -491,7 +567,7 @@ def _shield_in_hand(world, hands):
         return None
     bag = [item for item in world.get("inventory", []) if isinstance(item, dict)
            and any(token in label(item).casefold() for token in SHIELD_ITEM_TOKENS)]
-    held = [item for item in bag if item["item_id"] == hands.get("off_hand")]
+    held = [item for item in bag if item.get("item_id") == hands.get("off_hand")]
     return (held or bag or [None])[0]
 
 
@@ -667,6 +743,10 @@ def price(item):
     if not weapon:
         fail("price_source_unavailable")
     value = Decimal(str(weapon["cost_gp"])) * 100
+    # D-199: a counted line ("10 Dart", "5 Hançer") is that many of its own weapon, so it is worth that many.
+    counted = re.match(r"\s*(\d+)\s+", item.get("name")) if isinstance(item.get("name"), str) else None
+    if counted and (lookup(item["name"]) or {}).get("weapon_id") == weapon["weapon_id"]:
+        value *= int(counted.group(1))
     if value != value.to_integral_value() or value < 0:
         fail("invalid_catalog_price")
     return int(value)
@@ -806,6 +886,12 @@ def _apply(world, operation, args):
         if hands[hand] is not None or item["item_id"] in hands.values():
             fail("hand_occupied")
         hands[hand] = item["item_id"]
+        if None not in hands.values():
+            # D-116/D-184: a creation shield has no hand entry but holds one; a weapon in each hand puts it down,
+            # as a two-handed weapon does, and `gear.settle_shield` takes its Armor Class share off.
+            shield = _shield_in_hand(world, hands)
+            if shield is not None and shield["item_id"] not in hands.values():
+                world["shield_down"] = {"item_id": shield["item_id"], "ac_bonus": None}
     elif operation == "unequip" and len(args) == 1:
         hands = world.get("equipment")
         if not isinstance(hands, dict) or args[0] not in {"main_hand", "off_hand"}:
@@ -1025,9 +1111,11 @@ def public_inventory(world):
     """Preserve the API string-list contract; labels expose IDs and hand state."""
     hands = world.get("equipment", {})
     hands = hands if isinstance(hands, dict) else {}
+    shield = _shield_in_hand(world, hands)
+    worn = {*hands.values(), shield.get("item_id") if shield else None}
     return [
         f'{i.get("name") or i.get("weapon_id", "Eşya")} [{i.get("item_id", "kimlik doğrulanmamış")}]'
-        + (" (kuşanılmış)" if i.get("item_id") and i["item_id"] in hands.values() else "")
+        + (" (kuşanılmış)" if i.get("item_id") and i["item_id"] in worn else "")
         if isinstance(i, dict) else i
         for i in world.get("inventory", [])
     ]

@@ -174,11 +174,15 @@ def structural_checks(config, state, repo, baseline=None, ci=None):
     return rows
 
 
+OUTPUT_TAIL_LINES = 15
+
+
 def run_command(name, argv, repo, timeout, log):
     row = check(name, "UNVERIFIED", "Command not completed", argv=argv, cwd=str(repo),
                 started_at=evidence.now(), ended_at=None, exit_status=None)
     print(f"\n$ {evidence.shlex.join(argv)}", flush=True)
     log.flush()
+    start = log.tell()
     # Child tools emit their logs into the same retained combined output.log.
     # Vite's existing config requires PORT/BASE_PATH even for an offline build.
     env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "NODE_ENV": "production",
@@ -212,6 +216,17 @@ def run_command(name, argv, repo, timeout, log):
         row.update(status="FAIL", detail=f"Command exceeded {timeout} seconds", timed_out=True)
     except OSError as exc:
         row.update(status="FAIL", detail=str(exc))
+    if row["status"] == "FAIL":
+        # Slice only this command's share of the combined log for the job summary.
+        log.flush()
+        try:
+            with Path(log.name).open(encoding="utf-8", errors="replace") as stream:
+                stream.seek(start)
+                tail = [line.rstrip() for line in stream if line.strip()][-OUTPUT_TAIL_LINES:]
+            if tail:
+                row["output_tail"] = tail
+        except OSError:
+            pass
     row["ended_at"] = evidence.now()
     return row
 
@@ -248,6 +263,33 @@ def validate_suite(row, log, offset, archive_root):
                suite_evidence_relative=str(path.relative_to(archive_root.resolve())),
                detail="Executed IDs/counts, outcomes, stable source and retained log hash checked"
                if passed else "Retained regression evidence is incomplete or non-passing")
+
+
+def failure_summary(checks, archive_root):
+    """Markdown for the GitHub job summary: each failed check and each failing test line."""
+    lines = []
+    for row in checks:
+        if row["status"] != "FAIL":
+            continue
+        detail = row["detail"] if isinstance(row["detail"], str) else json.dumps(row["detail"], ensure_ascii=False)
+        lines.append(f"- `{row['name']}` FAIL: {detail}")
+        lines.extend(f"  > {line}" for line in row.get("output_tail", []))
+        if not row.get("suite_evidence"):
+            continue
+        try:
+            record = json.loads(Path(row["suite_evidence"]).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        events = [(test["id"], event) for test in record.get("per_test", [])
+                  for event in test.get("events", [])] + [
+            (event["id"], event) for event in record.get("suite_events", [])]
+        for test_id, event in events:
+            if event["outcome"] in {"pass", "skip"} or not event.get("detail"):
+                continue
+            text = event["detail"] if isinstance(event["detail"], str) else event["detail"]["traceback"]
+            last = next((line for line in reversed(text.splitlines()) if line.strip()), "")
+            lines.append(f"  - `{test_id}` ({event['outcome']}): {last}")
+    return "## AI-DND düşen satırlar\n\n" + "\n".join(lines) + "\n" if lines else ""
 
 
 def main(kind, argv=None):
@@ -369,6 +411,16 @@ def main(kind, argv=None):
                 print(f"Evidence ownership finalization FAIL: {exc}", file=log)
                 print(f"RESULT: {archive.data['result']}", file=log)
             archive.finish(code)
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_path:
+        try:
+            text = failure_summary(archive.data["checks"], args.archive_root)
+            if text:
+                with open(summary_path, "a", encoding="utf-8") as summary:
+                    summary.write(text)
+        except (OSError, ValueError, KeyError) as exc:
+            # The job summary is a convenience; it must never change the gate result.
+            print(f"Job summary not written: {exc}", file=sys.stderr)
     print(f"\n{title}")
     for row in archive.data["checks"]:
         print(f"{row['name']:28} {row['status']:10} {row['detail']}")

@@ -12,6 +12,7 @@ from typing import Any
 import game
 import character_progression
 import sorcery_points
+import spell_concentration
 import barbarian_rage
 import fighter_features
 import paladin_features
@@ -95,6 +96,15 @@ _NPC_FIELDS = (
     "armor_class",
     "combat_status",
 )
+# GameNpc requires these keys but lets them be null: an NPC without one sends null, not a missing key (D-143).
+_NPC_NULLABLE_REQUIRED_FIELDS = (
+    "appearance",
+    "relationship",
+    "max_hp",
+    "current_hp",
+    "armor_class",
+    "combat_status",
+)
 _SHOP_FIELDS = (
     "id",
     "name",
@@ -150,6 +160,7 @@ _COMBAT_ATTACK_FIELDS = (
     "resolution",
     "death_save",
     "death_resolution",
+    "concentration_check",
 )
 _COMBAT_TURN_FIELDS = (
     *_COMBAT_ATTACK_FIELDS,
@@ -432,10 +443,12 @@ def serialize_skill_check_result(
     check_evidence: list[Any] | None = None,
 ) -> dict[str, Any] | None:
     """Expose only a validated projection of a Python-owned skill check."""
-    # A deed that rolled carries the same dice as a plain check, so the player sees it the same way.
+    # A deed that rolled carries the same dice as a plain check, so the player sees it the same way; so does a talk
+    # whose coin ask rolled (D-166, `game._show_coin_roll`).
     rolled = isinstance(action_result, Mapping) and (
         action_result.get("action") == "skill_check"
-        or (action_result.get("action") in {"theft", "arson"} and "dice" in action_result))
+        or (action_result.get("action") in {"theft", "arson"} and "dice" in action_result)
+        or (action_result.get("action") == "dialogue" and action_result.get("coin_ask_roll") is True))
     if not rolled:
         if check_evidence is not None:
             raise SkillCheckResultSerializationError("Feature evidence requires a completed check.")
@@ -485,6 +498,9 @@ def serialize_skill_check_result(
         ),
         None,
     )
+    if difficulty is None and 15 <= dc <= max(game.DIFFICULTY_DC.values()):
+        # D-269: max(15, Intelligence score) falls between two steps; the card names the first step at or above it.
+        difficulty = next(label for label, configured_dc in game.DIFFICULTY_DC.items() if configured_dc >= dc)
     if difficulty is None:
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
 
@@ -704,6 +720,10 @@ def serialize_session_state(
     )
     character["species"] = player.get("species", player.get("race"))
     character["giant_ancestry"] = player.get("giant_ancestry")
+    import dragonborn_breath  # D-233: the chosen dragon and the Breath Weapon uses left (Dragonborn only)
+    character["draconic_ancestry"] = player.get("draconic_ancestry")
+    character["breath_weapon_uses_remaining"] = (
+        dragonborn_breath.uses_left(player) if dragonborn_breath.is_dragonborn(player) else None)
     trait_state = player.get("species_trait_state")
     character["species_trait_state"] = copy.deepcopy(
         trait_state
@@ -823,7 +843,11 @@ def serialize_session_state(
                 if points is not None else {})}
             if world.get("spellcasting_v1") is not None else None
         ),
-        "npcs": _project_list(visible_world["npcs"], _NPC_FIELDS),
+        "concentration": spell_concentration.projection(session) if isinstance(session, game.GameSession) else None,
+        "npcs": [
+            {**dict.fromkeys(_NPC_NULLABLE_REQUIRED_FIELDS), **npc}
+            for npc in _project_list(visible_world["npcs"], _NPC_FIELDS)
+        ],
         "shops": _project_list([living_world.public_shop_projection(world, shop) for shop in exploration.player_entities(world, world.get("shops", []))] + _visited_counters(world), _SHOP_FIELDS),
         "features": _project_list(exploration.player_entities(world, world.get("features", [])), _FEATURE_FIELDS),
         "doors": _project_list(exploration.visible_doors(world), _DOOR_FIELDS),

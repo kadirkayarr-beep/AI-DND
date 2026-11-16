@@ -792,6 +792,15 @@ def derive_acceptance(state: EconomicState, *, offer_id: str, proposal: Economic
         decisions.append(LineDecision(line_id=line.line_id,
                                       status="refused" if line_response in ("refuse", "unknown") else "accepted",
                                       reason_code=line_reason))
+    for line, decision in zip(lines, decisions):
+        if decision.status == "refused" and (not line.optional or proposal.dependency == "all_or_none"):
+            # D-096: confirmation could only refuse this card, so none opens and the reason is said now.
+            who = living_world.turkish_initial_upper(living_world.public_npc_name(npc))
+            message = (f"{who} bu parayı alacağını söylemedi; para kesende kaldı."
+                       if decision.reason_code == "npc_consent_required"
+                       else "Bu para teklifi kabul edilmedi; para kesende kaldı.")
+            return PrepareResult(status="refused", offer=None, reason_code=decision.reason_code,
+                                 public_message=message)
     return AcceptanceRecord(record_id=f"acceptance:{offer_id}", offer_id=offer_id, npc_id=npc_id,
                             context_digest=context_digest(state, proposal, lines), producer="engine", check=check,
                             line_decisions=decisions)
@@ -937,6 +946,10 @@ _REFUSED_SUMMARY = {
     "check_failed": "Teklif kabul görmedi; para kesende kaldı.",
     "check_required": "Teklif henüz denenmedi; para kesende kaldı.",
     "stale": "Durum değişti; teklifin yenilenmesi gerekiyor. Hiçbir şey ödenmedi.",
+    "npc_consent_required": "Karşındaki bu parayı alacağını söylemedi; para kesende kaldı.",
+    "npc_refuses": "Teklif geri çevrildi; para kesende kaldı.",
+    "npc_declined": "Para az önce geri çevrildi; para kesende kaldı.",
+    "item_not_owned": "Eşya artık sende değil; hiçbir şey verilmedi.",
 }
 
 
@@ -1863,10 +1876,18 @@ def prepare_from_turn(session: Any, proposal: EconomicProposal) -> PrepareResult
     return result
 
 
+def npc_gift_cap(world: dict[str, Any], npc_id: str) -> int:
+    """D-166: the most this person hands the player, from their live purse and their attitude to the player."""
+    import influence
+    held = economic_facts(EconomicState(world=_settled(world), character=None)).balances.get(str(npc_id))
+    return influence.gift_cap_cp(held, influence.attitude(world, npc_id))
+
+
 def npc_gift(state: EconomicState, *, npc_id: str, amount_cp: int) -> EconomicResolution:
     """An NPC hands the player coin from their own purse (C5): no card, since the player pays nothing.
 
-    The NPC must be here and hold the amount; otherwise nothing moves. Applied once by the one owner.
+    The NPC must be here and hold the amount, and the amount may not pass the engine's cap (D-166, `npc_gift_cap`);
+    otherwise nothing moves. Applied once by the one owner.
     """
     world = state.world
     settled = _settled(world)
@@ -1886,6 +1907,9 @@ def npc_gift(state: EconomicState, *, npc_id: str, amount_cp: int) -> EconomicRe
     held = facts.balances.get(str(npc_id))
     if held is None or held < amount_cp:
         return dataclasses.replace(_refused(blank, "npc_purse_short"), public_summary="")
+    import influence
+    if amount_cp > influence.gift_cap_cp(held, influence.attitude(settled, npc_id)):
+        return dataclasses.replace(_refused(blank, "over_gift_cap"), public_summary="")
     mine = facts.balances.get("player", 0)
     # The id is drawn from a copy of the counter; the live counter moves only once the gift is applied, so a
     # refused or failed write leaves the live world exactly as it was.

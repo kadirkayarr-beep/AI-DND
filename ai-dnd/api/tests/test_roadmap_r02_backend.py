@@ -292,7 +292,7 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
         fresh = await self.turn(self.fresh_body())
         self.assertEqual(fresh.status_code, 200, fresh.text)
 
-    async def test_transient_model_outage_stays_retryable_with_the_same_id(self):
+    async def test_transient_model_outage_closes_the_id_and_a_new_id_runs(self):
         def outage(_message, **_kwargs):
             raise DialogueProviderError("provider down")
 
@@ -301,15 +301,20 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
         body = self.fresh_body()
         failed = await self.turn(body)
         self.assertEqual(failed.status_code, 503, failed.text)
-        # The owner rejected a campaign held by one bad model reply: the rollback is proven and the intent released, so the
-        # claim is true and closes the browser's pending record. The same id stays a safe retry.
+        # The owner rejected a campaign held by one bad model reply: the rollback is proven and a durable refusal closes the
+        # id, so the claim is true and closes the browser's pending record without holding later moves (D-106).
         self.assertIs(failed.json()["detail"]["not_applied"], True)
         self.assertIsNone((await self.http.get(f"/api/game/sessions/{self.created['session_id']}/actions/unresolved")).json()["unresolved"])
         self.session.run_player_turn = good
         retry = await self.turn(body)
-        self.assertEqual(retry.status_code, 200, retry.text)
+        self.assertEqual(retry.status_code, 503, retry.text)
+        self.assertEqual(retry.json(), failed.json(), "the same id replays its refusal")
+        self.assertEqual(len(self.calls), 0, "the closed id never runs the engine")
+        fresh = await self.turn(self.fresh_body())
+        self.assertEqual(fresh.status_code, 200, fresh.text)
+        self.assertEqual(len(self.calls), 1)
 
-    async def test_a_failed_release_makes_no_never_applied_claim_and_keeps_the_intent_open(self):
+    async def test_a_failed_refusal_record_makes_no_never_applied_claim_and_keeps_the_intent_open(self):
         def outage(_message, **_kwargs):
             raise DialogueProviderError("provider down")
 
@@ -318,7 +323,7 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
         for failure in ({"side_effect": RuntimeError("store down")}, {"return_value": False}):
             with self.subTest(failure=failure):
                 self.session.run_player_turn = outage
-                with patch.object(self.manager, "release_action_intent", **failure) as release:
+                with patch.object(self.manager, "record_refused_action", **failure) as release:
                     failed = await self.turn(body)
                 release.assert_called_once()
                 self.assertEqual(failed.status_code, 503, failed.text)
@@ -331,20 +336,30 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
         retry = await self.turn(body)
         self.assertEqual(retry.status_code, 200, retry.text)
 
-    async def test_an_old_released_id_arriving_after_another_move_runs_once_as_a_new_move(self):
+    async def test_an_old_model_failed_id_arriving_after_another_move_never_runs(self):
+        # D-106: one command must not become two turns. The browser closes its move on "not_applied" and sends the
+        # player's next try with a new id, so that claim is final: a late copy of the old id replays the same refusal.
         def outage(_message, **_kwargs):
             raise DialogueProviderError("provider down")
 
         good = self.session.run_player_turn
         old = self.fresh_body()
         self.session.run_player_turn = outage
-        self.assertIs((await self.turn(old)).json()["detail"]["not_applied"], True)
+        failed = await self.turn(old)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertIs(failed.json()["detail"]["not_applied"], True)
         self.session.run_player_turn = good
         between = await self.turn(self.fresh_body())
         self.assertEqual(between.status_code, 200, between.text)
         late = await self.turn(old)
-        self.assertEqual(late.status_code, 200, late.text)
-        self.assertEqual((await self.turn(old)).json(), late.json(), "its receipt answers from now on")
+        self.assertEqual(late.status_code, 503, late.text)
+        self.assertEqual(late.json(), failed.json(), "the late copy replays the refusal")
+        self.assertEqual(len(self.calls), 1, "only the new move ran the engine")
+        self.assertEqual(len(self.store.get_campaign(self.created["campaign_id"]).history), 1, "one turn in the campaign")
+        state = (await self.status(old["action_id"])).json()
+        self.assertEqual(state["state"], "not_applied")
+        self.assertIs(state["detail"]["not_applied"], True)
+        self.assertEqual(state["detail"]["code"], failed.json()["detail"]["code"])
 
     async def test_rolled_back_failures_really_restore_what_the_engine_changed(self):
         before_flags = dict(self.session.world_state.get("flags", {}))

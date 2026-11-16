@@ -1,0 +1,72 @@
+{
+  "id": "52_kese_kurbandan",
+  "title": "Para yoktan var olmaz (D-170 KRİTİK; SIFIR TOLERANS; zar rehberi 4.6): başarılı çalmada oyuncuya geçen para kurbanın kesesinden düşer; kesede az varsa yalnız o kadar geçer; Geri Al ikisini de eski hâline getirir; yenilemede aynı kalır",
+  "source_items": [
+    170
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 3
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5601,
+    "front_proposal": false
+  },
+  "steps": [
+    {
+      "say": "kesesini fark ettirmeden çalmak için zar atıyorum",
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?",
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 3
+        }
+      }
+    },
+    {
+      "say": "evet",
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "kese": 43,
+        "kisi_kese": {
+          "kavsim": 0
+        }
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 3
+        },
+        "gerekli_metin": "Son tur geri alındı"
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 3
+        }
+      }
+    }
+  ]
+}

@@ -7,14 +7,13 @@
  */
 import type { SpeciesTraitActionInputAction } from './speciesTraitActionInputAction';
 import type { SpeciesTraitActionInputAncestry } from './speciesTraitActionInputAncestry';
+import type { SpeciesTraitActionInputDraconicAncestry } from './speciesTraitActionInputDraconicAncestry';
 import type { SpeciesTraitActionInputForm } from './speciesTraitActionInputForm';
+import type { SpeciesTraitActionInputShape } from './speciesTraitActionInputShape';
 
 export interface SpeciesTraitActionInput {
-  /**
-     * UUIDv4 action receipt identity; reuse on network retry.
-     * @nullable
-     */
-  action_id?: string | null;
+  /** UUIDv4 action receipt identity; reuse on network retry. */
+  action_id: string;
   action: SpeciesTraitActionInputAction;
   /**
      * @minimum 1
@@ -29,4 +28,16 @@ export interface SpeciesTraitActionInput {
   ancestry?: SpeciesTraitActionInputAncestry;
   /** @nullable */
   armed?: boolean | null;
+  /**
+     * Dragonborn only, with choose_draconic_ancestry; chosen once.
+     * @nullable
+     */
+  draconic_ancestry?: SpeciesTraitActionInputDraconicAncestry;
+  /**
+     * Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.
+     * @nullable
+     */
+  shape?: SpeciesTraitActionInputShape;
+  /** Breath Weapon only; the creature the breath is aimed at. */
+  target_id?: string | null;
 }

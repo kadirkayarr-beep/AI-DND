@@ -498,6 +498,7 @@ CLASS_SKILL_OPTIONS = {
         "Insight",
         "Investigation",
         "Medicine",
+        "Nature",
         "Religion"
     ]
 }
@@ -1265,8 +1266,84 @@ def named_skill(player_input):
     return skill if side_by_side or in_brackets else None
 
 
+_OPEN_SCARE = re.compile(
+    r"^(?!.*\b(?:diyorum|soyluyorum|fisildiyorum|diye|ozur|sanirim|yarin|sonra|eger|degil|ama|seni|sizi|keske|belki|sanki|diyelim|farz|varsay\w*|bicakla\w*|ruya\w*|hayal\w*|ati|kus\w*|kopek\w*|hayvan\w*)\b)"
+    r".*\b(?:korkutmaya\s+calisiyorum|korkutmak\s+icin\s+(?:\w+\s+){0,2}?zar\w*\s+atiyorum|"
+    r"gozdagi\s+vermeye\s+calisiyorum|tehdit\s+etmeye\s+calisiyorum)$"
+)
+
+
+def open_scare_try(player_input) -> bool:
+    """D-099: "muhafızı korkutmaya çalışıyorum" is an attempt the dice settle, whoever it is aimed at. Only a present,
+    first-person, finished sentence outside quotes counts (never "korkutmaya çalıştım", "beni korkutmaya çalışıyor", a
+    quoted threat, a plan, or words said to somebody). D-226: before a colon is the try, after it what is said."""
+    if not isinstance(player_input, str) or "?" in player_input:
+        return False
+    import living_world
+    told = living_world._text_outside_quotes(player_input).split(":", 1)[0]
+    bare = " ".join(re.findall(r"\w+", _normalize_turkish_typos(told)))
+    return bool(_OPEN_SCARE.search(bare))
+
+
+# Someone else's purse, pocket, wallet, bag or money (third person: "kesesi", "cebinde", "çantasını"), never the
+# player's own ("kesem", "cebimde", "çantamda").
+_SOMEONE_ELSES_PURSE = re.compile(
+    r"\b(?:kesesi\w*|cebi(?:ni|nde|nden|n)?|cuzdani(?:ni|nda|ndan|n)?|cantasi\w*|parasi\w*)\b")
+
+
+# Dice guide 4.4/H01: a hide needs cover or obscurement. The engine knows the dark (night), a place with walls and a
+# door, and what cover the player names; anything else in the open by day is no hide (D-094, D-171).
+_COVER_WORD = (
+    r"(?:golge\w*|karanlig\w*|karanlik\w*|kalabalig\w*|kalabalik\w*|arkasina|arkasinda|ardina|ardinda|altina|"
+    r"altinda|calilar\w*|calilig\w*|calilik\w*|caliya|calinin|agac\w*|fici\w*|sandig\w*|sandik\w*|perde\w*|sis\w*|kose\w*|kuytu\w*|siper\w*|"
+    r"cuval\w*|kayanin|kayalar\w*|duvarin\s+dibine)")
+# D-225: a cover word the line denies is no cover: "hiçbir gölge", "gölgesiz", "siper ya da gölge olmayan", "ağaç
+# bile yok", "siper değil".
+_COVER = re.compile(
+    rf"(?<!\bhicbir )\b{_COVER_WORD}\b(?<!s[iu]z)"
+    rf"(?!(?:\s+(?:ya|da|de|ve|veya|ile|bile|falan|filan|hic|{_COVER_WORD}))*\s+"
+    r"(?:olmayan\w*|olmadig\w*|olmadan|bulunmayan\w*|bulunmadig\w*|yok(?:tu|tur|ken|mus)?\b(?!\s+ol)|degil\w*)\b)")
+# One's own thing hidden on oneself ("hançerimi kolumun içine gizliyorum") is Sleight of Hand, not a hide (D-176).
+_OWN_THING_HIDDEN = re.compile(r"\b(?!kendim)\w{2,}m[iu]\s+(?:\w+\s+){0,4}?(?:gizl|sakl)\w*")
+
+
+def _stealth_skill(player_input):
+    """The skill a hiding line rolls: Stealth with cover or the dark, Sleight of Hand for one's own thing, else
+    None (no roll: seen in the open by day)."""
+    folded = " ".join(re.findall(r"\w+", _normalize_turkish_typos(living_world._text_outside_quotes(player_input))))
+    if _OWN_THING_HIDDEN.search(folded):
+        return "Sleight of Hand"
+    import bold_acts
+    import local_places
+    import world_threads
+    world = _session().world_state
+    here = world.get("location")
+    indoors = bold_acts._door_out(world, here) is not None and local_places.settlement_of(world, here) != here
+    return "Stealth" if indoors or world_threads._in_the_night(world) or _COVER.search(folded) else None
+
+
 def deterministic_check_for_action(player_input):
-    """Map clear, known actions before consulting the model classifier."""
+    """Map clear, known actions before consulting the model classifier.
+
+    D-094: the front reading may name this turn's social try (``_front_check``). It fills a line the words found no
+    check for and corrects a social guess of theirs (D-175: "yalan söyleyip söylemediğini" is Insight); a skill the
+    player names, a world check (a climb, a hide, a lock) and a narrative answer stay the words' (R-4, R-5). A
+    pickpocket is the theft route's, where the coin is.
+    """
+    found = _word_check_for_action(player_input)
+    reading = getattr(_session(), "_front_check", "")
+    if reading not in _READING_CHECKS or named_skill(player_input):
+        return found
+    if found is None or (found.get("action_type") == "check" and found.get("skill") in _READING_CHECKS):
+        return {"action_type": "check", "skill": reading, "difficulty": "medium"}
+    return found
+
+
+_READING_CHECKS = frozenset({"Intimidation", "Deception", "Persuasion", "Insight"})
+
+
+def _word_check_for_action(player_input):
+    """The engine's own word rules for a check, before any reading."""
     text = player_input.casefold()
     normalized_text = _normalize_turkish_typos(player_input)
     skill = named_skill(player_input)
@@ -1281,6 +1358,9 @@ def deterministic_check_for_action(player_input):
             normalized_text,
         ):
             return {"action_type": "check", "skill": "Persuasion", "difficulty": "medium"}
+        # D-175: spotting a lie ("yalan söyleyip söylemediğini", "yalan mı söylüyor") is Insight, not Deception.
+        if re.search(r"\byalan\s+(?:soyleyip\s+soyleme\w*|mi\s+soyl\w*|soyl\w*\s+mu\b)", normalized_text):
+            return {"action_type": "check", "skill": "Insight", "difficulty": "medium"}
         if re.search(
             r"\byalan\s+soyle(?!m)\w*|\b(?:kandir|aldat)(?!m)\w*|\bblof\s+yap(?!m)\w*",
             normalized_text,
@@ -1294,6 +1374,8 @@ def deterministic_check_for_action(player_input):
             normalized_text,
         ):
             return {"action_type": "check", "skill": "Acrobatics", "difficulty": "medium"}
+        if open_scare_try(player_input):  # D-099
+            return {"action_type": "check", "skill": "Intimidation", "difficulty": "medium"}
         if re.search(
             r"\biz(?:leri|lerini)?\s+sur(?:uyorum|meye\s+calis(?!m)\w*)|"
             r"\biz(?:leri|lerini)?\s+takip\s+(?:ediyorum|ederek|etmeye\s+calis(?!m)\w*)|"
@@ -1841,6 +1923,8 @@ world_state = {
     "events": [],
     "flags": {**talk_mode.fresh(), "turn_index": 0, "pending_destination": None},
     "next_npc_number": 1,
+    equipment_economy.GEAR_WRITTEN: True,  # D-231: every person of a new world gets their gear when made
+    equipment_economy.PURSE_WRITTEN: True,  # D-207: and their purse
     "combat": {
         "schema_version": 3,
         "active": False,
@@ -2189,6 +2273,9 @@ def _player_state_for_save():
         saved["hit_dice"] = dict(character["hit_dice"])
     if "fighter_uses" in character:  # additive: spent Second Wind and Action Surge uses
         saved["fighter_uses"] = dict(character["fighter_uses"])
+    for field in ("draconic_ancestry", "breath_weapon_spent"):  # additive (D-233): absent in older saves
+        if character.get(field) is not None:
+            saved[field] = character[field]
     if "paladin_uses" in character:  # additive: spent Paladin pools and timed effects
         saved["paladin_uses"] = copy.deepcopy(character["paladin_uses"])
     if "uncanny_dodge_off" in character:  # additive: the player turned Uncanny Dodge off
@@ -2556,6 +2643,8 @@ def _validate_save_payload(payload):
         or player["temporary_hit_points"] < 0
     ):
         raise ValueError("Kayıt geçici can puanı geçersiz.")
+    import dragonborn_breath
+    dragonborn_breath.validate_saved({**player, "species": species})
     giant_ancestry = player.get("giant_ancestry")
     if giant_ancestry is not None and (
         species != "Goliath" or giant_ancestry not in GIANT_ANCESTRY_IDS
@@ -2893,6 +2982,7 @@ def load_game(path):
         _repair_dilim1_fields(world_state)
         _repair_dilim2_fields(world_state)
         living_world.ensure_scene_state(world_state)
+        equipment_economy.give_old_save_gear(world_state)  # D-231 (+ D-207 purses): after the scene state, so the seed is read
         for field in ("name", "race", "class"):
             character[field] = str(player[field])
         character["species"] = str(player.get("species", player["race"]))
@@ -2968,6 +3058,10 @@ def load_game(path):
         character.pop("fighter_uses", None)
         if "fighter_uses" in player:
             character["fighter_uses"] = dict(player["fighter_uses"])
+        for field in ("draconic_ancestry", "breath_weapon_spent"):  # D-233: an older save chose and spent nothing
+            character.pop(field, None)
+            if field in player:
+                character[field] = player[field]
         character.pop("paladin_uses", None)
         if "paladin_uses" in player:
             character["paladin_uses"] = copy.deepcopy(player["paladin_uses"])
@@ -3026,7 +3120,12 @@ def load_game(path):
         # Keep the file's own version. The current default is v4, and a v1–v3
         # file must still be written back as that same version.
         _session()._persisted_engine_format = payload["version"]
-        return serialize_game_state()
+        loaded = serialize_game_state()
+        # D-072: the sitting-only fight questions (never saved) belong to the replaced game, not the loaded one.
+        _session()._attack_asked, _session()._blow_asked, _session()._blow_asked_line = False, None, None
+        _session()._surrender_strike_asked = None
+        _session()._heavy_asked = _session()._heavy_confirmed = None  # D-109: so do the crime/threat question and its yes
+        return loaded
     except Exception:
         _session()._persisted_engine_format = previous_format
         world_state.clear()
@@ -3322,8 +3421,11 @@ def attempt_player_stabilization(healer_id):
             or healer.get("hostile") is True
             or weapon_attack.conditions(session, healer_id, healer) & {"incapacitated", "unconscious", "dead"}):
         raise ValueError("Bu kişi ilk yardım uygulayamaz.")
+    import item_use
+    kit_in_bag = any((i.get("name") if isinstance(i, dict) else i) == item_use.HEALERS_KIT
+                     for i in session.world_state.get("inventory", []))
     modifier = healer.get("medicine_bonus")
-    if type(modifier) is not int:
+    if type(modifier) is not int and not kit_in_bag:
         raise ValueError("Bu kişinin Tıp becerisi desteklenmiyor.")
     state = ensure_death_state()
     if state["dead"] or session.character["current_hp"] != 0:
@@ -3331,6 +3433,12 @@ def attempt_player_stabilization(healer_id):
     combat = ensure_combat_state()
     if combat["active"]:
         action_economy.action_slot(session, healer_id, "help")
+    if kit_in_bag:  # D-023: 2024 Healer's Kit stabilizes with no Medicine roll
+        kit = item_use.spend_healers_kit(session.world_state)
+        if combat["active"]:
+            _mark_combat_action_used(healer_id, "help")
+        stabilize_player()
+        return {"action": "stabilize", "status": "resolved", "success": True, "healers_kit": kit}
     result = resolve_skill_check(roll_fn=roll_d20, skill="medicine", ability="wisdom",
                                  dc=10, ability_modifier=modifier)
     if combat["active"]:
@@ -3387,6 +3495,9 @@ def apply_npc_damage(npc, damage, *, knock_out=False):
         npc["combat_status"] = "dead"
         import bold_acts
         bold_acts.killed(_session(), npc)
+        import xp  # paid at the kill like a knock-out, so fleeing or standing down loses nothing; the shared receipt stops a second pay (D-016, K8)
+        _session()._forfeit_unrecordable_xp(xp.award_downed, npc, _session().world_state, _session().character,
+                                            person_kind=person_fight_kind(npc))
     return npc["current_hp"]
 
 
@@ -3407,6 +3518,8 @@ def _capture_combat_death_checkpoint():
         "world_metadata": copy.deepcopy(
             getattr(session, "world_metadata", None)
         ),
+        # D-113: a level crossing inside the fight moves the save format; the rollback puts it back with the hero.
+        "persisted_engine_format": getattr(session, "_persisted_engine_format", SAVE_FORMAT_VERSION),
     }
     provider = getattr(session, "death_checkpoint_provider", None)
     if callable(provider):
@@ -3429,6 +3542,10 @@ def _restore_combat_death_checkpoint(cause):
     saved_world = checkpoint.get("world_state")
     saved_player = checkpoint.get("player")
     if not isinstance(saved_world, dict) or not isinstance(saved_player, dict):
+        raise ValueError("Normal death rollback checkpoint is invalid.")
+    has_format = "persisted_engine_format" in checkpoint  # a checkpoint saved before D-113 has none
+    saved_format = checkpoint.get("persisted_engine_format")
+    if has_format and (type(saved_format) is not int or saved_format not in _SUPPORTED_SAVE_VERSIONS):
         raise ValueError("Normal death rollback checkpoint is invalid.")
 
     mode = state["mode"]
@@ -3460,6 +3577,10 @@ def _restore_combat_death_checkpoint(cause):
     candidate.world_state.update(copy.deepcopy(restored_world))
     candidate.recent_dm_narrations[:] = copy.deepcopy(checkpoint.get("recent_dm_narrations", []))
     _validate_save_payload(candidate.serialize_game_state())
+    if has_format:
+        # Also admit the restored hero at the format the campaign will be saved in.
+        candidate._persisted_engine_format = saved_format
+        _validate_save_payload(candidate.serialize_game_state())
     candidate.ensure_death_state()
     campaign_state = checkpoint.get("campaign_state")
     if campaign_state is not None:
@@ -3479,6 +3600,10 @@ def _restore_combat_death_checkpoint(cause):
     session.world_metadata = copy.deepcopy(checkpoint.get("world_metadata"))
     # The XP, level and receipt of an award are back to the checkpoint; so is its pending announcement.
     session._xp_level_up = None
+    session._xp_unrecorded = []
+    session._xp_unrecorded_awards = []
+    if has_format:
+        session._persisted_engine_format = saved_format
     campaign_state = checkpoint.get("campaign_state")
     if campaign_state is not None:
         restorer = getattr(session, "death_checkpoint_restorer", None)
@@ -4079,6 +4204,8 @@ def create_npc_from_ai(proposal, request_key=None, *, allow_other_location=False
     local_dialogue.ensure_personal_profile(npc)
     npc["voice_trait"] = local_dialogue.voice_trait(world_state, npc)
     ensure_npc_combat_stats(npc)
+    equipment_economy.give_person_gear(world_state, npc)  # D-231
+    equipment_economy.give_person_purse(world_state, npc)  # D-207
     world_state["npcs"].append(npc)
     return npc
 
@@ -4641,7 +4768,7 @@ def _species_player_turn_id():
     return _session().world_state.get("flags", {}).get("turn_index", 0)
 
 
-def _apply_species_on_hit_effects(target_npc, *, critical=False):
+def _apply_species_on_hit_effects(target_npc, *, critical=False, deals_damage):
     character = _session().character
     state = _species_trait_state()
     proficiency_bonus = character.get("proficiency_bonus", 2)
@@ -4652,6 +4779,7 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
     if (
         character.get("species") == "Aasimar"
         and active_form
+        and deals_damage  # "when you deal damage to it with an attack" (PHB 2024; D-197)
         and state.get("celestial_damage_used_turn") != turn_id
     ):
         damage_type = (
@@ -4671,9 +4799,16 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
     if (
         character.get("species") == "Goliath"
         and ancestry in GIANT_ANCESTRY_IDS
-        and ancestry not in {"cloud", "stone"}
+        and ancestry not in {"cloud", "stone", "storm"}  # Storm's Thunder is a damage reaction (D-132)
+        and deals_damage  # "hit ... and deal damage" (PHB 2024; D-197)
         and state.get("giant_ancestry_armed")
         and state.get("giant_ancestry_uses_remaining", 0) > 0
+        # Hill's Tumble reaches only a Large or smaller creature (PHB 2024); a Huge or unknown size spends nothing (D-201).
+        and (
+            ancestry != "hill"
+            or str(target_npc.get("size", "medium")).lower()
+            in weapon_attack.SIZES[: weapon_attack.SIZES.index("large") + 1]
+        )
     ):
         state["giant_ancestry_uses_remaining"] -= 1
         state["giant_ancestry_armed"] = False
@@ -4689,8 +4824,8 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
         elif ancestry == "frost":
             damage, audit = bonus_roll(6)
             bonus_damage += damage
-            target_npc["speed_penalty_ft"] = 10
-            target_npc["speed_penalty_turns_remaining"] = 1
+            # Until the start of the Goliath's next turn: the attack owner's timed effect ends it (D-049).
+            weapon_attack.effect(_session(), "frost_giant_ancestry", "player", target_npc["id"])
             effects.append(
                 {
                     "trait": "frost_giant_ancestry",
@@ -4701,44 +4836,9 @@ def _apply_species_on_hit_effects(target_npc, *, critical=False):
                 }
             )
         elif ancestry == "hill":
-            save_bonus = target_npc.get(
-                "strength_save_bonus", target_npc.get("strength_modifier", 0)
-            )
-            if type(save_bonus) is not int:
-                save_bonus = 0
-            dc = 8 + proficiency_bonus + character.get("strength_mod", 0)
-            resolution = resolve_saving_throw(
-                roll_fn=roll_d20,
-                ability="strength",
-                dc=dc,
-                ability_modifier=save_bonus,
-            )
-            save_roll = resolution["selected_roll"]
-            knocked_prone = resolution["outcome"] == "FAILURE"
-            if knocked_prone:
-                target_npc["prone"] = True
-            effects.append(
-                {
-                    "trait": "hill_giant_ancestry",
-                    "save_roll": save_roll,
-                    "save_bonus": save_bonus,
-                    "save_dc": dc,
-                    "knocked_prone": knocked_prone,
-                    "resolution": resolution,
-                }
-            )
-        elif ancestry == "storm":
-            damage, audit = bonus_roll(8)
-            bonus_damage += damage
-            effects.append(
-                {
-                    "trait": "storm_giant_ancestry",
-                    "damage": damage,
-                    "damage_type": "thunder",
-                    "push_ft": 10,
-                    **audit,
-                }
-            )
+            # Hill's Tumble (PHB 2024): Prone with no saving throw (D-201).
+            target_npc["prone"] = True
+            effects.append({"trait": "hill_giant_ancestry", "knocked_prone": True})
     return bonus_damage, effects
 
 
@@ -4812,7 +4912,8 @@ def _finish_species_player_turn():
     return effects
 
 
-def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None):
+def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None,
+                                 draconic_ancestry=None, shape=None, target_id=None):
     require_player_can_act()
     if action in {"short_rest", "long_rest"}:
         import barbarian_rage
@@ -4837,8 +4938,9 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 raise ValueError("Yeni uzun dinlenmeye başlamadan önce son tamamlanmadan 16 oyun saati geçmeli.")
         rest_time = advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
         if rest_time.get("condition_death"):
+            # D-145: the one result shape every rest answers with, so the panel's contract keeps the death too.
             return {"action": action, "message": "Dinlenme, mevcut ölüm politikasınca kesildi.",
-                    "refreshed": {}, "time_advance": rest_time}
+                    "effects": {"time_result": rest_time, "rest_completed": False}}
         if rest_time.get("interrupted"):
             interrupted_effects = {"time_result": rest_time, "rest_completed": False}
             if action == "long_rest" and rest_time.get("elapsed_seconds", 0) >= 3600:
@@ -5060,6 +5162,14 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             "uses_remaining": state["giant_ancestry_uses_remaining"],
         }
 
+    elif action == "choose_draconic_ancestry":
+        import dragonborn_breath
+        message, effects = dragonborn_breath.choose_ancestry(_session(), draconic_ancestry)
+
+    elif action == "breath_weapon":
+        import dragonborn_breath
+        message, effects = dragonborn_breath.breathe(_session(), shape, target_id)
+
     elif action == "short_rest":
         if combat["active"]:
             raise ValueError("Çatışma sırasında dinlenemezsin.")
@@ -5104,6 +5214,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         long_rest_healing = heal_player(character["max_hp"] - character["current_hp"])
         import hit_dice
         hit_dice.restore_all(character)  # PHB 2024 Long Rest: ALL spent Hit Point Dice return
+        import dragonborn_breath
+        dragonborn_breath.long_rest(character)  # Breath Weapon: every use returns (D-233)
         _session().world_state["player_combat_status"] = "active"
         character["species_trait_state"] = _new_persisted_species_trait_state(
             species, character.get("proficiency_bonus", 2)
@@ -5633,6 +5745,45 @@ def _reduce_attack_damage_to_player(damage):
     return damage, species_effects
 
 
+def _storm_thunder_reaction(attacker_npc, damage_taken, distance_ft):
+    """Storm's Thunder (PHB 2024 PDF 191): damage taken from a creature within 60 ft; Reaction, 1d8 Thunder to it (D-132)."""
+    combat = ensure_combat_state()
+    trait_state = _species_trait_state()
+    if not (
+        damage_taken > 0
+        and _session().character.get("species") == "Goliath"
+        and _session().character.get("giant_ancestry") == "storm"
+        and trait_state.get("giant_ancestry_armed")
+        and trait_state.get("giant_ancestry_uses_remaining", 0) > 0
+        and distance_ft <= 60
+        and _session().character.get("current_hp", 0) > 0
+        and (not combat["active"] or (
+            action_economy.can_act(_session(), "player")
+            and not action_economy.ensure(_session())["player"]["reaction_spent"]
+        ))
+    ):
+        return []
+    if combat["active"]:
+        action_economy.ensure(_session())["player"]["reaction_spent"] = True
+    trait_state["giant_ancestry_uses_remaining"] -= 1
+    trait_state["giant_ancestry_armed"] = False
+    roll = _session().rng.randint(1, 8)
+    mitigation = weapon_attack.mitigate(_session(), attacker_npc["id"], "thunder", roll)
+    after = apply_npc_damage(attacker_npc, mitigation["final_damage"])
+    return [
+        {
+            "trait": "storm_giant_ancestry",
+            "target_id": attacker_npc["id"],
+            "damage": mitigation["final_damage"],
+            "damage_type": "thunder",
+            "damage_die": 8,
+            "raw_rolls": [roll],
+            "mitigation": mitigation,
+            "target_hp_after": after,
+        }
+    ]
+
+
 def _apply_attack_damage_to_player(damage, critical, hit):
     """Existing temporary HP/species survival and Death owner handoff."""
     world_state = _session().world_state
@@ -5707,7 +5858,7 @@ def end_combat(reason="combat_ended"):
     if not combat["active"]:
         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
     _session()._surrender_strike_asked = None  # a question about a surrendered foe ends with its fight
-    if reason in ("target_defeated", "parley_accepted", "opponents_relocated"):
+    if reason in ("target_defeated", "parley_accepted", "opponents_relocated", "player_stable", "participants_left"):
         import xp
         _session()._forfeit_unrecordable_xp(  # a refused award never keeps the fight going (B1, D-013)
             xp.award_defeated_combat, combat, _session().world_state, _session().character,
@@ -8208,7 +8359,9 @@ _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
     # a speech of one to three sentences never needs more than ~220 tokens, plus the optional proposal.
     "repeat_penalty": 1.05,
     "repeat_last_n": 64,
-    "num_predict": 240,
+    # D-238: 240 cut 4 of 26 real Haiku replies mid-JSON (spoken text, gesture, threat and fields together),
+    # and a cut reply is thrown away for a stock line. Still a ceiling against a runaway loop.
+    "num_predict": 480,
 }
 _NPC_SPEECH_LOG_KEY = "npc_speech_log"
 _NPC_SPEECH_KEEP = 4
@@ -8329,6 +8482,27 @@ def _strip_pictographs(text):
     return "".join(kept)
 
 
+# D-100: a Faerûn person never greets or swears by a real-world faith; these fixed phrases get this world's words.
+_REAL_WORLD_FAITH = (
+    (re.compile(r"\b(?:[Vv]e\s+)?[Aa]leyk[uü]m\s*(?:es)?\s*[Ss]elam\b"), "selam"),
+    (re.compile(r"\b[Ss]elam(?:[uü]n|[ıi]n)\s*[Aa]leyk[uü]m\b"), "selam"),
+    (re.compile(r"(?<!\w)[iİI]n[sş]allah\b"), "tanrılar izin verirse"),
+    (re.compile(r"\b[Mm]a[sş]allah\b"), "vay be"),
+    (re.compile(r"\b[Ee]lhamd[uü]lillah\b"), "tanrılara şükür"),
+    (re.compile(r"\bAllah['’]?a\s+emanet(?:\s+ol(?:un)?)?\b"), "Tymora yar olsun"),
+)
+
+
+def _without_real_world_faith(text):
+    """D-100: the fixed real-world faith phrases swapped for this world's, capitalised where a sentence starts."""
+    for pattern, words in _REAL_WORLD_FAITH:
+        def put(match, words=words, text=text):
+            before = text[:match.start()].rstrip()
+            return words[0].upper() + words[1:] if not before or before[-1] in ".!?…“\"" else words
+        text = pattern.sub(put, text)
+    return text
+
+
 def _clean_npc_speech(raw):
     """Return the NPC's own words from a model string, or "" when none survive.
 
@@ -8342,7 +8516,7 @@ def _clean_npc_speech(raw):
     cut = _SPEECH_CUT_RE.search(raw)
     text = raw[:cut.start()] if cut else raw
     text = _strip_pictographs(text)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = _without_real_world_faith(re.sub(r"\s+", " ", text).strip())
     if not text or _SPEECH_META_RE.search(text):
         return ""
     # A cut or the token limit can leave a half sentence: keep the whole
@@ -8494,15 +8668,19 @@ def _spoken_name_answer(spoken_text, npc):
 
 _SPEECH_ANSWER_RULES = (
     "Önce oyuncunun sorusunu cevapla; sorulan şey senin işin değilse kendi işini anlatma. "
-    "Biliyorsan söyle, bilmiyorsan bilmediğini kendi sesinle tam bir cümleyle söyle; gizem, kaçamak veya "
-    "fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
+    "Biliyorsan söyle. Bilmiyorsan çıplak bir “bilmiyorum” ile bitirme: kendi sesinle, aşağıda duyduğun bir "
+    "söylentiyi ya da yeri aktar veya bunu kimin ya da nerenin bilebileceğini söyle (aşağıdaki adlar ya da hancı, "
+    "muhafız, pazar gibi; yeni ad uydurmadan); gizem, kaçamak veya fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
     "Sıradan ifadeleri konuşmanın bağlamıyla anla; konu belliyse yeniden sordurma. "
     "Pazarlık ve yaratıcı denemelere alan aç, başarıyı garanti etme; yeni kilit, şart veya ücret "
     "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
-    "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir, "
-    "aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
+    "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir; ama kenti, "
+    "bir yeri ya da olan biteni anlatman istenirse iki ile dört cümleyle, bildiğin yerlerden ve duyduklarından somut "
+    "ayrıntı ver. Aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
     "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan. "
-    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz.\n"
+    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz. "
+    "Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet denmez; yerine “Selam”, “Tymora yar olsun”, "
+    "“Tanrılar korusun” gibi sözler söylenir.\n"
 )
 
 
@@ -8703,6 +8881,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     journey = world.get("journey")
     if journey and journey.get("status") != "ARRIVED":
         return None
+    saved = None
     try:
         person = _thread_person(player_input, target_id)
         gate = world_threads.turn_gate(world, person, player_input) if isinstance(person, dict) else None
@@ -8719,11 +8898,14 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
                 and _physical_line(player_input)):
             return None
         session.require_player_can_act()
+        saved = session._capture_runtime_snapshot()
         return _carry_out_thread_turn(session, world, gate, person, player_input)
     except PlayerCannotAct:
         raise
     except Exception:
         town_knowledge.log_failure()
+        if saved is not None:  # D-011: a writer that broke half way leaves no coin, hour or item of it behind
+            session._restore_runtime_snapshot(saved)  # in place: the turn above still holds these very dicts
         session._thread_turn = None
         return None
 
@@ -8798,10 +8980,19 @@ def _overheard_work(world):
         return None
 
 
+_ASKS_WHO_YOU_ARE = re.compile(r"\b(?:adin|adiniz|isim|ismin|isminiz|kimsin|kimsiniz)\b")
+
+
 def _town_fallback(world, npc, player_input):
-    """Only when no model reply could be used and the player asked about the town."""
+    """Only when no model reply could be used: work, the news, or any question not about the person or the player.
+
+    D-237/D-247 (K7, Kadir): such a question gets a real lead or a place to ask, never a bare "I don't know".
+    """
     import town_knowledge
-    if local_dialogue.personal_question_kind(player_input) != "local_work" and not _asks_what_is_going_on(player_input):
+    kind = local_dialogue.personal_question_kind(player_input)
+    open_question = (kind is None and interaction_adventure._asks(player_input)
+                     and not _ASKS_WHO_YOU_ARE.search(_normalize_turkish_typos(player_input)))
+    if kind != "local_work" and not _asks_what_is_going_on(player_input) and not open_question:
         return None
     try:
         return town_knowledge.fallback_line(world, npc)
@@ -8837,23 +9028,68 @@ def _accept_named_job(session, world, npc, thread):
         world_threads.apply_decision(world, thread, "accepted", int(world.get("flags", {}).get("turn_index", 0) or 0) - 1)
 
 
-def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None):
+def _coin_persuasion(action_result):
+    """D-166: the Persuasion roll asking a person for coin takes, at their DC (`influence.dc`).
+
+    A Persuasion this turn already rolled is reused against that DC, never rerolled; any other roll this turn asked
+    for something else, so it gives no coin (None). Otherwise one fresh roll, its card returned for the turn to show.
+    """
+    def persuade(dc, advantage):
+        if action_result.get("action") == "skill_check":
+            total = action_result.get("total")
+            if action_result.get("skill") != "Persuasion" or type(total) is not int:
+                return None
+            return {"success": total >= dc}
+        character = _session().character
+        check = perform_skill_check("Persuasion", dc, character["modifiers"], character["proficient_skills"],
+                                    character["proficiency_bonus"], advantage=advantage,
+                                    expertise_skills=character.get("expertise_skills", ()))
+        outcome = _skill_result_category(check.get("result"))
+        card = {
+            "action": "skill_check", "skill": check["skill"], "ability": check["ability"], "dice": check["dice"],
+            **({"dice_rolls": check["dice_rolls"]} if "dice_rolls" in check else {}),
+            "modifier": check["modifier"], "proficiency_bonus": check["proficiency_bonus"],
+            "expertise": check["expertise"], "advantage": check["advantage"], "disadvantage": check["disadvantage"],
+            "action_id": check["resolution"].get("action_id"), "resolution_id": check["resolution"].get("resolution_id"),
+            "resolution": check["resolution"], "total": check["total"], "dc": check["dc"], "outcome": outcome,
+            "success": outcome == "success", "status": "resolved",
+        }
+        return {"success": outcome == "success", "card": card}
+    return persuade
+
+
+def _show_coin_roll(action_result, card):
+    """D-166: the coin ask's roll shows on the turn, while the turn stays what it was: a talk stays a talk (its
+    action, success and status, which 'talk to X' objectives and a guard's question read). A turn that already
+    rolled a check keeps its own card."""
+    if card and action_result.get("action") != "skill_check":
+        action_result.update({key: value for key, value in card.items() if key not in {"action", "success", "status"}},
+                             coin_ask_roll=True)
+
+
+def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None, persuade=None, stage=None):
     """What the reply proposed reaches the record if it checks out. A failure here costs the turn nothing."""
     import town_knowledge
     session = _session()
     gate = getattr(session, "_thread_turn", None)
     try:
+        import world_happenings
+        said = threat.split()[0] if isinstance(threat, str) and threat.strip() else None
+        if said == world_happenings.PLAYER_THREATENED and not _heavy_allowed("threat", player_input,
+                                                                             person_id=npc.get("id")):
+            threat = None  # D-109: only a threat said now and asked yes hurts a tie; the reply's own claim stays words
         settled = town_knowledge.settle_reply(
             world, npc, player_input, raw, spoken,
             accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
             moved=(gate or {}).get("paid_cp") or 0, threat=threat, purchase=getattr(session, "_purchase_said", False),
+            persuade=persuade, stage=stage,
         )
         import pocket
         settled["spoken"], settled["unbacked"] = pocket.settle_claim(session, raw, settled["spoken"], npc)
         return settled
     except Exception:
         town_knowledge.log_failure()
-        return {"spoken": spoken, "note": None, "allowed": set(), "moved": 0}
+        return {"spoken": spoken, "note": None, "allowed": set(), "moved": 0, "stage": stage}
 
 
 def _with_only_backed_money(speech, settled):
@@ -8958,7 +9194,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     if local_dialogue.personal_question_kind(player_input) == "local_work":
         lines.append(
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
-            "varsa onu söyle, yoksa bilmediğini söyle."
+            "varsa onu söyle, yoksa kimin ya da nerenin bilebileceğini söyle."
         )
     handed = getattr(_session(), "_handed_note", None)
     if handed:
@@ -9805,11 +10041,12 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
                 format=schema,
                 think=False,
                 options=(
-                    ({**_EXPERIMENTAL_NPC_SPEECH_OPTIONS, "num_predict": 400} if price_targets else _EXPERIMENTAL_NPC_SPEECH_OPTIONS) if experimental_npc_dialogue
+                    ({**_EXPERIMENTAL_NPC_SPEECH_OPTIONS, "num_predict": 640} if price_targets else _EXPERIMENTAL_NPC_SPEECH_OPTIONS) if experimental_npc_dialogue
                     # A normal proposal is under 150 tokens; anything far beyond it is a loop.
                     else {"temperature": 0.0,
-                          "num_predict": (700 if interaction_context is not None and front_list is not None
-                                          else 400 if interaction_context is not None or front_list is not None or price_targets
+                          # D-240: the front reading alone is cut at 400 (4 turns of 397-523 output tokens), so it gets the full 700
+                          "num_predict": (700 if front_list is not None
+                                          else 400 if interaction_context is not None or price_targets
                                           else 120)}
                 ),
             )
@@ -9818,6 +10055,8 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             return data if isinstance(data, dict) else {"intent": "unknown"}
         if isinstance(data, dict) and not ollama_reply_was_cut(response):
             return data
+        from api import model_phase
+        model_phase.note_cause("local", "cut" if ollama_reply_was_cut(response) else "not_json")  # D-240: the failed check
         if strict:
             raise IntentInfrastructureError("intent_json_invalid")
         return {"intent": "unknown", "classifier_unusable": True}
@@ -11962,6 +12201,9 @@ def _narration_safety_decision(
         contradicted_failure = re.search(r"başarısız olur|başaramaz", text)
         if contradicted_failure:
             return reject("SKILL_RESULT_CONTRADICTION", contradicted_failure.group(0))
+        unmoved = _UNMOVED.search(_normalize_turkish_typos(text)) if action_result.get("skill") == "Intimidation" else None
+        if unmoved:
+            return reject("SKILL_RESULT_CONTRADICTION", unmoved.group(0))  # D-226: a won scare moves the person
     if ("kapı" in input_text or "kilit" in input_text) and outcome in (
         "failure", "critical_failure"
     ):
@@ -13931,7 +14173,7 @@ def ask_dungeon_master(
             "gerçekleşti. Bir eşya aktarımı, yeni gerçek, ödül, sözün yerine getirilmesi, "
             "görev başarısı veya oyuncunun sonraki adımını uydurma. NPC'nin onayı henüz "
             "alınmadıysa onay vermiş gibi yazma. İddia/inanç/söylenti gerçek değildir. "
-            "Bilmeyen NPC doğal biçimde bilmediğini söyler; AI, veri, model, kayıt, "
+            "Bilmeyen NPC çıplak bir “bilmiyorum” ile bitirmez, kimin ya da nerenin bilebileceğini söyler; AI, veri, model, kayıt, "
             "Python veya sunucudan söz etme. Başka NPC adına konuşma. "
             "world_updates ve lore_claims boş kalmalı; yalnızca narration yaz.\n"
             + json.dumps({"where_now": living_world.place_in_plain_words(world_state),
@@ -14112,7 +14354,7 @@ def ask_dungeon_master(
             "veya bilmediğini söylesin. Gündelik küçük sohbete kısa, doğal ve karaktere uygun bir yanıt ver; "
             "soruyu gerçekten yanıtlayan, tek kısa ve dilbilgisel bir repliği önce ver; çevreyi veya oyuncuyu anlatma. "
             "Python action result açıkça bir teklif içermedikçe iş, ödül, görev veya yardım sözü verme; "
-            "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmediğini sade biçimde söyle. "
+            "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmiyorsa kimin ya da nerenin bilebileceğini söylesin. "
             f"Diğer NPC'lerin bildiklerini veya geçmiş diyaloglarını {living_world.public_npc_name(npc_target)} biliyormuş gibi anlatma. "
             "Bu geçici tepkiyi lore gibi sunma veya 'doğrulanmış bilgi yok' kalıbına sığınma. "
             "Önceki cevabı tekrar etme; sadece güncel soruyu yanıtla."
@@ -14598,6 +14840,13 @@ def _resolved_skill_result_narration(result):
 _TELLS_FAILURE = re.compile(r"\w+m[iu]yor\w*|\w+(?:ama|eme)(?:z|di|yacak)\w*|\bbasarisiz|\bsonuc vermedi|\byok\b|\bdegil\b")
 
 
+# D-226: what tells a scared person unmoved ("geri adım atmıyor", "sözlerin ona işlemiyor", "korkmuyorum").
+_UNMOVED = re.compile(
+    r"\b(?:geri\s+adim\s+atm(?:iyor|az|adi)|cekilm(?:iyor|ez|edi)|"
+    r"islem(?:iyor|ez|edi)|etkilen?m(?:iyor|ez|edi)|umursam(?:iyor|az|adi)|"
+    r"aldirm(?:iyor|az|adi)|korkm(?:uyor|az|adi)|yol\s+verm(?:iyor|ez|edi)|istifini\s+bozm(?:uyor|az|adi))\w*")
+
+
 def _states_the_failed_check(narration, result, player_input):
     """A failed roll is told before anything else in the room goes on; prose alone must not skip it."""
     if (not isinstance(result, dict) or result.get("action") != "skill_check" or result.get("status") != "resolved"
@@ -15055,6 +15304,12 @@ def finalize_narration(
         import town_knowledge
         narration = town_knowledge.without_unbacked_money(narration)
         narration = pocket.without_the_taking(narration, pocket.not_in_bag(session.world_state, getattr(session, "_nothing_taken", None)))
+    if (not attributed_speech and isinstance(action_result, dict)
+            and "currency" not in (action_result.get("state_changes") or ())
+            and not action_result.get("direct_response") and not is_live_town_response(narration)):
+        import pocket
+        # D-142: on any turn that moved no coin, a purse sentence of free prose must be the engine's purse.
+        narration = pocket.without_false_purse(narration, session.world_state)
     if not isinstance(narration, str) or not narration.strip():
         narration = fallback_for_turn()
         if not decision["reason_code"]:
@@ -15860,7 +16115,7 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
         r'(?:onu korkutmaya|gozdagi vermeye) calisiyorum|tehdit ediyorum|'
         r'(?:bir sey fark etmeye|tehlikeyi fark etmeye|bir sey duymaya) calisiyorum|'
         r'ses dinliyorum|(?:etrafi|cevreyi) gozlemliyorum|'
-        r'(?:gizleniyorum|saklaniyorum)|'
+        r'(?:(?:golgelere|karanliga|kalabaliga) )?(?:gizleniyorum|saklaniyorum)|'  # D-171: a hide may name its cover
         r'(?:yolumu|yonumu) (?:buluyorum|bulmaya calisiyorum)|'
         r'yiyecek (?:ariyorum|aramaya calisiyorum)|barinak kurmaya calisiyorum'
         r')[.! ]*', text,
@@ -15876,6 +16131,8 @@ def primal_knowledge_check_admission(player_input, *, interaction_mode='do', com
         raise _immediate_check_refusal(check_feature, 'This wording or route does not support an immediate {feature} check.')
     selected = deterministic_check_for_action(player_input)
     skill = selected.get('skill') if isinstance(selected, dict) and selected.get('action_type') == 'check' else None
+    if skill == 'Stealth' and _stealth_skill(player_input) != 'Stealth':
+        skill = None  # D-171: no cover, no hide to use the feature on
     if check_feature == 'tactical_mind':
         import fighter_features
         fighter_features.require_tactical_mind(_session())
@@ -16124,6 +16381,17 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
     if (skill is None and negotiation is not None and isinstance(npc_target, dict)
             and negotiation["npc_id"] == npc_target.get("id")):
         skill = "Persuasion"
+    if skill == "Stealth":
+        skill = _stealth_skill(player_input)  # D-094, D-171, D-176: hiding needs cover; hiding a thing is no hide
+        if skill is None:
+            world_state.setdefault("flags", {})["player_hidden"] = False
+            result.update({
+                "action": "world_interaction",
+                "status": "resolved",
+                "direct_response": "Açıkta, gün ışığında saklanacak bir yer yok; seni görebiliyorlar.",
+                "state_changes": _changed_state_fields(before),
+            })
+            return result
     if skill in SKILLS:
         dc = DIFFICULTY_DC.get(difficulty, DIFFICULTY_DC["medium"])
         ability = "strength" if check_feature == 'primal_knowledge' else SKILLS[skill]
@@ -16321,7 +16589,7 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
             return _finish_combat_result(result, before)
         melee_weapon = weapon_data if isinstance(weapon_data, dict) else {"range_ft": 5}
         sense_pair = monster_sense.observable_pair(_session())
-        if sense_pair is not None:
+        if sense_pair is not None and target_npc["id"] == monster_sense.NPC_ID:
             target_npc["distance_ft"] = sense_pair["distance_ft"]
         if monster_sense.blocks_melee(_session(), target_npc["id"], melee_weapon):
             pair = monster_sense.observable_pair(_session())
@@ -18303,37 +18571,12 @@ def _local_place_turn(player_input):
 
 def _adventure_travel_reply(session, destination):
     before = copy.deepcopy(session.world_state)
-    venue_door = _venue_entry_door(
-        session.world_state, session.world_state.get("location"), destination
-    )
-    if venue_door:
-        response = _locked_door_refusal(venue_door)
-        return {
-            "messages": session.messages,
-            "narration": response,
-            "model_calls": 0,
-            "action_result": {
-                "action": "travel",
-                "success": False,
-                "status": "blocked",
-                "target_id": destination,
-                "state_changes": [],
-                "direct_response": response,
-            },
-        }
-    commit_location_change(destination)
+    # D-123: the same journey owner as any trip - closed roads, venue doors and road time all apply.
+    action_result = timed_gameplay.start_travel(session, destination)
     flags = session.world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
-    action_result = {
-        "action": "travel",
-        "success": True,
-        "status": "resolved",
-        "state_changes": ["location"],
-    }
     session.evaluate_quest_events(before, action_result)
-    record = session.world_state.get("locations", {}).get(destination, {})
-    name = record.get("name") if isinstance(record, dict) and isinstance(record.get("name"), str) else destination
-    narration = f"{name} konumuna vardın."
+    narration = action_result["direct_response"]
     session.messages.extend([
         {"role": "user", "content": destination},
         {"role": "assistant", "content": narration},
@@ -18375,6 +18618,7 @@ def _clear_turn_transients(session) -> None:
     session._front_economic_front = None
     session._spoken_coin_proposal = None
     session._spoken_coin_result = None
+    session._coin_rest_hint = ""
     session._bribe_held_out = 0
     session._counter_held = None
     session._economic_turn_key = None
@@ -18470,13 +18714,19 @@ def _tell_the_coin(result):
         declined = getattr(session, "_coin_answer", None) == "declines"
         # The person's spoken answer about the coin and the card this turn's decision names (D1) come first: a spoken
         # decline is written per part and closes what it covers, with its own line.
-        money_owner.open_card_after_reply(session, result)
+        opened = money_owner.open_card_after_reply(session, result)
         if spoken is not None and isinstance(result, dict):
             # The validated gift or tip was put to this person; the card (or the refusal) is the engine's word.
             if not declined:
                 result["narration"] = f"{result.get('narration') or ''} {spoken.public_message}".strip()
             result.setdefault("action_result", {}).update(status=spoken.status, success=spoken.status == "prepared",
                                                           reason_code=spoken.reason_code)
+        hint = getattr(session, "_coin_rest_hint", "")
+        if hint and isinstance(result, dict) and any(
+                getattr(told, "reason_code", None) == "npc_consent_required"
+                for told in (opened, None if declined else spoken)):
+            # D-208: a walk's second part refused for want of the person's word says the coin can be held out again.
+            result["narration"] = f"{result.get('narration') or ''} {hint}".strip()
         if pending is None and spoken is None:
             # Asked for a room or goods while talking: after the answer's own money fields, and only with no money
             # moved or decided this turn (one consumer); the card or offer still waits for the player's confirmation.
@@ -18486,6 +18736,7 @@ def _tell_the_coin(result):
             result["narration"] = f"{result.get('narration') or ''} {note}".strip()
     finally:
         session._asks_for = None
+        session._coin_rest_hint = ""
         session._coin_paid = None
         session._counter_held = None
         session._coin_answer = None
@@ -18647,10 +18898,13 @@ def _run_player_turn_keyed(
         local_dialogue.remember_native_reply(
             _session().world_state, action_result, player_input, result.get("narration")
         )
-        if isinstance(action_result.get("level_up"), dict):
+        # D-061: a forfeited award's line ("<X> XP kaydedilemedi: <neden>.") goes the same way as the award line.
+        lines = [xp.award_line(action_result["level_up"])] if isinstance(action_result.get("level_up"), dict) else []
+        lines += _session()._take_xp_unrecorded()
+        if lines:
             # After every narration check (and after a person's reply is remembered): Python's own line from the
             # award's facts, in the reply and in this turn's assistant message (no model call, no number from the model).
-            line = xp.award_line(action_result["level_up"])
+            line = " ".join(lines)
             result["narration"] = f"{result.get('narration') or ''} {line}".strip()
             for row in reversed(_session().messages[messages_before:]):
                 if isinstance(row, dict) and row.get("role") == "assistant":
@@ -18748,6 +19002,12 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             said = _dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
         finally:
             session._thread_gate_done = False
+    import front_proposal
+    if walked and front_proposal.names_coin(rest):
+        # D-208 (Kadir, option D): the person's answer on arrival carries no word on the coin, so a refusal for want
+        # of consent stands and says the coin can be held out again now that the player is there.
+        inside = session.world_state.get("location") != place_before
+        session._coin_rest_hint = f"{'İçerideyken parayı' if inside else 'Parayı'} yeniden uzatabilirsin."
     if flags.get("turn_index", 0) > turn:
         flags["turn_index"] = turn  # one line is one turn: the second part stands under the first part's index
     line = said.get("narration") or ""
@@ -18782,7 +19042,7 @@ def _stock_hearer(result, player_input, target_id):
         return here[action_result["npc_id"]]  # it already came out of a mouth
     if target_id in here:
         return here[target_id]
-    if read.get("kind") == "speak_to":
+    if read.get("kind") in {"speak_to", "heavy_asked"}:  # D-109: an asked threat is for the one threatened
         return here.get(read["id"])
     if not (read.get("kind") == "talk_around" or npc_speech_boundary.player_supplied_quote(player_input)
             or (not read and _reads_as_address(player_input))):
@@ -19049,6 +19309,40 @@ def _addressed_in(player_input, *, or_the_talk=True):
     return found.get("npc") or (_active_interlocutor() if or_the_talk else None)
 
 
+def _front_recovery(player_input, listed):
+    """D-240: the front reading came back unusable. Two lines need no model: a plain yes to the one offer that is open
+    (the offer gate then checks it again against the line), and a plain walk out of town. Both go the way a read line
+    would; anything less clear stays with the old chain."""
+    import front_proposal
+    import grounded_action
+    import world_threads
+    session = _session()
+    world = session.world_state
+    if getattr(session, "_attack_asked", False) or getattr(session, "_heavy_asked", None):
+        return None  # a question put to the player is waiting for its answer
+    offers = listed["offers"]
+    offer = next((row for row in offers if row["person_id"] == listed["speaking_with"]), None) or (
+        offers[0] if len(offers) == 1 else None)
+    if offer is not None:
+        said = living_world.normalize_text(player_input).split()
+        named_elsewhere = any(
+            len(part) >= 3 and any(word.startswith(part[:4]) for word in said)
+            for row in offers if row is not offer
+            for part in (*living_world.normalize_text(next((p["name"] for p in listed["people"] if p["id"] == row["person_id"]), "")).split(),
+                         *living_world.normalize_text(row.get("item") or "").split()))
+        if named_elsewhere:
+            return None  # the line names another open offer's owner or thing: not for the one spoken to
+        person = next((npc for npc in active_npcs() if npc.get("id") == offer["person_id"]), None)
+        thread = world_threads.by_id(world, offer["id"])
+        if (person is not None and thread is not None and thread.get("status") == "offered"
+                and world_threads.says_yes_in_a_longer_line(player_input, person, thread)):
+            return {"kind": "offer_answer", "id": offer["id"], "person_id": offer["person_id"], "answer": "accept",
+                    "recovered": True}
+    if grounded_action.walks_out_of_town(session, player_input):
+        return {"kind": "go_to", "id": front_proposal.WAY_OUT, "inside": False}
+    return None
+
+
 def _front_step(player_input, target_id, interaction_mode, combat_action, check_feature):
     """Roadmap step 5: the model reads a free line once; Python checks its ids. None leaves the old chain."""
     import front_proposal
@@ -19058,7 +19352,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             or getattr(session, "_thread_gate_done", False)):
         return None
     fighting = world.get("combat", {}).get("active")
+    import dragonborn_breath
     if fighting and (combat_action is not None or combat_lifecycle.is_attack_decision(session, player_input)
+                     or dragonborn_breath.named(session, str(player_input))  # D-233: the breath is the engine's
                      or combat_lifecycle.is_flight(session, player_input)
                      or combat_lifecycle.is_standing_down(session, player_input)):
         return None  # a fight's own words need no reading
@@ -19114,17 +19410,27 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     session._front_reply = held
     if "front" not in reply:
         answered = len(reply) > 1  # a dead provider leaves only the bare unknown intent
-        front_proposal.note(session, "fallback:unusable" if reply.get("classifier_unusable")
-                            else "fallback:no_front" if answered else "fallback:failed", reached=answered)
+        label = ("fallback:unusable" if reply.get("classifier_unusable")
+                 else "fallback:no_front" if answered else "fallback:failed")
+        recovered = (None if fighting or typed_economic or label == "fallback:no_front"
+                     else _front_recovery(player_input, listed))
+        if recovered is not None:
+            front_proposal.note(session, f"{label}:{recovered['kind']}", reached=answered)
+            recovered["recovered_from"] = label  # the gate may still overrule: the label then goes back
+            return recovered
+        front_proposal.note(session, label, reached=answered)
         return None
     raw_front = reply.get("front")
+    session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
     session._front_economic_none = True  # only the validated owner may prepare room/gift cards in a front-enabled turn
-    economic = front_proposal.economic_route(reply, listed, target_id=target_id if typed_economic else None)
+    economic = front_proposal.economic_route(reply, listed, target_id=target_id if typed_economic else None,
+                                             line=player_input)
     if economic is not None:
         if fighting:
             front_proposal.note(session, "skipped:combat", reached=True)
             return None
-        session._front_coin = front_proposal.coin_in(reply, player_input) if economic["valid"] else 0
+        session._front_coin = front_proposal.coin_in(
+            reply, player_input, moves=economic["purpose"] in ("gift", "tip")) if economic["valid"] else 0
         session._front_economic_front = raw_front  # the owner route reads the model's `deal` from it, if it gave one
         front_proposal.note(session, "front:economic", reached=True)
         return economic
@@ -19152,10 +19458,15 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     import world_happenings
     import world_threads
     session._front_deed = front_proposal.deed_in(reply)
+    session._front_check = "" if fighting else front_proposal.check_in(reply, player_input)  # D-094
     session._front_found = front_proposal.found_in(reply, player_input)
     session._front_rest = front_proposal.rest_in(reply, player_input)
     world_threads.note_want(world, front_proposal.want_in(reply, listed))
     threatened = front_proposal.threat_in(reply, listed)
+    if threatened and not fighting and not _heavy_allowed("threat", player_input, person_id=threatened):
+        # D-109: a hurt tie is asked about first; nothing moves this turn (the dispatcher shows the question)
+        front_proposal.note(session, "front:heavy_asked", reached=True)
+        return {"kind": "heavy_asked", "what": "threat", "id": threatened, "deed": None, "said": str(player_input)}
     if threatened:
         world_happenings.threatened(world, world_threads._npc(world, threatened))
     session._front_coin = front_proposal.coin_in(reply, player_input)
@@ -19254,7 +19565,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
 
 # What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
 _PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
-                      "blow_asked", "which_move", "wait", "consume", "wield"}
+                      "blow_asked", "heavy_asked", "which_move", "wait", "consume", "wield"}  # D-109: asked moves nothing
 
 
 def _defer_spoken_coin_offer(route):
@@ -19530,6 +19841,48 @@ def _ask_about_the_blow(person_id, player_input="", with_word=""):
                               "outcome": "unconfirmed_blow", "state_changes": [], "direct_response": line}}
 
 
+def _heavy_allowed(what, player_input, *, person_id=None, deed=None):
+    """D-109: the asked crime or threat was answered yes, and this is the very line that was asked about."""
+    confirmed = getattr(_session(), "_heavy_confirmed", None)
+    return (isinstance(confirmed, dict) and confirmed.get("said") == str(player_input)
+            and [what, person_id, deed] in confirmed.get("allowed", []))
+
+
+def _ask_before_the_heavy(asked):
+    """D-109 (Kadir kararı 2026-11-15): a crime or a hurt tie is asked about first, in one short line; nothing moves.
+    Asked for this sitting only, as "kavga mı başlatıyorsun?" is; a yes plays the asked line again (see
+    ``_answered_heavy_question``). Eating and drinking are never asked: Undo takes those back."""
+    session = _session()
+    session._heavy_asked = {key: asked.get(key) for key in ("what", "id", "deed", "said")}
+    if asked["what"] == "threat":
+        who = next((npc for npc in active_npcs() if npc.get("id") == asked.get("id")), None)
+        name = living_world.public_npc_name(who) if who is not None else "o kişi"
+        line = f"Bu, {name} ile aranı bozar. Gerçekten tehdit ediyor musun? (evet/hayır)"
+    elif asked.get("deed") == "steal_look":  # D-224 review: the line looked; the reading alone said theft
+        line = "Yalnız bakmakla kalmayıp çalmaya mı çalışıyorsun? Bu bir suç olarak kayda geçer. (evet/hayır)"
+    else:
+        act = "çalıyor" if asked.get("deed") == "steal" else "ateşe veriyor"
+        line = f"Bu bir suç olarak kayda geçer. Gerçekten {act} musun? (evet/hayır)"
+    return {"messages": session.messages, "narration": line, "model_calls": 0,
+            "action_result": {"action": "narrative", "status": "clarification", "success": False,
+                              "outcome": f"unconfirmed_{asked['what']}", "state_changes": [], "direct_response": line}}
+
+
+def _answered_heavy_question(player_input):
+    """D-109: a yes to the asked crime or threat is the asked line, now allowed; anything else forgets the question."""
+    session = _session()
+    asked, session._heavy_asked = getattr(session, "_heavy_asked", None), None
+    given, session._heavy_confirmed = getattr(session, "_heavy_confirmed", None), None
+    if isinstance(asked, dict) and combat_lifecycle._says_yes(session, player_input):
+        # D-109 review: a second question on the same line keeps the first yes (else the two would ask in turn forever);
+        # the threat played again is not a second threat: its tie is made once while it is coming (world_happenings.tie)
+        kept = given.get("allowed", []) if isinstance(given, dict) and given.get("said") == asked["said"] else []
+        session._heavy_confirmed = {"said": asked["said"],
+                                    "allowed": [*kept, [asked["what"], asked["id"], asked["deed"]]]}
+        return asked["said"]
+    return player_input
+
+
 def _ask_which_move(person_id):
     """A yes to a blow whose words name no move the engine has (a trip): the real moves are offered, nothing rolls."""
     session = _session()
@@ -19570,8 +19923,11 @@ def front_read_ahead(player_input, target_id=None, interaction_mode=None):
     session = _session()
     session._front_ahead = False
     session._counter_held = None  # only this turn's reading may hold coin back for an open offer
+    if not getattr(session, "_heavy_asked", None):
+        session._heavy_confirmed = None  # D-109 review: a yes is spent with its turn; this line was never asked
     if (not front_proposal.enabled() or session.character.get("current_hp", 0) <= 0 or ensure_death_state()["dead"]
-            or getattr(session, "_attack_asked", False) or not isinstance(player_input, str)
+            or getattr(session, "_attack_asked", False) or getattr(session, "_heavy_asked", None)
+            or not isinstance(player_input, str)
             or _is_end_conversation_request(player_input)):
         return None
     interaction_mode = _normalize_interaction_mode(interaction_mode)
@@ -19713,6 +20069,40 @@ def _front_wield(route, player_input):
     refusals.note(session, "nothing_to_draw", have=have)
 
 
+def _word_root(word):
+    """A word cut to a root that still meets its endings ('takımı' 'takımını', 'emanet' 'emanetini'); short words whole."""
+    return word if len(word) <= 5 else word[:max(5, len(word) - 2)]
+
+
+def _coin_not_parcel(session, world, person, item_id, player_input):
+    """D-239: the line holds out coin, says money ('bahşiş', 'hediye', 'para'), or the reading gave it a money deal, and
+    it names no parcel this person could take: no word of it meets the parcel's head noun ('duyurusu' of 'yol kapanışı
+    duyurusu', never 'yol') or a parcel word ('mektup', 'paket', 'emanet'; 'bunu' only points)."""
+    import front_proposal
+    if (money_owner.current(session) is None and not front_proposal.names_coin(player_input)
+            and not front_proposal.says_money(player_input)):
+        return False
+    if item_id is not None and not item_id.startswith("parcel:"):
+        return False  # a plain thing from the bag goes only if the line means it (_line_gives)
+    return _names_no_parcel(world, person, item_id, player_input)
+
+
+def _names_no_parcel(world, person, item_id, player_input):
+    """No word of the line meets a parcel this person could take (see `_coin_not_parcel`)."""
+    import world_threads
+    from adventure import dialogue_jobs
+    threads = ([world_threads.parcel_thread(world, item_id)] if item_id is not None
+               else [job for job in [*world_threads.deliveries_to(world, person),
+                                     *world_threads.late_parcels(world, person)]
+                     if dialogue_jobs.holds_parcel(world, job)])
+    table = world_threads.answer_table()
+    roots = {_word_root(word) for word in set(table["item_words"]) - set(table["pointing"])}
+    roots |= {_word_root(noun[-1]) for job in threads if job is not None
+              for noun in [living_world.normalize_text(job.get("item_noun")).split()] if noun}
+    words = living_world.normalize_text(living_world._text_outside_quotes(player_input)).split()
+    return not any(word.startswith(root) for root in roots for word in words)
+
+
 def _front_hand_over(route, player_input):
     """The model read a hand-over and named a listed thing. Python moves it; failing that the person hears the line."""
     import town_knowledge
@@ -19725,7 +20115,14 @@ def _front_hand_over(route, player_input):
         return None
     heard = {"decision": None, "npc_id": person["id"]}
     item_id = route["item"]
-    asked = "?" in player_input or world_threads.says_later(player_input)
+    if _coin_not_parcel(session, world, person, item_id, player_input):
+        return heard  # D-239: a tip or coin that names no parcel is money for its card, never the job's delivery
+    if world_threads.refuses_hand_over(player_input, lambda clause: not _names_no_parcel(world, person, item_id, clause)):
+        # D-276: 'takımı getirmedim', 'paketi vermiyorum': said, not done. Only a 'not' on the coin alone beside a plain
+        # hand-over ('takımı getirdim, bahşiş vermiyorum') refuses no parcel. Nothing changes hands; the person hears so.
+        refusals.note(session, "hand_over_refused", npc_id=person["id"])
+        return heard
+    asked ="?" in player_input or world_threads.says_later(player_input)
     due = dialogue_jobs.due_parcel(world, person) if item_id is None and not asked else None
     if item_id is None and not asked and due is None and any(
             dialogue_jobs.holds_parcel(world, job) for job in world_threads.deliveries_to(world, person)):
@@ -19874,6 +20271,10 @@ def _dispatch_player_turn(
                                              "do", action_id)
     _reopen_public_doors()
     player_input = combat_lifecycle.answered_attack_question(_session(), player_input)
+    player_input = _answered_heavy_question(player_input)  # D-109
+    ahead = getattr(_session(), "_front_read", None) if getattr(_session(), "_front_ahead", False) else None
+    if isinstance(ahead, dict) and ahead.get("kind") == "heavy_asked":
+        return _ask_before_the_heavy(ahead)  # D-109: read ahead of the turn; asked before any owner answers
     surrender_answer = (combat_lifecycle.answered_surrender_question(_session(), player_input)
                         if combat_action is None else None)
     if surrender_answer is not None:
@@ -19940,8 +20341,17 @@ def _dispatch_player_turn(
         read = _front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
         _session()._front_read = read
         _session()._front_ahead = True
+    if read is not None and read.get("kind") == "heavy_asked":
+        return _ask_before_the_heavy(read)  # D-109: asked, nothing moved
     if getattr(_session(), "_front_strike", None):
         target_id, interaction_mode = _session()._front_strike["id"], "do"
+    elif (target_id is not None and combat_action is None
+          and not _session().world_state.get("combat", {}).get("active")):
+        import bold_acts
+        if bold_acts.is_act_not_talk(_session(), player_input):
+            # D-172: with the person chosen by the talk button, a scare or a look-over is still an act on them, not a
+            # line to them; it takes the same route as without the button, so the dice and the narrator answer.
+            interaction_mode, target_id = "do", None
     import spell_effects
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"}
             and not getattr(_session(), "_front_strike", None) and spell_effects.named(player_input) is not None):
@@ -19978,7 +20388,12 @@ def _dispatch_player_turn(
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and not confessed
             and not _session().world_state.get("combat", {}).get("active")):
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            bold = bold_acts.resolve(_session(), player_input, getattr(_session(), "_front_deed", None))
+            deed = getattr(_session(), "_front_deed", None)
+            bold = bold_acts.resolve(
+                _session(), player_input, deed,
+                # D-109: a crime is asked about first, whether the reading or the old words (no reading) found it
+                ask=lambda act: None if _heavy_allowed("deed", player_input, deed=act)
+                else _ask_before_the_heavy({"what": "deed", "id": None, "deed": act, "said": str(player_input)}))
         if bold is not None:
             return bold
     elif (combat_action is None and interaction_mode == "say" and isinstance(player_input, str)
@@ -20014,7 +20429,9 @@ def _dispatch_player_turn(
                     "direct_response": question,
                 },
             }
-    if read is not None and read["kind"] == "bag":
+    # D-095: "muhafızın kesesi var mı diye inceliyorum" is about someone else's purse; never answer with the player's
+    if read is not None and read["kind"] == "bag" and not _SOMEONE_ELSES_PURSE.search(
+            _normalize_turkish_typos(living_world._text_outside_quotes(player_input))):
         listed = equipment_economy.execute(_session(), "çantamda ne var")
         if listed is not None:
 
@@ -20060,7 +20477,9 @@ def _dispatch_player_turn(
             return standing
         _session()._coin_paid = None  # coin held out for an open offer is never a gift, even when the offer closed
     if front is not None and front["kind"] == "speak_to":
-        interaction_mode, target_id = "say", front["id"]
+        import bold_acts
+        if target_id is not None or not bold_acts.is_act_not_talk(_session(), player_input):  # D-098, D-099: an act
+            interaction_mode, target_id = "say", front["id"]
     if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None and front is None
             and _ENDS_IN_SPEECH.search(_normalize_turkish_typos(player_input))):
         hearer = _active_interlocutor()  # "dedim sana" is said to the one already being talked to
@@ -20077,6 +20496,10 @@ def _dispatch_player_turn(
                     else _front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
                     else _front_work(front, player_input) if front is not None and front["kind"] == "work"
                     else _thread_gate(player_input, target_id, interaction_mode, front=front))
+        if front is not None and front.get("recovered_from") and front["kind"] == "offer_answer" and not (
+                gate is not None and gate.get("decision") == "accepted"):
+            import front_proposal
+            front_proposal.note(_session(), front["recovered_from"])  # the gate did not take the yes: no recovery to claim
         if gate is not None and gate.get("reply") is not None:
             return gate["reply"]
         if gate is not None and gate.get("paid_line"):
@@ -20179,7 +20602,9 @@ def _dispatch_player_turn(
             return hideout
         # Read as talk, a look or sitting down: the words of a line walk nowhere. The route log shows these lost all traffic.
         talk = front is not None and front["kind"] in {"talk_around", "look", "sit"}
-        scene = None if talk else _adventure_scene_turn(player_input)
+        # D-123: the quest shortcut's rolls (a check, the road's Survival) belong to this turn like any journey's.
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            scene = None if talk else _adventure_scene_turn(player_input)
         if scene is not None:
             return scene
         # LR00 fix: read a local physical action once, bind it to a real target
@@ -20760,6 +21185,13 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             resolved_turn.fallback_response if narration_only else None
         ),
     )
+    if resolved_turn.action_result.get("action") == "narrative_spell" and isinstance(packet.get("item_claims"), list):
+        # D-067: the cast moved nothing, so a thing the narrator says changed hands is never committed: its sentence
+        # leaves first (the rest of the line stays), and a line that was all claim is the Python line.
+        import pocket
+        for claim in packet["item_claims"]:
+            finalized_narration = pocket.without_claim(_session().world_state, claim, finalized_narration)
+        finalized_narration = finalized_narration or resolved_turn.fallback_response
     import spell_effects
     if (resolved_turn.action_result.get("action") == "narrative_spell"
             and spell_effects.claims_state_change(finalized_narration)):
@@ -23130,9 +23562,10 @@ def _run_player_turn_internal(
                                 world_state, npc_target, player_input, cleaned_stage, stage=True)
                     settled_money = _settle_spoken_commitment(
                         world_state, npc_target, player_input, raw_intent.get("commitment"), cleaned_spoken,
-                        threat=raw_intent.get("threat"),
+                        threat=raw_intent.get("threat"), persuade=_coin_persuasion(action_result), stage=cleaned_stage,
                     )
                     cleaned_spoken = settled_money["spoken"]
+                    cleaned_stage = settled_money["stage"]  # D-264: a coin ask cleans the gesture as it cleans the line
                     if getattr(_session(), "_empty_handed", False):
                         cleaned_stage = ""  # nothing was held out, so no gesture takes it
                     elif settled_money.get("unbacked"):
@@ -23249,7 +23682,24 @@ def _run_player_turn_internal(
             if stock_swapped:
                 # A clear line never earns "say it again": the person answers from what Python has for them.
                 text = _person_fallback(world_state, npc_target, player_input)
+            speech_checks = None
             if experimental_npc_dialogue:
+                # D-252: the names of the checks that changed or replaced this reply, for the route log. Never words.
+                kept = attributed_speech["spoken_text"].strip() if attributed_speech else ""
+                said = raw_spoken.strip() if isinstance(raw_spoken, str) else ""
+                speech_checks = [name for name, fired in (
+                    ("invalid_or_empty", invalid_or_empty),
+                    ("spoken_trimmed", attributed_speech is not None and kept != said),
+                    ("history_echo", unverified_history_echo),
+                    ("world_updates", bool(raw_intent.get("world_updates"))),
+                    ("lore_claims", bool(raw_intent.get("lore_claims"))),
+                    ("unsafe", not invalid_or_empty and not interaction_adventure.safe_narration(text_before_finalize)),
+                    ("python_town_lead", python_town_response is not None),
+                    ("finalize_changed", text != text_before_finalize and not stock_swapped),
+                    ("stock_swapped", stock_swapped),
+                ) if fired]
+                if final_safety_reason_code:
+                    speech_checks.append(f"safety:{str(final_safety_reason_code)[:40]}")
                 _speech_debug_trail({
                     "player": player_input,
                     "npc_id": npc_target.get("id"),
@@ -23291,6 +23741,9 @@ def _run_player_turn_internal(
                 accepted_model_speech = False
                 text = (_job_fallback(world_state) or _town_fallback(world_state, npc_target, player_input)
                         or interaction_adventure.immersive_unknown(npc_target, player_input))
+                speech_checks.append("unbacked_money")
+            if speech_checks is not None:
+                _session()._speech_checks = speech_checks
             if experimental_unverified_claim:
                 action_result.update(status="unverified", success=False)
             if experimental_npc_dialogue:
@@ -23331,12 +23784,15 @@ def _run_player_turn_internal(
                 if experimental_npc_dialogue:
                     terms = _offer_terms_shown(world_state, npc_target, player_input, text)
                     if terms:
-                        text = f"{text} “{terms}”"
+                        # D-247: a stock "I don't know" never sits beside the job's own terms; the terms are the answer.
+                        bare = text == interaction_adventure.immersive_unknown(npc_target, player_input)
+                        text = f"{living_world.public_npc_name(npc_target)}, “{terms}”" if bare else f"{text} “{terms}”"
                     _remember_experimental_npc_speech(
                         npc_target["id"], player_input, text, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True
                     )
                     if settled_money.get("note"):
                         text = f"{text} {settled_money['note']}"
+                _show_coin_roll(action_result, settled_money.get("check"))  # D-166: the roll shows, reply used or not
                 return finish_turn(
                     action_result, text, is_final=True,
                     safety_reason_code=(
@@ -23368,6 +23824,7 @@ def _run_player_turn_internal(
                                                   player_input, npc_target=npc_target, target_id=target_id)
                     if price_result.get("action") == "skill_check":
                         action_result.update(price_result)
+            _show_coin_roll(action_result, settled_money.get("check"))  # D-166: the coin ask's own roll shows
             if experimental_npc_dialogue:
                 spoken = attributed_speech["spoken_text"] if accepted_model_speech else text
                 terms = _offer_terms_shown(world_state, npc_target, player_input, spoken)
@@ -23386,9 +23843,13 @@ def _run_player_turn_internal(
             )
         validated_intent = {"intent": "dialogue"}
     else:
-        if npc_target is not None and _is_object_inspection(player_input):
+        import bold_acts
+        if npc_target is not None and (_is_object_inspection(player_input)
+                                       or (target_id is None and bold_acts.is_act_not_talk(_session(), player_input))):
             # "Merak etme Sera, sadece kilide bakacağım": the act is looking at
             # the lock; a name in passing must not demand a conversation.
+            # D-098, D-099: "muhafızı korkutmaya çalışıyorum", "muhafızın üstünü inceliyorum" are acts on them, not
+            # words to them; the dice or the narrator answer, never a stock "I heard you".
             npc_target = None
         intent_source = "model"
         if classifier_unusable:
@@ -23712,6 +24173,8 @@ class GameSession:
         self.last_arrival_narration = None
         self.narration_safety_history = []
         self._xp_level_up = None
+        self._xp_unrecorded = []
+        self._xp_unrecorded_awards = []  # this turn's forfeited awards: (receipt ids, amount shown) — one line each
         self._persisted_engine_format = SAVE_FORMAT_VERSION
 
     def _receive_xp_award(self, award_owner, *args, **kwargs):
@@ -23737,15 +24200,30 @@ class GameSession:
             raise
 
     def _admit_xp_award(self, award_owner, *args, **kwargs):
+        held = self.world_state.get("xp_awarded_event_ids")
+        held = set(held) if isinstance(held, list) else set()
+        format_before = getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION)
         summary = award_owner(*args, **kwargs)
         crossing = (isinstance(summary, dict) and summary.get("xp_gained", 0) > 0
                     and summary.get("previous_level", 5) < 5 <= summary.get("new_level", 0))
-        if crossing and getattr(self, "_persisted_engine_format", SAVE_FORMAT_VERSION) not in _SUPPORTED_SAVE_VERSIONS:
-            raise ValueError("Numeric advancement requires a supported save format.")
+        if crossing:
+            written = [event_id for event_id in self.world_state.get("xp_awarded_event_ids", [])
+                       if event_id not in held]  # this award's receipts: a retry of it is the same award (D-061)
+        if crossing and format_before not in _SUPPORTED_SAVE_VERSIONS:
+            import xp
+            raise xp.UnrecordableXp(summary["xp_gained"], xp.REASON_OLD_SAVE, written)
         self._remember_xp_award(summary)
         if crossing:
             # Read through the real production admission owner before commit.
-            self._validate_save_payload(self.serialize_game_state())
+            try:
+                self._validate_save_payload(self.serialize_game_state())
+            except ValueError as error:
+                import xp
+                # D-061: the forfeit boundary checks the record before the award, so a refusal the award did not
+                # cause is raised, not forfeited (``__cause__`` carries the admission's own error). Only a record
+                # still on an older format is told it is an old save.
+                reason = xp.REASON_CROSSING if format_before == 6 else xp.REASON_OLD_SAVE
+                raise xp.UnrecordableXp(summary["xp_gained"], reason, written) from error
         return summary
 
     def _forfeit_unrecordable_xp(self, award_owner, *args, **kwargs):
@@ -23757,30 +24235,66 @@ class GameSession:
         container a caller holds (the fight being ended, the creature just knocked out, ``saving_throw_mods``) stays
         the live object, and whatever the award or the save check wrote (receipts, level, the save check's
         ``scene_state`` default-fill) is undone. The pending announcement and the save format are put back too. The RNG
-        and the narration history are not touched by an award and are not restored. A non-ValueError is a bug: put
-        back, raised.
+        and the narration history are not touched by an award and are not restored.
+
+        D-061: only a known refusal (``xp.UnrecordableXp``) is forfeited; it leaves one player line for this turn
+        (``_take_xp_unrecorded``). Any other error is a bug: put back, raised, and the turn falls back whole. A level-5
+        admission refusal counts as known only when the record before the award passes the same admission.
         """
+        import xp
         character = copy.deepcopy(self.character)
         world = copy.deepcopy(self.world_state)
         pending = copy.deepcopy(self._xp_level_up)
         had_format = "_persisted_engine_format" in self.__dict__
         old_format = copy.deepcopy(self.__dict__.get("_persisted_engine_format"))
-        try:
-            return self._admit_xp_award(award_owner, *args, **kwargs)
-        except Exception as error:
-            _restore_in_place(self.character, character)
-            _restore_in_place(self.world_state, world)
-            self._xp_level_up = pending
+
+        def put_back(saved_character, saved_world):
+            _restore_in_place(self.character, saved_character)
+            _restore_in_place(self.world_state, saved_world)
+            self._xp_level_up = copy.deepcopy(pending)
             if had_format:
                 self._persisted_engine_format = old_format
             else:
                 self.__dict__.pop("_persisted_engine_format", None)
-            if not isinstance(error, ValueError):
+
+        try:
+            return self._admit_xp_award(award_owner, *args, **kwargs)
+        except Exception as error:
+            put_back(copy.deepcopy(character), copy.deepcopy(world))
+            if not isinstance(error, xp.UnrecordableXp):
                 raise
+            if isinstance(error.__cause__, ValueError):
+                try:
+                    self._validate_save_payload(self.serialize_game_state())
+                except ValueError:
+                    put_back(character, world)
+                    raise error.__cause__  # the record was refused before the award: not the award's doing
+                put_back(character, world)  # the check's own default-fill (``scene_state``) goes back too
             import logging
             logging.getLogger(__name__).warning("An experience award could not be recorded and is forfeited (B1): %s",
                                                 error)
+            self._note_unrecorded_xp(error)
             return None
+
+    def _note_unrecorded_xp(self, error):
+        """One line per forfeited award this turn (D-061). An award tried again in the same turn (a creature knocked
+        out, then counted again when the fight ends) adds no second line; a retry that also holds new receipts shows
+        only the amount not shown yet."""
+        import xp
+        ids = set(error.event_ids)
+        shown = list(getattr(self, "_xp_unrecorded_awards", []))
+        if ids and ids <= {event_id for earlier, _ in shown for event_id in earlier}:
+            return
+        amount = error.amount - sum(earlier_amount for earlier, earlier_amount in shown if ids and set(earlier) <= ids)
+        self._xp_unrecorded_awards = [*shown, (sorted(ids), amount)]
+        self._xp_unrecorded = [*getattr(self, "_xp_unrecorded", []), str(xp.UnrecordableXp(amount, error.reason))]
+
+    def _take_xp_unrecorded(self):
+        """This turn's lines for forfeited awards ("<X> XP kaydedilemedi: <neden>."), then forget them (D-061)."""
+        lines = list(getattr(self, "_xp_unrecorded", []))
+        self._xp_unrecorded = []
+        self._xp_unrecorded_awards = []
+        return lines
 
     def _remember_xp_award(self, summary):
         """Fold another award into the single announcement for this turn."""
@@ -23824,8 +24338,18 @@ class GameSession:
             "messages": copy.deepcopy(self.messages),
             "rng_state": self.rng.getstate(),
             "xp_level_up": copy.deepcopy(self._xp_level_up),
+            "xp_unrecorded": list(getattr(self, "_xp_unrecorded", [])),
+            "xp_unrecorded_awards": copy.deepcopy(getattr(self, "_xp_unrecorded_awards", [])),
             "persisted_engine_format_present": "_persisted_engine_format" in self.__dict__,
             "persisted_engine_format": copy.deepcopy(self.__dict__.get("_persisted_engine_format")),
+            # D-115: the open "kavga mı başlatıyorsun?" question goes back with the turn that asked it.
+            "attack_question": (getattr(self, "_attack_asked", False), copy.deepcopy(getattr(self, "_blow_asked", None)),
+                                copy.deepcopy(getattr(self, "_blow_asked_line", None))),
+            # D-115: so does the surrendered-foe question ("Yine de vuruyor musun?").
+            "surrender_question": copy.deepcopy(getattr(self, "_surrender_strike_asked", None)),
+            # D-109: and the crime/threat question ("Gerçekten çalıyor musun?").
+            "heavy_question": copy.deepcopy(getattr(self, "_heavy_asked", None)),
+            "heavy_yes": copy.deepcopy(getattr(self, "_heavy_confirmed", None)),
         }
 
     def _restore_runtime_snapshot(self, snapshot):
@@ -23845,10 +24369,16 @@ class GameSession:
         self.recent_dm_narrations[:] = restored["recent_dm_narrations"]
         self.messages[:] = restored["messages"]
         self._xp_level_up = restored.get("xp_level_up")
+        self._xp_unrecorded = restored.get("xp_unrecorded", [])
+        self._xp_unrecorded_awards = restored.get("xp_unrecorded_awards", [])
         if restored.get("persisted_engine_format_present", False):
             self._persisted_engine_format = restored["persisted_engine_format"]
         else:
             self.__dict__.pop("_persisted_engine_format", None)
+        self._attack_asked, self._blow_asked, self._blow_asked_line = restored.get("attack_question", (False, None, None))
+        self._surrender_strike_asked = restored.get("surrender_question")
+        self._heavy_asked = restored.get("heavy_question")
+        self._heavy_confirmed = restored.get("heavy_yes")
 
     def resolve_ambient_event_action(
         self,
@@ -23943,7 +24473,8 @@ class GameSession:
         existing = next((item for item in self.world_state["quests"]
                          if item.get("quest_id") == quest_id), None)
         if existing is not None and existing.get("record_kind") == "dynamic":
-            return adventure_play.abandon(self, quest_id)
+            from adventure import dialogue_jobs
+            return dialogue_jobs.cancel_job(self, existing)
         if existing is None:
             definition = next(
                 (item for item in self.quest_offers() if item["quest_id"] == quest_id),
@@ -24048,7 +24579,7 @@ class GameSession:
                            for item in quest["objectives"]):
                         quest["status"] = "completed"
                         import xp
-                        self._receive_xp_award(
+                        self._forfeit_unrecordable_xp(  # D-060: a refused award is forfeited with a line, not a rejected turn
                             xp.award_completed_quest, world, self.character, quest["quest_id"]
                         )
                         transitions.append(self._quest_transition(
@@ -24059,13 +24590,14 @@ class GameSession:
         transitions.extend(_dynamic_engine_transitions(
             adventure.apply_dynamic_evidence(world, before_world, action_result),
             world,
+            before_world,
         ))
         adventure_play.after_turn(self, before_world, action_result)
         incident_hooks.after_turn(self, before_world, action_result)
         return transitions
 
 
-def _dynamic_engine_transitions(notes, world):
+def _dynamic_engine_transitions(notes, world, before_world=None):
     """Shape dynamic completions for the existing engine-evidence contract."""
     turn = world.get("flags", {}).get("turn_index", 0) if isinstance(world, dict) else 0
     if type(turn) is not int:
@@ -24090,6 +24622,16 @@ def _dynamic_engine_transitions(notes, world):
         if quest_id not in touched:
             touched.append(quest_id)
     quests = world.get("quests", []) if isinstance(world, dict) else []
+    before_status = {
+        item.get("quest_id"): item.get("status")
+        for item in (before_world.get("quests", []) if isinstance(before_world, dict) else [])
+        if isinstance(item, dict)
+    }
+    for quest in quests:  # a job closed with no new step this turn (steps kept before acceptance, D-203)
+        quest_id = quest.get("quest_id") if isinstance(quest, dict) else None
+        if (isinstance(quest_id, str) and quest_id not in touched and quest.get("status") == "COMPLETED"
+                and before_status.get(quest_id) not in {None, "COMPLETED"}):
+            touched.append(quest_id)
     for quest_id in touched:
         quest = next(
             (

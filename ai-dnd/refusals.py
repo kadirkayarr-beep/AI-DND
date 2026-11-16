@@ -26,6 +26,7 @@ REFUSAL_TEXT: dict[str, str] = {
     "parcel_not_here": "olmadı: {item} burada değil",
     "which_parcel": "olmadı: hangi işin eşyasını kastettiğin belli değil",
     "which_item_to_give": "olmadı: hangi eşyayı verdiğin belli değil",
+    "hand_over_refused": "olmadı: teslim etmediğini söyledin; eşya sende kaldı, hiçbir şey el değiştirmedi",
     "approach_short": "{left} feet daha var; bu tur bu kadar yaklaşabildin.",
     "no_exit": "Buradan çıkış yok; dövüşmeye devam edebilirsin.",
     # The same, while a guard is arresting the player (a world_reactions hold with arrest).

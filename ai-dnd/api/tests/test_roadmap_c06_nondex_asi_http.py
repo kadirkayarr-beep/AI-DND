@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 import httpx
+import equipment_economy
 from api.auth import FixedAuthenticator
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
@@ -60,14 +61,15 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(manager.get(resumed['session_id']).game_session.serialize_game_state(),s.serialize_game_state())
 
     async def test_old_actual_con_receipt_replays_without_schema_hash_drift(self):
-        fixture=json.loads(FIXTURE.read_text())
+        fixture=json.loads(FIXTURE.read_text(encoding='utf-8'))
         path=Path(self.temporary_directory.name)/'old-con.sqlite3'
         with sqlite3.connect(path) as connection:
             connection.executescript(fixture['sqlite_dump'])
             connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
-        store=CampaignStore(path,bound_principal=TEST_PLAYER); manager=SessionManager(campaign_store=store)
+        store=CampaignStore(path,bound_principal=TEST_PLAYER,allow_schema_migration=True); manager=SessionManager(campaign_store=store)  # D-125: frozen older file, approved migration
         sid,r,*_=manager.resume_campaign(fixture['campaign']['campaign_id'])
-        self.assertEqual(r.game_session.serialize_game_state(),fixture['runtime'])
+        runtime=copy.deepcopy(fixture['runtime']);equipment_economy.give_old_save_gear(runtime['world_state'])  # D-231: the one additive load-time write
+        self.assertEqual(r.game_session.serialize_game_state(),runtime)
         literal={'command':'level_up', **{k:v for k,v in fixture['request'].items() if k!='action_id'}}
         self.assertEqual(digest(literal),fixture['request_hash'])
         app=create_app(session_manager=manager,authenticator=FixedAuthenticator(TEST_PLAYER))
@@ -77,7 +79,7 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code,200,response.text)
         expected=copy.deepcopy(fixture['response']);expected['session_id']=sid
         self.assertEqual(response.json(),expected)
-        self.assertEqual(r.game_session.serialize_game_state(),fixture['runtime'])
+        self.assertEqual(r.game_session.serialize_game_state(),runtime)
         self.assertEqual(manager.get_turn_action(r,fixture['request']['action_id'])['request_hash'],fixture['request_hash'])
 
     async def test_invalid_shapes_reject_before_claim_without_partial_asi(self):
@@ -192,7 +194,7 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
 
 
     async def test_live_options_expand_without_mutating_old_recorded_preview(self):
-        fixture=json.loads(FIXTURE.read_text())
+        fixture=json.loads(FIXTURE.read_text(encoding='utf-8'))
         self.assertEqual(fixture['preview']['supported_asi_choices'],[{'feat':'Ability Score Improvement','increase':{'constitution':2}}])
         body,r=await self.earned();before=r.game_session._capture_runtime_snapshot()
         preview=await self.ready(body)

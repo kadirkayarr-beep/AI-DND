@@ -214,6 +214,219 @@ class QuestDelivery(JourneyCase):
         self.assertEqual(self.world["inventory"], before["inventory"])
         self.assertIn((self.tuna, "olmadı: hangi eşyayı verdiğin belli değil"), self.notes())
 
+    # --- D-239: a tip or a coin line with a parcel due is money, never the delivery ----------------------------------
+    def assert_not_delivered(self):
+        self.assertEqual((self.bag(), self.open_quests()), ({"İade takımı": 1}, [self.quest_id]))
+        self.assertEqual((self.thread()["status"], self.thread().get("paid_cp"), len(self.paid_rows())),
+                         ("accepted", 0, 0))
+        self.assertEqual(self.rows("delivered"), [])
+
+    async def test_d239_a_tip_line_with_no_parcel_named_delivers_nothing(self):
+        # Zack seq 36: "bahşiş veriyorum" was read as an idless hand-over; the one parcel due went, paid and closed
+        await self.accept(); await self.at_recipient()
+        await self.say("bahşiş veriyorum",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "deal": "tip"})
+        self.assert_not_delivered()
+        self.assertEqual(self.purse(), 100)
+
+    async def test_d239_coin_held_out_with_no_parcel_named_delivers_nothing(self):
+        await self.accept(); await self.at_recipient()
+        await self.say("Tuna, sana 5 bakır bahşiş veriyorum",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "deal": "tip",
+                              "coin_cp": 5})
+        self.assert_not_delivered()
+        self.assertEqual(self.purse(), 100)                              # no job pay; the tip waits for its card
+        live = self.observed()
+        self.assertEqual(self.reloaded_observed(), live)
+        await self.undo()
+        self.assertEqual((self.purse(), self.bag(), self.open_quests()), (100, {"İade takımı": 1}, [self.quest_id]))
+        self.assertEqual(self.reloaded_observed(), self.observed())
+
+    async def test_d239_a_tip_read_with_the_parcel_id_delivers_nothing(self):
+        # the guide asks for the parcel's id when the bag holds one; a tip line that names no parcel still hands none
+        await self.accept(); await self.at_recipient()
+        await self.say("bahşiş veriyorum",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id, "deal": "tip"})
+        self.assert_not_delivered()
+        self.assertEqual(self.purse(), 100)
+
+    async def test_d239_a_tip_or_gift_line_with_no_money_reading_delivers_nothing(self):
+        # review: a bare hand-over reading (no deal, no coin) on the line's own money words still delivered
+        await self.accept(); await self.at_recipient()
+        for line in ("bahşiş veriyorum", "sana küçük bir hediye veriyorum", "biraz harçlık veriyorum"):
+            with self.subTest(line=line):
+                await self.say(line, front={"kind": "hand_over"})
+                self.assert_not_delivered()
+                self.assertEqual(self.purse(), 100)
+
+    async def test_d239_a_common_word_in_the_parcel_name_does_not_name_it(self):
+        # review: 'yol kapanışı duyurusu' matched 'yolun', 'bir saat değişikliği notu' matched 'saat'
+        await self.accept(); await self.at_recipient()
+        for noun, line in (("yol kapanışı duyurusu", "Tuna, al şu 5 bakırı bahşiş olarak, yolun açık olsun"),
+                           ("bir saat değişikliği notu", "saat geç oldu, bahşiş veriyorum")):
+            with self.subTest(noun=noun):
+                self.thread()["item_noun"] = noun
+                self.save()
+                await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none",
+                                            "deal": "tip"})
+                self.assert_not_delivered()
+                self.assertEqual(self.purse(), 100)
+
+    async def test_d239_a_parcel_word_with_an_ending_names_the_parcel(self):
+        # review: 'emanetini' was not a parcel word (whole-word list), so a coin line naming the parcel did not deliver
+        await self.accept(); await self.at_recipient()
+        await self.say("Tuna, emanetini getirdim, al şu 2 bakırı da",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "deal": "tip",
+                              "coin_cp": 2})
+        self.assertEqual((self.bag(), self.open_quests(), self.thread()["status"]), ({}, [], "done"))
+        self.assertEqual((self.thread()["paid_cp"], len(self.paid_rows())), (12, 1))
+
+    async def test_d239_the_parcel_note_tells_the_reader_a_tip_is_no_hand_over(self):
+        # the note asked for hand_over on 'veriyorum' alone, so 'bahşiş veriyorum' read as the parcel going
+        note = front_proposal._at_hand({"offers": [], "jobs": [], "bag": [{"id": "parcel:q1", "name": "Mektup"}]})
+        self.assertIn("Yalnız para ya da bahşiş veriyorsa bu teslim değildir", note)
+
+    async def test_d239_a_coin_line_that_names_the_parcel_still_delivers(self):
+        await self.accept(); await self.at_recipient()
+        await self.say("Tuna, iade takımını getirdim, bir de 2 bakır bahşiş veriyorum",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "deal": "tip",
+                              "coin_cp": 2})
+        self.assertEqual((self.bag(), self.open_quests(), self.thread()["status"]), ({}, [], "done"))
+        self.assertEqual((self.thread()["paid_cp"], len(self.paid_rows())), (12, 1))
+
+    # --- D-276: a line that refuses the hand-over hands nothing over and pays nothing ---------------------------------
+    _REFUSED = "olmadı: teslim etmediğini söyledin; eşya sende kaldı, hiçbir şey el değiştirmedi"
+    _REFUSING_LINES = ("takımı getirmedim", "takımı vermiyorum, bahşiş veriyorum", "paketi vermeyeceğim",
+                       "koliyi teslim etmiyorum", "henüz getirmedim", "Tuna, iade takımını sana veremem",
+                       "takımı getirmedim ama bahşiş veriyorum", "takım bende, henüz getirmedim bahşiş de yok")
+
+    async def test_d276_a_refusing_line_read_with_the_parcel_id_delivers_nothing(self):
+        # re-review probe N1/N2: the reading gave hand_over + the parcel's id; the purse went to 112 and the job closed
+        await self.accept(); await self.at_recipient()
+        for line in self._REFUSING_LINES:
+            with self.subTest(line=line):
+                await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id})
+                self.assert_not_delivered()
+                self.assertEqual(self.purse(), 100)
+                self.assertIn((self.tuna, self._REFUSED), self.notes())
+                await self.undo()                                          # each line starts from the same record
+
+    async def test_d276_a_refusing_line_read_with_no_id_delivers_nothing(self):
+        # idless: the one parcel due to Tuna used to go on any hand-over reading
+        await self.accept(); await self.at_recipient()
+        for line in self._REFUSING_LINES:
+            with self.subTest(line=line):
+                await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none"})
+                self.assert_not_delivered()
+                self.assertEqual(self.purse(), 100)
+                await self.undo()
+
+    async def test_d276_the_word_reader_reads_no_hand_over_in_a_refusing_line(self):
+        # the old reader took 'teslim' with a parcel word as the hand-over, whatever ending the verb had
+        await self.accept(); await self.at_recipient()
+        tuna = self.person(self.tuna)
+        for line in ("takımı teslim etmiyorum", "paketi teslim etmedim", "takımı bırakmıyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(world_threads.gives_item(line, tuna, self.thread()))
+                self.assertIsNone(world_threads.turn_gate(self.world, tuna, line))
+        for line in ("takımı teslim ediyorum", "paketi getirdim", "takımı getirdim ama bahşiş vermiyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(world_threads.gives_item(line, tuna, self.thread()))
+
+    async def test_d276_the_person_hears_that_nothing_was_handed_over(self):
+        await self.accept(); await self.at_recipient()
+        front = {"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id}
+        step = Step(say="takımı getirmedim", command=None, economic_action=None, combat_action=None,
+                    script={"front": front}, expect={}, known_broken=(), real_chain=False, independent=True)
+        with _front_setting(self.setup):
+            self.assertEqual(await self._play(self.session_id, step, ScriptedModel()), [])   # the journey's own turn
+        self.assert_not_delivered()
+        self.assertIsNotNone(self.last_speech_input, "no speech call this turn")
+        self.assertIn(self._REFUSED, self.last_speech_input)
+
+    async def test_d276_a_plain_hand_over_still_delivers_and_pays_once(self):
+        # the refusal reads the hand-over verb only: a 'not' on the tip, a 'rica ederim' or 'umarım' is no refusal
+        await self.accept(); await self.at_recipient()
+        for line in ("takımı getirdim, al", "paketi veriyorum", "Tuna, iade takımını getirdim ama bahşiş vermiyorum",
+                     "iade takımını getirdim, rica ederim", "takımı teslim ediyorum, umarım beğenirsin"):
+            with self.subTest(line=line):
+                await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id})
+                self.assertEqual((self.purse(), self.bag(), self.open_quests(), self.thread()["status"]),
+                                 (112, {}, [], "done"))
+                self.assertEqual((self.thread()["paid_cp"], len(self.paid_rows())), (12, 1))
+                await self.undo()
+
+    # Opus review of D-276 (rev_t5): a refusal said through a wish or a casual ending, the word reader's first clause,
+    # and lines that only sound negative.
+    async def test_d276_review_a_refusal_said_through_a_wish_or_a_casual_ending_delivers_nothing(self):
+        await self.accept(); await self.at_recipient()
+        for line in ("takımı vermek istemiyorum", "takımı vermeyi düşünmüyorum", "takımı vermeye niyetim yok",
+                     "takımı vermekten vazgeçtim", "takımı vermiyom", "takımı sana vermiycem"):
+            for item_id in (self.parcel_id, "none"):
+                with self.subTest(line=line, item_id=item_id):
+                    await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": item_id})
+                    self.assert_not_delivered()
+                    self.assertEqual(self.purse(), 100)
+                    self.assertIn((self.tuna, self._REFUSED), self.notes())
+                    await self.undo()
+
+    async def test_d276_review_the_word_reader_reads_the_whole_line(self):
+        # the loop returned on the first clause that gave; a later 'ama vermiyorum' took the hand-over back
+        await self.accept(); await self.at_recipient()
+        tuna = self.person(self.tuna)
+        for line in ("takımı getirdim ama vermiyorum", "al, ama aslında vermiyorum", "takımı vermek istemiyorum, al"):
+            with self.subTest(line=line):
+                self.assertFalse(world_threads.gives_item(line, tuna, self.thread()))
+                self.assertIsNone(world_threads.turn_gate(self.world, tuna, line))
+        for line in ("vermem gereken takımı getirdim", "getirmem gereken takım bu, al",
+                     "takımı getirdim, ücretimi vermiyorsun daha"):
+            with self.subTest(line=line):
+                self.assertTrue(world_threads.gives_item(line, tuna, self.thread()))
+
+    async def test_d276_review_a_line_that_only_sounds_negative_still_delivers(self):
+        # '-mem gereken' is 'the one I must give', a 'not' on the fee or a rhetorical 'getirmedim mi' is no refusal
+        await self.accept(); await self.at_recipient()
+        for line in ("işte teslim etmem gereken emanet, buyur", "işte vermem gereken takım", "getirmem gereken takım bu, al",
+                     "takımı getirdim, ücretimi vermedin daha", "takımı getirdim, ücretimi vermiyorsun daha",
+                     "getirmedim mi sanıyorsun, al işte", "lafı uzatmıyorum, al takımın"):
+            with self.subTest(line=line):
+                await self.say(line, front={"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id})
+                self.assertEqual((self.purse(), self.bag(), self.open_quests(), self.thread()["status"]),
+                                 (112, {}, [], "done"))
+                self.assertEqual((self.thread()["paid_cp"], len(self.paid_rows())), (12, 1))
+                await self.undo()
+
+    async def test_d276_undo_after_a_refused_and_after_a_real_hand_over_returns_the_turn_whole(self):
+        await self.accept(); await self.at_recipient()
+        front = {"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id}
+        before, state = self.observed(), self.delivery_state()
+        await self.say("takımı vermiyorum, bahşiş veriyorum", front=front)
+        self.assert_not_delivered()
+        self.assertEqual(self.reloaded_observed(), self.observed())       # the saved record says the same
+        await self.undo()
+        # the campaign history keeps the undo's own rows; everything else is the record before the turn
+        self.assertEqual((self.observed(), self.delivery_state()[:6]), (before, state[:6]))
+        self.assertEqual(self.reloaded_observed(), before)
+        await self.say("takımı getirdim, al", front=front)
+        self.assertEqual((self.purse(), self.bag(), self.thread()["status"]), (112, {}, "done"))
+        await self.undo()
+        # the campaign history keeps the undo's own rows; everything else is the record before the turn
+        self.assertEqual((self.observed(), self.delivery_state()[:6]), (before, state[:6]))
+        self.assertEqual(self.reloaded_observed(), before)
+
+    async def test_d276_after_a_restart_the_refused_turn_still_stands_and_the_job_can_be_done(self):
+        # no new saved field: the record written before this change and after it read the same; a restart keeps the
+        # refusal's state and the parcel still goes on a plain hand-over
+        await self.accept(); await self.at_recipient()
+        front = {"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id}
+        await self.say("takımı getirmedim", front=front)
+        state = self.delivery_state()
+        await self.restart()
+        self.assertEqual(self.delivery_state(), state)
+        self.assert_not_delivered()
+        await self.say("takımı getirdim, al", front=front)
+        self.assertEqual((self.purse(), self.bag(), self.thread()["status"]), (112, {}, "done"))
+
     async def test_a_failed_hand_over_proposal_never_falls_to_the_word_reader(self):
         await self.accept(); await self.at_recipient()
         self.add_second_accepted_errand(item_noun="mühürlü mektup", recipient="potter")  # its parcel is not Tuna's

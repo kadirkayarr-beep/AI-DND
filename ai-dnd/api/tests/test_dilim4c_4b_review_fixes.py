@@ -20,7 +20,7 @@ import combat_lifecycle
 import game
 import living_world
 import monster_combat
-import rule_oracles
+from api.tests import rule_oracles
 import spell_preparation
 import spell_scope
 from api.tests import test_dilim4b_combat_xp as t1
@@ -179,8 +179,8 @@ class SpellKernelHasNoProductCaller(unittest.TestCase):
                 continue
             if re.search(r"\bspell_scope\.cast\s*\(", path.read_text(encoding="utf-8", errors="replace")):
                 callers.append(relative)
-        # rule_oracles runs the real cast for the K07 spell leaves (an oracle harness on test fixtures, never a turn).
-        self.assertEqual(sorted(callers), ["action_economy.py", "rule_oracles.py"])
+        # rule_oracles (the K07 oracle harness on test fixtures, never a turn) lives under api/tests/ since D-053.
+        self.assertEqual(sorted(callers), ["action_economy.py"])
 
 
 class D038HasNoReachableCast(unittest.TestCase):
@@ -188,16 +188,18 @@ class D038HasNoReachableCast(unittest.TestCase):
     a fight is still refused (below); the narrative cantrips of 4C.5 cast outside a fight but need no prepared list, so
     they leave the window open (test_dilim4c_5_narrative_spells.D038CantripLeavesTheWindows)."""
 
-    def test_a_cast_outside_combat_is_refused_and_the_long_rest_window_stands(self):
+    def test_a_slot_spell_with_no_outside_owner_is_refused_and_the_long_rest_window_stands(self):
+        # D-056: Cure Wounds/Healing Word now cast outside a fight (and close the window: test_d056_noncombat_healing);
+        # a slot spell with no outside owner (Bless) is still refused there and leaves the window open.
         s, enemy = scope_fixtures.caster(cls="Cleric")
         s.end_combat("test_setup")
         state = s.world_state["spellcasting_v1"]
-        state["prepared"] = ["Cure Wounds"]
+        state["prepared"] = ["Bless"]
         state["prepare_window"] = {"opened_second": spell_scope.clock_second(s.world_state), "reason": "long_rest"}
         s.character["current_hp"] = 3
         before = copy.deepcopy((s.world_state, s.character))
         with self.assertRaises(combat_lifecycle.CombatRequestError) as raised:
-            spell_scope.cast(s, "Cure Wounds", "player")
+            spell_scope.cast(s, "Bless", "player")
         self.assertEqual(raised.exception.code, "unsupported_spell_mode")
         self.assertEqual(copy.deepcopy((s.world_state, s.character)), before)
         self.assertTrue(spell_preparation.window_open(s))

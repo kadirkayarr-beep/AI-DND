@@ -276,11 +276,12 @@ class FighterHttp(unittest.IsolatedAsyncioTestCase):
 
     def test_turn_request_keeps_the_do_only_rule(self):
         from api.schemas import TurnRequest
-        TurnRequest.model_validate({"message": "x", "interaction_mode": "do", "check_feature": "tactical_mind"})
+        action_id = str(uuid4())
+        TurnRequest.model_validate({"message": "x", "action_id": action_id, "interaction_mode": "do", "check_feature": "tactical_mind"})
         for bad in ({"message": "x", "check_feature": "tactical_mind"}, {"message": "x", "interaction_mode": "say", "check_feature": "tactical_mind"},
                     {"message": "x", "interaction_mode": "do", "check_feature": "made_up"}):
             with self.assertRaises(ValidationError):
-                TurnRequest.model_validate(bad)
+                TurnRequest.model_validate({**bad, "action_id": action_id})
 
     async def test_fresh_resume_keeps_the_applied_state(self):
         campaign, record = await self.create(3, "Archery")

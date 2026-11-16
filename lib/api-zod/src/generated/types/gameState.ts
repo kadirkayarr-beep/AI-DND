@@ -14,6 +14,7 @@ import type { DeathStateProjection } from './deathStateProjection';
 import type { ExplorationState } from './explorationState';
 import type { GameCharacter } from './gameCharacter';
 import type { GameCombat } from './gameCombat';
+import type { GameConcentration } from './gameConcentration';
 import type { GameConversation } from './gameConversation';
 import type { GameDoor } from './gameDoor';
 import type { GameExpedition } from './gameExpedition';
@@ -57,6 +58,8 @@ export interface GameState {
   character: GameCharacter;
   /** Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision. */
   spellcasting?: GameSpellcasting | null;
+  /** Read-only view of the Concentration spell the player holds right now, or null. It never ends, settles or grants a spell. */
+  concentration: GameConcentration | null;
   inventory: string[];
   npcs: GameNpc[];
   shops: GameShop[];

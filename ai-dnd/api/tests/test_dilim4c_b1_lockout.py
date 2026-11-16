@@ -27,13 +27,17 @@ import world_threads
 import xp
 from api.tests import test_dilim4b_job_xp as jobs
 from api.tests.test_dilim4b_adventure_xp import MARKER, POOL, QUEST_ID, plant, refused_admission, to_level_four
-from api.tests.test_dilim4b_combat_xp import fighter, person
+from api.tests.test_dilim4b_combat_xp import drop_purses, fighter, person
 from api.tests.test_dilim4b_legacy_level_five import legacy_save, reloaded
 from api.tests.test_phase7_package import bound_state
 
 
-def _refused(*_args, **_kwargs):
-    raise ValueError("injected: save admission refused")
+def _refused(payload, *_args, **_kwargs):
+    # YENİDEN YAZIM (D-061, onay listesi) [GEVŞETME OLABİLİR]: was "refuses every record". Only the crossing's own refusal is forfeited
+    # now (a record refused before the award is raised: test_d061_unrecorded_xp_line), so a level-5 record is refused
+    # and the level-4 record before it passes.
+    if payload["player"]["level"] >= 5:
+        raise ValueError("injected: save admission refused")
 
 
 _refused._session_bound = True
@@ -52,6 +56,7 @@ class CombatAwardRefused(unittest.TestCase):
                 session = legacy_save(version, self.directory)
                 guard = person("guard1", "muhafız")
                 session.world_state["npcs"] = [guard]
+                drop_purses(session.world_state)
                 session.start_combat(guard)
                 guard.update(current_hp=0, combat_status="dead")
                 session.ensure_combat_state()
@@ -142,7 +147,7 @@ class QuestAwardRefused(unittest.TestCase):
         return plant(self.session, "tavern", "npc.source", "npc.target", **kwargs)
 
     def assert_gold_without_xp(self, purse, xp_before, receipts):
-        self.assertEqual(self.purse(), purse + 25)
+        self.assertEqual(self.purse(), purse + 25 * 100)  # YENİDEN YAZIM (D-104): plan gold paid as gold x 100 copper (was + 25)
         self.assertNotIn(POOL, self.world.get("currency", {}))
         self.assertEqual(self.quest()["reward_application_id"], MARKER)
         self.assertEqual(self.session.character.get("xp", 0), xp_before)

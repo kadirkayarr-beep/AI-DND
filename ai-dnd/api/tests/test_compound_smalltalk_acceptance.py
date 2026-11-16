@@ -1,4 +1,5 @@
 """Job3: existing compound route and paired follow-up acceptance."""
+from uuid import uuid4
 import copy
 import unittest
 from unittest.mock import patch
@@ -36,7 +37,7 @@ class CompoundSmalltalkAcceptanceTests(unittest.IsolatedAsyncioTestCase):
     async def establish(self):
         _, _, session, url, npc = await self.campaign_with_npc()
         client = speech.ScriptedNpcSpeechClient("Unused.")
-        response = await self.post(url, client, {"message": "Adın ne?", "target_id": npc["id"]})
+        response = await self.post(url, client, {"action_id": str(uuid4()), "message": "Adın ne?", "target_id": npc["id"]})
         self.assertEqual(client.chat_calls, 0)
         self.assertIn(npc["name"], response["narration"])
         return session, url, npc
@@ -47,7 +48,7 @@ class CompoundSmalltalkAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                 session, url, npc = await self.establish()
                 reply = "Adım Marek. Günüm sakin geçiyor."
                 client = speech.ScriptedNpcSpeechClient(reply)
-                body = {"message": "Adın neydi, bir de günün nasıl geçiyor?"}
+                body = {"action_id": str(uuid4()), "message": "Adın neydi, bir de günün nasıl geçiyor?"}
                 if mode is not None:
                     body["interaction_mode"] = mode
                 result = await self.post(url, client, body)
@@ -66,7 +67,7 @@ class CompoundSmalltalkAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                 question = "İnsanlarla sohbet etmeyi mi seversin, tek başına kalmayı mı?"
                 reply = "İnsanlarla sohbet etmeyi tercih ederim."
                 client = speech.ScriptedNpcSpeechClient(reply)
-                body = {"message": question}
+                body = {"action_id": str(uuid4()), "message": question}
                 if mode is not None:
                     body["interaction_mode"] = mode
                 first = await self.post(url, client, body)
@@ -81,7 +82,7 @@ class CompoundSmalltalkAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     return result
                 follow = speech.ScriptedNpcSpeechClient("Çünkü sohbet etmek hoşuma gidiyor.")
                 with patch.object(game, "_experimental_npc_dialogue_context", side_effect=capture):
-                    second = await self.post(url, follow, {**body, "message": "Peki neden?"})
+                    second = await self.post(url, follow, {**body, "action_id": str(uuid4()), "message": "Peki neden?"})
                 self.assertIn(follow.narration, second["narration"])
                 self.assertEqual(follow.chat_calls, 1)
                 self.assertEqual(contexts[-1]["last_exchange"], {"player": question, "npc_reply": pair["npc"]})

@@ -8,7 +8,7 @@ from api.tests.test_weapon_attack import armed, resolve
 
 class InvisibleSightTests(unittest.TestCase):
     def test_sight_exception_is_source_bound(self):
-        import rule_oracles
+        from api.tests import rule_oracles
         data=rule_oracles.load_oracles();leaf='K07.invisible_attack_explicit_sight_exception'
         rows=[x for x in data['leaves'] if x['leaf_id']==leaf]
         self.assertEqual(len(rows),1,'Invisible sight exception oracle missing')

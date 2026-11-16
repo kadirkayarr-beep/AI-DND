@@ -52,6 +52,7 @@ export function QuestJournalSection({
   const notInQuestList = <Row extends { quest_id: string }>(rows: Row[]) => (
     rows.filter((row) => !quests.some((quest) => quest.quest_id === row.quest_id))
   );
+  const offeredRows = notInQuestList(questLog?.offered ?? []);
   const activeRows = notInQuestList(questLog?.active ?? []);
   const doneRows = notInQuestList(questLog?.done ?? []);
   const letGoRows = notInQuestList(questLog?.let_go ?? []);
@@ -79,7 +80,7 @@ export function QuestJournalSection({
         || (adventures?.rumors.length ?? 0) > 0
         || (adventures?.completed.length ?? 0) > 0
         || (adventures?.failed.length ?? 0) > 0
-        || (questLog !== undefined && (activeRows.length + doneRows.length + letGoRows.length + questLog.rumors.length) > 0)) ? (
+        || (questLog !== undefined && (offeredRows.length + activeRows.length + doneRows.length + letGoRows.length + questLog.rumors.length) > 0)) ? (
         <div className="mt-3">
           {offers.map((quest) => (
             <article
@@ -122,6 +123,37 @@ export function QuestJournalSection({
                   onClick={() => onCancel(quest.quest_id)}
                 >
                   Reddet
+                </button>
+              </div>
+            </article>
+          ))}
+          {/* a job offered in conversation (the engine's line points here); its cancel button waits for ORTA-29 (D-134) */}
+          {offeredRows.map((item) => (
+            <article
+              className="data-row journal-record"
+              key={`offered-${item.quest_id}`}
+              data-testid={`journal-quest-offered-${item.quest_id}`}
+            >
+              <div className="data-row-head">
+                <span>{item.title}</span>
+                <span className="status-pill">Teklif</span>
+              </div>
+              <p className="data-row-desc">{item.summary}</p>
+              {item.giver && <div className="data-row-meta">Görevi veren: {item.giver}</div>}
+              {typeof item.promised_cp === 'number' && <div className="data-row-meta">Vaat edilen ücret: {item.promised_cp} bakır</div>}
+              <ul className="journal-objectives">
+                {item.objectives.map((line) => <li key={line}><span>{line}</span></li>)}
+              </ul>
+              <div className="mt-3 flex gap-2">
+                <button
+                  className="dnd-button"
+                  type="button"
+                  disabled={acceptPending || cancelPending}
+                  data-testid={`button-accept-quest-${item.quest_id}`}
+                  data-quest-id={item.quest_id}
+                  onClick={() => onAccept(item.quest_id)}
+                >
+                  Kabul et
                 </button>
               </div>
             </article>
@@ -191,6 +223,7 @@ export function QuestJournalSection({
                 <article className="data-row journal-record" key={item.quest_id}>
                   <div className="data-row-head"><span>{item.title}</span><span className="status-pill">Sürüyor</span></div>
                   <p className="data-row-desc">{item.summary}</p>
+                  {typeof item.promised_cp === 'number' && <div className="data-row-meta">Vaat edilen ücret: {item.promised_cp} bakır</div>}
                   <ul className="journal-objectives">
                     {item.objectives.map((line) => <li key={line}><span>{line}</span></li>)}
                   </ul>

@@ -126,6 +126,38 @@ class TableAbsenceTriggerTests(unittest.TestCase):
         self.assertEqual(self.texts(), ["eski iz"])
         self.assertEqual(event["status"], "EXPIRED")
 
+    def test_many_departures_keep_absence_history_bounded(self):
+        # D-219: every finished absence used to stay in scheduled_events forever.
+        notes = []
+        for round_number in range(1, 6):
+            self.mark(f"iz {round_number}")
+            event = self.arm()
+            self.assertEqual(event["event_id"], f"absence:{round_number}")
+            self.arrive("room_away")
+            self.arrive(self.here)
+            self.assertEqual(event["status"], "OCCURRED")
+            notes.append(f"witnessed:absence:{round_number}")
+        absences = [e for e in self.world["scheduled_events"]
+                    if e["event_id"].startswith("absence:")]
+        self.assertEqual([e["event_id"] for e in absences], ["absence:5"])
+        self.assertEqual(self.world["table_absence_sequence"], 5)
+        self.assertEqual(self.world["relationships"]["barmen"]["events"][-5:], notes)
+        scheduled_events.validate_events(self.world["scheduled_events"], self.world)
+
+    def test_finished_absence_kept_while_another_event_depends_on_it(self):
+        self.mark("eski iz")
+        first = self.arm()
+        self.arrive("room_away")
+        self.arrive(self.here)
+        scheduled_events.register_event(
+            self.world, event_id="after-absence", window_start=0, window_end=10,
+            location_id=self.here, visibility="hidden", dependencies=[first["event_id"]])
+        self.mark("yeni iz")
+        self.arm()
+        ids = [e["event_id"] for e in self.world["scheduled_events"]]
+        self.assertIn("absence:1", ids)
+        self.assertIn("absence:2", ids)
+
     def test_real_location_change_arms_the_place_left_behind(self):
         self.mark("eski iz")
         self.session.commit_location_change("room_away", session=self.session)

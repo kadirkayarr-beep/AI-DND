@@ -4,7 +4,8 @@
 import { closePending, type ActionKey } from './pending-action.ts';
 
 export type ServerVerdict =
-  | { kind: 'applied'; response: unknown }
+  // `undoAvailable`: the server says this move is still its live one-step undo target (D-110).
+  | { kind: 'applied'; response: unknown; undoAvailable?: true }
   | { kind: 'not_applied'; code: string }
   | { kind: 'unresolved'; state: 'open' | 'unknown' | 'processing'; processing: boolean; timedOut?: boolean };
 
@@ -77,13 +78,15 @@ const UNRESOLVED_STATES = ['open', 'unknown', 'processing'] as const;
 /** Interprets one server answer about `actionId`. Anything that is not a clear, matching, durable answer stays unresolved. */
 export function readVerdict(body: unknown, actionId: string): ServerVerdict {
   const answer = (body && typeof body === 'object' ? body : {}) as {
-    action_id?: unknown; state?: unknown; response?: unknown; processing?: unknown; detail?: { code?: unknown; not_applied?: unknown } | null;
+    action_id?: unknown; state?: unknown; response?: unknown; processing?: unknown; undo_available?: unknown; detail?: { code?: unknown; not_applied?: unknown } | null;
   };
   const unresolved = (state: 'open' | 'unknown' | 'processing'): ServerVerdict => ({
     kind: 'unresolved', state, processing: state === 'processing' || answer.processing === true,
   });
   if (answer.action_id !== actionId) return unresolved('unknown');
-  if (answer.state === 'applied') return { kind: 'applied', response: answer.response ?? null };
+  if (answer.state === 'applied') {
+    return { kind: 'applied', response: answer.response ?? null, ...(answer.undo_available === true ? { undoAvailable: true as const } : {}) };
+  }
   if (answer.state === 'not_applied') {
     const detail = answer.detail;
     if (detail && detail.not_applied === true && typeof detail.code === 'string' && detail.code) {

@@ -19,6 +19,8 @@ def affordances(quest):
         if objective.get("visibility") != "known" or objective.get("graph_state") != "ACTIVE":
             continue
         label = AFFORDANCE_LABELS.get(objective.get("type"))
+        if objective.get("type") == "defeat_entity" and "combat" not in (objective.get("resolution_kinds") or ["combat"]):
+            label = "İkna et / Sindir"  # words close this step, not a fight (D-221)
         if label and label not in labels:
             labels.append(label)
     return labels

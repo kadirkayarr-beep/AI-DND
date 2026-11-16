@@ -1,0 +1,156 @@
+{
+  "id": "19g_refused_hand_over",
+  "title": "Reddedilen teslim teslim değildir (D-276, SIFIR TOLERANS): iskeledeki Tuna'ya 'takımı getirmedim' ve 'takımı vermiyorum, bahşiş veriyorum' satırları okumada koli kimliğiyle teslim gibi okunsa da iade takımı çantada kalır, iş açık kalır, 12 bakır ödenmez ve Tuna hiçbir şeyin el değiştirmediğini duyar; Geri Al ve yenileme aynısını okur; sonra takımı veren düz satır 12 bakırı bir kez öder, Geri Al onu da tümüyle geri alır",
+  "source_items": [
+    276
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "campaign_start": {
+      "setting_id": "forgotten_realms",
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "region_id": "fr:region:the_north",
+      "starting_location_id": "fr:city:neverwinter"
+    },
+    "npcs": [
+      {
+        "id": "potter",
+        "name": "Halil",
+        "role": "Çömlekçi",
+        "current_hp": 10
+      }
+    ],
+    "currency": {
+      "player": 100
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 2761,
+    "front_proposal": true,
+    "job": {
+      "type": "errand",
+      "owner": "potter",
+      "status": "offered",
+      "pay": 12,
+      "noun": "iade takımı",
+      "recipient": "Tuna",
+      "target_kind": "harbor",
+      "line": "İade takımını iskeledeki Tuna'ya götür. On iki bakır."
+    }
+  },
+  "steps": [
+    {
+      "say": "olur, götürürüm",
+      "expect": {
+        "kese": 100,
+        "esya_sayisi": 1
+      }
+    },
+    {
+      "say": "iskeleye gidiyorum",
+      "expect": {
+        "kese": 100,
+        "konum": "$is_hedefi"
+      }
+    },
+    {
+      "say": "takımı getirmedim",
+      "script": {
+        "front": {
+          "kind": "hand_over",
+          "item_name": "İade takımı"
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        },
+        "gorev": {
+          "aktif": 1
+        },
+        "gunluk": {
+          "iz": [],
+          "iz_sayisi": 0
+        },
+        "konusmaya_giden": [
+          "olmadı: teslim etmediğini söyledin; eşya sende kaldı, hiçbir şey el değiştirmedi"
+        ]
+      }
+    },
+    {
+      "say": "takımı vermiyorum, bahşiş veriyorum",
+      "script": {
+        "front": {
+          "kind": "hand_over",
+          "item_name": "İade takımı"
+        }
+      },
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        },
+        "gorev": {
+          "aktif": 1
+        },
+        "konusmaya_giden": [
+          "olmadı: teslim etmediğini söyledin; eşya sende kaldı, hiçbir şey el değiştirmedi"
+        ]
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        },
+        "gorev": {
+          "aktif": 1
+        }
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        },
+        "gorev": {
+          "aktif": 1
+        }
+      }
+    },
+    {
+      "say": "Tuna, iade takımını getirdim, al",
+      "script": {
+        "front": {
+          "kind": "hand_over",
+          "item_name": "İade takımı"
+        }
+      },
+      "expect": {
+        "kese": 112,
+        "envanter": {},
+        "gorev": {
+          "aktif": 0,
+          "kayit": []
+        }
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 100,
+        "envanter": {
+          "İade takımı": 1
+        },
+        "gorev": {
+          "aktif": 1
+        }
+      }
+    }
+  ]
+}

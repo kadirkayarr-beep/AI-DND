@@ -56,6 +56,20 @@ def _cantrip_ids() -> list[str]:
     return [spell["id"] for spell in SPELLS_CATALOG["Cleric"]["cantrips"]]
 
 
+def _blessed_warrior_line() -> str:
+    """D-163: each Cleric cantrip under its real support owner (resolver, narrative outside combat, catalog-only)."""
+    import spell_effects
+    import spell_registry
+    groups: dict[str, list[str]] = {"resolver": [], "narrative outside combat": [], "catalog-only": []}
+    for spell_id in _cantrip_ids():
+        if spell_registry.spell_state(spell_id) == "resolver":
+            groups["resolver"].append(spell_id)
+        else:
+            groups["narrative outside combat" if spell_id in spell_effects.NARRATIVE else "catalog-only"].append(spell_id)
+    parts = [f"{label}: {', '.join(names)}" for label, names in groups.items() if names]
+    return "; ".join(["Blessed Warrior: two Cleric cantrips with Charisma", *parts])
+
+
 def _subclass_options() -> list[dict[str, str]] | None:
     source = core.table("Paladin")
     entry = source.get("subclass_options", {}).get(DEVOTION_SOURCE_KEY) if isinstance(source, dict) else None
@@ -297,7 +311,7 @@ class Paladin(ClassProgression):
         if level >= 2:
             supported.extend([
                 "Fighting Style: Archery, Defense, Dueling, Great Weapon Fighting and Two-Weapon Fighting apply; Defense raises the Armor Class total once when the step is taken in armor",
-                "Blessed Warrior: two Cleric cantrips with Charisma; Sacred Flame has a resolver, others are catalog-only",
+                _blessed_warrior_line(),
                 "Paladin's Smite: Divine Smite always prepared, a Bonus Action right after a Melee weapon or Unarmed Strike hit, 2d8 Radiant, +1d8 per slot level above 1, "
                 "+1d8 against a Fiend or Undead with a sourced type, all of it doubled on a Critical Hit; one cast without a slot per Long Rest",
             ])

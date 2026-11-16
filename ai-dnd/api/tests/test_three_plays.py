@@ -241,9 +241,16 @@ class StealingTests(ThreePlaysTests):
             with self.subTest(line=line):
                 await self.begin(ROGUE)
                 self.world["npcs"].clear()
-                self.add_person("Dorn", "Muhafız")
+                dorn = self.add_person("Dorn", "Muhafız")
+                dorn["inventory"] = ["Elma", "Kalkan", "Defter"]  # D-108: a thing is stolen only from who carries it
                 before = (list(self.world["inventory"]), self.world.get("currency", {}).get("player", 0))
-                out = await self.say(line, PlayClient())
+                asked = await self.say(line, PlayClient())  # D-109: a crime is asked about first; nothing moves
+                self.assertEqual(self.session._heavy_asked["deed"], "steal", asked["narration"])
+                self.assertIn("Gerçekten çalıyor musun?", asked["narration"])
+                self.assertFalse(self.world["flags"].get("deeds"))
+                self.assertEqual((list(self.world["inventory"]), self.world.get("currency", {}).get("player", 0)),
+                                 before)
+                out = await self.say("evet", PlayClient())
                 self.assertFalse(self.world["combat"]["active"])
                 self.assertEqual(out["turn_outcome"]["action"], "theft", out["narration"])
                 self.assertNotIn("Gizlenme", out["narration"])
@@ -455,7 +462,11 @@ class FireTests(ThreePlaysTests):
                      "kapüşonluyla konuşmuyorum. yerdeki çöp yığınını ateşe veriyorum"):
             with self.subTest(line=line):
                 await self.begin(ROGUE)
-                out = await self.say(line, PlayClient())
+                asked = await self.say(line, PlayClient())  # D-109: a crime is asked about first; nothing burns
+                self.assertEqual(self.session._heavy_asked["deed"], "burn", asked["narration"])
+                self.assertIn("Gerçekten ateşe veriyor musun?", asked["narration"])
+                self.assertFalse(self.world["flags"].get("fires"))
+                out = await self.say("evet", PlayClient())
                 self.assertEqual(out["turn_outcome"]["action"], "arson", out["narration"])
 
 

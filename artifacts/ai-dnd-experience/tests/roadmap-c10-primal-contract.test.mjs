@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {PlayGameTurnBody,PlayLegacyTurnBody} from '../../../lib/api-zod/src/generated/api.ts';
-const value={message:'Takla atıyorum',interaction_mode:'do',check_feature:'primal_knowledge'};
+// D-111: a turn now needs its action_id (UUIDv4); the fixtures carry one and a body without it is refused.
+const action_id='8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d';
+const value={action_id,message:'Takla atıyorum',interaction_mode:'do',check_feature:'primal_knowledge'};
 test('generated turn parsers retain explicit and null Primal Knowledge consent',()=>{
  for(const parser of [PlayGameTurnBody,PlayLegacyTurnBody]){
   assert.deepEqual(parser.parse(value),value);
   assert.deepEqual(parser.parse({...value,check_feature:null}),{...value,check_feature:null});
-  assert.deepEqual(parser.parse({message:'Takla atıyorum'}),{message:'Takla atıyorum'});
+  assert.deepEqual(parser.parse({action_id,message:'Takla atıyorum'}),{action_id,message:'Takla atıyorum'});
+  assert.equal(parser.safeParse({message:'Takla atıyorum'}).success,false);
  }
 });
 test('generated turn parsers reject malformed feature and client mechanics',()=>{

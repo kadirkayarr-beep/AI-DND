@@ -8,7 +8,7 @@ import living_world
 from pathlib import Path
 import sys
 import unittest
-
+from unittest.mock import patch
 
 from api.tests.auth_fixture import TEST_PLAYER
 AI_DND_DIR = Path(__file__).resolve().parents[2]
@@ -157,7 +157,14 @@ class NarrativeMemoryTests(unittest.TestCase):
             memory["npc_interactions"]["npc_001"],
             memory["npc_interactions"]["npc_058"],
         )
-        self.assertTrue(all(item["npc_id"] if "npc_id" in item else True for item in []))
+        self.assertEqual(
+            [(item["text"], item["turn_index"]) for item in memory["npc_interactions"]["npc_001"]],
+            [("Arin'e söz veriyorum.", 1)],
+        )
+        self.assertEqual(
+            [(item["text"], item["turn_index"]) for item in memory["npc_interactions"]["npc_058"]],
+            [("Arin'i sonra bulacağım.", 2)],
+        )
 
     def test_same_title_quests_are_identity_separate_without_inference(self):
         canonical_quests = [
@@ -474,6 +481,11 @@ class NpcMemoryIsolationAndSpeakerBindingTests(unittest.TestCase):
         self.db_path = Path(self.temp_dir.name) / "campaigns.sqlite3"
         self.store = CampaignStore(self.db_path, bound_principal=TEST_PLAYER)
         self.manager = SessionManager(campaign_store=self.store)
+        # No live model: a local Ollama on the developer machine would write the NPC lines (D-223). The game's
+        # own fallback lines answer, as they do where no model runs.
+        model_patch = patch("game.ollama.chat", side_effect=ConnectionError("no model in this test"))
+        model_patch.start()
+        self.addCleanup(model_patch.stop)
 
     def tearDown(self):
         self.temp_dir.cleanup()

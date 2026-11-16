@@ -31,6 +31,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LevelUpPreviewResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/LevelUpError'
+        '500':
+          $ref: '#/components/responses/LevelUpError'
+        '503':
+          $ref: '#/components/responses/ApiError'
       tags:
       - game
     post:
@@ -56,6 +66,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LevelUpCommandResult'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/LevelUpError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+        '500':
+          $ref: '#/components/responses/LevelUpError'
+        '503':
+          $ref: '#/components/responses/ApiError'
       tags:
       - game
   /game/health:
@@ -1195,6 +1217,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LevelUpPreviewResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/LevelUpError'
+        '500':
+          $ref: '#/components/responses/LevelUpError'
+        '503':
+          $ref: '#/components/responses/ApiError'
       tags:
       - game
     post:
@@ -1221,6 +1253,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LevelUpCommandResult'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/ApiError'
+        '409':
+          $ref: '#/components/responses/LevelUpError'
+        '422':
+          $ref: '#/components/responses/RequestValidationError'
+        '500':
+          $ref: '#/components/responses/LevelUpError'
+        '503':
+          $ref: '#/components/responses/ApiError'
       tags:
       - game
   /campaigns:
@@ -1442,10 +1486,12 @@ components:
           type: string
           format: uuid
           title: Action Id
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
         campaign_id:
           type: string
           format: uuid
           title: Campaign Id
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
         expected_revision:
           type: integer
           minimum: 0.0
@@ -2295,9 +2341,7 @@ components:
           minLength: 1
           maxLength: 128
         action_id:
-          type:
-          - string
-          - 'null'
+          type: string
           format: uuid
           pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
         economic_action:
@@ -2308,6 +2352,7 @@ components:
           - $ref: '#/components/schemas/EconomicAction'
           - type: 'null'
       required:
+      - action_id
       - message
     TextSpan:
       type: object
@@ -2847,6 +2892,10 @@ components:
         processing:
           description: True while a turn of this session holds the turn lock
           type: boolean
+        undo_available:
+          description: Sent with an applied action; true while it is still the
+            one-step undo target. A hint only; the undo route checks again
+          type: boolean
     GameTurnResult:
       type: object
       properties:
@@ -2970,6 +3019,7 @@ components:
         action_id:
           type: string
           format: uuid
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
         target_action_id:
           type: string
           format: uuid
@@ -3278,9 +3328,7 @@ components:
       additionalProperties: false
       properties:
         action_id:
-          type:
-          - string
-          - 'null'
+          type: string
           format: uuid
           description: UUIDv4 action receipt identity; reuse on network retry.
         action:
@@ -3299,6 +3347,8 @@ components:
           - second_wind
           - lay_on_hands
           - divine_sense
+          - choose_draconic_ancestry
+          - breath_weapon
         healing_amount:
           type:
           - integer
@@ -3333,7 +3383,41 @@ components:
           type:
           - boolean
           - 'null'
+        draconic_ancestry:
+          type:
+          - string
+          - 'null'
+          enum:
+          - black
+          - blue
+          - brass
+          - bronze
+          - copper
+          - gold
+          - green
+          - red
+          - silver
+          - white
+          - null
+          description: Dragonborn only, with choose_draconic_ancestry; chosen once.
+        shape:
+          type:
+          - string
+          - 'null'
+          enum:
+          - cone
+          - line
+          - null
+          description: Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.
+        target_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 200
+          - type: 'null'
+          description: Breath Weapon only; the creature the breath is aimed at.
       required:
+      - action_id
       - action
     SpeciesTraitActionResult:
       type: object
@@ -3388,11 +3472,22 @@ components:
         close:
           type: boolean
           default: false
-        action_id:
+        spellbook:
+          description: D-039 one-time spellbook choice of an old save's Wizard (exactly six distinct Wizard level-1 spells,
+            checked by the server); sent alone, never with prepared or close.
           type:
-          - string
+          - array
           - 'null'
+          maxItems: 32
+          items:
+            type: string
+            maxLength: 64
+        action_id:
+          type: string
           format: uuid
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+      required:
+      - action_id
     SpellPrepareDropped:
       type: object
       additionalProperties: false
@@ -3458,6 +3553,22 @@ components:
           - 'null'
           items:
             type: string
+        not_in_engine:
+          type: array
+          items:
+            type: string
+        spellbook_options:
+          description: D-039, only while blocked_reason is spellbook_missing; the spells the book may hold.
+          type: array
+          default: []
+          items:
+            type: string
+        suggested_spellbook:
+          description: D-039, only while blocked_reason is spellbook_missing; the engine's offer, which the player may change.
+          type: array
+          default: []
+          items:
+            type: string
       required:
       - session_id
       - supported
@@ -3474,6 +3585,7 @@ components:
           enum:
           - prepared
           - too_many
+          - spellbook_saved
         prepared:
           type: array
           items:
@@ -3689,6 +3801,47 @@ components:
       - difficulty
       - dc
       - outcome
+    ConcentrationCheckResult:
+      type: object
+      additionalProperties: false
+      description: The player's Concentration after one damage instance (D-052), from the engine's own save.
+      properties:
+        spell_id:
+          type: string
+        kept:
+          type: boolean
+        dc:
+          type:
+          - integer
+          - 'null'
+          minimum: 10
+          maximum: 30
+        roll:
+          type:
+          - integer
+          - 'null'
+        total:
+          type:
+          - integer
+          - 'null'
+        bless_roll:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          maximum: 4
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - incapacitated
+          - duration_ended
+          - combat_ended
+          - null
+      required:
+      - spell_id
+      - kept
     CombatAttackResult:
       type: object
       additionalProperties: false
@@ -3837,6 +3990,10 @@ components:
         death_resolution:
           anyOf:
           - $ref: '#/components/schemas/DeathResolutionResult'
+          - type: 'null'
+        concentration_check:
+          anyOf:
+          - $ref: '#/components/schemas/ConcentrationCheckResult'
           - type: 'null'
     CombatTurnResult:
       type: object
@@ -4010,6 +4167,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/DeathResolutionResult'
           - type: 'null'
+        concentration_check:
+          anyOf:
+          - $ref: '#/components/schemas/ConcentrationCheckResult'
+          - type: 'null'
         spell:
           type:
           - string
@@ -4100,6 +4261,9 @@ components:
           enum:
           - massive_damage
           - failed_death_saves
+          - dehydration
+          - malnutrition
+          - extended_travel
         rolled_back:
           type: boolean
         terminal:
@@ -4229,6 +4393,9 @@ components:
           minimum: 0
         result:
           $ref: '#/components/schemas/CombatTurnResult'
+        undone:
+          type: boolean
+          description: True when a later undo took this turn back; the row stays as evidence. Absent otherwise.
       required:
       - event_id
       - turn_index
@@ -4468,6 +4635,11 @@ components:
           anyOf:
           - type: string
           - type: 'null'
+        promised_cp:
+          description: The pay in copper the job's own terms promise (offered and running cards); null when the record has no terms.
+          anyOf:
+          - type: integer
+          - type: 'null'
         record_kind:
           anyOf:
           - type: string
@@ -4484,6 +4656,7 @@ components:
       - status
       - objectives
       - result
+      - promised_cp
       - record_kind
       - raw_status
     QuestLogTrail:
@@ -4660,6 +4833,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/GameSpellcasting'
           - type: 'null'
+        concentration:
+          description: Read-only view of the Concentration spell the player holds right now,
+            or null. It never ends, settles or grants a spell.
+          anyOf:
+          - $ref: '#/components/schemas/GameConcentration'
+          - type: 'null'
         inventory:
           type: array
           items:
@@ -4767,6 +4946,7 @@ components:
       - known_factions
       - economic_offer
       - wallet
+      - concentration
     SceneIncident:
       type: object
       additionalProperties: false
@@ -5729,6 +5909,29 @@ components:
       - prepared
       - slots
       - slot_turn
+    GameConcentration:
+      type: object
+      additionalProperties: false
+      description: The held Concentration spell (D-073), from the engine's own record.
+      properties:
+        spell_id:
+          type: string
+        slot_level:
+          type: integer
+          minimum: 1
+          maximum: 9
+        started_round:
+          type: integer
+          minimum: 1
+        targets:
+          type: array
+          items:
+            type: string
+      required:
+      - spell_id
+      - slot_level
+      - started_round
+      - targets
     RageAvailability:
       type: object
       additionalProperties: false
@@ -6164,6 +6367,29 @@ components:
           - stone
           - storm
           - null
+        draconic_ancestry:
+          type:
+          - string
+          - 'null'
+          enum:
+          - black
+          - blue
+          - brass
+          - bronze
+          - copper
+          - gold
+          - green
+          - red
+          - silver
+          - white
+          - null
+          description: Dragonborn's chosen dragon; null before the choice and for other species.
+        breath_weapon_uses_remaining:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+          description: Dragonborn Breath Weapon uses left until a Long Rest; null for other species.
         species_trait_state:
           anyOf:
           - $ref: '#/components/schemas/SpeciesTraitState'
@@ -7568,6 +7794,35 @@ components:
           $ref: '#/components/schemas/ApiErrorDetail'
       required:
       - detail
+    LevelUpErrorDetail:
+      type: object
+      additionalProperties: false
+      description: >-
+        Level-up error detail. code is an open string: besides fixed codes (campaign_persistence_required,
+        unresolved_action, action_id_conflict, level_up_campaign_mismatch, level_up_preview_stale,
+        level_up_choice_class_mismatch, level_up_unavailable, level_up_failed, campaign_stale and the ApiErrorDetail
+        codes) the server forwards the engine's own refusal reason for the chosen level and choices.
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        not_applied:
+          type: boolean
+          description: Present and true when the refusal was recorded durably and nothing was applied.
+        unresolved_action_id:
+          type: string
+          description: Present with code unresolved_action; the earlier action that must be resolved first.
+      required:
+      - code
+    LevelUpErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        detail:
+          $ref: '#/components/schemas/LevelUpErrorDetail'
+      required:
+      - detail
     RequestValidationIssue:
       type: object
       additionalProperties: false
@@ -8322,6 +8577,12 @@ components:
             anyOf:
             - $ref: '#/components/schemas/RequestValidationError'
             - $ref: '#/components/schemas/ApiErrorResponse'
+    LevelUpError:
+      description: A controlled level-up error returned by FastAPI (refusal, stale preview, open earlier action or failed save).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LevelUpErrorResponse'
     ApiError:
       description: A controlled application error returned by FastAPI.
       content:

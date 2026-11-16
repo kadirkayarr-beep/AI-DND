@@ -3,11 +3,12 @@ import { term, termTitle } from '@/lib/tr-terms';
 import { SpellSlotConversionControl } from './spell-slot-conversion';
 export { SpellSlotConversionChoice, createConversionDraft } from './spell-slot-conversion';
 import type { CombatActionInput, GameState, SpellPrepareViewResponse } from '@workspace/api-client-react';
-import { WINDOW_SHORT } from '@/lib/spell-preparation';
+import { choosingBook, WINDOW_SHORT } from '@/lib/spell-preparation';
+import { spellLabel } from '@/lib/spell-names';
 
 /** Read-only rows from the server's preparation view (D-065): window, prepared count and the Wizard spellbook. */
 export function SpellStatusRows({ view, combatActive, label }: { view: SpellPrepareViewResponse; combatActive: boolean; label: (id: string) => string }) {
-  const windowText = !view.supported ? 'Kullanılamıyor' : view.open ? WINDOW_SHORT[view.reason ?? ''] ?? 'Açık' : combatActive ? 'Kapalı · çatışma' : 'Kapalı';
+  const windowText = choosingBook(view) ? 'Önce büyü kitabı seçilecek' : !view.supported ? 'Kullanılamıyor' : view.open ? WINDOW_SHORT[view.reason ?? ''] ?? 'Açık' : combatActive ? 'Kapalı · çatışma' : 'Kapalı';
   return <dl className="spell-status-rows" data-testid="spell-status-rows">
     <div className="spell-status-row"><dt>Hazırlık penceresi</dt><dd data-testid="spell-window-row">{windowText}</dd></div>
     <div className="spell-status-row"><dt>Hazırlanan büyüler</dt><dd data-testid="spell-prepared-count-row">{view.prepared.length} / {view.limit}</dd></div>
@@ -19,7 +20,7 @@ export function SpellStatusRows({ view, combatActive, label }: { view: SpellPrep
 }
 
 /** Read-only character information; preparation, resources and legality stay in Python. */
-export function SpellcastingPanel({ spellcasting, decisionScope = '', conversionBlocked = true, onCommand }: { spellcasting: GameState['spellcasting']; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
+export function SpellcastingPanel({ spellcasting, concentration, decisionScope = '', conversionBlocked = true, onCommand }: { spellcasting: GameState['spellcasting']; concentration?: GameState['concentration']; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
   if (!spellcasting) return null;
   return (
     <section className="state-panel spellcasting-panel" aria-label="Büyüler ve büyü yuvaları" data-testid="panel-spellcasting">
@@ -45,6 +46,11 @@ export function SpellcastingPanel({ spellcasting, decisionScope = '', conversion
           </div>)}
         </dl>
       </div>
+      {concentration !== undefined && <dl className="mt-3" data-testid="spell-concentration">
+        {/* D-065: the held Concentration read only (D-073); an Undo response's null shows "Yok". */}
+        <div className="data-row flex items-center justify-between gap-3"><dt>Konsantrasyon</dt>
+          <dd data-testid="spell-concentration-row">{concentration ? `${spellLabel(concentration.spell_id)} · ${concentration.slot_level}. seviye yuva · başlangıç: Raunt ${concentration.started_round}` : 'Yok'}</dd></div>
+      </dl>}
       {spellcasting.sorcery_points && <p className="subtle-text mt-3" data-testid="spell-sorcery-points"><span title={termTitle('sorcery_points')}>{term('sorcery_points')}</span>: {spellcasting.sorcery_points.current}/{spellcasting.sorcery_points.max}</p>}
       {onCommand && <SpellSlotConversionControl spellcasting={spellcasting} decisionScope={decisionScope} blocked={conversionBlocked} onCommand={onCommand} />}
       {spellcasting.slot_turn && <p className="subtle-text mt-3" data-testid="spell-slot-turn">

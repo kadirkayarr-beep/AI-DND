@@ -46,7 +46,8 @@ def roll(session, skill='Acrobatics', *, feature='primal_knowledge', **kwargs):
     return session.perform_skill_check(skill, 15, c['modifiers'], c['proficient_skills'], c['proficiency_bonus'], **kwargs)
 
 
-WORDS = ('Takla atıyorum', 'Onu korkutmaya çalışıyorum', 'Bir şey fark etmeye çalışıyorum', 'Gizleniyorum', 'Yolumu buluyorum')
+WORDS = ('Takla atıyorum', 'Onu korkutmaya çalışıyorum', 'Bir şey fark etmeye çalışıyorum',
+         'Gölgelere gizleniyorum', 'Yolumu buluyorum')  # D-171: a hide names its cover (dice guide 4.4)
 
 
 def turn(session, text='Takla atıyorum', *, feature='primal_knowledge', evidence=None, **kwargs):
@@ -360,8 +361,15 @@ class PrimalKnowledgeCoreTests(unittest.TestCase):
         reply = {'message': {'content': '{"world_updates": {}, "narration": "Hamlen çözülür.", "lore_claims": []}'}}
         with patch('game.ollama.chat', return_value=reply):
             ordinary = turn(session, 'Onu korkutmaya çalışıyorum', feature=None, target_id=npc['id'])
-        self.assertNotEqual(ordinary['action_result'].get('action'), 'skill_check')
-        self.assertNotIn('check_feature', ordinary['action_result'])
+        # D-172: a scare at the chosen person is an act the dice settle, with its ordinary ability (never the
+        # feature's strength), and no stock "heard you" line stands in for the result.
+        result = ordinary['action_result']
+        self.assertEqual((result.get('action'), result.get('skill'), result.get('ability')),
+                         ('skill_check', 'Intimidation', 'charisma'))
+        self.assertNotIn('check_feature', result)
+        import interaction_adventure
+        for line in interaction_adventure._HEARD_LINES:
+            self.assertNotIn(line.split('“', 1)[1], ordinary['narration'])
 
     def test_admitted_wording_preserves_actual_ordinary_immediate_owner(self):
         texts = ('Takla atacağım', 'Dengede yürüyorum', 'Dengede kalıyorum',
@@ -369,7 +377,7 @@ class PrimalKnowledgeCoreTests(unittest.TestCase):
                  'Gözdağı vermeye çalışıyorum', 'Tehdit ediyorum',
                  'Ses dinliyorum', 'Etrafı gözlemliyorum',
                  'Tehlikeyi fark etmeye çalışıyorum', 'Bir şey duymaya çalışıyorum',
-                 'Saklanıyorum', 'Yönümü buluyorum',
+                 'Kalabalığa saklanıyorum', 'Yönümü buluyorum',  # D-171: a hide names its cover
                  'Yiyecek arıyorum', 'Barınak kurmaya çalışıyorum')
         reply = {'message': {'content': '{"world_updates": {}, "narration": "Hamlen çözülür.", "lore_claims": []}'}}
         for text in texts:

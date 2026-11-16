@@ -15,7 +15,7 @@ import game
 import refusals
 from dataclasses import replace
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -133,7 +133,8 @@ from api.serializers import (
     serialize_session_state,
 )
 from api.schemas import LevelUpApplyRequest, LevelUpPreviewResponse, LevelUpCommandResult, ShopCounterResponse
-from api.session_manager import SessionManager, UnknownSessionError
+from api.schemas import ActionIdPath
+from api.session_manager import SessionManager, TransientReplyDroppedError, UnknownSessionError
 from api.world_metadata import (
     set_session_world_metadata,
     world_metadata_for_state,
@@ -215,6 +216,32 @@ def _raise_if_commit_unconfirmed(
         status_code=decision.status_code,
         detail=decision.detail(commit_status="committed_unconfirmed"),
     ) from None
+
+
+def _adopt_undo_checkpoint(record: Any, build: Any) -> None:
+    """D-110: after a commit whose acknowledgement was lost, the committed move is the live one-step undo target.
+
+    Built as on the success path. If it cannot be built the move is simply not undoable (as on the ambient route, D-103);
+    the older point is dropped either way, because it no longer describes the live state.
+    """
+    try:
+        record.undo_checkpoint = build()
+    except Exception as error:
+        record.undo_checkpoint = None
+        _logger.error("Undo point after an unacknowledged commit could not be built (error_type=%s)", type(error).__name__)
+
+
+def _final_death(session: Any) -> bool:
+    """D-112: an Ironman death is final; no undo may bring the hero back, whichever turn set the undo point.
+
+    D-178 (Kadir): "PERMADEATH'te ölüm kesin; ölüm turu Geri Al ile geri alınamaz." The same holds for a real death.
+    """
+    world = getattr(session, "world_state", None)
+    death = world.get("death_state") if isinstance(world, dict) else None
+    return isinstance(death, dict) and (
+        death.get("terminal") is True
+        or (death.get("mode") in ("IRONMAN", "PERMADEATH") and death.get("dead") is True)
+    )
 
 
 def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> None:
@@ -725,6 +752,21 @@ def create_app(
         except CampaignError as error:
             raise campaign_http_exception(error) from None
 
+    def refuse_while_action_open(record: Any) -> None:
+        # D-107: the turn and level-up routes refuse a new action while another is open; every other game write
+        # must too, so an open move retried later never runs on a world changed after it was accepted. Called under
+        # turn_lock, after receipt replay and before any engine work. Nothing is stored: a retry runs once it is settled.
+        try:
+            open_action = manager.unresolved_action(record)
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+        if open_action is not None:
+            raise HTTPException(status_code=409, detail={
+                "code": "unresolved_action",
+                "message": "An earlier action of this campaign is still unresolved.",
+                "unresolved_action_id": open_action["action_id"],
+            })
+
     @application.get("/api/game/health", response_model=HealthResponse, response_model_exclude_none=True)
     @application.get("/api/health", response_model=HealthResponse, response_model_exclude_none=True)
     def health(response: Response) -> HealthResponse:
@@ -988,14 +1030,25 @@ def create_app(
     def action_status_payload(record: Any, session_id: str, action_id: str, state: str) -> dict[str, Any]:
         payload: dict[str, Any] = {"action_id": action_id, "state": state}
         if state == "applied":
-            receipt = manager.get_turn_action(record, action_id) or {}
+            try:
+                receipt = manager.get_turn_action(record, action_id) or {}
+            except TransientReplyDroppedError:
+                receipt = {}  # D-152: applied long ago, its reply no longer kept; only a retried turn is refused
             stored = receipt.get("response")
             payload["response"] = None
-            if isinstance(stored, dict):
+            # D-162: an Undo receipt also fits TurnResponse (extra keys are ignored), but it is another command kind.
+            if isinstance(stored, dict) and "undone_action_id" not in stored:
                 try:
                     payload["response"] = replay_action_response(stored, TurnResponse, session_id)
                 except HTTPException:
                     payload["response"] = None  # a receipt of another command kind: applied, but not a turn reply
+            # D-110: whether this move is still the live one-step undo target, so a screen that lost the reply keeps
+            # its undo. A hint only: the undo route checks the checkpoint and its fingerprint again under the lock.
+            checkpoint = getattr(record, "undo_checkpoint", None)
+            payload["undo_available"] = (
+                isinstance(checkpoint, dict) and checkpoint.get("action_id") == action_id
+                and not _final_death(record.game_session)
+            )
         elif state == "not_applied":
             refused = manager.get_refused_action(record, action_id)
             payload["detail"] = refused["detail"] if refused else None
@@ -1020,7 +1073,8 @@ def create_app(
         "/api/game/sessions/{session_id}/actions/{action_id}",
         response_model=dict[str, Any],
     )
-    def read_action_status(session_id: str, action_id: str) -> dict[str, Any]:
+    def read_action_status(session_id: str, action_id: ActionIdPath) -> dict[str, Any]:
+        action_id = str(action_id)
         record = get_record(session_id)
         if record.revoked:
             raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
@@ -1033,8 +1087,9 @@ def create_app(
         "/api/game/sessions/{session_id}/actions/{action_id}/abandon",
         response_model=dict[str, Any],
     )
-    def abandon_action(session_id: str, action_id: str) -> dict[str, Any]:
+    def abandon_action(session_id: str, action_id: ActionIdPath) -> dict[str, Any]:
         """Player-initiated close of an action id; the answer comes from the stored receipt or refusal only."""
+        action_id = str(action_id)
         record = get_record(session_id)
         if not record.turn_lock.acquire(timeout=2.0):
             # A turn of this session is running: its outcome is not known yet, so the identity is kept.
@@ -1153,26 +1208,9 @@ def create_app(
             put_back()
             _logger.error("Economic response could not be built (error_type=%s)", type(error).__name__)
             raise refuse_before_commit(500, "engine_error", "The economic response could not be built safely.") from None
-        try:
-            manager.autosave_turn(
-                record, request.message, narration,
-                turn_action_receipt={"action_id": action_id, "request_hash": request_hash,
-                                     "response": response_payload},
-                narration_source="deterministic_system",  # every card line is economic_actions' own text
-            )
-        except Exception as error:
-            _raise_if_commit_unconfirmed(
-                manager, record, action_id, request_hash, response_payload, error,
-                adopt=lambda: manager.adopt_committed_turn(record, None, None),
-            )
-            put_back()
-            _logger.error("Economic autosave failed (error_type=%s)", type(error).__name__)
-            decision = failure_policy.classify_failure(
-                failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "rolled_back", error,
-            )
-            raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
-        if consumed:
-            record.undo_checkpoint = {
+
+        def undo_point() -> dict[str, Any]:
+            return {
                 "action_id": action_id,
                 "player_message": request.message,
                 "turn_label": narration,  # the card's fixed words name nothing; the undo quotes the engine's summary
@@ -1183,6 +1221,32 @@ def create_app(
                 "world_metadata": metadata_snapshot,
                 "post_turn_fingerprint": _state_fingerprint(session),
             }
+
+        def adopt_committed_payment() -> None:
+            manager.adopt_committed_turn(record, None, None)
+            if consumed:  # D-110: a committed payment keeps its one-step undo when its acknowledgement was lost
+                _adopt_undo_checkpoint(record, undo_point)
+
+        try:
+            manager.autosave_turn(
+                record, request.message, narration,
+                turn_action_receipt={"action_id": action_id, "request_hash": request_hash,
+                                     "response": response_payload},
+                narration_source="deterministic_system",  # every card line is economic_actions' own text
+            )
+        except Exception as error:
+            _raise_if_commit_unconfirmed(
+                manager, record, action_id, request_hash, response_payload, error,
+                adopt=adopt_committed_payment,
+            )
+            put_back()
+            _logger.error("Economic autosave failed (error_type=%s)", type(error).__name__)
+            decision = failure_policy.classify_failure(
+                failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "rolled_back", error,
+            )
+            raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
+        if consumed:
+            record.undo_checkpoint = undo_point()
         return response_payload
 
     @application.post(
@@ -1201,7 +1265,7 @@ def create_app(
                 "message": "Economic actions are not open yet; nothing was applied.",
             })
         active_adapter = application.state.ollama_adapter
-        action_id = str(request.action_id or uuid4())
+        action_id = str(request.action_id)
         effective_mode = "do" if request.combat_action is not None else request.interaction_mode
         hash_payload = {"message": request.message, "target_id": request.target_id}
         # Omitted modes keep the legacy hash used by saved turn receipts.
@@ -1291,12 +1355,20 @@ def create_app(
                     )
                 raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
 
+            # D-119: the opening step the attack check assumed; a refusal before the turn's snapshot takes it back.
+            opening: dict[str, Any] | None = None
+
+            def take_back_opening() -> None:
+                if opening is not None:
+                    opening.pop("distance_ft", None)
+
             def refuse_before_commit(status_code: int, code: str, message: str) -> HTTPException:
                 """Close this action id for good after a refusal raised before any effect.
 
                 The not_applied claim is made only when the refusal record is durably stored under the turn
                 lock; otherwise the same refusal is returned without that claim.
                 """
+                take_back_opening()
                 detail = {"code": code, "message": message, "not_applied": True}
                 public_message = refusals.REFUSAL_TEXT.get(code) if status_code == 400 or code == "engine_error" else None
                 if public_message:
@@ -1315,15 +1387,22 @@ def create_app(
             def refuse_model_failure(code: str, message: str = MODEL_FAILURE_MESSAGE) -> HTTPException:
                 """Answer a model failure on a turn that applied nothing, and let the campaign go on.
 
-                The failure says nothing about the campaign, so the open intent is released instead of holding every later
-                move: any new id runs, and this same id may run again. The not_applied claim needs a verified rollback.
+                The failure says nothing about the campaign, so it does not hold later moves: any new id runs. The browser
+                closes its move on not_applied and retries with a new id, so this id is closed for good (D-106): a late
+                copy replays this refusal instead of running a second turn. The not_applied claim needs a verified
+                rollback and a durable refusal record.
                 """
-                detail = {"code": code, "message": message}
+                take_back_opening()
+                detail = {"code": code, "message": message, "not_applied": True}
                 try:
-                    if getattr(record, "usable", True) and manager.release_action_intent(record, action_id, request_hash):
-                        detail["not_applied"] = True
+                    durable = getattr(record, "usable", True) and manager.record_refused_action(
+                        record, action_id, request_hash, 503, detail,
+                    )
                 except Exception:
-                    _logger.error("Action intent could not be released; no never-applied claim is made.", exc_info=True)
+                    _logger.error("Model-failure refusal could not be saved; no never-applied claim is made.", exc_info=True)
+                    durable = False
+                if not durable:
+                    detail = {"code": code, "message": message}
                 return HTTPException(status_code=503, detail=detail)
 
             try:
@@ -1338,7 +1417,7 @@ def create_app(
                                      refuse_before_commit)
             if isinstance(session, game.GameSession):
                 try:
-                    combat_lifecycle.validate_request(
+                    opening = combat_lifecycle.validate_request(
                         session,
                         request.message if effective_mode in {None, "do"} else "",
                         request.target_id if effective_mode in {None, "do"} else None,
@@ -1351,61 +1430,71 @@ def create_app(
                         raise refuse_before_commit(error.status_code, error.code, str(error)) from None
                 except ValueError:
                     raise refuse_before_commit(409, "invalid_combat_state", "Combat state is invalid.") from None
-            # Pure opt-in admission precedes adapter preflight and every mutating
-            # scene/lore planner. Ordinary turns retain their existing order.
-            if request.check_feature is not None:
-                try:
-                    session.primal_knowledge_check_admission(
-                        request.message, interaction_mode=effective_mode,
-                        combat_action=request.combat_action, target_id=request.target_id,
-                        check_feature=request.check_feature,
-                    )
-                except combat_lifecycle.CombatRequestError as error:
-                    raise refuse_before_commit(error.status_code, error.code, str(error)) from None
-            check_evidence = [] if request.check_feature is not None else None
-            import spell_scope
-            import sorcery_points
-            slot_conversion = isinstance(session, game.GameSession) and sorcery_points.native_conversion_request(
-                request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
-            )
-            if isinstance(session, game.GameSession) and (
-                session.character.get("current_hp", 1) <= 0
-                or slot_conversion
-                or spell_scope.explicit_request(
-                    request.message,
-                    request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
-                )
-                or bounded_encounter.native_request(
-                    session, request.message,
-                    request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
-                )
-                or (
-                    request.combat_action is None
-                    and (authored_dungeon.native_request(request.message, session)
-                         or exploration.native_request(request.message, session)
-                         or combat_lifecycle.surrender_yes(session, request.message))
-                )
-            ):
-                active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
-            if active_adapter is None:
-                raise refuse_model_failure("ollama_unavailable")
+            # D-256: anything unexpected before the snapshot takes the opening step back too (a refusal already did).
             try:
-                active_adapter.ensure_required_model()
-            except OllamaUnavailableError as error:
-                _logger.warning(
-                    "Ollama preflight failed (error_type=%s)",
-                    error.error_type,
+                # Pure opt-in admission precedes adapter preflight and every mutating
+                # scene/lore planner. Ordinary turns retain their existing order.
+                if request.check_feature is not None:
+                    try:
+                        session.primal_knowledge_check_admission(
+                            request.message, interaction_mode=effective_mode,
+                            combat_action=request.combat_action, target_id=request.target_id,
+                            check_feature=request.check_feature,
+                        )
+                    except combat_lifecycle.CombatRequestError as error:
+                        raise refuse_before_commit(error.status_code, error.code, str(error)) from None
+                check_evidence = [] if request.check_feature is not None else None
+                import spell_scope
+                import sorcery_points
+                slot_conversion = isinstance(session, game.GameSession) and sorcery_points.native_conversion_request(
+                    request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
                 )
-                raise refuse_model_failure("ollama_unavailable") from None
-            except RequiredModelUnavailableError:
-                selected_model = adapter.model_name if adapter is not None else MODEL_NAME
-                _logger.warning("Required model %s is unavailable.", selected_model)
-                # Saying it again cannot help a model that is not installed, so this one stays a plain, truthful setup message.
-                raise refuse_model_failure(
-                    "model_unavailable", f"Required model {selected_model} is unavailable.",
-                ) from None
+                if isinstance(session, game.GameSession) and (
+                    session.character.get("current_hp", 1) <= 0
+                    or slot_conversion
+                    or spell_scope.explicit_request(
+                        request.message,
+                        request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+                    )
+                    or bounded_encounter.native_request(
+                        session, request.message,
+                        request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+                    )
+                    or (
+                        request.combat_action is None
+                        and (authored_dungeon.native_request(request.message, session)
+                             or exploration.native_request(request.message, session)
+                             or combat_lifecycle.surrender_yes(session, request.message))
+                    )
+                ):
+                    active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
+                if active_adapter is None:
+                    raise refuse_model_failure("ollama_unavailable")
+                try:
+                    active_adapter.ensure_required_model()
+                except OllamaUnavailableError as error:
+                    _logger.warning(
+                        "Ollama preflight failed (error_type=%s)",
+                        error.error_type,
+                    )
+                    raise refuse_model_failure("ollama_unavailable") from None
+                except RequiredModelUnavailableError:
+                    selected_model = adapter.model_name if adapter is not None else MODEL_NAME
+                    _logger.warning("Required model %s is unavailable.", selected_model)
+                    # Saying it again cannot help a model that is not installed, so this one stays a plain, truthful setup message.
+                    raise refuse_model_failure(
+                        "model_unavailable", f"Required model {selected_model} is unavailable.",
+                    ) from None
+            except BaseException:
+                take_back_opening()
+                raise
 
+            # D-119: the snapshot is the state before the opening step, so every rollback takes the step back too.
+            take_back_opening()
             snapshot = _capture_session(session)
+            if opening is not None:
+                opening["distance_ft"] = 5
+                opening = None
             # Runtime capability only; never serialized into campaign state.
             session._exploration_narration_available = (
                 isinstance(active_adapter, bounded_encounter.MechanicalTurnContext)
@@ -1885,6 +1974,24 @@ def create_app(
                 _logger.error("Turn response could not be built (error_type=%s)", type(error).__name__)
                 raise refuse_before_commit(500, "engine_error", "The turn response could not be built safely.") from None
             record.lore_authority = staged_lore_authority
+
+            def undo_point() -> dict[str, Any]:
+                return {
+                    "action_id": action_id,
+                    "player_message": request.message,
+                    "snapshot": snapshot,
+                    "journal": journal_snapshot,
+                    "narrative_memory": narrative_memory_snapshot,
+                    "lore_authority": lore_authority_snapshot,
+                    "world_metadata": metadata_snapshot,
+                    "post_turn_fingerprint": _state_fingerprint(session),
+                }
+
+            def adopt_committed_turn() -> None:
+                manager.adopt_committed_turn(record, staged_narrative_memory, combat_history_entry)
+                if isinstance(session, game.GameSession):  # D-110: the committed turn keeps its one-step undo
+                    _adopt_undo_checkpoint(record, undo_point)
+
             try:
                 manager.autosave_turn(
                     record,
@@ -1902,7 +2009,7 @@ def create_app(
             except CampaignError as error:
                 _raise_if_commit_unconfirmed(
                     manager, record, action_id, request_hash, response_payload, error,
-                    adopt=lambda: manager.adopt_committed_turn(record, staged_narrative_memory, combat_history_entry),
+                    adopt=adopt_committed_turn,
                 )
                 record.lore_authority = lore_authority_snapshot
                 _rollback_session(record, session, snapshot)
@@ -1942,7 +2049,7 @@ def create_app(
             except Exception as error:
                 _raise_if_commit_unconfirmed(
                     manager, record, action_id, request_hash, response_payload, error,
-                    adopt=lambda: manager.adopt_committed_turn(record, staged_narrative_memory, combat_history_entry),
+                    adopt=adopt_committed_turn,
                 )
                 record.lore_authority = lore_authority_snapshot
                 _rollback_session(record, session, snapshot)
@@ -2000,16 +2107,7 @@ def create_app(
                 # LR00-P7: remember exactly how the world looked before this
                 # turn, and how it looks now, so one explicit undo can restore
                 # it only if nothing else has changed since.
-                record.undo_checkpoint = {
-                    "action_id": action_id,
-                    "player_message": request.message,
-                    "snapshot": snapshot,
-                    "journal": journal_snapshot,
-                    "narrative_memory": narrative_memory_snapshot,
-                    "lore_authority": lore_authority_snapshot,
-                    "world_metadata": metadata_snapshot,
-                    "post_turn_fingerprint": _state_fingerprint(session),
-                }
+                record.undo_checkpoint = undo_point()
             return response_payload
 
     @application.post(
@@ -2044,6 +2142,19 @@ def create_app(
                         "message": "This action ID was already used for a different action.",
                     })
                 return replay_action_response(previous["response"], TurnUndoResponse, session_id)
+            # D-127: an id closed for good (abandon or an earlier refusal) never undoes anything later.
+            try:
+                refused = manager.get_refused_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if refused is not None:
+                if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
+                    raise HTTPException(status_code=409, detail={
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different action.",
+                    })
+                raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
+            refuse_while_action_open(record)
             require_current(record)
             session = record.game_session
             checkpoint = getattr(record, "undo_checkpoint", None)
@@ -2051,6 +2162,13 @@ def create_app(
                 raise HTTPException(status_code=409, detail={
                     "code": "undo_unavailable",
                     "message": "Geri alınabilecek bir son tur yok.",
+                })
+            if _final_death(session):
+                raise HTTPException(status_code=409, detail={
+                    "code": "undo_final_death",
+                    "message": "Ironman ölümü kesindir; geri alınamaz."
+                    if session.world_state["death_state"].get("mode") == "IRONMAN"
+                    else "Gerçek ölüm kesindir; geri alınamaz.",
                 })
             if _state_fingerprint(session) != checkpoint["post_turn_fingerprint"]:
                 record.undo_checkpoint = None
@@ -2071,6 +2189,12 @@ def create_app(
             purse_now = economic_actions.wallet_total_cp(session.world_state)
             try:
                 _restore_session(session, checkpoint["snapshot"])
+                # D-211: the undone turn answered (or dropped) the surrendered-foe question; Undo never reopens it, so
+                # the same blow sent again is asked about again, never struck unasked.
+                session._surrender_strike_asked = None
+                # D-211 review: the same for "kavga mı başlatıyorsun?" (its flags ride the same snapshot).
+                session._attack_asked, session._blow_asked, session._blow_asked_line = False, None, None
+                session._heavy_asked = session._heavy_confirmed = None  # D-109: and the crime/threat question and its yes
                 if isinstance(session, game.GameSession):
                     economic_actions.reconcile_offers_after_undo(
                         session.world_state, current_offers, undone_action_id=target_action_id,
@@ -2138,11 +2262,16 @@ def create_app(
         record = get_record(session_id)
         with record.turn_lock:
             record = get_record(session_id)
+            refuse_while_action_open(record)
             require_current(record)
             session = record.game_session
             snapshot = _capture_session(session)
             lore_before = record.lore_authority
             token_before = getattr(session, "_campaign_persistence_version", None)
+            if getattr(session, "campaign_lore_state", None) is not None:
+                # D-189: a committed turn moves only the record's lore and a resume reloads it, so a copy left on the
+                # session can be older; the command starts it from the record, like play_turn, before reading it below.
+                session.campaign_lore_state = record.lore_authority
 
             def put_back() -> None:
                 record.lore_authority = lore_before
@@ -2256,9 +2385,10 @@ def create_app(
         request: SpeciesTraitActionRequest,
     ) -> dict[str, Any]:
         record = get_record(session_id)
-        action_id = str(request.action_id or uuid4())
+        action_id = str(request.action_id)
         request_hash = hashlib.sha256(json.dumps(
-            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"})},
+            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"} | {
+                field for field in ("draconic_ancestry", "shape", "target_id") if getattr(request, field) is None})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
@@ -2291,12 +2421,14 @@ def create_app(
                         "message": "This action ID was already used for a different action.",
                     })
                 raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
+            refuse_while_action_open(record)
             require_current(record)
             snapshot = _capture_session(session)
             metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
             journal_snapshot = copy.deepcopy(record.journal)
             memory_snapshot = copy.deepcopy(record.narrative_memory)
             lore_snapshot = record.lore_authority
+            session_lore_snapshot = getattr(session, "campaign_lore_state", None)
 
             def restore_command():
                 _rollback_session(record, session, snapshot)
@@ -2304,9 +2436,11 @@ def create_app(
                 record.journal = journal_snapshot
                 record.narrative_memory = memory_snapshot
                 record.lore_authority = lore_snapshot
+                session.campaign_lore_state = session_lore_snapshot
 
             response_payload = None
             try:
+                quest_before = copy.deepcopy(session.world_state)
                 result = session.resolve_species_trait_action(
                     request.action,
                     form=request.form,
@@ -2314,7 +2448,40 @@ def create_app(
                     armed=request.armed,
                     **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
                        if request.action == "lay_on_hands" else {}),
+                    **({"draconic_ancestry": request.draconic_ancestry} if request.action == "choose_draconic_ancestry"
+                       else {"shape": request.shape, "target_id": request.target_id} if request.action == "breath_weapon"
+                       else {}),
                 )
+                # D-105: a combat species action can end the turn and its damage (Inner Radiance) can drop a quest
+                # target; like the play turn, the quest owner reads this command's own before/after world. The
+                # panel command carries no player words, so last turn's text must not ask for work here.
+                if (quest_before.get("combat") or {}).get("active") and isinstance(result.get("effects"), dict):
+                    session._adventure_player_text = ""
+                    # A reward's faction standing is written onto the session's lore copy; that copy can be missing
+                    # or older than the record's, so it starts from the record and the record takes the result.
+                    session.campaign_lore_state = record.lore_authority
+                    # D-187: a fight this command ended reaches the adventure hooks (aftermath offer, combat count).
+                    ended = ({"combat_ended": True, "end_reason": session.world_state["combat"].get("end_reason")}
+                             if not session.world_state["combat"].get("active") else {})
+                    transitions = session.evaluate_quest_events(
+                        quest_before, {"action": "species_action", "species_action": request.action,
+                                       "status": "resolved", **ended},
+                    )
+                    record.lore_authority = session.campaign_lore_state
+                    # A session without a copy stays without one: a later turn moves only the record's lore, so a copy
+                    # left here would turn stale. A copy that was already there (hear, a paid reward, Undo, a rolled-back
+                    # turn) takes the new record lore: a quest command or the next turn reads it before the record.
+                    session.campaign_lore_state = None if session_lore_snapshot is None else record.lore_authority
+                    if transitions:
+                        result["effects"]["quest_outcomes"] = transitions
+                # D-003: an award this command paid (a fight it ended, a bounty it closed) is announced by this
+                # command and its history entry, not one turn late by the next play turn (whose Undo would repeat it).
+                paid = session._publish_level_up({}).get("level_up")
+                import xp
+                lines = [xp.award_line(paid)] if paid is not None else []
+                lines += session._take_xp_unrecorded()  # D-061: a forfeited award's line goes the same way
+                if lines:
+                    result["message"] = f"{result['message']} {' '.join(lines)}"
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
                     action_id=action_id,
@@ -2396,9 +2563,11 @@ def create_app(
         """4C.2: save the player's preparation list (same receipt, replay and rollback contract as species actions)."""
         import spell_preparation
         record = get_record(session_id)
-        action_id = str(request.action_id or uuid4())
+        action_id = str(request.action_id)
+        # D-039: an absent spellbook stays out of the hash, so receipts saved before the field existed still replay.
         request_hash = hashlib.sha256(json.dumps(
-            {"command": "spell_prepare", **request.model_dump(mode="json", exclude={"action_id"})},
+            {"command": "spell_prepare", **request.model_dump(
+                mode="json", exclude={"action_id", *(("spellbook",) if request.spellbook is None else ())})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
@@ -2427,6 +2596,7 @@ def create_app(
                         "message": "This action ID was already used for a different action.",
                     })
                 raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
+            refuse_while_action_open(record)
             require_current(record)
             snapshot = _capture_session(session)
             metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
@@ -2448,19 +2618,27 @@ def create_app(
                 except (ValueError, KeyError, TypeError):
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_unavailable", "message": "Kayıtlı büyü durumu okunamadı."}) from None
-                if window["blocked_reason"] == "spellbook_missing":
+                if request.spellbook is not None:
+                    # D-039: the one-time spellbook choice of an old save's Wizard, on its own (never with a list or close).
+                    if request.prepared is not None or request.close:
+                        raise HTTPException(status_code=409, detail={
+                            "code": "prepare_request_mixed",
+                            "message": "Büyü kitabı seçimi tek başına gönderilir; hazırlık listesi ondan sonra kaydedilir."})
+                    result = spell_preparation.choose_spellbook(session, list(request.spellbook))
+                elif window["blocked_reason"] == "spellbook_missing":
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_spellbook_missing",
                         "message": "Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor."})
-                if not window["supported"]:
+                elif not window["supported"]:
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_not_supported", "message": "Bu sınıf büyü hazırlamaz."})
-                if not window["open"]:
+                elif not window["open"]:
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_window_closed",
                         "message": "Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş ya da yeni bir seviyeye geçmiş olmalısın."})
-                prepared = None if request.prepared is None else list(request.prepared)
-                result = spell_preparation.prepare(session, prepared, close=request.close)
+                else:
+                    prepared = None if request.prepared is None else list(request.prepared)
+                    result = spell_preparation.prepare(session, prepared, close=request.close)
                 response = SpellPrepareCommandResult(
                     session_id=session_id, action_id=action_id,
                     state=serialize_session_state(session, record.journal, record.lore_authority),
@@ -2626,12 +2804,41 @@ def create_app(
 
             if record.campaign_id is None:
                 return response_for("REJECTED", "campaign_persistence_required")
+            refuse_while_action_open(record)
 
             snapshot = _capture_session(session)
             journal_snapshot = copy.deepcopy(record.journal)
             memory_snapshot = copy.deepcopy(record.narrative_memory)
             metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
             lore_snapshot = record.lore_authority
+            token_before = getattr(session, "_campaign_persistence_version", None)
+
+            def put_back() -> None:
+                # R05: a restore that fails or cannot be verified quarantines the session; it is never just logged.
+                closed: HTTPException | None = None
+                try:
+                    _rollback_session(record, session, snapshot)
+                except HTTPException as quarantine:
+                    closed = quarantine
+                finally:
+                    record.journal = journal_snapshot
+                if closed is not None:
+                    raise closed from None
+
+            def refuse_unsaved(error: Exception) -> None:
+                put_back()
+                _logger.error(
+                    "Ambient-event result could not be persisted (error_type=%s)",
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "code": "event_persistence_error",
+                        "message": "The event result could not be saved safely.",
+                    },
+                ) from None
+
             try:
                 transition = session.resolve_ambient_event_action(
                     event_instance_key,
@@ -2704,48 +2911,51 @@ def create_app(
                 )
                 response_payload = redact_sensitive_values(response.model_dump())
                 # Without a history row a click left a receipt and no line of story.
-                manager.save_campaign_locked(record, turn_action_receipt={
-                    "action_id": action_id, "request_hash": request_hash,
-                    "response": {"action_id": action_id, "ambient_event_response": response_payload},
-                }, turn_entry={
+                turn_entry = {
                     "player_message": transition["player_message"],
                     "narration": transition["narration"],
                     "narration_source": "deterministic_system",  # ambient_actions builds this line itself
-                })
-                # V5: a joined event is undone like a typed turn, with the same fields as the turn route.
-                record.undo_checkpoint = {
-                    "action_id": action_id,
-                    "player_message": transition["player_message"],
-                    "snapshot": snapshot,
-                    "journal": journal_snapshot,
-                    "narrative_memory": memory_snapshot,
-                    "lore_authority": lore_snapshot,
-                    "world_metadata": metadata_snapshot,
-                    "post_turn_fingerprint": _state_fingerprint(session),
                 }
-                return response_payload
             except Exception as error:
-                # R05: a restore that fails or cannot be verified quarantines the session; it is never just logged.
-                closed: HTTPException | None = None
-                try:
-                    _rollback_session(record, session, snapshot)
-                except HTTPException as quarantine:
-                    closed = quarantine
-                finally:
-                    record.journal = journal_snapshot
-                if closed is not None:
-                    raise closed from None
+                refuse_unsaved(error)
+            try:
+                manager.save_campaign_locked(record, turn_action_receipt={
+                    "action_id": action_id, "request_hash": request_hash,
+                    "response": {"action_id": action_id, "ambient_event_response": response_payload},
+                }, turn_entry=turn_entry)
+            except Exception as error:
+                # D-103: as in the quest route, a save that raised may still have committed. Rolling back under a
+                # stored receipt and history row would split the live game from storage, so ask storage first.
+                certain = isinstance(error, (CampaignStaleError, CampaignNotFoundError, CampaignNotActiveError))
+                landed = False if certain else manager.campaign_save_landed(record, token_before)
+                if landed is None:
+                    record.usable = False
+                    _logger.critical("Ambient-event save failed and could not be reconciled; session closed")
+                    decision = failure_policy.classify_failure(
+                        failure_policy.ActionPhase.RECONCILIATION, "unknown", error,
+                    )
+                    raise HTTPException(
+                        status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown"),
+                    ) from None
+                if not landed:
+                    refuse_unsaved(error)
                 _logger.error(
-                    "Ambient-event result could not be persisted (error_type=%s)",
-                    type(error).__name__,
+                    "Ambient-event save committed but was not acknowledged (error_type=%s)", type(error).__name__,
                 )
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "code": "event_persistence_error",
-                        "message": "The event result could not be saved safely.",
-                    },
-                ) from None
+            # D-103: everything below runs after the commit and never rolls the live game back. If the checkpoint
+            # cannot be built the click is simply not undoable; a retry with this id replays the stored receipt.
+            # V5: a joined event is undone like a typed turn, with the same fields as the turn route.
+            _adopt_undo_checkpoint(record, lambda: {
+                "action_id": action_id,
+                "player_message": transition["player_message"],
+                "snapshot": snapshot,
+                "journal": journal_snapshot,
+                "narrative_memory": memory_snapshot,
+                "lore_authority": lore_snapshot,
+                "world_metadata": metadata_snapshot,
+                "post_turn_fingerprint": _state_fingerprint(session),
+            })
+            return response_payload
 
     def level_up_projection(record: Any, session_id: str) -> dict[str, Any]:
         """Public earned eligibility only; core/save choices ahead of XP remain legal."""

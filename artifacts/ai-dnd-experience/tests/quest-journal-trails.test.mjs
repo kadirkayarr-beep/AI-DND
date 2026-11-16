@@ -17,7 +17,7 @@ after(async () => { await vite?.close(); });
 const base = { quests: [], offers: [], knownNpcs: [], adventures: undefined, onAccept() {}, onCancel() {},
                acceptPending: false, cancelPending: false, hasError: false, commandNotice: null };
 const row = (title, extra = {}) => ({ quest_id: title, title, summary: 's', giver: null, recipient: null, place: null,
-                                      status: 'active', objectives: [], result: null, record_kind: 'dynamic', raw_status: 'ACTIVE', ...extra });
+                                      status: 'active', objectives: [], result: null, promised_cp: null, record_kind: 'dynamic', raw_status: 'ACTIVE', ...extra });
 const log = (trails) => ({ active_count: 1, active: [row('Teslimat: Revomar İskelesi')], offered: [], let_go: [], rumors: [],
                            done: [row('Kayıp mektup', { status: 'done', raw_status: 'COMPLETED', result: '12 bakır ödendi' })], trails });
 test('the journal shows trails with where, source and followed', () => {
@@ -44,10 +44,53 @@ test('no trails shows the empty state under the heading', () => {
   assert.match(html, /İzler/);
   assert.match(html, /Henüz bir iz yok\./);
 });
+test('D-136: an offered dynamic job has an accept button in its row and no cancel button yet', () => {
+  const offered = row('İskele teslimatı', { quest_id: 'dyn.q1', status: 'offered', raw_status: 'DISCOVERED', objectives: ['Paketi al'] });
+  const accepted = [];
+  const tree = React.createElement(ui.QuestJournalSection, { ...base, onAccept: (id) => accepted.push(id),
+    questLog: { ...log([]), offered: [offered] } });
+  const html = render(tree);
+  assert.match(html, /data-testid="journal-quest-offered-dyn\.q1"/);
+  assert.match(html, /İskele teslimatı/);
+  assert.match(html, /Paketi al/);
+  assert.match(html, /data-testid="button-accept-quest-dyn\.q1"[^>]*>Kabul et</);
+  assert.doesNotMatch(html, /button-cancel-quest-dyn\.q1/);         // cancel waits for ORTA-29 (D-134) to merge
+  // the row's button calls onAccept with the job id: find the element and press it
+  const find = (node) => {
+    if (!node || typeof node !== 'object') return null;
+    if (Array.isArray(node)) { for (const child of node) { const hit = find(child); if (hit) return hit; } return null; }
+    if (typeof node.type === 'function') return find(node.type(node.props));
+    if (node.props?.['data-testid'] === 'button-accept-quest-dyn.q1') return node;
+    return find(node.props?.children);
+  };
+  const button = find(tree);
+  assert.ok(button, 'accept button element');
+  button.props.onClick();
+  assert.deepEqual(accepted, ['dyn.q1']);
+});
+test('D-136: an offered dynamic job alone is not the empty journal', () => {
+  const offered = row('Tek teklif', { quest_id: 'dyn.q2', status: 'offered', raw_status: 'DISCOVERED' });
+  const html = render(React.createElement(ui.QuestJournalSection, { ...base,
+    questLog: { active_count: 0, active: [], offered: [offered], done: [], let_go: [], rumors: [], trails: [] } }));
+  assert.doesNotMatch(html, /Henüz kayıtlı görev yok\./);
+  assert.match(html, /button-accept-quest-dyn\.q2/);
+});
 test('a done job shows the engine result and the badge counts quest_log', () => {
   const html = render(React.createElement(ui.QuestJournalSection, { ...base, questLog: log([]) }));
   assert.match(html, /Kayıp mektup: 12 bakır ödendi/);
   assert.match(html, /Süren maceralar/);
   assert.match(html, /Teslimat: Revomar İskelesi/);
   assert.match(html, />01</);                                          // the badge reads active_count, not quests.length (0)
+});
+test('D-232: an offered and a running job card show the promised pay', () => {
+  const offered = row('Teslimat: Fezlok Karakolu', { quest_id: 'dyn.q2', status: 'offered', raw_status: 'DISCOVERED', promised_cp: 14 });
+  const running = row('Kayıp mektup', { quest_id: 'dyn.q3', promised_cp: 9 });
+  const html = render(React.createElement(ui.QuestJournalSection, { ...base,
+    questLog: { ...log([]), offered: [offered], active: [running] } }));
+  assert.match(html, /Vaat edilen ücret: 14 bakır/);
+  assert.match(html, /Vaat edilen ücret: 9 bakır/);
+});
+test('D-232: a job without terms shows no pay line', () => {
+  const html = render(React.createElement(ui.QuestJournalSection, { ...base, questLog: log([]) }));
+  assert.doesNotMatch(html, /Vaat edilen ücret/);
 });

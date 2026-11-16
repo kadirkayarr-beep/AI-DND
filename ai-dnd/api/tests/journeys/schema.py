@@ -28,6 +28,8 @@ EXPECT_KEYS = frozenset(
         "kart",
         "tezgah",
         "kisi_kese",
+        "kisi_esya",
+        "kisi_hp",
         "olu",
         "yasak_metin",
         "gerekli_metin",
@@ -49,6 +51,7 @@ EXPECT_KEYS = frozenset(
         "zirh",
         "varis",
         "seviye",
+        "zar",
     }
 )
 
@@ -71,7 +74,7 @@ _TRUE_ACTIONS = ("undo", "reload")
 # Expectations compared as a subset when both sides are mappings: the step names
 # only the fields it cares about (the observed card, counter offer, mode or purse
 # list carries more; ``gorev`` may name only ``aktif`` when a row's title is drawn at random).
-_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese", "gorev", "olay", "varis"})
+_SUBSET_KEYS = frozenset({"kip", "kart", "tezgah", "kisi_kese", "kisi_esya", "kisi_hp", "gorev", "olay", "varis", "zar"})
 _TEXT_CHECKS = frozenset({"yasak_metin", "gerekli_metin"})
 
 
@@ -120,12 +123,19 @@ EXPECT_VALUE_RULES = {
     "envanter": (lambda value: _count_map(value) and all(count > 0 for count in value.values()),
                  "ad -> 1 ya da daha büyük adet nesnesi"),
     "cephane": (_count_map, "tür -> 0 ya da daha büyük sayı nesnesi"),
-    "kisi_kese": (lambda value: _filled_mapping(value) and all(type(cp) is int for cp in value.values()),
-                  "boş olmayan kişi -> bakır nesnesi"),
+    # null: that person has no purse at all (never counted, or undo took the opened one away; D-207)
+    "kisi_kese": (lambda value: _filled_mapping(value) and all(cp is None or type(cp) is int for cp in value.values()),
+                  "boş olmayan kişi -> bakır (ya da null: kesesi yok) nesnesi"),
     "gorev": (_filled_mapping, "boş olmayan nesne"),
     "kip": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
     "kart": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
     "tezgah": (_or_none(_filled_mapping), "boş olmayan nesne ya da null"),
+    "zar": (_or_none(_filled_mapping), "boş olmayan nesne ya da null (null: turda zar kartı yok)"),
+    "kisi_esya": (lambda value: _filled_mapping(value) and all(
+        isinstance(items, dict) and all(type(count) is int for count in items.values()) for items in value.values()),
+        "boş olmayan kişi -> (eşya adı -> adet) nesnesi"),
+    "kisi_hp": (lambda value: _filled_mapping(value) and all(_integer(hp) for hp in value.values()),
+                "boş olmayan kişi -> HP (tam sayı) nesnesi"),
     "yuva": (_or_none(lambda value: isinstance(value, dict)), "nesne ya da null"),
     "konum": (_or_none(lambda value: isinstance(value, str) and bool(value)), "boş olmayan metin ya da null"),
     "olu": (_or_none(lambda value: isinstance(value, str) and bool(value)), "boş olmayan metin ya da null"),
@@ -370,7 +380,10 @@ def _trail_matches(want: Mapping, seen: Mapping) -> bool:
 def _check_subset(key: str, want: Mapping, seen: Mapping) -> list[str]:
     problems = []
     for name in want:
-        if name not in seen or seen[name] != want[name]:
+        if key == "kisi_kese" and want[name] is None:  # D-207: null is a purse that is not there at all
+            if name in seen:
+                problems.append(_mismatch(f"{key}.{name}", None, seen[name]))
+        elif name not in seen or seen[name] != want[name]:
             problems.append(_mismatch(f"{key}.{name}", want[name], seen.get(name)))
     return problems
 

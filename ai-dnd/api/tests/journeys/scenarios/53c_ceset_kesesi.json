@@ -1,0 +1,58 @@
+{
+  "id": "53c_ceset_kesesi",
+  "title": "Para yoktan var olmaz (D-206; SIFIR TOLERANS): ölünün üstünü aramak onun kesesindekini verir, fazlasını değil; kese boşalır; ikinci arama bir şey vermez; Geri Al yalnız son turu (ikinci aramayı) geri alır",
+  "source_items": [
+    206
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 0,
+        "combat_status": "dead"
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 12
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5703,
+    "front_proposal": false
+  },
+  "steps": [
+    {
+      "say": "Kavşim'in cesedini arıyorum",
+      "expect": {
+        "kese": 52,
+        "kisi_kese": {
+          "kavsim": 0
+        },
+        "gerekli_metin": "12 bakır"
+      }
+    },
+    {
+      "say": "cesedi bir daha arıyorum",
+      "expect": {
+        "kese": 52,
+        "kisi_kese": {
+          "kavsim": 0
+        }
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "kese": 52,
+        "gerekli_metin": "Son tur geri alındı",
+        "kisi_kese": {
+          "kavsim": 0
+        }
+      }
+    }
+  ]
+}

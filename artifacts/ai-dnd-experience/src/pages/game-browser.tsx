@@ -60,7 +60,7 @@ import { ApiError, currentAuthEpoch } from '@workspace/api-client-react/custom-f
 import type { EconomicAction, LevelUpResult, TurnOutcome } from '@workspace/api-client-react';
 import { LevelUpCard } from '@/components/level-up-card';
 import { summarizeTurnOutcome } from '@/lib/turn-outcome';
-import { LastTurnBar } from '@/components/last-turn-bar';
+import { LastTurnBar, undoOffered } from '@/components/last-turn-bar';
 import { type Notice, type RecoveryState } from '@/components/notice-banner';
 import { historyToEntries } from '@/lib/transcript-history';
 import { resumeComposerMode } from '@/lib/resume-mode';
@@ -378,6 +378,7 @@ export default function GameBrowser() {
         title: 'Tamamlanmamış bir hamle var',
         detail: 'Sunucuda bu kampanya için henüz sonuçlanmamış bir hamle kayıtlı (başka bir sekme veya önceki oturum). Yeni hamle göndermeden önce durumunu sunucudan kontrol et ya da bilinçli olarak vazgeç.',
         recover: recoveryHandlers(open.actionId),
+        recovery: { status: 'unresolved', loading: false, mutationAllowed: false, scope: forCampaign },
       });
     } catch (error) {
       // A failed lookup stays silent (see above); only a lookup that ran out of time is shown as unknown.
@@ -806,6 +807,20 @@ export default function GameBrowser() {
             setAmbientActionError(false);
             const move = ambientFollowUpMove(request.data.action, response.result.status);
             if (move) submitTurnRef.current(move, undefined, 'do');
+            // D-128: a joined event is the server's live one-step undo target and its own history row.
+            if (response.result.status === 'APPLIED' && activeSessionRef.current === request.sessionId) {
+              setLastTurn({ sessionId: request.sessionId, actionId: request.data.action_id, outcome: null, label: null, purseSpentCp: null });
+              setUndoneJustNow(false);
+              if (campaignId) {
+                const readRevision = nextRevision();
+                void getCampaign(campaignId).then((detail) => {
+                  if (activeSessionRef.current !== request.sessionId) return;
+                  // An older read never overwrites a newer story: the state gate decides for both.
+                  if (!applyGameState(queryClient, request.sessionId, detail.state, { revision: readRevision })) return;
+                  setEntries(historyToEntries(detail.history, { opening: detail.state.scene?.opening }));
+                }).catch(() => undefined);
+              }
+            }
           }
         },
         onError: () => {
@@ -1229,7 +1244,15 @@ export default function GameBrowser() {
       // State, story and the last-turn slot come from the same server read: an earlier turn's outcome or undo target is
       // dropped, and a historical answer (an undone move) is never put back as the last turn.
       // A recovered applied move is a turn reply too: the "only the last turn" line no longer applies.
-      if (verdict.kind === 'applied') { setLastTurn(null); setUndoneJustNow(false); }
+      // D-110: only a move the server still names as its live undo target is put back, so a lost reply keeps its undo.
+      if (verdict.kind === 'applied') {
+        const reply = (verdict.response && typeof verdict.response === 'object' ? verdict.response : {}) as {
+          turn_outcome?: TurnOutcome | null; economic_resolution?: { public_summary?: string | null } | null };
+        const typed = stored && !stored.request.economic_action && typeof stored.request.message === 'string' ? stored.request.message.trim() : null;
+        setLastTurn(verdict.undoAvailable ? { sessionId, actionId, outcome: reply.turn_outcome ?? null,
+          label: reply.economic_resolution?.public_summary ?? typed, purseSpentCp: null } : null);
+        setUndoneJustNow(false);
+      }
       // A settled verdict also resets the counter panel (its waiting gate and old quote/seq) from the same server read.
       if (verdict.kind === 'applied' || verdict.kind === 'not_applied') setPanelEpoch((epoch) => epoch + 1);
       if (verdict.kind === 'not_applied' && stored && typeof stored.request.message === 'string' && stored.request.interaction_mode && !messageRef.current.trim()) {
@@ -1398,11 +1421,10 @@ export default function GameBrowser() {
               />
               <LastTurnBar
                 summary={summarizeTurnOutcome(visibleLastTurn?.outcome)}
-                canUndo={Boolean(visibleLastTurn) && !state.combat.active}
+                canUndo={undoOffered(state, Boolean(visibleLastTurn))}
                 recoveringUndo={undoRequestsRef.current.has(sessionId)}
                 busy={undoBusy || turnSending}
                 onUndo={undoLastTurn}
-                combatActive={Boolean(visibleLastTurn) && state.combat.active}
                 justUndone={undoneJustNow}
                 turnLabel={visibleLastTurn?.label}
                 purseSpentCp={visibleLastTurn?.purseSpentCp}

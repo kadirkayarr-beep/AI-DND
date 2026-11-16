@@ -14,7 +14,7 @@ from api.tests.test_monster_combat import fixture, activate, claw
 
 class CharmedAttackTests(unittest.TestCase):
     def test_source_oracle_is_registered(self):
-        import rule_oracles
+        from api.tests import rule_oracles
         data=rule_oracles.load_oracles();leaf='K07.charmed_attack_charmer'
         rows=[x for x in data['leaves'] if x['leaf_id']==leaf]
         self.assertEqual(len(rows),1,'Charmed attack oracle missing')

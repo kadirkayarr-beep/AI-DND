@@ -128,3 +128,34 @@ test('open character panel and reveal each show one supplied spell panel', () =>
   assert.equal(spellPanels(emptyReveal).length, 0);
   assert.match(emptyPanel, /aria-label="Karakter paneli"/);
 });
+// D-065: the held Concentration (`GameState.concentration`, D-073) is a read-only row of the open character panel.
+const BLESS = { spell_id: 'Bless', slot_level: 1, started_round: 2, targets: ['player'] };
+function concentrationRow(html) {
+  const start = html.indexOf('data-testid="spell-concentration-row"');
+  return start < 0 ? null : html.slice(start, html.indexOf('</dd>', start));
+}
+
+test('D-065: the character panel shows the held Concentration read only, and an undone cast shows none', () => {
+  const held = { ...surfaceState(supplied()), concentration: BLESS };
+  const before = JSON.stringify(held);
+  const panel = renderCharacterPanel(held);
+  assert.equal(JSON.stringify(held), before);
+  const row = concentrationRow(panel);
+  assert.ok(row, 'the held spell has a Concentration row');
+  assert.match(row, /Kutsama \(Bless\)/);
+  assert.match(row, /1\. seviye yuva/);
+  assert.match(row, /Raunt 2/);
+  assert.doesNotMatch(row, /player|combat/);
+  const section = panel.slice(panel.indexOf('data-testid="panel-spellcasting"'), panel.indexOf('</section>', panel.indexOf('data-testid="panel-spellcasting"')));
+  assert.match(section, /Konsantrasyon/);
+  assert.doesNotMatch(section, /<button|<input|<select/);
+  // The Undo response's state carries `concentration: null` (D-073): the same panel then shows nothing held.
+  const undone = renderCharacterPanel({ ...surfaceState(supplied()), concentration: null });
+  const emptyRow = concentrationRow(undone);
+  assert.ok(emptyRow, 'a caster with nothing held still has the row');
+  assert.match(emptyRow, /Yok/);
+  assert.doesNotMatch(emptyRow, /Bless|Kutsama/);
+  // A state without the field (older fixture) invents nothing.
+  assert.equal(concentrationRow(renderCharacterPanel(surfaceState(supplied()))), null);
+  assert.equal(concentrationRow(renderReveal({ ...surfaceState(supplied()), concentration: BLESS })), null);
+});

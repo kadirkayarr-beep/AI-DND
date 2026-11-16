@@ -1,0 +1,88 @@
+"""D-120: a longer PHB spell name that contains a supported one ("Mass Healing Word") is not the supported spell.
+
+"Mass Healing Word" and "Mass Cure Wounds" (and their Turkish names) are outside the bounded catalog: a typed cast of
+them is refused like any other unsupported spell and spends no slot, no Bonus Action and heals nothing.
+"""
+from __future__ import annotations
+
+import unittest
+
+import spell_scope
+import spells
+from api.tests.test_dilim4c_spell_resolvers import CombatRequestError, cleric, held, typed
+
+
+class MassSpellNameTests(unittest.TestCase):
+    def test_a_typed_english_mass_healing_word_gets_the_not_yet_line_without_spending(self):
+        # D-214 (boundary moved, approval list): the English name now reaches the layer-3 owner like Fireball, so the
+        # turn ends with "not in the engine yet" instead of an unsupported_spell error. Nothing is spent or healed: the
+        # character is unchanged; the world moves only by the turn's own bookkeeping (turn index, the player's combat
+        # record copying the character's unchanged HP).
+        s, _enemy = cleric()
+        s.character["current_hp"] = 10
+        world_before, character_before = held(s)
+        result = typed(s, "I cast Mass Healing Word on myself", dice=2)
+        action = result["action_result"]
+        self.assertEqual((action["status"], action["reason"], action["spell"], action["slot_spent"]),
+                         ("unsupported", "spell_not_in_engine", "Mass Healing Word", False))
+        self.assertIn("Mass Healing Word büyüsü henüz motorda yok", result["narration"])
+        world_after, character_after = held(s)
+        self.assertEqual(character_after, character_before)
+        self.assertEqual(world_after["flags"].pop("turn_index"), world_before["flags"].pop("turn_index") + 1)
+        record = world_after["combat"]["participant_records"][0]
+        self.assertEqual((record["id"], record["current_hp"], record["max_hp"]),
+                         ("player", character_before["current_hp"], character_before["max_hp"]))
+        world_after["combat"]["participant_records"][0] = world_before["combat"]["participant_records"][0]
+        self.assertEqual(world_after, world_before)
+
+    def test_a_typed_turkish_mass_healing_word_gets_the_not_yet_line_without_spending(self):
+        # D-257 (boundary moved, approval list): the Turkish name now reaches the layer-3 owner like the English name
+        # (D-214), so the turn ends with "not in the engine yet" instead of an unsupported_spell error. The same strict
+        # checks as the English test: nothing is spent or healed, the world moves only by the turn's own bookkeeping.
+        for line in ("Toplu Şifa Sözü büyüsünü kendime yapıyorum",
+                     "toplu sifa sozu buyusunu kendime yapiyorum"):
+            with self.subTest(line=line):
+                s, _enemy = cleric()
+                s.character["current_hp"] = 10
+                world_before, character_before = held(s)
+                result = typed(s, line, dice=2)
+                action = result["action_result"]
+                self.assertEqual((action["status"], action["reason"], action["spell"], action["slot_spent"]),
+                                 ("unsupported", "spell_not_in_engine", "Mass Healing Word", False))
+                self.assertIn("Mass Healing Word büyüsü henüz motorda yok", result["narration"])
+                world_after, character_after = held(s)
+                self.assertEqual(character_after, character_before)
+                self.assertEqual(world_after["flags"].pop("turn_index"), world_before["flags"].pop("turn_index") + 1)
+                record = world_after["combat"]["participant_records"][0]
+                self.assertEqual((record["id"], record["current_hp"], record["max_hp"]),
+                                 ("player", character_before["current_hp"], character_before["max_hp"]))
+                world_after["combat"]["participant_records"][0] = world_before["combat"]["participant_records"][0]
+                self.assertEqual(world_after, world_before)
+
+    def test_mass_cure_wounds_is_not_cure_wounds(self):
+        for line in ("I cast Mass Cure Wounds on myself", "Toplu Yara İyileştirme büyüsünü kendime yapıyorum",
+                     # The natural lower-case spelling: plain i, ş kept (review of D-120).
+                     "toplu yara iyileştirme büyüsünü kendime yapıyorum"):
+            with self.subTest(line=line):
+                with self.assertRaises(CombatRequestError) as raised:
+                    spell_scope.natural_command(line, None)
+                self.assertEqual(raised.exception.code, "unsupported_spell")
+
+    def test_the_supported_names_still_cast(self):
+        self.assertEqual(spell_scope.natural_command("I cast Healing Word on myself", None),
+                         {"steps": [{"kind": "magic", "ability": "Healing Word", "target_id": "player"}]})
+        self.assertEqual(spell_scope.natural_command("Şifa sözü büyüsünü kendime yapıyorum", None)["steps"][0]["ability"],
+                         "Healing Word")
+        self.assertEqual(spell_scope.natural_command("I cast Cure Wounds on myself", None)["steps"][0]["ability"],
+                         "Cure Wounds")
+
+    def test_the_cast_phrase_classifier_does_not_read_a_mass_spell_as_a_v1_spell(self):
+        # spells.py holds Cure Wounds as V1 (Healing Word is only "unsupported" there, so it never resolves from here).
+        self.assertNotEqual(spells.classify_cast_phrase("I cast Mass Cure Wounds")["kind"], "v1")
+        self.assertNotEqual(spells.classify_cast_phrase("Toplu Yara İyileştirme büyüsü yapıyorum")["kind"], "v1")
+        self.assertNotEqual(spells.classify_cast_phrase("I cast Mass Healing Word")["kind"], "v1")
+        self.assertEqual(spells.classify_cast_phrase("I cast Cure Wounds"), {"kind": "v1", "spell_id": "Cure Wounds"})
+
+
+if __name__ == "__main__":
+    unittest.main()

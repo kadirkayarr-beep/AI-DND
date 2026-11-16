@@ -1,0 +1,211 @@
+{
+  "id": "51_zar_model_onerisi",
+  "title": "Zar motorun işi, genel çözüm (D-094, D-175; Q17 'motor hakem, model yazar'): ön okuma riskli bir denemenin becerisini söyler, motor doğrular ve zarı atar; kalıp dışı söyleyişler de zar kartı gösterir (yankesicilik okumanın steal kararıyla motorun çalma yolundan, korkutma, kandırma, ikna, yalanı sezme); soru ve açık olmayan beceri zar atmaz; gerçek yerel modelin 2026-11-15 okumaları: 'unclear'/'attempt' diye okunan gözdağı ve kandırma da zar atar, geçmiş ya da yarına bırakılan satır okuma ne derse desin zar atmaz",
+  "source_items": [
+    94,
+    175
+  ],
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 60
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 5201,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "kesesini almaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?"
+      }
+    },
+    {
+      "say": "evet",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "zar_var": true
+        }
+      }
+    },
+    {
+      "say": "muhafıza gözdağı veriyorum",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "check": "Intimidation",
+          "person_id": "kavsim"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Intimidation",
+          "zar_var": true
+        }
+      }
+    },
+    {
+      "say": "muhafızı kandırmaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "check": "Deception",
+          "person_id": "kavsim"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Deception",
+          "zar_var": true
+        }
+      }
+    },
+    {
+      "say": "muhafızın yalan söyleyip söylemediğini anlamaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "check": "Insight",
+          "person_id": "kavsim"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Insight",
+          "zar_var": true
+        }
+      }
+    },
+    {
+      "say": "muhafızın yanından fark edilmeden geçmeye çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Stealth"
+        }
+      },
+      "expect": {
+        "zar": null
+      }
+    },
+    {
+      "say": "muhafızı kandırabilir miyim?",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "check": "Deception",
+          "person_id": "kavsim"
+        }
+      },
+      "expect": {
+        "zar": null
+      }
+    },
+    {
+      "say": "muhafıza gözdağı veriyorum",
+      "script": {
+        "front": {
+          "kind": "unclear",
+          "check": "Intimidation"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Intimidation",
+          "zar_var": true
+        },
+        "yasak_metin": [
+          "Anladım.",
+          "Hı. Duydum.",
+          "Devam et, dinliyorum.",
+          "Sen bilirsin.",
+          "Peki.",
+          "Bak sen.",
+          "Ne istiyorsun?"
+        ]
+      }
+    },
+    {
+      "say": "muhafızı kandırmaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Deception"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Deception",
+          "zar_var": true
+        },
+        "yasak_metin": [
+          "Anladım.",
+          "Hı. Duydum.",
+          "Devam et, dinliyorum.",
+          "Sen bilirsin.",
+          "Peki.",
+          "Bak sen.",
+          "Ne istiyorsun?"
+        ]
+      }
+    },
+    {
+      "say": "dün muhafızın kesesini çalmaya çalıştım",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 60
+        }
+      }
+    },
+    {
+      "say": "yarın muhafızı kandıracağım",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Deception"
+        }
+      },
+      "expect": {
+        "zar": null
+      }
+    }
+  ]
+}

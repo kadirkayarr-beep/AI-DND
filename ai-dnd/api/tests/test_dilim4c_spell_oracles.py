@@ -12,7 +12,7 @@ import json
 import unittest
 from pathlib import Path
 
-import rule_oracles
+from api.tests import rule_oracles
 import spell_scope
 
 ORACLES = rule_oracles.load_oracles()

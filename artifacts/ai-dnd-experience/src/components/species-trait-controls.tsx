@@ -33,6 +33,44 @@ const ANCESTRIES = [
   { id: 'storm', label: 'Fırtına Devi' },
 ] as const;
 
+// D-233: PHB 2024 Draconic Ancestors; the server owns the damage type, the save and the uses.
+const DRAGONS = [
+  { id: 'black', label: 'Kara Ejderha · asit' },
+  { id: 'blue', label: 'Mavi Ejderha · yıldırım' },
+  { id: 'brass', label: 'Pirinç Ejderha · ateş' },
+  { id: 'bronze', label: 'Bronz Ejderha · yıldırım' },
+  { id: 'copper', label: 'Bakır Ejderha · asit' },
+  { id: 'gold', label: 'Altın Ejderha · ateş' },
+  { id: 'green', label: 'Yeşil Ejderha · zehir' },
+  { id: 'red', label: 'Kızıl Ejderha · ateş' },
+  { id: 'silver', label: 'Gümüş Ejderha · soğuk' },
+  { id: 'white', label: 'Beyaz Ejderha · soğuk' },
+] as const;
+
+const BREATH_SHAPES = [
+  { id: 'cone', label: '15 fit koni' },
+  { id: 'line', label: '30 fit hat' },
+] as const;
+
+// The creatures the breath can be aimed at: the fight's other active participants (the server checks the reach).
+export function breathTargets(state: GameState): { id: string; name: string }[] {
+  if (!state.combat.active) return [];
+  return (state.combat.participant_records ?? [])
+    .filter((item) => item.kind === 'npc' && item.status === 'active')
+    .map((item) => ({ id: item.id, name: item.name }));
+}
+
+// The breath takes one attack's place (as the server's _attack_left): the next attack of an Attack action already taken,
+// or the Attack action itself still legal. No action economy in the state is no evidence of either.
+export function breathAttackLeft(state: Pick<GameState, 'combat'>): boolean {
+  const player = (state.combat.action_economy as { actors?: Record<string, {
+    attack_action?: { remaining_attacks: number } | null; legal_actions?: { kind: string; legal: boolean }[];
+  }> } | null | undefined)?.actors?.player;
+  if (!player) return false;
+  return (player.attack_action?.remaining_attacks ?? 0) > 0
+    || (player.legal_actions ?? []).some((item) => item.kind === 'attack' && item.legal);
+}
+
 const REVELATION_FORMS = [
   { id: 'heavenly_wings', label: 'Göksel Kanatlar' },
   { id: 'inner_radiance', label: 'İçsel Işıltı' },
@@ -90,6 +128,31 @@ export function speciesEffectText(effect: Record<string, unknown>): string {
   return details.length ? `${trait}: ${details.join(' · ')}` : trait;
 }
 
+export type HitDiceOffer = { die: number; remaining: number; total: number };
+
+// D-154: the server opens a Hit Dice window when a Short Rest finishes and reports it in effects.hit_dice.
+export function readHitDiceOffer(effects: Record<string, unknown> | undefined): HitDiceOffer | null {
+  const raw = effects?.hit_dice as Record<string, unknown> | undefined;
+  if (!raw || typeof raw !== 'object') return null;
+  const { die, remaining, total, can_spend: canSpend } = raw;
+  if (canSpend !== true || typeof die !== 'number' || typeof remaining !== 'number' || typeof total !== 'number' || remaining <= 0) return null;
+  return { die, remaining, total };
+}
+
+// The server keeps the window open only in the second the rest finished, out of combat, with the same Hit Points; mirror that against the live state.
+export function hitDiceWindowStillOpen(offered: GameState | undefined, now: GameState): boolean {
+  if (!offered || now.combat.active || offered.combat.active) return false;
+  return offered.character.current_hp === now.character.current_hp
+    && JSON.stringify(offered.campaign_time) === JSON.stringify(now.campaign_time);
+}
+
+export function hitDiceReceiptText(effects: Record<string, unknown> | undefined): string | null {
+  const hitDice = effects?.hit_dice as Record<string, unknown> | undefined;
+  const roll = Array.isArray(effects?.dice) ? effects.dice[0] : undefined;
+  if (!hitDice || typeof roll !== 'number' || typeof effects?.healing !== 'number') return null;
+  return `d${hitDice.die} zarı: ${roll} · ${effects.healing} can yenilendi · ${hitDice.remaining} / ${hitDice.total} zar kaldı`;
+}
+
 export function SpeciesTraitControls({
   state,
   sessionId,
@@ -104,6 +167,11 @@ export function SpeciesTraitControls({
     useState<SpeciesTraitActionInput['form']>('heavenly_wings');
   const [selectedAncestry, setSelectedAncestry] =
     useState<SpeciesTraitActionInput['ancestry']>('cloud');
+  const [selectedDragon, setSelectedDragon] =
+    useState<SpeciesTraitActionInput['draconic_ancestry']>('red');
+  const [selectedShape, setSelectedShape] =
+    useState<SpeciesTraitActionInput['shape']>('cone');
+  const [selectedBreathTarget, setSelectedBreathTarget] = useState<string>('');
   const lifetime = useActionLifetime(sessionId);
   const busy = useRef(false);
   const pendingRequest = useRef<SpeciesTraitActionInput | null>(null);
@@ -130,7 +198,8 @@ export function SpeciesTraitControls({
       ?.primary_action_available === true
   );
   const notBusy = !sending && !retryInput;
-  const send = (data: SpeciesTraitActionInput) => {
+  const hitDiceOffer = !inCombat && hitDiceWindowStillOpen(feedback?.state, state) ? readHitDiceOffer(feedback?.result.effects) : null;
+  const send = (data: Omit<SpeciesTraitActionInput, 'action_id'> & { action_id?: string }) => {
     if (busy.current) return;
     // An unresolved play move in this campaign must be settled first; this path never overtakes it.
     if (readPending(currentAccountOwner() ?? 'local', campaignId || sessionId)) {
@@ -242,6 +311,7 @@ export function SpeciesTraitControls({
         </div>
         <span className="species-traits-species">{speciesLabel(species)}</span>
       </div>
+      <p className="species-trait-feedback" data-testid="species-undo-note">Bu eylemler geri alınamaz; yaptığında önceki turun Geri Al hakkı da kapanır.</p>
 
       {species === 'Aasimar' && (
         <div className="species-trait-group">
@@ -361,6 +431,83 @@ export function SpeciesTraitControls({
         </div>
       )}
 
+      {species === 'Dragonborn' && (
+        <div className="species-trait-group">
+          {character.draconic_ancestry ? (
+            <>
+              <div className="species-trait-resource">
+                Ejderha Soyu: {DRAGONS.find((dragon) => dragon.id === character.draconic_ancestry)?.label ?? character.draconic_ancestry} · Nefes Silahı · {character.breath_weapon_uses_remaining ?? 0} kullanım
+              </div>
+              {inCombat && (
+                <div className="species-trait-control-row">
+                  <label className="species-trait-select-label">
+                    <span>Nefesin biçimi</span>
+                    <select
+                      aria-label="Nefesin biçimi"
+                      value={selectedShape ?? 'cone'}
+                      onChange={(event) => setSelectedShape(event.target.value as SpeciesTraitActionInput['shape'])}
+                    >
+                      {BREATH_SHAPES.map((shape) => (
+                        <option value={shape.id} key={shape.id}>{shape.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="species-trait-select-label">
+                    <span>Nefesin hedefi</span>
+                    <select
+                      aria-label="Nefesin hedefi"
+                      value={breathTargets(state).some((target) => target.id === selectedBreathTarget) ? selectedBreathTarget : (breathTargets(state)[0]?.id ?? '')}
+                      onChange={(event) => setSelectedBreathTarget(event.target.value)}
+                    >
+                      {breathTargets(state).map((target) => (
+                        <option value={target.id} key={target.id}>{target.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="species-trait-button"
+                    data-testid="species-action-breath-weapon"
+                    disabled={!notBusy || state.combat.current_actor_id !== 'player' || !breathAttackLeft(state) || (character.breath_weapon_uses_remaining ?? 0) <= 0 || breathTargets(state).length === 0}
+                    onClick={() => send({
+                      action: 'breath_weapon',
+                      shape: selectedShape ?? 'cone',
+                      target_id: breathTargets(state).some((target) => target.id === selectedBreathTarget) ? selectedBreathTarget : breathTargets(state)[0]?.id,
+                    })}
+                  >
+                    Nefes Silahı kullan
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="species-trait-control-row">
+              <label className="species-trait-select-label">
+                <span>Ejderha Soyu seç</span>
+                <select
+                  aria-label="Ejderha Soyu seç"
+                  value={selectedDragon ?? 'red'}
+                  onChange={(event) => setSelectedDragon(event.target.value as SpeciesTraitActionInput['draconic_ancestry'])}
+                >
+                  {DRAGONS.map((dragon) => (
+                    <option value={dragon.id} key={dragon.id}>{dragon.label}</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="species-trait-button"
+                data-testid="species-action-choose-draconic-ancestry"
+                disabled={!notBusy || inCombat}
+                onClick={() => send({ action: 'choose_draconic_ancestry', draconic_ancestry: selectedDragon ?? 'red' })}
+              >
+                Seçimi kaydet
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {species === 'Orc' && (
         <div className="species-trait-group">
           <div className="species-trait-resource">
@@ -431,6 +578,17 @@ export function SpeciesTraitControls({
         >
           Kısa dinlen · 1 saat
         </button>
+        {hitDiceOffer && (
+          <button
+            type="button"
+            className="species-trait-button species-trait-button-secondary"
+            data-testid="species-action-spend-hit-die"
+            disabled={!notBusy || character.current_hp >= character.max_hp}
+            onClick={() => send({ action: 'spend_hit_die' })}
+          >
+            Can zarı harca · d{hitDiceOffer.die} · {hitDiceOffer.remaining} / {hitDiceOffer.total} zar
+          </button>
+        )}
         <button
           type="button"
           className="species-trait-button species-trait-button-secondary"
@@ -451,6 +609,7 @@ export function SpeciesTraitControls({
       {feedback && (
         <div className="species-trait-feedback" data-testid="species-action-result" aria-live="polite">
           <strong>{playerAbilityMessage(feedback.result.message)}</strong>
+          {hitDiceReceiptText(feedback.result.effects) && <div data-testid="species-action-hit-dice-receipt">{hitDiceReceiptText(feedback.result.effects)}</div>}
           {import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1' && Object.keys(feedback.result.effects).filter((key) => key !== 'time_result').length > 0 && (
             <details>
               <summary>Geliştirici tanılaması</summary>

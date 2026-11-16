@@ -25,6 +25,7 @@ CATALOG = {
     "Toll the Dead": (0, 60, 8, "necrotic"),
     "Healing Word": (1, 60, 4, None),
     "Bless": (1, 30, 4, None),
+    "Guiding Bolt": (1, 120, 6, "radiant"),  # PDF 281: 4d6, +1d6 a slot level above 1
 }
 ALIASES = {"ateş oku": "Fire Bolt", "ates oku": "Fire Bolt",
            "sihirli füze": "Magic Missile", "sihirli fuze": "Magic Missile",
@@ -34,39 +35,100 @@ ALIASES = {"ateş oku": "Fire Bolt", "ates oku": "Fire Bolt",
            "şok dokunuşu": "Shocking Grasp", "sok dokunusu": "Shocking Grasp",
            "ölüm çanı": "Toll the Dead", "olum cani": "Toll the Dead",
            "şifa sözü": "Healing Word", "sifa sozu": "Healing Word",
-           "kutsama": "Bless"}
+           "kutsama": "Bless",
+           "yol gösteren ışın": "Guiding Bolt", "yol gosteren isin": "Guiding Bolt"}
 ALIASES = {**tr_names.spellings_for(CATALOG), **ALIASES}  # the one Turkish name table; the lines above stay as written
 SELF_SPELLS = frozenset({"Cure Wounds", "Healing Word", "Bless"})  # the player is the only target with a healing/buff owner
-SPELL_ATTACKS = {"Fire Bolt": "ranged", "Ray of Frost": "ranged", "Shocking Grasp": "melee"}
+SPELL_ATTACKS = {"Fire Bolt": "ranged", "Ray of Frost": "ranged", "Shocking Grasp": "melee", "Guiding Bolt": "ranged"}
 SAVE_SPELLS = {"Sacred Flame": "dexterity", "Toll the Dead": "wisdom"}
-UPCASTS = {"Magic Missile": (2, 3), "Healing Word": (2, 3)}  # slot levels above the spell's own that have an owner
+UPCAST_REFUSAL = "Only Magic Missile, Healing Word and Guiding Bolt with a level-two or level-three slot support upcasting."
+UPCASTS = {"Magic Missile": (2, 3), "Healing Word": (2, 3), "Guiding Bolt": (2, 3)}  # slot levels above the spell's own that have an owner
+HEALING_SPELLS = frozenset({"Cure Wounds", "Healing Word"})  # D-056: also cast outside a fight
 BONUS_ACTION_SPELLS = frozenset({"Healing Word"})
 VERBAL_ONLY = frozenset({"Healing Word"})  # V only (PDF 283): no free hand needed
 # Spell riders kept in the attack owner's `attack_effects` (they modify no attack roll).
 RAY_OF_FROST_EFFECT = "ray_of_frost"  # Speed -10 ft until the start of the caster's next turn
 SHOCKING_GRASP_EFFECT = "shocking_grasp"  # no Opportunity Attacks until the start of the target's next turn
-RIDERS = frozenset({RAY_OF_FROST_EFFECT, SHOCKING_GRASP_EFFECT})
+GUIDING_BOLT_EFFECT = attacks.GUIDING_EFFECT  # Advantage on the next attack roll against the target until the end of the caster's next turn
+RIDERS = frozenset({RAY_OF_FROST_EFFECT, SHOCKING_GRASP_EFFECT, GUIDING_BOLT_EFFECT})
 _END_CONCENTRATION = re.compile(r"konsantrasyon\w*\s+(?:bırak|birak|bitir|kes|sonlandır|sonlandir)"
                                 r"|(?:end|drop|stop|break)\s+(?:my\s+)?concentrat")
 # A drop is read only from a short first-person present/past or imperative drop line (positive match): "Konsantrasyonu
 # bırakıyorum", "konsantrasyonumu bitirdim", "I drop my concentration", "end concentration". Anything else that names it
 # (negated, asked, wished, conditional, said to someone, retracted after a comma) keeps it; the player can rephrase.
 # Only a later " and / then / ve / sonra " clause is cut off ("I drop concentration and do not attack" drops).
-_DROP_EN = re.compile(r"(?:i\s+)?(?:(?:will|now)\s+)?(?:(?:end|drop|stop|break)\s+(?:my\s+)?concentration"
+_DROP_EN = re.compile(r"(?:i\s+|i'll\s+)?(?:(?:will|now)\s+)?(?:(?:end|drop|stop|break)\s+(?:my\s+)?concentration"
                       r"|(?:stop|quit)\s+concentrating)(?:\s+now)?")
-_DROP_TR = re.compile(r"(?:(?:artik|simdi)\s+)?(?:konsantrasyon(?:u|umu)\s+(?:birak|bitir|kes|sonlandir)(?:iyorum|tim|dim)?"
-                      r"|(?:birak|bitir|kes|sonlandir)(?:iyorum|tim|dim)?\s+konsantrasyon(?:u|umu))"
+_TR_DROP_VERB = r"(?:birak|bitir|kes|sonlandir)(?:iyorum|tim|dim|acagim|ecegim)?"  # D-059: future tense too
+_DROP_TR = re.compile(r"(?:(?:artik|simdi)\s+)?(?:konsantrasyon(?:u|umu)\s+" + _TR_DROP_VERB +
+                      r"|" + _TR_DROP_VERB + r"\s+konsantrasyon(?:u|umu))"
                       r"(?:\s+(?:artik|simdi))?")  # object-first or verb-first ("bırakıyorum konsantrasyonu")
 _LATER_CLAUSE = re.compile(r"\s(?:and|then|ve|sonra)\s")
+_TR_OBJECT = r"(?:'?y?[iu]|(?:'?n?[iu]n)?\s+konsantrasyonunu|\s+buyusunu)"  # Bless'i, kutsamayı, ...unu
+# A drop root (folded) and the closed list of verb endings it may take, then a word end. A word that only starts with a
+# root (keskin, kesinlikle, kestirme, bitirici, kesif) is no drop verb.
+_TR_DROP_INFLECTED = (r"(?:birak|bitir|kes|sonlandir)(?:"
+                      r"[iu]yor\w*|m[iu]yor\w*"  # bırakıyorum, bırakmıyorum
+                      r"|[dt][iu](?:m|n|k|niz|nuz|lar)?|m[ae]d[iu](?:m|n|k|niz|nuz|lar)?"  # bıraktım, bırakmadım
+                      r"|(?:acak|ecek|acag|eceg)\w*|m(?:ayacak|eyecek|ayacag|eyeceg)\w*"  # bırakacağım, bırakmayacağım
+                      r"|[aei]r(?:im|sin|iz|siniz|lar)?|[aei]rs[ae](?:m|n|k|niz|lar)?|s[ae](?:m|n|k|niz|lar)?"  # bırakır(sam)
+                      r"|m[ae](?:z\w*|m|k\w*|d[ae]n|y[aeiu]\w*|l[iu]\w*|s[iu]n[iu])?"  # bırakma(z/m/k/dan/yı/lı)
+                      r"|[iu]p|[ae]r[ae]k|[ae]y[iu]m|[ae]l[iu]m"  # bırakıp, bırakarak, bırakayım, bırakalım
+                      r")?\b")
+# Between an English drop verb and the spell only a possessive/determiner and "concentration on" may stand.
+_EN_DROP_GAP = (r"(?:(?:my|the|this|that|our|your|his|her|their)\s+)?"
+                r"(?:concentrat(?:ion|ing)\s+on\s+(?:(?:my|the|this|that)\s+)?)?")
 
 
-def _drops_concentration(text):
+def _concentration_names():
+    """D-059: every folded name (catalog or Turkish) of a Concentration spell, longest first, as a regex group."""
+    import spell_concentration
+    from spells import fold_text
+    names = {fold_text(alias): spell for alias, spell in ({name: name for name in CATALOG} | ALIASES).items()
+             if spell in spell_concentration.CONCENTRATION_SPELLS}
+    return names, "(" + "|".join(re.escape(name) for name in sorted(names, key=len, reverse=True)) + ")"
+
+
+def _drop_step(text):
+    """The end_concentration step a short positive drop line asks for (with the spell when it is named), else None."""
     from spells import fold_text
     folded = fold_text(text).strip()
     if "?" in folded:
-        return False
-    first = _LATER_CLAUSE.split(folded, maxsplit=1)[0].strip().rstrip(".!")
-    return bool(_DROP_EN.fullmatch(first) or _DROP_TR.fullmatch(first))
+        return None
+    first = _LATER_CLAUSE.split(folded, maxsplit=1)[0].strip().rstrip(".!,")  # "..., then attack": the comma goes too
+    if _DROP_EN.fullmatch(first) or _DROP_TR.fullmatch(first):
+        return {"kind": "end_concentration"}
+    names, name = _concentration_names()
+    named_tr = name + _TR_OBJECT
+    named = (re.fullmatch(r"(?:(?:artik|simdi)\s+)?(?:" + named_tr + r"\s+" + _TR_DROP_VERB + r"|" + _TR_DROP_VERB +
+                          r"\s+" + named_tr + r")(?:\s+(?:artik|simdi))?", first)
+             or re.fullmatch(r"(?:i\s+|i'll\s+)?(?:(?:will|now)\s+)?(?:(?:end|drop|stop|break)\s+(?:my\s+)?"
+                             r"(?:concentration\s+on\s+)?" + name + r"|(?:stop|quit)\s+concentrating\s+on\s+" + name +
+                             r")(?:\s+now)?", first))
+    if named is None:
+        return None
+    return {"kind": "end_concentration", "spell_id": names[next(group for group in named.groups() if group)]}
+
+
+def _names_a_dropped_spell(text):
+    """D-059: a Concentration spell's name beside a drop verb is about dropping it, never a cast of it.
+    The verb must govern the spell: Turkish needs the spell in the object case ("Bless'i", "kutsama büyüsünü") and an
+    English verb is a whole drop verb form; no clause break (converb, finite verb, ve/sonra, and/then, cast, a comma)
+    may stand between. The Turkish verb is a drop root with a closed list of endings (_TR_DROP_INFLECTED); between an
+    English verb and the spell only a possessive/determiner or "concentration on" (_EN_DROP_GAP). So "Bless'i
+    kesinlikle atıyorum", "Bless'i keskin bir sesle atıyorum", "Bless atıp goblini kesiyorum", "I drop prone and cast
+    Bless", "I end the fight with Bless" and "Endless war: I cast Bless" still cast."""
+    from spells import fold_text
+    _, name = _concentration_names()
+    tr_between = r"(?:\s+(?!(?:ve|sonra)\b)(?![^\s,.;!]*(?:ip|up|arak|erek|yorum)\b)[^\s,.;!]+){0,2}?"
+    en_verb = r"(?:end(?:s|ed|ing)?|drop(?:s|ped|ping)?|stop(?:s|ped|ping)?|break(?:s|ing)?|broke|quit(?:s|ting)?)"
+    return re.search(r"\b" + name + _TR_OBJECT + r"\b" + tr_between + r"\s+" + _TR_DROP_INFLECTED +
+                     r"|\b" + en_verb + r"\s+" + _EN_DROP_GAP + name + r"\b",
+                     fold_text(text)) is not None
+
+
+def _drops_concentration(text):
+    return _drop_step(text) is not None
 
 
 def harmful(spell_id):
@@ -211,9 +273,10 @@ def _validate_v2(state, character):
         raise ValueError("Only a Wizard keeps a spellbook.")
     if window is None:
         return
-    if (cls not in PREPARING or not isinstance(window, dict) or set(window) != {"opened_second", "reason"}
+    if (cls not in PREPARING or not isinstance(window, dict) or set(window) - {"rest_swap"} != {"opened_second", "reason"}
             or type(window["opened_second"]) is not int or window["opened_second"] < 0
-            or not isinstance(window["reason"], str) or window["reason"] not in WINDOW_REASONS):
+            or not isinstance(window["reason"], str) or window["reason"] not in WINDOW_REASONS
+            or ("rest_swap" in window and (window["rest_swap"] is not True or window["reason"] != "level_up"))):  # D-069
         raise ValueError("Invalid saved spell preparation window.")
 
 
@@ -230,12 +293,15 @@ def restore_slots(session):
 def natural_command(message, target_id):
     """Explicit deterministic proposals only; never choose an implicit target."""
     text = str(message).casefold()
-    if _drops_concentration(text):
-        return {"steps": [{"kind": "end_concentration"}]}
-    if _END_CONCENTRATION.search(text):
+    drop = _drop_step(text)
+    if drop is not None:
+        return {"steps": [drop]}
+    if _END_CONCENTRATION.search(text) or _names_a_dropped_spell(text):
         return None  # a negated or asked drop is no command
     names = {name.casefold(): name for name in CATALOG} | ALIASES
-    selected = [name for alias, name in names.items() if alias in text]
+    import spells
+    named = spells.without_names(text, spells.longer_spell_names(names))  # "mass healing word" is not Healing Word (D-120)
+    selected = [name for alias, name in names.items() if alias in named]
     casting = bool(re.search(r"\b(cast|casting|büyü|buyu|büyüsünü|buyusunu)\b", text))
     if not selected and not casting:
         return None
@@ -277,15 +343,20 @@ def narration(result):
         line += " Hedefin hızı senin sıradaki turunun başına dek 10 fit düşer."
     elif result.get("rider") == SHOCKING_GRASP_EFFECT:
         line += " Hedef kendi sıradaki turunun başına dek Fırsat Saldırısı yapamaz."
+    elif result.get("rider") == GUIDING_BOLT_EFFECT:
+        line += " Hedefe senin sıradaki turunun sonuna dek yapılan ilk saldırı zarı avantajlı atılır."
     return line
 
 
-def end_concentration(session):
+def end_concentration(session, spell_id=None):
     """The caster drops Concentration at will: no action, nothing rolled (PDF 362)."""
     import spell_concentration
     session.require_player_can_act()
-    if spell_concentration.holds(session) is None:  # none held, or a finished fight's record: nothing to drop
+    held = spell_concentration.holds(session)
+    if held is None:  # none held, or a finished fight's record: nothing to drop
         fail("concentration_not_held", "There is no spell Concentration to end.")
+    if spell_id is not None and held["spell_id"] != spell_id:  # D-059: a named drop ends only that spell
+        fail("concentration_not_held", "The named spell is not the one held in Concentration.")
     return spell_concentration.end(session, "dropped")
 
 
@@ -313,7 +384,7 @@ def validate_saved_riders(world):
             fields = fields | {"expires_actor"}
         if (set(entry) != fields or not combat.get("active") or entry["source_actor"] != "player"
                 or not isinstance(entry["target_id"], str) or entry["target_id"] not in combat.get("participants", [])
-                or entry["expires_boundary"] != "begin" or type(entry["expires_turn"]) is not int or entry["expires_turn"] < 1
+                or entry["expires_boundary"] != ("end" if entry["kind"] == GUIDING_BOLT_EFFECT else "begin") or type(entry["expires_turn"]) is not int or entry["expires_turn"] < 1
                 or (entry["kind"] == SHOCKING_GRASP_EFFECT and entry["expires_actor"] != entry["target_id"])):
             raise ValueError("Invalid saved spell rider.")
 
@@ -368,7 +439,7 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         fail("spell_not_available", "This spell is not available/prepared through this caster's feature.")
     if slot_level is not None and (type(slot_level) is not int or
             (slot_level != level and slot_level not in UPCASTS.get(spell_id, ()))):
-        fail("unsupported_spell_mode", "Only Magic Missile and Healing Word with a level-two or level-three slot support upcasting.")
+        fail("unsupported_spell_mode", UPCAST_REFUSAL)
     selected_level = level if slot_level is None else slot_level
     character = session.character
     character_level = character["level"]
@@ -384,9 +455,17 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         fail("invalid_spell_state", "Authoritative spellcasting ability is missing.")
     modifier = (score - 10) // 2
     combat = session.world_state.get("combat", {})
-    if not combat.get("active"):
+    calm = not combat.get("active")
+    if calm and spell_id not in HEALING_SPELLS:
         fail("unsupported_spell_mode", "V1 spells use an existing active combat turn.")
-    if spell_id in BONUS_ACTION_SPELLS:
+    if calm:
+        # D-056: outside a fight there is no turn, so no action, Bonus Action or one-slot-per-turn limit; the player is
+        # the only creature healed (the same target owner as in a fight). Metamagic is a Magic Missile fight option.
+        if metamagic is not None:
+            fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
+        target_id = "player" if target_id is None else target_id
+        resource = None
+    elif spell_id in BONUS_ACTION_SPELLS:
         if metamagic is not None:
             fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
         economy.validate_actor(session)
@@ -472,15 +551,17 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         _save_bonus_known(target, SAVE_SPELLS[spell_id])
     if spell_id == "Toll the Dead" and (type(target.get("current_hp")) is not int or type(target.get("max_hp")) is not int):
         fail("invalid_spell_target", "Target Hit Points are not authoritative.")
-    marker = [combat["combat_id"], combat["round"],
-              economy.ensure(session)["player"]["attack_turn_counter"]]
+    marker = None if calm else [combat["combat_id"], combat["round"],
+                                economy.ensure(session)["player"]["attack_turn_counter"]]
     if level:
         if state["slots"].get(str(selected_level), 0) < 1:
             fail("spell_slot_unavailable", "No spell slot of the selected level remains.")
-        if state["slot_turn"] == marker:
+        if state["slot_turn"] == marker and not calm:
             fail("spell_slot_turn_limit", "Only one spell slot may be expended on this turn.")
     # No canonical cast starts until every supported-mode prerequisite passes.
-    if spell_id in BONUS_ACTION_SPELLS:
+    if calm:
+        pass
+    elif spell_id in BONUS_ACTION_SPELLS:
         economy.consume_feature_bonus(session)
     else:
         economy.consume_action(session, "player", "magic", resource=resource)
@@ -489,7 +570,11 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         sorcery_points.spend_quickened(session)
     if level:
         state["slots"][str(selected_level)] -= 1
-        state["slot_turn"] = marker
+        if not calm:
+            state["slot_turn"] = marker
+        else:
+            import spell_preparation
+            spell_preparation.close_window(session)  # D-038: a slot spent outside a fight ends the Long Rest moment's list
     result = {"spell_id": spell_id, "target_id": target_id, "slot_level": selected_level,
               "spell_attack_modifier": modifier + pb, "spell_save_dc": 8 + modifier + pb,
               "damage": 0, "healing": 0, "resolution": None,
@@ -513,11 +598,19 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         hits = True
         if spell_id in SPELL_ATTACKS:
             bless = spell_concentration.bless_roll(session, "player")  # Bless: +1d4 to the attack roll
+            guided = any(isinstance(e, dict) and e.get("kind") == GUIDING_BOLT_EFFECT and e.get("target_id") == target_id
+                         for e in session.world_state.get("attack_effects", []))
             resolution = resolve_attack_roll(
-                roll_fn=session.roll_d20, attack_bonus=modifier + pb + (bless or 0),
+                advantage=guided,
+                # Exhaustion: -2 per level on the D20 Test, as a weapon attack takes it (D-121).
+                roll_fn=session.roll_d20, attack_bonus=modifier + pb + (bless or 0) - 2 * attacks.exhaustion(character),
                 target_ac=target["armor_class"] + spatial_rules.COVER_AC[cover],
                 actor_id="player", target_id=target_id,
             )
+            if guided:  # the next attack roll against the target uses the mark up, hit or miss
+                session.world_state["attack_effects"][:] = [
+                    e for e in session.world_state["attack_effects"]
+                    if not (isinstance(e, dict) and e.get("kind") == GUIDING_BOLT_EFFECT and e.get("target_id") == target_id)]
             if bless is not None:
                 resolution["bless_roll"] = bless
             result["resolution"] = resolution
@@ -540,7 +633,8 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
                 die = sides
                 if spell_id == "Toll the Dead" and target["current_hp"] < target["max_hp"]:
                     die = 12  # the target is missing any of its Hit Points
-                raw = session.roll_damage(die, dice * (2 if critical else 1), 0)
+                count = 4 + selected_level - 1 if spell_id == "Guiding Bolt" else dice  # 4d6, +1d6 a slot level above 1
+                raw = session.roll_damage(die, count * (2 if critical else 1), 0)
                 damage = attacks.mitigate(session, target_id, damage_type, raw)["final_damage"]
                 result["raw_damage"] = raw
                 if spell_id == "Toll the Dead":
@@ -551,6 +645,9 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
             if spell_id == "Ray of Frost":
                 attacks.effect(session, RAY_OF_FROST_EFFECT, "player", target_id)
                 result["rider"] = RAY_OF_FROST_EFFECT
+            elif spell_id == "Guiding Bolt":
+                attacks.effect(session, GUIDING_BOLT_EFFECT, "player", target_id)
+                result["rider"] = GUIDING_BOLT_EFFECT
             elif spell_id == "Shocking Grasp":
                 counter = economy.ensure(session).get(target_id, {}).get("attack_turn_counter", 0)
                 effects = session.world_state.setdefault("attack_effects", [])

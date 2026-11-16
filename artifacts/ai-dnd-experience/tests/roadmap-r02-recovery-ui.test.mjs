@@ -183,6 +183,7 @@ test('the open-action lookup: second tab or re-login shows the server action; fa
   assert.deepEqual(found.calls, ['unresolved session-a']);
   assert.ok(found.notices.at(-1).recover, 'check / abandon are offered');
   assert.equal(found.notices.at(-1).retry, undefined, 'there is no request body to resend');
+  assert.equal(JSON.stringify(found.notices.at(-1).recovery), JSON.stringify({ status: 'unresolved', loading: false, mutationAllowed: false, scope: 'campaign-a' }), 'D-179: the server-found open action locks mutations like the other recovery notices');
   assert.equal(pending.readPending(OWNER, 'campaign-a'), null, 'no browser record is fabricated');
 
   const failed = render({ answers: { unresolvedError: true } });
