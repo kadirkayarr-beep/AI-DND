@@ -858,6 +858,7 @@ class SpellPrepareView(BaseModel):
     candidates: list[str]
     prepared: list[str]
     spellbook: list[str] | None = None
+    not_in_engine: list[str] = []
     # D-039: only while `blocked_reason` is "spellbook_missing": the spells the book may hold and the engine's offer.
     spellbook_options: list[str] = []
     suggested_spellbook: list[str] = []

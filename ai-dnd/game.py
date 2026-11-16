@@ -3402,8 +3402,11 @@ def attempt_player_stabilization(healer_id):
             or healer.get("hostile") is True
             or weapon_attack.conditions(session, healer_id, healer) & {"incapacitated", "unconscious", "dead"}):
         raise ValueError("Bu kişi ilk yardım uygulayamaz.")
+    import item_use
+    kit_in_bag = any((i.get("name") if isinstance(i, dict) else i) == item_use.HEALERS_KIT
+                     for i in session.world_state.get("inventory", []))
     modifier = healer.get("medicine_bonus")
-    if type(modifier) is not int:
+    if type(modifier) is not int and not kit_in_bag:
         raise ValueError("Bu kişinin Tıp becerisi desteklenmiyor.")
     state = ensure_death_state()
     if state["dead"] or session.character["current_hp"] != 0:
@@ -3411,6 +3414,12 @@ def attempt_player_stabilization(healer_id):
     combat = ensure_combat_state()
     if combat["active"]:
         action_economy.action_slot(session, healer_id, "help")
+    if kit_in_bag:  # D-023: 2024 Healer's Kit stabilizes with no Medicine roll
+        kit = item_use.spend_healers_kit(session.world_state)
+        if combat["active"]:
+            _mark_combat_action_used(healer_id, "help")
+        stabilize_player()
+        return {"action": "stabilize", "status": "resolved", "success": True, "healers_kit": kit}
     result = resolve_skill_check(roll_fn=roll_d20, skill="medicine", ability="wisdom",
                                  dc=10, ability_modifier=modifier)
     if combat["active"]:

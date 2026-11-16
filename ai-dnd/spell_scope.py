@@ -25,6 +25,7 @@ CATALOG = {
     "Toll the Dead": (0, 60, 8, "necrotic"),
     "Healing Word": (1, 60, 4, None),
     "Bless": (1, 30, 4, None),
+    "Guiding Bolt": (1, 120, 6, "radiant"),  # PDF 281: 4d6, +1d6 a slot level above 1
 }
 ALIASES = {"ateş oku": "Fire Bolt", "ates oku": "Fire Bolt",
            "sihirli füze": "Magic Missile", "sihirli fuze": "Magic Missile",
@@ -34,18 +35,22 @@ ALIASES = {"ateş oku": "Fire Bolt", "ates oku": "Fire Bolt",
            "şok dokunuşu": "Shocking Grasp", "sok dokunusu": "Shocking Grasp",
            "ölüm çanı": "Toll the Dead", "olum cani": "Toll the Dead",
            "şifa sözü": "Healing Word", "sifa sozu": "Healing Word",
-           "kutsama": "Bless"}
+           "kutsama": "Bless",
+           "yol gösteren ışın": "Guiding Bolt", "yol gosteren isin": "Guiding Bolt"}
 ALIASES = {**tr_names.spellings_for(CATALOG), **ALIASES}  # the one Turkish name table; the lines above stay as written
 SELF_SPELLS = frozenset({"Cure Wounds", "Healing Word", "Bless"})  # the player is the only target with a healing/buff owner
-SPELL_ATTACKS = {"Fire Bolt": "ranged", "Ray of Frost": "ranged", "Shocking Grasp": "melee"}
+SPELL_ATTACKS = {"Fire Bolt": "ranged", "Ray of Frost": "ranged", "Shocking Grasp": "melee", "Guiding Bolt": "ranged"}
 SAVE_SPELLS = {"Sacred Flame": "dexterity", "Toll the Dead": "wisdom"}
-UPCASTS = {"Magic Missile": (2, 3), "Healing Word": (2, 3)}  # slot levels above the spell's own that have an owner
+UPCAST_REFUSAL = "Only Magic Missile, Healing Word and Guiding Bolt with a level-two or level-three slot support upcasting."
+UPCASTS = {"Magic Missile": (2, 3), "Healing Word": (2, 3), "Guiding Bolt": (2, 3)}  # slot levels above the spell's own that have an owner
+HEALING_SPELLS = frozenset({"Cure Wounds", "Healing Word"})  # D-056: also cast outside a fight
 BONUS_ACTION_SPELLS = frozenset({"Healing Word"})
 VERBAL_ONLY = frozenset({"Healing Word"})  # V only (PDF 283): no free hand needed
 # Spell riders kept in the attack owner's `attack_effects` (they modify no attack roll).
 RAY_OF_FROST_EFFECT = "ray_of_frost"  # Speed -10 ft until the start of the caster's next turn
 SHOCKING_GRASP_EFFECT = "shocking_grasp"  # no Opportunity Attacks until the start of the target's next turn
-RIDERS = frozenset({RAY_OF_FROST_EFFECT, SHOCKING_GRASP_EFFECT})
+GUIDING_BOLT_EFFECT = attacks.GUIDING_EFFECT  # Advantage on the next attack roll against the target until the end of the caster's next turn
+RIDERS = frozenset({RAY_OF_FROST_EFFECT, SHOCKING_GRASP_EFFECT, GUIDING_BOLT_EFFECT})
 _END_CONCENTRATION = re.compile(r"konsantrasyon\w*\s+(?:bırak|birak|bitir|kes|sonlandır|sonlandir)"
                                 r"|(?:end|drop|stop|break)\s+(?:my\s+)?concentrat")
 # A drop is read only from a short first-person present/past or imperative drop line (positive match): "Konsantrasyonu
@@ -338,6 +343,8 @@ def narration(result):
         line += " Hedefin hızı senin sıradaki turunun başına dek 10 fit düşer."
     elif result.get("rider") == SHOCKING_GRASP_EFFECT:
         line += " Hedef kendi sıradaki turunun başına dek Fırsat Saldırısı yapamaz."
+    elif result.get("rider") == GUIDING_BOLT_EFFECT:
+        line += " Hedefe senin sıradaki turunun sonuna dek yapılan ilk saldırı zarı avantajlı atılır."
     return line
 
 
@@ -377,7 +384,7 @@ def validate_saved_riders(world):
             fields = fields | {"expires_actor"}
         if (set(entry) != fields or not combat.get("active") or entry["source_actor"] != "player"
                 or not isinstance(entry["target_id"], str) or entry["target_id"] not in combat.get("participants", [])
-                or entry["expires_boundary"] != "begin" or type(entry["expires_turn"]) is not int or entry["expires_turn"] < 1
+                or entry["expires_boundary"] != ("end" if entry["kind"] == GUIDING_BOLT_EFFECT else "begin") or type(entry["expires_turn"]) is not int or entry["expires_turn"] < 1
                 or (entry["kind"] == SHOCKING_GRASP_EFFECT and entry["expires_actor"] != entry["target_id"])):
             raise ValueError("Invalid saved spell rider.")
 
@@ -432,7 +439,7 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         fail("spell_not_available", "This spell is not available/prepared through this caster's feature.")
     if slot_level is not None and (type(slot_level) is not int or
             (slot_level != level and slot_level not in UPCASTS.get(spell_id, ()))):
-        fail("unsupported_spell_mode", "Only Magic Missile and Healing Word with a level-two or level-three slot support upcasting.")
+        fail("unsupported_spell_mode", UPCAST_REFUSAL)
     selected_level = level if slot_level is None else slot_level
     character = session.character
     character_level = character["level"]
@@ -448,9 +455,17 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         fail("invalid_spell_state", "Authoritative spellcasting ability is missing.")
     modifier = (score - 10) // 2
     combat = session.world_state.get("combat", {})
-    if not combat.get("active"):
+    calm = not combat.get("active")
+    if calm and spell_id not in HEALING_SPELLS:
         fail("unsupported_spell_mode", "V1 spells use an existing active combat turn.")
-    if spell_id in BONUS_ACTION_SPELLS:
+    if calm:
+        # D-056: outside a fight there is no turn, so no action, Bonus Action or one-slot-per-turn limit; the player is
+        # the only creature healed (the same target owner as in a fight). Metamagic is a Magic Missile fight option.
+        if metamagic is not None:
+            fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
+        target_id = "player" if target_id is None else target_id
+        resource = None
+    elif spell_id in BONUS_ACTION_SPELLS:
         if metamagic is not None:
             fail("unsupported_metamagic", "Only selected Quickened Magic Missile is supported.")
         economy.validate_actor(session)
@@ -536,15 +551,17 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         _save_bonus_known(target, SAVE_SPELLS[spell_id])
     if spell_id == "Toll the Dead" and (type(target.get("current_hp")) is not int or type(target.get("max_hp")) is not int):
         fail("invalid_spell_target", "Target Hit Points are not authoritative.")
-    marker = [combat["combat_id"], combat["round"],
-              economy.ensure(session)["player"]["attack_turn_counter"]]
+    marker = None if calm else [combat["combat_id"], combat["round"],
+                                economy.ensure(session)["player"]["attack_turn_counter"]]
     if level:
         if state["slots"].get(str(selected_level), 0) < 1:
             fail("spell_slot_unavailable", "No spell slot of the selected level remains.")
-        if state["slot_turn"] == marker:
+        if state["slot_turn"] == marker and not calm:
             fail("spell_slot_turn_limit", "Only one spell slot may be expended on this turn.")
     # No canonical cast starts until every supported-mode prerequisite passes.
-    if spell_id in BONUS_ACTION_SPELLS:
+    if calm:
+        pass
+    elif spell_id in BONUS_ACTION_SPELLS:
         economy.consume_feature_bonus(session)
     else:
         economy.consume_action(session, "player", "magic", resource=resource)
@@ -553,7 +570,11 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         sorcery_points.spend_quickened(session)
     if level:
         state["slots"][str(selected_level)] -= 1
-        state["slot_turn"] = marker
+        if not calm:
+            state["slot_turn"] = marker
+        else:
+            import spell_preparation
+            spell_preparation.close_window(session)  # D-038: a slot spent outside a fight ends the Long Rest moment's list
     result = {"spell_id": spell_id, "target_id": target_id, "slot_level": selected_level,
               "spell_attack_modifier": modifier + pb, "spell_save_dc": 8 + modifier + pb,
               "damage": 0, "healing": 0, "resolution": None,
@@ -577,12 +598,19 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
         hits = True
         if spell_id in SPELL_ATTACKS:
             bless = spell_concentration.bless_roll(session, "player")  # Bless: +1d4 to the attack roll
+            guided = any(isinstance(e, dict) and e.get("kind") == GUIDING_BOLT_EFFECT and e.get("target_id") == target_id
+                         for e in session.world_state.get("attack_effects", []))
             resolution = resolve_attack_roll(
+                advantage=guided,
                 # Exhaustion: -2 per level on the D20 Test, as a weapon attack takes it (D-121).
                 roll_fn=session.roll_d20, attack_bonus=modifier + pb + (bless or 0) - 2 * attacks.exhaustion(character),
                 target_ac=target["armor_class"] + spatial_rules.COVER_AC[cover],
                 actor_id="player", target_id=target_id,
             )
+            if guided:  # the next attack roll against the target uses the mark up, hit or miss
+                session.world_state["attack_effects"][:] = [
+                    e for e in session.world_state["attack_effects"]
+                    if not (isinstance(e, dict) and e.get("kind") == GUIDING_BOLT_EFFECT and e.get("target_id") == target_id)]
             if bless is not None:
                 resolution["bless_roll"] = bless
             result["resolution"] = resolution
@@ -605,7 +633,8 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
                 die = sides
                 if spell_id == "Toll the Dead" and target["current_hp"] < target["max_hp"]:
                     die = 12  # the target is missing any of its Hit Points
-                raw = session.roll_damage(die, dice * (2 if critical else 1), 0)
+                count = 4 + selected_level - 1 if spell_id == "Guiding Bolt" else dice  # 4d6, +1d6 a slot level above 1
+                raw = session.roll_damage(die, count * (2 if critical else 1), 0)
                 damage = attacks.mitigate(session, target_id, damage_type, raw)["final_damage"]
                 result["raw_damage"] = raw
                 if spell_id == "Toll the Dead":
@@ -616,6 +645,9 @@ def _cast(session, spell_id, target_id, slot_level, *, metamagic=None):
             if spell_id == "Ray of Frost":
                 attacks.effect(session, RAY_OF_FROST_EFFECT, "player", target_id)
                 result["rider"] = RAY_OF_FROST_EFFECT
+            elif spell_id == "Guiding Bolt":
+                attacks.effect(session, GUIDING_BOLT_EFFECT, "player", target_id)
+                result["rider"] = GUIDING_BOLT_EFFECT
             elif spell_id == "Shocking Grasp":
                 counter = economy.ensure(session).get(target_id, {}).get("attack_turn_counter", 0)
                 effects = session.world_state.setdefault("attack_effects", [])

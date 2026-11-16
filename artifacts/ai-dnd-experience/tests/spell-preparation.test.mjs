@@ -154,6 +154,13 @@ test('open window renders a keyboard-usable checklist with count, cap and Turkis
   assert.doesNotMatch(html, /long_rest|level_up|creation/);
 });
 
+test('D-228: a candidate the engine cannot cast is marked "henüz yok", the others are not', () => {
+  const marked = screenHtml({ view: view({ not_in_engine: ['Misty Step'] }) });
+  assert.equal((marked.match(/data-testid="spell-not-in-engine"/g) ?? []).length, 1);
+  assert.match(marked, /henüz yok/);
+  assert.doesNotMatch(screenHtml(), /data-testid="spell-not-in-engine"/);
+});
+
 test('at the cap unchecked boxes are disabled and the reason is said', () => {
   const html = screenHtml({ view: view({ limit: 1 }) });
   assert.match(html, /Sınıra ulaştın/);

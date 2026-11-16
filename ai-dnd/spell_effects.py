@@ -34,7 +34,8 @@ _ALIASES = (("mage hand", "Mage Hand"), ("buyucu eli", "Mage Hand"), ("minor ill
             ("kucuk yanilsama", "Minor Illusion"), ("prestidigitation", "Prestidigitation"),
             ("hokkabazlik", "Prestidigitation"))
 # "Light" and "Işık" are everyday words: only with a casting word next to them are they the spell.
-_LIGHT = re.compile(r"\b(?:isik|light)\s+(?:buyu\w*|spell|cantrip)\b|\bcast(?:ing)?\s+(?:the\s+)?light\b")
+# D-227: the other-language name in brackets ("Işık (Light) büyüsü") is the same spell.
+_LIGHT = re.compile(r"\b(?:isik\s*\(\s*light\s*\)|light\s*\(\s*isik\s*\)|isik|light)\s+(?:buyu\w*|spell|cantrip)\b|\bcast(?:ing)?\s+(?:the\s+)?light\b")
 _CAST_WORD = re.compile(r"\bcast(?:s|ing)?\b|\bbuyu(?:su\w*|yu|yle|nu)?\b")  # "büyücü" (a wizard) is no casting word
 # D-071: "cast" in an everyday phrase ("cast a glance", "cast aside", "cast the net") is no casting word.
 _CAST_IDIOM = re.compile(
