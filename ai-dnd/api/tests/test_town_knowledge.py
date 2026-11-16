@@ -581,6 +581,33 @@ class WiderKnowledge(unittest.TestCase):
                 self.assertEqual(known[0], {"kind": "town", "text": expected, "location_id": "city", "thread_id": None})
                 self.assertEqual([i["kind"] for i in known].count("town"), 1)
 
+    def test_a_start_city_without_text_still_has_a_town_line(self):
+        world, place_id = self.world_with_place()
+        world["locations"]["city"]["description"] = ""
+        world["locations"]["city"].pop("town_portrait", None)
+        npc = self.open_npc(world, place_id)
+        before = copy.deepcopy(world["locations"]["city"])
+        known = town_knowledge.public_knowledge(world, npc)
+        towns = [i for i in known if i["kind"] == "town"]
+        self.assertEqual(len(towns), 1)
+        self.assertEqual(towns[0]["text"], "Neverwinter: bu çevrenin bağlı olduğu kent.")
+        self.assertNotIn("town_portrait", world["locations"]["city"])
+        self.assertEqual(world["locations"]["city"], before)
+
+    def test_town_line_noun_follows_the_settlement_type(self):
+        for kind, noun in (("town", "kasaba"), ("village", "köy"), ("outpost", "yerleşim")):
+            with self.subTest(kind=kind):
+                world, place_id = self.world_with_place()
+                world["locations"]["city"].update(description="", type=kind)
+                item = town_knowledge._town_item(world, "city")
+                self.assertEqual(item["text"], f"Neverwinter: bu çevrenin bağlı olduğu {noun}.")
+
+    def test_portrait_still_wins(self):
+        world, place_id = self.world_with_place()
+        world["locations"]["city"]["town_portrait"] = "Liman kokan bir kent. Geceleri tehlikeli."
+        world["locations"]["city"]["description"] = ""
+        self.assertEqual(town_knowledge._town_item(world, "city")["text"], "Liman kokan bir kent.")
+
     def heard(self, world, count, speaker="npc_s"):
         world["heard_rumours"] = [
             {"id": f"rumour_{n:03d}", "text": f"Duyuma göre {n}. yer var.", "said_by": speaker, "place_id": None,

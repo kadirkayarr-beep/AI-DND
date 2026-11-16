@@ -80,10 +80,14 @@ $env:AI_DND_API_ORIGIN = "http://127.0.0.1:$ApiPort"
 if ($LocalPlay) {
     $env:AI_DND_AUTH_MODE = "local"
     $env:VITE_AI_DND_LOCAL_PLAY = "1"
+    $saveDir = Join-Path $env:LOCALAPPDATA "AI-DND"
+    New-Item -ItemType Directory -Force -Path $saveDir | Out-Null
     if (-not $env:AI_DND_CAMPAIGN_DB) {
-        $saveDir = Join-Path $env:LOCALAPPDATA "AI-DND"
-        New-Item -ItemType Directory -Force -Path $saveDir | Out-Null
         $env:AI_DND_CAMPAIGN_DB = Join-Path $saveDir "local-play.sqlite3"
+    }
+    # The model's raw speech before each safety swap, one JSON line per turn, for reading after play.
+    if (-not $env:AI_DND_SPEECH_DEBUG) {
+        $env:AI_DND_SPEECH_DEBUG = Join-Path $saveDir "speech-debug.jsonl"
     }
     # Cloud models answer first for the owner's own play. The API reads the keys; this only looks for the files.
     $keyFiles = @(".aidnd-gemini-key", ".aidnd-anthropic-key") | ForEach-Object { Join-Path $env:USERPROFILE $_ }
