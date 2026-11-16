@@ -43,5 +43,24 @@ class BoldLineVariety(unittest.TestCase):
         self.assertIn(bold_acts._empty_line(s), bold_acts._NOTHING_THERE)
 
 
+class NamedEmptyHandsVaryToo(unittest.TestCase):
+    """Merge of D-251 with D-229/D-230: a named thing, armour and an empty purse never read the same line twice in a row."""
+
+    def test_no_line_twice_in_a_row(self):
+        for thing in ("Mızrak", "Deri Zırh"):
+            for seed in range(30):
+                with self.subTest(thing=thing, seed=seed):
+                    s = session(seed)
+                    lines = [bold_acts._empty_line(s, thing) for _ in range(6)]
+                    for first, second in zip(lines, lines[1:]):
+                        self.assertNotEqual(first, second)
+        for seed in range(30):
+            with self.subTest(purse=seed):
+                s = session(seed)
+                lines = [bold_acts._fresh(s, "purse_empty", bold_acts._PURSE_EMPTY) for _ in range(6)]
+                for first, second in zip(lines, lines[1:]):
+                    self.assertNotEqual(first, second)
+
+
 if __name__ == "__main__":
     unittest.main()

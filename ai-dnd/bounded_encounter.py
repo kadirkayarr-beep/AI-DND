@@ -265,6 +265,7 @@ def resolve_command(session, message, *, player_message=None):
             attack_bonus=2, damage_die=4, damage_dice=1, damage_modifier=0,
             attack_damage_type="bludgeoning",
         )
+        npc.pop("inventory", None)  # D-231: a stat-block creature carries no gear; it was written before the stat block
         session.world_state["bounded_encounter"] = {
             "scenario_id": SCENARIO_ID, "version": 1, "location_id": location,
             "node_ids": list(NODES), "npc_id": npc["id"], "statblock_id": STATBLOCK_ID,

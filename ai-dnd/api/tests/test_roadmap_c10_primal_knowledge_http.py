@@ -11,6 +11,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import game
+import equipment_economy
 import barbarian_rage
 from api.schemas import TurnRequest, SkillCheckResult
 from api.serializers import serialize_skill_check_result, SkillCheckResultSerializationError
@@ -63,7 +64,7 @@ class PrimalKnowledgeHttpTests(unittest.IsolatedAsyncioTestCase):
             connection.execute(f"PRAGMA user_version={fixture['sqlite_user_version']}")
         self.store=CampaignStore(path,bound_principal=TEST_PLAYER,allow_schema_migration=True)  # D-125: frozen older file, approved migration
         a=copy.deepcopy(fixture['campaign']);r=await self.reopen(a)
-        runtime=r.game_session.serialize_game_state();self.assertEqual(runtime['player'].pop('armor_origin'),{'armor':None,'shield':False});self.assertEqual(runtime,fixture['runtime'])  # the one additive read-time repair
+        runtime=r.game_session.serialize_game_state();self.assertEqual(runtime['player'].pop('armor_origin'),{'armor':None,'shield':False});expected_runtime=copy.deepcopy(fixture['runtime']);equipment_economy.give_old_save_gear(expected_runtime['world_state']);self.assertEqual(runtime,expected_runtime)  # the additive read-time repairs (armor origin; D-231 gear)
         expected=copy.deepcopy(fixture['response']);expected['session_id']=a['session_id']
         before=self.snapshot(r)
         with patch('game.perform_skill_check',side_effect=AssertionError('old receipt rerolled')):

@@ -28,6 +28,13 @@ def protected(world):
     )}
 
 
+def with_till(before, shopkeeper_id):
+    """D-207: all of it as it was, except the new shopkeeper's written till of 1000 copper."""
+    after = copy.deepcopy(before)
+    after["currency"] = {**(after["currency"] or {}), shopkeeper_id: 1000}
+    return after
+
+
 class ShopCreationTests(unittest.TestCase):
     def test_python_creates_before_narration_and_rejects_model_world_changes_without_retry(self):
         session = game.create_session(seed=1729)
@@ -52,7 +59,8 @@ class ShopCreationTests(unittest.TestCase):
         self.assertEqual(len(session.world_state["shops"]), 1)
         self.assertEqual(len(session.world_state["npcs"]), 1)
         self.assertEqual(result["narration"], result["action_result"]["direct_response"])
-        self.assertEqual(protected(session.world_state), before)
+        self.assertEqual(protected(session.world_state),
+                         with_till(before, session.world_state["shops"][0]["shopkeeper_id"]))
         shop, npc = session.world_state["shops"][0], session.world_state["npcs"][0]
         self.assertEqual(shop["shopkeeper_id"], npc["id"])
         self.assertEqual(npc["shop_id"], shop["id"])
@@ -119,7 +127,7 @@ class ShopTransactionTests(unittest.IsolatedAsyncioTestCase):
         world = self.record.game_session.world_state
         self.assertEqual(len(world["shops"]), 1)
         self.assertEqual(len(world["npcs"]), 1)
-        self.assertEqual(protected(world), before)
+        self.assertEqual(protected(world), with_till(before, world["shops"][0]["shopkeeper_id"]))
         self.assertEqual(other_session.serialize_game_state(), other_before)
         persisted = copy.deepcopy(world)
         reopened = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
