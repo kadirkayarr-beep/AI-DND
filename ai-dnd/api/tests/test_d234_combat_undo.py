@@ -38,6 +38,12 @@ def _paths(before, after, prefix=""):
 _NEW_PER_ACTION = {"action_id", "attack_id", "resolution_id", "event_id", "noncombat_episode_id"}
 
 
+# A fight started again gets a new uuid4 combat_id; the monster's turn ids are built from it. Never the dice.
+_NEW_PER_FIGHT = {"combat_id", "decision_id", "turn_id", "started_turn"}
+# A committed undo is a new revision of the same campaign, written at a new wall-clock second.
+_REVISION_KEYS = {"revision", "updated_at", "last_played_at"}
+
+
 class CombatTurnUndo(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = campaign_fixtures.CampaignApiTests.asyncSetUp
     asyncTearDown = campaign_fixtures.CampaignApiTests.asyncTearDown
@@ -79,12 +85,35 @@ class CombatTurnUndo(unittest.IsolatedAsyncioTestCase):
         combat["current_actor_id"] = "player"
         return campaign, session
 
-    async def played_then_undone(self, campaign, session, message, target_id):
-        """Play one combat turn, undo it, then play the same words again; return the turn's changed paths."""
+    def whole(self, campaign, session):
+        """Everything one undo must put back: the engine save, the dice, the record's journal, story memory, lore
+        authority and world metadata, and the stored campaign (its payload and its non-revision metadata)."""
+        record = self.manager.get(campaign["session_id"])
+        stored = self.store.get_campaign(campaign["campaign_id"])
+        return {
+            "engine_save": copy.deepcopy(session.serialize_game_state()),
+            "dice": session.rng.getstate(),
+            "journal": copy.deepcopy(record.journal),
+            "narrative_memory": copy.deepcopy(record.narrative_memory),
+            "lore_authority": record.lore_authority,
+            "world_metadata": copy.deepcopy(getattr(session, "world_metadata", None)),
+            "stored_payload": copy.deepcopy(stored.payload),
+            "stored_metadata": {key: value for key, value in stored.metadata.items() if key not in _REVISION_KEYS},
+        }
+
+    def assert_whole(self, now, before, message):
+        for part, value in before.items():
+            self.assertEqual(now[part], value, f"{message}: {part} differs "
+                             f"{_paths(value, now[part]) if isinstance(value, dict) else ''}")
+
+    async def played_then_undone(self, campaign, session, message, target_id, *, fight_before=True):
+        """Play one turn, undo it, then play the same words again; return the turn's changed paths."""
+        fresh = _NEW_PER_ACTION | (set() if fight_before else _NEW_PER_FIGHT)
         url = f"/api/game/sessions/{campaign['session_id']}"
         session.rng.seed(234)
-        before = copy.deepcopy(session.serialize_game_state())
-        dice_before = session.rng.getstate()
+        self.manager.save_campaign(campaign["campaign_id"])  # the stored campaign starts as the set-up scene
+        before_all = self.whole(campaign, session)
+        before = before_all["engine_save"]
         turn = await self.http.post(f"{url}/turn", json={
             "message": message, "target_id": target_id, "action_id": str(uuid.uuid4())})
         self.assertEqual(turn.status_code, 200, turn.text)
@@ -95,21 +124,18 @@ class CombatTurnUndo(unittest.IsolatedAsyncioTestCase):
         undo_request = {"action_id": str(uuid.uuid4()), "target_action_id": turn.json()["action_id"]}
         undo = await self.http.post(f"{url}/undo", json=undo_request)
         self.assertEqual(undo.status_code, 200, undo.text)
-        self.assertTrue(undo.json()["state"]["combat"]["active"], "the fight is back, not ended")
-        self.assertEqual(session.serialize_game_state(), before, "undo leaves no part of the fight half-restored")
-        self.assertEqual(session.rng.getstate(), dice_before, "undo puts the dice back where they were")
-        stored = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]
-        self.assertEqual(_paths(before, stored), [], "the saved campaign is the pre-turn fight")
+        self.assertIs(undo.json()["state"]["combat"]["active"], fight_before, "the fight is as it was before the turn")
+        self.assert_whole(self.whole(campaign, session), before_all, "undo leaves no part half-restored")
         replay = await self.http.post(f"{url}/undo", json=undo_request)
         self.assertEqual((replay.status_code, replay.json()), (200, undo.json()), "the undo receipt replays as given")
-        self.assertEqual(session.serialize_game_state(), before, "and the replay changes nothing")
+        self.assert_whole(self.whole(campaign, session), before_all, "and the replay changes nothing")
 
         again = await self.http.post(f"{url}/turn", json={
             "message": message, "target_id": target_id, "action_id": str(uuid.uuid4())})
         self.assertEqual(again.status_code, 200, again.text)
         self.assertEqual(again.json()["narration"], turn.json()["narration"], "the same words roll the same dice")
         fresh_ids = [path for path in _paths(after, session.serialize_game_state())
-                     if path.rsplit(".", 1)[-1] not in _NEW_PER_ACTION]
+                     if path.rsplit(".", 1)[-1] not in fresh]
         self.assertEqual(fresh_ids, [], "and lead to the very same fight (only new receipt ids differ)")
         return changed
 
@@ -137,6 +163,22 @@ class CombatTurnUndo(unittest.IsolatedAsyncioTestCase):
         # A condition: the Battleaxe's Topple leaves the foe Prone; the foes' blows cost the hero hit points.
         await self.check({"far_ft": 5, "weapon": "Battleaxe"}, "d234-far", [
             ".world_state.npcs[1].conditions", ".world_state.npcs[1].prone", ".player.current_hp"])
+
+    async def test_the_turn_that_starts_a_fight_is_undone_to_peace(self):
+        # Review (ORTA): a fight started by a played turn from peace; undo leaves no fight and the campaign as it was.
+        with fixed_town(self, 23402):
+            created = await self.http.post("/api/game/campaigns", json={})
+        self.assertEqual(created.status_code, 200, created.text)
+        campaign = created.json()
+        session = self.manager.get(campaign["session_id"]).game_session
+        campaign_time.initialize(session.world_state)
+        session.world_state["npcs"].append({
+            "id": "d234-wolf", "name": "Kurt", "location": session.world_state["location"], "combat_status": "active",
+            "hostile": True, "current_hp": 11, "max_hp": 11, "armor_class": 13, "attack_bonus": 4, "damage_die": 6,
+            "damage_dice": 2, "damage_modifier": 2, "attack_damage_type": "piercing", "distance_ft": 5})
+        self.assertFalse(session.world_state.get("combat", {}).get("active"), "peace before the turn")
+        # The helper asserts the played turn left a fight running and the undo left none.
+        await self.played_then_undone(campaign, session, "Kurda saldırıyorum.", "d234-wolf", fight_before=False)
 
     async def test_the_hero_dropping_to_zero_is_undone_whole(self):
         # The hero's own fall: 0 hit points, Prone and dying, then all of it back.
