@@ -51,6 +51,26 @@ def _next_id(rumours: list[dict[str, Any]]) -> str:
     return f"rumour_{max(numbers, default=0) + 1:03d}"
 
 
+def said_in(text: Any, name: Any) -> bool:
+    """True when the folded base name occurs in the folded spoken text: a person names only what they said aloud."""
+    if not isinstance(text, str) or not isinstance(name, str):
+        return False
+    folded = npc_statements.fold(base_name(name))
+    return bool(folded) and folded in npc_statements.fold(text)
+
+
+def _exact_place(world: dict[str, Any], settlement_id: str, folded: str) -> str | None:
+    """A place of this settlement (or the settlement itself) whose name or alias equals the name exactly."""
+    for place_id, record in world.get("locations", {}).items():
+        if not isinstance(record, dict) or (place_id != settlement_id and record.get("parent_location_id") != settlement_id):
+            continue
+        aliases = record.get("aliases")
+        names = [record.get("name"), *(aliases if isinstance(aliases, list) else [])]
+        if folded in {npc_statements.fold(item) for item in names if isinstance(item, str)}:
+            return place_id
+    return None
+
+
 def record_mention(game: Any, world: dict[str, Any], npc: dict[str, Any], mention: Any, turn: int) -> dict[str, Any] | None:
     """Store what an NPC said about a place or trail; None when rejected or the lane is off. Never raises on bad input."""
     if not lane_enabled() or not isinstance(mention, dict) or not isinstance(npc, dict):
@@ -85,8 +105,8 @@ def record_mention(game: Any, world: dict[str, Any], npc: dict[str, Any], mentio
         rumours = []
     place_id = None
     if kind == "place":
-        linked = game.resolve_location_reference(name)
-        if isinstance(linked, str) and linked in locations:
+        linked = _exact_place(world, settlement_id, folded)
+        if linked:
             place_id = linked
         elif place_kind not in local_places.PLACE_KINDS:
             return None

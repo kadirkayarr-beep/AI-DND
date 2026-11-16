@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import unittest
 import uuid
 from unittest.mock import patch
@@ -32,12 +33,14 @@ MENTION = {"kind": "place", "name": "Eski Mahzen", "place_kind": "archive", "abo
 class _Client:
     """Model boundary: answers the one speech call with a fixed packet and keeps the schema it was sent."""
 
-    def __init__(self, mentions):
+    def __init__(self, mentions, spoken=SPOKEN):
         self.formats = []
+        self.prompts = []
 
         def answer(kwargs):
             self.formats.append(copy.deepcopy(kwargs["format"]))
-            return speech_packet(SPOKEN, "", mentions)
+            self.prompts.append(json.dumps(kwargs.get("messages"), ensure_ascii=False))
+            return speech_packet(spoken, "", mentions)
 
         self._chat = routed_chat({"speech": answer})
 
@@ -73,8 +76,8 @@ class MentionTurnFixture(unittest.IsolatedAsyncioTestCase):
     def rumoured(self):
         return [r for r in self.world["locations"].values() if isinstance(r, dict) and r.get("rumoured")]
 
-    async def say(self, mentions, action_id=None):
-        client = _Client(mentions)
+    async def say(self, mentions, action_id=None, spoken=SPOKEN):
+        client = _Client(mentions, spoken)
         body = {"message": "Buralarda duyduğun bir şey var mı?", "action_id": action_id or str(uuid.uuid4()),
                 "target_id": "npc_t2_edric", "interaction_mode": "say"}
         with patch.object(self.app.state.ollama_adapter, "_client", client):
@@ -102,6 +105,24 @@ class MentionOverHttp(MentionTurnFixture):
             self.assertNotIn(word, narration)
         self.assertEqual(self.world["heard_rumours"], [])
         self.assertEqual(self.rumoured(), [])
+
+    async def test_name_not_said_aloud_records_nothing(self):
+        response, _, _ = await self.say(MENTION, spoken="Kuzeyde bir yer varmış, öyle duydum.")
+        self.assertIn("Kuzeyde bir yer varmış", response.json()["narration"])
+        self.assertEqual(self.world["heard_rumours"], [])
+        self.assertEqual(self.rumoured(), [])
+
+    async def test_name_said_with_a_case_suffix_records_the_base_name(self):
+        await self.say({**MENTION, "name": "Eski Mahzen'de"}, spoken="Eski Mahzen'de bir kuyu varmış, öyle duydum.")
+        self.assertEqual([r["name"] for r in self.rumoured()], ["Eski Mahzen"])
+        self.assertEqual(len(self.world["heard_rumours"]), 1)
+
+    async def test_rule_line_is_absent_from_the_prompt_when_the_lane_is_off(self):
+        _, on, _ = await self.say(None)
+        self.assertIn(game._MENTIONS_PROMPT_RULE, on.prompts[0])
+        with patch.dict("os.environ", {"AI_DND_RUMOUR_LANE": "0"}):
+            _, off, _ = await self.say(None)
+        self.assertNotIn(game._MENTIONS_PROMPT_RULE, off.prompts[0])
 
     async def test_undo_removes_rumour_and_place(self):
         before = copy.deepcopy(self.world["locations"])
@@ -186,9 +207,6 @@ class SubstringAliasDoesNotLink(unittest.TestCase):
         return heard_rumours.record_mention(game, self.world, self.world["npcs"][0],
                                             {"kind": "place", "name": name, "place_kind": kind}, 1)
 
-    # CONCERN (reported, not fixed here): game.resolve_location_reference matches an alias found inside a longer text,
-    # so "<smithy name> Mezarlığı" links to the smithy instead of becoming its own rumoured place.
-    @unittest.expectedFailure
     def test_longer_name_containing_an_existing_name_is_a_new_place(self):
         smithy = local_places.create_local_place(self.world, "city", "smithy")
         entry = self.mention(f"{smithy['name']} Mezarlığı", "graveyard")

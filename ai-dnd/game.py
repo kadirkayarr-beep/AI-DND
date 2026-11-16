@@ -23806,10 +23806,14 @@ def _run_player_turn_internal(
                 _record_spoken_coin_response(npc_target, coin_reply)
                 if accepted_model_speech and valid_speech_packet and _rumour_lane_on():
                     import heard_rumours
-                    # D-249: what the person named is stored by Python only; a bad mention is dropped without a trace.
-                    heard_rumours.record_mention(
-                        sys.modules[__name__], _session().world_state, npc_target, raw_intent.get("mentions"),
-                        _session().world_state.get("flags", {}).get("turn_index", 0))
+                    named = raw_intent.get("mentions")
+                    named = named.get("name") if isinstance(named, dict) else None
+                    # D-249: what the person named is stored by Python only, and only a name they said aloud;
+                    # a bad mention is dropped without a trace.
+                    if heard_rumours.said_in(attributed_speech["spoken_text"], named):
+                        heard_rumours.record_mention(
+                            sys.modules[__name__], _session().world_state, npc_target, raw_intent.get("mentions"),
+                            _session().world_state.get("flags", {}).get("turn_index", 0))
             if (
                 empty_model_narration
                 or unverified_history_echo

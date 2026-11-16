@@ -71,6 +71,23 @@ class RumourLane(unittest.TestCase):
         self.assertEqual(entry["place_id"], smithy["id"])
         self.assertNotIn("rumoured", smithy)
 
+    def test_said_in_needs_the_folded_name_in_the_folded_text(self):
+        self.assertTrue(heard_rumours.said_in("Eski Mahzen'de bir kuyu var.", "Eski Mahzen"))
+        self.assertTrue(heard_rumours.said_in("ESKİ MAHZEN yakında.", "Eski Mahzen'de"))
+        self.assertFalse(heard_rumours.said_in("Kuzeyde bir yer var.", "Eski Mahzen"))
+        self.assertFalse(heard_rumours.said_in("Eski Mahzen", ""))
+        self.assertFalse(heard_rumours.said_in(None, "Eski Mahzen"))
+
+    def test_exact_alias_links_and_longer_or_shorter_names_do_not(self):
+        smithy = local_places.create_local_place(self.world, "city", "smithy")
+        smithy["aliases"] = ["Kızıl Örs"]
+        count = len(self.world["locations"])
+        self.assertEqual(self.say(name="kızıl örs'te", place_kind="smithy")["place_id"], smithy["id"])
+        self.assertEqual(len(self.world["locations"]), count)
+        longer = self.say(name=f"{smithy['name']} Mezarlığı", place_kind="graveyard")
+        self.assertNotEqual(longer["place_id"], smithy["id"])
+        self.assertEqual(len(self.world["locations"]), count + 1)
+
     def test_25th_rumoured_place_evicts_oldest_unvisited(self):
         for turn in range(1, 25):
             self.assertIsNotNone(self.say(name=f"{_WORDS[turn]} Mahzeni", turn=turn))
