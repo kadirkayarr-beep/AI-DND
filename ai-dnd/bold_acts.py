@@ -54,6 +54,12 @@ _DEED_NOT_NOW = re.compile(
     r"\w+m[ae]dan|kesemi|cebimi|cuzdanimi|keseni)\b"
     r"|\bdiye\s+(?:\w+\s+)?(?:bagir|seslen|fisild|soyl|sor)\w*")  # "kimse görmesin diye" is no speech
 _ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\b")
+# D-224: a line that only looks ("kesesi var mı diye inceliyorum") is no theft, whatever the reading says; any word of
+# taking or reaching in the same line keeps it one ("bakıp çalıyorum", "kimse bakmazken alıyorum").
+_LOOKS = re.compile(r"\b(?:incel\w*|bak(?:iyorum|ip|arak)|kontrol\s+ed\w*|suzuyorum|gozden\s+gecir\w*|goz\s+(?:at|gezdir)\w*)")
+_TAKES = re.compile(
+    r"\b(?:al(?:\w*)|cal\w*|asir\w*|yurut\w*|kap\w*|arakl\w*|kes(?:ip|erek|iyorum)|cek\w*|el\s+at\w*|indir\w*|sakl\w*|"
+    r"cebime|kistir\w*|yagmal\w*|dal\w*|sok\w*|uzan\w*|bosalt\w*|yokl\w*)\b")
 _NOT_A_TRY = re.compile(
     r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"
     r"kaval|boru|alarm|kalp|dikkat)\w*\s+cal(?:mak|maya)"
@@ -1239,7 +1245,8 @@ def _steals(session, text: Any, deed: str | None) -> bool:
         bare = _bare(session, text)
         return (":" not in text and getattr(session, "_front_kind", None) not in {"speak_to", "say"}
                 and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
-                and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare))
+                and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare)
+                and not (_LOOKS.search(bare) and not _TAKES.search(bare)))
     # D-094 R-7: a reading's check never moves coin (Sleight of Hand is also hiding, palming, putting, giving back);
     # with no deed only the engine's own open-try words can.
     return deed == "" and _tries_to_steal(session, text)

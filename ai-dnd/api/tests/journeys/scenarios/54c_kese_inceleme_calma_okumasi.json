@@ -1,0 +1,69 @@
+{
+  "id": "54c_kese_inceleme_calma_okumasi",
+  "title": "Başkasının kesesini incelemek, okuma 'steal' dese de hırsızlık değildir (D-224 YÜKSEK; Kadir oynayışı 2026-11-15; SIFIR TOLERANS): \"Muhafızın kesesi var mı diye inceliyorum.\" ön okumada bag + deed steal; zar atılmaz, kimsenin kesesinden para geçmez; aynı kişiden gerçekten çalmak yine çalmadır",
+  "source_items": [
+    224
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12
+      }
+    ],
+    "currency": {
+      "player": 2400,
+      "kavsim": 7
+    },
+    "inventory": [],
+    "seed": 7,
+    "campaign_seed": 5803,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "Muhafızın kesesi var mı diye inceliyorum.",
+      "script": {
+        "front": {
+          "kind": "bag",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        },
+        "yasak_metin": [
+          "Gerçekten çalıyor musun?",
+          "bakır daha var"
+        ]
+      }
+    },
+    {
+      "say": "kesesini almaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?",
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        }
+      }
+    }
+  ]
+}
