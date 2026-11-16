@@ -4439,6 +4439,20 @@ def _is_shopkeeper_role(role):
     ))
 
 
+def _runs_a_shop(world_state, npc):
+    """This person keeps a shop or the ready counter: by her shop, her role, the counter or her tag."""
+    import shop_trade
+    if not isinstance(npc, dict):
+        return False
+    tags = npc.get("tags", [])
+    return bool(
+        npc.get("shop_id")
+        or _is_shopkeeper_role(npc.get("role"))
+        or shop_trade.is_vendor(world_state, npc)  # a Barmen who runs the ready counter
+        or (isinstance(tags, list) and any(isinstance(tag, str) and tag.casefold() == "shopkeeper" for tag in tags))
+    )
+
+
 def _campaign_has_shopkeeper():
     world_state = _session().world_state
     for npc in world_state.get("npcs", []):
@@ -22902,8 +22916,11 @@ def _run_player_turn_internal(
         )
 
     if (_shop_presence_question(player_input)
-            and target_id is None and not isinstance(npc_target, dict)
-            and (getattr(_session(), "_front_read", None) or {}).get("kind") != "speak_to"):
+            and ((target_id is None and not isinstance(npc_target, dict)
+                  and (getattr(_session(), "_front_read", None) or {}).get("kind") != "speak_to")
+                 # asked of the one who keeps the shop here, the shop line is her answer (Review 11 A4)
+                 or (isinstance(npc_target, dict) and npc_target.get("location") == world_state.get("location")
+                     and _runs_a_shop(world_state, npc_target)))):
         current_location = world_state.get("location")
         local_shops = [
             shop
@@ -22912,25 +22929,10 @@ def _run_player_turn_internal(
             and shop.get("location") == current_location
         ]
         import shop_trade
-        local_shopkeepers = []
-        for npc in world_state.get("npcs", []):
-            if not isinstance(npc, dict) or npc.get("location") != current_location:
-                continue
-            tags = npc.get("tags", [])
-            if (
-                npc.get("shop_id")
-                or _is_shopkeeper_role(npc.get("role"))
-                or shop_trade.is_vendor(world_state, npc)  # a Barmen who runs the ready counter
-                or (
-                    isinstance(tags, list)
-                    and any(
-                        isinstance(tag, str)
-                        and tag.casefold() == "shopkeeper"
-                        for tag in tags
-                    )
-                )
-            ):
-                local_shopkeepers.append(npc)
+        local_shopkeepers = [
+            npc for npc in world_state.get("npcs", [])
+            if isinstance(npc, dict) and npc.get("location") == current_location and _runs_a_shop(world_state, npc)
+        ]
 
         if local_shops:
             names = ", ".join(
@@ -23026,6 +23028,9 @@ def _run_player_turn_internal(
             # Hearing the same name again is no moment for the greeting a second time.
             compound_speech = _known_player_name(npc_target) == safe_name or (
                 local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
+                # E9: a question Python cannot answer goes to speech; "who are you" Python answers itself.
+                and (_npc_speech_enabled() or (interaction_adventure._asks(player_input)
+                                               and _detect_query_type(player_input, npc_target) != "npc_identity"))
             )
             if compound_speech:
                 local_dialogue.remember_explicit_player_name(npc_target, safe_name)
@@ -23801,7 +23806,8 @@ def _run_player_turn_internal(
                 # A clear line never earns "say it again": the person answers from what Python has for them.
                 text = _person_fallback(world_state, npc_target, player_input)
             elif (experimental_npc_dialogue and final_safety_handling == "python_fallback"
-                    and not experimental_unverified_claim and action_result.get("action") != "skill_check"):
+                    and not experimental_unverified_claim and action_result.get("action") != "skill_check"
+                    and interaction_adventure._asks(player_input)):  # a greeting keeps the fallback's own answer
                 # D-249 F1: a speech the safety check rejected is replaced by what the person has to say from Python
                 # (job, town lead, place to ask), never by the stock "I don't know" the fallback wrote.
                 text = _person_fallback(world_state, npc_target, player_input)

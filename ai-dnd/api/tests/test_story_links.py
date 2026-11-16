@@ -539,7 +539,8 @@ class HalfTruths(unittest.TestCase):
     def test_it_comes_after_news_and_before_places(self):
         world, thread, npc, item = town_with_rumour(false_one=True)
         kinds = [i["kind"] for i in town_knowledge.public_knowledge(world, npc)]
-        self.assertEqual(kinds, sorted(kinds, key=["thread", "news", "rumour", "place"].index))
+        # D-249 X3: every settlement now has a town line, and it comes first.
+        self.assertEqual(kinds, sorted(kinds, key=["town", "thread", "news", "rumour", "place"].index))
 
     def test_a_place_named_alone_is_not_hearing_it(self):
         world, thread, npc, item = town_with_rumour(false_one=True)
