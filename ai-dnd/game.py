@@ -19710,6 +19710,8 @@ def _ask_before_the_heavy(asked):
         who = next((npc for npc in active_npcs() if npc.get("id") == asked.get("id")), None)
         name = living_world.public_npc_name(who) if who is not None else "o kişi"
         line = f"Bu, {name} ile aranı bozar. Gerçekten tehdit ediyor musun? (evet/hayır)"
+    elif asked.get("deed") == "steal_look":  # D-224 review: the line looked; the reading alone said theft
+        line = "Yalnız bakmakla kalmayıp çalmaya mı çalışıyorsun? Bu bir suç olarak kayda geçer. (evet/hayır)"
     else:
         act = "çalıyor" if asked.get("deed") == "steal" else "ateşe veriyor"
         line = f"Bu bir suç olarak kayda geçer. Gerçekten {act} musun? (evet/hayır)"

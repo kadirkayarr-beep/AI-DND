@@ -1,6 +1,6 @@
 {
   "id": "54c_kese_inceleme_calma_okumasi",
-  "title": "Başkasının kesesini incelemek, okuma 'steal' dese de hırsızlık değildir (D-224 YÜKSEK; Kadir oynayışı 2026-11-15; SIFIR TOLERANS): \"Muhafızın kesesi var mı diye inceliyorum.\" ön okumada bag + deed steal; zar atılmaz, kimsenin kesesinden para geçmez; aynı kişiden gerçekten çalmak yine çalmadır",
+  "title": "Başkasının kesesini incelemek, okuma 'steal' dese de sormadan hırsızlık değildir (D-224 YÜKSEK; Kadir oynayışı 2026-11-15; inceleme 2026-11-16; SIFIR TOLERANS): \"Muhafızın kesesi var mı diye inceliyorum.\" ön okumada bag + deed steal; zar atılmaz, para geçmez, yalnız 'çalmaya mı çalışıyorsun?' sorulur; Geri Al ve yenileme soruyu siler; 'hayır' hiçbir şey taşımaz; 'evet' çalmayı oynatır; aynı kişiden açıkça çalmak yine suç sorusunu alır",
   "source_items": [
     224
   ],
@@ -40,10 +40,116 @@
         "kisi_kese": {
           "kavsim": 7
         },
+        "gerekli_metin": "çalmaya mı çalışıyorsun",
         "yasak_metin": [
           "Gerçekten çalıyor musun?",
           "bakır daha var"
         ]
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "gerekli_metin": "Son tur geri alındı",
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        }
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        }
+      }
+    },
+    {
+      "say": "Muhafızın kesesi var mı diye inceliyorum.",
+      "script": {
+        "front": {
+          "kind": "bag",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        },
+        "gerekli_metin": "çalmaya mı çalışıyorsun",
+        "yasak_metin": [
+          "Gerçekten çalıyor musun?",
+          "bakır daha var"
+        ]
+      }
+    },
+    {
+      "say": "hayır",
+      "script": {
+        "front": {
+          "kind": "unclear"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        },
+        "yasak_metin": [
+          "bakır daha var"
+        ]
+      }
+    },
+    {
+      "say": "Muhafızın kesesi var mı diye inceliyorum.",
+      "script": {
+        "front": {
+          "kind": "bag",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        },
+        "gerekli_metin": "çalmaya mı çalışıyorsun",
+        "yasak_metin": [
+          "Gerçekten çalıyor musun?",
+          "bakır daha var"
+        ]
+      }
+    },
+    {
+      "say": "evet",
+      "script": {
+        "front": {
+          "kind": "bag",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "zar_var": true
+        },
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        },
+        "gerekli_metin": "Elini çek"
       }
     },
     {

@@ -54,15 +54,22 @@ _DEED_NOT_NOW = re.compile(
     r"\w+m[ae]dan|kesemi|cebimi|cuzdanimi|keseni)\b"
     r"|\bdiye\s+(?:\w+\s+)?(?:bagir|seslen|fisild|soyl|sor)\w*")  # "kimse görmesin diye" is no speech
 _ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\b")
-# D-224: a line that only looks ("kesesi var mı diye inceliyorum") is no theft, whatever the reading says; any word of
-# taking or reaching in the same line keeps it one ("bakıp çalıyorum", "kimse bakmazken alıyorum").
-_LOOKS = re.compile(r"\b(?:incel\w*|bak(?:iyorum|ip|arak)|kontrol\s+ed\w*|suzuyorum|gozden\s+gecir\w*|goz\s+(?:at|gezdir)\w*)")
-# Short roots ("al", "çal", "kap", "çek", "dal", "sok", "kes", "çarp") count only with a verb ending, so "altın",
-# "çalışıyorum", "kapıdaki", "çekmece", "dalgın" and "sokaktaki" take nothing.
+# D-224: a line that only looks ("kesesi var mı diye inceliyorum") is never a theft unasked, whatever the reading says;
+# a plain word of taking in the same line keeps it one ("bakıp çalıyorum", "kimse bakmazken alıyorum"). A look with no
+# such word is asked first (``_looks_before_stealing``), so a word missing here costs one question, never coin.
+_LOOKS = re.compile(
+    r"\b(?:incel\w*|bak(?:iyorum|ip|arak)|bakis\s+at\w*|kontrol\s+ed\w*|suzuyorum|gozden\s+gecir\w*|"
+    r"goz\s+(?:at|gezdir)\w*|ar(?:iyor\w*|ayip|ayarak)|gozl(?:uyor\w*|eyip|eyerek)|izl(?:iyor\w*|eyip|eyerek))")
+# Taking words count only with a verb ending, so "altın", "çalışıyorum", "kapıdaki", "çekmece", "dalgın", "sokaktaki",
+# "saklı", "uzanmış" and "yoklama" take nothing. After a root ending in a consonant ("al", "çal") and after a stem
+# ending in a/e written without it ("sakl(a)", "yokl(a)"); "-ıver" and the spoken "-ıyom" too. "Çekip gidiyorum" leaves.
+_AFTER_CONSONANT = r"(?:[iu]yor\w*|[iu]yom\w*|[iu]p|[ae]r[ae]k|m[ae]k\w*|m[ae]y[ae]\w*|[iu]ver\w*)"
+_AFTER_VOWEL = r"(?:[iu]yor\w*|[iu]yom\w*|[ae]y[iu]p|[ae]y[ae]r[ae]k|[ae]m[ae]k\w*|[ae]m[ae]y[ae]\w*|[ae]y[iu]ver\w*)"
 _TAKES = re.compile(
-    r"\b(?:(?:al|cal|kap|cek|dal|sok|kes|carp)(?:[iu]yor\w*|[iu]p|[ae]r[ae]k|m[ae]k\w*|m[ae]y[ae]\w*)|"
-    r"asir\w*|yurut\w*|arakl\w*|el(?:imi|ini|i)?\s+at\w*|indir\w*|sakl\w*|cebime|cebe\s+at\w*|kistir\w*|"
-    r"yagmal\w*|daldir\w*|uzan\w*|bosalt\w*|yokl\w*|gotur\w*|hafiflet\w*|kopar\w*|tirtikl\w*)\b")
+    r"\b(?:(?:al|cal|kap|dal|sok|kes|carp|uzan|kaldir|coz|siyir)" + _AFTER_CONSONANT + r"|cek" + _AFTER_CONSONANT
+    + r"(?!\s+gi[dt])|(?:sakl|yokl|arakl|yagmal|tirtikl|avucl|yakal|kavr)" + _AFTER_VOWEL + r"|"
+    r"asir\w*|yurut\w*|indir\w*|kistir\w*|daldir\w*|bosalt\w*|gotur\w*|hafiflet\w*|kopar\w*|"
+    r"el(?:imi|ini|i)?\s+at\w*|el\s+koy\w*|ele\s+gecir\w*|(?:cebime|cebine|cebe|koynuma)\s+(?:at|koy)\w*)\b")
 _NOT_A_TRY = re.compile(
     r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"
     r"kaval|boru|alarm|kalp|dikkat)\w*\s+cal(?:mak|maya)"
@@ -1330,13 +1337,26 @@ def _steals(session, text: Any, deed: str | None) -> bool:
         return False
     if deed == "steal":  # the reading's own deed, never on speech, a past, refused, later, wished or pretended line
         bare = _bare(session, text)
-        return (":" not in text and getattr(session, "_front_kind", None) not in {"speak_to", "say"}
-                and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
-                and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare)
-                and not (_LOOKS.search(bare) and not _TAKES.search(bare)))
+        return _stolen_now(session, text, bare) and not (_LOOKS.search(bare) and not _TAKES.search(bare))
     # D-094 R-7: a reading's check never moves coin (Sleight of Hand is also hiding, palming, putting, giving back);
     # with no deed only the engine's own open-try words can.
     return deed == "" and _tries_to_steal(session, text)
+
+
+def _stolen_now(session, text: str, bare: str) -> bool:
+    """The reading's steal on a line done now: not speech, a past, refused, later, wished or pretended line."""
+    return (":" not in text and getattr(session, "_front_kind", None) not in {"speak_to", "say"}
+            and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
+            and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare))
+
+
+def _looks_before_stealing(session, text: Any, deed: str | None) -> bool:
+    """D-224 review: the reading says steal, but the line looks and names no plain taking. It is asked, never done
+    unasked; a yes plays the theft."""
+    if deed != "steal" or not _can_be_done(session, text) or _NOT_STOLEN.search(fold(session, text)):
+        return False
+    bare = _bare(session, text)
+    return _stolen_now(session, text, bare) and bool(_LOOKS.search(bare)) and not _TAKES.search(bare)
 
 
 # "Muhafızın üstünü inceliyorum": a present, first-person, finished sentence; "... söylüyorum", "... dedim", a wish or a
@@ -1392,6 +1412,8 @@ def resolve(session, text: Any, deed: str | None = None, *, ask=None) -> dict[st
             return settled
     if _steals(session, text, deed):
         return (ask("steal") if ask else None) or _steal(session, text)
+    if ask is not None and _looks_before_stealing(session, text, deed):
+        return ask("steal_look") or _steal(session, text)  # D-224 review: a look is asked; only a yes takes
     if is_arson(session, text) if deed is None else deed == "burn" and _can_be_done(session, text):
         return (ask("burn") if ask else None) or _burn(session)
     return None
