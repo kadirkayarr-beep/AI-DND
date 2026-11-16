@@ -66,6 +66,30 @@ class IronmanFinalDeathUndo(unittest.IsolatedAsyncioTestCase):
         stored = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
         self.assertTrue(stored["death_state"]["terminal"], "the saved campaign keeps the final death")
 
+    async def test_permadeath_death_cannot_be_undone(self):
+        # D-178 (Kadir): "PERMADEATH'te ölüm kesin; ölüm turu Geri Al ile geri alınamaz."
+        campaign, s, death_turn = await self.die("PERMADEATH")
+        death = s.ensure_death_state()
+        self.assertTrue(death["dead"])
+        status = await self.http.get(f"/api/game/sessions/{campaign['session_id']}/actions/{death_turn}")
+        self.assertEqual(status.status_code, 200, status.text)
+        self.assertIs(status.json().get("undo_available"), False, "a real death offers no undo")
+
+        undo = await self.http.post(
+            f"/api/game/sessions/{campaign['session_id']}/undo",
+            json={"action_id": str(uuid.uuid4()), "target_action_id": death_turn},
+        )
+        self.assertEqual(undo.status_code, 409, undo.text)
+        self.assertEqual(undo.json()["detail"]["code"], "undo_final_death", undo.text)
+        self.assertNotIn("Ironman", undo.json()["detail"]["message"], "the refusal names the campaign's own mode")
+
+        death = s.ensure_death_state()
+        self.assertTrue(death["dead"])
+        self.assertEqual(s.character["current_hp"], 0)
+        self.assertEqual(s.world_state["player_combat_status"], "dead")
+        stored = self.store.get_campaign(campaign["campaign_id"]).payload["engine_save"]["world_state"]
+        self.assertTrue(stored["death_state"]["dead"], "the saved campaign keeps the death")
+
 
 if __name__ == "__main__":
     unittest.main()

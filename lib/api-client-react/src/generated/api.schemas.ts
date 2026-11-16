@@ -1606,6 +1606,26 @@ export const GameCharacterGiantAncestry = {
 } as const;
 
 /**
+ * Dragonborn's chosen dragon; null before the choice and for other species.
+ * @nullable
+ */
+export type GameCharacterDraconicAncestry = typeof GameCharacterDraconicAncestry[keyof typeof GameCharacterDraconicAncestry] | null;
+
+
+export const GameCharacterDraconicAncestry = {
+  black: 'black',
+  blue: 'blue',
+  brass: 'brass',
+  bronze: 'bronze',
+  copper: 'copper',
+  gold: 'gold',
+  green: 'green',
+  red: 'red',
+  silver: 'silver',
+  white: 'white',
+} as const;
+
+/**
  * @nullable
  */
 export type SpeciesTraitStateActiveCelestialForm = typeof SpeciesTraitStateActiveCelestialForm[keyof typeof SpeciesTraitStateActiveCelestialForm] | null;
@@ -1671,6 +1691,17 @@ export interface GameCharacter {
   species?: string;
   /** @nullable */
   giant_ancestry?: GameCharacterGiantAncestry;
+  /**
+     * Dragonborn's chosen dragon; null before the choice and for other species.
+     * @nullable
+     */
+  draconic_ancestry?: GameCharacterDraconicAncestry;
+  /**
+     * Dragonborn Breath Weapon uses left until a Long Rest; null for other species.
+     * @minimum 0
+     * @nullable
+     */
+  breath_weapon_uses_remaining?: number | null;
   species_trait_state?: SpeciesTraitState | null;
   /** @minimum 0 */
   speed_ft?: number;
@@ -3553,6 +3584,8 @@ export const SpeciesTraitActionInputAction = {
   second_wind: 'second_wind',
   lay_on_hands: 'lay_on_hands',
   divine_sense: 'divine_sense',
+  choose_draconic_ancestry: 'choose_draconic_ancestry',
+  breath_weapon: 'breath_weapon',
 } as const;
 
 /**
@@ -3582,6 +3615,38 @@ export const SpeciesTraitActionInputAncestry = {
   storm: 'storm',
 } as const;
 
+/**
+ * Dragonborn only, with choose_draconic_ancestry; chosen once.
+ * @nullable
+ */
+export type SpeciesTraitActionInputDraconicAncestry = typeof SpeciesTraitActionInputDraconicAncestry[keyof typeof SpeciesTraitActionInputDraconicAncestry] | null;
+
+
+export const SpeciesTraitActionInputDraconicAncestry = {
+  black: 'black',
+  blue: 'blue',
+  brass: 'brass',
+  bronze: 'bronze',
+  copper: 'copper',
+  gold: 'gold',
+  green: 'green',
+  red: 'red',
+  silver: 'silver',
+  white: 'white',
+} as const;
+
+/**
+ * Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.
+ * @nullable
+ */
+export type SpeciesTraitActionInputShape = typeof SpeciesTraitActionInputShape[keyof typeof SpeciesTraitActionInputShape] | null;
+
+
+export const SpeciesTraitActionInputShape = {
+  cone: 'cone',
+  line: 'line',
+} as const;
+
 export interface SpeciesTraitActionInput {
   /** UUIDv4 action receipt identity; reuse on network retry. */
   action_id: string;
@@ -3599,6 +3664,18 @@ export interface SpeciesTraitActionInput {
   ancestry?: SpeciesTraitActionInputAncestry;
   /** @nullable */
   armed?: boolean | null;
+  /**
+     * Dragonborn only, with choose_draconic_ancestry; chosen once.
+     * @nullable
+     */
+  draconic_ancestry?: SpeciesTraitActionInputDraconicAncestry;
+  /**
+     * Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.
+     * @nullable
+     */
+  shape?: SpeciesTraitActionInputShape;
+  /** Breath Weapon only; the creature the breath is aimed at. */
+  target_id?: string | null;
 }
 
 export type SpeciesTraitActionResultEffects = { [key: string]: unknown };

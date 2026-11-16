@@ -829,6 +829,7 @@ def wants_rage(session, text):
 
 def natural_command(session, message, selected_target=None):
     """Small extension of existing intent routing, not a second model parser."""
+    import dragonborn_breath
     if not session.world_state.get("combat", {}).get("active"):
         return None
     text = session._normalize_turkish_typos(message)
@@ -883,6 +884,13 @@ def natural_command(session, message, selected_target=None):
             steps.append({"kind": "dash", "resource": "bonus" if "bonus" in part else "action"})
         elif re.search(r"adrenalin|adrenaline", part):
             steps.append({"kind": "species", "ability": "adrenaline_rush"})
+        elif dragonborn_breath.named(session, part):
+            identity = selected_target
+            if identity is None:
+                found = session.resolve_npc_reference(message)
+                identity = found["npc"]["id"] if found["status"] == "found" else None
+            steps.append({"kind": "species", "ability": "breath_weapon", "shape": dragonborn_breath.shape_in(part),
+                          "target_id": identity})
         elif session._has_explicit_attack_verb(part) and not session._is_explicitly_negated_attack(part):
             if not steps and not re.search(r"sonra|ardindan|then", text):
                 continue  # Preserve existing single-attack compatibility.
@@ -1003,7 +1011,10 @@ def _execute(session, command, action_id=None, session_id=None):
             elif kind == "species":
                 with executing(session):
                     try:
-                        result = session.resolve_species_trait_action(step.get("ability"), form=step.get("form"))
+                        result = session.resolve_species_trait_action(
+                            step.get("ability"), form=step.get("form"),
+                            **({"shape": step.get("shape"), "target_id": step.get("target_id")}
+                               if step.get("ability") == "breath_weapon" else {}))
                     except ValueError as error:
                         fail("invalid_species_action", str(error))
                     results.append({"kind": kind, "result": result})

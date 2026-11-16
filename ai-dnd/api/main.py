@@ -232,11 +232,15 @@ def _adopt_undo_checkpoint(record: Any, build: Any) -> None:
 
 
 def _final_death(session: Any) -> bool:
-    """D-112: an Ironman death is final; no undo may bring the hero back, whichever turn set the undo point."""
+    """D-112: an Ironman death is final; no undo may bring the hero back, whichever turn set the undo point.
+
+    D-178 (Kadir): "PERMADEATH'te ölüm kesin; ölüm turu Geri Al ile geri alınamaz." The same holds for a real death.
+    """
     world = getattr(session, "world_state", None)
     death = world.get("death_state") if isinstance(world, dict) else None
     return isinstance(death, dict) and (
-        death.get("terminal") is True or (death.get("mode") == "IRONMAN" and death.get("dead") is True)
+        death.get("terminal") is True
+        or (death.get("mode") in ("IRONMAN", "PERMADEATH") and death.get("dead") is True)
     )
 
 
@@ -2157,7 +2161,9 @@ def create_app(
             if _final_death(session):
                 raise HTTPException(status_code=409, detail={
                     "code": "undo_final_death",
-                    "message": "Ironman ölümü kesindir; geri alınamaz.",
+                    "message": "Ironman ölümü kesindir; geri alınamaz."
+                    if session.world_state["death_state"].get("mode") == "IRONMAN"
+                    else "Gerçek ölüm kesindir; geri alınamaz.",
                 })
             if _state_fingerprint(session) != checkpoint["post_turn_fingerprint"]:
                 record.undo_checkpoint = None
@@ -2376,7 +2382,8 @@ def create_app(
         record = get_record(session_id)
         action_id = str(request.action_id)
         request_hash = hashlib.sha256(json.dumps(
-            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"})},
+            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"} | {
+                field for field in ("draconic_ancestry", "shape", "target_id") if getattr(request, field) is None})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
@@ -2436,6 +2443,9 @@ def create_app(
                     armed=request.armed,
                     **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
                        if request.action == "lay_on_hands" else {}),
+                    **({"draconic_ancestry": request.draconic_ancestry} if request.action == "choose_draconic_ancestry"
+                       else {"shape": request.shape, "target_id": request.target_id} if request.action == "breath_weapon"
+                       else {}),
                 )
                 # D-105: a combat species action can end the turn and its damage (Inner Radiance) can drop a quest
                 # target; like the play turn, the quest owner reads this command's own before/after world. The

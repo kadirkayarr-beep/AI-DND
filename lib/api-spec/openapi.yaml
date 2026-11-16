@@ -3347,6 +3347,8 @@ components:
           - second_wind
           - lay_on_hands
           - divine_sense
+          - choose_draconic_ancestry
+          - breath_weapon
         healing_amount:
           type:
           - integer
@@ -3381,6 +3383,39 @@ components:
           type:
           - boolean
           - 'null'
+        draconic_ancestry:
+          type:
+          - string
+          - 'null'
+          enum:
+          - black
+          - blue
+          - brass
+          - bronze
+          - copper
+          - gold
+          - green
+          - red
+          - silver
+          - white
+          - null
+          description: Dragonborn only, with choose_draconic_ancestry; chosen once.
+        shape:
+          type:
+          - string
+          - 'null'
+          enum:
+          - cone
+          - line
+          - null
+          description: Breath Weapon only; a 15-foot Cone or a 30-foot Line. Omitted, the Cone when the target is within 15 feet, else the Line.
+        target_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 200
+          - type: 'null'
+          description: Breath Weapon only; the creature the breath is aimed at.
       required:
       - action_id
       - action
@@ -6332,6 +6367,29 @@ components:
           - stone
           - storm
           - null
+        draconic_ancestry:
+          type:
+          - string
+          - 'null'
+          enum:
+          - black
+          - blue
+          - brass
+          - bronze
+          - copper
+          - gold
+          - green
+          - red
+          - silver
+          - white
+          - null
+          description: Dragonborn's chosen dragon; null before the choice and for other species.
+        breath_weapon_uses_remaining:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+          description: Dragonborn Breath Weapon uses left until a Long Rest; null for other species.
         species_trait_state:
           anyOf:
           - $ref: '#/components/schemas/SpeciesTraitState'
