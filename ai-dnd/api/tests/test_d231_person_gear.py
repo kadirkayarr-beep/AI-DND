@@ -60,6 +60,15 @@ class APersonsGear(unittest.TestCase):
                 equipment_economy.give_person_gear(self.world, npc)
                 self.assertNotIn("inventory", npc)
 
+    def test_the_courtyard_stat_block_foe_carries_no_gear(self):
+        # review 2026-11-16: bounded_encounter writes monster_stat_block after the person is made
+        import bounded_encounter
+        bounded_encounter.resolve_command(self.session, bounded_encounter.ENTER)
+        foe = next(npc for npc in self.world["npcs"] if npc.get("monster_stat_block"))
+        self.assertEqual(_gear(foe), [])
+        equipment_economy.give_person_gear(self.world, foe)  # a theft or an old-save load writes none either
+        self.assertEqual(_gear(foe), [])
+
     def test_an_old_save_writes_the_gear_on_its_first_load_and_only_then(self):
         self.world["npcs"] = [
             {"id": "npc_old", "name": "Arven", "role": "Muhafız", "location": self.world["location"]},

@@ -496,7 +496,7 @@ def give_person_gear(world, npc):
     """D-231: write the one weapon a person carries, fixed by the campaign seed and who they are (no die is rolled, so
     every seeded roll after it stays the same). Only possessions never written get it: a shopkeeper's are the shop's
     stock and a stat-block creature carries none."""
-    if "inventory" in npc or npc.get("role") == "Shopkeeper" or "statblock" in npc:
+    if "inventory" in npc or npc.get("role") == "Shopkeeper" or "statblock" in npc or "monster_stat_block" in npc:
         return
     import hashlib
     import game
