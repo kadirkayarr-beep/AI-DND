@@ -62,7 +62,8 @@ _logger = logging.getLogger("ai_dnd.api.ollama")
 @dataclass(frozen=True)
 class ChainAttempt:
     """One provider try inside a chat call, for an optional observer. A skipped try carries the tokens of a reply
-    that came back and was billed but could not be used, and zero tokens otherwise."""
+    that came back and was billed but could not be used, and zero tokens otherwise. usage_known is False when
+    the request may have been billed but its usage never came back: then the zeros are not a known zero."""
 
     provider: str
     outcome: Literal["answered", "skipped"]
@@ -71,6 +72,7 @@ class ChainAttempt:
     input_tokens: int
     output_tokens: int
     thought_tokens: int
+    usage_known: bool = True
 
 
 @dataclass(frozen=True)
@@ -80,6 +82,7 @@ class Reply:
     input_tokens: int = 0
     output_tokens: int = 0
     thought_tokens: int = 0
+    usage_known: bool = True
 
 
 def _prompt(call: Mapping[str, Any]) -> tuple[str, list[tuple[str, str]]]:
@@ -214,6 +217,7 @@ def gemini_read(payload: Mapping[str, Any]) -> Reply:
         input_tokens=usage.get("promptTokenCount", 0),
         output_tokens=usage.get("candidatesTokenCount", 0),
         thought_tokens=usage.get("thoughtsTokenCount", 0),
+        usage_known=type(usage.get("promptTokenCount")) is int,
     )
 
 
@@ -226,6 +230,7 @@ def haiku_read(payload: Mapping[str, Any]) -> Reply:
         done_reason="length" if stop == "max_tokens" else "stop",
         input_tokens=usage.get("input_tokens", 0),
         output_tokens=usage.get("output_tokens", 0),
+        usage_known=all(type(usage.get(name)) is int for name in ("input_tokens", "output_tokens")),
     )
 
 
@@ -254,25 +259,34 @@ class HaikuSpend:
             return None
         return tokens if month == self._month() else (0, 0)
 
+    def _turn(self):
+        """Every process that shares the file reads and rewrites it in turn, or one add is lost (D-151)."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        return usage_ledger.one_writer(self._path.with_name(self._path.name + ".lock"))
+
     def allows_a_call(self) -> bool:
         with self._lock:
-            tokens = self._load()
+            try:
+                with self._turn():
+                    tokens = self._load()
+            except OSError:  # no turn in time or no folder: when in doubt, no Haiku
+                return False
             if tokens is None or self._save_failed:
                 return False
             return True
 
     def add(self, reply: Reply) -> None:
         with self._lock:
-            tokens = self._load()
-            if tokens is None:
-                return
-            saved = {"month": self._month(), "input_tokens": tokens[0] + reply.input_tokens,
-                     "output_tokens": tokens[1] + reply.output_tokens}
-            temporary = self._path.with_suffix(".tmp")
             try:
-                self._path.parent.mkdir(parents=True, exist_ok=True)
-                temporary.write_text(json.dumps(saved), encoding="utf-8")
-                os.replace(temporary, self._path)
+                with self._turn():
+                    tokens = self._load()
+                    if tokens is None:
+                        return
+                    saved = {"month": self._month(), "input_tokens": tokens[0] + reply.input_tokens,
+                             "output_tokens": tokens[1] + reply.output_tokens}
+                    temporary = self._path.with_suffix(".tmp")
+                    temporary.write_text(json.dumps(saved), encoding="utf-8")
+                    os.replace(temporary, self._path)
             except OSError:
                 self._save_failed = True
                 _logger.warning("Model chain could not save the Haiku count; Haiku stops for this run.")
@@ -518,9 +532,14 @@ class ModelChain:
                 _logger.info("Model chain skipped (provider=%s, reason=%s, seconds=%.2f)",
                              provider.name, reason, seconds)
                 billed = error.reply if isinstance(error, _Skipped) else None
+                # A refused request (an HTTP error) or one that never connected was not billed: a known zero.
+                # Anything else (a read that ran out of time, a body that cannot be read) may have been billed.
+                usage_known = billed.usage_known if billed else isinstance(
+                    error, (_Skipped, httpx.ConnectError, httpx.ConnectTimeout))
                 self._notify(ChainAttempt(
                     provider.name, "skipped", reason, seconds,
                     *((billed.input_tokens, billed.output_tokens, billed.thought_tokens) if billed else (0, 0, 0)),
+                    usage_known,
                 ))
                 continue
             seconds = time.monotonic() - started
@@ -528,7 +547,7 @@ class ModelChain:
                          provider.name, seconds, reply.thought_tokens)
             self._notify(ChainAttempt(
                 provider.name, "answered", None, seconds,
-                reply.input_tokens, reply.output_tokens, reply.thought_tokens,
+                reply.input_tokens, reply.output_tokens, reply.thought_tokens, reply.usage_known,
             ))
             return ollama.ChatResponse(
                 model=provider.model, done=True, done_reason=reply.done_reason,
@@ -565,6 +584,7 @@ def ledger_observer(ledger: usage_ledger.UsageLedger) -> Callable[[ChainAttempt]
             attempt.provider,
             input_tokens=attempt.input_tokens, output_tokens=attempt.output_tokens,
             thought_tokens=attempt.thought_tokens, seconds=attempt.seconds, outcome=attempt.outcome,
+            usage_known=attempt.usage_known,
         )
     return observe
 

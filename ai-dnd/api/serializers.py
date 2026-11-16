@@ -12,6 +12,7 @@ from typing import Any
 import game
 import character_progression
 import sorcery_points
+import spell_concentration
 import barbarian_rage
 import fighter_features
 import paladin_features
@@ -159,6 +160,7 @@ _COMBAT_ATTACK_FIELDS = (
     "resolution",
     "death_save",
     "death_resolution",
+    "concentration_check",
 )
 _COMBAT_TURN_FIELDS = (
     *_COMBAT_ATTACK_FIELDS,
@@ -838,6 +840,7 @@ def serialize_session_state(
                 if points is not None else {})}
             if world.get("spellcasting_v1") is not None else None
         ),
+        "concentration": spell_concentration.projection(session) if isinstance(session, game.GameSession) else None,
         "npcs": [
             {**dict.fromkeys(_NPC_NULLABLE_REQUIRED_FIELDS), **npc}
             for npc in _project_list(visible_world["npcs"], _NPC_FIELDS)

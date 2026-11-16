@@ -132,6 +132,18 @@ class ScareIsACheck(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertEqual(self.skill_of(line), "Intimidation")
 
+    def test_the_try_before_a_colon_is_intimidation(self):
+        # D-226: the try is told before the colon, the words after it are what is said to the person.
+        for line in ("Muhafızı korkutmaya çalışıyorum: Önümden çekil, yoksa başın belaya girer!",
+                     "tüccarı tehdit etmeye çalışıyorum: ya indirim yaparsın ya da tezgahın devrilir"):
+            with self.subTest(line=line):
+                self.assertEqual(self.skill_of(line), "Intimidation")
+                self.assertTrue(bold_acts.is_act_not_talk(SESSION, line))
+        for line in ("Muhafıza diyorum: seni korkutmaya çalışıyorum", "seni korkutmaya çalışıyorum: çekil",
+                     "muhafızı korkutmaya çalışıyorum: neye bakıyorsun?"):
+            with self.subTest(line=line):
+                self.assertNotEqual(self.skill_of(line), "Intimidation")
+
     def test_past_reported_quoted_and_somebody_elses_scare_is_no_check(self):
         for line in ("muhafızı korkutmaya çalışmıyorum", "karanlıktan korkuyorum", "muhafızı korkutsam mı?",
                      "muhafızı korkutmaya çalışmalı mıyım?", "dün muhafızı korkutmaya çalıştım",

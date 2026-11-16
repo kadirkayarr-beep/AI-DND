@@ -10,6 +10,7 @@ import type { CombatTurnResultEconomyStepsItem } from './combatTurnResultEconomy
 import type { CombatTurnResultHealSource } from './combatTurnResultHealSource';
 import type { CombatTurnResultResolution } from './combatTurnResultResolution';
 import type { CombatTurnResultSpeciesEffectsItem } from './combatTurnResultSpeciesEffectsItem';
+import type { ConcentrationCheckResult } from './concentrationCheckResult';
 import type { DeathResolutionResult } from './deathResolutionResult';
 import type { DeathSaveResult } from './deathSaveResult';
 
@@ -103,6 +104,7 @@ export interface CombatTurnResult {
   resolution?: CombatTurnResultResolution;
   death_save?: DeathSaveResult | null;
   death_resolution?: DeathResolutionResult | null;
+  concentration_check?: ConcentrationCheckResult | null;
   /** @nullable */
   spell?: string | null;
   /** @nullable */
