@@ -602,14 +602,14 @@ def _shown(session, thing: str) -> str | None:
                  if isinstance(text, str) and re.search(pattern, weapon_catalog.fold(text))), None)
 
 
-# D-229 review: the showings (place, weapon, the narration that showed it) already turned into a real item; one
-# showing gives one item, whoever is robbed of it
+# D-229 review: the showings (place, weapon) already turned into a real item; one weapon kind shown in a place gives one
+# item, ever, whoever is robbed of it (third review: the narration's words are not in the mark, since the model
+# describes the same rack again each turn)
 SHOWN_GEAR_MADE = "shown_gear_made"
 
 
-def _showing(world: dict[str, Any], weapon_id: str, told: str) -> str:
-    import hashlib
-    return f"{world.get('location')}|{weapon_id}|{hashlib.sha256(told.encode('utf-8')).hexdigest()[:16]}"
+def _showing(world: dict[str, Any], weapon_id: str) -> str:
+    return f"{world.get('location')}|{weapon_id}"
 
 
 def _showings_made(world: dict[str, Any]) -> list[str]:
@@ -769,8 +769,8 @@ def _steal(session, text: str) -> dict[str, Any]:
         # D-229 (K5 b): a catalog weapon the narration showed is a real thing of the person in the scene; one showing
         # gives one item, since the same narration stays shown for turns and names no one person
         equipment_economy.give_person_gear(world, victim)  # what they carry anyway is written first, never lost
-        if _showing(world, weapon["weapon_id"], told) not in _showings_made(world):
-            showing = _showing(world, weapon["weapon_id"], told)
+        if _showing(world, weapon["weapon_id"]) not in _showings_made(world):
+            showing = _showing(world, weapon["weapon_id"])
             if _carried(session, victim, thing) is None:
                 made = len(victim.setdefault("inventory", []))
                 victim["inventory"].append(thing)  # given its identity by materialize below

@@ -171,9 +171,21 @@ class AShownItemIsMadeOnce(unittest.TestCase):
         self.steal(self.person("Muhafız"))
         self.assertEqual(len(self.spears(self.world["inventory"])), 1)
 
-    def test_a_new_showing_may_make_another(self):
-        self.steal(self.person("Muhafız"))
+    def test_a_new_narration_of_the_same_place_makes_no_second(self):
+        # third review 2026-11-16: the narration's words were in the mark, so a model that described the rack again (one
+        # dot more, or "mızrak hâlâ yerinde") made a new spear every turn; one weapon kind per place, ever
+        guard = self.person("Muhafız")
+        self.steal(guard)
+        self.session.recent_dm_narrations.append("kavşim omuz silkiyor; askıdaki mızrak hâlâ yerinde duruyor.")
+        self.steal(guard)
         self.session.recent_dm_narrations.append("arven'in sırtında da bir mızrak var.")
+        self.steal(self.person("Muhafız", "Arven"))
+        self.assertEqual(len(self.spears(self.world["inventory"])), 1)
+
+    def test_another_place_may_show_its_own(self):
+        self.steal(self.person("Muhafız"))
+        self.world["location"] = "forest"
+        self.session.recent_dm_narrations.append("arven'in sırtında bir mızrak var.")
         self.steal(self.person("Muhafız", "Arven"))
         self.assertEqual(len(self.spears(self.world["inventory"])), 2)
 
