@@ -31,9 +31,16 @@ class TheWordsOfAHide(unittest.TestCase):
                      "gölge yok, yine de saklanıyorum", "ortada ağaç bile yok ama gizleniyorum",
                      "kalabalık yok, saklanıyorum", "burada siper değil, saklanıyorum",
                      "gölgelerin olmadığı meydanda gizleniyorum", "gölgesiz meydanda saklanıyorum",
-                     "hiçbir gölgeye sığınmadan saklanıyorum"):
+                     "hiçbir gölgeye sığınmadan saklanıyorum", "gölge olmadan saklanıyorum",
+                     "burada gölge yokmuş, yine de saklanıyorum"):
             with self.subTest(line=line):
                 self.assertFalse(game._COVER.search(folded(line)))
+
+    def test_vanishing_into_cover_is_no_denial(self):
+        # "yok olmak" is to vanish, not "there is none".
+        for line in ("karanlıkta yok olmaya çalışıyorum", "gölgelerde yok oluyorum"):
+            with self.subTest(line=line):
+                self.assertTrue(game._COVER.search(folded(line)))
 
     def test_a_named_cover_beside_a_denied_one_counts(self):
         for line in ("gölge yok ama fıçının arkasına saklanıyorum", "ağacın arkasına, yokuşun dibine saklanıyorum",

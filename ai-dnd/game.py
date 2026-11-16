@@ -1302,7 +1302,7 @@ _COVER_WORD = (
 _COVER = re.compile(
     rf"(?<!\bhicbir )\b{_COVER_WORD}\b(?<!s[iu]z)"
     rf"(?!(?:\s+(?:ya|da|de|ve|veya|ile|bile|falan|filan|hic|{_COVER_WORD}))*\s+"
-    r"(?:olmayan\w*|olmadig\w*|bulunmayan\w*|bulunmadig\w*|yok(?:tu|tur|ken)?|degil\w*)\b)")
+    r"(?:olmayan\w*|olmadig\w*|olmadan|bulunmayan\w*|bulunmadig\w*|yok(?:tu|tur|ken|mus)?\b(?!\s+ol)|degil\w*)\b)")
 # One's own thing hidden on oneself ("hançerimi kolumun içine gizliyorum") is Sleight of Hand, not a hide (D-176).
 _OWN_THING_HIDDEN = re.compile(r"\b(?!kendim)\w{2,}m[iu]\s+(?:\w+\s+){0,4}?(?:gizl|sakl)\w*")
 
