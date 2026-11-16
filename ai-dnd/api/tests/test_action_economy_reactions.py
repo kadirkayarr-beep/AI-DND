@@ -300,6 +300,8 @@ class ReactionNarrationApiTests(unittest.IsolatedAsyncioTestCase):
                 session = self.manager.get(self.sid).game_session
                 session.end_combat()
                 session.world_state["npcs"] = []
+                wallets = session.world_state.get("currency", {})  # D-207: the cleared people take their purses
+                session.world_state["currency"] = {key: coin for key, coin in wallets.items() if key == "player"}
                 npcs, identity = interrupted(session)
                 command = self.command(session, npcs[0], {
                     "kind": kind, "opportunity_id": identity,

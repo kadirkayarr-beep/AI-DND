@@ -673,15 +673,14 @@ def _coin_to_take(world: dict[str, Any], person: dict[str, Any] | None) -> bool:
         for deed in deeds(world))
 
 
-def _purse_of(wallets: dict[str, Any], person: dict[str, Any]) -> int:
-    """What a person carries. A purse nobody has counted yet holds 5-40 copper, fixed by who they are (no die is
-    rolled, so every seeded roll after it stays the same); from then on it is their wallet like any other (D-170)."""
+def _purse_of(world: dict[str, Any], person: dict[str, Any]) -> int:
+    """What a person carries: their written wallet (D-207: written when they are made, or on an old save's first
+    load). One nobody wrote yet holds what would have been written for them (D-170)."""
+    wallets = world.setdefault("currency", {})
     if person["id"] in wallets:
         return max(0, int(wallets[person["id"]]))
-    if person.get("role") == "Shopkeeper":
-        return 1000  # the till a shopkeeper opens with (equipment_native.market), so the shop keeps its cash
-    import zlib
-    return 5 + zlib.crc32(str(person["id"]).encode("utf-8")) % 36
+    import equipment_economy
+    return equipment_economy.person_purse(world, person)
 
 
 def _steal(session, text: str) -> dict[str, Any]:
@@ -708,7 +707,7 @@ def _steal(session, text: str) -> dict[str, Any]:
         coins = session.rng.randint(5, 40)
         wallets = world.setdefault("currency", {})
         if victim is not None:  # D-170: the coin comes out of their purse; none is made
-            purse = _purse_of(wallets, victim)
+            purse = _purse_of(world, victim)
             coins = min(coins, purse)
             if coins <= 0:  # D-230: same draw as before, so the seeded rolls after it stay the same
                 line = session.rng.choice(_PURSE_EMPTY).format(n=living_world.public_npc_name(victim))
@@ -810,7 +809,7 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     taken = _strip_body(world, body)  # D-231: what they carried comes too, through the one owner of items
     body["searched"] = True
     wallets = session.world_state.setdefault("currency", {})
-    coins = _purse_of(wallets, body)  # D-206: what the dead carried, and no more; the purse is emptied
+    coins = _purse_of(session.world_state, body)  # D-206: what the dead carried, and no more; the purse is emptied
     wallets[body["id"]] = 0
     wallets["player"] = wallets.get("player", 0) + coins
     found = ([f"{coins} bakır"] if coins else []) + [equipment_economy.label(item) for item in taken]

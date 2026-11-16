@@ -66,6 +66,7 @@ class APersonsGear(unittest.TestCase):
             {"id": "npc_robbed", "name": "Sera", "role": "Muhafız", "location": self.world["location"], "inventory": []},
         ]
         self.world.pop(equipment_economy.GEAR_WRITTEN, None)  # a save from before D-231
+        self.world["currency"] = {"player": 0}  # D-207: the replaced town's people take their purses with them
         with tempfile.TemporaryDirectory() as directory:
             old = Path(directory) / "old.json"
             self.session.save_game(old)
@@ -94,6 +95,7 @@ class APersonsGear(unittest.TestCase):
              "combat_status": "dead"},
         ]
         self.world.pop(equipment_economy.GEAR_WRITTEN, None)  # a save from before D-231
+        self.world["currency"] = {"player": 0}  # D-207: the replaced town's people take their purses with them
         with tempfile.TemporaryDirectory() as directory:
             old = Path(directory) / "old.json"
             self.session.save_game(old)

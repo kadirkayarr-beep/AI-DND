@@ -334,8 +334,11 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
                     final_world = after['engine_save']['world_state']
                     self.assertEqual(len(resolved_world['shops']), 1)
                     self.assertEqual(final_world['shops'], resolved_world['shops'])
-                    for field in ('inventory', 'gold', 'currency', 'quests', 'item_rewards'):
+                    for field in ('inventory', 'gold', 'quests', 'item_rewards'):
                         self.assertEqual(final_world.get(field), before['engine_save']['world_state'].get(field))
+                    till = {final_world['shops'][0]['shopkeeper_id']: 1000}  # D-207: the new shopkeeper's written till
+                    self.assertEqual(final_world.get('currency'),
+                                     {**(before['engine_save']['world_state'].get('currency') or {}), **till})
                     for shop in final_world['shops']:
                         for field in ('stock', 'inventory', 'item_offers_cp', 'prices'):
                             self.assertNotIn(field, shop)

@@ -1,6 +1,6 @@
 {
   "id": "52c_kese_sayilmamis_kurban",
-  "title": "Para yoktan var olmaz (D-170; SIFIR TOLERANS): kesesi henüz sayılmamış birinden (kurulumda cüzdanı yok) çalınan para onun kesesinden düşer; kesesi kim olduğuna göre bir kez sabitlenir (Kavşim 26 bakır), sonra sıradan cüzdan olur; Geri Al ve yenileme açılan keseyi geri kaldırır, kese hiç sayılmamış hâle döner (D-207)",
+  "title": "Para yoktan var olmaz (D-170; SIFIR TOLERANS): kesesi henüz sayılmamış birinden (kurulumda cüzdanı yok) çalınan para onun kesesinden düşer; kesesi kim olduğuna göre bir kez sabitlenir (Kavşim 25 bakır; D-207: kampanya tohumu ve kimlikten), sonra sıradan cüzdan olur; Geri Al ve yenileme açılan keseyi geri kaldırır, kese hiç sayılmamış hâle döner (D-207)",
   "source_items": [
     170
   ],
@@ -44,7 +44,7 @@
         },
         "kese": 50,
         "kisi_kese": {
-          "kavsim": 16
+          "kavsim": 15
         }
       }
     },

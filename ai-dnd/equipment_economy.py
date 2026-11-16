@@ -507,9 +507,41 @@ def give_person_gear(world, npc):
     npc["inventory"] = [{"item_id": f"gear_{npc['id']}", "name": name, "weapon_id": lookup(name)["weapon_id"]}]
 
 
+PURSE_WRITTEN = "npc_purse_written"  # a world without it is a save from before D-207
+
+
+def person_purse(world, npc):
+    """D-207: what a person carries in coin, fixed by the campaign seed and who they are (no die is rolled, so every
+    seeded roll after it stays the same): 5-40 copper; a shopkeeper opens with the till (equipment_native.market)."""
+    if npc.get("role") == "Shopkeeper":
+        return 1000
+    import hashlib
+    import living_world
+    digest = hashlib.sha256(f"{living_world._campaign_seed(world)}\x00{npc['id']}\x00purse".encode("utf-8")).digest()
+    return 5 + int.from_bytes(digest[:4], "big") % 36
+
+
+def give_person_purse(world, npc):
+    """D-207: write the person's purse once; a purse already counted (an emptied one too) stays as it is."""
+    world.setdefault("currency", {}).setdefault(npc["id"], person_purse(world, npc))
+
+
+def give_old_save_purses(world):
+    """D-207: a save from before written purses writes them once, on its first load. A body already searched gets
+    none: its search took its purse."""
+    if world.get(PURSE_WRITTEN) is True:
+        return
+    for npc in world.get("npcs", []):
+        if isinstance(npc, dict) and isinstance(npc.get("id"), str) and not npc.get("searched"):
+            give_person_purse(world, npc)
+    world[PURSE_WRITTEN] = True
+
+
 def give_old_save_gear(world):
     """D-231: a save from before people carried gear writes it once, on its first load. A body already searched gets
-    none: its search took all it carried, and fresh gear on it would be a second loot of the same body."""
+    none: its search took all it carried, and fresh gear on it would be a second loot of the same body. The purses of
+    D-207 are written in the same load-time step."""
+    give_old_save_purses(world)
     if world.get(GEAR_WRITTEN) is True:
         return
     for npc in world.get("npcs", []):
