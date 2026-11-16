@@ -54,6 +54,23 @@ _DEED_NOT_NOW = re.compile(
     r"\w+m[ae]dan|kesemi|cebimi|cuzdanimi|keseni)\b"
     r"|\bdiye\s+(?:\w+\s+)?(?:bagir|seslen|fisild|soyl|sor)\w*")  # "kimse görmesin diye" is no speech
 _ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\b")
+# D-224: a line that only looks ("kesesi var mı diye inceliyorum") is never a theft unasked, whatever the reading says;
+# a plain word of taking in the same line keeps it one ("bakıp çalıyorum", "kimse bakmazken alıyorum"). A look with no
+# such word is asked first (``_looks_before_stealing``), so a word missing here costs one question, never coin.
+_LOOKS = re.compile(
+    r"\b(?:incel\w*|bak(?:iyorum|ip|arak|arken)|bakis\s+at\w*|kontrol\s+ed\w*|suzuyorum|gozden\s+gecir\w*|"
+    r"goz\s+(?:at|gezdir)\w*|ar(?:iyor\w*|ayip|ayarak)|gozl(?:uyor\w*|eyip|eyerek)|izl(?:iyor\w*|eyip|eyerek)|"
+    r"tart\w*|gozetl\w*|kollu\w*)")
+# Taking words count only with a verb ending, so "altın", "çalışıyorum", "kapıdaki", "çekmece", "dalgın", "sokaktaki",
+# "saklı", "uzanmış" and "yoklama" take nothing. After a root ending in a consonant ("al", "çal") and after a stem
+# ending in a/e written without it ("sakl(a)", "yokl(a)"); "-ıver" and the spoken "-ıyom" too. "Çekip gidiyorum" leaves.
+_AFTER_CONSONANT = r"(?:[iu]yor\w*|[iu]yom\w*|[iu]p|[ae]r[ae]k|m[ae]k\w*|m[ae]y[ae]\w*|[iu]ver\w*)"
+_AFTER_VOWEL = r"(?:[iu]yor\w*|[iu]yom\w*|[ae]y[iu]p|[ae]y[ae]r[ae]k|[ae]m[ae]k\w*|[ae]m[ae]y[ae]\w*|[ae]y[iu]ver\w*)"
+_TAKES = re.compile(
+    r"\b(?:(?:al|cal|kap|dal|sok|kes|carp|uzan|kaldir|coz|siyir)" + _AFTER_CONSONANT + r"|cek" + _AFTER_CONSONANT
+    + r"(?!\s+gi[dt])|(?:sakl|yokl|arakl|yagmal|tirtikl|avucl|yakal|kavr)" + _AFTER_VOWEL + r"|"
+    r"asir\w*|yurut\w*|indir\w*|kistir\w*|daldir\w*|bosalt\w*|gotur\w*|hafiflet\w*|kopar\w*|"
+    r"el(?:imi|ini|i)?\s+at\w*|el\s+koy\w*|ele\s+gecir\w*|(?:cebime|cebine|cebe|koynuma)\s+(?:at|koy)\w*)\b")
 _NOT_A_TRY = re.compile(
     r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"
     r"kaval|boru|alarm|kalp|dikkat)\w*\s+cal(?:mak|maya)"
@@ -88,6 +105,30 @@ _NOTHING_THERE = (
     "Parmakların yalnız toz ve kırıntı buluyor; çalmaya değer bir şey yok.",
     "Aradığın yerde işe yarar hiçbir şey yok; boşuna risk aldın.",
     "Didikleyip bakıyorsun; birkaç değersiz kırıntıdan başka bir şey çıkmıyor.",
+)
+_NO_SUCH_THING = (  # D-229: a named thing that does not come to hand; never a money line
+    "Elini attığın yerden bir {t} çıkaramıyorsun; elin boş dönüyor.",
+    "Uzanıyorsun ama hiçbir {t} eline geçmiyor.",
+    "Bir {t} için yokluyorsun ama elin boş dönüyor.",
+    "Gözünle aradığın {t} orada yok; parmakların boşluğu kavrıyor.",
+    "Elini uzatıyorsun ama ortada alınacak bir {t} yok.",
+    "Aradığın {t} sandığın şey değilmiş; ortada öyle bir şey yok.",
+)
+_WONT_LIFT = (  # D-229: armour and shields never change hands this way (equipment_economy.is_armor_or_shield)
+    "Uzanıyorsun ama {t} el çabukluğuyla alınacak bir şey değil: zırh ve kalkan bu yolla el değiştirmiyor.",
+    "O {t} yerinden oynamıyor; zırh ve kalkan bu yolla el değiştirmiyor, elin boş dönüyor.",
+    "Elin {t} kenarına değiyor ama zırh ve kalkan bu yolla el değiştirmiyor; geri çekiliyorsun.",
+    "O {t} sırtta ve kayışlarla bağlı; zırh ve kalkan bu yolla el değiştirmiyor.",
+    "Kayışlara uzanıyorsun ama {t} çekilip alınacak bir şey değil; zırh ve kalkan bu yolla el değiştirmiyor.",
+    "Parmakların {t} tokasında takılıyor; zırh ve kalkan bu yolla el değiştirmiyor, eli boş çekiyorsun.",
+)
+_PURSE_EMPTY = (  # D-230: a lifted purse with no coin in it says so
+    "Parmakların keseye ulaşıyor ama {n} kesesi boş dolaşıyor; tek bakır yok.",
+    "Keseyi fark ettirmeden yokluyorsun; kesesi boş, {n} üzerinde tek bakır taşımıyor.",
+    "Elin keseye giriyor ama kesesi boş: {n} bugün parasız.",
+    "Kesenin ağzını açıyorsun ama {n} kesesi boş; içinde tek kuruş yok.",
+    "Keseyi yokluyorsun; {n} kesesi boş, dibinde yalnız toz var.",
+    "Parmakların kesenin dibine değiyor: {n} kesesi boş, bugün beş parasız.",
 )
 # D-251: which line of each table was said last; the next draw skips it (an old save has none).
 _LINES_SAID = "bold_lines_said"
@@ -553,10 +594,6 @@ def _pick_line(session, npc: dict[str, Any]) -> str:
     return _fresh(session, "caught", _CAUGHT).format(n=name)
 
 
-def _empty_line(session) -> str:
-    return _fresh(session, "empty", _NOTHING_THERE)
-
-
 def _check(session, skill: str, dc: int) -> dict[str, Any]:
     character = session.character
     return session.perform_skill_check(
@@ -576,15 +613,106 @@ def _thing_named(folded: str) -> str | None:
                  if re.search(re.escape(stem[:-1]) + _SOFTENED.get(stem[-1], re.escape(stem[-1])), folded)), None)
 
 
+def _gear_pattern(key: str) -> str:
+    return r"\b" + re.escape(key[:-1]) + _SOFTENED.get(key[-1], re.escape(key[-1]))
+
+
+def _named_gear(folded: str) -> str | None:
+    """D-229: the catalog weapon a line names ("askıdaki mızrağı" -> Mızrak), the longest name first."""
+    import weapon_catalog
+    return next((weapon_catalog.TURKISH_LABELS[key] for key in sorted(weapon_catalog.TURKISH_LABELS, key=len, reverse=True)
+                 if re.search(_gear_pattern(key), folded)), None)
+
+
+# D-229 third review: a clause that names the thing and says it is not there ("hiç mızrak yok", "askı boş") shows nothing
+_SAID_NONE = re.compile(r"\b(?:yok(?:tu|tur|mus)?|degil(?:di|dir|mis)?|bos(?:tu|mus)?)\b|\bkalma(?:di|mis)\w*"
+                        # (bound words: "yokuş", "bostan", "boşluk" hide nothing)
+                        # fourth review: "hiçbir", a verb said in the negative ("bulunmuyor", "görmüyorsun"), "göremiyor",
+                        # "gitmiş", "satılmış", "bomboş"
+                        r"|\b(?:hic\w*|\w+m[iu]yor\w*|bulunm\w*|gorem\w*|git(?:ti|mis)\w*|satil(?:di|mis)\w*|bombos\w*)")
+
+
+def _longer_names_out(folded: str, thing: str) -> str:
+    """D-229 fourth review: the clause with every longer catalog name blanked, so "büyük kılıç" shows no "kılıç"."""
+    import weapon_catalog
+    own = weapon_catalog.fold(thing)
+    for key in sorted(weapon_catalog.TURKISH_LABELS, key=len, reverse=True):
+        if len(key) > len(own) and own in key:
+            folded = re.sub(_gear_pattern(key), " ", folded)
+    return folded
+
+
+def _shown(session, thing: str) -> str | None:
+    """D-229: the latest of the scene's narrations (the last three the player read) that showed the thing, or None.
+
+    The newest narration that names the thing decides: it shows the thing only if a clause names it without saying
+    it is gone or not there."""
+    import weapon_catalog
+    pattern = _gear_pattern(weapon_catalog.fold(thing))
+    told = list(getattr(session, "recent_dm_narrations", None) or [])[-3:]
+    for text in reversed(told):
+        clauses = [clause for clause in re.split(r"[.;:!?,\n]", weapon_catalog.fold(text))
+                   if re.search(pattern, _longer_names_out(clause, thing))] if isinstance(text, str) else []
+        if clauses:  # "mızraksız": the weapon's own word says none
+            return text if any(not _SAID_NONE.search(clause) and not re.search(pattern + r"\w*s[iu]z\b", clause)
+                               for clause in clauses) else None
+    return None
+
+
+# D-229 review: the showings (place, weapon) already turned into a real item; a place gives one narration-made item,
+# ever, whatever the weapon and whoever is robbed of it (third review: the narration's words are not in the mark, since
+# the model describes the same rack again each turn; fourth review: the place alone caps it)
+SHOWN_GEAR_MADE = "shown_gear_made"
+
+
+def _showing(world: dict[str, Any], weapon_id: str) -> str:
+    return f"{world.get('location')}|{weapon_id}"
+
+
+def _place_used_its_showing(world: dict[str, Any]) -> bool:
+    """D-229 fourth review: one narration-made item per place, ever, whatever the weapon; a word list the next review
+    finds a gap in cannot make more than one thing anywhere."""
+    place = str(world.get("location"))
+    return any(key.partition("|")[0] == place for key in _showings_made(world))
+
+
+def _showings_made(world: dict[str, Any]) -> list[str]:
+    """The written marks, read safely: anything but a list of strings counts as none."""
+    made = world.get(SHOWN_GEAR_MADE)
+    return [key for key in made if isinstance(key, str)] if isinstance(made, list) else []
+
+
+def _holds_no_shown_gear(world: dict[str, Any], person: dict[str, Any]) -> bool:
+    """A shopkeeper's things are the shop's stock and a stat-block creature carries none (D-231)."""
+    return (person.get("role") == "Shopkeeper" or bool(person.get("shop_id")) or "statblock" in person
+            or "monster_stat_block" in person
+            or any(isinstance(shop, dict) and shop.get("shopkeeper_id") == person.get("id")
+                   for shop in world.get("shops") or []))
+
+
 def _carried(session, person: dict[str, Any] | None, thing: str) -> Any:
-    """The thing as the person carries it (D-108): an entry of their own inventory named like it, or None."""
+    """The thing as the person carries it (D-108): an entry of their own inventory named like it, or None. A catalog
+    weapon is the same weapon under any of its names (D-229)."""
+    from weapon_catalog import lookup
     if person is None:
         return None
+    weapon = lookup(thing)
     for entry in person.get("inventory") or []:
         name = entry.get("name") if isinstance(entry, dict) else entry
-        if isinstance(name, str) and _thing_named(fold(session, name)) == thing:
+        if isinstance(name, str) and (_thing_named(fold(session, name)) == thing or (
+                weapon is not None and (lookup(name) or {}).get("weapon_id") == weapon["weapon_id"])):
             return entry
     return None
+
+
+def _empty_line(session, thing: str | None = None) -> str:
+    """What an empty hand says: a named thing is told as that thing (armour as armour), never as money (D-229)."""
+    if thing is None:
+        return _fresh(session, "empty", _NOTHING_THERE)
+    import equipment_economy
+    if equipment_economy.is_armor_or_shield({"name": thing}):
+        return _fresh(session, "wont_lift", _WONT_LIFT).format(t=thing.lower())
+    return _fresh(session, "no_such_thing", _NO_SUCH_THING).format(t=thing.lower())
 
 
 def _hand_to_whom(session, text: str) -> dict[str, Any] | None:
@@ -645,15 +773,14 @@ def _coin_to_take(world: dict[str, Any], person: dict[str, Any] | None) -> bool:
         for deed in deeds(world))
 
 
-def _purse_of(wallets: dict[str, Any], person: dict[str, Any]) -> int:
-    """What a person carries. A purse nobody has counted yet holds 5-40 copper, fixed by who they are (no die is
-    rolled, so every seeded roll after it stays the same); from then on it is their wallet like any other (D-170)."""
+def _purse_of(world: dict[str, Any], person: dict[str, Any]) -> int:
+    """What a person carries: their written wallet (D-207: written when they are made, or on an old save's first
+    load). One nobody wrote yet holds what would have been written for them (D-170)."""
+    wallets = world.setdefault("currency", {})
     if person["id"] in wallets:
         return max(0, int(wallets[person["id"]]))
-    if person.get("role") == "Shopkeeper":
-        return 1000  # the till a shopkeeper opens with (equipment_native.market), so the shop keeps its cash
-    import zlib
-    return 5 + zlib.crc32(str(person["id"]).encode("utf-8")) % 36
+    import equipment_economy
+    return equipment_economy.person_purse(world, person)
 
 
 def _steal(session, text: str) -> dict[str, Any]:
@@ -664,10 +791,10 @@ def _steal(session, text: str) -> dict[str, Any]:
     check = _check(session, "Sleight of Hand", _steal_dc(session, folded, watcher))
     world = session.world_state
     # a purse named in the line is a coin theft, whatever else it names ("bıçağıyla oynayan adamın kesesini")
-    thing = None if _PURSE_WORD.search(folded) else _thing_named(folded)
+    thing = None if _PURSE_WORD.search(folded) else (_thing_named(folded) or _named_gear(folded))
     if check["result"] != "BAŞARILI":
         if watcher is None:
-            return _reply(session, _empty_line(session), "theft", "failed", check, [])
+            return _reply(session, _empty_line(session, thing), "theft", "failed", check, [])
         relationships.note(world, watcher["id"], -3, f"caught_stealing:{world.get('flags', {}).get('turn_index', 0)}")
         remember(session, "theft", "seni soymaya kalktı", victim_id=watcher["id"])["rumour"] = (
             f"{living_world.public_npc_name(watcher)} soyulmak istenmiş")
@@ -680,10 +807,11 @@ def _steal(session, text: str) -> dict[str, Any]:
         coins = session.rng.randint(5, 40)
         wallets = world.setdefault("currency", {})
         if victim is not None:  # D-170: the coin comes out of their purse; none is made
-            purse = _purse_of(wallets, victim)
+            purse = _purse_of(world, victim)
             coins = min(coins, purse)
-            if coins <= 0:
-                return _reply(session, _empty_line(session), "theft", "empty", check, [])
+            if coins <= 0:  # D-230: same draw as before, so the seeded rolls after it stay the same
+                line = _fresh(session, "purse_empty", _PURSE_EMPTY).format(n=living_world.public_npc_name(victim))
+                return _reply(session, line, "theft", "empty", check, [])
             wallets[victim["id"]] = purse - coins
         wallets["player"] = wallets.get("player", 0) + coins
         if victim is not None:
@@ -696,14 +824,32 @@ def _steal(session, text: str) -> dict[str, Any]:
         return _reply(session, narration, "theft", "stolen", check, ["currency"], coins_cp=coins)
     # D-108: the thing leaves the victim's own inventory; a good on a counter is the place's stock (sold here
     # without a count, R-12); anything else nobody here carries is not there to take
+    import equipment_economy
+    from weapon_catalog import lookup
+    made = None  # the index of a shown weapon written into the victim's inventory this turn
+    showing = None  # the showing this theft uses up
+    weapon = lookup(thing)
+    told = _shown(session, thing) if victim is not None and weapon is not None else None
+    if told and not _holds_no_shown_gear(world, victim):
+        # D-229 (K5 b): a catalog weapon the narration showed is a real thing of the person in the scene; one showing
+        # gives one item, since the same narration stays shown for turns and names no one person
+        equipment_economy.give_person_gear(world, victim)  # what they carry anyway is written first, never lost
+        if not _place_used_its_showing(world):
+            showing = _showing(world, weapon["weapon_id"])
+            if _carried(session, victim, thing) is None:
+                made = len(victim.setdefault("inventory", []))
+                victim["inventory"].append(thing)  # given its identity by materialize below
     if _carried(session, victim, thing) is not None:
-        import equipment_economy
         try:
             equipment_economy.materialize(world)
             item = _carried(session, victim, thing)
             equipment_economy.move(world, item, victim["inventory"], world.setdefault("inventory", []), victim["id"])
         except equipment_economy.EquipmentError:  # worn armour, an unreachable or unresolved hand: not to be lifted
-            return _reply(session, _empty_line(session), "theft", "empty", check, [])
+            if made is not None:  # the refused try made nothing
+                del victim["inventory"][made]
+            return _reply(session, _empty_line(session, thing), "theft", "empty", check, [])
+        if showing is not None:  # taken, made or carried: this showing gives nothing more
+            world[SHOWN_GEAR_MADE] = [*_showings_made(world), showing]
         if isinstance(item, dict) and isinstance(victim.get("item_consents"), dict):
             victim["item_consents"].pop(item.get("item_id"), None)  # a stolen thing carries no leave to give it
         remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",
@@ -712,7 +858,7 @@ def _steal(session, text: str) -> dict[str, Any]:
         world.setdefault("inventory", []).append(thing)
         remember(session, "theft_unseen", f"{_place_name(world, world.get('location'))} tezgâhından {thing.lower()} eksildi", seen=False)["item"] = thing
     else:
-        return _reply(session, _empty_line(session), "theft", "empty", check, [])
+        return _reply(session, _empty_line(session, thing), "theft", "empty", check, [])
     narration = f"Elin hızlı: {thing.lower()} artık sende, kimse bakmıyor."
     return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=thing)
 
@@ -752,6 +898,7 @@ _SERVER = shop_trade.SERVER  # one rule for who serves
 
 
 def _search_body(session, text: str) -> dict[str, Any] | None:
+    import equipment_economy
     import fallen
     folded = fold(session, text)
     corpse = bool(_CORPSE.search(folded) and _CORPSE_VERB.search(folded))
@@ -771,14 +918,37 @@ def _search_body(session, text: str) -> dict[str, Any] | None:
     who = living_world.public_npc_name(body)
     if body.get("searched"):
         return _reply(session, f"{who} üzerinde alınacak başka bir şey kalmamış.", "loot", "already_searched", None, [])
+    taken = _strip_body(world, body)  # D-231: what they carried comes too, through the one owner of items
     body["searched"] = True
     wallets = session.world_state.setdefault("currency", {})
-    coins = _purse_of(wallets, body)  # D-206: what the dead carried, and no more; the purse is emptied
+    coins = _purse_of(session.world_state, body)  # D-206: what the dead carried, and no more; the purse is emptied
     wallets[body["id"]] = 0
     wallets["player"] = wallets.get("player", 0) + coins
-    narration = (f"{who} üzerinde {coins} bakır buluyorsun; artık senin." if coins
+    found = ([f"{coins} bakır"] if coins else []) + [equipment_economy.label(item) for item in taken]
+    narration = (f"{who} üzerinde {' ve '.join(found)} buluyorsun; artık senin." if found
                  else f"{who} üzerinde işe yarar bir şey çıkmıyor.")
-    return _reply(session, narration, "loot", "searched", None, ["currency"], coins_cp=coins)
+    changes = ["currency"] + (["player.inventory"] if taken else [])
+    return _reply(session, narration, "loot", "searched", None, changes, coins_cp=coins)
+
+
+def _strip_body(world: dict[str, Any], body: dict[str, Any]) -> list[Any]:
+    """Every item a body carries moves to the player's bag, as a loot does (corpse source); armour and anything the
+    owner refuses stays on the body."""
+    import equipment_economy
+    if not body.get("inventory"):
+        return []
+    equipment_economy.materialize(world)
+    taken = []
+    for item in list(body["inventory"]):
+        try:
+            equipment_economy.move(world, item, body["inventory"], world.setdefault("inventory", []),
+                                   f"corpse:{body['id']}")
+        except equipment_economy.EquipmentError:
+            continue
+        if isinstance(body.get("item_consents"), dict):
+            body["item_consents"].pop(item.get("item_id"), None)  # a looted thing carries no leave to give it
+        taken.append(item)
+    return taken
 
 
 def coin_label_gp(name: object) -> int | None:
@@ -1232,12 +1402,35 @@ def _steals(session, text: Any, deed: str | None) -> bool:
         return False
     if deed == "steal":  # the reading's own deed, never on speech, a past, refused, later, wished or pretended line
         bare = _bare(session, text)
-        return (":" not in text and getattr(session, "_front_kind", None) not in {"speak_to", "say"}
-                and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
-                and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare))
+        return _stolen_now(session, text, bare) and not (_LOOKS.search(bare) and not _TAKES.search(bare))
     # D-094 R-7: a reading's check never moves coin (Sleight of Hand is also hiding, palming, putting, giving back);
     # with no deed only the engine's own open-try words can.
     return deed == "" and _tries_to_steal(session, text)
+
+
+def _stolen_now(session, text: str, bare: str) -> bool:
+    """The reading's steal on a line done now: not speech, a past, refused, later, wished or pretended line."""
+    return (":" not in text and getattr(session, "_front_kind", None) not in {"speak_to", "say"}
+            and not _NOT_THIS_TURN_END.search(bare) and not _PAST_OR_LATER.search(bare)
+            and not _DEED_NOT_NOW.search(bare) and not _ONLY_A_WISH.search(bare) and not _NOT_DONE.search(bare))
+
+
+def _looks_before_stealing(session, text: Any, deed: str | None) -> bool:
+    """D-224 review: the reading says steal, but the line looks and names no plain taking. It is asked, never done
+    unasked; a yes plays the theft."""
+    if deed != "steal" or not _can_be_done(session, text) or _NOT_STOLEN.search(fold(session, text)):
+        return False
+    bare = _bare(session, text)
+    return _stolen_now(session, text, bare) and bool(_LOOKS.search(bare)) and not _TAKES.search(bare)
+
+
+def _said_yes_to_the_look(session, text: Any) -> bool:
+    """D-224 third review: "evet" to the asked look plays this very line again, and its new reading may be no theft;
+    the yes still takes (the same shape ``game._heavy_allowed`` reads)."""
+    confirmed = getattr(session, "_heavy_confirmed", None)
+    allowed = confirmed.get("allowed") if isinstance(confirmed, dict) else None
+    return (isinstance(allowed, list) and confirmed.get("said") == str(text)
+            and ["deed", None, "steal_look"] in allowed)
 
 
 # "Muhafızın üstünü inceliyorum": a present, first-person, finished sentence; "... söylüyorum", "... dedim", a wish or a
@@ -1293,6 +1486,8 @@ def resolve(session, text: Any, deed: str | None = None, *, ask=None) -> dict[st
             return settled
     if _steals(session, text, deed):
         return (ask("steal") if ask else None) or _steal(session, text)
+    if ask is not None and (_looks_before_stealing(session, text, deed) or _said_yes_to_the_look(session, text)):
+        return ask("steal_look") or _steal(session, text)  # D-224 review: a look is asked; only a yes takes
     if is_arson(session, text) if deed is None else deed == "burn" and _can_be_done(session, text):
         return (ask("burn") if ask else None) or _burn(session)
     return None

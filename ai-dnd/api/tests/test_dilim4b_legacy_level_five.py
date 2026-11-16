@@ -21,7 +21,7 @@ from api.tests.test_dilim4b_adventure_xp import plant
 from api.tests import test_wield_front as wield_front
 from api.tests.journeys.runner import JourneyCase
 from api.tests import test_dilim4b_combat_xp as combat_xp
-from api.tests.test_dilim4b_combat_xp import ATTACK, beat, person
+from api.tests.test_dilim4b_combat_xp import ATTACK, beat, drop_purses, person
 from api.tests.test_roadmap_c14_fighter import bundle, spec
 
 SEED = 4843
@@ -70,6 +70,7 @@ class LegacySaveCrossesToFive(unittest.TestCase):
                 session = legacy_save(version, self.directory)
                 guard = person("guard1", "muhafız")
                 session.world_state["npcs"] = [guard]
+                drop_purses(session.world_state)
                 ended = beat(session, guard)
                 self.assertEqual(ended["reason"], "target_defeated")
                 self.assertFalse(session.world_state["combat"]["active"])
@@ -114,6 +115,7 @@ class LegacySaveCrossesToFive(unittest.TestCase):
         session.character["xp"] = 2000                             # numeric level stays 4; 2000 + 25 stays below 6500
         guard = person("guard1", "muhafız")
         session.world_state["npcs"] = [guard]
+        drop_purses(session.world_state)
         beat(session, guard)
         self.assertEqual((session.character["level"], session._persisted_engine_format), (4, 3))
 

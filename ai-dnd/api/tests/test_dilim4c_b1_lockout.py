@@ -27,7 +27,7 @@ import world_threads
 import xp
 from api.tests import test_dilim4b_job_xp as jobs
 from api.tests.test_dilim4b_adventure_xp import MARKER, POOL, QUEST_ID, plant, refused_admission, to_level_four
-from api.tests.test_dilim4b_combat_xp import fighter, person
+from api.tests.test_dilim4b_combat_xp import drop_purses, fighter, person
 from api.tests.test_dilim4b_legacy_level_five import legacy_save, reloaded
 from api.tests.test_phase7_package import bound_state
 
@@ -56,6 +56,7 @@ class CombatAwardRefused(unittest.TestCase):
                 session = legacy_save(version, self.directory)
                 guard = person("guard1", "muhafız")
                 session.world_state["npcs"] = [guard]
+                drop_purses(session.world_state)
                 session.start_combat(guard)
                 guard.update(current_hp=0, combat_status="dead")
                 session.ensure_combat_state()

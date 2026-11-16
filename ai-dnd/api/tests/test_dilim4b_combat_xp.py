@@ -37,6 +37,11 @@ def person(identity, role, **extra):
             **extra}
 
 
+def drop_purses(world):
+    """D-207: the town's people a test takes out of the world take their written purses with them."""
+    world["currency"] = {key: coin for key, coin in world.get("currency", {}).items() if key == "player"}
+
+
 def beat(session, *people, knock_out=False):
     """A real fight: start it with the first foe, bring every foe down, let the engine decide the ending."""
     session.start_combat(people[0])

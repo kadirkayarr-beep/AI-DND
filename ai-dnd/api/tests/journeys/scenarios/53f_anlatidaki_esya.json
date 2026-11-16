@@ -1,0 +1,157 @@
+{
+  "id": "53f_anlatidaki_esya",
+  "title": "Anlatıdaki eşya gerçek eşyaya döner (D-229; Kadir kararı K5 b; SIFIR TOLERANS): anlatının oyuncuya gösterdiği, ekipman kataloğundaki mızrak sahnedeki kişinin gerçek eşyası olur ve başarılı çalmayla oyuncuya geçer; para taşınmaz; Geri Al ve yenileme eşyayı geri alır; adı geçen kalkan (zırh ve kalkan bu yolla el değiştirmez) başarılı zarda da para satırı almaz",
+  "source_items": [
+    229
+  ],
+  "zero_tolerance": true,
+  "setup": {
+    "npcs": [
+      {
+        "id": "kavsim",
+        "name": "Kavşim",
+        "role": "Muhafız",
+        "current_hp": 12,
+        "inventory": []
+      }
+    ],
+    "currency": {
+      "player": 40,
+      "kavsim": 30
+    },
+    "inventory": [],
+    "seed": 6,
+    "campaign_seed": 5706,
+    "front_proposal": true
+  },
+  "steps": [
+    {
+      "say": "muhafızın üstünü inceliyorum",
+      "script": {
+        "front": {
+          "kind": "speak_to",
+          "person_id": "kavsim"
+        },
+        "narration": "Kavşim dik duruyor; arkasındaki askıda bir mızrak asılı."
+      },
+      "expect": {
+        "envanter": {},
+        "kisi_esya": {
+          "kavsim": {}
+        },
+        "gerekli_metin": "askıda bir mızrak"
+      }
+    },
+    {
+      "say": "askıdaki mızrağı gizlice çalmaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?",
+        "envanter": {},
+        "kese": 40
+      }
+    },
+    {
+      "say": "evet",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "envanter": {
+          "Mızrak": 1
+        },
+        "kisi_esya": {
+          "kavsim": {}
+        },
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 30
+        },
+        "gerekli_metin": "mızrak artık sende"
+      }
+    },
+    {
+      "undo": true,
+      "expect": {
+        "gerekli_metin": "Son tur geri alındı",
+        "envanter": {},
+        "kisi_esya": {
+          "kavsim": {}
+        },
+        "kese": 40
+      }
+    },
+    {
+      "reload": true,
+      "expect": {
+        "envanter": {},
+        "kisi_esya": {
+          "kavsim": {}
+        },
+        "kese": 40
+      }
+    },
+    {
+      "say": "askıdaki kalkanı gizlice çalmaya çalışıyorum",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "Gerçekten çalıyor musun?"
+      }
+    },
+    {
+      "say": "evet",
+      "script": {
+        "front": {
+          "kind": "attempt",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "sonuc": "success",
+          "zar_var": true
+        },
+        "envanter": {},
+        "kese": 40,
+        "kisi_kese": {
+          "kavsim": 30
+        },
+        "gerekli_metin": "kalkan",
+        "yasak_metin": [
+          "para eden",
+          "bakır",
+          "artık sende"
+        ]
+      }
+    }
+  ]
+}

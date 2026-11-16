@@ -8,26 +8,37 @@ import unittest
 import bold_acts
 
 
+def world(wallets):
+    return {"currency": dict(wallets), "scene_state": {"campaign_seed": "d170"}}
+
+
 class APersonsPurse(unittest.TestCase):
     def test_a_counted_purse_is_the_wallet(self):
-        self.assertEqual(bold_acts._purse_of({"kavsim": 7}, {"id": "kavsim"}), 7)
-        self.assertEqual(bold_acts._purse_of({"kavsim": 0}, {"id": "kavsim"}), 0)
-        self.assertEqual(bold_acts._purse_of({"kavsim": -4}, {"id": "kavsim"}), 0)
+        self.assertEqual(bold_acts._purse_of(world({"kavsim": 7}), {"id": "kavsim"}), 7)
+        self.assertEqual(bold_acts._purse_of(world({"kavsim": 0}), {"id": "kavsim"}), 0)
+        self.assertEqual(bold_acts._purse_of(world({"kavsim": -4}), {"id": "kavsim"}), 0)
 
     def test_an_uncounted_purse_is_fixed_by_who_they_are(self):
-        purses = {bold_acts._purse_of({}, {"id": name}) for name in ("kavsim", "sera", "marek", "npc-17", "x")}
+        # D-207: the same identity-bound purse the town writes, fixed by the campaign seed too
+        purses = {bold_acts._purse_of(world({}), {"id": name}) for name in ("kavsim", "sera", "marek", "npc-17", "x")}
         self.assertTrue(all(5 <= purse <= 40 for purse in purses))
-        self.assertEqual(bold_acts._purse_of({}, {"id": "kavsim"}), bold_acts._purse_of({}, {"id": "kavsim"}))
-        self.assertEqual(bold_acts._purse_of({}, {"id": "kavsim"}), 26)
+        self.assertEqual(bold_acts._purse_of(world({}), {"id": "kavsim"}), bold_acts._purse_of(world({}), {"id": "kavsim"}))
+        self.assertEqual(bold_acts._purse_of(world({}), {"id": "kavsim"}), 32)
 
     def test_an_uncounted_shopkeeper_has_the_shops_cash(self):
-        self.assertEqual(bold_acts._purse_of({}, {"id": "marek", "role": "Shopkeeper"}), 1000)
-        self.assertEqual(bold_acts._purse_of({"marek": 12}, {"id": "marek", "role": "Shopkeeper"}), 12)
+        self.assertEqual(bold_acts._purse_of(world({}), {"id": "marek", "role": "Shopkeeper"}), 1000)
+        self.assertEqual(bold_acts._purse_of(world({"marek": 12}), {"id": "marek", "role": "Shopkeeper"}), 12)
 
     def test_counting_does_not_write_the_wallet(self):
-        wallets = {"player": 40}
-        bold_acts._purse_of(wallets, {"id": "kavsim"})
-        self.assertEqual(wallets, {"player": 40})
+        counted = world({"player": 40})
+        bold_acts._purse_of(counted, {"id": "kavsim"})
+        self.assertEqual(counted["currency"], {"player": 40})
+
+    def test_every_empty_purse_line_says_the_purse_is_empty(self):
+        # D-230: a lifted purse with no coin says so; journey 52b pins the turn route with one seeded line
+        for line in bold_acts._PURSE_EMPTY:
+            self.assertIn("kesesi boş", line.format(n="Kavşim"))
+            self.assertIn("Kavşim", line.format(n="Kavşim"))
 
 
 if __name__ == "__main__":
