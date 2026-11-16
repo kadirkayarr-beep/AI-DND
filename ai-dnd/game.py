@@ -8457,7 +8457,7 @@ _REAL_WORLD_FAITH = (
     (re.compile(r"(?<!\w)[iİI]n[sş]allah\b"), "tanrılar izin verirse"),
     (re.compile(r"\b[Mm]a[sş]allah\b"), "vay be"),
     (re.compile(r"\b[Ee]lhamd[uü]lillah\b"), "tanrılara şükür"),
-    (re.compile(r"\bAllah'?a\s+emanet(?:\s+ol)?\b"), "Tymora yar olsun"),
+    (re.compile(r"\bAllah['’]?a\s+emanet(?:\s+ol(?:un)?)?\b"), "Tymora yar olsun"),
 )
 
 
@@ -8644,7 +8644,7 @@ _SPEECH_ANSWER_RULES = (
     "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
     "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir; ama kenti, "
     "bir yeri ya da olan biteni anlatman istenirse iki ile dört cümleyle, bildiğin yerlerden ve duyduklarından somut "
-    "ayrıntı ver. Aynı kalıbı ve kapanış sorusunu alışkanlık yapma.Cevabın yanına bir insani dokunuş ekleyebilirsin: "
+    "ayrıntı ver. Aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
     "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan. "
     "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler "
     "(Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet) kullanılmaz; yerine “Selam”, “Tymora yar olsun”, "
@@ -8948,7 +8948,7 @@ def _overheard_work(world):
         return None
 
 
-_ASKS_WHO_YOU_ARE = re.compile(r"(?:adin|adiniz|isim|ismin|isminiz|kimsin|kimsiniz)")
+_ASKS_WHO_YOU_ARE = re.compile(r"\b(?:adin|adiniz|isim|ismin|isminiz|kimsin|kimsiniz)\b")
 
 
 def _town_fallback(world, npc, player_input):
