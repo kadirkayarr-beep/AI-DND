@@ -47,6 +47,15 @@ class NoBareUnknown(unittest.IsolatedAsyncioTestCase):
         self.assert_not_bare(text)
         self.assertIn(place, text)
 
+    async def test_a_speech_the_safety_check_rejects_still_passes_on_a_lead(self):
+        with fixed_town(self, 2718):
+            await self.start()
+        await self.say("Selam.", "Selam.")
+        text = await self.say("Burada ilginç bir söylenti var mı?",
+                              "Eski mahzende kilitli bir sandık duruyor.")
+        self.assert_not_bare(text)
+        self.assertIn("Duyduğuma göre", text)
+
     async def test_a_question_about_the_person_is_not_answered_with_town_news(self):
         await self.ready()
         text = await self.say("Adın ne senin?")

@@ -1294,7 +1294,8 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
                       "lie": "Sana söyleyebileceğim şu", "player_claim": "Senin söylediğin",
                       "witnessed": "Gördüğüm şu"}[entry["kind"]]
             text = f'{living_world.public_npc_name(npc)}: “{prefix}: {entry["text"]}”'
-        result = _result(operation, "answered", text)
+        # D-249 F2: with no evidence behind it the stock line is no answer; the person answers in her own words.
+        result = _result(operation, "answered" if entry or not npc else "unbacked", text)
         if npc:
             _remember_claim(world, state, quote, npc, data["privacy"])
     elif operation in {"refuse", "delay", "abandon", "agree", "switch_side", "betray", "reframe"}:
