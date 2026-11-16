@@ -27,5 +27,6 @@ for (const race of ['Dragonborn', 'Aasimar', 'Goliath', 'Orc', 'Human']) {
     const html = render(state(race));
     assert.match(html, /data-testid="species-undo-note"/);
     assert.match(html, /Bu eylemler geri alınamaz/);
+    assert.match(html, /önceki turun Geri Al/);
   });
 }

@@ -311,7 +311,7 @@ export function SpeciesTraitControls({
         </div>
         <span className="species-traits-species">{speciesLabel(species)}</span>
       </div>
-      <p className="species-trait-feedback" data-testid="species-undo-note">Bu eylemler geri alınamaz: Geri Al düğmesi tür eylemini geri almaz.</p>
+      <p className="species-trait-feedback" data-testid="species-undo-note">Bu eylemler geri alınamaz; yaptığında önceki turun Geri Al hakkı da kapanır.</p>
 
       {species === 'Aasimar' && (
         <div className="species-trait-group">
