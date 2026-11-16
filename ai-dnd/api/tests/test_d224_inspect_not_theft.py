@@ -60,12 +60,15 @@ MORE_LOOKS = (
     "Kesesine bakıp geri çekiliyorum", "Kesesine bakıp kapıya yürüyorum", "Kesesine bakıp kaçıyorum",
     "Kesesine bakıp sokağa çıkıyorum", "Kesesine bakıp uzaklaşıyorum", "Kesesine bakıp alçak sesle konuşuyorum",
     "Kesesine bakıp kesesini övüyorum",
+    # third review: looks that fell to the plain theft question
+    "Kesesinin ağırlığını tartıyorum", "Kesesini gözetliyorum", "Kesesini kolluyorum", "Kesesine bakarken alay ediyorum",
 )
 # Plain looks among them: these are asked, not dropped (the others say no, later or never and are not asked)
 ASKED_LOOKS = (
     "Muhafızın kesesi var mı diye arıyorum", "Kesesine bir bakış atıyorum", "Kesesini gözlüyorum",
     "Kesesini izliyorum", "Muhafızın saklı cebine bakıyorum", "Yere uzanmış sarhoşun kesesini inceliyorum",
     "Kesesine bakıp çekip gidiyorum", "Cebime bakıyorum",
+    "Kesesinin ağırlığını tartıyorum", "Kesesini gözetliyorum", "Kesesini kolluyorum", "Kesesine bakarken alay ediyorum",
 )
 
 TAKES = (

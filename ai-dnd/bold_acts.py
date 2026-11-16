@@ -58,8 +58,9 @@ _ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\
 # a plain word of taking in the same line keeps it one ("bakıp çalıyorum", "kimse bakmazken alıyorum"). A look with no
 # such word is asked first (``_looks_before_stealing``), so a word missing here costs one question, never coin.
 _LOOKS = re.compile(
-    r"\b(?:incel\w*|bak(?:iyorum|ip|arak)|bakis\s+at\w*|kontrol\s+ed\w*|suzuyorum|gozden\s+gecir\w*|"
-    r"goz\s+(?:at|gezdir)\w*|ar(?:iyor\w*|ayip|ayarak)|gozl(?:uyor\w*|eyip|eyerek)|izl(?:iyor\w*|eyip|eyerek))")
+    r"\b(?:incel\w*|bak(?:iyorum|ip|arak|arken)|bakis\s+at\w*|kontrol\s+ed\w*|suzuyorum|gozden\s+gecir\w*|"
+    r"goz\s+(?:at|gezdir)\w*|ar(?:iyor\w*|ayip|ayarak)|gozl(?:uyor\w*|eyip|eyerek)|izl(?:iyor\w*|eyip|eyerek)|"
+    r"tart\w*|gozetl\w*|kollu\w*)")
 # Taking words count only with a verb ending, so "altın", "çalışıyorum", "kapıdaki", "çekmece", "dalgın", "sokaktaki",
 # "saklı", "uzanmış" and "yoklama" take nothing. After a root ending in a consonant ("al", "çal") and after a stem
 # ending in a/e written without it ("sakl(a)", "yokl(a)"); "-ıver" and the spoken "-ıyom" too. "Çekip gidiyorum" leaves.
