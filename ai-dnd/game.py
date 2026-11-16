@@ -1292,10 +1292,16 @@ _SOMEONE_ELSES_PURSE = re.compile(
 
 # Dice guide 4.4/H01: a hide needs cover or obscurement. The engine knows the dark (night), a place with walls and a
 # door, and what cover the player names; anything else in the open by day is no hide (D-094, D-171).
-_COVER = re.compile(
-    r"\b(?:golge\w*|karanlig\w*|karanlik\w*|kalabalig\w*|kalabalik\w*|arkasina|arkasinda|ardina|ardinda|altina|"
+_COVER_WORD = (
+    r"(?:golge\w*|karanlig\w*|karanlik\w*|kalabalig\w*|kalabalik\w*|arkasina|arkasinda|ardina|ardinda|altina|"
     r"altinda|calilar\w*|calilig\w*|calilik\w*|caliya|calinin|agac\w*|fici\w*|sandig\w*|sandik\w*|perde\w*|sis\w*|kose\w*|kuytu\w*|siper\w*|"
-    r"cuval\w*|kayanin|kayalar\w*|duvarin\s+dibine)\b")
+    r"cuval\w*|kayanin|kayalar\w*|duvarin\s+dibine)")
+# D-225: a cover word the line denies is no cover: "hiçbir gölge", "gölgesiz", "siper ya da gölge olmayan", "ağaç
+# bile yok", "siper değil".
+_COVER = re.compile(
+    rf"(?<!\bhicbir )\b{_COVER_WORD}\b(?<!s[iu]z)"
+    rf"(?!(?:\s+(?:ya|da|de|ve|veya|ile|bile|falan|filan|hic|{_COVER_WORD}))*\s+"
+    r"(?:olmayan\w*|olmadig\w*|bulunmayan\w*|bulunmadig\w*|yok(?:tu|tur|ken)?|degil\w*)\b)")
 # One's own thing hidden on oneself ("hançerimi kolumun içine gizliyorum") is Sleight of Hand, not a hide (D-176).
 _OWN_THING_HIDDEN = re.compile(r"\b(?!kendim)\w{2,}m[iu]\s+(?:\w+\s+){0,4}?(?:gizl|sakl)\w*")
 

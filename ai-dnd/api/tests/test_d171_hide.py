@@ -25,6 +25,22 @@ class TheWordsOfAHide(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertFalse(game._COVER.search(folded(line)))
 
+    def test_a_denied_cover_is_no_cover(self):
+        # D-225: a cover word the line denies ("olmayan", "yok", "değil", "hiçbir", "-sız") is no cover.
+        for line in ("Hiçbir siper ya da gölge olmayan aydınlık boş alanda saklanmaya çalışıyorum",
+                     "gölge yok, yine de saklanıyorum", "ortada ağaç bile yok ama gizleniyorum",
+                     "kalabalık yok, saklanıyorum", "burada siper değil, saklanıyorum",
+                     "gölgelerin olmadığı meydanda gizleniyorum", "gölgesiz meydanda saklanıyorum",
+                     "hiçbir gölgeye sığınmadan saklanıyorum"):
+            with self.subTest(line=line):
+                self.assertFalse(game._COVER.search(folded(line)))
+
+    def test_a_named_cover_beside_a_denied_one_counts(self):
+        for line in ("gölge yok ama fıçının arkasına saklanıyorum", "ağacın arkasına, yokuşun dibine saklanıyorum",
+                     "ağacın arkasına saklanıyorum, kimse yok", "gölgede saklanıyorum, ışık değil karanlık bu"):
+            with self.subTest(line=line):
+                self.assertTrue(game._COVER.search(folded(line)))
+
     def test_ones_own_thing_hidden_is_no_hide(self):
         for line in ("hançerimi kolumun içine gizliyorum", "kesemi pelerinimin altına saklıyorum",
                      "yüzüğümü cebime saklıyorum", "kılıcımı saklıyorum"):
