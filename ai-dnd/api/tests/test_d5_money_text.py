@@ -143,6 +143,35 @@ class ReviewNegationOnlyInItsOwnClause(LostRoll):
                 self.assertEqual(town_knowledge.without_unbacked_money(line), line)
 
 
+class ReviewSafeDirectionOpener(LostRoll):
+    """Re-review (YÜKSEK): an 'al/tut/işte/buyur' sentence naming money or the purse always goes, whatever 'no' it
+    holds; only the 'işte bu/o/şu yüzden' explanation, and a sentence naming no money or purse, stays."""
+
+    HANDINGS = ("Al şu parayı — bir daha istemem.", "Al şu parayı – bir daha vermem.", "Al şu parayı - bir daha istemem.",
+                "Al şu parayı da bir daha istemem.", "Al bu parayı yok sayma.", "Al, kesemde para yok sanma, al.",
+                "Tut şu keseyi de bir daha gelmiyorsun.")
+    STAYS = ("İşte bu yüzden sana para vermem.", "İşte o yüzden kesemi açmam.", "Tut dilini.")
+
+    def test_a_lost_ask_drops_each_handing(self):
+        for line in self.HANDINGS:
+            with self.subTest(line=line):
+                self.setUp()
+                self.assertEqual(self.reply(f"Hmm. {line} Yolun açık olsun.")["spoken"], "Hmm. Yolun açık olsun.")
+
+    def test_the_no_move_gate_drops_each_coin_handing(self):
+        # As on main, this gate holds coin only; the purse-only line goes through the lost ask above.
+        for line in self.HANDINGS[:-1]:
+            with self.subTest(line=line):
+                self.assertEqual(town_knowledge.without_unbacked_money(line), "")
+
+    def test_the_explanations_and_no_money_lines_stay(self):
+        for line in self.STAYS:
+            with self.subTest(line=line):
+                self.setUp()
+                self.assertEqual(self.reply(f"Hmm. {line}")["spoken"], f"Hmm. {line}")
+                self.assertEqual(town_knowledge.without_unbacked_money(line), line)
+
+
 class ReviewAnotherMetalWithoutAFigure(LostRoll):
     """Review (ORTA): after a won roll, a handing that names a metal the engine did not pay goes, figure or not."""
 

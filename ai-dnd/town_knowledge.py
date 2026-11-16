@@ -563,14 +563,14 @@ def without_unbacked_money(text: Any, *, allowed: set[int] | None = None, moved:
 # D-266: after 'al/tut/işte/buyur', only words that go with handing ('Al bakalım', 'Al, senin olsun', 'Tut şunu').
 _HANDING_REST = frozenset({"bakalim", "sunu", "bunu", "sunlari", "bunlari", "hadi", "haydi", "senin", "sizin", "olsun",
                            "sana", "size", "iste", "al", "alin", "tut", "buyur", "buyurun"})
-_SAID_NO = frozenset({"yok", "degil", "asla", "hayir"})
+_EXPLAINS = ("iste", ("bu", "o", "su"), ("yuzden", "sebeple", "nedenle"))  # 'İşte bu yüzden…' explains, hands nothing
 
 
 def _hands_money(sentence: str, table: dict[str, frozenset[str]]) -> bool:
-    """A handing verb ('uzatıyorum', 'sayıyor'); or an opener ('al', 'tut', 'işte') that names a sum, names coin or the
-    purse in a clause that does not say no ('İşte bu yüzden sana para vermem' is a refusal; review: in 'Al şu parayı,
-    ama bir daha vermem' the no belongs to another clause), or stands with handing words only. 'Tut dilini' and
-    'Al başını git' hand nothing."""
+    """A handing verb ('uzatıyorum', 'sayıyor'); or an opener ('al', 'tut', 'işte', 'buyur') that names a sum, coin or
+    the purse, whatever 'no' it holds (re-review: reading the no leaked handings, so the safe side wins), or stands with
+    handing words only. Kept: 'İşte bu/o/şu yüzden|sebeple|nedenle …' with no sum named (an explanation), and an
+    opener naming no money or purse ('Tut dilini', 'Al başını git')."""
     words = world_threads._folded(sentence).split()
     if not words:
         return False
@@ -579,15 +579,12 @@ def _hands_money(sentence: str, table: dict[str, frozenset[str]]) -> bool:
     if words[0] not in table["hands_first"]:
         return False
     import front_proposal
-    import pocket
     if front_proposal._coin_said(words) is not None:
         return True  # a sum named is never let through, whatever else the sentence says
-    money_clauses = [clause for clause in (world_threads._folded(piece).split()
-                                           for piece in pocket._CLAUSE_BREAK.split(sentence))
-                     if _names_coin(clause, table) or any(word.startswith("kese") for word in clause)]
-    if money_clauses:
-        return any(not any(word in _SAID_NO or pocket.said_not_done(word) for word in clause)
-                   for clause in money_clauses)
+    if words[0] == _EXPLAINS[0] and len(words) > 2 and words[1] in _EXPLAINS[1] and words[2] in _EXPLAINS[2]:
+        return False
+    if _names_coin(words, table) or any(word.startswith("kese") for word in words):
+        return True
     return all(word in _HANDING_REST for word in words[1:])
 
 
