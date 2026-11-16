@@ -219,7 +219,7 @@ class ArrivalWiring(_ArrivalApi):
             game._ACTIVE_SESSION.reset(token)
         narration = result["narration"]
         self.assertEqual(result["action_result"]["action"], "grounded_action", result["action_result"])
-        self.assertTrue(narration.startswith("Dışarı, "), narration)
+        self.assertTrue(narration.startswith("Kent kapısından geçip "), narration)  # t4: from outside the walls there is no "Dışarı"
         self.assertLessEqual(len(game._split_sentences_keep_speech(narration)), 6, narration)
 
     async def test_job_news_follows_the_model_text(self):
