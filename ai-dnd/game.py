@@ -20882,16 +20882,22 @@ _NOT_A_LOCAL_PLACE = {
 
 def _may_propose_local_place(resolved_turn, player_input):
     """Only an unknown destination, asked for from the open streets of a settlement."""
+    import heard_rumours
     import local_places
     result = resolved_turn.action_result
     world_state = _session().world_state
+    settlement = local_places.settlement_of(world_state, world_state.get("location"))
     return bool(
         resolved_turn.allow_new_locations
         and isinstance(result, dict)
         and result.get("action") == "travel"
         and result.get("status") == "awaiting_proposal"
-        and living_world.on_open_street(world_state)
-        and local_places.settlement_of(world_state, world_state.get("location"))
+        and (
+            living_world.on_open_street(world_state)
+            # An NPC of this settlement said the name aloud: the player may follow it from indoors too.
+            or heard_rumours.heard_in_speech(world_state, settlement, result.get("target_reference")) is not None
+        )
+        and settlement
         and not is_player_world_assertion(player_input)
     )
 
@@ -20903,9 +20909,10 @@ def _accepted_local_place(packet, action_result):
     proposal = proposals[0] if isinstance(proposals, list) and proposals else None
     if not isinstance(proposal, dict):
         return []
+    import heard_rumours
     validated = validate_location_proposal({
         "type": proposal.get("type"), "description": proposal.get("description"),
-        "name": action_result.get("target_reference"), "aliases": [proposal.get("name")],
+        "name": heard_rumours.base_name(action_result.get("target_reference") or ""), "aliases": [proposal.get("name")],
     })
     if not validated or validated["type"].casefold() in _NOT_A_LOCAL_PLACE:
         return []
@@ -20916,13 +20923,18 @@ def _accepted_local_place(packet, action_result):
 
 def _settle_local_place(action_result):
     """A new local place hangs under its settlement, which also gives it the walking route."""
+    import heard_rumours
     import local_places
     world_state = _session().world_state
     settlement = local_places.settlement_of(world_state, world_state.get("location"))
-    place_id = resolve_location_reference(action_result.get("target_reference", ""))
+    place_id = resolve_location_reference(heard_rumours.base_name(action_result.get("target_reference", "")))
     place = world_state["locations"].get(place_id)
     if settlement and isinstance(place, dict):
         place.update(parent_location_id=settlement, exit_location_id=settlement, tags=["campaign_local"])
+        said_by = heard_rumours.heard_in_speech(world_state, settlement, action_result.get("target_reference"))
+        if said_by:
+            place["provenance"] = {"source": "npc_rumour", "said_by": said_by,
+                                   "turn": world_state.get("flags", {}).get("turn_index", 0)}
         # The kind decides what the scene may hold and which people and street life it gets.
         if place.get("type") == "district":
             place.update(scene_kind="city", environment="city")
@@ -21058,7 +21070,8 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             allow_new_locations=resolved_turn.allow_new_locations and not is_assertion,
         )
         if resolved_turn.allow_new_locations and location_updates.get("create_locations"):
-            expected = str(resolved_turn.action_result.get("target_reference", "")).casefold().strip(" .,!?:;\"'")
+            import heard_rumours
+            expected = heard_rumours.base_name(resolved_turn.action_result.get("target_reference", "")).casefold().strip(" .,!?:;\"'")
             expected_words = re.findall(r"[a-z0-9çğıöşü]+", expected)
             matching = []
             for proposal in location_updates["create_locations"]:

@@ -137,3 +137,20 @@ def record_mention(game: Any, world: dict[str, Any], npc: dict[str, Any], mentio
     world["heard_rumours"] = rumours
     del rumours[:-MAX_HEARD]
     return entry
+
+
+def heard_in_speech(world: dict[str, Any], settlement_id: str, reference: str) -> str | None:
+    """The NPC of this settlement who said the name aloud (recent speech log), else None. Off when the lane is off."""
+    if not lane_enabled() or not isinstance(world, dict) or not isinstance(settlement_id, str) or not settlement_id:
+        return None
+    log = world.get("npc_speech_log")
+    if not isinstance(log, dict) or not isinstance(reference, str):
+        return None
+    for npc in world.get("npcs", []):
+        if not isinstance(npc, dict) or local_places.settlement_of(world, npc.get("location")) != settlement_id:
+            continue
+        entries = log.get(npc.get("id"))
+        if isinstance(entries, list) and any(isinstance(entry, dict) and said_in(entry.get("npc"), reference)
+                                             for entry in entries):
+            return npc["id"]
+    return None
