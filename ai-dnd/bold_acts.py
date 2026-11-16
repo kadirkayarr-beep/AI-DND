@@ -595,7 +595,10 @@ def _named_gear(folded: str) -> str | None:
 
 
 # D-229 third review: a clause that names the thing and says it is not there ("hiç mızrak yok", "askı boş") shows nothing
-_SAID_NONE = re.compile(r"\b(?:yok|degil|bos|kalma(?:di|mis))\w*")
+_SAID_NONE = re.compile(r"\b(?:yok|degil|bos|kalma(?:di|mis))\w*"
+                        # fourth review: "hiçbir", a verb said in the negative ("bulunmuyor", "görmüyorsun"), "göremiyor",
+                        # "gitmiş", "satılmış", "bomboş"
+                        r"|\b(?:hic\w*|\w+m[iu]yor\w*|bulunm\w*|gorem\w*|git(?:ti|mis)\w*|satil(?:di|mis)\w*|bombos\w*)")
 
 
 def _longer_names_out(folded: str, thing: str) -> str:
@@ -619,8 +622,9 @@ def _shown(session, thing: str) -> str | None:
     for text in reversed(told):
         clauses = [clause for clause in re.split(r"[.;:!?,\n]", weapon_catalog.fold(text))
                    if re.search(pattern, _longer_names_out(clause, thing))] if isinstance(text, str) else []
-        if clauses:
-            return text if any(not _SAID_NONE.search(clause) for clause in clauses) else None
+        if clauses:  # "mızraksız": the weapon's own word says none
+            return text if any(not _SAID_NONE.search(clause) and not re.search(pattern + r"\w*s[iu]z\b", clause)
+                               for clause in clauses) else None
     return None
 
 

@@ -66,7 +66,11 @@ class ShownInTheNarration(unittest.TestCase):
     def test_a_narration_that_says_there_is_none_shows_none(self):
         # third review 2026-11-16: "burada hiç mızrak yok" counted as a showing and made a spear
         for told in ("Burada hiç mızrak yok.", "Askıdaki mızrak artık yok.", "Elindeki şey mızrak değil, bir sopa.",
-                     "Mızrak askısı boş.", "Askıda mızrak kalmadı.", "Mızraktan eser yoktu."):
+                     "Mızrak askısı boş.", "Askıda mızrak kalmadı.", "Mızraktan eser yoktu.",
+                     # fourth review 2026-11-16
+                     "Askıda tek bir mızrak bile bulunmuyor.", "Hiçbir mızrak göremiyorsun.", "Mızraklar çoktan gitmiş.",
+                     "Mızrak satılmış, askı artık bomboş.", "Mızrak satılmış ve askı artık bomboş duruyor.",
+                     "Mızraksız bir askı duruyor.", "Askıda mızrak görmüyorsun.", "Hiç mızrak kalmamış."):
             with self.subTest(told=told):
                 self.assertIsNone(bold_acts._shown(session(told), "Mızrak"))
                 # the newest word about the spear decides: an older showing is gone once it is said to be gone
