@@ -77,18 +77,18 @@ class LostRoll(coin_ask.Ask):
 
 
 class OnlyMoneyHandingLeaves(LostRoll):
-    """D-266: on a lost roll only a sentence that hands money goes; a refusal opening with 'işte/al/tut' stays."""
+    """D-266 (scope narrowed by review): on a lost roll an 'işte/al/tut' opener naming no money or purse stays."""
 
-    def test_a_refusal_opening_with_iste_al_or_tut_stays(self):
-        for line in ("İşte bu yüzden sana para vermem.", "Tut dilini.", "Al başını git buradan."):
+    def test_an_opener_naming_no_money_stays(self):
+        for line in ("Tut dilini.", "Al başını git buradan."):
             with self.subTest(line=line):
                 self.setUp()
                 self.assertEqual(self.reply(f"Hmm. {line}")["spoken"], f"Hmm. {line}")
 
-    def test_the_later_money_gate_keeps_the_refusal_too(self):
-        # game._with_only_backed_money runs this on the same line after settle_reply, with no coin moved.
-        line = "İşte bu yüzden sana para vermem."
-        self.assertEqual(town_knowledge.without_unbacked_money(line), line)
+    def test_the_later_money_gate_drops_an_opener_naming_money_even_as_a_refusal(self):
+        # game._with_only_backed_money runs this on the same line after settle_reply, with no coin moved. Third review:
+        # over-removing is the safe side, so the refusal goes too, as on main.
+        self.assertEqual(town_knowledge.without_unbacked_money("İşte bu yüzden sana para vermem."), "")
         self.assertEqual(town_knowledge.without_unbacked_money("İşte beş bakır, fazlası yok."), "")
 
     def test_a_handing_still_leaves(self):
@@ -120,7 +120,7 @@ class ReviewNegationOnlyInItsOwnClause(LostRoll):
     HANDINGS = ("Al şu parayı, ama bir daha vermem.", "Al bu parayı, bir daha gelmiyorsun buraya.",
                 "Buyur paran, geri istemem.", "İşte paran, hayır deme.", "Al, bir avuç altın, daha fazlası yok.",
                 "Al şu keseyi, kimseye söylemem.")
-    REFUSALS = ("İşte bu yüzden sana para vermem.", "Tut dilini.")
+    REFUSALS = ("Tut dilini.",)
 
     def test_a_lost_ask_drops_each_handing(self):
         for line in self.HANDINGS:
@@ -145,12 +145,12 @@ class ReviewNegationOnlyInItsOwnClause(LostRoll):
 
 class ReviewSafeDirectionOpener(LostRoll):
     """Re-review (YÜKSEK): an 'al/tut/işte/buyur' sentence naming money or the purse always goes, whatever 'no' it
-    holds; only the 'işte bu/o/şu yüzden' explanation, and a sentence naming no money or purse, stays."""
+    holds; only a sentence naming no money or purse stays (third review: no 'işte bu yüzden' exception)."""
 
     HANDINGS = ("Al şu parayı — bir daha istemem.", "Al şu parayı – bir daha vermem.", "Al şu parayı - bir daha istemem.",
                 "Al şu parayı da bir daha istemem.", "Al bu parayı yok sayma.", "Al, kesemde para yok sanma, al.",
                 "Tut şu keseyi de bir daha gelmiyorsun.")
-    STAYS = ("İşte bu yüzden sana para vermem.", "İşte o yüzden kesemi açmam.", "Tut dilini.")
+    STAYS = ("Tut dilini.", "Al başını git.")
 
     def test_a_lost_ask_drops_each_handing(self):
         for line in self.HANDINGS:
@@ -170,6 +170,24 @@ class ReviewSafeDirectionOpener(LostRoll):
                 self.setUp()
                 self.assertEqual(self.reply(f"Hmm. {line}")["spoken"], f"Hmm. {line}")
                 self.assertEqual(town_knowledge.without_unbacked_money(line), line)
+
+
+class ReviewNoExplanationException(LostRoll):
+    """Third review (YÜKSEK): 'İşte bu/o yüzden …' naming money or the purse goes too; it was a leak."""
+
+    COIN = ("İşte bu yüzden al şu parayı.", "İşte o yüzden paran burada, al.", "İşte bu yüzden altınlar senin.",
+            "İşte bu yüzden sana para vermem.")
+
+    def test_a_lost_ask_drops_them(self):
+        for line in (*self.COIN, "İşte o yüzden kesemi açmam."):
+            with self.subTest(line=line):
+                self.setUp()
+                self.assertEqual(self.reply(f"Hmm. {line} Yolun açık olsun.")["spoken"], "Hmm. Yolun açık olsun.")
+
+    def test_the_no_move_gate_drops_the_coin_ones(self):
+        for line in self.COIN:
+            with self.subTest(line=line):
+                self.assertEqual(town_knowledge.without_unbacked_money(line), "")
 
 
 class ReviewAnotherMetalWithoutAFigure(LostRoll):
