@@ -20079,13 +20079,18 @@ def _coin_not_parcel(session, world, person, item_id, player_input):
     it names no parcel this person could take: no word of it meets the parcel's head noun ('duyurusu' of 'yol kapanışı
     duyurusu', never 'yol') or a parcel word ('mektup', 'paket', 'emanet'; 'bunu' only points)."""
     import front_proposal
-    import world_threads
-    from adventure import dialogue_jobs
     if (money_owner.current(session) is None and not front_proposal.names_coin(player_input)
             and not front_proposal.says_money(player_input)):
         return False
     if item_id is not None and not item_id.startswith("parcel:"):
         return False  # a plain thing from the bag goes only if the line means it (_line_gives)
+    return _names_no_parcel(world, person, item_id, player_input)
+
+
+def _names_no_parcel(world, person, item_id, player_input):
+    """No word of the line meets a parcel this person could take (see `_coin_not_parcel`)."""
+    import world_threads
+    from adventure import dialogue_jobs
     threads = ([world_threads.parcel_thread(world, item_id)] if item_id is not None
                else [job for job in [*world_threads.deliveries_to(world, person),
                                      *world_threads.late_parcels(world, person)]
@@ -20112,7 +20117,12 @@ def _front_hand_over(route, player_input):
     item_id = route["item"]
     if _coin_not_parcel(session, world, person, item_id, player_input):
         return heard  # D-239: a tip or coin that names no parcel is money for its card, never the job's delivery
-    asked = "?" in player_input or world_threads.says_later(player_input)
+    if world_threads.refuses_hand_over(player_input, lambda clause: not _names_no_parcel(world, person, item_id, clause)):
+        # D-276: 'takımı getirmedim', 'paketi vermiyorum': said, not done. Only a 'not' on the coin alone beside a plain
+        # hand-over ('takımı getirdim, bahşiş vermiyorum') refuses no parcel. Nothing changes hands; the person hears so.
+        refusals.note(session, "hand_over_refused", npc_id=person["id"])
+        return heard
+    asked ="?" in player_input or world_threads.says_later(player_input)
     due = dialogue_jobs.due_parcel(world, person) if item_id is None and not asked else None
     if item_id is None and not asked and due is None and any(
             dialogue_jobs.holds_parcel(world, job) for job in world_threads.deliveries_to(world, person)):
