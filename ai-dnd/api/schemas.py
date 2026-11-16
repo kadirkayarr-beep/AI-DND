@@ -745,6 +745,8 @@ class SpeciesTraitActionRequest(BaseModel):
         "second_wind",
         "lay_on_hands",
         "divine_sense",
+        "choose_draconic_ancestry",
+        "breath_weapon",
     ]
     form: Literal[
         "heavenly_wings", "inner_radiance", "necrotic_shroud"
@@ -753,6 +755,11 @@ class SpeciesTraitActionRequest(BaseModel):
     armed: bool | None = None
     healing_amount: int | None = Field(default=None, gt=0, strict=True)
     remove_poisoned: StrictBool | None = None
+    # D-233: Dragonborn. Absent fields stay out of the receipt hash, so a retry stored before them still replays.
+    draconic_ancestry: Literal["black", "blue", "brass", "bronze", "copper", "gold", "green", "red", "silver",
+                               "white"] | None = None
+    shape: Literal["cone", "line"] | None = None
+    target_id: str | None = Field(default=None, min_length=1, max_length=200)
     action_id: UUID
 
     @field_validator("action_id")
@@ -772,6 +779,10 @@ class SpeciesTraitActionRequest(BaseModel):
             raise ValueError("The armed flag is only valid for Giant Ancestry.")
         if (self.action == "lay_on_hands") != (self.healing_amount is not None or self.remove_poisoned is True) or self.remove_poisoned is False:
             raise ValueError("Lay On Hands needs Hit Points to restore, removing Poisoned, or both, and nothing else takes them.")
+        if (self.action == "choose_draconic_ancestry") != (self.draconic_ancestry is not None):
+            raise ValueError("Choose one Draconic Ancestry.")
+        if self.action != "breath_weapon" and (self.shape is not None or self.target_id is not None):
+            raise ValueError("A shape and a target are only valid for Breath Weapon.")
         return self
 
 

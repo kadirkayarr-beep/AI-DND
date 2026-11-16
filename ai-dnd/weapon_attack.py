@@ -755,6 +755,10 @@ def mitigate(session, target, damage_type, amount, *, graze=False):
     resistances.update(barbarian_rage.resistance_types(session, target))
     if target == "player" and defender.get("species") == "Aasimar":
         resistances.update({"radiant", "necrotic"})
+    if target == "player":
+        import dragonborn_breath
+        if dragonborn_breath.resistance(defender) is not None:
+            resistances.add(dragonborn_breath.resistance(defender))  # Draconic Ancestry (PHB 2024 p.187)
     resistance = damage_type in resistances
     vulnerability = damage_type in defender.get("vulnerabilities", [])
     immunity = damage_type in defender.get("immunities", [])

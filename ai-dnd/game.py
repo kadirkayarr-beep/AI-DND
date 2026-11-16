@@ -2264,6 +2264,9 @@ def _player_state_for_save():
         saved["hit_dice"] = dict(character["hit_dice"])
     if "fighter_uses" in character:  # additive: spent Second Wind and Action Surge uses
         saved["fighter_uses"] = dict(character["fighter_uses"])
+    for field in ("draconic_ancestry", "breath_weapon_spent"):  # additive (D-233): absent in older saves
+        if character.get(field) is not None:
+            saved[field] = character[field]
     if "paladin_uses" in character:  # additive: spent Paladin pools and timed effects
         saved["paladin_uses"] = copy.deepcopy(character["paladin_uses"])
     if "uncanny_dodge_off" in character:  # additive: the player turned Uncanny Dodge off
@@ -2631,6 +2634,8 @@ def _validate_save_payload(payload):
         or player["temporary_hit_points"] < 0
     ):
         raise ValueError("Kayıt geçici can puanı geçersiz.")
+    import dragonborn_breath
+    dragonborn_breath.validate_saved({**player, "species": species})
     giant_ancestry = player.get("giant_ancestry")
     if giant_ancestry is not None and (
         species != "Goliath" or giant_ancestry not in GIANT_ANCESTRY_IDS
@@ -3043,6 +3048,10 @@ def load_game(path):
         character.pop("fighter_uses", None)
         if "fighter_uses" in player:
             character["fighter_uses"] = dict(player["fighter_uses"])
+        for field in ("draconic_ancestry", "breath_weapon_spent"):  # D-233: an older save chose and spent nothing
+            character.pop(field, None)
+            if field in player:
+                character[field] = player[field]
         character.pop("paladin_uses", None)
         if "paladin_uses" in player:
             character["paladin_uses"] = copy.deepcopy(player["paladin_uses"])
@@ -4882,7 +4891,8 @@ def _finish_species_player_turn():
     return effects
 
 
-def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None):
+def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None,
+                                 draconic_ancestry=None, shape=None, target_id=None):
     require_player_can_act()
     if action in {"short_rest", "long_rest"}:
         import barbarian_rage
@@ -5131,6 +5141,14 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             "uses_remaining": state["giant_ancestry_uses_remaining"],
         }
 
+    elif action == "choose_draconic_ancestry":
+        import dragonborn_breath
+        message, effects = dragonborn_breath.choose_ancestry(_session(), draconic_ancestry)
+
+    elif action == "breath_weapon":
+        import dragonborn_breath
+        message, effects = dragonborn_breath.breathe(_session(), shape, target_id)
+
     elif action == "short_rest":
         if combat["active"]:
             raise ValueError("Çatışma sırasında dinlenemezsin.")
@@ -5175,6 +5193,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         long_rest_healing = heal_player(character["max_hp"] - character["current_hp"])
         import hit_dice
         hit_dice.restore_all(character)  # PHB 2024 Long Rest: ALL spent Hit Point Dice return
+        import dragonborn_breath
+        dragonborn_breath.long_rest(character)  # Breath Weapon: every use returns (D-233)
         _session().world_state["player_combat_status"] = "active"
         character["species_trait_state"] = _new_persisted_species_trait_state(
             species, character.get("proficiency_bonus", 2)
@@ -19224,7 +19244,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             or getattr(session, "_thread_gate_done", False)):
         return None
     fighting = world.get("combat", {}).get("active")
+    import dragonborn_breath
     if fighting and (combat_action is not None or combat_lifecycle.is_attack_decision(session, player_input)
+                     or dragonborn_breath.named(session, str(player_input))  # D-233: the breath is the engine's
                      or combat_lifecycle.is_flight(session, player_input)
                      or combat_lifecycle.is_standing_down(session, player_input)):
         return None  # a fight's own words need no reading

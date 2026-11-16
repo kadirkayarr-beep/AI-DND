@@ -715,6 +715,10 @@ def serialize_session_state(
     )
     character["species"] = player.get("species", player.get("race"))
     character["giant_ancestry"] = player.get("giant_ancestry")
+    import dragonborn_breath  # D-233: the chosen dragon and the Breath Weapon uses left (Dragonborn only)
+    character["draconic_ancestry"] = player.get("draconic_ancestry")
+    character["breath_weapon_uses_remaining"] = (
+        dragonborn_breath.uses_left(player) if dragonborn_breath.is_dragonborn(player) else None)
     trait_state = player.get("species_trait_state")
     character["species_trait_state"] = copy.deepcopy(
         trait_state

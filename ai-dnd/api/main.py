@@ -2369,7 +2369,8 @@ def create_app(
         record = get_record(session_id)
         action_id = str(request.action_id)
         request_hash = hashlib.sha256(json.dumps(
-            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"})},
+            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"} | {
+                field for field in ("draconic_ancestry", "shape", "target_id") if getattr(request, field) is None})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
@@ -2429,6 +2430,9 @@ def create_app(
                     armed=request.armed,
                     **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
                        if request.action == "lay_on_hands" else {}),
+                    **({"draconic_ancestry": request.draconic_ancestry} if request.action == "choose_draconic_ancestry"
+                       else {"shape": request.shape, "target_id": request.target_id} if request.action == "breath_weapon"
+                       else {}),
                 )
                 # D-105: a combat species action can end the turn and its damage (Inner Radiance) can drop a quest
                 # target; like the play turn, the quest owner reads this command's own before/after world. The

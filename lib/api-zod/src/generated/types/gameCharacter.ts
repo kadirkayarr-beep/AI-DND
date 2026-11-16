@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { FighterState } from './fighterState';
+import type { GameCharacterDraconicAncestry } from './gameCharacterDraconicAncestry';
 import type { GameCharacterGiantAncestry } from './gameCharacterGiantAncestry';
 import type { GameCharacterSpellSlotsRemaining } from './gameCharacterSpellSlotsRemaining';
 import type { MonkState } from './monkState';
@@ -27,6 +28,17 @@ export interface GameCharacter {
   species?: string;
   /** @nullable */
   giant_ancestry?: GameCharacterGiantAncestry;
+  /**
+     * Dragonborn's chosen dragon; null before the choice and for other species.
+     * @nullable
+     */
+  draconic_ancestry?: GameCharacterDraconicAncestry;
+  /**
+     * Dragonborn Breath Weapon uses left until a Long Rest; null for other species.
+     * @minimum 0
+     * @nullable
+     */
+  breath_weapon_uses_remaining?: number | null;
   species_trait_state?: SpeciesTraitState | null;
   /** @minimum 0 */
   speed_ft?: number;
