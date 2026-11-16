@@ -214,6 +214,55 @@ class QuestDelivery(JourneyCase):
         self.assertEqual(self.world["inventory"], before["inventory"])
         self.assertIn((self.tuna, "olmadı: hangi eşyayı verdiğin belli değil"), self.notes())
 
+    # --- D-239: a tip or a coin line with a parcel due is money, never the delivery ----------------------------------
+    def assert_not_delivered(self):
+        self.assertEqual((self.bag(), self.open_quests()), ({"İade takımı": 1}, [self.quest_id]))
+        self.assertEqual((self.thread()["status"], self.thread().get("paid_cp"), len(self.paid_rows())),
+                         ("accepted", 0, 0))
+        self.assertEqual(self.rows("delivered"), [])
+
+    async def test_d239_a_tip_line_with_no_parcel_named_delivers_nothing(self):
+        # Zack seq 36: "bahşiş veriyorum" was read as an idless hand-over; the one parcel due went, paid and closed
+        await self.accept(); await self.at_recipient()
+        await self.say("bahşiş veriyorum",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "deal": "tip"})
+        self.assert_not_delivered()
+        self.assertEqual(self.purse(), 100)
+
+    async def test_d239_coin_held_out_with_no_parcel_named_delivers_nothing(self):
+        await self.accept(); await self.at_recipient()
+        await self.say("Tuna, sana 5 bakır bahşiş veriyorum",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "deal": "tip",
+                              "coin_cp": 5})
+        self.assert_not_delivered()
+        self.assertEqual(self.purse(), 100)                              # no job pay; the tip waits for its card
+        live = self.observed()
+        self.assertEqual(self.reloaded_observed(), live)
+        await self.undo()
+        self.assertEqual((self.purse(), self.bag(), self.open_quests()), (100, {"İade takımı": 1}, [self.quest_id]))
+        self.assertEqual(self.reloaded_observed(), self.observed())
+
+    async def test_d239_a_tip_read_with_the_parcel_id_delivers_nothing(self):
+        # the guide asks for the parcel's id when the bag holds one; a tip line that names no parcel still hands none
+        await self.accept(); await self.at_recipient()
+        await self.say("bahşiş veriyorum",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": self.parcel_id, "deal": "tip"})
+        self.assert_not_delivered()
+        self.assertEqual(self.purse(), 100)
+
+    async def test_d239_the_parcel_note_tells_the_reader_a_tip_is_no_hand_over(self):
+        # the note asked for hand_over on 'veriyorum' alone, so 'bahşiş veriyorum' read as the parcel going
+        note = front_proposal._at_hand({"offers": [], "jobs": [], "bag": [{"id": "parcel:q1", "name": "Mektup"}]})
+        self.assertIn("Yalnız para ya da bahşiş veriyorsa bu teslim değildir", note)
+
+    async def test_d239_a_coin_line_that_names_the_parcel_still_delivers(self):
+        await self.accept(); await self.at_recipient()
+        await self.say("Tuna, iade takımını getirdim, bir de 2 bakır bahşiş veriyorum",
+                       front={"kind": "hand_over", "person_id": self.tuna, "item_id": "none", "deal": "tip",
+                              "coin_cp": 2})
+        self.assertEqual((self.bag(), self.open_quests(), self.thread()["status"]), ({}, [], "done"))
+        self.assertEqual((self.thread()["paid_cp"], len(self.paid_rows())), (12, 1))
+
     async def test_a_failed_hand_over_proposal_never_falls_to_the_word_reader(self):
         await self.accept(); await self.at_recipient()
         self.add_second_accepted_errand(item_noun="mühürlü mektup", recipient="potter")  # its parcel is not Tuna's

@@ -201,7 +201,8 @@ def _at_hand(listed: Mapping[str, Any]) -> str:
                      "ne kadar süreceğini söylese de kind work.")
     if any(str(row["id"]).startswith("parcel:") for row in listed["bag"]):
         notes.append("Oyuncunun çantasında teslim edeceği bir şey var: 'al', 'buyur', 'işte', 'getirdim', 'veriyorum' "
-                     "diyorsa kind hand_over ve item_id o parcel.")
+                     "diyorsa kind hand_over ve item_id o parcel. Yalnız para ya da bahşiş veriyorsa bu teslim "
+                     "değildir: o şeyi anmıyorsa item_id none.")  # D-239
     return " ".join(notes)
 
 

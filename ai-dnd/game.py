@@ -19980,6 +19980,27 @@ def _front_wield(route, player_input):
     refusals.note(session, "nothing_to_draw", have=have)
 
 
+def _coin_not_parcel(session, world, person, item_id, player_input):
+    """D-239: the line holds out coin or the reading gave it a money deal (a tip, a gift), and it names no parcel this
+    person could take: no word of it is the parcel's own name or a parcel word ('mektup', 'paket'; 'bunu' points)."""
+    import front_proposal
+    import world_threads
+    from adventure import dialogue_jobs
+    if money_owner.current(session) is None and not front_proposal.names_coin(player_input):
+        return False
+    if item_id is not None and not item_id.startswith("parcel:"):
+        return False  # a plain thing from the bag goes only if the line means it (_line_gives)
+    threads = ([world_threads.parcel_thread(world, item_id)] if item_id is not None
+               else [job for job in [*world_threads.deliveries_to(world, person),
+                                     *world_threads.late_parcels(world, person)]
+                     if dialogue_jobs.holds_parcel(world, job)])
+    table = world_threads.answer_table()
+    parcel_words = set(table["item_words"]) - set(table["pointing"])
+    words = living_world.normalize_text(living_world._text_outside_quotes(player_input)).split()
+    return not any(word in parcel_words or any(word.startswith(stem) for stem in world_threads._item_stems(job))
+                   for job in threads if job is not None for word in words)
+
+
 def _front_hand_over(route, player_input):
     """The model read a hand-over and named a listed thing. Python moves it; failing that the person hears the line."""
     import town_knowledge
@@ -19992,6 +20013,8 @@ def _front_hand_over(route, player_input):
         return None
     heard = {"decision": None, "npc_id": person["id"]}
     item_id = route["item"]
+    if _coin_not_parcel(session, world, person, item_id, player_input):
+        return heard  # D-239: a tip or coin that names no parcel is money for its card, never the job's delivery
     asked = "?" in player_input or world_threads.says_later(player_input)
     due = dialogue_jobs.due_parcel(world, person) if item_id is None and not asked else None
     if item_id is None and not asked and due is None and any(
