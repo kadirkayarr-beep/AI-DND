@@ -72,6 +72,8 @@ THREAT_BANDS = frozenset({"low", "moderate", "high"})
 
 _TEMPLATE_ID = re.compile(r"^[A-Z][A-Z0-9_]{0,39}$")
 _MARKER = re.compile(r"^[A-Za-z0-9:._-]{1,120}$")
+# D-010: the id must fit the reward marker "quest:<id>:<outcome>" (120 chars, longest outcome "partial_success")
+_QUEST_ID = re.compile(r"^[A-Za-z0-9:._-]{1,98}$")
 
 
 def fail():
@@ -193,8 +195,7 @@ def _identity(quest, quest_ids):
     quest_id = quest.get("quest_id")
     if (
         not isinstance(quest_id, str)
-        or not quest_id.strip()
-        or len(quest_id) > 120
+        or _QUEST_ID.fullmatch(quest_id) is None
         or quest_id in quest_ids
     ):
         fail()
