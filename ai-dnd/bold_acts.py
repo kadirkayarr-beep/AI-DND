@@ -586,12 +586,37 @@ def _named_gear(folded: str) -> str | None:
                  if re.search(_gear_pattern(key), folded)), None)
 
 
-def _shown(session, thing: str) -> bool:
-    """D-229: whether the scene's narration (the last three the player read) showed the thing."""
+def _shown(session, thing: str) -> str | None:
+    """D-229: the latest of the scene's narrations (the last three the player read) that showed the thing, or None."""
     import weapon_catalog
     pattern = _gear_pattern(weapon_catalog.fold(thing))
     told = list(getattr(session, "recent_dm_narrations", None) or [])[-3:]
-    return any(isinstance(text, str) and re.search(pattern, weapon_catalog.fold(text)) for text in told)
+    return next((text for text in reversed(told)
+                 if isinstance(text, str) and re.search(pattern, weapon_catalog.fold(text))), None)
+
+
+# D-229 review: the showings (place, weapon, the narration that showed it) already turned into a real item; one
+# showing gives one item, whoever is robbed of it
+SHOWN_GEAR_MADE = "shown_gear_made"
+
+
+def _showing(world: dict[str, Any], weapon_id: str, told: str) -> str:
+    import hashlib
+    return f"{world.get('location')}|{weapon_id}|{hashlib.sha256(told.encode('utf-8')).hexdigest()[:16]}"
+
+
+def _showings_made(world: dict[str, Any]) -> list[str]:
+    """The written marks, read safely: anything but a list of strings counts as none."""
+    made = world.get(SHOWN_GEAR_MADE)
+    return [key for key in made if isinstance(key, str)] if isinstance(made, list) else []
+
+
+def _holds_no_shown_gear(world: dict[str, Any], person: dict[str, Any]) -> bool:
+    """A shopkeeper's things are the shop's stock and a stat-block creature carries none (D-231)."""
+    return (person.get("role") == "Shopkeeper" or bool(person.get("shop_id")) or "statblock" in person
+            or "monster_stat_block" in person
+            or any(isinstance(shop, dict) and shop.get("shopkeeper_id") == person.get("id")
+                   for shop in world.get("shops") or []))
 
 
 def _carried(session, person: dict[str, Any] | None, thing: str) -> Any:
@@ -730,16 +755,18 @@ def _steal(session, text: str) -> dict[str, Any]:
     import equipment_economy
     from weapon_catalog import lookup
     made = None  # the index of a shown weapon written into the victim's inventory this turn
+    showing = None  # the showing this theft uses up
     weapon = lookup(thing)
-    if (victim is not None and weapon is not None and _shown(session, thing)
-            and victim.get("role") != "Shopkeeper" and not victim.get("shop_id")):
-        # D-229 (K5 b): a catalog weapon the narration showed is a real thing of the person in the scene; once per
-        # person and weapon, since the same narration stays shown for turns; a shopkeeper's things are the stock
+    told = _shown(session, thing) if victim is not None and weapon is not None else None
+    if told and not _holds_no_shown_gear(world, victim):
+        # D-229 (K5 b): a catalog weapon the narration showed is a real thing of the person in the scene; one showing
+        # gives one item, since the same narration stays shown for turns and names no one person
         equipment_economy.give_person_gear(world, victim)  # what they carry anyway is written first, never lost
-        if _carried(session, victim, thing) is None and weapon["weapon_id"] not in victim.get("shown_gear", []):
-            made = len(victim.setdefault("inventory", []))
-            victim["inventory"].append(thing)  # given its identity by materialize below
-            victim.setdefault("shown_gear", []).append(weapon["weapon_id"])
+        if _showing(world, weapon["weapon_id"], told) not in _showings_made(world):
+            showing = _showing(world, weapon["weapon_id"], told)
+            if _carried(session, victim, thing) is None:
+                made = len(victim.setdefault("inventory", []))
+                victim["inventory"].append(thing)  # given its identity by materialize below
     if _carried(session, victim, thing) is not None:
         try:
             equipment_economy.materialize(world)
@@ -748,8 +775,9 @@ def _steal(session, text: str) -> dict[str, Any]:
         except equipment_economy.EquipmentError:  # worn armour, an unreachable or unresolved hand: not to be lifted
             if made is not None:  # the refused try made nothing
                 del victim["inventory"][made]
-                victim["shown_gear"].remove(weapon["weapon_id"])
             return _reply(session, _empty_line(session, thing), "theft", "empty", check, [])
+        if showing is not None:  # taken, made or carried: this showing gives nothing more
+            world[SHOWN_GEAR_MADE] = [*_showings_made(world), showing]
         if isinstance(item, dict) and isinstance(victim.get("item_consents"), dict):
             victim["item_consents"].pop(item.get("item_id"), None)  # a stolen thing carries no leave to give it
         remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",

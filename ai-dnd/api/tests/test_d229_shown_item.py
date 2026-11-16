@@ -80,17 +80,17 @@ class AShownItemIsMadeOnce(unittest.TestCase):
         self.world = self.session.world_state
         self.session.recent_dm_narrations = ["kavşim dik duruyor; arkasındaki askıda bir mızrak asılı."]
 
-    def person(self, role):
-        npc = self.session.create_npc_from_ai({"name": "Kavşim", "role": role, "location": self.world["location"]})
+    def person(self, role, name="Kavşim"):
+        npc = self.session.create_npc_from_ai({"name": name, "role": role, "location": self.world["location"]})
         npc["inventory"] = []
         return npc
 
-    def steal(self, victim):
+    def steal(self, victim, line=None):
         from unittest.mock import patch
         won = {"result": "BAŞARILI", "skill": "Sleight of Hand"}
         with patch.object(bold_acts, "_check", return_value=won), \
                 patch.object(bold_acts, "_hand_to_whom", return_value=victim):
-            return bold_acts._steal(self.session, self.LINE)
+            return bold_acts._steal(self.session, line or self.LINE)
 
     def spears(self, items):
         return [item for item in items if (item.get("name") if isinstance(item, dict) else item) == "Mızrak"]
@@ -124,6 +124,58 @@ class AShownItemIsMadeOnce(unittest.TestCase):
         self.steal(keeper)
         self.assertEqual(self.spears(keeper["inventory"]), [])
         self.assertEqual(self.spears(self.world["inventory"]), [])
+
+    def test_one_showing_makes_one_spear_whoever_is_robbed(self):
+        # re-review 2026-11-16: the mark was per person, so four guards gave four spears from one narration
+        for name in ("Kavşim", "Arven", "Tolun", "Melis"):
+            self.steal(self.person("Muhafız", name))
+        self.assertEqual(len(self.spears(self.world["inventory"])), 1)
+
+    def test_a_carried_shown_weapon_taken_once_makes_no_second(self):
+        # re-review: the guard's own spear went first, unmarked; the next good roll made a new one
+        guard = self.person("Muhafız")
+        guard["inventory"] = [{"item_id": "gear_kavsim", "name": "Mızrak", "weapon_id": "spear"}]
+        for _ in range(3):
+            self.steal(guard)
+        self.assertEqual(len(self.spears(self.world["inventory"])), 1)
+        self.assertEqual(self.spears(guard["inventory"]), [])
+
+    def test_a_stat_block_foe_gets_no_made_spear(self):
+        for key, name in (("statblock", "Yaban"), ("monster_stat_block", "Haydut")):
+            with self.subTest(key=key):
+                foe = self.person("Muhafız", name)
+                foe[key] = {"x": 1}
+                self.steal(foe)
+                self.assertEqual(self.spears(foe["inventory"]), [])
+                self.assertEqual(self.spears(self.world["inventory"]), [])
+
+    def test_the_keeper_of_a_shop_gets_no_made_spear_whatever_the_role(self):
+        keeper = self.person("Muhafız")
+        self.world.setdefault("shops", []).append({"id": "shop_x", "shopkeeper_id": keeper["id"]})
+        self.steal(keeper)
+        self.assertEqual(self.spears(keeper["inventory"]), [])
+        self.assertEqual(self.spears(self.world["inventory"]), [])
+
+    def test_a_broken_mark_never_crashes_and_a_string_never_counts(self):
+        for broken in (None, 5, {"x": 1}, "spear", ["junk", 3, None]):
+            with self.subTest(broken=broken):
+                self.setUp()
+                self.world[bold_acts.SHOWN_GEAR_MADE] = broken
+                self.steal(self.person("Muhafız"))
+                self.assertEqual(len(self.spears(self.world["inventory"])), 1)
+        self.setUp()
+        self.steal(self.person("Muhafız"))
+        made = self.world[bold_acts.SHOWN_GEAR_MADE]
+        self.setUp()
+        self.world[bold_acts.SHOWN_GEAR_MADE] = made[0]  # the right key, but a string, not a list
+        self.steal(self.person("Muhafız"))
+        self.assertEqual(len(self.spears(self.world["inventory"])), 1)
+
+    def test_a_new_showing_may_make_another(self):
+        self.steal(self.person("Muhafız"))
+        self.session.recent_dm_narrations.append("arven'in sırtında da bir mızrak var.")
+        self.steal(self.person("Muhafız", "Arven"))
+        self.assertEqual(len(self.spears(self.world["inventory"])), 2)
 
     def test_a_refused_move_takes_the_made_spear_back(self):
         import equipment_economy
