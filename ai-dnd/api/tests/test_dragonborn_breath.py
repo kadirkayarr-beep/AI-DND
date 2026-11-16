@@ -13,6 +13,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import action_economy
+import dragonborn_breath
 import game
 from api.tests.test_combat_lifecycle import ready
 from api.tests.test_species_traits import make_session
@@ -131,6 +132,25 @@ class BreathWeaponTests(unittest.TestCase):
         self.assertNotIn("karşılığı yok", result["narration"])
         self.assertEqual(npc["current_hp"], 35, result["narration"])
         self.assertEqual(session.character["breath_weapon_spent"], 1)
+
+    def test_out_of_breath_attacking_is_a_blow_not_the_breath(self):
+        # Review (ORTA): "nefes nefese saldırıyorum" is a winded attack; "sal" must never match "saldır".
+        session, npc = dragonborn()
+        token = game._ACTIVE_SESSION.set(session)
+        try:
+            self.assertFalse(dragonborn_breath.named(session, "nefes nefese saldırıyorum"))
+            for line in ("nefes salıyorum", "nefesimi salıveriyorum", "ejderha nefesimi püskürtüyorum",
+                         "nefes silahımı kullanıyorum"):
+                with self.subTest(line=line):
+                    self.assertTrue(dragonborn_breath.named(session, line))
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+        blows = lambda: [row for row in session.world_state.get("attack_results", []) if row.get("actor") == "player"]
+        self.assertEqual(blows(), [])
+        with patch.object(session, "roll_damage", return_value=3), patch.object(session, "roll_d20", return_value=15):
+            session.run_player_turn("nefes nefese saldırıyorum", target_id=npc["id"], action_id=str(uuid4()))
+        self.assertNotIn("breath_weapon_spent", session.character, "no breath use was spent")
+        self.assertEqual(len(blows()), 1, "the line was one normal attack by the hero (the foes' blows follow it)")
 
     def test_the_fight_reading_leaves_the_breath_to_the_engine(self):
         # Kadir's playtest (seq 34/35): the model read the line as a blow and the engine asked which move it was.
