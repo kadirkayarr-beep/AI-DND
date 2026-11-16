@@ -8653,8 +8653,8 @@ _SPEECH_ANSWER_RULES = (
     "bir yeri ya da olan biteni anlatman istenirse iki ile dört cümleyle, bildiğin yerlerden ve duyduklarından somut "
     "ayrıntı ver. Aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
     "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan. "
-    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler "
-    "(Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet) kullanılmaz; yerine “Selam”, “Tymora yar olsun”, "
+    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz. "
+    "Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet denmez; yerine “Selam”, “Tymora yar olsun”, "
     "“Tanrılar korusun” gibi sözler söylenir.\n"
 )
 
@@ -15745,8 +15745,7 @@ NARRATOR_VOICE = (
     "(Kapıyı itiyorsun; menteşe gıcırdıyor). -dı, -mıştı, -yordu yazma; yalnız bu turdan önce "
     "olan biten için kullanılır. Anlatıya oyuncu kelimesini yazma, ağzından konuşma; adına söz, his, "
     "karar, eylem uydurma. Atmosfer girişlerini tekrarlama. NPC hitabı serbesttir. "
-    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler "
-    "(Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet) kullanılmaz."
+    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz."
 )
 
 system_prompt = """
