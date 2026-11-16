@@ -1876,10 +1876,18 @@ def prepare_from_turn(session: Any, proposal: EconomicProposal) -> PrepareResult
     return result
 
 
+def npc_gift_cap(world: dict[str, Any], npc_id: str) -> int:
+    """D-166: the most this person hands the player, from their live purse and their attitude to the player."""
+    import influence
+    held = economic_facts(EconomicState(world=_settled(world), character=None)).balances.get(str(npc_id))
+    return influence.gift_cap_cp(held, influence.attitude(world, npc_id))
+
+
 def npc_gift(state: EconomicState, *, npc_id: str, amount_cp: int) -> EconomicResolution:
     """An NPC hands the player coin from their own purse (C5): no card, since the player pays nothing.
 
-    The NPC must be here and hold the amount; otherwise nothing moves. Applied once by the one owner.
+    The NPC must be here and hold the amount, and the amount may not pass the engine's cap (D-166, `npc_gift_cap`);
+    otherwise nothing moves. Applied once by the one owner.
     """
     world = state.world
     settled = _settled(world)
@@ -1899,6 +1907,9 @@ def npc_gift(state: EconomicState, *, npc_id: str, amount_cp: int) -> EconomicRe
     held = facts.balances.get(str(npc_id))
     if held is None or held < amount_cp:
         return dataclasses.replace(_refused(blank, "npc_purse_short"), public_summary="")
+    import influence
+    if amount_cp > influence.gift_cap_cp(held, influence.attitude(settled, npc_id)):
+        return dataclasses.replace(_refused(blank, "over_gift_cap"), public_summary="")
     mine = facts.balances.get("player", 0)
     # The id is drawn from a copy of the counter; the live counter moves only once the gift is applied, so a
     # refused or failed write leaves the live world exactly as it was.

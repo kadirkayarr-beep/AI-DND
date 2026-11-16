@@ -371,11 +371,14 @@ class Repair(Table):
                                 commitment={"kind": "give", "thread_id": "", "amount_cp": 5})
         self.assertEqual(self.wallet(), money)
         self.assertNotIn("beş bakır", reply["narration"])
-        self.world.setdefault("currency", {})[self.npc["id"]] = 7
-        reply = await self.line("biraz para versene yahu", "Al sana beş bakır, git başımdan.", mode="say",
-                                commitment={"kind": "give", "thread_id": "", "amount_cp": 5})
+        # D-166 (Kadir kararı 2026-11-15): the purse must hold more than the sum (the engine's cap is a share of it), and
+        # the ask takes a won Persuasion roll; the sum the player names, under the cap, is what moves.
+        self.world.setdefault("currency", {})[self.npc["id"]] = 100
+        with patch("game.roll_d20", return_value=20):
+            reply = await self.line("beş bakır versene yahu", "Al sana beş bakır, git başımdan.", mode="say",
+                                    commitment={"kind": "give", "thread_id": "", "amount_cp": 5})
         self.assertEqual(self.wallet() - money, 5)
-        self.assertEqual(self.world["currency"][self.npc["id"]], 2)
+        self.assertEqual(self.world["currency"][self.npc["id"]], 95)
         self.assertIn("beş bakır", reply["narration"])
 
 
