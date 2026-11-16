@@ -87,6 +87,20 @@ class TheEngineRollsTheReadingsCheck(unittest.TestCase):
         self.assertEqual(game.deterministic_check_for_action(
             "muhafızın yalan söyleyip söylemediğini anlamaya çalışıyorum")["skill"], "Insight")
 
+    def test_spotting_a_lie_is_insight_without_a_reading_telling_one_stays_deception(self):
+        self.session._front_check = ""  # D-175: the reading is off, the words alone decide
+        for line, skill in (
+            ("muhafızın yalan söyleyip söylemediğini anlamaya çalışıyorum", "Insight"),
+            ("adamın yalan söyleyip söylemediğine bakıyorum", "Insight"),
+            ("yalan mı söylüyor anlamaya çalışıyorum", "Insight"),
+            ("yalan söylüyor mu diye yüzüne bakıyorum", "Insight"),
+            ("muhafıza yalan söyleyip içeri giriyorum", "Deception"),
+            ("Gromm'a yalan söyleyerek kendimi nöbetçi olarak tanıtıyorum.", "Deception"),
+        ):
+            with self.subTest(line=line):
+                self.assertEqual(game.deterministic_check_for_action(line),
+                                 {"action_type": "check", "skill": skill, "difficulty": "medium"})
+
     def test_a_named_skill_and_the_words_still_decide_without_a_reading(self):
         self.session._front_check = ""
         self.assertEqual(game.deterministic_check_for_action("muhafıza dik dik bakıp sesimi alçaltıyorum"), None)
@@ -198,6 +212,34 @@ class TheReadingsStealDeed(unittest.TestCase):
         self.assertFalse(bold_acts._steals(self.session(kind="speak_to"), "kesesini çalıyorum", "steal"))
         self.assertFalse(bold_acts._steals(self.session(), "kesesini alsam mı?", "steal"))
         self.assertFalse(bold_acts._steals(self.session(), "kesesini çalıyorum", "burn"))
+
+
+class RealTheftsStillCount(unittest.TestCase):
+    """Guard (D-177 tried and reverted): first-person thefts with a participle, a colon or a stray "alan/kapan"
+    word in the line must stay thefts. A later D-177 fix must keep every one of these true."""
+
+    LINES = (
+        "Kaçmaya çalışan adamın kesesini çalıyorum", "Uyumaya çalışan muhafızın anahtarını aşırıyorum",
+        "Yardım etmek isteyen adamın kesesini çalıyorum", "Kadının pazardan aldığı ekmeği aşırıyorum",
+        "Hırsızın çaldığı keseyi geri çalıyorum", "Kapıyı çalan adamın kesesini aşırıyorum",
+        "Ekmeği kapan çocuğun kesesini aşırıyorum", "Sessizce yaklaşıyorum: kesesini çalıyorum",
+        "Planım şu: kesesini çalıyorum",
+    )
+
+    def session(self):
+        return SimpleNamespace(_normalize_turkish_typos=game._normalize_turkish_typos, _front_check="",
+                               _front_kind="attempt")
+
+    def test_first_person_thefts_are_thefts(self):
+        for line in self.LINES:
+            with self.subTest(line=line):
+                self.assertTrue(bold_acts.is_theft(self.session(), line))
+
+    def test_first_person_thefts_are_steals_without_a_reading(self):
+        for line in self.LINES:
+            with self.subTest(line=line):
+                self.assertTrue(bold_acts._steals(self.session(), line, None))
+
 
 if __name__ == "__main__":
     unittest.main()
