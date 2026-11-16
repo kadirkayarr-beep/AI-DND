@@ -1547,8 +1547,11 @@ def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=Non
             if not run.game.commit_location_change(parent):
                 return _receipt(verb, "blocked", place, reason="cannot_leave", text="Bulunduğun yerden çıkamıyorsun.")
             _carry_escorts(run, parent)  # whoever walks along is in the street with the player, whatever the door says
-            if not all(outdoors):  # from the caravan stop on down the road, nobody walks back through the streets
-                prefix += f"Dışarı, {run.location(parent).get('name')} sokaklarına çıkıyorsun. "
+            city = run.location(parent).get('name')
+            if not outdoors[0]:
+                prefix += f"Dışarı, {city} sokaklarına çıkıyorsun. "
+            elif not outdoors[1]:  # from the caravan stop on down the road, the way back is through the gate
+                prefix += f"Kent kapısından geçip yeniden {city} sokaklarına giriyorsun. "
     if door is not None:
         run.near(door["id"])
         text = f"{prefix}{record.get('name')} önüne geliyorsun.{with_text} {_door_state_text(door)}"
@@ -3123,6 +3126,27 @@ def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
     return {"messages": session.messages, "narration": text, "model_calls": 1,
             "action_result": {"action": "travel", "status": status, "success": status == "walked",
                               "state_changes": changes, "direct_response": text}}
+
+
+def road_ends_line(session) -> str | None:
+    """A walk that found no place, said at the road: where this road really leads. None unless the player stands at an
+    outdoors place of local_places (inside a settlement the street line stays)."""
+    import local_places
+    world = session.world_state
+    locations = world.get("locations") or {}
+    here = locations.get(world.get("location")) or {}
+    spec = local_places.PLACE_KINDS.get(here.get("place_kind"), {})
+    if not spec.get("outdoors"):
+        return None
+    town = _town_of(session)
+    settlement = (locations.get(town) or {}).get("name") if town else None
+    if spec.get("road_on"):
+        known = [r.get("name") for r in locations.values() if isinstance(r, dict) and r.get("visited")
+                 and r.get("parent_location_id") == town and r.get("id") != here.get("id") and r.get("name")]
+        names = ", ".join([*known, *([settlement] if settlement else [])])
+        return f"Bu yoldan bilinen bir kasabaya varılmıyor. Buradan gidebileceğin yerler: {names}."
+    return (f"Yol burada bitiyor: {here.get('name')} ötesinde bilinen bir yerleşim yok. "
+            f"Bilinen en yakın yerleşim {settlement}; oraya dönebilirsin.")
 
 
 def walks_out(session, player_input: Any) -> str | None:
