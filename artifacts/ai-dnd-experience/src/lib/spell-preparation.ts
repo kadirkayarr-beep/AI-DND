@@ -43,7 +43,10 @@ function selectable(view: SpellPrepareViewResponse): readonly string[] {
 export function windowReasonText(view: SpellPrepareViewResponse, combatActive: boolean): string {
   if (choosingBook(view)) {
     return `Büyü kitabın kayıtta yok: bu eski kayıt büyü seçimlerini taşımıyor. Kitabına ${bookSize(view)} birinci seviye Wizard büyüsü seç. `
-      + 'Önerilen büyüler işaretli; istediğini değiştirebilirsin. Bu seçim bir kez yapılır ve Geri Al ile geri alınamaz. Kitabı kaydedince hazırlık penceresi açılır.';
+      + 'Önerilen büyüler işaretli; istediğini değiştirebilirsin. Bu seçim bir kez yapılır ve Geri Al ile geri alınamaz. '
+      + (combatActive
+        ? 'Çatışma sürerken kaydedersen hazırlık penceresi açılmaz; uzun dinlenmeyi bitirince ya da yeni bir seviyeye geçince açılır.'
+        : 'Kitabı kaydedince hazırlık penceresi açılır.');
   }
   if (!view.supported) {
     return view.blocked_reason === 'spellbook_missing'

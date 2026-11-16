@@ -69,6 +69,38 @@ class Ask(unittest.TestCase):
         clock["elapsed_seconds"] = clock.get("elapsed_seconds", 0) + seconds
 
 
+class TheRollOfAnyIntelligenceIsShown(unittest.TestCase):
+    """D-269: max(15, Intelligence score) is a DC between the five difficulty steps for a score of 16-19 or 21-29; the
+    roll's card must still serialize (it is the guide's DC, so the DC stays and the card names the step it is under)."""
+
+    def test_the_card_of_a_coin_ask_roll_serializes_for_every_intelligence_score(self):
+        from api import serializers
+        session = game.create_session(seed=7)
+        token = game._ACTIVE_SESSION.set(session)
+        self.addCleanup(game._ACTIVE_SESSION.reset, token)
+        steps = {10: "medium", 15: "medium", 16: "hard", 18: "hard", 20: "hard", 21: "very_hard", 25: "very_hard",
+                 26: "extreme", 30: "extreme"}
+        for score, step in steps.items():
+            with self.subTest(intelligence=score):
+                result = {"action": "dialogue"}
+                dc = influence.dc({"id": "x", "intelligence": score})
+                game._show_coin_roll(result, game._coin_persuasion(result)(dc, False)["card"])
+                self.assertEqual(result["dc"], max(15, score))  # the guide's DC is not bent
+                self.assertEqual(serializers.serialize_skill_check_result(result, session)["difficulty"], step)
+
+    def test_a_dc_the_engine_cannot_set_is_still_refused(self):
+        from api import serializers
+        session = game.create_session(seed=7)
+        token = game._ACTIVE_SESSION.set(session)
+        self.addCleanup(game._ACTIVE_SESSION.reset, token)
+        for dc in (7, 14, 31):
+            with self.subTest(dc=dc):
+                result = {"action": "dialogue"}
+                game._show_coin_roll(result, game._coin_persuasion(result)(dc, False)["card"])
+                with self.assertRaises(serializers.SkillCheckResultSerializationError):
+                    serializers.serialize_skill_check_result(result, session)
+
+
 class TheGuideNumbers(Ask):
     def test_dc_is_fifteen_or_the_intelligence_score(self):
         self.assertEqual(influence.dc(self.npc("guest")), 15)

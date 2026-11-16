@@ -1430,59 +1430,64 @@ def create_app(
                         raise refuse_before_commit(error.status_code, error.code, str(error)) from None
                 except ValueError:
                     raise refuse_before_commit(409, "invalid_combat_state", "Combat state is invalid.") from None
-            # Pure opt-in admission precedes adapter preflight and every mutating
-            # scene/lore planner. Ordinary turns retain their existing order.
-            if request.check_feature is not None:
-                try:
-                    session.primal_knowledge_check_admission(
-                        request.message, interaction_mode=effective_mode,
-                        combat_action=request.combat_action, target_id=request.target_id,
-                        check_feature=request.check_feature,
-                    )
-                except combat_lifecycle.CombatRequestError as error:
-                    raise refuse_before_commit(error.status_code, error.code, str(error)) from None
-            check_evidence = [] if request.check_feature is not None else None
-            import spell_scope
-            import sorcery_points
-            slot_conversion = isinstance(session, game.GameSession) and sorcery_points.native_conversion_request(
-                request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
-            )
-            if isinstance(session, game.GameSession) and (
-                session.character.get("current_hp", 1) <= 0
-                or slot_conversion
-                or spell_scope.explicit_request(
-                    request.message,
-                    request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
-                )
-                or bounded_encounter.native_request(
-                    session, request.message,
-                    request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
-                )
-                or (
-                    request.combat_action is None
-                    and (authored_dungeon.native_request(request.message, session)
-                         or exploration.native_request(request.message, session)
-                         or combat_lifecycle.surrender_yes(session, request.message))
-                )
-            ):
-                active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
-            if active_adapter is None:
-                raise refuse_model_failure("ollama_unavailable")
+            # D-256: anything unexpected before the snapshot takes the opening step back too (a refusal already did).
             try:
-                active_adapter.ensure_required_model()
-            except OllamaUnavailableError as error:
-                _logger.warning(
-                    "Ollama preflight failed (error_type=%s)",
-                    error.error_type,
+                # Pure opt-in admission precedes adapter preflight and every mutating
+                # scene/lore planner. Ordinary turns retain their existing order.
+                if request.check_feature is not None:
+                    try:
+                        session.primal_knowledge_check_admission(
+                            request.message, interaction_mode=effective_mode,
+                            combat_action=request.combat_action, target_id=request.target_id,
+                            check_feature=request.check_feature,
+                        )
+                    except combat_lifecycle.CombatRequestError as error:
+                        raise refuse_before_commit(error.status_code, error.code, str(error)) from None
+                check_evidence = [] if request.check_feature is not None else None
+                import spell_scope
+                import sorcery_points
+                slot_conversion = isinstance(session, game.GameSession) and sorcery_points.native_conversion_request(
+                    request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
                 )
-                raise refuse_model_failure("ollama_unavailable") from None
-            except RequiredModelUnavailableError:
-                selected_model = adapter.model_name if adapter is not None else MODEL_NAME
-                _logger.warning("Required model %s is unavailable.", selected_model)
-                # Saying it again cannot help a model that is not installed, so this one stays a plain, truthful setup message.
-                raise refuse_model_failure(
-                    "model_unavailable", f"Required model {selected_model} is unavailable.",
-                ) from None
+                if isinstance(session, game.GameSession) and (
+                    session.character.get("current_hp", 1) <= 0
+                    or slot_conversion
+                    or spell_scope.explicit_request(
+                        request.message,
+                        request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+                    )
+                    or bounded_encounter.native_request(
+                        session, request.message,
+                        request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+                    )
+                    or (
+                        request.combat_action is None
+                        and (authored_dungeon.native_request(request.message, session)
+                             or exploration.native_request(request.message, session)
+                             or combat_lifecycle.surrender_yes(session, request.message))
+                    )
+                ):
+                    active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
+                if active_adapter is None:
+                    raise refuse_model_failure("ollama_unavailable")
+                try:
+                    active_adapter.ensure_required_model()
+                except OllamaUnavailableError as error:
+                    _logger.warning(
+                        "Ollama preflight failed (error_type=%s)",
+                        error.error_type,
+                    )
+                    raise refuse_model_failure("ollama_unavailable") from None
+                except RequiredModelUnavailableError:
+                    selected_model = adapter.model_name if adapter is not None else MODEL_NAME
+                    _logger.warning("Required model %s is unavailable.", selected_model)
+                    # Saying it again cannot help a model that is not installed, so this one stays a plain, truthful setup message.
+                    raise refuse_model_failure(
+                        "model_unavailable", f"Required model {selected_model} is unavailable.",
+                    ) from None
+            except BaseException:
+                take_back_opening()
+                raise
 
             # D-119: the snapshot is the state before the opening step, so every rollback takes the step back too.
             take_back_opening()
