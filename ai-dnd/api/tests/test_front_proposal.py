@@ -45,7 +45,7 @@ class FrontClient(speech.ScriptedNpcSpeechClient):
         if self.fails is not None:
             raise self.fails
         filled = {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none", "answer": "none",
-                  "inside": False, **self.front}
+                  "inside": False, "timing": "now", **self.front}
         packet = {"intent": self.intent, "action": "narrative", "target": self.target,
                   "completion": "unclear", "confidence": 0.9}
         return {"message": {"content": json.dumps(packet if self.drop_front else {**packet, "front": filled},

@@ -69,8 +69,11 @@ class MoneyPathRepair(Counter):
     def test_a_reply_that_pays_on_another_line_still_pays(self):
         guest = self.npc("guest")
         raw = {"kind": "give", "item": "", "amount_cp": 5}
-        settled = self.s._settle_spoken_commitment(self.w, guest, "paramı ver hadi", raw, "Al, beş bakır.")
-        self.assertEqual(settled["moved"], 5)
+        # D-166 (Kadir kararı 2026-11-15): the ask takes a won Persuasion roll; the engine sets the sum (10 of 100).
+        settled = self.s._settle_spoken_commitment(self.w, guest, "paramı ver hadi", raw, "Al, beş bakır.",
+                                                   persuade=lambda dc, advantage: {"success": True})
+        self.assertEqual(settled["moved"], 10)
+        self.assertEqual((self.w["currency"]["player"], self.w["currency"]["guest"]), (510, 90))
 
     # (a) the money owner's room decision under a purchase reading opens the room card, and only after its checks
     def test_purchase_reading_with_a_room_deal_opens_the_room_card(self):

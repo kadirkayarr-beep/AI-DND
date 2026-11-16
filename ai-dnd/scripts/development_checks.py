@@ -174,11 +174,15 @@ def structural_checks(config, state, repo, baseline=None, ci=None):
     return rows
 
 
+OUTPUT_TAIL_LINES = 15
+
+
 def run_command(name, argv, repo, timeout, log):
     row = check(name, "UNVERIFIED", "Command not completed", argv=argv, cwd=str(repo),
                 started_at=evidence.now(), ended_at=None, exit_status=None)
     print(f"\n$ {evidence.shlex.join(argv)}", flush=True)
     log.flush()
+    start = log.tell()
     # Child tools emit their logs into the same retained combined output.log.
     # Vite's existing config requires PORT/BASE_PATH even for an offline build.
     env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "NODE_ENV": "production",
@@ -212,6 +216,17 @@ def run_command(name, argv, repo, timeout, log):
         row.update(status="FAIL", detail=f"Command exceeded {timeout} seconds", timed_out=True)
     except OSError as exc:
         row.update(status="FAIL", detail=str(exc))
+    if row["status"] == "FAIL":
+        # Slice only this command's share of the combined log for the job summary.
+        log.flush()
+        try:
+            with Path(log.name).open(encoding="utf-8", errors="replace") as stream:
+                stream.seek(start)
+                tail = [line.rstrip() for line in stream if line.strip()][-OUTPUT_TAIL_LINES:]
+            if tail:
+                row["output_tail"] = tail
+        except OSError:
+            pass
     row["ended_at"] = evidence.now()
     return row
 
@@ -258,6 +273,7 @@ def failure_summary(checks, archive_root):
             continue
         detail = row["detail"] if isinstance(row["detail"], str) else json.dumps(row["detail"], ensure_ascii=False)
         lines.append(f"- `{row['name']}` FAIL: {detail}")
+        lines.extend(f"  > {line}" for line in row.get("output_tail", []))
         if not row.get("suite_evidence"):
             continue
         try:

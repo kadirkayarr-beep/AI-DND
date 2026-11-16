@@ -410,13 +410,12 @@ def abandon_thread_job(session,thread,owner):
 
 
 def cancel_job(session,quest):
-    """The journal's cancel: the job closes as when walked away from in words, a parcel in hand goes back to its giver."""
+    """The journal's cancel: the job closes; a parcel in hand stays in the bag, with no transfer to a giver who may be
+    far away or dead (D-204, Kadir kararı 2026-11-15, B)."""
     from adventure import play
     world=session.world_state
     kept=_keep(world)
     try:
-        if quest.get('status') in {'DISCOVERED','ACTIVE','BLOCKED'}:  # an ended job keeps its parcel where it is (a late hand-over)
-            _give_parcel_back(world,quest['quest_id'],(quest.get('bindings') or {}).get('source_npc_id'))
         return play.abandon(session,quest['quest_id'])
     except Exception:
         _restore(world,kept)

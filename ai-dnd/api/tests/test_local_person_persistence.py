@@ -21,6 +21,7 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import fixed_town
 from api.main import create_app
 
 
@@ -127,15 +128,17 @@ class LocalPersonPersistenceTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def _create_campaign(self):
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={"campaign_start": {
-                "setting_id": "forgotten_realms",
-                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                "region_id": "fr:region:the_north",
-                "starting_location_id": "fr:city:neverwinter",
-            }},
-        )
+        # The town is drawn from the campaign id; a random id failed on towns that already hold a fisherman (CI, PR #91 main run).
+        with fixed_town(self, 9401):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={"campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": "fr:city:neverwinter",
+                }},
+            )
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
