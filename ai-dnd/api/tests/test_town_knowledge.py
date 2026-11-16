@@ -17,6 +17,7 @@ import local_places
 import npc_statements
 import relationships
 import town_knowledge
+import town_rumours
 import world_threads
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
@@ -506,3 +507,108 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
         self.assertTrue(any(line in text for line in lines), text)
         again = await self.go("Şehirde geziyorum.")
         self.assertNotEqual(text, again)
+
+
+class WiderKnowledge(unittest.TestCase):
+    """D-249: a town line, richer places, up to two rumours incl. heard ones."""
+
+    def world_with_place(self, seed="wide"):
+        world = seeded(seed)
+        place_id = next(pid for pid, rec in world["locations"].items()
+                        if rec.get("parent_location_id") == "city" and not rec.get("hidden")
+                        and local_places.PLACE_KINDS.get(rec.get("place_kind")))
+        record = world["locations"][place_id]
+        record["description"] = "Taş duvarlı, serin bir salon; havada duman kokusu var. İkinci cümle burada olmamalı."
+        record["local_issue"] = "Çatıdan su sızıyor."
+        return world, place_id
+
+    def open_npc(self, world, place_id, prefix="npc_k"):
+        """A talkative person who lists the place (fixed ids; first one that passes the seeded coverage)."""
+        for index in range(200):
+            npc = person(f"{prefix}{index}", "Kent sakini")
+            if (not town_knowledge.is_closed_mouthed(world, npc)
+                    and town_knowledge._percent(world, npc["id"], place_id) < 80):
+                return npc
+        self.fail("no npc lists the place")
+
+    def test_place_item_carries_description_issue_and_roles(self):
+        world, place_id = self.world_with_place()
+        world["npcs"] += [person("w1", "Demirci", location=place_id), person("w2", "Muhafız", location=place_id),
+                          person("w3", "Muhafız", location=place_id)]
+        npc = self.open_npc(world, place_id)
+        item = next(i for i in town_knowledge.public_knowledge(world, npc) if i["kind"] == "place" and i["location_id"] == place_id)
+        self.assertIn("Taş duvarlı, serin bir salon; havada duman kokusu var.", item["text"])
+        self.assertNotIn("İkinci cümle", item["text"])
+        self.assertIn("dert: Çatıdan su sızıyor", item["text"])
+        self.assertIn("orada: bir demirci, iki muhafız", item["text"])
+        for name in ("Kişi w1", "Kişi w2"):
+            self.assertNotIn(name, item["text"])
+        world["locations"][place_id]["description"] = "Uzun " * 60 + "bir yer."
+        item = next(i for i in town_knowledge.public_knowledge(world, npc) if i["kind"] == "place" and i["location_id"] == place_id)
+        self.assertLessEqual(len(item["text"].split(": ", 1)[1].split("; dert")[0]), 120)
+
+    def test_town_item_comes_first_from_portrait_or_description(self):
+        for portrait, expected in (("Liman kokan bir kent. Geceleri tehlikeli.", "Liman kokan bir kent."), (None, "Eski bir ticaret kenti.")):
+            with self.subTest(portrait=portrait):
+                world, place_id = self.world_with_place()
+                world["locations"]["city"]["description"] = "Eski bir ticaret kenti. Surları yüksek."
+                if portrait:
+                    world["locations"]["city"]["town_portrait"] = portrait
+                npc = self.open_npc(world, place_id)
+                known = town_knowledge.public_knowledge(world, npc)
+                self.assertEqual(known[0], {"kind": "town", "text": expected, "location_id": "city", "thread_id": None})
+                self.assertEqual([i["kind"] for i in known].count("town"), 1)
+
+    def heard(self, world, count, speaker="npc_s"):
+        world["heard_rumours"] = [
+            {"id": f"rumour_{n:03d}", "text": f"Duyuma göre {n}. yer var.", "said_by": speaker, "place_id": None,
+             "settlement_id": "city", "turn": n} for n in range(1, count + 1)]
+
+    def test_up_to_two_rumours_per_npc(self):
+        world, _ = self.world_with_place()
+        self.heard(world, 3)
+        npc = person("npc_s", "Kent sakini")
+        items = town_rumours.rumour_for(world, npc, "city", lambda *p: town_knowledge._percent(world, *p), set())
+        self.assertEqual(len(items), 2)
+        self.assertTrue(all(i["kind"] == "rumour" for i in items))
+
+    def test_speaker_always_knows_own_rumour_and_others_follow_coverage(self):
+        world, _ = self.world_with_place()
+        self.heard(world, 1)
+        percent = lambda *p: town_knowledge._percent(world, *p)  # noqa: E731
+        texts = lambda npc: {i["text"] for i in town_rumours.rumour_for(world, npc, "city", percent, set())}  # noqa: E731
+        self.assertIn(world["heard_rumours"][0]["text"], texts(person("npc_s", "Kent sakini")))
+        others = [f"o{n}" for n in range(60)]
+        got = {n for n in others if world["heard_rumours"][0]["text"] in texts(person(n, "Kent sakini"))}
+        want = {n for n in others if percent(n, "rumour", "rumour_001") < town_rumours.HEARD_PERCENT}
+        self.assertEqual(got, want)
+        self.assertTrue(got and got != set(others))
+
+    def test_a_heard_rumour_of_another_town_is_not_carried(self):
+        world, _ = self.world_with_place()
+        self.heard(world, 1)
+        world["heard_rumours"][0]["settlement_id"] = "elsewhere"
+        self.assertEqual([i for i in town_rumours.rumour_for(world, person("npc_s"), "city", lambda *p: 0, set())
+                          if i["text"] == world["heard_rumours"][0]["text"]], [])
+
+    def test_hidden_place_still_not_listed_and_rumoured_one_is(self):
+        world, place_id = self.world_with_place()
+        rumoured = local_places.create_local_place(world, "city", "archive")
+        rumoured["rumoured"] = True
+        world["locations"][place_id]["hidden"] = True
+        for index in range(60):
+            for item in town_knowledge.public_knowledge(world, person(f"npc_h{index}", "Barmen")):
+                self.assertFalse(item["kind"] == "place" and item["location_id"] == place_id)
+        self.assertTrue(any(i["kind"] == "place" and i["location_id"] == rumoured["id"] for index in range(60)
+                            for i in town_knowledge.public_knowledge(world, person(f"npc_h{index}", "Barmen"))))
+
+    def test_knowledge_stays_within_10_items_and_1500_bytes(self):
+        self.assertEqual((town_knowledge.MAX_ITEMS, town_knowledge.MAX_BYTES), (10, 1500))
+        for index in range(15):
+            world, _ = self.world_with_place(f"cap-{index}")
+            for kind in list(local_places.PLACE_KINDS)[:7]:
+                local_places.create_local_place(world, "city", kind)
+            self.heard(world, 6, speaker=f"npc_{index}")
+            known = town_knowledge.public_knowledge(world, person(f"npc_{index}", "Barmen"))
+            self.assertLessEqual(len(known), 10)
+            self.assertLessEqual(sum(len(i["text"].encode("utf-8")) for i in known), 1500)

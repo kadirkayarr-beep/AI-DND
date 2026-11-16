@@ -32,8 +32,13 @@ import vouching
 import world_happenings
 import world_threads
 
-MAX_ITEMS = 5
-MAX_BYTES = 600
+MAX_ITEMS = 10
+MAX_BYTES = 1500
+PLACE_TEXT = 120  # characters of a place's description in its knowledge line
+ISSUE_TEXT = 80
+TOWN_TEXT = 160
+_NUMBERS = {1: "bir", 2: "iki", 3: "üç", 4: "dört", 5: "beş"}
+_SENTENCE_END = re.compile(r"(?<=[.!?…])\s")
 GONE_WINDOW = 86400
 CLOSED_PERCENT = 15  # people who will not discuss the town with a stranger
 BOARD_LINES = 3
@@ -76,6 +81,34 @@ def is_closed_mouthed(world: dict[str, Any], npc: dict[str, Any]) -> bool:
             and _percent(world, npc.get("id"), "closed") < CLOSED_PERCENT)
 
 
+def _first_sentence(text: Any, limit: int) -> str:
+    if not isinstance(text, str) or not text.strip():
+        return ""
+    return _SENTENCE_END.split(text.strip(), 1)[0][:limit].rstrip()
+
+
+def _lower(text: str) -> str:
+    return text.replace("İ", "i").replace("I", "ı").lower()
+
+
+def _roles_at(world: dict[str, Any], place_id: str) -> str:
+    """Roles of the people standing at a place, never their names: 'bir demirci, iki muhafız'."""
+    counts: dict[str, int] = {}
+    for person in world.get("npcs") or []:
+        role = person.get("role") if isinstance(person, dict) and person.get("location") == place_id else None
+        if isinstance(role, str) and role.strip():
+            counts[_lower(role.strip())] = counts.get(_lower(role.strip()), 0) + 1
+    return ", ".join(f"{_NUMBERS.get(n, 'birkaç')} {role}" for role, n in sorted(counts.items()))
+
+
+def _town_item(world: dict[str, Any], settlement_id: str) -> dict[str, Any] | None:
+    record = world.get("locations", {}).get(settlement_id)
+    if not isinstance(record, dict):
+        return None
+    text = _first_sentence(record.get("town_portrait"), TOWN_TEXT) or _first_sentence(record.get("description"), TOWN_TEXT)
+    return {"kind": "town", "text": text, "location_id": settlement_id, "thread_id": None} if text else None
+
+
 def _places(world, settlement_id, npc):
     seen = npc.get("location")
     share = world_threads.catalog().get("place_coverage", 80)
@@ -88,7 +121,17 @@ def _places(world, settlement_id, npc):
         spec = local_places.PLACE_KINDS.get(record.get("place_kind"))
         noun = spec["noun"] if spec else ("han" if record.get("scene_kind") == "tavern" else None)
         if noun and _percent(world, npc.get("id"), place_id) < share:
-            yield {"kind": "place", "text": f"{record['name']} ({noun})", "location_id": place_id, "thread_id": None}
+            text = f"{record['name']} ({noun})"
+            about = _first_sentence(record.get("description"), PLACE_TEXT)
+            if about:
+                text += f": {about}"
+            issue = _first_sentence(record.get("local_issue"), ISSUE_TEXT).rstrip(".")
+            if issue:
+                text += f"; dert: {issue}"
+            roles = _roles_at(world, place_id)
+            if roles:
+                text += f"; orada: {roles}"
+            yield {"kind": "place", "text": text, "location_id": place_id, "thread_id": None}
 
 
 def _own_past(world: dict[str, Any], npc: Any) -> set[str]:
@@ -176,7 +219,7 @@ def notice_at(world: dict[str, Any], place_id: Any) -> str | None:
 
 
 def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
-    """At most five short things this person knows, within 600 bytes. Writes nothing."""
+    """At most ten short things this person knows, within 1500 bytes. Writes nothing."""
     settlement_id = _settlement(world)
     state = world_threads.view(world)
     if not isinstance(npc, dict) or not settlement_id or state is None or is_closed_mouthed(world, npc):
@@ -213,7 +256,8 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
     rumours = town_rumours.rumour_for(world, npc, settlement_id, lambda *parts: _percent(world, *parts),
                                       {item["thread_id"] for item in threads})
     known, size = [], 0
-    for item in (*threads, *gone, *rumours, *_places(world, settlement_id, npc)):
+    town = _town_item(world, settlement_id)
+    for item in (*([town] if town else []), *threads, *gone, *rumours, *_places(world, settlement_id, npc)):
         cost = len(item["text"].encode("utf-8"))
         if len(known) < MAX_ITEMS and size + cost <= MAX_BYTES:
             known.append(item)

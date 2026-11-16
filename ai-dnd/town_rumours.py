@@ -15,6 +15,7 @@ import living_world
 import npc_statements
 import world_threads
 
+MAX_RUMOURS = 2
 HEARD_PERCENT = 50  # of the people who have not got the trouble itself
 
 
@@ -33,17 +34,31 @@ def _words_of(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
     return world_threads.sentence(world_threads._fill(line, place=place["name"]))
 
 
+def _heard(world: dict[str, Any], npc: dict[str, Any], settlement_id: str, percent: Any) -> list[dict[str, Any]]:
+    """Rumours people of this town were heard saying: the speaker always knows its own, others by coverage."""
+    found = []
+    for entry in world.get("heard_rumours") or []:
+        if not isinstance(entry, dict) or entry.get("settlement_id") != settlement_id or not entry.get("text") or not entry.get("id"):
+            continue
+        if entry.get("said_by") == npc.get("id") or percent(npc.get("id"), "rumour", entry["id"]) < HEARD_PERCENT:
+            found.append(entry)
+    found.sort(key=lambda entry: percent(npc.get("id"), "rumour_order", entry["id"]))
+    return [{"kind": "rumour", "text": entry["text"], "location_id": entry.get("place_id"), "thread_id": None} for entry in found]
+
+
 def rumour_for(world: dict[str, Any], npc: dict[str, Any], settlement_id: str, percent: Any, listed: Any) -> list[dict[str, Any]]:
-    """The one rumour this person carries, if any: of a trouble they do not already list, and not one of their own."""
+    """Up to two rumours this person carries: a trouble they do not already list (not their own), then heard ones."""
     troubles = [t for t in world_threads.active(world, settlement_id) if t["type"] == "trouble"
                 and t["thread_id"] not in listed and t["place_id"] != npc.get("place_role_of")
                 and percent(npc.get("id"), "rumour", t["thread_id"]) < HEARD_PERCENT]
     troubles.sort(key=lambda t: percent(npc.get("id"), "rumour_order", t["thread_id"]))
+    items = []
     for thread in troubles:
         words = _words_of(world, thread)
         if words:
-            return [{"kind": "rumour", "text": words, "location_id": thread["place_id"], "thread_id": thread["thread_id"]}]
-    return []
+            items.append({"kind": "rumour", "text": words, "location_id": thread["place_id"], "thread_id": thread["thread_id"]})
+            break
+    return (items + _heard(world, npc, settlement_id, percent))[:MAX_RUMOURS]
 
 
 def was_voiced(world: dict[str, Any], item: dict[str, Any], words: str) -> bool:
