@@ -2,12 +2,12 @@ import { term, termTitle } from '@/lib/tr-terms';
 import { SpellSlotConversionControl } from './spell-slot-conversion';
 export { SpellSlotConversionChoice, createConversionDraft } from './spell-slot-conversion';
 import type { CombatActionInput, GameState, SpellPrepareViewResponse } from '@workspace/api-client-react';
-import { WINDOW_SHORT } from '@/lib/spell-preparation';
+import { choosingBook, WINDOW_SHORT } from '@/lib/spell-preparation';
 import { spellLabel } from '@/lib/spell-names';
 
 /** Read-only rows from the server's preparation view (D-065): window, prepared count and the Wizard spellbook. */
 export function SpellStatusRows({ view, combatActive, label }: { view: SpellPrepareViewResponse; combatActive: boolean; label: (id: string) => string }) {
-  const windowText = !view.supported ? 'Kullanılamıyor' : view.open ? WINDOW_SHORT[view.reason ?? ''] ?? 'Açık' : combatActive ? 'Kapalı · çatışma' : 'Kapalı';
+  const windowText = choosingBook(view) ? 'Önce büyü kitabı seçilecek' : !view.supported ? 'Kullanılamıyor' : view.open ? WINDOW_SHORT[view.reason ?? ''] ?? 'Açık' : combatActive ? 'Kapalı · çatışma' : 'Kapalı';
   return <dl className="spell-status-rows" data-testid="spell-status-rows">
     <div className="spell-status-row"><dt>Hazırlık penceresi</dt><dd data-testid="spell-window-row">{windowText}</dd></div>
     <div className="spell-status-row"><dt>Hazırlanan büyüler</dt><dd data-testid="spell-prepared-count-row">{view.prepared.length} / {view.limit}</dd></div>

@@ -376,6 +376,7 @@ export default function GameBrowser() {
         title: 'Tamamlanmamış bir hamle var',
         detail: 'Sunucuda bu kampanya için henüz sonuçlanmamış bir hamle kayıtlı (başka bir sekme veya önceki oturum). Yeni hamle göndermeden önce durumunu sunucudan kontrol et ya da bilinçli olarak vazgeç.',
         recover: recoveryHandlers(open.actionId),
+        recovery: { status: 'unresolved', loading: false, mutationAllowed: false, scope: forCampaign },
       });
     } catch (error) {
       // A failed lookup stays silent (see above); only a lookup that ran out of time is shown as unknown.

@@ -1000,7 +1000,14 @@ def _resolve(session, c):
             damage_rolls.append({"source": "sneak_attack", "die": sneak["die"], "count": sneak["count"], "rolls": rolls})
             components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
         if actor == "player":
-            _, species_effects = session._apply_species_on_hit_effects(defender, critical=critical)
+            pre_species = {}
+            for entry in components:
+                pre_species[entry["damage_type"]] = pre_species.get(entry["damage_type"], 0) + entry["raw_damage"]
+            # Giant Ancestry needs the hit to deal damage (PHB 2024 "hit ... and deal damage"; D-197).
+            deals_damage = any(mitigate(session, target, kind, amount)["final_damage"] > 0
+                               for kind, amount in pre_species.items())
+            _, species_effects = session._apply_species_on_hit_effects(
+                defender, critical=critical, deals_damage=deals_damage)
             for entry in species_effects:
                 if entry.get("damage"):
                     components.append({"damage_type": entry["damage_type"], "raw_damage": entry["damage"]})

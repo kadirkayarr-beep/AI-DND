@@ -55,7 +55,7 @@ import {
   type IdentityValues,
 } from '@/lib/character-identity-suggestion';
 import { customFetch } from '@workspace/api-client-react/custom-fetch';
-import { classLabel } from '@/lib/campaign-presentation';
+import { classLabel, classLevelingNote } from '@/lib/campaign-presentation';
 import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
 import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
 import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
@@ -1184,6 +1184,7 @@ export function CharacterCreationScreen({
                         <p className="cc-card-desc">{cls.desc}</p>
                         <div className="cc-card-features">
                           <span className="cc-feature-tag">Öncelik: {ABILITY_NAMES_TR[cls.primary_ability as AbilityKey]?.short ?? cls.primary_ability}</span>
+                          {classLevelingNote(clsKey) && <span className="cc-feature-tag" data-testid={`class-leveling-note-${clsKey}`}>{classLevelingNote(clsKey)}</span>}
                           {cls.features?.slice(0, 2).map((feat: string) => (
                             <span className="cc-feature-tag" key={feat}>{feat}</span>
                           ))}
