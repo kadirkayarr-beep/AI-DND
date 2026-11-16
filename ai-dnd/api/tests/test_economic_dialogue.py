@@ -68,9 +68,11 @@ class Talk(unittest.TestCase):
                                     offer_id=data["offer_id"], confirmation_digest=data["confirmation_digest"],
                                     operation_id=f"offer:{action}", check=check)
 
-    def settle(self, npc_id, amount, text="paramı ver hadi"):
+    def settle(self, npc_id, amount, text="paramı ver hadi", won=True):
+        """D-166: asking for coin takes a Persuasion roll; it is injected here (won unless said otherwise)."""
         return town_knowledge.settle_reply(self.w, self.npc(npc_id), text, {"kind": "give", "amount_cp": amount},
-                                           "Al bakalım.", accept_job=lambda thread: None)
+                                           "Al bakalım.", accept_job=lambda thread: None,
+                                           persuade=lambda dc, advantage: {"success": won})
 
 
 class HandedCoin(Talk):
@@ -141,26 +143,35 @@ class HandedCoin(Talk):
 
 
 class NpcGifts(Talk):
+    # D-166 (Kadir kararı 2026-11-15): the engine sets the sum (Oren's 100 copper, indifferent: 10), not the model.
     def test_npc_purse_gift_applies_once_after_commit(self):
         settled = self.settle("guest", 5)
-        self.assertEqual(settled["moved"], 5)
-        self.assertEqual((self.w["currency"]["player"], self.w["currency"]["guest"]), (505, 95))
+        self.assertEqual(settled["moved"], 10)
+        self.assertEqual((self.w["currency"]["player"], self.w["currency"]["guest"]), (510, 90))
         [(operation_id, entry)] = self.ledger()["operations"].items()
-        self.assertEqual((entry["purpose"], entry["net_debit_cp"]), ("npc_gift", 5))
+        self.assertEqual((entry["purpose"], entry["net_debit_cp"]), ("npc_gift", 10))
         self.assertTrue(operation_id.startswith("unscoped:economic:npc_gift:"), operation_id)
-        self.assertIn("5", settled["note"])
+        self.assertIn("10", settled["note"])
         self.assertEqual(self.prepared(), [])
 
-    def test_npc_spoken_give_beyond_purse_moves_nothing(self):
+    def test_npc_lost_roll_moves_nothing(self):
         before = self.money()
-        settled = self.settle("guest", 500)
+        settled = self.settle("guest", 5, won=False)
         self.assertEqual(settled["moved"], 0)
-        self.assertIsNone(settled["note"])
+        self.assertEqual(settled["note"], world_threads.job_lines("text", "coin_ask_refused"))  # the engine says no coin came
         self.assertEqual(self.money(), before)
         self.assertEqual(self.ledger().get("operations", {}), {})
+
+    def test_npc_spoken_give_beyond_purse_moves_only_the_engines_sum(self):
+        settled = self.settle("guest", 500)
+        self.assertEqual(settled["moved"], 10)
+        self.assertEqual((self.w["currency"]["player"], self.w["currency"]["guest"]), (510, 90))
+        self.assertEqual([entry["net_debit_cp"] for entry in self.ledger()["operations"].values()], [10])
+        before = self.money()
         resolution = ea.npc_gift(ea.EconomicState(world=self.w, character=None), npc_id="guest", amount_cp=500)
         self.assertEqual((resolution.status, resolution.reason_code, resolution.asset_deltas),
                          ("refused", "npc_purse_short", []))
+        self.assertEqual(self.money(), before)
 
     def test_spoken_give_without_payer_purse_creates_no_coin(self):
         del self.w["currency"]["guest"]
@@ -183,33 +194,40 @@ class NpcGifts(Talk):
 
     def test_npc_gift_without_scope_pays_once(self):
         self.settle("guest", 5)
-        self.assertEqual(self.w["currency"]["player"], 505)
+        self.assertEqual(self.w["currency"]["player"], 510)
         self.assertEqual(list(self.ledger()["operations"]), [f"unscoped:economic:npc_gift:1"])
 
     def test_two_npc_gifts_same_turn_get_distinct_operations(self):
+        # D-166: one person is asked once a day (guide 4.5), so the two gifts come from two people.
         turn = self.w["flags"].get("turn_index", 0)
         self.settle("guest", 5)
-        self.settle("guest", 5)
+        self.settle("barman", 5)
         self.assertEqual(self.w["flags"].get("turn_index", 0), turn)
-        self.assertEqual((self.w["currency"]["player"], self.w["currency"]["guest"]), (510, 90))
+        self.assertEqual((self.w["currency"]["player"], self.w["currency"]["guest"], self.w["currency"]["barman"]),
+                         (520, 90, 90))
         self.assertEqual(sorted(self.ledger()["operations"]),
                          ["unscoped:economic:npc_gift:1", "unscoped:economic:npc_gift:2"])
 
     def test_scoped_two_part_line_gifts_get_distinct_operations(self):
         # Two scopes opened with the same action id, as game.py opens it many times in one turn.
-        for _ in range(2):
+        # D-166: one person is asked once a day (guide 4.5), so each gift comes from another person.
+        for npc_id in ("smith", "miller"):
+            self.w["npcs"].append({"id": npc_id, "name": npc_id.title(), "role": "Yolcu", "location": self.here,
+                                   "current_hp": 10})
+            self.w["currency"][npc_id] = 100
+        for npc_id in ("guest", "barman"):
             with resolution_action_scope("a-two", "session"):
-                self.settle("guest", 5)
+                self.settle(npc_id, 5)
         self.assertEqual(sorted(self.ledger()["operations"]), ["a-two:economic:npc_gift:1", "a-two:economic:npc_gift:2"])
-        self.assertEqual(self.w["currency"]["player"], 510)
+        self.assertEqual(self.w["currency"]["player"], 520)
         # The same within one line said in two parts: the rest of the line runs a second dispatch under one id.
-        gifts = iter([5, 5])
+        givers = iter(["smith", "miller"])
         real = town_knowledge.settle_reply
 
         def paying_dispatch(*args, **kwargs):
             with resolution_action_scope("a-line", "session"):
-                real(self.w, self.npc("guest"), "paramı ver hadi", {"kind": "give", "amount_cp": next(gifts)},
-                     "Al.", accept_job=lambda thread: None)
+                real(self.w, self.npc(next(givers)), "paramı ver hadi", {"kind": "give", "amount_cp": 5},
+                     "Al.", accept_job=lambda thread: None, persuade=lambda dc, advantage: {"success": True})
             return {"messages": self.s.messages, "narration": "Al.", "model_calls": 0,
                     "action_result": {"action": "dialogue", "status": "resolved", "npc_id": "guest",
                                       "state_changes": []}}
@@ -225,7 +243,7 @@ class NpcGifts(Talk):
         self.assertEqual(self.w["flags"].get("turn_index", 0), turn)
         self.assertEqual(sorted(op for op in self.ledger()["operations"] if op.startswith("a-line")),
                          ["a-line:economic:npc_gift:3", "a-line:economic:npc_gift:4"])
-        self.assertEqual(self.w["currency"]["player"], 520)
+        self.assertEqual(self.w["currency"]["player"], 540)
 
 
 class CounterTradeOwner(Talk):

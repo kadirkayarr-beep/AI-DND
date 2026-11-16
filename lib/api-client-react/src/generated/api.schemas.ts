@@ -3572,6 +3572,13 @@ export interface SpellPrepareInput {
      */
   prepared?: string[] | null;
   close?: boolean;
+  /**
+     * D-039 one-time spellbook choice of an old save's Wizard (exactly six distinct Wizard level-1 spells, checked by the server); sent alone, never with prepared or close.
+     * @maxItems 32
+     * @nullable
+     * @items.maxLength 64
+     */
+  spellbook?: string[] | null;
   action_id: string;
 }
 
@@ -3629,6 +3636,10 @@ export interface SpellPrepareViewResponse {
   prepared: string[];
   /** @nullable */
   spellbook?: string[] | null;
+  /** D-039, only while blocked_reason is spellbook_missing; the spells the book may hold. */
+  spellbook_options?: string[];
+  /** D-039, only while blocked_reason is spellbook_missing; the engine's offer, which the player may change. */
+  suggested_spellbook?: string[];
 }
 
 export type SpellPrepareResultStatus = typeof SpellPrepareResultStatus[keyof typeof SpellPrepareResultStatus];
@@ -3637,6 +3648,7 @@ export type SpellPrepareResultStatus = typeof SpellPrepareResultStatus[keyof typ
 export const SpellPrepareResultStatus = {
   prepared: 'prepared',
   too_many: 'too_many',
+  spellbook_saved: 'spellbook_saved',
 } as const;
 
 export interface SpellPrepareResult {

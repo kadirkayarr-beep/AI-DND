@@ -26,9 +26,11 @@ Final Gate invokes the existing regression evidence runner using the explicit
 bounded selectors in `scripts/development_checks.json`. It reuses the documented
 bounded encounter + regression + campaign time + combat lifecycle selection,
 adds existing offline model-isolation/ceiling guards and evidence/tooling
-contracts, then runs the primary experience frontend's existing library
-typecheck, typecheck, test and build commands. It does not run discovery, the
-full repository suite or reconstruct the historical 643-test review.
+contracts, then runs the primary experience frontend's existing commands
+(libraries, typecheck, test, mocked-auth browser UI and build; the list is in
+`frontend_commands`). Final Gate itself does not run discovery or the full
+repository suite, and does not reconstruct the historical 643-test review.
+The full Python suite runs separately in CI (see Evidence and CI).
 
 ## Fixed selection contract
 
@@ -36,12 +38,14 @@ The executable sources are the selection contract; do not maintain or copy a
 second hand-written list of tests here:
 
 - [`run_tests.py`](../run_tests.py) owns the release `TESTS` tuple. Its `--list`
-  output shows **25 gates**. That is the number of gate entries, not the number of
-  unique unittest cases; an entry may execute multiple tests.
+  output shows its own gate count in the first line. That is the number of gate
+  entries, not the number of unique unittest cases; an entry may execute
+  multiple tests.
 - [`development_checks.json`](../scripts/development_checks.json) owns the limited
-  Final Gate selection: its 10 `regression_selectors` plus the four configured
-  primary-experience frontend commands. It is not the full API-discovery package
-  or the whole repository test inventory.
+  Final Gate selection: its `regression_selectors` plus the configured
+  primary-experience `frontend_commands`. Read the counts from that file, not
+  from this document. It is not the full API-discovery package or the whole
+  repository test inventory.
 - The API discovery package (`dev.ps1 -ApiDiscover`, which runs unittest discovery
   under `ai-dnd/api/tests`) is a separate, broader and log-noisy scope. Live model
   acceptance (`python ai-dnd/acceptance_test.py`) is also separate and requires
@@ -154,6 +158,11 @@ CI stages new records outside the checkout in `$RUNNER_TEMP/ai-dnd-evidence`
 so sequential Health Check/Final Gate records do not dirty the source checkout.
 The upload step is their retained CI artifact; child suite links include an
 archive-relative path that remains usable after download.
+
+The same workflow also has a `full-python-tests` job. It runs every
+`api/tests/test_*.py` module through `ai-dnd/scripts/full_python_suite.py`,
+split into shards (the shard count is in the workflow file, not here). It
+needs no live model. Its result is a CI check, not a retained evidence record.
 Failure evidence is uploaded with `always()` and retained for **30 days**; this
 artifact retention is finite, not a permanent replacement for the project's
 durable evidence archives. No workflow has run merely because its YAML validates.

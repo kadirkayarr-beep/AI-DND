@@ -4322,6 +4322,9 @@ export const GetGameSessionSpellPreparationParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const getGameSessionSpellPreparationResponseSpellbookOptionsDefault = [];
+export const getGameSessionSpellPreparationResponseSuggestedSpellbookDefault = [];
+
 export const GetGameSessionSpellPreparationResponse = zod.object({
   "session_id": zod.string().uuid(),
   "supported": zod.boolean(),
@@ -4332,7 +4335,9 @@ export const GetGameSessionSpellPreparationResponse = zod.object({
   "limit": zod.number().int(),
   "candidates": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
-  "spellbook": zod.array(zod.string()).nullish()
+  "spellbook": zod.array(zod.string()).nullish(),
+  "spellbook_options": zod.array(zod.string()).default(getGameSessionSpellPreparationResponseSpellbookOptionsDefault).describe('D-039, only while blocked_reason is spellbook_missing; the spells the book may hold.'),
+  "suggested_spellbook": zod.array(zod.string()).default(getGameSessionSpellPreparationResponseSuggestedSpellbookDefault).describe('D-039, only while blocked_reason is spellbook_missing; the engine\'s offer, which the player may change.')
 })
 
 
@@ -4349,10 +4354,16 @@ export const prepareGameSessionSpellsBodyPreparedItemMax = 64;
 export const prepareGameSessionSpellsBodyPreparedMax = 32;
 
 export const prepareGameSessionSpellsBodyCloseDefault = false;
+export const prepareGameSessionSpellsBodySpellbookItemMax = 64;
+
+export const prepareGameSessionSpellsBodySpellbookMax = 32;
+
+
 
 export const PrepareGameSessionSpellsBody = zod.object({
   "prepared": zod.array(zod.string().max(prepareGameSessionSpellsBodyPreparedItemMax)).max(prepareGameSessionSpellsBodyPreparedMax).nullish(),
   "close": zod.boolean().default(prepareGameSessionSpellsBodyCloseDefault),
+  "spellbook": zod.array(zod.string().max(prepareGameSessionSpellsBodySpellbookItemMax)).max(prepareGameSessionSpellsBodySpellbookMax).nullish().describe('D-039 one-time spellbook choice of an old save\'s Wizard (exactly six distinct Wizard level-1 spells, checked by the server); sent alone, never with prepared or close.'),
   "action_id": zod.string().uuid()
 }).describe('Omitted (or null) prepared keeps today\'s list; an explicit empty list is an explicit empty list.')
 
@@ -5444,7 +5455,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
 }).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
-  "status": zod.enum(['prepared', 'too_many']),
+  "status": zod.enum(['prepared', 'too_many', 'spellbook_saved']),
   "prepared": zod.array(zod.string()),
   "dropped": zod.array(zod.object({
   "spell_id": zod.string(),
