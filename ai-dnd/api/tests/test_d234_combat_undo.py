@@ -40,6 +40,8 @@ _NEW_PER_ACTION = {"action_id", "attack_id", "resolution_id", "event_id", "nonco
 
 # A fight started again gets a new uuid4 combat_id; the monster's turn ids are built from it. Never the dice.
 _NEW_PER_FIGHT = {"combat_id", "decision_id", "turn_id", "started_turn"}
+# ...and only inside the fight's own records: the fight, the monsters' turns, the attack results.
+_FIGHT_RECORDS = (".world_state.combat.", ".world_state.monster_combat.", ".world_state.attack_results[")
 # A committed undo is a new revision of the same campaign, written at a new wall-clock second.
 _REVISION_KEYS = {"revision", "updated_at", "last_played_at"}
 
@@ -108,7 +110,6 @@ class CombatTurnUndo(unittest.IsolatedAsyncioTestCase):
 
     async def played_then_undone(self, campaign, session, message, target_id, *, fight_before=True):
         """Play one turn, undo it, then play the same words again; return the turn's changed paths."""
-        fresh = _NEW_PER_ACTION | (set() if fight_before else _NEW_PER_FIGHT)
         url = f"/api/game/sessions/{campaign['session_id']}"
         session.rng.seed(234)
         self.manager.save_campaign(campaign["campaign_id"])  # the stored campaign starts as the set-up scene
@@ -135,7 +136,9 @@ class CombatTurnUndo(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(again.status_code, 200, again.text)
         self.assertEqual(again.json()["narration"], turn.json()["narration"], "the same words roll the same dice")
         fresh_ids = [path for path in _paths(after, session.serialize_game_state())
-                     if path.rsplit(".", 1)[-1] not in fresh]
+                     if path.rsplit(".", 1)[-1] not in _NEW_PER_ACTION
+                     and (fight_before or path.rsplit(".", 1)[-1] not in _NEW_PER_FIGHT
+                          or not path.startswith(_FIGHT_RECORDS))]
         self.assertEqual(fresh_ids, [], "and lead to the very same fight (only new receipt ids differ)")
         return changed
 
