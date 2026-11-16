@@ -8615,8 +8615,9 @@ def _spoken_name_answer(spoken_text, npc):
 
 _SPEECH_ANSWER_RULES = (
     "Önce oyuncunun sorusunu cevapla; sorulan şey senin işin değilse kendi işini anlatma. "
-    "Biliyorsan söyle, bilmiyorsan bilmediğini kendi sesinle tam bir cümleyle söyle; gizem, kaçamak veya "
-    "fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
+    "Biliyorsan söyle. Bilmiyorsan çıplak bir “bilmiyorum” ile bitirme: kendi sesinle, aşağıda duyduğun bir "
+    "söylentiyi ya da yeri aktar veya bunu kimin ya da nerenin bilebileceğini söyle (aşağıdaki adlar ya da hancı, "
+    "muhafız, pazar gibi; yeni ad uydurmadan); gizem, kaçamak veya fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
     "Sıradan ifadeleri konuşmanın bağlamıyla anla; konu belliyse yeniden sordurma. "
     "Pazarlık ve yaratıcı denemelere alan aç, başarıyı garanti etme; yeni kilit, şart veya ücret "
     "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
@@ -8923,10 +8924,19 @@ def _overheard_work(world):
         return None
 
 
+_ASKS_WHO_YOU_ARE = re.compile(r"(?:adin|adiniz|isim|ismin|isminiz|kimsin|kimsiniz)")
+
+
 def _town_fallback(world, npc, player_input):
-    """Only when no model reply could be used and the player asked about the town."""
+    """Only when no model reply could be used: work, the news, or any question not about the person or the player.
+
+    D-237/D-247 (K7, Kadir): such a question gets a real lead or a place to ask, never a bare "I don't know".
+    """
     import town_knowledge
-    if local_dialogue.personal_question_kind(player_input) != "local_work" and not _asks_what_is_going_on(player_input):
+    kind = local_dialogue.personal_question_kind(player_input)
+    open_question = (kind is None and interaction_adventure._asks(player_input)
+                     and not _ASKS_WHO_YOU_ARE.search(_normalize_turkish_typos(player_input)))
+    if kind != "local_work" and not _asks_what_is_going_on(player_input) and not open_question:
         return None
     try:
         return town_knowledge.fallback_line(world, npc)
@@ -9128,7 +9138,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     if local_dialogue.personal_question_kind(player_input) == "local_work":
         lines.append(
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
-            "varsa onu söyle, yoksa bilmediğini söyle."
+            "varsa onu söyle, yoksa kimin ya da nerenin bilebileceğini söyle."
         )
     handed = getattr(_session(), "_handed_note", None)
     if handed:
@@ -14101,7 +14111,7 @@ def ask_dungeon_master(
             "gerçekleşti. Bir eşya aktarımı, yeni gerçek, ödül, sözün yerine getirilmesi, "
             "görev başarısı veya oyuncunun sonraki adımını uydurma. NPC'nin onayı henüz "
             "alınmadıysa onay vermiş gibi yazma. İddia/inanç/söylenti gerçek değildir. "
-            "Bilmeyen NPC doğal biçimde bilmediğini söyler; AI, veri, model, kayıt, "
+            "Bilmeyen NPC çıplak bir “bilmiyorum” ile bitirmez, kimin ya da nerenin bilebileceğini söyler; AI, veri, model, kayıt, "
             "Python veya sunucudan söz etme. Başka NPC adına konuşma. "
             "world_updates ve lore_claims boş kalmalı; yalnızca narration yaz.\n"
             + json.dumps({"where_now": living_world.place_in_plain_words(world_state),
@@ -14282,7 +14292,7 @@ def ask_dungeon_master(
             "veya bilmediğini söylesin. Gündelik küçük sohbete kısa, doğal ve karaktere uygun bir yanıt ver; "
             "soruyu gerçekten yanıtlayan, tek kısa ve dilbilgisel bir repliği önce ver; çevreyi veya oyuncuyu anlatma. "
             "Python action result açıkça bir teklif içermedikçe iş, ödül, görev veya yardım sözü verme; "
-            "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmediğini sade biçimde söyle. "
+            "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmiyorsa kimin ya da nerenin bilebileceğini söylesin. "
             f"Diğer NPC'lerin bildiklerini veya geçmiş diyaloglarını {living_world.public_npc_name(npc_target)} biliyormuş gibi anlatma. "
             "Bu geçici tepkiyi lore gibi sunma veya 'doğrulanmış bilgi yok' kalıbına sığınma. "
             "Önceki cevabı tekrar etme; sadece güncel soruyu yanıtla."
@@ -23578,7 +23588,9 @@ def _run_player_turn_internal(
                 if experimental_npc_dialogue:
                     terms = _offer_terms_shown(world_state, npc_target, player_input, text)
                     if terms:
-                        text = f"{text} “{terms}”"
+                        # D-247: a stock "I don't know" never sits beside the job's own terms; the terms are the answer.
+                        bare = text == interaction_adventure.immersive_unknown(npc_target, player_input)
+                        text = f"{living_world.public_npc_name(npc_target)}, “{terms}”" if bare else f"{text} “{terms}”"
                     _remember_experimental_npc_speech(
                         npc_target["id"], player_input, text, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True
                     )
