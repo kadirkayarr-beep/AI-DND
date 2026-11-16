@@ -34,15 +34,21 @@ def _words_of(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
     return world_threads.sentence(world_threads._fill(line, place=place["name"]))
 
 
+def _spoke(entry: dict[str, Any], npc: dict[str, Any]) -> bool:
+    """D-249 X2: this person said the rumour aloud (any speaker, not only the first)."""
+    speakers = entry.get("speakers")
+    return npc.get("id") in (speakers if isinstance(speakers, list) else ()) or entry.get("said_by") == npc.get("id")
+
+
 def _heard(world: dict[str, Any], npc: dict[str, Any], settlement_id: str, percent: Any) -> list[dict[str, Any]]:
     """Rumours people of this town were heard saying: the speaker always knows its own, others by coverage."""
     found = []
     for entry in world.get("heard_rumours") or []:
         if not isinstance(entry, dict) or entry.get("settlement_id") != settlement_id or not entry.get("text") or not entry.get("id"):
             continue
-        if entry.get("said_by") == npc.get("id") or percent(npc.get("id"), "rumour", entry["id"]) < HEARD_PERCENT:
+        if _spoke(entry, npc) or percent(npc.get("id"), "rumour", entry["id"]) < HEARD_PERCENT:
             found.append(entry)
-    found.sort(key=lambda entry: (entry.get("said_by") != npc.get("id"), percent(npc.get("id"), "rumour_order", entry["id"])))  # own words first
+    found.sort(key=lambda entry: (not _spoke(entry, npc), percent(npc.get("id"), "rumour_order", entry["id"])))  # own words first
     return [{"kind": "rumour", "text": entry["text"], "location_id": entry.get("place_id"), "thread_id": None} for entry in found]
 
 

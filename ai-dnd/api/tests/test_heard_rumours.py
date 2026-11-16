@@ -10,6 +10,7 @@ from unittest.mock import patch
 import game
 import heard_rumours
 import local_places
+import town_rumours
 from api.tests.test_world_threads import city
 
 _WORDS = (
@@ -17,6 +18,10 @@ _WORDS = (
     "Çatalhöyük", "Dumanlı", "Elmalı", "Fırtına", "Gölgeli", "Hancı", "Işıklı", "Kuzgun", "Lodos", "Mercan",
     "Nehirli", "Ormanlı", "Pusulu", "Rüzgâr", "Sarıkaya", "Tuzlu", "Uçurum", "Vadili", "Yıldız", "Zeybek",
 )
+
+
+# A claim with no mechanical word inside it ("altında" holds "altın" and is dropped by the location cleaner).
+CLAIM = "Kuyunun dibinde bir kapı var"
 
 
 def mention(name="Eski Mahzen", place_kind="archive", about="Kuyunun altında", kind="place"):
@@ -216,6 +221,54 @@ class RumourLane(unittest.TestCase):
         self.assertEqual(again["id"], first["id"])
         self.assertEqual(len(self.world["locations"]), count)
         self.assertEqual(len(self.world["heard_rumours"]), 1)
+
+    def test_claim_about_an_existing_place_is_kept(self):
+        smithy = local_places.create_local_place(self.world, "city", "smithy")
+        entry = self.say(name=smithy["name"], place_kind="smithy", about="Çizelgeden bir isim silinmiş")
+        self.assertEqual(entry["place_id"], smithy["id"])
+        self.assertEqual(entry["text"], f"{smithy['name']}: Çizelgeden bir isim silinmiş")
+
+    def test_a_second_speaker_of_the_same_rumour_is_recorded(self):
+        self.world["npcs"].append({"id": "npc_002", "name": "Oduncu", "public_name": "Oduncu", "location": "city"})
+        first = self.say(about=CLAIM, turn=1)
+        again = heard_rumours.record_mention(game, self.world, self.world["npcs"][1], mention(about=""), 2)
+        self.assertEqual(again["id"], first["id"])
+        self.assertEqual(len(self.world["heard_rumours"]), 1)
+        self.assertEqual(again["speakers"], ["npc_001", "npc_002"])
+        self.assertEqual(again["said_by"], "npc_001")
+        self.assertEqual(again["text"], f"Eski Mahzen: {CLAIM}")  # first claim kept
+
+    def test_the_same_speaker_twice_is_listed_once(self):
+        self.say(turn=1)
+        again = self.say(turn=2)
+        self.assertEqual(again["speakers"], ["npc_001"])
+
+    def test_a_later_claim_fills_a_bare_entry(self):
+        first = self.say(about="", turn=1)
+        self.assertEqual(first["text"], "Eski Mahzen")
+        again = self.say(about=CLAIM, turn=2)
+        self.assertEqual(again["text"], f"Eski Mahzen: {CLAIM}")
+
+    def test_money_in_a_claim_about_an_existing_place_is_still_emptied(self):
+        smithy = local_places.create_local_place(self.world, "city", "smithy")
+        entry = self.say(name=smithy["name"], place_kind="smithy", about="Kapısında 40 altın saklı")
+        self.assertEqual(entry["text"], smithy["name"])
+
+    def test_clean_location_description_keeps_words_and_drops_mechanics(self):
+        self.assertEqual(game.clean_location_description(f"  {CLAIM}  "), CLAIM)
+        self.assertEqual(game.clean_location_description("Girene 5 hasar verir"), "")
+        self.assertEqual(game.clean_location_description(None), "")
+        self.assertEqual(game.clean_location_description("a" * 240), "a" * 240)
+        self.assertEqual(game.clean_location_description("a" * 241), "")  # validate_location_proposal's own rule
+
+    def test_every_speaker_carries_the_rumour_in_town_talk(self):
+        self.world["npcs"].append({"id": "npc_002", "name": "Oduncu", "public_name": "Oduncu", "location": "city"})
+        entry = self.say(turn=1)
+        heard_rumours.record_mention(game, self.world, self.world["npcs"][1], mention(about=""), 2)
+        for npc in self.world["npcs"]:
+            with self.subTest(npc["id"]):
+                carried = town_rumours.rumour_for(self.world, npc, "city", percent=lambda *a: 99, listed=())
+                self.assertIn(entry["text"], [item["text"] for item in carried])
 
     def test_bad_names_and_kinds_are_rejected_silently(self):
         cases = {
