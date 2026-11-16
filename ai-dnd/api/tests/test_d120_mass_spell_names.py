@@ -35,17 +35,29 @@ class MassSpellNameTests(unittest.TestCase):
         world_after["combat"]["participant_records"][0] = world_before["combat"]["participant_records"][0]
         self.assertEqual(world_after, world_before)
 
-    def test_a_typed_mass_healing_word_is_refused_without_spending(self):
+    def test_a_typed_turkish_mass_healing_word_gets_the_not_yet_line_without_spending(self):
+        # D-257 (boundary moved, approval list): the Turkish name now reaches the layer-3 owner like the English name
+        # (D-214), so the turn ends with "not in the engine yet" instead of an unsupported_spell error. The same strict
+        # checks as the English test: nothing is spent or healed, the world moves only by the turn's own bookkeeping.
         for line in ("Toplu Şifa Sözü büyüsünü kendime yapıyorum",
                      "toplu sifa sozu buyusunu kendime yapiyorum"):
             with self.subTest(line=line):
                 s, _enemy = cleric()
                 s.character["current_hp"] = 10
-                before = held(s)
-                with self.assertRaises(CombatRequestError) as raised:
-                    typed(s, line, dice=2)
-                self.assertEqual(raised.exception.code, "unsupported_spell")
-                self.assertEqual(held(s), before)
+                world_before, character_before = held(s)
+                result = typed(s, line, dice=2)
+                action = result["action_result"]
+                self.assertEqual((action["status"], action["reason"], action["spell"], action["slot_spent"]),
+                                 ("unsupported", "spell_not_in_engine", "Mass Healing Word", False))
+                self.assertIn("Mass Healing Word büyüsü henüz motorda yok", result["narration"])
+                world_after, character_after = held(s)
+                self.assertEqual(character_after, character_before)
+                self.assertEqual(world_after["flags"].pop("turn_index"), world_before["flags"].pop("turn_index") + 1)
+                record = world_after["combat"]["participant_records"][0]
+                self.assertEqual((record["id"], record["current_hp"], record["max_hp"]),
+                                 ("player", character_before["current_hp"], character_before["max_hp"]))
+                world_after["combat"]["participant_records"][0] = world_before["combat"]["participant_records"][0]
+                self.assertEqual(world_after, world_before)
 
     def test_mass_cure_wounds_is_not_cure_wounds(self):
         for line in ("I cast Mass Cure Wounds on myself", "Toplu Yara İyileştirme büyüsünü kendime yapıyorum",
