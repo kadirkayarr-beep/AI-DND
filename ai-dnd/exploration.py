@@ -283,9 +283,12 @@ def _time(session, seconds):
 
 def _damage(session, definition):
     import weapon_attack
-    mitigation = weapon_attack.mitigate(session, "player", definition["damage_type"], definition["damage"])
+    # Stone's Endurance answers any damage, not only attacks (PHB 2024; D-202); flat reduction precedes resistance.
+    reduced, flat_effects = session._reduce_attack_damage_to_player(definition["damage"])
+    mitigation = weapon_attack.mitigate(session, "player", definition["damage_type"], reduced)
     # Includes temporary HP, species endurance, massive damage and death policy.
-    return {**session._apply_attack_damage_to_player(mitigation["final_damage"], False, True),
+    result = session._apply_attack_damage_to_player(mitigation["final_damage"], False, True)
+    return {**result, "species_effects": flat_effects + result["species_effects"],
             "damage_type": definition["damage_type"]}
 
 

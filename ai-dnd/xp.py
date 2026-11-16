@@ -333,7 +333,7 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
     """Pay every beaten foe of an ended encounter in one all-or-nothing grant, once per creature for the campaign.
 
     A beaten foe is one that went down or accepted-surrendered in this fight (a foe that merely retreats is not). The caller must still have
-    the participant list. The player leaving, or falling unconscious, is not this function's job and pays nothing.
+    the participant list. The caller (game.end_combat) runs it for target_defeated, parley, relocated, player_stable and participants_left; a kill or knock-out is also paid at once by award_downed under the same receipt, so a later run pays nothing twice.
     """
     import monster_combat
     if not isinstance(combat, dict) or not isinstance(world, dict):
@@ -471,7 +471,7 @@ def award_completed_quest(world: dict[str, Any], character: dict[str, Any], ques
     amount = definition.get("xp")
     if type(amount) is not int or amount <= 0 or amount > MAX_GRANT:
         return None
-    return apply_xp(character, world, amount, f"quest:{quest_id}")
+    return _grant_or_refuse(character, world, [(f"quest:{quest_id}", amount)])  # a known refusal raises UnrecordableXp (D-060)
 
 
 def validate_saved_advancement(player: Mapping[str, Any], world: Mapping[str, Any], *, policy: int = 5) -> None:

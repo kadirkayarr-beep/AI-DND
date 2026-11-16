@@ -182,6 +182,118 @@ class SpeciesTraitTests(unittest.TestCase):
             session.character["species_trait_state"]["giant_ancestry_armed"]
         )
 
+    def _hill_tumble_hit(self, size):
+        session = make_session("Goliath", ancestry="hill")
+        session.resolve_species_trait_action("arm_giant_ancestry", armed=True)
+        target = {
+            "id": "tumble-target",
+            "name": "Tumble Target",
+            "current_hp": 40,
+            "max_hp": 40,
+            "armor_class": 10,
+            "combat_status": "active",
+            "size": size,
+            "strength_save_bonus": 9,
+        }
+        attack_fixture(session, target)
+        # A natural 20 would pass any Strength save; Hill's Tumble (PHB 2024) has none.
+        with (
+            patch("game.roll_attack", return_value=15),
+            patch("game.roll_damage", return_value=4),
+            patch("game.roll_d20", return_value=20) as d20,
+        ):
+            result = session.resolve_attack("attack", "Kılıç", game.WEAPONS["Kılıç"], target)
+        return session, target, result, d20
+
+    def test_goliath_hill_tumble_knocks_a_large_or_smaller_target_prone_without_a_save(self):
+        # D-201: PHB 2024 Hill's Tumble gives Prone on a hit to a Large or smaller creature; no saving throw.
+        for size in ("medium", "large"):
+            session, target, result, d20 = self._hill_tumble_hit(size)
+            self.assertTrue(target.get("prone"), size)
+            d20.assert_not_called()
+            self.assertEqual(
+                result["species_effects"], [{"trait": "hill_giant_ancestry", "knocked_prone": True}]
+            )
+            state = session.character["species_trait_state"]
+            self.assertEqual(state["giant_ancestry_uses_remaining"], 1)
+            self.assertFalse(state["giant_ancestry_armed"])
+
+    def test_goliath_hill_tumble_cannot_topple_a_huge_target_and_keeps_its_use(self):
+        # D-201: a Huge or larger creature is outside Hill's Tumble; the trait does not trigger, so no use is spent.
+        session, target, result, d20 = self._hill_tumble_hit("huge")
+        self.assertFalse(target.get("prone"))
+        d20.assert_not_called()
+        self.assertEqual(result["species_effects"], [])
+        state = session.character["species_trait_state"]
+        self.assertEqual(state["giant_ancestry_uses_remaining"], 2)
+        self.assertTrue(state["giant_ancestry_armed"])
+
+    def test_goliath_hill_tumble_needs_a_known_size_and_keeps_its_use(self):
+        # D-201: an unrecognised size cannot be shown to be Large or smaller, so Hill's Tumble fails closed.
+        session, target, result, d20 = self._hill_tumble_hit("colossal")
+        self.assertFalse(target.get("prone"))
+        d20.assert_not_called()
+        self.assertEqual(result["species_effects"], [])
+        state = session.character["species_trait_state"]
+        self.assertEqual(state["giant_ancestry_uses_remaining"], 2)
+        self.assertTrue(state["giant_ancestry_armed"])
+
+    def test_goliath_ancestry_needs_the_hit_to_deal_damage(self):
+        # D-197: PHB 2024 Giant Ancestry triggers on "hit ... and deal damage"; an immune target takes 0, nothing triggers.
+        for ancestry in ("fire", "frost", "hill"):
+            session = make_session("Goliath", ancestry=ancestry)
+            session.resolve_species_trait_action("arm_giant_ancestry", armed=True)
+            target = {
+                "id": "immune-target",
+                "name": "Immune Target",
+                "current_hp": 40,
+                "max_hp": 40,
+                "armor_class": 10,
+                "combat_status": "active",
+                "immunities": ["slashing"],
+            }
+            attack_fixture(session, target)
+            with (
+                patch("game.roll_attack", return_value=15),
+                patch("game.roll_damage", return_value=4),
+                patch.object(session.rng, "randint", return_value=6),
+            ):
+                result = session.resolve_attack("attack", "Kılıç", game.WEAPONS["Kılıç"], target)
+            self.assertTrue(result["hit"], ancestry)
+            self.assertEqual(result["damage"], 0, ancestry)
+            self.assertEqual(result["species_effects"], [], ancestry)
+            self.assertFalse(target.get("prone"), ancestry)
+            self.assertEqual(target["current_hp"], 40, ancestry)
+            state = session.character["species_trait_state"]
+            self.assertEqual(state["giant_ancestry_uses_remaining"], 2, ancestry)
+            self.assertTrue(state["giant_ancestry_armed"], ancestry)
+
+    def test_aasimar_celestial_revelation_needs_the_hit_to_deal_damage(self):
+        # D-197: PHB 2024 Celestial Revelation extra damage needs "when you deal damage"; an immune target takes 0.
+        session = make_session("Aasimar")
+        state = session._species_trait_state()
+        state["active_celestial_form"] = "heavenly_wings"
+        target = {
+            "id": "immune-target",
+            "name": "Immune Target",
+            "current_hp": 40,
+            "max_hp": 40,
+            "armor_class": 10,
+            "combat_status": "active",
+            "immunities": ["slashing"],
+        }
+        attack_fixture(session, target)
+        with (
+            patch("game.roll_attack", return_value=15),
+            patch("game.roll_damage", return_value=4),
+        ):
+            result = session.resolve_attack("attack", "Kılıç", game.WEAPONS["Kılıç"], target)
+        self.assertTrue(result["hit"])
+        self.assertEqual(result["damage"], 0)
+        self.assertEqual(result["species_effects"], [])
+        self.assertEqual(target["current_hp"], 40)
+        self.assertNotEqual(state.get("celestial_damage_used_turn"), game._species_player_turn_id())
+
     def test_orc_adrenaline_rush_and_short_rest_recharge(self):
         session = make_session("Orc")
         result = session.resolve_species_trait_action("adrenaline_rush")
@@ -260,6 +372,36 @@ class SpeciesTraitTests(unittest.TestCase):
             session.character["species_trait_state"]["giant_ancestry_uses_remaining"],
             1,
         )
+
+    def test_goliath_stone_endurance_answers_trap_damage_but_storm_needs_a_creature(self):
+        # D-202: PHB 2024 Stone's Endurance answers any damage ("When you take damage"); a trap is not a
+        # creature, so Storm's Thunder stays unspent.
+        import exploration
+
+        trap = {"damage": 5, "damage_type": "piercing"}
+        session = make_session("Goliath", ancestry="stone")
+        session.resolve_species_trait_action("arm_giant_ancestry", armed=True)
+        with patch.object(session.rng, "randint", return_value=6):
+            result = exploration._damage(session, trap)
+        self.assertEqual(result["damage"], 0)
+        self.assertEqual(session.character["current_hp"], 8)
+        self.assertEqual(
+            result["species_effects"],
+            [{"trait": "stone_giant_ancestry", "damage_reduced": 8, "damage_remaining": 0}],
+        )
+        state = session.character["species_trait_state"]
+        self.assertEqual(state["giant_ancestry_uses_remaining"], 1)
+        self.assertFalse(state["giant_ancestry_armed"])
+
+        session = make_session("Goliath", ancestry="storm")
+        session.resolve_species_trait_action("arm_giant_ancestry", armed=True)
+        result = exploration._damage(session, trap)
+        self.assertEqual(result["damage"], 5)
+        self.assertEqual(session.character["current_hp"], 3)
+        self.assertEqual(result["species_effects"], [])
+        state = session.character["species_trait_state"]
+        self.assertEqual(state["giant_ancestry_uses_remaining"], 2)
+        self.assertTrue(state["giant_ancestry_armed"])
 
     def test_goliath_large_form_reports_strength_advantage_and_speed(self):
         session = make_session("Goliath", ancestry="cloud")

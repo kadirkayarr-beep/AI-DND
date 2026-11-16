@@ -20,6 +20,8 @@ export interface QuestLogRow {
   objectives: string[];
   /** What the engine wrote when the job ended ("12 bakır ödendi"); null otherwise. */
   result: string | null;
+  /** The pay in copper the job's own terms promise (offered and running cards); null when the record has no terms. */
+  promised_cp: number | null;
   record_kind: string | null;
   raw_status: string;
 }
