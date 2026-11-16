@@ -141,6 +141,11 @@ def named(message: Any) -> tuple[str, str] | None:
     for spell in sorted(_manifest_names(), key=len, reverse=True):
         if re.search(rf"(?<![a-z0-9]){re.escape(_fold(spell))}(?![a-z0-9])", folded):
             return "not_yet", spell
+    import tr_names  # D-257: the Turkish names (and aliases) of those same spells, the longer name first
+    turkish = tr_names.spellings_for(_manifest_names())
+    for spelling in sorted(turkish, key=len, reverse=True):
+        if re.search(rf"(?<![a-z0-9]){re.escape(_fold(spelling))}(?![a-z0-9])", folded):
+            return "not_yet", turkish[spelling]
     return None
 
 
