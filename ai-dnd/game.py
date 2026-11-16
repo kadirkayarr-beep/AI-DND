@@ -1276,11 +1276,12 @@ _OPEN_SCARE = re.compile(
 def open_scare_try(player_input) -> bool:
     """D-099: "muhafızı korkutmaya çalışıyorum" is an attempt the dice settle, whoever it is aimed at. Only a present,
     first-person, finished sentence outside quotes counts (never "korkutmaya çalıştım", "beni korkutmaya çalışıyor", a
-    quoted threat, a plan, or words said to somebody)."""
-    if not isinstance(player_input, str) or "?" in player_input or ":" in player_input:
+    quoted threat, a plan, or words said to somebody). D-226: before a colon is the try, after it what is said."""
+    if not isinstance(player_input, str) or "?" in player_input:
         return False
     import living_world
-    bare = " ".join(re.findall(r"\w+", _normalize_turkish_typos(living_world._text_outside_quotes(player_input))))
+    told = living_world._text_outside_quotes(player_input).split(":", 1)[0]
+    bare = " ".join(re.findall(r"\w+", _normalize_turkish_typos(told)))
     return bool(_OPEN_SCARE.search(bare))
 
 
@@ -1292,10 +1293,16 @@ _SOMEONE_ELSES_PURSE = re.compile(
 
 # Dice guide 4.4/H01: a hide needs cover or obscurement. The engine knows the dark (night), a place with walls and a
 # door, and what cover the player names; anything else in the open by day is no hide (D-094, D-171).
-_COVER = re.compile(
-    r"\b(?:golge\w*|karanlig\w*|karanlik\w*|kalabalig\w*|kalabalik\w*|arkasina|arkasinda|ardina|ardinda|altina|"
+_COVER_WORD = (
+    r"(?:golge\w*|karanlig\w*|karanlik\w*|kalabalig\w*|kalabalik\w*|arkasina|arkasinda|ardina|ardinda|altina|"
     r"altinda|calilar\w*|calilig\w*|calilik\w*|caliya|calinin|agac\w*|fici\w*|sandig\w*|sandik\w*|perde\w*|sis\w*|kose\w*|kuytu\w*|siper\w*|"
-    r"cuval\w*|kayanin|kayalar\w*|duvarin\s+dibine)\b")
+    r"cuval\w*|kayanin|kayalar\w*|duvarin\s+dibine)")
+# D-225: a cover word the line denies is no cover: "hiçbir gölge", "gölgesiz", "siper ya da gölge olmayan", "ağaç
+# bile yok", "siper değil".
+_COVER = re.compile(
+    rf"(?<!\bhicbir )\b{_COVER_WORD}\b(?<!s[iu]z)"
+    rf"(?!(?:\s+(?:ya|da|de|ve|veya|ile|bile|falan|filan|hic|{_COVER_WORD}))*\s+"
+    r"(?:olmayan\w*|olmadig\w*|olmadan|bulunmayan\w*|bulunmadig\w*|yok(?:tu|tur|ken|mus)?\b(?!\s+ol)|degil\w*)\b)")
 # One's own thing hidden on oneself ("hançerimi kolumun içine gizliyorum") is Sleight of Hand, not a hide (D-176).
 _OWN_THING_HIDDEN = re.compile(r"\b(?!kendim)\w{2,}m[iu]\s+(?:\w+\s+){0,4}?(?:gizl|sakl)\w*")
 
@@ -12130,6 +12137,9 @@ def _narration_safety_decision(
         contradicted_failure = re.search(r"başarısız olur|başaramaz", text)
         if contradicted_failure:
             return reject("SKILL_RESULT_CONTRADICTION", contradicted_failure.group(0))
+        unmoved = _UNMOVED.search(_normalize_turkish_typos(text)) if action_result.get("skill") == "Intimidation" else None
+        if unmoved:
+            return reject("SKILL_RESULT_CONTRADICTION", unmoved.group(0))  # D-226: a won scare moves the person
     if ("kapı" in input_text or "kilit" in input_text) and outcome in (
         "failure", "critical_failure"
     ):
@@ -14764,6 +14774,13 @@ def _resolved_skill_result_narration(result):
 
 
 _TELLS_FAILURE = re.compile(r"\w+m[iu]yor\w*|\w+(?:ama|eme)(?:z|di|yacak)\w*|\bbasarisiz|\bsonuc vermedi|\byok\b|\bdegil\b")
+
+
+# D-226: what tells a scared person unmoved ("geri adım atmıyor", "sözlerin ona işlemiyor", "korkmuyorum").
+_UNMOVED = re.compile(
+    r"\b(?:geri\s+adim\s+atm(?:iyor|az|adi)|cekilm(?:iyor|ez|edi)|"
+    r"islem(?:iyor|ez|edi)|etkilen?m(?:iyor|ez|edi)|umursam(?:iyor|az|adi)|"
+    r"aldirm(?:iyor|az|adi)|korkm(?:uyor|az|adi)|yol\s+verm(?:iyor|ez|edi)|istifini\s+bozm(?:uyor|az|adi))\w*")
 
 
 def _states_the_failed_check(narration, result, player_input):
