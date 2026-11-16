@@ -8329,6 +8329,19 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
         # Early on purpose: a small model leaves late optional fields out. The engine lists the values per person.
         "asks_for": {"type": "string", "enum": ["none"]},
         "remember_player_line": {"type": "boolean"},
+        # D-249: one optional place or trail the NPC names; Python records it as a heard rumour. The engine fills
+        # `place_kind` and drops the whole field when the rumour lane is off.
+        "mentions": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": ["place", "trail"]},
+                "name": {"type": "string", "maxLength": 60},
+                "place_kind": {"type": "string", "enum": ["archive"]},
+                "about": {"type": "string", "maxLength": 120},
+            },
+            "required": ["kind", "name"],
+            "additionalProperties": False,
+        },
         "commitment": {
             "type": "object",
             "properties": {
@@ -8416,6 +8429,17 @@ def _experimental_recent_exchanges(npc_id):
         ):
             result.append({"player": item["player"], "npc": item["npc"]})
     return result[-_NPC_SPEECH_KEEP:]
+
+
+_MENTIONS_PROMPT_RULE = (
+    "mentions: Konuşmada adını verdiğin bir yer ya da iz varsa yalnız birini yaz; yer için türü listeden seç. "
+    "Para, ödül, görev ya da eşya yazma. Yoksa alanı hiç yazma."
+)
+
+
+def _rumour_lane_on() -> bool:
+    import heard_rumours
+    return heard_rumours.lane_enabled()
 
 
 def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False):
@@ -9796,6 +9820,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + "\n`coin_answer_for`: parayı hangi kalem için alıyor ya da reddediyorsun; emin değilsen `unclear`."
             + "\n`asks_for`: oyuncu senden şimdi oda ya da listedeki bir malı istiyorsa onu seç; istemiyorsa `none`."
             + "\n`remember_player_line`: oyuncunun bu sözünü kişisel hafızaya seçmek istiyorsan true."
+            + (f"\n{_MENTIONS_PROMPT_RULE}" if _rumour_lane_on() else "")
             + _experimental_speech_recap(interaction_context)
             + _local_place_recommendation_guidance(
                 player_input, interaction_context, world_state
@@ -9980,6 +10005,11 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         speech_npc = next((n for n in world_state.get("npcs", [])
                            if isinstance(n, dict) and n.get("id") == speech_npc_id), None)
         schema["properties"]["asks_for"]["enum"] = money_owner.askable(world_state, speech_npc)
+        import local_places
+        if _rumour_lane_on():
+            schema["properties"]["mentions"]["properties"]["place_kind"]["enum"] = list(local_places.PLACE_KINDS)
+        else:
+            del schema["properties"]["mentions"]
     if front_list is not None:
         import front_proposal
         schema = copy.deepcopy(schema)
@@ -23474,6 +23504,7 @@ def _run_player_turn_internal(
                         "coin_answer_for",
                         "asks_for",
                         "remember_player_line",
+                        "mentions",
                         "witness_recall",
                         "price_negotiation",
                         "commitment",
@@ -23773,6 +23804,12 @@ def _run_player_turn_internal(
                 coin_reply = ({"takes": "accept", "declines": "refuse"}.get(getattr(_session(), "_coin_answer", None))
                               if accepted_model_speech else None)
                 _record_spoken_coin_response(npc_target, coin_reply)
+                if accepted_model_speech and valid_speech_packet and _rumour_lane_on():
+                    import heard_rumours
+                    # D-249: what the person named is stored by Python only; a bad mention is dropped without a trace.
+                    heard_rumours.record_mention(
+                        sys.modules[__name__], _session().world_state, npc_target, raw_intent.get("mentions"),
+                        _session().world_state.get("flags", {}).get("turn_index", 0))
             if (
                 empty_model_narration
                 or unverified_history_echo
