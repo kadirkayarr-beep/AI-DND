@@ -8444,6 +8444,15 @@ def _rumour_lane_on() -> bool:
     return heard_rumours.lane_enabled()
 
 
+def _speech_answer_rules() -> str:
+    """The answer rules; with the rumour lane on the model may name places and trails (not new persons, jobs or facts)."""
+    if not _rumour_lane_on():
+        return _SPEECH_ANSWER_RULES
+    return (_SPEECH_ANSWER_RULES
+            .replace("yeni ad uydurmadan)", "yeni kişi ya da iş adı uydurmadan)")
+            .replace("yeni kişi, yer veya olgu uydurmadan", "yeni kişi ya da olgu uydurmadan"))
+
+
 def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False):
     """Remember one exchange the player actually saw. Not state, not evidence."""
     if (
@@ -9259,7 +9268,7 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
                    and decision.kind != "paid_before" else 0)
     card = truth_card.npc_view(world, npc=npc, held_out_cp=held_out_cp,
                                this_turn=getattr(_session(), "_turn_notes", ()))
-    return (_SPEECH_ANSWER_RULES + " ".join(lines) + "\n" + card + "\n" + bold_acts.speech_note(world, npc) + _town_note(world, npc)
+    return (_speech_answer_rules() + " ".join(lines) + "\n" + card + "\n" + bold_acts.speech_note(world, npc) + _town_note(world, npc)
             + town_knowledge.promise_note(world, npc)
             + town_knowledge.money_decided_note(getattr(_session(), "_thread_turn", None)) + "\n")
 

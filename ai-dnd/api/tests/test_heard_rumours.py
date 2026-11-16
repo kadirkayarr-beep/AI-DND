@@ -100,6 +100,20 @@ class RumourLane(unittest.TestCase):
         self.assertNotIn(by_turn[5]["id"], self.world["locations"])
         self.assertEqual(world_threads._used_places(state, "city"), [by_turn[1]["id"]])
 
+    def test_eviction_spares_a_place_an_npc_statement_points_at(self):
+        import npc_statements
+        for turn in range(1, 25):
+            self.say(name=f"{_WORDS[turn]} Mahzeni", turn=turn)
+        by_turn = {r["provenance"]["turn"]: r for r in self.rumoured()}
+        npc_statements.ensure(self.world)["references"].append(
+            {"id": "ref_0001", "kind": "place", "name": by_turn[1]["name"], "said_by": "npc_001",
+             "settlement_id": "city", "location_id": by_turn[1]["id"], "status": "resolved"})
+        for turn in (25, 26):
+            self.say(name=f"{_WORDS[turn]} Mahzeni", turn=turn)
+        self.assertIn(by_turn[1]["id"], self.world["locations"])
+        self.assertNotIn(by_turn[2]["id"], self.world["locations"])
+        self.assertNotIn(by_turn[3]["id"], self.world["locations"])
+
     def test_nothing_evictable_still_records_the_new_mention(self):
         for turn in range(1, 25):
             self.say(name=f"{_WORDS[turn]} Mahzeni", turn=turn)

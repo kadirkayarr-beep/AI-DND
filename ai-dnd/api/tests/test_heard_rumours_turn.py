@@ -243,5 +243,29 @@ class SubstringAliasDoesNotLink(unittest.TestCase):
         self.assertNotEqual(entry["place_id"], smithy["id"])
 
 
+class SpeechRulesFollowTheLane(unittest.TestCase):
+    """Owner decision (2026-11-16): lane on, the speech rules no longer ban place names; person, job and fact bans stay."""
+
+    def build(self, lane):
+        session = game.create_session(seed=7)
+        world = session.world_state
+        world["npcs"] = [{"id": "barman", "name": "Marek", "role": "Barmen", "location": world["location"], "current_hp": 10}]
+        with patch.dict("os.environ", {"AI_DND_RUMOUR_LANE": lane}):
+            return game._experimental_speech_note(world, world["npcs"][0], None, "Selam", session=session)
+
+    def test_lane_on_has_no_place_ban(self):
+        note = self.build("1")
+        self.assertNotIn("yer veya", note)
+        self.assertNotIn("yeni ad uydurmadan", note)
+        self.assertIn("yeni kişi ya da olgu uydurmadan", note)
+        self.assertIn("yeni kişi ya da iş adı uydurmadan", note)
+
+    def test_lane_off_keeps_the_old_text_exactly(self):
+        note = self.build("0")
+        self.assertIn("muhafız, pazar gibi; yeni ad uydurmadan)", note)
+        self.assertIn("yeni kişi, yer veya olgu uydurmadan.", note)
+        self.assertTrue(note.startswith(game._SPEECH_ANSWER_RULES))
+
+
 if __name__ == "__main__":
     unittest.main()

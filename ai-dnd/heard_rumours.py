@@ -35,13 +35,14 @@ def _rumoured_places(world: dict[str, Any], settlement_id: str) -> list[dict[str
 
 
 def _evict_oldest_unvisited(world: dict[str, Any], rumours: list[dict[str, Any]], settlement_id: str) -> bool:
-    """Never a place something still points at: a thread's place, a resident's home, the pending destination."""
+    """Never a place something still points at: a thread's place, a resident's home, the pending destination, a place an NPC statement refers to."""
     state = world_threads.view(world)
     in_use = set(world_threads._used_places(state, settlement_id)) if state else set()
     pending = (world.get("flags") or {}).get("pending_destination")
+    said = {ref.get("location_id") for ref in npc_statements.view(world).get("references", []) if isinstance(ref, dict)}
     unvisited = [record for record in _rumoured_places(world, settlement_id)
                  if not record.get("visited") and not record.get("resident_name")
-                 and record["id"] not in in_use and record["id"] != pending]
+                 and record["id"] not in in_use and record["id"] != pending and record["id"] not in said]
     if not unvisited:
         return False
     oldest = min(unvisited, key=lambda record: int((record.get("provenance") or {}).get("turn", 0) or 0))
