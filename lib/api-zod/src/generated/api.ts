@@ -4336,6 +4336,7 @@ export const GetGameSessionSpellPreparationResponse = zod.object({
   "candidates": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "spellbook": zod.array(zod.string()).nullish(),
+  "not_in_engine": zod.array(zod.string()).optional(),
   "spellbook_options": zod.array(zod.string()).default(getGameSessionSpellPreparationResponseSpellbookOptionsDefault).describe('D-039, only while blocked_reason is spellbook_missing; the spells the book may hold.'),
   "suggested_spellbook": zod.array(zod.string()).default(getGameSessionSpellPreparationResponseSuggestedSpellbookDefault).describe('D-039, only while blocked_reason is spellbook_missing; the engine\'s offer, which the player may change.')
 })

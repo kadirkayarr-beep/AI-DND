@@ -3636,6 +3636,7 @@ export interface SpellPrepareViewResponse {
   prepared: string[];
   /** @nullable */
   spellbook?: string[] | null;
+  not_in_engine?: string[];
   /** D-039, only while blocked_reason is spellbook_missing; the spells the book may hold. */
   spellbook_options?: string[];
   /** D-039, only while blocked_reason is spellbook_missing; the engine's offer, which the player may change. */

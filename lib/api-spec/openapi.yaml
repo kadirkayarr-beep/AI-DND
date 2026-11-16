@@ -3470,6 +3470,10 @@ components:
           - 'null'
           items:
             type: string
+        not_in_engine:
+          type: array
+          items:
+            type: string
         spellbook_options:
           description: D-039, only while blocked_reason is spellbook_missing; the spells the book may hold.
           type: array

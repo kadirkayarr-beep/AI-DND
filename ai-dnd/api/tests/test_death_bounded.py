@@ -144,6 +144,40 @@ class DeathBoundedTests(unittest.TestCase):
                         s.attempt_player_stabilization("medic")
                 self.assertEqual((s.serialize_game_state(), s.rng.getstate()), before)
 
+    def test_healers_kit_stabilizes_without_roll_and_spends_ten_uses(self):
+        # D-023 (Kadir 2026-11-15): 2024 Healer's Kit, no Medicine roll, 10 uses, item gone at zero.
+        s = self.unconscious()
+        s.world_state["npcs"].append({
+            "id": "medic", "location": s.world_state["location"],
+            "current_hp": 5, "combat_status": "active",
+        })
+        s.world_state.setdefault("inventory", []).append("Healer's Kit")
+        for left in range(9, -1, -1):
+            s.ensure_death_state().update(stable=False, recovery=None, successes=1, failures=1)
+            with patch("game.roll_d20", side_effect=AssertionError("Kit must not roll")):
+                result = s.attempt_player_stabilization("medic")
+            self.assertTrue(result["success"])
+            self.assertEqual(result["healers_kit"]["uses_left"], left)
+            self.assertTrue(s.ensure_death_state()["stable"])
+            self.assertEqual(s.character["current_hp"], 0)
+            kits = [i for i in s.world_state["inventory"]
+                    if (i.get("name") if isinstance(i, dict) else i) == "Healer's Kit"]
+            self.assertEqual(len(kits), 1 if left else 0)
+        s.ensure_death_state().update(stable=False, recovery=None)
+        with self.assertRaises(ValueError):
+            s.attempt_player_stabilization("medic")
+
+    def test_healers_kit_missing_keeps_medicine_roll(self):
+        s = self.unconscious()
+        s.world_state["npcs"].append({
+            "id": "medic", "location": s.world_state["location"],
+            "current_hp": 5, "combat_status": "active", "medicine_bonus": 0,
+        })
+        with patch("game.roll_d20", return_value=10) as medicine:
+            result = s.attempt_player_stabilization("medic")
+        self.assertEqual(medicine.call_count, 1)
+        self.assertNotIn("healers_kit", result)
+
     def test_noncombat_timing_and_natural_twenty(self):
         s = self.unconscious()
         with patch("game.roll_d20", return_value=20) as die:
@@ -2056,3 +2090,12 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                     _, record, _, _, _ = restarted.resume_campaign(a["campaign_id"])
                     self.assertEqual(record.game_session.rng.getstate(), before_rng)
                     self.assertEqual(record.game_session.ensure_death_state(), before_death)
+
+
+class HealersKitRecordRobustness(unittest.TestCase):
+    def test_a_garbage_uses_left_neither_crashes_nor_loses_the_kit_silently(self):
+        import item_use
+        for bad in ("abc", True, 0, -3, None):
+            world = {"inventory": [{"name": "Healer's Kit", "item_id": "kit-1", "uses_left": bad}]}
+            result = item_use.spend_healers_kit(world)
+            self.assertEqual(result["uses_left"], item_use.HEALERS_KIT_USES - 1, bad)
