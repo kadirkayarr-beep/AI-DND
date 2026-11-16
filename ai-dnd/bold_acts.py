@@ -75,12 +75,22 @@ _CAUGHT = (
     "{n} bileğini yakalıyor. “Elini çek! Bir daha görürsem bu kadar nazik olmam.”",
     "{n} bir anda dönüp sana bakıyor. “Ne yaptığını sanıyorsun sen?”",
     "{n} elini tokatlıyor. “Hırsız mısın, deli mi? Defol!”",
+    "{n} bileğini kıvırıp bırakıyor. “Bir daha uzatırsan o parmakları tek tek kırarım.”",
+    "{n} yakana yapışıyor. “Gözüm üstünde, sıçan. Muhafız çağırmadan siktir git.”",
+    "{n} elini havada yakalıyor, tırnakları etine geçiyor. “Yanlış kişiyi seçtin.”",
+    "{n} soğuk soğuk gülüyor. “O kadar kolay mı sandın? Defol, yoksa pişman olursun.”",
+    "{n} kolunu sertçe itiyor. “Bir dahakine o eli keser, kapıya çivilerim.”",
 )
 _NOTHING_THERE = (
     "Karıştırıp bakıyorsun; alınacak değerde bir şey çıkmıyor.",
     "Elini attığın yerden işe yarar bir şey çıkmıyor; elin boş dönüyor.",
     "Yokluyorsun ama para eden bir şey bulamıyorsun.",
+    "Parmakların yalnız toz ve kırıntı buluyor; çalmaya değer bir şey yok.",
+    "Aradığın yerde işe yarar hiçbir şey yok; boşuna risk aldın.",
+    "Didikleyip bakıyorsun; birkaç değersiz kırıntıdan başka bir şey çıkmıyor.",
 )
+# D-251: which line of each table was said last; the next draw skips it (an old save has none).
+_LINES_SAID = "bold_lines_said"
 
 
 def fold(session, text: str) -> str:
@@ -527,9 +537,24 @@ def answer_to_known_doer(session, result: Any) -> None:
     result["narration"] = " ".join([str(result.get("narration") or ""), line]).strip()
 
 
+def _fresh(session, kind: str, table: tuple[str, ...]) -> str:
+    """A line from the table, never the one this table gave last time (D-251)."""
+    flags = session.world_state.setdefault("flags", {})
+    said = flags.get(_LINES_SAID)
+    if not isinstance(said, dict):
+        said = flags[_LINES_SAID] = {}
+    index = session.rng.choice([i for i in range(len(table)) if i != said.get(kind)])
+    said[kind] = index
+    return table[index]
+
+
 def _pick_line(session, npc: dict[str, Any]) -> str:
     name = living_world.public_npc_name(npc)
-    return session.rng.choice(_CAUGHT).format(n=name)
+    return _fresh(session, "caught", _CAUGHT).format(n=name)
+
+
+def _empty_line(session) -> str:
+    return _fresh(session, "empty", _NOTHING_THERE)
 
 
 def _check(session, skill: str, dc: int) -> dict[str, Any]:
@@ -642,7 +667,7 @@ def _steal(session, text: str) -> dict[str, Any]:
     thing = None if _PURSE_WORD.search(folded) else _thing_named(folded)
     if check["result"] != "BAŞARILI":
         if watcher is None:
-            return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "failed", check, [])
+            return _reply(session, _empty_line(session), "theft", "failed", check, [])
         relationships.note(world, watcher["id"], -3, f"caught_stealing:{world.get('flags', {}).get('turn_index', 0)}")
         remember(session, "theft", "seni soymaya kalktı", victim_id=watcher["id"])["rumour"] = (
             f"{living_world.public_npc_name(watcher)} soyulmak istenmiş")
@@ -650,7 +675,7 @@ def _steal(session, text: str) -> dict[str, Any]:
                       ["relationships"], npc_id=watcher["id"])
     # D-170: only the victim's own purse or a real till holds coin; somebody merely watching is no till
     if thing is None and not _coin_to_take(world, victim):
-        return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+        return _reply(session, _empty_line(session), "theft", "empty", check, [])
     if thing is None:
         coins = session.rng.randint(5, 40)
         wallets = world.setdefault("currency", {})
@@ -658,7 +683,7 @@ def _steal(session, text: str) -> dict[str, Any]:
             purse = _purse_of(wallets, victim)
             coins = min(coins, purse)
             if coins <= 0:
-                return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+                return _reply(session, _empty_line(session), "theft", "empty", check, [])
             wallets[victim["id"]] = purse - coins
         wallets["player"] = wallets.get("player", 0) + coins
         if victim is not None:
@@ -678,7 +703,7 @@ def _steal(session, text: str) -> dict[str, Any]:
             item = _carried(session, victim, thing)
             equipment_economy.move(world, item, victim["inventory"], world.setdefault("inventory", []), victim["id"])
         except equipment_economy.EquipmentError:  # worn armour, an unreachable or unresolved hand: not to be lifted
-            return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+            return _reply(session, _empty_line(session), "theft", "empty", check, [])
         if isinstance(item, dict) and isinstance(victim.get("item_consents"), dict):
             victim["item_consents"].pop(item.get("item_id"), None)  # a stolen thing carries no leave to give it
         remember(session, "theft_unseen", f"{living_world.public_npc_name(victim)} elinden {thing.lower()} eksildi",
@@ -687,7 +712,7 @@ def _steal(session, text: str) -> dict[str, Any]:
         world.setdefault("inventory", []).append(thing)
         remember(session, "theft_unseen", f"{_place_name(world, world.get('location'))} tezgâhından {thing.lower()} eksildi", seen=False)["item"] = thing
     else:
-        return _reply(session, session.rng.choice(_NOTHING_THERE), "theft", "empty", check, [])
+        return _reply(session, _empty_line(session), "theft", "empty", check, [])
     narration = f"Elin hızlı: {thing.lower()} artık sende, kimse bakmıyor."
     return _reply(session, narration, "theft", "stolen", check, ["player.inventory"], item=thing)
 
