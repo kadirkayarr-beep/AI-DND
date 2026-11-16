@@ -182,6 +182,45 @@ class TheAskedLook(unittest.TestCase):
         self.assertIn("çalmaya mı çalışıyorsun", line)
         self.assertIn("suç olarak kayda geçer", line)
 
+    def resolve_after(self, confirmed, deed=""):
+        """The line read again after the answer; the new reading (deed) is no theft."""
+        from unittest.mock import patch
+        self.session._heavy_confirmed = confirmed
+        asked = []
+        won = {"result": "BAŞARILI", "skill": "Sleight of Hand"}
+        with patch.object(bold_acts, "_check", return_value=won), \
+                patch.object(bold_acts, "_hand_to_whom", return_value=self.guard):
+            reply = bold_acts.resolve(self.session, self.LINE, deed, ask=lambda act: asked.append(act))
+        return reply, asked
+
+    def test_a_yes_to_the_asked_look_takes_whatever_the_new_reading_says(self):
+        # third review 2026-11-16: after "evet" the line is read again; a new reading that was no theft left the yes doing
+        # nothing at all
+        for deed in ("", None, "talk"):
+            with self.subTest(deed=deed):
+                self.setUp()
+                wallets = self.world["currency"]
+                player = wallets.get("player", 0)
+                reply, asked = self.resolve_after({"said": self.LINE, "allowed": [["deed", None, "steal_look"]]}, deed)
+                self.assertEqual(asked, ["steal_look"])
+                self.assertIsNotNone(reply)
+                taken = 7 - wallets[self.guard["id"]]
+                self.assertGreater(taken, 0)  # the coin comes out of the guard's purse, none is made
+                self.assertEqual(wallets["player"], player + taken)
+
+    def test_a_stale_or_other_yes_takes_nothing(self):
+        import copy
+        for confirmed in (None, {"said": "başka bir satır", "allowed": [["deed", None, "steal_look"]]},
+                          {"said": self.LINE, "allowed": [["deed", None, "steal"]]}, {"said": self.LINE, "allowed": 5},
+                          "evet"):
+            with self.subTest(confirmed=confirmed):
+                self.setUp()
+                before = copy.deepcopy(self.world)
+                reply, asked = self.resolve_after(confirmed)
+                self.assertIsNone(reply)
+                self.assertEqual(asked, [])
+                self.assertEqual(self.world, before)
+
 
 if __name__ == "__main__":
     unittest.main()

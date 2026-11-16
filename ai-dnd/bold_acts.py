@@ -1370,6 +1370,15 @@ def _looks_before_stealing(session, text: Any, deed: str | None) -> bool:
     return _stolen_now(session, text, bare) and bool(_LOOKS.search(bare)) and not _TAKES.search(bare)
 
 
+def _said_yes_to_the_look(session, text: Any) -> bool:
+    """D-224 third review: "evet" to the asked look plays this very line again, and its new reading may be no theft;
+    the yes still takes (the same shape ``game._heavy_allowed`` reads)."""
+    confirmed = getattr(session, "_heavy_confirmed", None)
+    allowed = confirmed.get("allowed") if isinstance(confirmed, dict) else None
+    return (isinstance(allowed, list) and confirmed.get("said") == str(text)
+            and ["deed", None, "steal_look"] in allowed)
+
+
 # "Muhafızın üstünü inceliyorum": a present, first-person, finished sentence; "... söylüyorum", "... dedim", a wish or a
 # question about it is speech or no act.
 _INSPECT_PERSON = re.compile(
@@ -1423,7 +1432,7 @@ def resolve(session, text: Any, deed: str | None = None, *, ask=None) -> dict[st
             return settled
     if _steals(session, text, deed):
         return (ask("steal") if ask else None) or _steal(session, text)
-    if ask is not None and _looks_before_stealing(session, text, deed):
+    if ask is not None and (_looks_before_stealing(session, text, deed) or _said_yes_to_the_look(session, text)):
         return ask("steal_look") or _steal(session, text)  # D-224 review: a look is asked; only a yes takes
     if is_arson(session, text) if deed is None else deed == "burn" and _can_be_done(session, text):
         return (ask("burn") if ask else None) or _burn(session)

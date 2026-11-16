@@ -1,6 +1,6 @@
 {
   "id": "54c_kese_inceleme_calma_okumasi",
-  "title": "Başkasının kesesini incelemek, okuma 'steal' dese de sormadan hırsızlık değildir (D-224 YÜKSEK; Kadir oynayışı 2026-11-15; inceleme 2026-11-16; SIFIR TOLERANS): \"Muhafızın kesesi var mı diye inceliyorum.\" ön okumada bag + deed steal; zar atılmaz, para geçmez, yalnız 'çalmaya mı çalışıyorsun?' sorulur; Geri Al ve yenileme soruyu siler; 'hayır' hiçbir şey taşımaz; 'evet' çalmayı oynatır; aynı kişiden açıkça çalmak yine suç sorusunu alır",
+  "title": "Başkasının kesesini incelemek, okuma 'steal' dese de sormadan hırsızlık değildir (D-224 YÜKSEK; Kadir oynayışı 2026-11-15; inceleme 2026-11-16; SIFIR TOLERANS): \"Muhafızın kesesi var mı diye inceliyorum.\" ön okumada bag + deed steal; zar atılmaz, para geçmez, yalnız 'çalmaya mı çalışıyorsun?' sorulur; Geri Al ve yenileme soruyu siler; 'hayır' hiçbir şey taşımaz; 'evet' çalmayı oynatır; aynı kişiden açıkça çalmak yine suç sorusunu alır; 'evet'ten sonra satır yeniden okunur ve yeni okuma çalma demese de 'evet' çalmayı oynatır (üçüncü inceleme 2026-11-16)",
   "source_items": [
     224
   ],
@@ -169,6 +169,40 @@
         "kisi_kese": {
           "kavsim": 7
         }
+      }
+    },
+    {
+      "say": "Muhafızın kesesi var mı diye inceliyorum.",
+      "script": {
+        "front": {
+          "kind": "bag",
+          "check": "Sleight of Hand",
+          "person_id": "kavsim",
+          "deed": "steal"
+        }
+      },
+      "expect": {
+        "zar": null,
+        "gerekli_metin": "çalmaya mı çalışıyorsun"
+      }
+    },
+    {
+      "say": "evet",
+      "script": {
+        "front": {
+          "kind": "unclear"
+        }
+      },
+      "expect": {
+        "zar": {
+          "beceri": "Sleight of Hand",
+          "zar_var": true
+        },
+        "kese": 2400,
+        "kisi_kese": {
+          "kavsim": 7
+        },
+        "gerekli_metin": "Hırsız mısın"
       }
     }
   ]
