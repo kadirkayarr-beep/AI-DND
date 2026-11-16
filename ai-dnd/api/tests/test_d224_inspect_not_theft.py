@@ -26,6 +26,13 @@ LOOKS = (
     "Kadının kesesini dikkatle süzüyorum",
     "Muhafızın cebini gözden geçiriyorum",
     "Kesesine şöyle bir göz atıyorum",
+    # review 2026-11-16: words that only begin like a take verb ("altın", "çalışıyorum", "kapıdaki", "dalgın")
+    "Kesesini incelemeye çalışıyorum",
+    "Muhafızın kesesinde altın var mı diye inceliyorum",
+    "Kapıdaki muhafızın kesesine bakıyorum",
+    "Dalgın muhafızın kesesine bakıyorum",
+    "Sokaktaki adamın kesesini süzüyorum",
+    "Çekmecenin üstündeki keseyi inceliyorum",
 )
 
 TAKES = (
@@ -37,6 +44,16 @@ TAKES = (
     "Kesesini kontrol edip cebime indiriyorum",
     "Kesesini yokluyorum",
     "Parmaklarımı keseye daldırıyorum",
+    # review 2026-11-16: look first, then take with a word the first guard missed
+    "Etrafa bakıp kesesini götürüyorum",
+    "Muhafıza bakarak kesesini hafifletiyorum",
+    "Kesesine bakıp çarpıyorum",
+    "Kesesine bakıp koparıyorum",
+    "Kontrol edip kesesini cebe atıyorum",
+    "Bakıp kesesini tırtıklıyorum",
+    "Kesesine bakıp elimi atıyorum",
+    "Kesesini inceleyip alıyorum",
+    "Kesesine bakıp çekip alıyorum",
 )
 
 

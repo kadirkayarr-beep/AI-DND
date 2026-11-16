@@ -57,9 +57,12 @@ _ONLY_A_WISH = re.compile(r"\b(?:istiyorum|isterim|niyetim\w*|plan\w*|dusun\w*)\
 # D-224: a line that only looks ("kesesi var mı diye inceliyorum") is no theft, whatever the reading says; any word of
 # taking or reaching in the same line keeps it one ("bakıp çalıyorum", "kimse bakmazken alıyorum").
 _LOOKS = re.compile(r"\b(?:incel\w*|bak(?:iyorum|ip|arak)|kontrol\s+ed\w*|suzuyorum|gozden\s+gecir\w*|goz\s+(?:at|gezdir)\w*)")
+# Short roots ("al", "çal", "kap", "çek", "dal", "sok", "kes", "çarp") count only with a verb ending, so "altın",
+# "çalışıyorum", "kapıdaki", "çekmece", "dalgın" and "sokaktaki" take nothing.
 _TAKES = re.compile(
-    r"\b(?:al(?:\w*)|cal\w*|asir\w*|yurut\w*|kap\w*|arakl\w*|kes(?:ip|erek|iyorum)|cek\w*|el\s+at\w*|indir\w*|sakl\w*|"
-    r"cebime|kistir\w*|yagmal\w*|dal\w*|sok\w*|uzan\w*|bosalt\w*|yokl\w*)\b")
+    r"\b(?:(?:al|cal|kap|cek|dal|sok|kes|carp)(?:[iu]yor\w*|[iu]p|[ae]r[ae]k|m[ae]k\w*|m[ae]y[ae]\w*)|"
+    r"asir\w*|yurut\w*|arakl\w*|el(?:imi|ini|i)?\s+at\w*|indir\w*|sakl\w*|cebime|cebe\s+at\w*|kistir\w*|"
+    r"yagmal\w*|daldir\w*|uzan\w*|bosalt\w*|yokl\w*|gotur\w*|hafiflet\w*|kopar\w*|tirtikl\w*)\b")
 _NOT_A_TRY = re.compile(
     r"\b(?:zil|kapi|flut|ud|davul|gong|tokmak|sarki|keman|lavta|melodi|kopuz|saz|islik|gitar|ney|arp|turku|muzik|ezgi|"
     r"kaval|boru|alarm|kalp|dikkat)\w*\s+cal(?:mak|maya)"
