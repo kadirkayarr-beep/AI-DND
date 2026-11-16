@@ -316,6 +316,10 @@ class Narrate(Fixture):
         self.assertNotIn("Hoş geldin", shaped)
         self.assertIn("Kapı gıcırdıyor.", shaped)
 
+    def test_the_arrival_call_leaves_room_for_six_sentences_in_its_json(self):
+        self.narrate(answer="Rüzgâr esiyor.")
+        self.assertEqual(self.client.calls[0]["options"]["num_predict"], 450)
+
     def test_last_narration_passed_up_to_1200_chars(self):
         facts = arrival_narration.facts(self.scene(), [{"role": "assistant", "content": "y" * 1500}])
         self.assertEqual(facts["son_anlatim"], "y" * 1200)

@@ -132,7 +132,7 @@ def narrate(game, scene: dict[str, Any], *, player_input, messages) -> tuple[str
                 model="qwen3:8b",
                 messages=[{"role": "system", "content": system},
                           {"role": "user", "content": json.dumps(facts(scene, messages), ensure_ascii=False)}],
-                format=SCHEMA, think=False, options={"temperature": 0.6, "num_predict": 250},
+                format=SCHEMA, think=False, options={"temperature": 0.6, "num_predict": 450},
             )
         packet = game._extract_json_object(game.ollama_response_content(response))
     except Exception:  # a fake that asserts, a timeout, a dead server: the turn keeps the Python text

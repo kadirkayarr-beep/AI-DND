@@ -46,7 +46,6 @@ LOCAL_REPLY_RESERVE_TOKENS = 600
 # After the 12B could not be loaded, its fallback answers for this long before the 12B is tried again,
 # so a full card does not swap models on every call.
 LOCAL_FALLBACK_REST_SECONDS = 600
-# Owner's rules for the local model's prose (Nov 2026). Local path only: the cloud models' prompt stays as it is.
 # D-250: the cloud models' own prose block, added to the first system text of a narration call (never to the local call).
 CLOUD_STYLE_RULES = (
     "BULUT ANLATIM KURALLARI: Sahneyi duyularla kur: ses, koku, ışık, dokunuş. "
@@ -55,6 +54,7 @@ CLOUD_STYLE_RULES = (
     "Tek satırlık kuru cevap verme; cevabı sahnedeki kişiye, yere ve ana bağla. "
     "Verilen kurallar ve sınırlar bu kuralların üstündedir."
 )
+# Owner's rules for the local model's prose (Nov 2026). Local path only.
 LOCAL_STYLE_RULES = (
     "YEREL ANLATIM KURALLARI: Kısa ve yalın cümleler kur. NPC ve yer adları Türkçe olsun. "
     "Parantez içinde İngilizce terim yazma; kural ve beceri adlarını yalnız Türkçe yaz "
