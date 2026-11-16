@@ -729,17 +729,26 @@ def _steal(session, text: str) -> dict[str, Any]:
     # without a count, R-12); anything else nobody here carries is not there to take
     import equipment_economy
     from weapon_catalog import lookup
-    if victim is not None and lookup(thing) is not None and _shown(session, thing):
-        # D-229 (K5 b): a catalog weapon the narration showed is a real thing of the person in the scene
+    made = None  # the index of a shown weapon written into the victim's inventory this turn
+    weapon = lookup(thing)
+    if (victim is not None and weapon is not None and _shown(session, thing)
+            and victim.get("role") != "Shopkeeper" and not victim.get("shop_id")):
+        # D-229 (K5 b): a catalog weapon the narration showed is a real thing of the person in the scene; once per
+        # person and weapon, since the same narration stays shown for turns; a shopkeeper's things are the stock
         equipment_economy.give_person_gear(world, victim)  # what they carry anyway is written first, never lost
-        if _carried(session, victim, thing) is None:
-            victim.setdefault("inventory", []).append(thing)  # given its identity by materialize below
+        if _carried(session, victim, thing) is None and weapon["weapon_id"] not in victim.get("shown_gear", []):
+            made = len(victim.setdefault("inventory", []))
+            victim["inventory"].append(thing)  # given its identity by materialize below
+            victim.setdefault("shown_gear", []).append(weapon["weapon_id"])
     if _carried(session, victim, thing) is not None:
         try:
             equipment_economy.materialize(world)
             item = _carried(session, victim, thing)
             equipment_economy.move(world, item, victim["inventory"], world.setdefault("inventory", []), victim["id"])
         except equipment_economy.EquipmentError:  # worn armour, an unreachable or unresolved hand: not to be lifted
+            if made is not None:  # the refused try made nothing
+                del victim["inventory"][made]
+                victim["shown_gear"].remove(weapon["weapon_id"])
             return _reply(session, _empty_line(session, thing), "theft", "empty", check, [])
         if isinstance(item, dict) and isinstance(victim.get("item_consents"), dict):
             victim["item_consents"].pop(item.get("item_id"), None)  # a stolen thing carries no leave to give it
