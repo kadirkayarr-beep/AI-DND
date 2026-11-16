@@ -8329,12 +8329,13 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
         # Early on purpose: a small model leaves late optional fields out. The engine lists the values per person.
         "asks_for": {"type": "string", "enum": ["none"]},
         "remember_player_line": {"type": "boolean"},
-        # D-249: one optional place or trail the NPC names; Python records it as a heard rumour. The engine fills
-        # `place_kind` and drops the whole field when the rumour lane is off.
+        # D-249: the place or trail the NPC names (kind "none" when none); Python records it as a heard rumour. The
+        # engine fills `place_kind`, makes the field required (live Haiku skips optional fields) and drops the whole
+        # field when the rumour lane is off.
         "mentions": {
             "type": "object",
             "properties": {
-                "kind": {"type": "string", "enum": ["place", "trail"]},
+                "kind": {"type": "string", "enum": ["none", "place", "trail"]},
                 "name": {"type": "string", "maxLength": 60},
                 "place_kind": {"type": "string", "enum": ["archive"]},
                 "about": {"type": "string", "maxLength": 120},
@@ -8432,8 +8433,9 @@ def _experimental_recent_exchanges(npc_id):
 
 
 _MENTIONS_PROMPT_RULE = (
-    "mentions: Konuşmada adını verdiğin bir yer ya da iz varsa yalnız birini yaz; yer için türü listeden seç. "
-    "Para, ödül, görev ya da eşya yazma. Yoksa alanı hiç yazma."
+    "mentions: Konuşmada adını verdiğin bir yer ya da iz varsa onu yaz (kind place ya da trail, name tam ad, "
+    "konuşmada geçtiği gibi); yer için türü listeden seç. Para, ödül, görev ya da eşya yazma. "
+    "Adını verdiğin yer ya da iz yoksa kind none, name boş."
 )
 
 
@@ -10008,6 +10010,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         import local_places
         if _rumour_lane_on():
             schema["properties"]["mentions"]["properties"]["place_kind"]["enum"] = list(local_places.PLACE_KINDS)
+            schema["required"] = [*schema["required"], "mentions"]
         else:
             del schema["properties"]["mentions"]
     if front_list is not None:

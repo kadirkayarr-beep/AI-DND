@@ -123,6 +123,7 @@ class MentionOverHttp(MentionTurnFixture):
         with patch.dict("os.environ", {"AI_DND_RUMOUR_LANE": "0"}):
             _, off, _ = await self.say(None)
         self.assertNotIn(game._MENTIONS_PROMPT_RULE, off.prompts[0])
+        self.assertIn("kind none", on.prompts[0])
 
     async def test_undo_removes_rumour_and_place(self):
         before = copy.deepcopy(self.world["locations"])
@@ -168,11 +169,32 @@ class MentionOverHttp(MentionTurnFixture):
         schema = client.formats[0]
         mentions = schema["properties"]["mentions"]
         self.assertEqual(mentions["properties"]["place_kind"]["enum"], list(local_places.PLACE_KINDS))
-        self.assertEqual(mentions["properties"]["kind"]["enum"], ["place", "trail"])
+        self.assertEqual(mentions["properties"]["kind"]["enum"], ["none", "place", "trail"])
         self.assertEqual(mentions["required"], ["kind", "name"])
-        self.assertNotIn("mentions", schema.get("required", []))
-        shaped = model_chain._haiku_schema(schema)["properties"]["mentions"]  # the sent schema survives Haiku shaping
+        self.assertIn("mentions", schema["required"])
+        shaped_schema = model_chain._haiku_schema(schema)  # the sent schema survives Haiku shaping
+        self.assertIn("mentions", shaped_schema["required"])
+        shaped = shaped_schema["properties"]["mentions"]
         self.assertEqual(shaped["properties"]["place_kind"]["enum"], list(local_places.PLACE_KINDS))
+        self.assertEqual(shaped["properties"]["kind"]["enum"], ["none", "place", "trail"])
+
+    async def test_lane_off_schema_has_no_mentions_in_required(self):
+        with patch.dict("os.environ", {"AI_DND_RUMOUR_LANE": "0"}):
+            _, client, _ = await self.say(None)
+        self.assertNotIn("mentions", client.formats[0]["properties"])
+        self.assertNotIn("mentions", client.formats[0]["required"])
+        self.assertEqual(client.formats[0]["required"], ["spoken_text", "stage_direction", "threat"])
+
+    async def test_kind_none_mention_records_nothing(self):
+        response, _, _ = await self.say({"kind": "none", "name": ""})
+        self.assertIn(SPOKEN, response.json()["narration"])
+        self.assertEqual(self.world["heard_rumours"], [])
+        self.assertEqual(self.rumoured(), [])
+
+    async def test_packet_without_mentions_key_is_still_accepted(self):
+        response, _, _ = await self.say(None)
+        self.assertIn(SPOKEN, response.json()["narration"])
+        self.assertEqual(self.world["heard_rumours"], [])
 
 
 class MentionOffline(unittest.TestCase):
@@ -181,7 +203,7 @@ class MentionOffline(unittest.TestCase):
         mentions["properties"]["place_kind"]["enum"] = list(local_places.PLACE_KINDS)  # what the engine fills per turn
         schema = {"type": "object", "properties": {"mentions": mentions}}
         shaped = model_chain._haiku_schema(schema)["properties"]["mentions"]
-        self.assertEqual(shaped["properties"]["kind"]["enum"], ["place", "trail"])
+        self.assertEqual(shaped["properties"]["kind"]["enum"], ["none", "place", "trail"])
         self.assertEqual(shaped["properties"]["place_kind"]["enum"], list(local_places.PLACE_KINDS))
         self.assertEqual(shaped["required"], ["kind", "name"])
         self.assertIs(shaped["additionalProperties"], False)
@@ -189,8 +211,9 @@ class MentionOffline(unittest.TestCase):
     def test_prompt_rule_text_is_exact(self):
         self.assertEqual(
             game._MENTIONS_PROMPT_RULE,
-            "mentions: Konuşmada adını verdiğin bir yer ya da iz varsa yalnız birini yaz; yer için türü listeden seç. "
-            "Para, ödül, görev ya da eşya yazma. Yoksa alanı hiç yazma.")
+            "mentions: Konuşmada adını verdiğin bir yer ya da iz varsa onu yaz (kind place ya da trail, name tam ad, "
+            "konuşmada geçtiği gibi); yer için türü listeden seç. Para, ödül, görev ya da eşya yazma. "
+            "Adını verdiğin yer ya da iz yoksa kind none, name boş.")
 
 
 class SubstringAliasDoesNotLink(unittest.TestCase):
