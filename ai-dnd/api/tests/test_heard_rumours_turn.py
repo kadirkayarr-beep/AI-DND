@@ -257,6 +257,43 @@ class AskedAboutHerOwnRumour(MentionTurnFixture):
         self.assertIn(reply, text)
         self.assertLessEqual(client.chat_calls, 2)
 
+    async def test_with_no_model_reply_left_she_still_does_not_deny_her_own_rumour(self):
+        # Opus review of F2: a typed line spends the front reading and the proposal; the speech call is then refused
+        # and Python answers. That Python answer must not be "Bir şey duymadım" about what she herself said.
+        await self.say({**MENTION, "about": "Çizelgeden bir isim silinmiş"})
+        npc = next(n for n in self.world["npcs"] if n["id"] == "npc_t2_edric")
+        text = game._person_fallback(self.world, npc, "Eski Mahzen hakkında ne biliyorsun?")
+        self.assertNotIn("duymadım", text)
+        self.assertNotEqual(text, game.interaction_adventure.immersive_unknown(npc, "Eski Mahzen hakkında ne biliyorsun?"))
+        self.assertIn("Çizelgeden bir isim silinmiş", text)
+
+    async def test_an_empty_speech_reply_over_the_real_turn_still_gives_her_words(self):
+        await self.say({**MENTION, "about": "Çizelgeden bir isim silinmiş"})
+        client = speech.ScriptedNpcSpeechClient(
+            "", operation="information",
+            conversation={"addressee_id": "npc_t2_edric", "subject_phrase": "Eski Mahzen",
+                          "subject_role": "world_entity", "meaning": "lore", "topic_relation": "new",
+                          "candidate_evidence_ids": []})
+        body = {"message": "Eski Mahzen hakkında ne biliyorsun?", "action_id": str(uuid.uuid4()),
+                "target_id": "npc_t2_edric"}
+        with patch.object(self.app.state.ollama_adapter, "_client", client):
+            response = await self.http.post(f"/api/game/sessions/{self.session_id}/turn", json=body)
+        self.assertEqual(response.status_code, 200, response.text)
+        text = response.json()["narration"]
+        self.assertNotIn("duymadım", text)
+        self.assertIn("Çizelgeden bir isim silinmiş", text)
+        self.assertLessEqual(client.chat_calls, 2)
+
+    async def test_someone_who_never_said_it_is_not_given_her_words(self):
+        await self.say({**MENTION, "about": "Çizelgeden bir isim silinmiş"})
+        other = {"id": "npc_t2_other", "name": "Brann", "role": "Yolcu", "location": self.world["location"],
+                 "reality_layer": "PROCEDURAL_LOCAL_FICTION"}
+        local_dialogue.ensure_personal_profile(other)
+        self.world["npcs"].append(other)
+        with patch("town_rumours.HEARD_PERCENT", 0):  # she has not heard it either
+            text = game._person_fallback(self.world, other, "Eski Mahzen hakkında ne biliyorsun?") or ""
+        self.assertNotIn("Çizelgeden bir isim silinmiş", text)
+
 
 class MentionOffline(unittest.TestCase):
     def test_schema_passes_haiku_shaping(self):

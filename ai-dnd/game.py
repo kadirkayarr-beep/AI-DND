@@ -9056,7 +9056,9 @@ def _town_fallback(world, npc, player_input):
     if kind != "local_work" and not _asks_what_is_going_on(player_input) and not open_question:
         return None
     try:
-        return town_knowledge.fallback_line(world, npc)
+        import heard_rumours
+        # D-249 F2: asked about what she herself said, she says it again before any other lead.
+        return heard_rumours.own_line(world, npc, player_input) or town_knowledge.fallback_line(world, npc)
     except Exception:
         town_knowledge.log_failure()
         return None

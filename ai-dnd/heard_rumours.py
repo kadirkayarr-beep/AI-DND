@@ -70,6 +70,21 @@ def said_in(text: Any, name: Any) -> bool:
     return re.search(rf"(?<!\w){re.escape(folded)}(?!\w)", npc_statements.fold(text)) is not None
 
 
+def own_line(world: dict[str, Any], npc: Any, player_input: Any) -> str | None:
+    """D-249 F2: asked about a place or trail she herself named, a person says what she said, never "I heard nothing"."""
+    import town_rumours
+    if not isinstance(npc, dict):
+        return None
+    for entry in reversed(world.get("heard_rumours") or []):
+        if not isinstance(entry, dict) or not isinstance(entry.get("text"), str) or not town_rumours._spoke(entry, npc):
+            continue
+        name, _, about = entry["text"].partition(": ")
+        if said_in(player_input, name):
+            about = about.strip().rstrip(".")
+            return f"{name} mi? Duyduğum şu: {about}." if about else f"{name} adını duydum; fazlasını bilmem."
+    return None
+
+
 def _exact_place(world: dict[str, Any], settlement_id: str, folded: str) -> str | None:
     """A place of this settlement (or the settlement itself) whose name or alias equals the name exactly."""
     for place_id, record in world.get("locations", {}).items():
