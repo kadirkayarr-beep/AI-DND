@@ -26,9 +26,11 @@ class EverydayWaitsForTheReading(FrontScene):
         self.npc["name_known_to_player"] = True
         place = self.a_place()
         self.client.front = {"kind": "go_to", "place_id": place}
-        out = await self.line("Adamın peşinden gidiyorum")
-        # the line names no place, so the walk owner may answer "no walk" (fallback:no_walk): never the follow lines
-        self.assertIn(self.routes()[-1]["route"], ("front:go_to", "fallback:no_walk"))
+        # the line names the listed place (Dilim 3D T5), so the walk owner answers
+        name = self.world["locations"][place]["name"]
+        out = await self.line(f"Adamın peşinden {name} yerine gidiyorum")
+        self.assertEqual(self.routes()[-1]["route"], "front:go_to")
+        self.assertIn(name, out["narration"])
         self.assertFalse(_followed(out["narration"]), out["narration"])
 
     async def test_everyday_without_reading(self):

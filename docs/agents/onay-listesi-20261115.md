@@ -148,3 +148,9 @@ Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi
 |---|---|---|
 | `test_story_links.HalfTruths.test_saying_it_in_your_own_way_is` | yanlış söylenti söylenince tehlike işi eskiden "heard" oluyordu (günlük gerçek satırı gösterirdi); şimdi iş "open" kalır, söylenti kendi sözleriyle `heard_rumours`ta | gevşetme olabilir (sınır yeniden tanımlandı; daha sıkı) |
 | Yeni `test_journal_heard.OneJobIsNeverAnother`, `FalseRumourKeepsItsOwnWords` | yeni (60 sabit kasaba, tüm sıralı çiftler: 0 çapraz eşleşme; yanlış söylenti) | gevşetme yok |
+
+## 12. BM görev 8 (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_world_keeps_its_word.LeavingTown.test_the_road_on_is_a_person_saying_why_not_now_and_nothing_moves` (şimdi `..._saying_why_not_and_the_walk_is_one_hour`), `test_the_road_on_read_as_an_attempt_is_still_no_journey` (şimdi `..._still_no_day_long_journey`), `test_a_far_city_read_as_the_street_stays_on_the_road` | BM T9 (K-BM-2) sonrası kırıktı (T9 bu üç testi güncellememişti): ilk "yola devam" artık uyarır VE bir sonraki yola yürür. Eski "hiçbir şey kıpırdamaz" yerine: konum değişir, saat tam +3600 sn (bir saatlik yol; günlük yolculuk ya da uzak şehre varış yok), kişi aynı turda tırnaklı söz söyler. Niyet aynı: gün sürecek yolculuk yok | gevşetme olabilir |
