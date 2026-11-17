@@ -53,5 +53,5 @@ Dosya: `C:\Users\Kadir\Desktop\AI-DND-TOOLS\slot_yama_20261117.diff` (özet). Ya
 ## Yeni defter satırları
 
 - D-294 kapalı, D-304 kısmen kapalı (yama bekliyor).
-- D-327: `ai-dnd/test_*.py` (36 dosya) CI'da koşmuyor; kalan 34 dosyanın durumu ölçülmedi.
-- D-328: paragraf yutan öbür süzgeçler (doğrulanmadı, `town_knowledge.without_unbacked_money` vb.).
+- D-329: `ai-dnd/test_*.py` (36 dosya) CI'da koşmuyor; kalan 34 dosyanın durumu ölçülmedi.
+- D-330: paragraf yutan öbür süzgeçler (doğrulanmadı, `town_knowledge.without_unbacked_money` vb.).
