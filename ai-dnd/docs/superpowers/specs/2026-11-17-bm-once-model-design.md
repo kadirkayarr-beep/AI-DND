@@ -191,6 +191,7 @@ A test pins "≤ 2 calls" for each row (`MAX_MODEL_CALLS_PER_TURN`).
 5. A line to a job owner that both asks something and accepts the job ("Tamam yaparım, Çarnuva nerede?"): accept is written once, the question is answered, no duplicate terms line.
 
 ## 10. Owner decisions (Kadir; yes/no)
+Kadir answered all five "yes" on 2026-11-17 ("Hepsine evet"). The design is approved for implementation.
 - K-BM-1: Approach A (every conversation line is read by the model first; local turns about +10 s, cloud about +2 s).
 - K-BM-2: B7 — the road warning is said and the walk happens in the same turn.
 - K-BM-3: NPC speech gets the arrival narration text the player saw (≤ 600 chars).
