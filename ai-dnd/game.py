@@ -9272,6 +9272,15 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             "Az önce şunları söyledin: " + " / ".join(line[:120] for line in said_before)
             + " Bunları aynen tekrar etme, yeni bir şey söyle."
         )
+    extras = talk_front.speech_extras(world, npc)  # BM Task 6: one line for each field the context carries
+    if "zaman" in extras:
+        lines.append(f"Şu an saat {extras['zaman']['saat']}, vakit {extras['zaman']['vakit']}: sözünü bu saate uydur "
+                     "(akşamsa sabah duasından ya da sabah işinden söz etme).")
+    if "sahne_anlatimi" in extras:
+        lines.append("Oyuncuya `sahne_anlatimi` alanındaki sahne gösterildi; sen o sahnenin içindesin: "
+                     "gösterilenleri inkâr etme, çelişme; en fazla azıcık ekleyebilirsin.")
+    if "son_sozlerin" in extras:
+        lines.append("Son sözlerin `son_sozlerin` alanında; aynı reddi ya da bahaneyi yeniden söyleme.")
     if local_dialogue.personal_question_kind(player_input) == "local_work":
         lines.append(
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
@@ -9397,6 +9406,10 @@ def _experimental_npc_dialogue_context(
             {"player_claims_unrecorded_past_event": True}
             if unverified_claim else {}
         ),
+        # BM Task 6: the hour, the arrival scene shown here, own words and work, last replies. A bare follow-up
+        # keeps the rumours out, like `perspective`.
+        **{key: value for key, value in talk_front.speech_extras(world, npc).items()
+           if not (followup and key == "kendi_sozlerin")},
     }
 
 

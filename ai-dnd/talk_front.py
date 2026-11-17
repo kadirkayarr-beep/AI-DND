@@ -123,3 +123,61 @@ def shop_presence_reply(world_state: dict, npc_target: dict | None) -> str:
             return f"{counter['vendor']['name']} burada; tezgâhı açık."
         return f"{names} burada, ama şu anda açık bir tezgâhı yok."
     return "Bu çevrede şu an görünür bir dükkân ya da dükkâncı yok."
+
+
+SCENE_CHARS = 600
+LAST_LINES = 3
+
+
+def _scene_text(world: dict) -> str | None:
+    """The arrival text shown at this very place, cut at a sentence end inside 600 characters."""
+    arrival = (world.get("scene_state") or {}).get("arrival_text")
+    if not isinstance(arrival, dict) or arrival.get("place_id") != world.get("location"):
+        return None
+    text = arrival.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return None
+    text = text.strip()
+    if len(text) <= SCENE_CHARS:
+        return text
+    head = text[:SCENE_CHARS]
+    end = max(head.rfind(mark) for mark in ".!?")
+    return head[:end + 1] if end > 0 else head
+
+
+def speech_extras(world: dict, npc: dict) -> dict:
+    """What the NPC speech call also knows (BM Task 6, B4/B5/B6): the hour (`zaman`), the arrival text the player was
+    shown here (`sahne_anlatimi`), this person's own spoken rumours (`kendi_sozlerin`) and own work (`kendi_isin`), and
+    their last replies (`son_sozlerin`). Reads only; a key with nothing to say is absent."""
+    import arrival_narration
+    import campaign_time
+    import local_places
+    import town_knowledge
+    import town_rumours
+    import world_threads
+    extras: dict = {}
+    clock = campaign_time.public_time(world)
+    if clock is not None:
+        extras["zaman"] = {"gun": clock["day_index"], "vakit": arrival_narration._PERIODS[clock["time_of_day"]],
+                           "saat": f"{clock['hour']:02d}:{clock['minute']:02d}"}
+    scene = _scene_text(world)
+    if scene:
+        extras["sahne_anlatimi"] = scene
+    if not isinstance(npc, dict):
+        return extras
+    settlement = local_places.settlement_of(world, world.get("location"))
+    if settlement and not town_knowledge.is_closed_mouthed(world, npc):
+        own = [item["text"] for item in town_rumours.own_spoken(world, npc, settlement)][:3]
+        if own:
+            extras["kendi_sozlerin"] = own
+    job = next((t for t in world_threads.jobs_of(world, npc)
+                if t.get("status") in (*world_threads.PUBLIC, "offered", "accepted")
+                and isinstance(t.get("public_line"), str) and t["public_line"].strip()), None)
+    if job is not None:
+        extras["kendi_isin"] = job["public_line"]
+    log = (world.get("npc_speech_log") or {}).get(npc.get("id"))
+    said = [item["npc"] for item in log if isinstance(item, dict) and isinstance(item.get("npc"), str)
+            and item["npc"].strip()] if isinstance(log, list) else []
+    if said:
+        extras["son_sozlerin"] = said[-LAST_LINES:]
+    return extras

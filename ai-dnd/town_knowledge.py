@@ -483,6 +483,7 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
             + (f" En fazla, başından savmak için {place} tarafına sormasını söyleyebilirsin; ne olduğunu anlatma."
                if place else "")
             + " Başka kimseyi ve hiçbir başka yeri adıyla anma."
+            + " Aynı savma gerekçesini bir kez söyle; son sözlerinde söylediysen yinelemek yerine kısa kes."
             + job
             + role_note(world, npc)
         )

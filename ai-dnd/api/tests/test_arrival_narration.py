@@ -214,9 +214,13 @@ class Narrate(Fixture):
         self.assertEqual((info["source"], info["reason_code"]), ("python", "invalid_packet"))
 
     def test_world_is_identical_with_and_without_the_call(self):
+        # BM Task 6 (gevşetme olabilir): narrate keeps the shown text in scene_state.arrival_text, and only there;
+        # every other part of the world is still identical.
         called, uncalled = self.twin_sessions()
-        self.narrate(session=called, answer="Rüzgâr esiyor.")
-        self.narrate(session=uncalled, answer=RuntimeError("down"))
+        shown, _ = self.narrate(session=called, answer="Rüzgâr esiyor.")
+        fallback, _ = self.narrate(session=uncalled, answer=RuntimeError("down"))
+        self.assertEqual(called.world_state["scene_state"].pop("arrival_text")["text"], shown.strip())
+        self.assertEqual(uncalled.world_state["scene_state"].pop("arrival_text")["text"], fallback.strip())
         self.assertEqual(called.world_state, uncalled.world_state)
 
     def test_a_model_error_gives_the_fallback(self):

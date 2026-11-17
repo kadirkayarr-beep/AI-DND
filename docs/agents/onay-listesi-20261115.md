@@ -120,3 +120,12 @@ Davranış sınırı (BM T3): `ask_dm` satırında model düz konuşma okuyup li
 | Yeni `test_bm_thread_reading.ThreadReading` (8 test: B1, şart satırı, kabul + soru, Geri Al, okuma yok, ücret, ücret + iş okuması yok) | yeni; eski kelime kapısı yalnız okuma yokken kalır | gevşetme yok |
 
 Davranış sınırı (BM T4): okuma `speak_to` ya da bir iş türüyse (`work`, `offer_answer`, `hand_over`) ve iş adlandırmıyorsa (`job_id`, `offer_id`, `asks == "work"`), kelimeyle iş yakalama (kısa soru, "ücret", sahip terimleri) artık çalışmaz. "Paramı ver" gibi bir satır, okuma "iş" demiyorsa ücret ödetmez (kişiye konuşmayla söylenir). `matter`, `take_up` ve `lapsed` kararları okumadan geri getirildi (okuma iş diyorsa aynı Python doğrulayıcıları çalışır: `raises_the_matter`, `offers_to_help`, `lapsed_yes`; testleri var). Okuma kipi `take` (kabul edilmiş işte paketi sahibinden alma) ve `speak_to` okumasıyla sözle yapılan teslim (`give`/`give_late`, iş ücreti) okuma varken artık kelimeyle yakalanmaz: paket yerinde kalır, ücret ödenmez (güvenli yönde kapanır); model `take` ve `hand_over` okumazsa bu iki yol çalışmaz. Düzeltme: ilk sürümdeki "`_front_take`/`_front_offer_gate` karşılar" cümlesi `matter`, `take_up`, `lapsed` için yanlıştı. "gevşetme olabilir" olarak işaretlendi: Kadir oynayışta bakmalı.
+
+## 10. BM görev 6 (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+Kişi konuşması saati, oyuncuya gösterilen varış metnini (en çok 600 karakter), kişinin kendi sözlerini, kendi işini ve son sözlerini bilir (B4, B5, B6). Varış metni kayıtlı durumdadır (`scene_state.arrival_text`); Geri Al onu geri alır.
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_arrival_narration.Narrate.test_world_is_identical_with_and_without_the_call` | dünya eskiden her yerde aynıydı; şimdi `scene_state.arrival_text` hariç aynı (iki yolun kendi gösterilen metni bu anahtarda ve dönen metne eşit), geri kalan dünya aynı sıklıkta karşılaştırılır | gevşetme olabilir (karşılaştırmadan bir anahtar çıktı) |
+| Yeni `test_npc_scene_time` (saat, sahne, kendi iş, kendi söz, son sözler, Geri Al, kayıt-yükleme) | yeni | gevşetme yok |
