@@ -157,11 +157,16 @@ class SpellCastTests(unittest.TestCase):
 
     def test_cure_wounds_heals_during_combat_and_refuses_to_open_combat(self):
         session, _enemy = caster(cls="Bard")
+        # D-056 (Kadir 2026-11-15): outside a fight Cure Wounds heals the player and spends a slot, but never opens combat.
         session.end_combat("test")
-        before = (copy.deepcopy(session.world_state), copy.deepcopy(session.character), session.rng.getstate())
-        with self.assertRaises(ValueError):
-            spell_scope.cast(session, "Cure Wounds", "player")
-        self.assertEqual((session.world_state, session.character, session.rng.getstate()), before)
+        session.character["current_hp"] = 1
+        slots_before = session.world_state["spellcasting_v1"]["slots"]["1"]
+        with patch.object(session.rng, "randint", return_value=8):
+            calm = spell_scope.cast(session, "Cure Wounds", "player")
+        self.assertEqual(calm["rolled_healing"], 19)
+        self.assertEqual(session.character["current_hp"], session.character["max_hp"])
+        self.assertEqual(session.world_state["spellcasting_v1"]["slots"]["1"], slots_before - 1)
+        self.assertFalse(session.world_state["combat"]["active"])
 
         session, _enemy = caster(cls="Bard")
         session.character["current_hp"] = 1

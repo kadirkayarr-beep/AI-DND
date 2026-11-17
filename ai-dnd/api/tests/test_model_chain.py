@@ -26,6 +26,7 @@ from api.main import create_app
 from api.model_phase import classifier_call
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
+from api.tests.slot_guard import GUARDED
 
 KEY = "test-key-not-real-7f3a"
 SCHEMA = {
@@ -786,6 +787,29 @@ class TheSpendCap(unittest.TestCase):
         self.assertFalse(worker.is_alive())
         self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 2000, "output_tokens": 400})
 
+    def test_two_writers_with_their_own_handles_on_one_file_never_lose_an_add(self):
+        # Same lock as the two-process test below (one_writer is per open handle), but runs inside the B06 slot guard,
+        # which forbids child processes (D-294).
+        path = spend_file()
+        path.parent.mkdir(parents=True)
+        reply = model_chain.Reply(text="", input_tokens=1, output_tokens=2)
+        clock = lambda: datetime(2026, 10, 31, tzinfo=timezone.utc)
+
+        def work():
+            spend = model_chain.HaikuSpend(path, clock)
+            for _ in range(150):
+                spend.add(reply)
+                spend.allows_a_call()
+
+        workers = [threading.Thread(target=work) for _ in range(2)]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(120)
+        self.assertFalse(any(worker.is_alive() for worker in workers))
+        self.assertEqual(json.loads(path.read_text()), {"month": "2026-10", "input_tokens": 300, "output_tokens": 600})
+
+    @unittest.skipIf(GUARDED, "B06 slot guard: no child processes (D-294); the two-writer test above covers the lock; runs in CI")
     def test_two_processes_on_one_file_never_lose_an_add(self):
         # D-151: the played API and a separate run command share the one monthly file (temporary here).
         path = spend_file()
