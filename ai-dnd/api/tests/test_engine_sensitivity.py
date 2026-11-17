@@ -69,6 +69,29 @@ class SensitivityTests(unittest.TestCase):
                "GOLD = 1\n")
         self.assertEqual(classify(self.write(src)), {"both": ["file_write", "snapshot"]})
 
+    def test_a_function_named_in_the_sets_carries_its_own_reason(self):
+        src = ("def save_game():\n    pass\n"
+               "def _restore_in_place():\n    pass\n"
+               "def _validate_save_payload():\n    pass\n")
+        self.assertEqual(classify(self.write(src)), {"save_game": ["save"], "_restore_in_place": ["snapshot"],
+                                                     "_validate_save_payload": ["save"]})
+
+    def test_the_wider_money_words_count(self):
+        src = ("def a(x):\n    return x.shop\n"
+               "def b():\n    price = 1\n"
+               "def c(x):\n    return x.merchant\n"
+               "def d(x):\n    return x.money\n")
+        self.assertEqual(classify(self.write(src)), {name: ["money"] for name in "abcd"})
+
+    def test_the_review_round_1_names_are_listed(self):
+        lock = json.loads(LOCK.read_text(encoding="utf-8"))["functions"]
+        for name in ("_player_state_for_save", "_validate_save_payload", "_validate_combat_v3_payload",
+                     "_validate_saved_multilevel_slots", "_origin_choices_for_save", "_migrate_legacy_combat_state",
+                     "_capture_combat_death_checkpoint", "_finalize_player_death", "_start_combat_with_initiative",
+                     "_restore_in_place", "_restore_combat_death_checkpoint", "_with_only_backed_money",
+                     "create_shop_from_proposal", "validate_shop_proposal", "_ensure_local_merchant"):
+            self.assertIn(name, lock)
+
     def test_is_sensitive_reads_the_functions_table(self):
         lock = {"functions": {"a": ["money"]}, "removed": [{"name": "b", "reason": "x", "reviewer": "y"}]}
         self.assertTrue(is_sensitive("a", lock))

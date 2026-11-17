@@ -24,9 +24,14 @@ GAME_PATH = ROOT / "game.py"
 LOCK_PATH = ROOT / "api" / "tests" / "engine_split_locks" / "sensitive.json"
 
 # Measured in game.py (Task 4 step 1): the Undo pair on GameSession and the save/load/serialise functions.
-SNAPSHOT_NAMES = {"_capture_runtime_snapshot", "_restore_runtime_snapshot"}
-SAVE_NAMES = {"save_game", "load_game", "serialize_game_state", "_player_state_for_save"}
-MONEY = re.compile(r"currency|coin|gold|money_owner|pay\(")  # spec section 5; matches source text, comments included
+# Fix round 1: a function whose own name is in a set carries that reason too (the scan used to flag only its callers).
+SNAPSHOT_NAMES = {"_capture_runtime_snapshot", "_restore_runtime_snapshot", "_capture_combat_death_checkpoint",
+                  "_restore_combat_death_checkpoint", "_restore_in_place"}
+SAVE_NAMES = {"save_game", "load_game", "serialize_game_state", "_player_state_for_save", "_validate_save_payload",
+              "_validate_combat_v3_payload", "_validate_saved_multilevel_slots", "_origin_choices_for_save",
+              "_migrate_legacy_combat_state"}
+# Spec section 5 word list widened by the strong review; matches source text, comments included.
+MONEY = re.compile(r"currency|coin|gold|money|shop|merchant|price|pay\(")
 WRITE_ATTRS = {"write_text", "write_bytes"}
 WRITE_MODE = re.compile(r"[wax+]")
 
@@ -69,7 +74,7 @@ def classify(path: Path) -> dict[str, list[str]]:
     for entry in top_level_index(path):
         if entry["kind"] != "function":
             continue
-        reasons = set()
+        reasons = {r for r, names in (("snapshot", SNAPSHOT_NAMES), ("save", SAVE_NAMES)) if entry["name"] in names}
         if MONEY.search("\n".join(lines[entry["def_line"] - 1:entry["end"]])):
             reasons.add("money")
         for node in ast.walk(functions[entry["name"]]):
