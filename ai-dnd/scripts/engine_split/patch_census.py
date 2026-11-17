@@ -53,19 +53,28 @@ def _aliases(tree: ast.AST) -> set[str]:
     return names
 
 
-def _first_attr(node: ast.AST, aliases: set[str]):
-    """For `A` or `A.x.y` with A a game alias return (True, None) or (True, "x"); otherwise (False, None)."""
+def _chain(node: ast.AST, aliases: set[str]):
+    """For `A` or `A.x.y` with A a game alias return (True, ["x", "y"]); otherwise (False, [])."""
     if isinstance(node, ast.Name):
-        return (node.id in aliases), None
+        return (node.id in aliases), []
     if isinstance(node, ast.Attribute):
         chain = _dotted(node).split(".")
         if chain[0] in aliases and len(chain) >= 2:
-            return True, chain[1]
-    return False, None
+            return True, chain[1:]
+    return False, []
 
 
-def _object_site(call: ast.Call, how: str, aliases: set[str], game_names: set[str]):
-    """patch.object / patch.multiple / setattr: first arg is the object, then the attribute name(s)."""
+def _first_attr(node: ast.AST, aliases: set[str]):
+    resolved, rest = _chain(node, aliases)
+    return resolved, (rest[0] if rest else None)
+
+
+DYNAMIC = "<dynamic>"
+
+
+def _object_site(call: ast.Call, how: str, aliases: set[str], game_names: set[str], loops: dict):
+    """patch.object / patch.multiple / setattr: first arg is the object, then the attribute name(s).
+    Sites are (target, how, path): target is the first attribute after game, path the full dotted path."""
     if not call.args:
         return []
     obj = call.args[0]
@@ -74,36 +83,40 @@ def _object_site(call: ast.Call, how: str, aliases: set[str], game_names: set[st
         if parts[0] != "game":
             return []
         if how == "setattr":
-            return [(parts[1], how)] if len(parts) >= 2 else []
-        resolved, nested = True, (parts[1] if len(parts) >= 2 else None)
+            return [(parts[1], how, obj.value)] if len(parts) >= 2 else []
+        resolved, rest = True, parts[1:]
     else:
-        resolved, nested = _first_attr(obj, aliases)
+        resolved, rest = _chain(obj, aliases)
     if how == "patch_multiple":
         names = [k.arg for k in call.keywords if k.arg]
+    elif len(call.args) > 1 and isinstance(call.args[1], ast.Name) and call.args[1].id in loops:
+        names = list(loops[call.args[1].id])  # for name in ("a", "b"): patch.object(game, name, ...)
+    elif _str_arg(call, 1):
+        names = [_str_arg(call, 1)]
     else:
-        name = _str_arg(call, 1)
-        names = [name] if name else []
-    if nested:
-        return [(nested, how)]
+        names = [DYNAMIC] if resolved and len(call.args) > 1 else []  # computed name: record it, do not drop it
+    if rest:
+        return [(rest[0], how, ".".join(["game", *rest, n])) for n in names] or [(rest[0], how, ".".join(["game", *rest]))]
     if resolved:
-        return [(n, how) for n in names]
-    return [(n, how) for n in names if n in game_names or n == "open"]  # unresolved (parameter, fixture): by name
+        return [(n, how, f"game.{n}") for n in names]
+    return [(n, how, f"game.{n}") for n in names if n in game_names or n == "open"]  # unresolved (parameter, fixture): by name
 
 
-def _call_sites(call: ast.Call, aliases: set[str], game_names: set[str]):
+def _call_sites(call: ast.Call, aliases: set[str], game_names: set[str], loops: dict | None = None):
+    loops = loops or {}
     func = _dotted(call.func)
     last = func.split(".")[-1]
     if func == "patch" or func.endswith(".patch"):
         text = _str_arg(call, 0)
         if text and text.startswith("game.") and text.split(".")[1]:
-            return [(text.split(".")[1], "patch_string")]
+            return [(text.split(".")[1], "patch_string", text)]
         return []
     if func.endswith("patch.object"):
-        return _object_site(call, "patch_object", aliases, game_names)
+        return _object_site(call, "patch_object", aliases, game_names, loops)
     if func.endswith("patch.multiple"):
-        return _object_site(call, "patch_multiple", aliases, game_names)
+        return _object_site(call, "patch_multiple", aliases, game_names, loops)
     if last == "setattr" and len(call.args) >= 2:
-        return _object_site(call, "setattr", aliases, game_names)
+        return _object_site(call, "setattr", aliases, game_names, loops)
     return []
 
 
@@ -117,20 +130,38 @@ def _assign_sites(node: ast.Assign, aliases: set[str]):
         elif isinstance(target, ast.Attribute):
             chain = _dotted(target).split(".")
             if len(chain) >= 2 and chain[0] in (aliases | ASSIGN_NAMES):
-                out.append((chain[1], "assign"))
+                out.append((chain[1], "assign", ".".join(["game", *chain[1:]])))
     return out
+
+
+def _literal_loop(node: ast.For) -> dict[str, tuple]:
+    """Loop variables bound to string literals: `for n in ("a", "b")` and `for n, v in (("a", 1), ("b", 2))`."""
+    if not isinstance(node.iter, (ast.Tuple, ast.List)):
+        return {}
+    is_str = lambda e: isinstance(e, ast.Constant) and isinstance(e.value, str)  # noqa: E731
+    if isinstance(node.target, ast.Name):
+        return {node.target.id: tuple(e.value for e in node.iter.elts)} if all(map(is_str, node.iter.elts)) else {}
+    if isinstance(node.target, ast.Tuple):
+        rows = node.iter.elts
+        out = {}
+        for i, var in enumerate(node.target.elts):
+            if isinstance(var, ast.Name) and all(isinstance(r, ast.Tuple) and len(r.elts) > i and is_str(r.elts[i]) for r in rows):
+                out[var.id] = tuple(r.elts[i].value for r in rows)
+        return out
+    return {}
 
 
 class _Visitor(ast.NodeVisitor):
     def __init__(self, aliases: set[str], game_names: set[str]):
         self.aliases, self.game_names = aliases, game_names
         self.functions: list[str] = []
+        self.loops: dict[str, tuple] = {}
         self.sites: list[dict] = []
 
     def _add(self, node, found):
         in_test = any(name.startswith("test") for name in self.functions)
-        for target, how in found:
-            self.sites.append({"line": node.lineno, "target": target, "how": how, "in_test_function": in_test})
+        for target, how, path in found:
+            self.sites.append({"line": node.lineno, "target": target, "how": how, "path": path, "in_test_function": in_test})
 
     def _function(self, node):
         self.functions.append(node.name)  # decorators belong to the function they decorate
@@ -140,8 +171,15 @@ class _Visitor(ast.NodeVisitor):
     visit_FunctionDef = visit_AsyncFunctionDef = _function
 
     def visit_Call(self, node):
-        self._add(node, _call_sites(node, self.aliases, self.game_names))
+        self._add(node, _call_sites(node, self.aliases, self.game_names, self.loops))
         self.generic_visit(node)
+
+    def visit_For(self, node):
+        bound = _literal_loop(node)
+        self.loops.update(bound)
+        self.generic_visit(node)
+        for name in bound:
+            del self.loops[name]
 
     def visit_Assign(self, node):
         self._add(node, _assign_sites(node, self.aliases))
@@ -170,7 +208,7 @@ def _parse(path: Path):
 
 
 def scan(root: Path, game_names: set[str]) -> list[dict]:
-    """Every patch or rebinding of a `game` attribute: file, line, target, how, in_test_function."""
+    """Every patch or rebinding of a `game` attribute: file, line, target, how, path (full dotted), in_test_function."""
     sites = []
     for path, rel in _python_files(root):
         tree = _parse(path)
@@ -182,20 +220,23 @@ def scan(root: Path, game_names: set[str]) -> list[dict]:
     return sorted(sites, key=lambda s: (s["file"], s["line"], s["target"]))
 
 
-def targets(sites: list[dict]) -> dict[str, str]:
-    """target -> function | data | import | absent. Classes count as function; names whose own module is not game are import."""
-    surface = _surface()
+def targets(sites: list[dict], surface: dict | None = None) -> dict[str, str]:
+    """target -> function | class | data | import | absent | dynamic.
+    import = a module or a name whose own module is outside game and game_parts (uuid4, Path); absent = not a game attribute."""
+    surface = _surface() if surface is None else surface
     out = {}
     for target in sorted({s["target"] for s in sites}):
         entry = surface.get(target)
-        if entry is None:
+        if target == DYNAMIC:
+            kind = "dynamic"
+        elif entry is None:
             kind = "absent"
         elif entry["kind"] == "data":
             kind = "data"
-        elif entry["kind"] == "module" or entry.get("module", "game") != "game":
+        elif entry["kind"] == "module" or entry.get("module", "game").split(".")[0] not in ("game", "game_parts"):
             kind = "import"
         else:
-            kind = "function"
+            kind = entry["kind"]
         out[target] = kind
     return out
 
@@ -219,7 +260,7 @@ def not_called_tests(root: Path) -> list[str]:
                     if _call_sites(node.context_expr, aliases, game_names) and isinstance(node.optional_vars, ast.Name):
                         bound.add(node.optional_vars.id)
                 elif isinstance(node, ast.Call):
-                    patched.update(t for t, _ in _call_sites(node, aliases, game_names))
+                    patched.update(t for t, _, _ in _call_sites(node, aliases, game_names))
             for node in ast.walk(func):
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "assert_not_called":
                     owner = node.func.value
@@ -243,6 +284,9 @@ def report(sites: list[dict], kinds: dict[str, str], not_called: list[str]) -> s
     lines += [f"| {how} | {count} |" for how, count in sorted(by_how.items())]
     lines += ["", "## Per target", "", "| target | kind | sites |", "|---|---|---|"]
     lines += [f"| `{t}` | {kinds[t]} | {c} |" for t, c in sorted(by_target.items(), key=lambda i: (-i[1], i[0]))]
+    by_path = Counter(s["path"] for s in sites if s["path"] != f"game.{s['target']}")
+    lines += ["", "## Nested targets (full dotted path)", "", "| path | sites |", "|---|---|"]
+    lines += [f"| `{p}` | {c} |" for p, c in sorted(by_path.items(), key=lambda i: (-i[1], i[0]))]
     lines += ["", "## Per file", "", "| file | sites |", "|---|---|"]
     lines += [f"| `{f}` | {c} |" for f, c in sorted(by_file.items(), key=lambda i: (-i[1], i[0]))]
     lines += ["", "## Tests that assert assert_not_called() on a game patch", ""]

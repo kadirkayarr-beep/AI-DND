@@ -51,7 +51,7 @@
   ],
   "targets": {
     "CLASSES": "data",
-    "GameSession": "function",
+    "GameSession": "class",
     "RACES": "data",
     "RULE_ORDER": "data",
     "_DEFAULT_SESSION": "data",
@@ -66,6 +66,7 @@
     "_direct_npc_smalltalk_response": "function",
     "_dispatch_player_turn": "function",
     "_experimental_npc_dialogue_context": "function",
+    "_fallback_narration": "function",
     "_finalize_player_death": "function",
     "_finish_species_player_turn": "function",
     "_front_hand_over": "function",

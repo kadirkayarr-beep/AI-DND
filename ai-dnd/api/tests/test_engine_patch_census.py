@@ -10,11 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from engine_split.patch_census import not_called_tests, scan, targets  # noqa: E402
+from engine_split.patch_census import not_called_tests, report, scan, targets  # noqa: E402
 
 LOCK = Path(__file__).parent / "engine_split_locks" / "patch_census.json"
 SURFACE = Path(__file__).parent / "engine_split_locks" / "surface.json"
 GAME_NAMES = set(json.loads(SURFACE.read_text(encoding="utf-8")))
+# file -> reason: sites whose attribute name is computed and cannot be resolved (target "<dynamic>"). Empty = none allowed.
+DYNAMIC_REASONS: dict[str, str] = {}
 
 
 class PatchCensusTests(unittest.TestCase):
@@ -33,6 +35,8 @@ class PatchCensusTests(unittest.TestCase):
         lock = json.loads(LOCK.read_text(encoding="utf-8"))
         sites = scan(ROOT, GAME_NAMES)
         self.assertEqual(lock["targets"], targets(sites))
+        unexplained = sorted({s["file"] for s in sites if s["target"] == "<dynamic>"} - set(DYNAMIC_REASONS))
+        self.assertEqual(unexplained, [], "computed patch names that cannot be resolved; resolve them or list them with a reason")
         self.assertEqual(lock["not_called_tests"], not_called_tests(ROOT))
 
     def test_an_unknown_target_is_seen(self):
@@ -97,7 +101,57 @@ class PatchCensusTests(unittest.TestCase):
         sites = [{"target": t} for t in names]
         self.assertEqual(targets(sites), {
             "roll_d20": "function", "system_prompt": "data", "uuid4": "import", "ollama": "import",
-            "GameSession": "function", "Path": "import", "open": "absent"})
+            "GameSession": "class", "Path": "import", "open": "absent"})
+
+    def test_a_loop_over_literal_names_is_resolved(self):
+        src = """import game
+from unittest.mock import patch
+def test_x(self):
+    for name in ('a', 'b'):
+        self.enterContext(patch.object(game, name, 1))
+"""
+        self.assertEqual([s["target"] for s in scan(self.fixture(src), set())], ["a", "b"])
+
+    def test_a_loop_over_literal_pairs_is_resolved(self):
+        src = """import game
+from unittest.mock import patch
+def test_x():
+    for name, result in (("a", {}), ("b", 1)):
+        patch.object(game, name, return_value=result)
+"""
+        self.assertEqual([s["target"] for s in scan(self.fixture(src), set())], ["a", "b"])
+
+    def test_a_computed_name_is_recorded_as_dynamic(self):
+        src = """import game
+from unittest.mock import patch
+def test_x(names):
+    for name in names:
+        patch.object(game, name, 1)
+"""
+        self.assertEqual([s["target"] for s in scan(self.fixture(src), set())], ["<dynamic>"])
+        self.assertEqual(targets([{"target": "<dynamic>"}]), {"<dynamic>": "dynamic"})
+
+    def test_class_and_moved_module_kinds(self):
+        surface = {"f": {"kind": "function", "module": "game_parts.x"}, "C": {"kind": "class", "module": "game_parts.y"},
+                   "K": {"kind": "class", "module": "game"}, "u": {"kind": "function", "module": "uuid"},
+                   "Path": {"kind": "class", "module": "pathlib._local"}}
+        sites = [{"target": t} for t in surface]
+        self.assertEqual(targets(sites, surface), {"f": "function", "C": "class", "K": "class", "u": "import", "Path": "import"})
+
+    def test_sites_keep_the_full_dotted_path_and_the_report_prints_it(self):
+        src = """from unittest.mock import patch
+import game
+def test_x():
+    patch('game.ollama.chat')
+    patch.object(game.ollama, 'list')
+    game.ollama.show = 1
+    patch.object(game, 'x')
+"""
+        sites = scan(self.fixture(src), set())
+        self.assertEqual([s["path"] for s in sites], ["game.ollama.chat", "game.ollama.list", "game.ollama.show", "game.x"])
+        text = report(sites, targets(sites), [])
+        for path in ("game.ollama.chat", "game.ollama.list", "game.ollama.show"):
+            self.assertIn(path, text)
 
     def test_not_called_tests_finds_the_known_blind_spot(self):
         found = not_called_tests(ROOT)
