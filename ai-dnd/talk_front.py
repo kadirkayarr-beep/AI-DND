@@ -49,3 +49,45 @@ def old_owner_allowed(front: dict | None, owner: str) -> bool:
     if front is None or not is_plain_talk(front):
         return True
     return owner == "shop_presence" and front.get("asks") == "shop"
+
+
+def current(session) -> dict | None:
+    """This turn's repaired reading of a conversation line, or None (flag off, no reading, reading failed)."""
+    import front_proposal
+    return getattr(session, "_front_talk", None) if front_proposal.enabled() else None
+
+
+def spoken_to(front: dict | None, people: list) -> dict | None:
+    """The listed person a plain-talk reading says the line is for (its `person_id`), else None."""
+    if not is_plain_talk(front):
+        return None
+    return next((npc for npc in people if isinstance(npc, dict) and npc.get("id") == front.get("person_id")), None)
+
+
+def shop_presence_reply(world_state: dict, npc_target: dict | None) -> str:
+    """The shop presence sentence (moved from `_run_player_turn_internal`, same sentences). `npc_target` is the
+    person asked, if any; the sentence only depends on the place."""
+    import game
+    import living_world
+    import shop_trade
+    current_location = world_state.get("location")
+    local_shops = [
+        shop
+        for raw_shop in world_state.get("shops", [])
+        if (shop := living_world.public_shop_projection(world_state, raw_shop)) is not None
+        and shop.get("location") == current_location
+    ]
+    local_shopkeepers = [
+        npc for npc in world_state.get("npcs", [])
+        if isinstance(npc, dict) and npc.get("location") == current_location and game._runs_a_shop(world_state, npc)
+    ]
+    if local_shops:
+        names = ", ".join(living_world.public_shop_name(world_state, shop) for shop in local_shops)
+        return f"Burada {names} adlı dükkânlar var."
+    if local_shopkeepers:
+        names = ", ".join(living_world.public_npc_name(npc) for npc in local_shopkeepers)
+        counter = shop_trade.counter(world_state)
+        if counter["status"] == "ready" and counter["vendor"]:
+            return f"{counter['vendor']['name']} burada; tezgâhı açık."
+        return f"{names} burada, ama şu anda açık bir tezgâhı yok."
+    return "Bu çevrede şu an görünür bir dükkân ya da dükkâncı yok."

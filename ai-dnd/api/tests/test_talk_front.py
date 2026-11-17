@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 import front_proposal
 import game
+import local_dialogue
 import talk_front
 from api import model_chain
 from api.tests import test_experimental_npc_dialogue as speech
@@ -59,6 +60,21 @@ class TalkFrontTable(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post(self.turn_url, json=body)
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
+
+    async def say_keeping_the_reading(self, message):
+        """The reading as the turn held it: front_proposal.end clears it once the turn is over (BM Task 2)."""
+        kept = []
+        run = game._run_player_turn
+
+        def run_and_keep(*args, **kwargs):
+            try:
+                return run(*args, **kwargs)
+            finally:
+                kept.append(getattr(self.session, "_front_talk", None))
+
+        with patch.object(game, "_run_player_turn", run_and_keep):
+            await self.say(message)
+        return kept[0]
 
     def routes(self):
         return [json.loads(line) for line in self.route_file.read_text(encoding="utf-8").splitlines()]
@@ -130,16 +146,138 @@ class SayLineIsRead(TalkFrontTable):
                             (self.sera["id"], self.sera["id"])):
             self.client.front = {"kind": "speak_to", "person_id": self.marek["id"], "asks": "person",
                                  "about_person_id": about}
-            await self.say(LINE)
-            self.assertEqual(self.session._front_talk["about_person_id"], want, about)
-            self.assertEqual(self.session._front_talk["asks"], "person")
+            held = await self.say_keeping_the_reading(LINE)
+            self.assertEqual(held["about_person_id"], want, about)
+            self.assertEqual(held["asks"], "person")
 
     async def test_unknown_asks_is_none(self):
         await self.start()
         self.client.front = {"kind": "speak_to", "person_id": self.marek["id"], "asks": "weather"}
+        held = await self.say_keeping_the_reading(LINE)
+        self.assertEqual(held["asks"], "none")
+        self.assertEqual(held["about_person_id"], "none")
+
+
+class SayOwnersAreFallback(TalkFrontTable):
+    """BM Task 2: shop presence, unknown name, place name and name disclosure answer by speech when the reading is
+    plain talk. With no reading (the reading failed) the old line stands."""
+
+    def talk(self, **extra):
+        return {"kind": "speak_to", "person_id": self.marek["id"], "about_person_id": "none", "asks": "none", **extra}
+
+    async def vendor(self, front):
+        await self.start(front=front)
+        self.marek["role"] = "Tüccar"
+
+    def action(self, body):
+        return (body.get("turn_outcome") or {}).get("action")
+
+    async def test_shop_word_question_to_vendor_is_spoken(self):
+        await self.vendor(None)
+        self.client.front = self.talk(asks="rumour")
+        body = await self.say("Satıcı esnafı arasında ne dönüyor?")
+        self.assertIn(SPOKEN, body["narration"])
+        self.assertNotEqual(self.action(body), "shop_inquiry")
+        self.assertEqual(self.client.chat_calls, 2)
+
+    async def test_shop_list_when_reading_asks_shop(self):
+        await self.vendor(None)
+        self.client.front = self.talk(asks="shop")
+        body = await self.say("Satıcı esnafı arasında ne dönüyor?")
+        self.assertEqual(self.action(body), "shop_inquiry", str({k: body[k] for k in body if k != "state"})[:900])
+
+    async def test_shop_line_when_the_reading_failed(self):
+        await self.vendor(None)
+        self.client.fails = RuntimeError("provider gone")
+        body = await self.say("Satıcı esnafı arasında ne dönüyor?")
+        self.assertEqual(self.action(body), "shop_inquiry", str({k: body[k] for k in body if k != "state"})[:900])
+
+    async def test_unknown_name_uses_reading(self):
+        await self.start()
+        self.client.front = self.talk(person_id="none", person_word="Zoltan")
+        body = await self.say("Zoltan, merhaba", target=False)
+        self.assertIn("Burada Zoltan adıyla tanıdığın biri görünmüyor.", body["narration"])
+        self.client.front = self.talk()
+        body = await self.say("Çavuş, merhaba", target=False)
+        self.assertNotIn("adıyla tanıdığın biri görünmüyor", body["narration"])
+        self.assertIn(SPOKEN, body["narration"])
+
+    async def test_unknown_name_line_when_the_reading_failed(self):
+        await self.start()
+        self.client.fails = RuntimeError("provider gone")
+        body = await self.say("Zoltan, merhaba", target=False)
+        self.assertIn("Burada Zoltan adıyla tanıdığın biri görünmüyor.", body["narration"])
+
+    async def test_name_disclosure_is_spoken_and_stored(self):
+        await self.start(front=None)
+        self.client.front = self.talk(asks="name")
+        body = await self.say("Adım Dorin.")
+        self.assertEqual(game._known_player_name(self.marek), "Dorin")
+        self.assertIn(SPOKEN, body["narration"])
+        for reply in local_dialogue.INTRODUCTION_REPLIES:
+            self.assertNotIn(reply.format(name="Dorin"), body["narration"])
+        self.assertEqual(self.client.chat_calls, 2)
+
+    async def test_name_disclosure_pool_when_the_reading_failed(self):
+        await self.start()
+        self.client.fails = RuntimeError("provider gone")
+        body = await self.say("Adım Dorin.")
+        self.assertEqual(game._known_player_name(self.marek), "Dorin")
+        self.assertTrue(any(reply.format(name="Dorin") in body["narration"]
+                            for reply in local_dialogue.INTRODUCTION_REPLIES), body["narration"])
+
+    async def test_place_name_question_is_spoken(self):
+        await self.start()
+        self.client.front = self.talk(asks="place")
+        with patch.object(game, "_topic_place_name", return_value="Kızıl Geçit"):
+            body = await self.say("Peki oranın adı ne?")
+        self.assertIn(SPOKEN, body["narration"])
+        self.assertNotIn("Kızıl Geçit", body["narration"])
+
+    async def test_place_name_line_when_the_reading_failed(self):
+        await self.start()
+        self.client.fails = RuntimeError("provider gone")
+        with patch.object(game, "_topic_place_name", return_value="Kızıl Geçit"):
+            body = await self.say("Peki oranın adı ne?")
+        self.assertIn("Kızıl Geçit", body["narration"])
+
+    async def test_each_owner_also_runs_with_the_flag_off(self):
+        await self.start(front_on=False)
+        with patch.object(game, "_topic_place_name", return_value="Kızıl Geçit"):
+            body = await self.say("Peki oranın adı ne?")
+        self.assertIn("Kızıl Geçit", body["narration"])
+        self.marek["role"] = "Tüccar"
+        body = await self.say("Satıcı esnafı arasında ne dönüyor?")
+        self.assertEqual(self.action(body), "shop_inquiry", str({k: body[k] for k in body if k != "state"})[:900])
+
+    async def test_the_reading_is_this_turns_only(self):
+        await self.start()
         await self.say(LINE)
-        self.assertEqual(self.session._front_talk["asks"], "none")
-        self.assertEqual(self.session._front_talk["about_person_id"], "none")
+        self.assertIsNone(self.session._front_talk)  # front_proposal.end clears it
+
+    async def test_a_check_turn_does_not_keep_an_earlier_reading(self):
+        await self.start()
+        self.session._front_talk = {"kind": "speak_to", "person_id": self.marek["id"], "asks": "rumour"}
+        seen = []
+
+        def stop(*args, **kwargs):
+            seen.append(getattr(self.session, "_front_talk", "missing"))
+            raise RuntimeError("stop here")
+
+        feature = sorted(game.CHECK_FEATURES)[0]
+        token = game._ACTIVE_SESSION.set(self.session)
+        self.addCleanup(game._ACTIVE_SESSION.reset, token)
+        with patch.object(game, "primal_knowledge_check_admission"), patch.object(game, "_run_player_turn", stop):
+            with self.assertRaises(RuntimeError):
+                game._run_player_turn_owned("x", [], None, None, "a", self.session_id, None, "do", feature, [])
+        self.assertEqual(seen, [None])
+
+
+class ShopPresenceReply(unittest.TestCase):
+    def test_no_shop_here(self):
+        world = {"location": "here", "shops": [], "npcs": []}
+        self.assertEqual(talk_front.shop_presence_reply(world, None),
+                         "Bu çevrede şu an görünür bir dükkân ya da dükkâncı yok.")
 
 
 class TheSchemaAndTheGate(unittest.TestCase):

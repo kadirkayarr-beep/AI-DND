@@ -44,6 +44,7 @@ import effect_lifecycle
 import event_order
 import interaction_adventure
 import money_owner
+import talk_front
 import npc_statements
 import talk_mode
 from weapon_catalog import WEAPONS
@@ -18743,6 +18744,7 @@ def _run_player_turn_owned(
                 front_proposal.end(session)
                 front_proposal.log_turn(session, result)
     money_owner.forget_turn(_session())  # no reading begins a check turn; an earlier line's coin is not this one's
+    _session()._front_talk = None  # ... nor an earlier line's talk reading (read-ahead may have set one)
     if type(check_feature) is not str or check_feature not in CHECK_FEATURES:
         raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
     if check_evidence is not None and type(check_evidence) is not list:
@@ -22621,7 +22623,12 @@ def _run_player_turn_internal(
             )
 
     unresolved_address = local_dialogue.unresolved_named_address(player_input, active_npcs())
-    if unresolved_address and target_id is None and not combat["active"]:
+    front_talk = talk_front.current(_session())
+    named_reading = (talk_front.spoken_to(front_talk, active_npcs())
+                     if unresolved_address and target_id is None and not combat["active"] else None)
+    if named_reading is not None and not talk_front.old_owner_allowed(front_talk, "unknown_name"):
+        npc_target = named_reading  # the reading names a listed person: the line is for them, speech answers
+    elif unresolved_address and target_id is None and not combat["active"]:
         npc_target = None
         result = {"action": "dialogue", "status": "invalid_target", "success": False, "state_changes": []}
         return finish_turn(
@@ -22667,7 +22674,9 @@ def _run_player_turn_internal(
 
     topic_name = (
         _topic_place_name(world_state)
-        if local_dialogue.asks_the_name_of_a_topic(player_input) and interaction_mode != "ask_dm"
+        if (local_dialogue.asks_the_name_of_a_topic(player_input) and interaction_mode != "ask_dm"
+            # BM Task 2: a plain-talk reading means the person answers by speech; the name line is the fallback
+            and talk_front.old_owner_allowed(talk_front.current(_session()), "place_name"))
         else None
     )
     if topic_name:
@@ -22940,41 +22949,10 @@ def _run_player_turn_internal(
                   and (getattr(_session(), "_front_read", None) or {}).get("kind") != "speak_to")
                  # asked of the one who keeps the shop here, the shop line is her answer (Review 11 A4)
                  or (isinstance(npc_target, dict) and npc_target.get("location") == world_state.get("location")
-                     and _runs_a_shop(world_state, npc_target)))):
-        current_location = world_state.get("location")
-        local_shops = [
-            shop
-            for raw_shop in world_state.get("shops", [])
-            if (shop := living_world.public_shop_projection(world_state, raw_shop)) is not None
-            and shop.get("location") == current_location
-        ]
-        import shop_trade
-        local_shopkeepers = [
-            npc for npc in world_state.get("npcs", [])
-            if isinstance(npc, dict) and npc.get("location") == current_location and _runs_a_shop(world_state, npc)
-        ]
-
-        if local_shops:
-            names = ", ".join(
-                living_world.public_shop_name(world_state, shop) for shop in local_shops
-            )
-            message = f"Burada {names} adlı dükkânlar var."
-        elif local_shopkeepers:
-            names = ", ".join(
-                living_world.public_npc_name(npc)
-                for npc in local_shopkeepers
-            )
-            counter = shop_trade.counter(world_state)
-            if counter["status"] == "ready" and counter["vendor"]:
-                message = f"{counter['vendor']['name']} burada; tezgâhı açık."
-            else:
-                message = (
-                    f"{names} burada, ama şu anda açık bir tezgâhı yok."
-                )
-        else:
-            message = (
-                "Bu çevrede şu an görünür bir dükkân ya da dükkâncı yok."
-            )
+                     and _runs_a_shop(world_state, npc_target)
+                     # BM Task 2: a plain-talk reading answers by speech; the list only when it asks for the shop
+                     and talk_front.old_owner_allowed(talk_front.current(_session()), "shop_presence")))):
+        message = talk_front.shop_presence_reply(world_state, npc_target)
         action_result = {
             "action": "shop_inquiry",
             "status": "answered_from_campaign_state",
@@ -23046,7 +23024,8 @@ def _run_player_turn_internal(
         ).strip("'’-")
         if safe_name:
             # Hearing the same name again is no moment for the greeting a second time.
-            compound_speech = _known_player_name(npc_target) == safe_name or (
+            compound_speech = not talk_front.old_owner_allowed(  # BM Task 2: the name is stored below, speech voices it
+                talk_front.current(_session()), "name_disclosure") or _known_player_name(npc_target) == safe_name or (
                 local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
                 # E9: a question Python cannot answer goes to speech; "who are you" Python answers itself.
                 and (_npc_speech_enabled() or (interaction_adventure._asks(player_input)

@@ -647,7 +647,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_reply = None
     session._front_deed = None
     session._front_kind = None
-    session._front_talk = None  # BM Task 1: the repaired reading of a conversation line; talk_front.current() reads it
+    session._front_talk = None  # BM Task 1: the repaired reading of a conversation line; talk_front.current() reads it; end() clears it
     session._front_check = ""
     session._front_coin = 0
     session._bribe_held_out = 0
@@ -679,6 +679,7 @@ def end(session) -> None:
     session._front_reply = None
     session._front_economic_none = False
     session._front_read = None
+    session._front_talk = None  # the reading is this turn's only (BM Task 2)
     session._front_strike = None
     session._front_rest = ""
     session._front_ahead = False

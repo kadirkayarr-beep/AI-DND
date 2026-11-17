@@ -91,3 +91,12 @@ Konuşma satırı artık ön okumadan geçer (`say`/`ask_dm`, kişi seçili olsu
 | `test_front_money.SayModeCoinKeepsTheTalk.test_a_say_line_without_coin_keeps_its_own_proposal_call` (yeni ad `test_a_say_line_without_coin_is_read_once_and_asks_no_second_call`) | eski öneri adımı kendi sınıflandırıcı çağrısını yapardı; şimdi ön okuma o çağrı (en çok 2 çağrı) | gevşetme olabilir |
 
 Davranış sınırı (BM T1, Opus incelemesi 2026-11-17): kişi seçili düz `say` satırında `_front_economic_none` kurulur; eski kelime yolları (`bold_acts.take_room`, `_room_asked`) oda kartını artık hazırlamaz, kararı modelin `economic_intent` okuması verir. Para hareketi ve satın alma yolları değişmedi. Gevşetme olabilir; onay bekliyor.
+
+## 7. BM görev 2 (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+Dükkân varlığı, bilinmeyen ad, yer adı ve ad söyleme: model okuması düz konuşma derse konuşma yanıtlar; eski satır yedek. Yeniden yazılan testler "gevşetme olabilir" işaretlidir.
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_talk_front.SayLineIsRead.test_bad_about_person_is_none`, `test_unknown_asks_is_none` | okuma artık tur bitince temizlendiği için `session._front_talk` turdan sonra değil tur içinde (`_run_player_turn` dönerken) okunur; aynı değerler aynı sıklıkta denetlenir | gevşetme olabilir (okuma ömrü kısaldı) |
+| Yeni test `test_talk_front.SayOwnersAreFallback.test_shop_word_question_to_vendor_is_spoken` | satır "Satıcı esnafı arasında ne dönüyor?" (görev metnindeki "Satıcılar" çoğulu `_SHOP_ENTITY_QUERY_PATTERN` ile eşleşmez, dolayısıyla eski yolu hiç tetiklemezdi) | yeni, gevşetme değil |
