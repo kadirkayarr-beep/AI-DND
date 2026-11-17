@@ -47,6 +47,7 @@ Not: `run_purpose` yardımcısına yalnız isteğe bağlı `speech` bağımsız 
 | 20 | D-214: "henüz motorda yok", yuva harcanmaz | D-214 | onaylandı (Kadir, 2026-11-15) |
 | 21 | D-203: görev kabul edilmeden toplanan delil | D-203 | onaylanmadı. Karar: delil silinmez, saklanır, görev kabul edilince sayılır; test bu davranışa göre yazılır |
 | 2 | D-166: C5 testleri eşit sıkılıkla yeniden yazılacak | D-166 | yeniden yazım yapılınca bu listeye eklenir |
+| CI 2026-11-17 | `test_clerk_http.test_concurrent_requests_share_one_jwks_fetch_without_blocking_the_loop`: saat sınırı (0.25 sn, CI'da 0.67 sn ile kırıldı) yerine kapı: anahtar getirme test kapıyı açana kadar bekler; sağlık cevabı geldiğinde istekler bitmemiş olmalı ve kapı zaman aşımına düşmemeli. Döngüyü kilitleyen kod hâlâ kırmızı (denendi). Ayrıca `test_front_carries_more` yeni ad testi kasabasını sabitler | - | onay bekliyor (gevşetme yok; sıkılaştırma) |
 
 Doğrulamadım: testlerin dosyalardaki şu anki hâli yerine PR #70 birleşme farkına (`git diff 3576eeaf^1 3576eeaf`) baktım; "13+6" sayısının kaynağı bulunamadı.
 

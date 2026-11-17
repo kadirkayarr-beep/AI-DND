@@ -14761,12 +14761,12 @@ def _finding_says_too_much(text):
     """A detail of the scene carries no money, key, figure or new name: those are Python's or the world's."""
     import pocket
     world_state = _session().world_state
-    known = living_world.normalize_text(" ".join(str(name) for name in (
+    known = set(living_world.normalize_text(" ".join(str(name) for name in (
         _session().character["name"],
         *(npc.get("name") for npc in world_state.get("npcs", [])),
         *(value.get("name") for value in world_state.get("locations", {}).values() if isinstance(value, dict)),
         *(feature.get("name") for feature in world_state.get("features", []) if isinstance(feature, dict)),
-    )))
+    ))).split())  # whole words: a new name that is only part of a known one is still new
     new_names = [word for word in re.findall(r"(?<=\s)[A-ZÇĞİÖŞÜ]\w{2,}", text)
                  if living_world.normalize_text(word) not in known]
     return (bool(new_names) or any(char.isdigit() for char in text) or pocket.names_worth(text)

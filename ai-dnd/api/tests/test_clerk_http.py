@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 import asyncio
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -19,7 +20,7 @@ from api.clerk_auth import (
     ClerkAuthenticator,
     ClerkSessionVerifier,
 )
-from api.clerk_jwks import ClerkJwksCache, JwksResponse
+from api.clerk_jwks import ClerkJwksCache, JwksRequest, JwksResponse
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
@@ -317,17 +318,13 @@ class ClerkHttpTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(again.json()), 1)
 
     async def test_concurrent_requests_share_one_jwks_fetch_without_blocking_the_loop(self) -> None:
-        transport = CountingTransport(
-            [JwksResponse(200, _document(_jwk(self.private, "test-key")))],
-            delay=0.4,
-        )
+        transport = GatedTransport([JwksResponse(200, _document(_jwk(self.private, "test-key")))])
         app = create_app(
             session_manager=self.manager,
             ollama_adapter=None,
             authenticator=self._authenticator(transport, ISSUER, self.private),
         )
         async with self._client(app) as client:
-            started = time.monotonic()
             tasks = [
                 asyncio.create_task(client.get("/api/campaigns", headers=self._bearer(self.token_a))),
                 asyncio.create_task(client.get("/api/game/campaigns", headers=self._bearer(self.token_b))),
@@ -335,11 +332,26 @@ class ClerkHttpTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0.05)
             health = await client.get("/api/health")
             self.assertEqual(health.status_code, 200)
-            self.assertLess(time.monotonic() - started, 0.25)
+            self.assertFalse(any(task.done() for task in tasks))  # the fetch is still held: health did not wait for it
+            transport.gate.set()
             responses = await asyncio.gather(*tasks)
+        self.assertFalse(transport.timed_out)  # a fetch on the loop would have held health until the gate timed out
         self.assertEqual([response.status_code for response in responses], [200, 200])
         self.assertEqual(len(transport.calls), 1)
         self.assertEqual(transport.calls[0].pinned_ip, PINNED_IP)
+
+
+class GatedTransport(CountingTransport):
+    """The fetch waits for the test to open the gate, so "the loop was not blocked" needs no wall clock."""
+
+    def __init__(self, responses: list[object]) -> None:
+        super().__init__(responses)
+        self.gate = threading.Event()
+        self.timed_out = False
+
+    def fetch(self, request: JwksRequest) -> JwksResponse:
+        self.timed_out = not self.gate.wait(5)
+        return super().fetch(request)
 
 
 if __name__ == "__main__":

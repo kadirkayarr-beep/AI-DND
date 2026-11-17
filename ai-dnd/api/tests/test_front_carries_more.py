@@ -532,12 +532,19 @@ class APassedCheckFindsSomething(FrontTable):
         self.assertEqual(front_proposal.found_in(reply, "yerdeki izleri inceliyorum")[0], self.FOUND)
 
     async def test_a_finding_carries_no_money_key_figure_or_new_name(self):
-        await self.begin()
+        with fixed_town(self, 2731):
+            await self.begin()
         for said in ("Masanın altında paslı bir anahtar duruyor.", "Köşede parlayan üç altın sikke duruyor.",
                      "Kâğıtta kâhyanın adı Umerişa diye yazılı duruyor.", "Kutunun dibinde kazınmış 12 sayısı görünüyor."):
             self.session._front_found = (said, "masa")
             self.assertIsNone(self.session._inspection_findings("masanin altina bakiyorum", "success"), said)
             self.assertFalse([row for row in self.world["features"] if row.get("description") == said], said)
+
+    async def test_a_new_name_hidden_inside_a_known_name_is_still_new(self):
+        await self.begin()
+        self.world["npcs"][0]["name"] = "Sumerişan"
+        self.session._front_found = ("Kâğıtta kâhyanın adı Umerişa diye yazılı duruyor.", "masa")
+        self.assertIsNone(self.session._inspection_findings("masanin altina bakiyorum", "success"))
 
     async def test_a_detail_under_something_is_still_a_finding(self):
         await self.begin()
