@@ -202,7 +202,10 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
     part_lines = part_py.read_bytes().decode("utf-8").split("\n") if part_py.exists() else [""]
     part_index = top_level_index(part_py) if part_py.exists() and part_py.read_bytes().strip() else []
     moved_names = [n for key in ordered for n in spans[key]]
-    engine_names = {e["name"] for e in index if e["kind"] in MOVABLE_KINDS} | set(surface_targets)
+    # names game.py re-exports from an earlier move (`from game_parts.<x> import ...`) are engine names too (F7 amended)
+    reexports = {a.asname or a.name for node in ast.parse(game_py.read_text(encoding="utf-8")).body
+                 if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("game_parts.") for a in node.names}
+    engine_names = {e["name"] for e in index if e["kind"] in MOVABLE_KINDS} | reexports | set(surface_targets)
     in_part = {e["name"] for e in part_index if e["kind"] == "assign"} | {n for n in moved_names if by_name[n]["kind"] == "assign"}
     keep_bare = in_part - set(surface_targets)
 

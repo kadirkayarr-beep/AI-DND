@@ -137,6 +137,17 @@ class MoveTests(unittest.TestCase):
         self.assertEqual(self.game.read_bytes(), src)
         self.assertFalse(self.part.exists())
 
+    def test_a_name_moved_earlier_is_still_an_engine_name(self):  # F7 amended
+        self.game.write_bytes(b"def f():\n    return 1\n\ndef h():\n    return f()\n")
+        move(self.game, self.tmp / "p1.py", ["f"], set())
+        move(self.game, self.tmp / "p2.py", ["h"], set())
+        self.assertEqual((self.tmp / "p2.py").read_bytes(), b"def h():\n    return game.f()\n")
+
+    def test_third_party_imports_stay_bare(self):
+        self.game.write_bytes(b"import re\nfrom os import path\n\ndef h():\n    return re.x + path.y\n")
+        move(self.game, self.part, ["h"], set())
+        self.assertEqual(self.part.read_bytes(), b"def h():\n    return re.x + path.y\n")
+
     def test_a_name_bound_twice_is_refused(self):
         self.game.write_bytes(b"K = 1\nK = 2\n")
         with self.assertRaises(MoveRefused):
