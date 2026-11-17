@@ -85,3 +85,12 @@ Kaynak: Kadir, 2026-11-17: "logonun otomatik dönmesi gerekiyor, dönmüyor". Bu
 | Test | Eski beklenti | Yeni beklenti | Not |
 |---|---|---|---|
 | `artifacts/ai-dnd-experience/tests/menu-logo-music.test.mjs`: "the logo plays only while something is loading..." yerine "with motion on the logo loops on its own, whatever is loading; a hidden tab pauses it and showing the tab resumes it" | video yalnız yükleme sürerken oynar, bekleme bitince en az 600 ms kalır (`loading` prop, `MIN_VISIBLE_MS`) | hareket açıkken video yüklemeden bağımsız döngüde oynar; gizli sekmede durur, sekme görününce yeniden başlar; tema değişince yeniden başlar; `autoPlay` yok. Azaltılmış hareket / efekt kapalı: video yok, yalnız durağan görsel (komşu test aynen duruyor) | sahibin kararı, davranış değişimi; aynı sıkılık; onay bekliyor |
+
+## 16. Yuva kırmızıları (dal task/sekiz-kirmizi-20261117)
+
+Sekiz test yuvada kırmızıydı, CI'da yeşildi. Eski testlerde yapılan değişiklikler (hiçbir iddia gevşetilmedi; işaretli olanlar "gevşetme olabilir" sınıfında):
+
+- `ai-dnd/test_spells_v1.py` `test_cure_wounds_heals_during_combat_and_refuses_to_open_combat`: ilk yarı eski sözleşmeyi sabitliyordu (savaş dışında Cure Wounds `ValueError`). Kadir'in 2026-11-15 D-056 kararı (f4c96d86) bunu tersine çevirdi. Yeni ilk yarı: savaş dışında iyileştirir, bir yuva harcar, savaş açmaz (`combat.active` False). İkinci yarı aynı. Gevşetme olabilir: eski "reddeder" iddiası kalktı, yerine kararın tersi iddia geldi.
+- `ai-dnd/api/tests/test_journey_real_run.py` TheNetworkGuard: yuva koruması (B06) varken biri atlanır (`skipIf(GUARDED)`, TCP geri dönüş soketi koruma altında yapılamaz), öteki AF_UNIX soketle koşar; ikisi de CI'da (koruma yok) eskisi gibi koşar. Gevşetme olabilir: yalnız yuvada, atlama ve soket türü.
+- `ai-dnd/api/tests/test_model_chain.py` `test_two_processes_on_one_file_never_lose_an_add`: koruma varken atlanır; aynı kilidi sınayan yeni iş parçacıklı eş test hep koşar. CI'da süreç testi aynen koşar. Gevşetme olabilir: yalnız yuvada atlama.
+- Yeni (ek): `api/tests/test_pocket_keeps_paragraphs.py`, `api/tests/slot_guard.py`. Ürün kodu: `ai-dnd/pocket.py` paragraf boşluğunu korur (test_ai_pipeline_port'taki test dokunulmadı).
