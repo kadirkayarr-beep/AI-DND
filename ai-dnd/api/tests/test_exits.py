@@ -211,13 +211,13 @@ class OnlyExitsReadsTests(unittest.TestCase):
         readers = []
         parts = [p for p in engine_source_files() if p.parent.name == "game_parts"]  # game.py is in root.glob already
         for path in [*root.glob("*.py"), *parts]:
-            if path.name.startswith("test_") or path.name == "exits.py":
+            if path.parent == root and (path.name.startswith("test_") or path.name == "exits.py"):
                 continue
             text = path.read_text(encoding="utf-8")
             for needle in ('get("exit_location_id") or', 'get("parent_location_id") or',
                            '("exit_location_id", "parent_location_id")'):
                 if needle in text:
-                    readers.append(f"{path.name}: {needle}")
+                    readers.append(f"{path.relative_to(root).as_posix()}: {needle}")
         self.assertEqual(readers, [])
 
 

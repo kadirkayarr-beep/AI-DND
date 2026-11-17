@@ -669,6 +669,9 @@ ENGINE_ROOT = Path(game.__file__).resolve().parent
 # Scanned: literals assigned to `narration_source` / `narration_src`, the dict key "narration_source", and
 # that keyword argument. `test_no_other_engine_module_reports_a_source` keeps this pair complete.
 ENGINE_REPORTERS = ("game.py", "dialogue_runtime.py")
+# game.py split: a game_parts file that mentions the source must be named here, as a move task moves the code (pinned, like
+# test_talk_mode_writers); the value scan above already reads every part through engine_source_text().
+ENGINE_PART_REPORTERS = ()
 # BM T11: the route log (`front_proposal.log_turn`) reads the engine's source from the turn telemetry and writes it,
 # with the route-log-only label "python_direct", into its own line. It stores nothing in the campaign history, so it is
 # no reporter for the store list; it is named here so a third module cannot join unnoticed.
@@ -711,8 +714,8 @@ class TheListIsTheEngines(unittest.TestCase):
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             if "narration_source" in text or "narration_src" in text:
-                mentioning.add("game.py" if relative.parts[0] == "game_parts" else relative.as_posix())
-        self.assertEqual(mentioning, set(ENGINE_REPORTERS) | set(ROUTE_LOG_WRITERS))
+                mentioning.add(relative.as_posix())
+        self.assertEqual(mentioning, set(ENGINE_REPORTERS) | set(ENGINE_PART_REPORTERS) | set(ROUTE_LOG_WRITERS))
         self.assertNotIn("python_direct", campaign_store._NARRATION_SOURCES)  # the route-log label never reaches the store
 
 
