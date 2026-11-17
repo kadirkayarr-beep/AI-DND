@@ -161,14 +161,18 @@ class SayModeCoin(Table):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
-    async def test_say_mode_reads_only_a_line_that_names_coin(self):
+    async def test_say_mode_reads_every_line_and_coin_stays_the_owners(self):
+        # gevşetme olabilir (BM T1): a say line that names no coin is now read too; it used to spend no model call.
+        # Equal strictness kept: such a line carries no coin, and a coin line still reads its coin (50) as before.
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 50, "deal": "room",
                              "deal_goods": "none", "keep_change": False}
         self.people["sera"] = next(npc for npc in self.world["npcs"] if npc["id"] == "npc_private_sera")
-        await self.say_to("sera", "Akşam kalabalık olur mu?")  # anyone but whoever serves: no coin, no reading
-        self.assertNotIn("front", self.client.kinds)
-        self.assertEqual(self.routes()[-1]["route"], "skipped:typed")
+        await self.say_to("sera", "Akşam kalabalık olur mu?")  # anyone but whoever serves: read, but no coin moves
+        self.assertEqual(self.client.kinds.count("front"), 1)
+        self.assertNotIn("intent", self.client.kinds)
+        self.assertEqual(self.front_coin, 0)
+        self.assertNotEqual(self.routes()[-1]["route"], "skipped:typed")
         await self.say_to("barman", "Oda için beş gümüş ödüyorum")
         self.assertIn("front", self.client.kinds)
         self.assertEqual(self.front_coin, 50)
@@ -203,14 +207,27 @@ class SayModeCoin(Table):
         self.assertEqual(self.front_coin, 50)
         self.assertFalse(self.session._front_deed)
 
-    async def test_a_coin_line_to_nobody_typed_is_not_a_say_mode_reading(self):
+    async def test_a_coin_line_asked_of_the_dm_is_read_but_its_coin_is_never_taken(self):
+        # gevşetme olabilir (BM T1): an ask_dm line is now read too (it was not). Equal strictness kept: the model's
+        # coin is not taken from it (no coin evidence, no money route), as before when it was never read.
         await self.begin()
         self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 50}
-        response = await self.http.post(self.turn_url, json={"message": "Oda için beş gümüş ödüyorum",
-                                                             "interaction_mode": "ask_dm",
-                                                             "action_id": str(uuid.uuid4())})
+        kept = []
+        clear = game._clear_turn_transients
+
+        def keep_then_clear(session):
+            if not kept:
+                kept.append(getattr(session, "_front_coin", 0))
+            clear(session)
+
+        with patch.object(game, "_clear_turn_transients", keep_then_clear):
+            response = await self.http.post(self.turn_url, json={"message": "Oda için beş gümüş ödüyorum",
+                                                                 "interaction_mode": "ask_dm",
+                                                                 "action_id": str(uuid.uuid4())})
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertNotIn("front", self.client.kinds)
+        self.assertEqual(self.client.kinds.count("front"), 1)
+        self.assertEqual(kept, [0])
+        self.assertEqual(self.routes()[-1]["route"], "typed:talk_read")
 
 
 class ProposalKindsClient(ProposalClient):
@@ -290,14 +307,17 @@ class SayModeCoinKeepsTheTalk(Table):
         self.assertIn("Anahtar tezgâhta.", reply["narration"])
         self.assertFalse(((self.world.get(interaction_adventure.KEY) or {}).get("plan")))
 
-    async def test_a_say_line_without_coin_keeps_its_own_proposal_call(self):
+    async def test_a_say_line_without_coin_is_read_once_and_asks_no_second_call(self):
+        # gevşetme olabilir (BM T1): it used to keep the old proposal step's own classifier call ("intent"); now the
+        # reading is that call. Equal strictness kept: still at most two calls, and the line is still said to the person.
         await self.begin()
         line = "Söz veriyorum yarın geri gelirim"
         self.assertFalse(front_proposal.names_coin(line))
         await self.say_to("kişi", line)
-        self.assertNotIn("front", self.client.kinds)  # no reading: the old proposal step asks the model itself
-        self.assertIn("intent", self.client.kinds)
-        self.assertEqual(self.routes()[-1]["route"], "skipped:typed")
+        self.assertEqual(self.client.kinds.count("front"), 1)
+        self.assertNotIn("intent", self.client.kinds)  # the reading answers the proposal step too
+        self.assertLessEqual(len(self.client.kinds), 2)
+        self.assertNotEqual(self.routes()[-1]["route"], "skipped:typed")
 
 
 class TheTurnStartsClean(unittest.TestCase):
