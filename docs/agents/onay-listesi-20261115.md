@@ -149,7 +149,7 @@ Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi
 |---|---|---|
 | `test_story_links.HalfTruths.test_saying_it_in_your_own_way_is` | yanlış söylenti söylenince tehlike işi eskiden "heard" oluyordu (günlük gerçek satırı gösterirdi); şimdi iş "open" kalır, söylenti kendi sözleriyle `heard_rumours`ta | gevşetme olabilir (sınır yeniden tanımlandı; daha sıkı) |
 | Yeni `test_journal_heard.OneJobIsNeverAnother`, `FalseRumourKeepsItsOwnWords` | yeni (60 sabit kasaba, tüm sıralı çiftler: 0 çapraz eşleşme; yanlış söylenti) | gevşetme yok |
-| `test_default_focus_acceptance` (flag kapalı, tüm kipler), `test_meaning_boundary_acceptance`, `test_query_request_acceptance`, `test_default_npc_targeting` (yer önerisi), `test_npc_p2_continuity` (3 test) (süit düzeltmesi) | `required` ve `properties` beklentilerine `voiced` eklendi (üstteki `test_experimental_npc_dialogue` satırıyla aynı şema değişikliği) | gevşetme olabilir (tam liste sabitleyen testler genişledi) |
+| `test_default_focus_acceptance` (flag kapalı, tüm kipler), `test_meaning_boundary_acceptance`, `test_query_request_acceptance`, `test_default_npc_targeting` (yer önerisi), `test_npc_p2_continuity` (3 test), `test_spoken_promises.TheField` (süit düzeltmesi) | `required` ve `properties` beklentilerine `voiced` eklendi (üstteki `test_experimental_npc_dialogue` satırıyla aynı şema değişikliği) | gevşetme olabilir (tam liste sabitleyen testler genişledi) |
 | `test_npc_p2_continuity.test_live3_short_followup_drops_rumor_and_names_the_referent` | test değişmedi; ürün düzeltildi: `voiced` kuralı istemin sonundan alan kuralları bloğuna alındı, son satır yine oyuncunun mesajı | gevşetme yok |
 
 ## 12. BM görev 8 (dal `task/bm-once-model-20261117`, onay bekliyor)

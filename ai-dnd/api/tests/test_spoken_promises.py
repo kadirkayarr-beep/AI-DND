@@ -108,7 +108,7 @@ class TheField(Table):
         await self.line("selam", "Selam.")
         schema = self.client.schemas[-1]
         self.assertIn("commitment", schema["properties"])
-        self.assertEqual(schema["required"], ["spoken_text", "stage_direction", "threat", "mentions"])
+        self.assertEqual(schema["required"], ["spoken_text", "stage_direction", "threat", "voiced", "mentions"])
 
     async def test_the_prompt_lists_the_jobs_by_id_and_his_own_words(self):
         await self.job(status="accepted")
