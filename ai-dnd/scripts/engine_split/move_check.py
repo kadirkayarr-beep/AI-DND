@@ -16,7 +16,6 @@ import ast
 import difflib
 import io
 import json
-import re
 import sys
 import tokenize
 from collections import Counter
@@ -29,8 +28,6 @@ if __name__ == "__main__":
 from engine_split.inventory import top_level_index  # noqa: E402
 from engine_split.sensitivity import LOCK_PATH, is_sensitive  # noqa: E402
 
-IMPORT_LINE = re.compile(r"(import |from \S+ import )")
-GAME_IMPORT_LINE = re.compile(r"from game_parts\.\w+ import ")
 LAYOUT = (tokenize.NEWLINE, tokenize.NL)
 
 
@@ -127,32 +124,71 @@ def _check_block(base_game: Path, part: Path, name: str, part_name: str) -> tupl
     return found, span
 
 
-def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], manual: list[str]) -> list[str]:
+def _import_group_problem(lines: list[str], moved: dict[str, str]) -> str | None:
+    """None when the lines are only `from game_parts.<x> import <moved names>` statements; else the reason."""
+    try:
+        body = ast.parse("\n".join(lines)).body
+    except SyntaxError:
+        return "not a complete `from game_parts.<x> import ...` statement"
+    for stmt in body:
+        if not isinstance(stmt, ast.ImportFrom) or stmt.level != 0 or not (stmt.module or "").startswith("game_parts."):
+            return "not a `from game_parts.<x> import ...` statement"
+        for alias in stmt.names:
+            if alias.asname or alias.name not in moved or f"game_parts.{Path(moved[alias.name]).stem}" != stmt.module:
+                return f"imports {alias.name!r}, which is not a moved name of that part"
+    return None
+
+
+def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], manual: list[str],
+                      moved: dict[str, str]) -> list[str]:
     base_lines, new_lines = _text(base_game).splitlines(), _text(new_game).splitlines()
     exempt = _manual_lines(manual, "game.py")
-    found = []
+    found, deleted = [], set()
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, base_lines, new_lines, autojunk=False).get_opcodes():
         if tag == "equal":
             continue
+        deleted.update(range(i1 + 1, i2 + 1))
         for i in range(i1, i2):  # a deleted line must be blank or sit inside a moved block
             if base_lines[i].strip() and not any(s <= i + 1 <= e for s, e in spans) and (i + 1) not in exempt:
                 found.append(f"game.py: base line {i + 1} deleted outside the moved blocks: {base_lines[i].strip()[:60]}")
-        for j in range(j1, j2):
-            if new_lines[j].strip() and not GAME_IMPORT_LINE.match(new_lines[j]) and (j + 1) not in exempt:
-                found.append(f"game.py:{j + 1}: line is neither a deletion nor a `from game_parts.<x> import` line: "
-                             f"{new_lines[j].strip()[:60]}")
+        group = [(j + 1, new_lines[j]) for j in range(j1, j2) if new_lines[j].strip() and (j + 1) not in exempt]
+        if group:  # inserted or replaced lines must parse as import statements of moved names only
+            problem = _import_group_problem([line for _, line in group], moved)
+            if problem:
+                found.append(f"game.py:{group[0][0]}: {problem}: {group[0][1].strip()[:60]}")
+    for start, end in spans:  # every non-blank line of a moved block must be deleted
+        for number in range(start, end + 1):
+            if base_lines[number - 1].strip() and number not in deleted and number not in exempt:
+                found.append(f"game.py: base line {number} of a moved block is still in game.py: {base_lines[number - 1].strip()[:60]}")
+    try:
+        for entry in top_level_index(new_game):
+            if entry["name"] in moved and entry["kind"] != "import":
+                found.append(f"game.py: {entry['name']!r} is still bound at top level ({entry['kind']}, line {entry['start']})")
+    except SyntaxError as exc:
+        found.append(f"game.py does not parse: {exc}")
     return found
 
 
+def _import_only_lines(part: Path) -> set[int]:
+    """Lines of the part that hold top-level import statements and nothing else (F16)."""
+    body = ast.parse(_text(part)).body
+    imports, others = set(), set()
+    for stmt in body:
+        target = imports if isinstance(stmt, (ast.Import, ast.ImportFrom)) else others
+        target.update(range(stmt.lineno, stmt.end_lineno + 1))
+    return imports - others
+
+
 def _part_findings(base_part: Path, part: Path, part_name: str, spans: list[tuple], manual: list[str]) -> list[str]:
-    """F16: a part line outside the moved blocks must be an import line, blank, a line the base part already had, or manual."""
+    """F16: a part line outside the moved blocks must be an import statement, blank, a line the base part already had, or manual."""
     known = Counter(l for l in _text(base_part).splitlines() if l.strip()) if base_part.exists() else Counter()
     exempt = _manual_lines(manual, part_name)
+    import_lines = _import_only_lines(part)
     found = []
     for number, line in enumerate(_text(part).splitlines(), start=1):
         if not line.strip() or any(s <= number <= e for s, e in spans) or number in exempt:
             continue
-        if IMPORT_LINE.match(line):
+        if number in import_lines:
             continue
         if known[line] > 0:
             known[line] -= 1
@@ -177,7 +213,7 @@ def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive
         for entry in _entries(base_root / "game.py", name):  # statements that bind several names move whole
             base_spans += [(e["start"], e["end"]) for e in top_level_index(base_root / "game.py")
                            if (e["start"], e["end"]) == (entry["start"], entry["end"])]
-    changed += _game_py_findings(base_root / "game.py", new_root / "game.py", base_spans, manual)
+    changed += _game_py_findings(base_root / "game.py", new_root / "game.py", base_spans, manual, moved)
     for part_name, spans in spans_by_part.items():
         changed += _part_findings(base_root / "game_parts" / part_name, new_root / "game_parts" / part_name,
                                   part_name, spans, manual)

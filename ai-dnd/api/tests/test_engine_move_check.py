@@ -85,6 +85,36 @@ class MoveCheckTests(unittest.TestCase):
         self.build(newline="\r\n")
         self.assertEqual(self.check()["changed"], [])
 
+    def test_a_statement_after_the_import_on_one_line_is_reported(self):  # review 1
+        self.build(game=GOOD_GAME.replace("import roll", "import roll; K = 2"))
+        self.assertTrue(self.check()["changed"])
+
+    def test_an_import_of_a_name_that_was_not_moved_is_reported(self):  # review 1
+        self.build(game=GOOD_GAME.replace("import roll", "import roll, helper"))
+        self.assertTrue(self.check()["changed"])
+
+    def test_extra_statements_on_a_part_import_line_are_reported(self):  # review 2
+        self.build(part=GOOD_PART.replace("import game\n", "import game; import os; os.x = 1\n"))
+        self.assertTrue(self.check()["changed"])
+
+    def test_a_parenthesised_part_import_is_allowed(self):  # review 2
+        header = "import game\nfrom os import (\n    path,\n    sep,\n)\n"
+        self.build(part=GOOD_PART.replace("import game\n", header))
+        self.assertEqual(self.check()["changed"], [])
+
+    def test_a_copy_that_leaves_the_block_in_game_py_is_reported(self):  # review 3 (no comments, so the count cannot catch it)
+        base = BASE.replace("# why roll exists (D-123)\n", "").replace("  # keep", "")
+        part = GOOD_PART.replace("# why roll exists (D-123)\n", "").replace("  # keep", "")
+        self.build(base=base, game=base.replace("def helper", "from game_parts.dice import roll\n\ndef helper"), part=part)
+        self.assertTrue(self.check()["changed"])
+
+    def test_a_body_only_deletion_in_game_py_is_reported(self):  # review 3 (no comments)
+        base = BASE.replace("# why roll exists (D-123)\n", "").replace("  # keep", "")
+        part = GOOD_PART.replace("# why roll exists (D-123)\n", "").replace("  # keep", "")
+        game = "K = 1\n\nfrom game_parts.dice import roll\n\ndef roll():\n\ndef helper():\n    return 2\n"
+        self.build(base=base, game=game, part=part)
+        self.assertTrue(self.check()["changed"])
+
     def test_a_manual_line_in_game_py_is_exempt_and_echoed(self):
         self.build(game=GOOD_GAME.replace("K = 1", "K = 2"))
         self.assertTrue(self.check()["changed"])
