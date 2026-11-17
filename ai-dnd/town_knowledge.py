@@ -263,7 +263,8 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
                                       {item["thread_id"] for item in threads})
     known, size = [], 0
     town = _town_item(world, settlement_id)
-    for item in (*([town] if town else []), *threads, *gone, *rumours, *_places(world, settlement_id, npc)):
+    own = town_rumours.own_spoken(world, npc, settlement_id)  # what this person said aloud is the last thing they forget
+    for item in (*([town] if town else []), *own, *threads, *gone, *(r for r in rumours if r not in own), *_places(world, settlement_id, npc)):
         cost = len(item["text"].encode("utf-8"))
         if len(known) < MAX_ITEMS and size + cost <= MAX_BYTES:
             known.append(item)

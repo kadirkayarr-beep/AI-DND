@@ -676,8 +676,9 @@ class WiderKnowledge(unittest.TestCase):
         world["heard_rumours"][1]["said_by"] = "npc_s"  # rumour_002 is the speaker's and ranks last
         items = town_rumours.rumour_for(world, npc, "city",
                                         lambda n, k, key: 99 if (k == "rumour_order" and key == "rumour_002") else 0, set())
-        self.assertEqual([i["thread_id"] is not None for i in items], [True, False])
-        self.assertEqual(items[1]["text"], world["heard_rumours"][1]["text"])
+        # BM T5 (gevşetme olabilir): the speaker's own words now come BEFORE the trouble item; both still fill the two slots
+        self.assertEqual([i["thread_id"] is not None for i in items], [False, True])
+        self.assertEqual(items[0]["text"], world["heard_rumours"][1]["text"])
         world, _ = self.world_with_place()
         self.heard(world, 3, speaker="someone")
         world["heard_rumours"][2]["said_by"] = "npc_s"

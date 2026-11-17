@@ -52,8 +52,15 @@ def _heard(world: dict[str, Any], npc: dict[str, Any], settlement_id: str, perce
     return [{"kind": "rumour", "text": entry["text"], "location_id": entry.get("place_id"), "thread_id": None} for entry in found]
 
 
+def own_spoken(world: dict[str, Any], npc: dict[str, Any], settlement_id: str) -> list[dict[str, Any]]:
+    """Rumours this person said aloud themselves in this town: they always know their own words."""
+    return [item for item in _heard(world, npc, settlement_id, lambda *parts: 100)
+            if any(_spoke(entry, npc) and entry.get("text") == item["text"] and entry.get("settlement_id") == settlement_id
+                   for entry in world.get("heard_rumours") or [] if isinstance(entry, dict))]
+
+
 def rumour_for(world: dict[str, Any], npc: dict[str, Any], settlement_id: str, percent: Any, listed: Any) -> list[dict[str, Any]]:
-    """Up to two rumours this person carries: a trouble they do not already list (not their own), then heard ones."""
+    """Up to two rumours this person carries: their own spoken words first, then a trouble they do not already list, then heard ones."""
     troubles = [t for t in world_threads.active(world, settlement_id) if t["type"] == "trouble"
                 and t["thread_id"] not in listed and t["place_id"] != npc.get("place_role_of")
                 and percent(npc.get("id"), "rumour", t["thread_id"]) < HEARD_PERCENT]
@@ -64,7 +71,9 @@ def rumour_for(world: dict[str, Any], npc: dict[str, Any], settlement_id: str, p
         if words:
             items.append({"kind": "rumour", "text": words, "location_id": thread["place_id"], "thread_id": thread["thread_id"]})
             break
-    return (items + _heard(world, npc, settlement_id, percent))[:MAX_RUMOURS]
+    own = own_spoken(world, npc, settlement_id)
+    rest = [item for item in (*items, *_heard(world, npc, settlement_id, percent)) if item not in own]
+    return (own + rest)[:MAX_RUMOURS]
 
 
 def was_voiced(world: dict[str, Any], item: dict[str, Any], words: str) -> bool:
