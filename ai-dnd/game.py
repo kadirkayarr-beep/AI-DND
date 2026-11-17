@@ -8079,6 +8079,8 @@ def commit_location_change(location_id, turn_index=None):
         create_feature=create_local_feature,
     )
     if previous_location != location_id:
+        # BM T6: the arrival text belongs to one arrival; a move by any path drops it, `narrate` writes the new one.
+        (world_state.get("scene_state") or {})["arrival_text"] = None
         import economic_actions
         import grounded_action
         # C13: a card prepared before this turn is about the place left behind; this turn's own cards stay.

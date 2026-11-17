@@ -13,6 +13,7 @@ import uuid
 from unittest.mock import patch
 
 import campaign_time
+import game
 import talk_front
 import town_knowledge
 import world_threads
@@ -136,6 +137,22 @@ class SceneTimeTable(unittest.IsolatedAsyncioTestCase):
                                         "place_id": None, "speakers": [self.npc["id"]], "said_by": self.npc["id"]}]
         self.assertIn("Değirmende bir şeyler dönüyor.", self.context_of(await self.say())["kendi_sozlerin"])
 
+    async def test_a_bare_follow_up_leaves_own_rumours_out(self):
+        await self.begin()
+        settlement = town_knowledge._settlement(self.world)
+        self.world["heard_rumours"] = [{"id": "r1", "settlement_id": settlement, "text": "Değirmende bir şeyler dönüyor.",
+                                        "place_id": None, "speakers": [self.npc["id"]], "said_by": self.npc["id"]}]
+        self.assertNotIn("kendi_sozlerin", self.context_of(await self.say("Neden?")))
+        self.assertIn("kendi_sozlerin", self.context_of(await self.say("Başka ne var?")))
+
+    async def test_a_closed_mouthed_person_has_no_own_rumours(self):
+        await self.begin()
+        settlement = town_knowledge._settlement(self.world)
+        self.world["heard_rumours"] = [{"id": "r1", "settlement_id": settlement, "text": "Değirmende bir şeyler dönüyor.",
+                                        "place_id": None, "speakers": [self.npc["id"]], "said_by": self.npc["id"]}]
+        with patch.object(town_knowledge, "is_closed_mouthed", return_value=True):
+            self.assertNotIn("kendi_sozlerin", talk_front.speech_extras(self.world, self.npc))
+
     async def test_speech_prompt_has_last_lines(self):
         await self.begin()
         await self.say("Birinci soru?", "Birinci cevap, yolcu.")
@@ -189,10 +206,27 @@ class ArrivalTextStored(arrival_tests._ArrivalApi):
         first = self.stored()
         action_id = str(uuid.uuid4())
         await self.turn("meyhaneye gidiyorum", arrival="Başka bir sahne.", action_id=action_id)
-        if self.stored() == first:
-            self.skipTest("the second walk made no arrival in this town")
+        self.assertNotEqual(self.stored(), first)  # a pinned seed: the second walk makes an arrival
         await self.undo(action_id)
         self.assertEqual(self.stored(), first)
+
+    def commit(self, place_id):
+        session = self.session()
+        token = game._ACTIVE_SESSION.set(session)
+        try:
+            self.assertTrue(game.commit_location_change(place_id))
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+
+    async def test_a_move_without_an_arrival_narration_clears_the_text(self):
+        await self.turn("demirhaneye gidiyorum", arrival=SCENE)
+        smithy = self.session().world_state["location"]
+        self.assertIsNotNone(self.stored())
+        self.commit("fr:city:neverwinter")  # any other path (legacy travel, exit, way-out) goes through here
+        self.assertIsNone(self.stored())
+        self.commit(smithy)  # back, with no narration: the old scene must not come back
+        self.assertIsNone(self.stored())
+        self.assertNotIn("sahne_anlatimi", talk_front.speech_extras(self.session().world_state, {"id": "x"}))
 
     async def test_save_load_keeps_arrival_text(self):
         await self.turn("demirhaneye gidiyorum", arrival=SCENE)
