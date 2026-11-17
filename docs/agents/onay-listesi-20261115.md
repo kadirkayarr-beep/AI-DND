@@ -77,3 +77,11 @@ Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden t
 | `test_local_gemma_12b` | bulut mesajları testi bulut üslup bloğunu bekler | gevşetme olabilir |
 | `test_game_name.ProtectedIdsTests.test_env_variable_name_set_is_unchanged` | `AI_DND_*` ad sayısı 36'dan 37'ye (`AI_DND_RUMOUR_LANE`) | gevşetme olabilir |
 | `test_journey_schema` beklenti anahtarı kümesi | `duyulan` eklendi (yalnız ekleme) | - |
+
+## 6. Logo sürekli dönsün (dal `task/logo-donsun-20261117`, sahibin kararı, davranış değişimi)
+
+Kaynak: Kadir, 2026-11-17: "logonun otomatik dönmesi gerekiyor, dönmüyor". Bulgu: `OYNAYIS_NOTLARI_20261117.md` B8.
+
+| Test | Eski beklenti | Yeni beklenti | Not |
+|---|---|---|---|
+| `artifacts/ai-dnd-experience/tests/menu-logo-music.test.mjs`: "the logo plays only while something is loading..." yerine "with motion on the logo loops on its own, whatever is loading; a hidden tab pauses it and showing the tab resumes it" | video yalnız yükleme sürerken oynar, bekleme bitince en az 600 ms kalır (`loading` prop, `MIN_VISIBLE_MS`) | hareket açıkken video yüklemeden bağımsız döngüde oynar; gizli sekmede durur, sekme görününce yeniden başlar; tema değişince yeniden başlar; `autoPlay` yok. Azaltılmış hareket / efekt kapalı: video yok, yalnız durağan görsel (komşu test aynen duruyor) | sahibin kararı, davranış değişimi; aynı sıkılık; onay bekliyor |

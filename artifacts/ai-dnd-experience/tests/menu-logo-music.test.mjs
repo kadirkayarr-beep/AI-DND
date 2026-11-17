@@ -11,10 +11,16 @@ const css = await readFile('src/components/unwritten-play.css', 'utf8');
 const panel = await readFile('src/components/appearance-settings-panel.tsx', 'utf8');
 const html = await readFile('index.html', 'utf8');
 
-test('the logo plays only while something is loading, after the real wait ends it keeps at least 600 ms', () => {
-  assert.match(shell, /<OuroborosLogo loading=\{creating \|\| loadingCampaigns\} \/>/);
-  assert.match(logo, /export const MIN_VISIBLE_MS = 600/);
-  assert.match(logo, /MIN_VISIBLE_MS - \(Date\.now\(\) - shownAt\.current\)/);
+// Owner decision 2026-11-17 (behaviour change): the logo turns all the time while motion is on, not only
+// while something is loading. Reduced motion / effects off still show only the still (next test).
+test('with motion on the logo loops on its own, whatever is loading; a hidden tab pauses it and showing the tab resumes it', () => {
+  assert.match(shell, /<OuroborosLogo \/>/);
+  assert.match(logo, /export function OuroborosLogo\(\) \{/);
+  assert.doesNotMatch(logo, /loading=|\{ loading \}|MIN_VISIBLE_MS|shownAt/);
+  assert.match(logo, /if \(!el \|\| !motion\) return undefined;/);
+  assert.match(logo, /const start = \(\) => \{ if \(!document\.hidden\) void el\.play\(\)/);
+  assert.match(logo, /if \(document\.hidden\) el\.pause\(\);\s*else start\(\);/);
+  assert.match(logo, /\}, \[motion, resolvedTheme\]\);/);
   assert.doesNotMatch(logo, /autoPlay|autoplay/);
 });
 test('reduced motion or effects off: no video at all, only the still image', () => {
