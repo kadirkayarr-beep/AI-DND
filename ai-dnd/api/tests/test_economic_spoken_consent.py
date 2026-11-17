@@ -182,10 +182,16 @@ class FailedSpeechRollback(JourneyCase):
         self.assertIsNone(getattr(session,'_spoken_coin_proposal',None))
         self.assertIsNone(getattr(session,'_spoken_coin_result',None))
 
+import campaign_time
 import game
 class PendingCoinPrompt(OfferFixture):
     def test_bound_pending_offer_tells_only_recipient_coin_is_not_transferred(self):
         npc=next(n for n in self.w['npcs'] if n['id']=='barman')
+        # The speech note now reads the public hour (BM T6): the fixture's stub clock {'elapsed_seconds'} is no valid clock.
+        elapsed=self.w['campaign_time']['elapsed_seconds']
+        del self.w['campaign_time']
+        campaign_time.initialize(self.w)
+        self.w['campaign_time']['elapsed_seconds']=elapsed
         self.s._front_coin=5
         self.assertTrue(self.s._defer_spoken_coin_offer({'kind':'economic','valid':True,'purpose':'gift','id':'barman'}))
         before=copy.deepcopy(self.w['currency'])

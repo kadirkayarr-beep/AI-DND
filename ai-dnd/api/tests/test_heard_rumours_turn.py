@@ -220,7 +220,7 @@ class MentionOverHttp(MentionTurnFixture):
             _, client, _ = await self.say(None)
         self.assertNotIn("mentions", client.formats[0]["properties"])
         self.assertNotIn("mentions", client.formats[0]["required"])
-        self.assertEqual(client.formats[0]["required"], ["spoken_text", "stage_direction", "threat"])
+        self.assertEqual(client.formats[0]["required"], ["spoken_text", "stage_direction", "threat", "voiced"])
 
     async def test_kind_none_mention_records_nothing(self):
         response, _, _ = await self.say({"kind": "none", "name": ""})

@@ -65,8 +65,10 @@ class TipPipeline(routes.Routes):
         self.enterContext(patch.object(money_owner, 'decide', trace_decide))
 
     async def offer(self, keep_change, *, to=None, goods='bira', line=LINE):
+        # `asks` and `about_person_id` are the BM reading fields: the front step repairs a missing one to 'none' in place,
+        # so the scripted wire carries them and "wire == owner input" stays an exact comparison.
         self.client.front = {'kind': 'speak_to', 'person_id': 'barman', 'deal': 'goods',
-                             'deal_goods': goods, 'coin_cp': 5}
+                             'deal_goods': goods, 'coin_cp': 5, 'asks': 'none', 'about_person_id': 'none'}
         if keep_change is not MISSING:
             self.client.front['keep_change'] = keep_change
         before = copy.deepcopy(self.world['currency'])

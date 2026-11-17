@@ -263,7 +263,8 @@ def public_knowledge(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
                                       {item["thread_id"] for item in threads})
     known, size = [], 0
     town = _town_item(world, settlement_id)
-    for item in (*([town] if town else []), *threads, *gone, *rumours, *_places(world, settlement_id, npc)):
+    own = town_rumours.own_spoken(world, npc, settlement_id)  # what this person said aloud is the last thing they forget
+    for item in (*([town] if town else []), *own, *threads, *gone, *(r for r in rumours if r not in own), *_places(world, settlement_id, npc)):
         cost = len(item["text"].encode("utf-8"))
         if len(known) < MAX_ITEMS and size + cost <= MAX_BYTES:
             known.append(item)
@@ -463,6 +464,11 @@ def role_note(world: dict[str, Any], npc: dict[str, Any]) -> str:
             " Kentin genel hâli bunlara girmez.")
 
 
+def speech_keys(world: dict[str, Any], npc: Any) -> dict[str, dict[str, Any]]:
+    """The listed items by the key the prompt shows (k1, k2, ...). Writes nothing; same order as ``public_knowledge``."""
+    return {f"k{number}": item for number, item in enumerate(public_knowledge(world, npc), 1)}
+
+
 def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None = None) -> str:
     """Plain lines for this person's prompt; empty when the town is not in play here."""
     if not isinstance(npc, dict) or world_threads.view(world) is None or not _settlement(world):
@@ -482,14 +488,16 @@ def speech_note(world: dict[str, Any], npc: Any, decision: dict[str, Any] | None
             + (f" En fazla, başından savmak için {place} tarafına sormasını söyleyebilirsin; ne olduğunu anlatma."
                if place else "")
             + " Başka kimseyi ve hiçbir başka yeri adıyla anma."
+            + " Aynı savma gerekçesini bir kez söyle; son sözlerinde söylediysen yinelemek yerine kısa kes."
             + job
             + role_note(world, npc)
         )
     import heard_rumours  # heard_rumours imports this module, so the import waits for the call
-    known = public_knowledge(world, npc)
+    keyed = speech_keys(world, npc)
+    known = list(keyed.values())
     lines = []
     if known:
-        listed = " / ".join(item["text"] for item in known)
+        listed = " / ".join(f"{key}: {item['text']}" for key, item in keyed.items())
         lines.append(
             f" Kentte duyduğun ve bildiğin şeyler: {listed}. Sana iş, olan biten ya da bir yer sorulursa "
             "bunlardan uygun olanı kendi sözlerinle aktar; yer ve kişi adlarını aynen kullan, kesin bilmediğini "
@@ -822,11 +830,15 @@ def _shows_terms(thread, text):
         not terms.get("work_days") or world_threads.figure_before(text, terms.get("work_days"), ("gun", "gece")))
 
 
-def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) -> str | None:
-    """The owner's terms, when they were asked for the work and the reply left the figures out."""
+def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any,
+                 asked_about_work: bool | None = None) -> str | None:
+    """The owner's terms, when they were asked for the work and the reply left the figures out.
+
+    asked_about_work: the model's reading of the line when there is one; None leaves it to the word table."""
     thread = _offerable(world, npc) if isinstance(npc, dict) else None
     if (thread is None or not isinstance(reply, str) or _shows_terms(thread, reply) or thread["owner_line"] in reply
-            or world_threads.owner_mood(world, thread, npc) != "yes" or not asks_about_work(player_text, thread)):
+            or world_threads.owner_mood(world, thread, npc) != "yes"
+            or not (asks_about_work(player_text, thread) if asked_about_work is None else asked_about_work)):
         return None
     return thread["owner_line"]
 
@@ -912,24 +924,48 @@ def _tells_outcome(item, thread, words):
             or bool({npc_statements.fold(word) for word in listed} & set(words.split())))
 
 
-def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: bool = False,
-                 offer_talk: bool = False) -> None:
-    """Tie what was just said to the real record it means, so the player can follow it."""
+def _keep_heard_rumour(world: dict[str, Any], npc: dict[str, Any], item: dict[str, Any], turn: int) -> None:
+    """A catalog rumour the person really passed on becomes a heard rumour with its own words (a false one stays false
+    and the trouble behind it stays unheard); said again, the speaker is added, not a second entry."""
+    settlement_id = _settlement(world)
+    rumours = world.get("heard_rumours")
+    rumours = rumours if isinstance(rumours, list) else []
+    for entry in rumours:
+        if isinstance(entry, dict) and entry.get("settlement_id") == settlement_id and entry.get("text") == item["text"]:
+            speakers = entry.get("speakers") if isinstance(entry.get("speakers"), list) else [entry.get("said_by")]
+            if npc.get("id") not in speakers:
+                entry["speakers"] = [*speakers, npc.get("id")]
+            return
+    numbers = [int(e["id"][7:]) for e in rumours if isinstance(e, dict) and isinstance(e.get("id"), str) and e["id"][7:].isdigit()]
+    rumours.append({"id": f"rumour_{max(numbers, default=0) + 1:03d}", "text": item["text"], "said_by": npc.get("id"),
+                    "speakers": [npc.get("id")], "place_id": item["location_id"], "settlement_id": settlement_id,
+                    "turn": turn})
+    world["heard_rumours"] = rumours[-64:]
+
+
+def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, voiced: list[str] | None = None,
+                 job_talk: bool = False, offer_talk: bool = False) -> None:
+    """Tie what was just said to the real record it means, so the player can follow it.
+
+    A listed thread or rumour is marked heard only when the reply carries its own words (``town_rumours.was_voiced``)
+    and, when the model named what it passed on (``voiced``: keys k1..k10 or "none"), that key is among them. A place or
+    a person named alone marks nothing."""
     if not isinstance(npc, dict) or not isinstance(shown_text, str):
         return
     try:
         if world_threads.view(world) is None:
             return
         words = npc_statements.fold(shown_text)
-        known = public_knowledge(world, npc)
+        keyed = speech_keys(world, npc)
+        known = list(keyed.values())
         spoken = _spoken_places(world, _settlement(world), words)
         hits = _mentioned(world, known, words)
         turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
-        for item in known:  # only the thread this line is about, never another at the same place
-            if item["kind"] == "rumour":
-                reached = town_rumours.was_voiced(world, item, words)
-            else:
+        for key, item in keyed.items():  # only the thread this line really carries, never another at the same place
+            if item["kind"] == "news":  # how it ended is judged by ``_tells_outcome`` on the reply's own content
                 reached = item in hits or item["location_id"] in spoken
+            else:
+                reached = town_rumours.was_voiced(world, item, words) and (voiced is None or key in voiced)
             if item["thread_id"] and reached:
                 thread = world_threads.by_id(world, item["thread_id"])
                 if thread is None:
@@ -938,6 +974,8 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, job_talk: 
                     if _tells_outcome(item, thread, words):
                         world_happenings.learned(world, thread)
                         world_threads.learn_outcome(world, thread)
+                elif item["kind"] == "rumour":
+                    _keep_heard_rumour(world, npc, item, turn)  # the words said, never the trouble's own line
                 else:
                     world_threads.mark_heard(thread, turn)
         for thread in owned_threads(world, npc):

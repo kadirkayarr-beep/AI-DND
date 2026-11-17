@@ -126,9 +126,16 @@ def _shaped(game, narration: str, scene: dict[str, Any]) -> str:
     return town_knowledge.without_unbacked_money(" ".join(sentences[:limit])) or ""
 
 
+def _remember(world: dict[str, Any], place_id: str, text: str) -> None:
+    """The text the player was shown, the one arrival kept for the NPC speech at this place (BM Task 6). It lives in
+    the scene state, so a save keeps it and Undo takes it back with the turn."""
+    world.setdefault("scene_state", {})["arrival_text"] = {
+        "place_id": place_id, "text": text.strip(), "turn": (world.get("flags") or {}).get("turn_index", 0)}
+
+
 def narrate(game, scene: dict[str, Any], *, player_input, messages, lead: str = "",
             tail: str = "") -> tuple[str, dict[str, Any]]:
-    """The whole shown arrival (lead, scene, facts, tail; capped) and {source, reason_code, calls}. The world is never changed here."""
+    """The whole shown arrival (lead, scene, facts, tail; capped) and {source, reason_code, calls}. The only world change is `scene_state.arrival_text` (the shown text, BM T6)."""
     import grounded_action
     from api.model_phase import resolved_narration_scope
     from api.ollama_adapter import model_calls_left
@@ -148,7 +155,9 @@ def narrate(game, scene: dict[str, Any], *, player_input, messages, lead: str = 
     def done(body, source, reason_code, calls, *, presence="", model=False):
         info = {"source": source, "reason_code": reason_code, "calls": calls}
         session.last_arrival_narration = dict(info)
-        return whole(body, presence=presence, model=model), info
+        shown = whole(body, presence=presence, model=model)
+        _remember(session.world_state, scene["place_id"], shown)
+        return shown, info
 
     def python(reason_code, calls):
         line = (scene.get("presence_line") or "").strip()
@@ -166,7 +175,10 @@ def narrate(game, scene: dict[str, Any], *, player_input, messages, lead: str = 
     rest = bool(getattr(session, "_front_rest", ""))  # the rest of the line is read at the place walked to (D3D T4)
     if left < (2 if speech or rest else 1):
         return python("speech_first" if speech else "rest_first" if rest else "no_budget", 0)
-    budget = max(RETURN_FLOOR, limit - sum(len(_sentences(game, piece)) for piece in (lead, scene["facts_line"], tail)))
+    room = limit - sum(len(_sentences(game, piece)) for piece in (lead, scene["facts_line"], tail))
+    if room <= 0:  # the Python entry fills the cap: the model's text would be cut away whole (D-324)
+        return python("arrival_full", 0)
+    budget = max(RETURN_FLOOR, room)
     system = "Narrate only the supplied arrival.\n" + game.NARRATOR_VOICE + "\n" + RULES
     try:
         with resolved_narration_scope(True):

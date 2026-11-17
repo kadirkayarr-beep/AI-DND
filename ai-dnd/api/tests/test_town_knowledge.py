@@ -192,7 +192,7 @@ class WhatWasSaidIsTiedToTheRecord(unittest.TestCase):
     def test_a_place_named_with_a_case_ending_is_that_place(self):
         said = self.say(f"Bence {self.place['name']}ne bir uğra.")
         self.assertEqual(said["location_id"], self.place["id"])
-        self.assertEqual(self.thread["status"], "heard")
+        self.assertNotEqual(self.thread["status"], "heard")  # BM T7: a place named alone marks nothing (gevşetme olabilir)
 
     def test_a_person_named_alone_leads_to_their_place(self):
         said = self.say(f"{self.thread['owner_name']} ile konuş, o bilir.")
@@ -676,8 +676,9 @@ class WiderKnowledge(unittest.TestCase):
         world["heard_rumours"][1]["said_by"] = "npc_s"  # rumour_002 is the speaker's and ranks last
         items = town_rumours.rumour_for(world, npc, "city",
                                         lambda n, k, key: 99 if (k == "rumour_order" and key == "rumour_002") else 0, set())
-        self.assertEqual([i["thread_id"] is not None for i in items], [True, False])
-        self.assertEqual(items[1]["text"], world["heard_rumours"][1]["text"])
+        # BM T5 (gevşetme olabilir): the speaker's own words now come BEFORE the trouble item; both still fill the two slots
+        self.assertEqual([i["thread_id"] is not None for i in items], [False, True])
+        self.assertEqual(items[0]["text"], world["heard_rumours"][1]["text"])
         world, _ = self.world_with_place()
         self.heard(world, 3, speaker="someone")
         world["heard_rumours"][2]["said_by"] = "npc_s"

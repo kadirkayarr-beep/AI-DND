@@ -1632,6 +1632,41 @@ def turn_gate(world: dict[str, Any], npc: Any, text: Any) -> dict[str, Any] | No
     return None
 
 
+def reading_gate(world: dict[str, Any], npc: Any, thread_id: str, text: Any, front: dict[str, Any]) -> dict[str, Any] | None:
+    """What a line does to the one thread the model's reading said it speaks of (BM Task 4).
+
+    The reading chose the thread; nothing here searches the player's words for work. Python only validates what the
+    reading proposed, with the same checks `turn_gate` uses: a hand-over needs `gives_item`, bringing a matter up needs `raises_the_matter`, a
+    yes to a lapsed offer `lapsed_yes`, taking a trouble on `offers_to_help`, a wage needs a plain ask and
+    the stored amount (`wage_due`, written by `pay_day`), a yes or a no needs `bind_player_decision`. No money or
+    item moves here; the writers run later in `_carry_out_thread_turn`."""
+    thread = by_id(world, thread_id)
+    if thread is None or not isinstance(npc, dict) or not isinstance(text, str):
+        return None
+    gate = {"thread_id": thread_id, "decision": None, "npc_id": npc.get("id"), "yes_heard": False,
+            "offer_talk": front.get("kind") in ("work", "offer_answer") or front.get("asks") == "work"
+            or thread_id in (front.get("job_id"), front.get("offer_id"))}
+    if front.get("kind") == "hand_over":
+        if thread in deliveries_to(world, npc) and gives_item(text, npc, thread):
+            return {**gate, "decision": "give"}
+        if thread in late_parcels(world, npc) and gives_item(text, npc, thread):
+            return {**gate, "decision": "give_late"}
+        return gate
+    if thread in matters_with(world, npc) and raises_the_matter(world, text, npc, thread):
+        return {**gate, "decision": "matter"}
+    if thread.get("status") in ("accepted", "done") and asks_for_pay(text):
+        return {**gate, "decision": "pay"}
+    if (front.get("kind") == "work" and thread.get("status") == "accepted" and thread.get("type") in WORKED
+            and "?" not in text and not says_later(text)):
+        return {**gate, "decision": "work" if worked_on_the_spot(thread) else None}
+    if lapsed_yes(world, thread, text, npc):
+        return {**gate, "decision": "lapsed"}
+    decision = bind_player_decision(world, thread, text, npc)
+    if not decision and offers_to_help(world, text, npc, thread):
+        return {**gate, "decision": "take_up"}
+    return {**gate, "decision": decision, "yes_heard": decision == "accepted"} if decision else gate
+
+
 def apply_decision(world: dict[str, Any], thread: dict[str, Any], decision: str, turn: int) -> bool:
     """Write what the player said. Money and goods stay with their own owners."""
     if decision == "accepted" and thread.get("type") in WORKED:

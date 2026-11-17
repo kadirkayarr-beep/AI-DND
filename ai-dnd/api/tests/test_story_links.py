@@ -551,7 +551,9 @@ class HalfTruths(unittest.TestCase):
     def test_saying_it_in_your_own_way_is(self):
         world, thread, npc, item = town_with_rumour(false_one=True)
         town_knowledge.note_mention(world, npc, f"Ne bileyim, derler ki {item['text']}")
-        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "heard")
+        # BM T7 fix 1: the rumour is kept with its own words; the trouble behind it stays unheard (gevşetme olabilir)
+        self.assertEqual(world_threads.by_id(world, thread["thread_id"])["status"], "open")
+        self.assertEqual([e["text"] for e in world["heard_rumours"]], [item["text"]])
 
     def test_when_no_reply_can_be_used_a_rumour_is_not_handed_out_as_fact(self):
         world, thread, npc, item = town_with_rumour(false_one=True)

@@ -44,6 +44,7 @@ import effect_lifecycle
 import event_order
 import interaction_adventure
 import money_owner
+import talk_front
 import npc_statements
 import talk_mode
 from weapon_catalog import WEAPONS
@@ -8078,6 +8079,8 @@ def commit_location_change(location_id, turn_index=None):
         create_feature=create_local_feature,
     )
     if previous_location != location_id:
+        # BM T6: the arrival text belongs to one arrival; a move by any path drops it, `narrate` writes the new one.
+        (world_state.get("scene_state") or {})["arrival_text"] = None
         import economic_actions
         import grounded_action
         # C13: a card prepared before this turn is about the place left behind; this turn's own cards stay.
@@ -8384,6 +8387,9 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
         },
         # Required, because a small model leaves an optional field out: real play never once filled one for a threat.
         "threat": {"type": "string", "maxLength": 48},
+        # BM T7: which of the listed knowledge items (k1..) the reply really passed on. The engine fills the keys per
+        # person and makes the field required; Python still checks the reply's own words before it marks anything heard.
+        "voiced": {"type": "array", "items": {"type": "string", "enum": ["none"]}, "maxItems": 3},
     },
     "required": ["spoken_text", "stage_direction", "threat"],
     "additionalProperties": False,
@@ -8464,6 +8470,13 @@ _MENTIONS_PROMPT_RULE = (
 )
 
 
+_VOICED_PROMPT_RULE = (
+    "\nvoiced: Kentte duyduğun ve bildiğin şeyler listesinden konuşmanda gerçekten aktardıklarının anahtarlarını "
+    "(k1, k2, ...) yaz, en çok üç; hiçbirini aktarmadıysan [\"none\"]. Bir şeyi aktardıysan onun kendi sözcüklerini "
+    "kullan: oyuncunun günlüğüne konuşmanda gerçekten geçen yazılır."
+)
+
+
 def _rumour_lane_on() -> bool:
     import heard_rumours
     return heard_rumours.lane_enabled()
@@ -8478,7 +8491,13 @@ def _speech_answer_rules() -> str:
             .replace("yeni kişi, yer veya olgu uydurmadan", "yeni kişi ya da olgu uydurmadan"))
 
 
-def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False):
+def _voiced_keys(raw_intent):
+    """The keys the model said it passed on; None (not given or not a list) leaves the reply's own words to decide."""
+    value = raw_intent.get("voiced") if isinstance(raw_intent, dict) else None
+    return [key for key in value if isinstance(key, str)] if isinstance(value, list) else None
+
+
+def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False, voiced=None):
     """Remember one exchange the player actually saw. Not state, not evidence."""
     if (
         not isinstance(npc_id, str)
@@ -8506,7 +8525,8 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: b
             npc_told.remember(world, npc_id, player_text,
                               turn=world.get("flags", {}).get("turn_index", 0))
         npc_statements.record(world, npc, player_text, npc_text, turn=None)
-        town_knowledge.note_mention(world, npc, npc_text, job_talk=_job_talk_with(npc), offer_talk=_offer_talk_with(npc))
+        town_knowledge.note_mention(world, npc, npc_text, voiced=voiced, job_talk=_job_talk_with(npc),
+                                    offer_talk=_offer_talk_with(npc))
 
 
 _CLAIM_REJECTION_RE = re.compile(
@@ -8776,11 +8796,6 @@ def _job_news_line(world, place_id):
         return ""
 
 
-def _with_job_news(world, place_id, narration):
-    line = _job_news_line(world, place_id)
-    return f"{narration} {line}" if line else narration
-
-
 def _has_session():
     return _ACTIVE_SESSION.get(None) is not None
 
@@ -8799,9 +8814,12 @@ def _offer_talk_with(npc):
 
 def _offer_terms_shown(world, npc, player_input, shown):
     """An owner asked for the work always shows the real terms; a reply that left them out gets them added."""
+    import talk_front
     import town_knowledge
     try:
-        return town_knowledge.terms_to_add(world, npc, player_input, shown)
+        reading = talk_front.job_reading(_session())  # the reading says whether the line speaks of work (BM Task 4)
+        asked = None if reading is None else talk_front.work_reading(reading, npc, world) is not None
+        return town_knowledge.terms_to_add(world, npc, player_input, shown, asked_about_work=asked)
     except Exception:
         town_knowledge.log_failure()
         return None
@@ -8931,6 +8949,21 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     return gate
 
 
+def _job_gate(world, person, player_input):
+    """What this line does to this person's work. With the model's reading (BM Task 4) the reading chooses the job and
+    Python validates the decision; without a reading (flag off, the reading failed, a kind that is no talk) the word
+    reader `turn_gate` answers as before."""
+    import talk_front
+    import world_threads
+    if not isinstance(person, dict):
+        return None
+    reading = talk_front.job_reading(_session())
+    if reading is None:
+        return world_threads.turn_gate(world, person, player_input)
+    found = talk_front.work_reading(reading, person, world)
+    return world_threads.reading_gate(world, person, found["thread_id"], player_input, reading) if found else None
+
+
 def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     """A line about someone's work is decided here, before any phrase owner reads it.
 
@@ -8949,7 +8982,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     saved = None
     try:
         person = _thread_person(player_input, target_id)
-        gate = world_threads.turn_gate(world, person, player_input) if isinstance(person, dict) else None
+        gate = _job_gate(world, person, player_input)
         if gate is None:
             # Money asked of someone with no job to their name is still said to them, and they answer it.
             spoken_to = isinstance(person, dict) and world_threads.asks_for_pay(player_input) and not _physical_line(player_input)
@@ -9258,6 +9291,15 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             "Az önce şunları söyledin: " + " / ".join(line[:120] for line in said_before)
             + " Bunları aynen tekrar etme, yeni bir şey söyle."
         )
+    extras = talk_front.speech_extras(world, npc)  # BM Task 6: one line for each field the context carries
+    if "zaman" in extras:
+        lines.append(f"Şu an saat {extras['zaman']['saat']}, vakit {extras['zaman']['vakit']}: sözünü bu saate uydur "
+                     "(akşamsa sabah duasından ya da sabah işinden söz etme).")
+    if "sahne_anlatimi" in extras:
+        lines.append("Oyuncuya `sahne_anlatimi` alanındaki sahne gösterildi; sen o sahnenin içindesin: "
+                     "gösterilenleri inkâr etme, çelişme; en fazla azıcık ekleyebilirsin.")
+    if "son_sozlerin" in extras:
+        lines.append("Son sözlerin `son_sozlerin` alanında; aynı reddi ya da bahaneyi yeniden söyleme.")
     if local_dialogue.personal_question_kind(player_input) == "local_work":
         lines.append(
             "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
@@ -9383,6 +9425,10 @@ def _experimental_npc_dialogue_context(
             {"player_claims_unrecorded_past_event": True}
             if unverified_claim else {}
         ),
+        # BM Task 6: the hour, the arrival scene shown here, own words and work, last replies. A bare follow-up
+        # keeps the rumours out, like `perspective`.
+        **{key: value for key, value in talk_front.speech_extras(world, npc).items()
+           if not (followup and key == "kendi_sozlerin")},
     }
 
 
@@ -9863,6 +9909,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + "\n`asks_for`: oyuncu senden şimdi oda ya da listedeki bir malı istiyorsa onu seç; istemiyorsa `none`."
             + "\n`remember_player_line`: oyuncunun bu sözünü kişisel hafızaya seçmek istiyorsan true."
             + (f"\n{_MENTIONS_PROMPT_RULE}" if _rumour_lane_on() else "")
+            + _VOICED_PROMPT_RULE  # a field rule like the ones above: the last prompt line stays the player's message
             + _experimental_speech_recap(interaction_context)
             + _local_place_recommendation_guidance(
                 player_input, interaction_context, world_state
@@ -10047,6 +10094,9 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         speech_npc = next((n for n in world_state.get("npcs", [])
                            if isinstance(n, dict) and n.get("id") == speech_npc_id), None)
         schema["properties"]["asks_for"]["enum"] = money_owner.askable(world_state, speech_npc)
+        import town_knowledge
+        schema["properties"]["voiced"]["items"]["enum"] = [*town_knowledge.speech_keys(world_state, speech_npc), "none"]
+        schema["required"] = [*schema["required"], "voiced"]
         import local_places
         if _rumour_lane_on():
             schema["properties"]["mentions"]["properties"]["place_kind"]["enum"] = list(local_places.PLACE_KINDS)
@@ -17777,6 +17827,10 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         action = None
     elif interaction_mode == "ask_dm" and action not in {"presence", "look"}:
         action = None
+    if (action == "presence" and interaction_mode == "ask_dm"
+            and (_front_say := talk_front.current(_session())) is not None
+            and _front_say.get("asks") == "person" and talk_front.spoken_to(_front_say, active_npcs()) is not None):
+        action = None  # D-326: "Çavuş, bu gece kim var?" is asked of the person the reading names, not a scene list
     if (
         action is None
         and interaction_mode not in {"say", "ask_dm"}
@@ -18743,6 +18797,7 @@ def _run_player_turn_owned(
                 front_proposal.end(session)
                 front_proposal.log_turn(session, result)
     money_owner.forget_turn(_session())  # no reading begins a check turn; an earlier line's coin is not this one's
+    _session()._front_talk = None  # ... nor an earlier line's talk reading (read-ahead may have set one)
     if type(check_feature) is not str or check_feature not in CHECK_FEATURES:
         raise combat_lifecycle.CombatRequestError('invalid_check_feature', 'Unknown check feature.', 400)
     if check_evidence is not None and type(check_evidence) is not list:
@@ -19449,9 +19504,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     # ('tatar yayımı bacağına doğrultup ateş ediyorum'); anything else it says still goes the old way.
     fought = (fighting and target_id is not None and interaction_mode not in {"say", "ask_dm"}
               and target_id in world.get("combat", {}).get("participants", []))
+    # BM Task 1: a line said in conversation is read once, with or without a chosen person (talk_front decides which).
+    import talk_front
+    reads = talk_front.reads_say_line(session, player_input, target_id, interaction_mode, combat_action, check_feature)
     if (combat_action is not None or check_feature is not None
-            or (interaction_mode in {"say", "ask_dm"} and not (said_coin or served))
-            or (target_id is not None and not typed_economic and not fought)):
+            or (interaction_mode in {"say", "ask_dm"} and not reads)
+            or (target_id is not None and not typed_economic and not fought and not reads)):
         front_proposal.note(session, "skipped:typed")
         return None
     journey = world.get("journey")
@@ -19469,10 +19527,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         listed = front_proposal.listing(session)
     except Exception:
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
+        if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
+            session._front_reply = {"intent": "unknown", "classifier_unusable": True}
         return None
     hint = interaction_adventure.hint(player_input, True)
     addressed = None
-    if hint and said_coin:  # in say mode the line is for the person chosen, whoever its words name
+    if hint and typed_economic:  # in say mode the line is for the person chosen, whoever its words name
         addressed = next((npc for npc in active_npcs() if npc.get("id") == target_id), None)
     elif hint:
         addressed = _addressed_in(player_input)
@@ -19489,7 +19549,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         answered = len(reply) > 1  # a dead provider leaves only the bare unknown intent
         label = ("fallback:unusable" if reply.get("classifier_unusable")
                  else "fallback:no_front" if answered else "fallback:failed")
-        recovered = (None if fighting or typed_economic or label == "fallback:no_front"
+        recovered = (None if fighting or typed_economic or reads or label == "fallback:no_front"
                      else _front_recovery(player_input, listed))
         if recovered is not None:
             front_proposal.note(session, f"{label}:{recovered['kind']}", reached=answered)
@@ -19499,6 +19559,11 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         return None
     raw_front = reply.get("front")
     session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
+    if reads:
+        session._front_talk = front_proposal.talk_reading(raw_front, listed, target_id)  # what the old owners ask
+        if not typed_economic:  # said with no one chosen, or asked of the DM: the reading is held, the old chain goes on
+            front_proposal.note(session, "typed:talk_read", reached=True)
+            return None
     session._front_economic_none = True  # only the validated owner may prepare room/gift cards in a front-enabled turn
     economic = front_proposal.economic_route(reply, listed, target_id=target_id if typed_economic else None,
                                              line=player_input)
@@ -20632,13 +20697,17 @@ def _dispatch_player_turn(
     if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         import front_proposal
         import grounded_action
+        road_warning = None
         if front["id"] == front_proposal.WAY_OUT:
             refused = grounded_action.road_goes_on(_session(), player_input)
-            if refused is not None:
+            road_warning = (refused or {}).get("road_warning")
+            if refused is not None and road_warning is None:
                 return refused
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             walked = grounded_action.resolve_turn(_session(), player_input, listed_place=front)
         if walked is not None:
+            if road_warning:
+                walked["narration"] = f"{road_warning} {walked.get('narration') or ''}".strip()
             return walked
         front_proposal.note(_session(), "fallback:no_walk")
     if combat_action is None:
@@ -20714,7 +20783,10 @@ def _dispatch_player_turn(
         local_place = None if talk else _local_place_turn(player_input)
         if local_place is not None:
             return local_place
-        everyday = _everyday_action_turn(player_input)
+        # BM Task 8: a reading that named something (a place, a person, a thing) belongs to that owner; the everyday
+        # words run only when there was no reading, or it said unclear / attempt.
+        everyday = (_everyday_action_turn(player_input)
+                    if front is None or front["kind"] in {"unclear", "attempt"} else None)
         if everyday is not None:
             return everyday
     import exploration
@@ -22607,7 +22679,12 @@ def _run_player_turn_internal(
             )
 
     unresolved_address = local_dialogue.unresolved_named_address(player_input, active_npcs())
-    if unresolved_address and target_id is None and not combat["active"]:
+    front_talk = talk_front.current(_session())
+    named_reading = (talk_front.spoken_to(front_talk, active_npcs())
+                     if unresolved_address and target_id is None and not combat["active"] else None)
+    if named_reading is not None and not talk_front.old_owner_allowed(front_talk, "unknown_name"):
+        npc_target = named_reading  # the reading names a listed person: the line is for them, speech answers
+    elif unresolved_address and target_id is None and not combat["active"]:
         npc_target = None
         result = {"action": "dialogue", "status": "invalid_target", "success": False, "state_changes": []}
         return finish_turn(
@@ -22616,6 +22693,9 @@ def _run_player_turn_internal(
             or f"Burada {unresolved_address} adıyla tanıdığın biri görünmüyor.",
             is_final=True,
         )
+    if npc_target is None and interaction_mode == "ask_dm" and not combat["active"]:
+        # BM Task 3: asked of the DM, a plain-talk reading that names a listed person is the line for them
+        npc_target = talk_front.spoken_to(front_talk, active_npcs())
 
     # "Özpil nerede?", or Konuş with no one to say it to: a person the town named is somewhere real.
     asks_for_someone = interaction_mode == "say" or re.search(r"\bner(?:e)?de\b", _normalize_turkish_typos(player_input))
@@ -22653,7 +22733,9 @@ def _run_player_turn_internal(
 
     topic_name = (
         _topic_place_name(world_state)
-        if local_dialogue.asks_the_name_of_a_topic(player_input) and interaction_mode != "ask_dm"
+        if (local_dialogue.asks_the_name_of_a_topic(player_input) and interaction_mode != "ask_dm"
+            # BM Task 2: a plain-talk reading means the person answers by speech; the name line is the fallback
+            and talk_front.old_owner_allowed(talk_front.current(_session()), "place_name"))
         else None
     )
     if topic_name:
@@ -22926,41 +23008,10 @@ def _run_player_turn_internal(
                   and (getattr(_session(), "_front_read", None) or {}).get("kind") != "speak_to")
                  # asked of the one who keeps the shop here, the shop line is her answer (Review 11 A4)
                  or (isinstance(npc_target, dict) and npc_target.get("location") == world_state.get("location")
-                     and _runs_a_shop(world_state, npc_target)))):
-        current_location = world_state.get("location")
-        local_shops = [
-            shop
-            for raw_shop in world_state.get("shops", [])
-            if (shop := living_world.public_shop_projection(world_state, raw_shop)) is not None
-            and shop.get("location") == current_location
-        ]
-        import shop_trade
-        local_shopkeepers = [
-            npc for npc in world_state.get("npcs", [])
-            if isinstance(npc, dict) and npc.get("location") == current_location and _runs_a_shop(world_state, npc)
-        ]
-
-        if local_shops:
-            names = ", ".join(
-                living_world.public_shop_name(world_state, shop) for shop in local_shops
-            )
-            message = f"Burada {names} adlı dükkânlar var."
-        elif local_shopkeepers:
-            names = ", ".join(
-                living_world.public_npc_name(npc)
-                for npc in local_shopkeepers
-            )
-            counter = shop_trade.counter(world_state)
-            if counter["status"] == "ready" and counter["vendor"]:
-                message = f"{counter['vendor']['name']} burada; tezgâhı açık."
-            else:
-                message = (
-                    f"{names} burada, ama şu anda açık bir tezgâhı yok."
-                )
-        else:
-            message = (
-                "Bu çevrede şu an görünür bir dükkân ya da dükkâncı yok."
-            )
+                     and _runs_a_shop(world_state, npc_target)
+                     # BM Task 2: a plain-talk reading answers by speech; the list only when it asks for the shop
+                     and talk_front.old_owner_allowed(talk_front.current(_session()), "shop_presence")))):
+        message = talk_front.shop_presence_reply(world_state, npc_target)
         action_result = {
             "action": "shop_inquiry",
             "status": "answered_from_campaign_state",
@@ -23021,6 +23072,7 @@ def _run_player_turn_internal(
         )
 
     disclosed_name = _explicit_player_name_disclosure(player_input)
+    intro_fallback_name = None  # BM Task 3: the name the speech call voices; the intro line if it gives no usable line
     if (
         disclosed_name
         and isinstance(npc_target, dict)
@@ -23032,12 +23084,16 @@ def _run_player_turn_internal(
         ).strip("'’-")
         if safe_name:
             # Hearing the same name again is no moment for the greeting a second time.
-            compound_speech = _known_player_name(npc_target) == safe_name or (
+            compound_speech = not talk_front.old_owner_allowed(  # BM Task 2: the name is stored below, speech voices it
+                talk_front.current(_session()), "name_disclosure") or _known_player_name(npc_target) == safe_name or (
                 local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
                 # E9: a question Python cannot answer goes to speech; "who are you" Python answers itself.
                 and (_npc_speech_enabled() or (interaction_adventure._asks(player_input)
                                                and _detect_query_type(player_input, npc_target) != "npc_identity"))
             )
+            if compound_speech and _known_player_name(npc_target) != safe_name and not talk_front.old_owner_allowed(
+                    talk_front.current(_session()), "name_disclosure"):
+                intro_fallback_name = safe_name
             if compound_speech:
                 local_dialogue.remember_explicit_player_name(npc_target, safe_name)
             if compound_speech and _detect_query_type(player_input, npc_target) == "npc_identity":
@@ -23306,9 +23362,11 @@ def _run_player_turn_internal(
         or (_is_short_followup(player_input) and profile_focus
             and profile_focus.get("predicate") in interaction_adventure.PROFILE_FIELD_BY_MEANING.values())
     ) and not local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
-    experimental_dialogue_session = (
-        npc_dialogue_route and interaction_mode != "ask_dm"
-        and (_npc_speech_enabled() or experimental_unverified_claim or not canonical_profile_question)
+    experimental_dialogue_session = npc_dialogue_route and (
+        # BM Task 3: the model read a plain talk line to this person: they answer by speech, even asked of the DM
+        (isinstance(npc_target, dict) and not talk_front.old_owner_allowed(front_talk, "personal"))
+        or (interaction_mode != "ask_dm"
+            and (_npc_speech_enabled() or experimental_unverified_claim or not canonical_profile_question))
     )
     lore_safety_input = player_input
     if npc_place_recommendation:
@@ -23378,6 +23436,9 @@ def _run_player_turn_internal(
     if (
         smalltalk_response
         and isinstance(npc_target, dict)
+        # BM Task 3: a plain-talk reading means the person answers by speech; these fixed lines are the fallback
+        and talk_front.old_owner_allowed(
+            front_talk, "personal" if local_dialogue.personal_answer(npc_target, player_input) else "small_talk")
         and (
             not experimental_dialogue_session
             or (interaction_mode != "say" and not local_dialogue.has_multiple_dialogue_clauses(
@@ -23602,6 +23663,7 @@ def _run_player_turn_internal(
                         "asks_for",
                         "remember_player_line",
                         "mentions",
+                        "voiced",
                         "witness_recall",
                         "price_negotiation",
                         "commitment",
@@ -23737,9 +23799,17 @@ def _run_player_turn_internal(
             if invalid_or_empty:
                 if name_stance == "reveal":
                     text = _spoken_name_answer("", npc_target)
+                elif intro_fallback_name:
+                    text = local_dialogue.introduction_reply(world_state, npc_target, intro_fallback_name)
                 else:
-                    text = (_job_fallback(world_state)
+                    # D-325: what this person herself said is hers to repeat before any denial of the claim
+                    import heard_rumours
+                    own_rumour = heard_rumours.own_line(world_state, npc_target, player_input)
+                    text = (_job_fallback(world_state) or own_rumour
                             or (experimental_unverified_claim and historical_claim_denial(npc_target, player_input)))
+                    if own_rumour and text == own_rumour:
+                        python_town_response = own_rumour
+                        action_result["own_words"] = True  # what she told is hers: not an unrecorded claim, nothing granted
                     if not text:
                         town_reply = _town_fallback(world_state, npc_target, player_input)
                         if isinstance(town_reply, str) and town_reply.strip():
@@ -23977,7 +24047,9 @@ def _run_player_turn_internal(
                 terms = _offer_terms_shown(world_state, npc_target, player_input, spoken)
                 if terms:
                     text, spoken = f"{text} “{terms}”", f"{spoken} {terms}"
-                _remember_experimental_npc_speech(npc_target["id"], player_input, spoken, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True)
+                _remember_experimental_npc_speech(npc_target["id"], player_input, spoken,
+                                                  remember=valid_speech_packet and raw_intent.get("remember_player_line") is True,
+                                                  voiced=_voiced_keys(raw_intent) if accepted_model_speech and valid_speech_packet else None)
                 if settled_money.get("note"):
                     text = f"{text} {settled_money['note']}"
             return finish_turn(

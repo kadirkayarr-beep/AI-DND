@@ -750,36 +750,39 @@ class LeavingTown(FrontScene):
     async def test_out_of_a_house_with_a_long_line(self):
         await self.goes_out("konaktan cikiyorum. kahyaya goz kirpip sokaga, sehrin kuzey kapisina dogru yuruyorum, surlarin disinda is var mi bakicam")
 
-    async def test_the_road_on_is_a_person_saying_why_not_now_and_nothing_moves(self):
+    HOUR = 3600  # BM T9 (K-BM-2): the first "go on" is said AND walked, to the next real place on the road, one hour away
+
+    def assert_one_hour_on(self, out, here, clock):
+        self.assertNotEqual(self.world["location"], here, out["narration"])
+        self.assertEqual(self.clock(), clock + self.HOUR, out["narration"])  # no day-long journey: only the hour to the next place
+        self.assertIn("“", out["narration"])  # a person still says why not, in the same turn
+
+    async def test_the_road_on_is_a_person_saying_why_not_and_the_walk_is_one_hour(self):
         await self.begin()
         self.client.front = self.OUT
         await self.line("sehrin disina cikiyorum")
         here, clock = self.world["location"], self.clock()
         out = await self.line("yola devam, bi gun yuruyorum kuzeye")
-        self.assertEqual((self.world["location"], self.clock()), (here, clock), out["narration"])
-        self.assertTrue(any(sign in out["narration"] for sign in ("“",)), out["narration"])
-        self.assertEqual(self.routes()[-1]["owner"], "travel")
-        self.assertEqual(self.routes()[-1]["status"], "not_now")
+        self.assert_one_hour_on(out, here, clock)
+        self.assertEqual(self.routes()[-1]["owner"], "grounded_action")  # the walk owner answers, as in T9
 
-    async def test_the_road_on_read_as_an_attempt_is_still_no_journey(self):
+    async def test_the_road_on_read_as_an_attempt_is_still_no_day_long_journey(self):
         await self.begin()
         self.client.front = self.OUT
         await self.line("sehrin disina cikiyorum")
         here, clock = self.world["location"], self.clock()
         self.client.front = {"kind": "attempt"}
         out = await self.line("yola devam, bi gun yuruyorum kuzeye. luskan yonune")
-        self.assertEqual((self.world["location"], self.clock()), (here, clock), out["narration"])
-        self.assertEqual(self.routes()[-1]["status"], "not_now")
+        self.assert_one_hour_on(out, here, clock)
 
     async def test_a_far_city_read_as_the_street_stays_on_the_road(self):
         await self.begin()
         self.client.front = self.OUT
         await self.line("sehrin disina cikiyorum")
-        here = self.world["location"]
+        here, clock = self.world["location"], self.clock()
         self.client.front = {"kind": "go_to", "place_id": self.outer()["parent_location_id"]}
         out = await self.line("luskan'a gidiyorum")
-        self.assertEqual(self.world["location"], here, out["narration"])
-        self.assertEqual(self.routes()[-1]["status"], "not_now")
+        self.assert_one_hour_on(out, here, clock)  # the far city is not reached: one hour along the road, nothing more
 
     async def test_those_out_there_answer_and_the_house_left_behind_does_not(self):
         await self.begin()

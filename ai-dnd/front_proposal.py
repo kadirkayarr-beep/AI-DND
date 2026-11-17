@@ -33,6 +33,8 @@ CHECK_KINDS = ("attempt", "speak_to", "unclear", "grab")
 _NOT_THIS_TURN = re.compile(
     r"\b(?:dun|yarin|keske|belki|sanki|ruya\w*|hayal\w*|diyelim|farz|varsay\w*)\b"
     r"|(?:d[iu]m|t[iu]m|m[iu]yorum|acag[iu]m|ecegim|s[ae]m)$")
+# BM Task 1: what a line said to a person asks about. The reading says it; no word list decides it.
+ASKS = ("place", "rumour", "work", "person", "shop", "name", "small_talk", "other", "none")
 DEALS = ("goods", "room", "tip", "gift", "paid_before")  # what the line's money is for; money_owner checks it
 NONE = "none"
 WAY_OUT = "way_out"  # the list's one word for leaving town: Python decides where that really leads
@@ -143,6 +145,8 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "economic_intent": {"type": "string", "enum": ["none", "room", "room_quote", "gift", "tip", "purchase"]},
             "timing": {"type": "string", "enum": list(TIMINGS)},  # D-109: early too, right after the money fields and economic_intent
             "person_id": {"type": "string", "enum": _ids(listed["people"])},
+            "asks": {"type": "string", "enum": list(ASKS)},  # BM: early too, a small model drops late fields
+            "about_person_id": {"type": "string", "enum": _ids(listed["people"])},
             # Early on purpose: a small model fills a long object's last fields with none, whatever the line says.
             "threat_to": {"type": "string", "enum": _ids(listed["people"])},
             "strike_to": {"type": "string", "enum": _ids(listed["people"])},
@@ -162,7 +166,7 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "inside": {"type": "boolean"},
             "want": {"type": "string", "enum": _ids(listed["wants"])},
         },
-        "required": ["kind", "timing", "deal", "deal_goods", "keep_change", "economic_intent", "person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
+        "required": ["kind", "timing", "deal", "deal_goods", "keep_change", "economic_intent", "person_id", "asks", "about_person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
                      "threat_to", "strike_to", "check", "deed", "coin_cp", "also_says"],
         "additionalProperties": False,
     }
@@ -287,6 +291,10 @@ def guidance(listed: Mapping[str, Any]) -> str:
           "hediye veya bahşiş teklif ediliyorsa gift veya tip; tezgâhtan ürün isteniyor veya bedeli uzatılıyorsa purchase. "
           "Fiyat ve ürün yetkisi tezgâhın kendi motorunundur; kişi person_id ile listedeki aynı alıcıdır. "
           "Odayı yalnız anmak oda istemek değildir. Alıntı, geçmişte olan veya koşullu ödeme none; fiyat belirleme. "
+        "asks: oyuncu bu satırda biriyle konuşuyorsa onun neyi sorduğu: place = bir yer, rumour = söylenti ya da haber, "
+        "work = iş: iş istemek, bir işi kabul ya da reddetmek, bir işin ücretini ya da parasını istemek, bir işin derdini ya da teslimatını bildirmek ya da halletmek (ücret, dert ve üstlenme kararı yalnız work ya da job_id ile verilir), person = bir kişi, shop = dükkân ya da satıcı, name = adı ya da kendini tanıtma, small_talk = hal hatır, "
+        "other = bunlardan başkası; konuşma yoksa none. "
+        "about_person_id: sorulan ya da söz edilen kişi, konuştuğu kişiden başkasıysa people listesinden onun kimliği; yoksa none. "
         "want: oyuncu karakterinin hayatta neyin peşinde olduğunu açıkça söylüyorsa (sheet varsa orada yazıyorsa) wants listesinden seç; yoksa none. "
         "threat_to: oyuncu birine canına, malına ya da kapısına zarar vereceğini açıkça söylüyorsa, nasıl söylerse söylesin o kişinin kimliği; yoksa none. "
         "strike_to: oyuncu şu anda birine vuruyorsa, yumruk, tekme, tokat atıyor, suratına ya da kafasına bir şey geçiriyor, bir şey fırlatıyor, silah savuruyorsa, hangi kelimeyle söylerse söylesin vurduğu kişinin kimliği; satırda kişi geçmese de 'savuruyorum', 'indiriyorum' gibi bir darbe varsa speaking_with kişisi (bir eşyayla vuruyorsa thing_word o eşyanın adı); soru, tehdit, 'vururum' gibi söz, olumsuz ya da koşullu cümlede none. "
@@ -639,6 +647,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_reply = None
     session._front_deed = None
     session._front_kind = None
+    session._front_talk = None  # BM Task 1: the repaired reading of a conversation line; talk_front.current() reads it; end() clears it
     session._front_check = ""
     session._front_coin = 0
     session._bribe_held_out = 0
@@ -670,6 +679,7 @@ def end(session) -> None:
     session._front_reply = None
     session._front_economic_none = False
     session._front_read = None
+    session._front_talk = None  # the reading is this turn's only (BM Task 2)
     session._front_strike = None
     session._front_rest = ""
     session._front_ahead = False
@@ -679,6 +689,20 @@ def note(session, route: str, *, reached: bool | None = None) -> None:
     session._front_route = route
     if reached is not None:
         session._front_reached = reached
+
+
+def talk_reading(front: Any, listed: Mapping[str, Any], addressed: Any = None) -> dict[str, Any] | None:
+    """BM Task 1: the reading's `asks` and `about_person_id`, repaired in place (an unknown value is none, not a
+    rejection). `about_person_id` stands only for a listed person other than the one spoken to."""
+    if not isinstance(front, dict):
+        return None
+    if front.get("asks") not in ASKS:
+        front["asks"] = NONE
+    about = front.get("about_person_id")
+    spoken_to = {value for value in (front.get("person_id"), addressed) if isinstance(value, str)}
+    listed_ids = [row["id"] for row in listed["people"]]
+    front["about_person_id"] = about if isinstance(about, str) and about in listed_ids and about not in spoken_to else NONE
+    return front
 
 
 def log_turn(session, result: Any) -> None:
@@ -692,6 +716,15 @@ def log_turn(session, result: Any) -> None:
         "owner": action.get("action"),
         "status": action.get("status"),
     }
+    evidence = result.get("_engine_event_evidence") if isinstance(result, dict) else None
+    telemetry = evidence.get("telemetry") if isinstance(evidence, dict) else None
+    telemetry = telemetry if isinstance(telemetry, dict) else {}
+    source = telemetry.get("narration_source")
+    calls = telemetry.get("total_model_calls")
+    if not isinstance(source, str) and isinstance(result, dict) and not telemetry and result.get("model_calls") == 0             and isinstance(result.get("narration"), str) and result["narration"].strip():
+        source = "python_direct"  # an early-return owner: no engine telemetry, but a ready line shown with no model call
+    entry["narration_source"] = source if isinstance(source, str) else None  # None: truly unknown
+    entry["model_calls"] = calls if type(calls) is int else 0
     checks = getattr(session, "_speech_checks", None)
     if isinstance(checks, list):
         entry["speech"] = list(checks)  # D-252: which speech checks changed or replaced the reply
@@ -718,3 +751,23 @@ def share(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
     free = [row for row in rows if not str(row.get("route")).startswith("skipped:")]
     reached = sum(1 for row in free if row.get("reached_model"))
     return {"free_lines": len(free), "reached_model": reached, "share": reached / len(free) if free else 0.0}
+
+
+# Owners whose lines are money, dice, XP, purchase or rule results: a ready-made line is right for them. Chosen from
+# the owners in the 2026-11-16/17 local route log (attack, death_save, skill_check, theft, shop_offer, shop_inquiry,
+# equipment_transaction, consume, action_economy, combat_action) plus shop_economy and character_query (design 5.9).
+ENGINE_OWNERS = frozenset({
+    "shop_economy", "shop_offer", "equipment_transaction", "consume", "theft",
+    "attack", "combat_action", "death_save", "skill_check", "action_economy", "character_query",
+})
+
+
+def ready_line_share(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """Design 5.9: over all player rows, how many ended in a ready-made engine or Python line instead of one the
+    model wrote. Engine-owned money, dice, XP, purchase and rule rows stay in the count but are never ready lines;
+    `unknown` counts rows whose source the log could not tell (it never hides them)."""
+    ready = sum(1 for row in rows if isinstance(row.get("narration_source"), str)
+                and row.get("owner") not in ENGINE_OWNERS
+                and row["narration_source"].startswith(("deterministic_", "python_")))
+    unknown = sum(1 for row in rows if not isinstance(row.get("narration_source"), str))
+    return {"moves": len(rows), "ready": ready, "share": ready / len(rows) if rows else 0.0, "unknown": unknown}
