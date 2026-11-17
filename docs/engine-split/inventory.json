@@ -1,0 +1,9959 @@
+{
+ "index": [
+  {
+   "name": "ollama",
+   "kind": "import",
+   "start": 1,
+   "def_line": 1,
+   "end": 1,
+   "lines": 1
+  },
+  {
+   "name": "random",
+   "kind": "import",
+   "start": 2,
+   "def_line": 2,
+   "end": 2,
+   "lines": 1
+  },
+  {
+   "name": "json",
+   "kind": "import",
+   "start": 3,
+   "def_line": 3,
+   "end": 3,
+   "lines": 1
+  },
+  {
+   "name": "re",
+   "kind": "import",
+   "start": 4,
+   "def_line": 4,
+   "end": 4,
+   "lines": 1
+  },
+  {
+   "name": "unicodedata",
+   "kind": "import",
+   "start": 5,
+   "def_line": 5,
+   "end": 5,
+   "lines": 1
+  },
+  {
+   "name": "collections",
+   "kind": "import",
+   "start": 6,
+   "def_line": 6,
+   "end": 6,
+   "lines": 1
+  },
+  {
+   "name": "copy",
+   "kind": "import",
+   "start": 7,
+   "def_line": 7,
+   "end": 7,
+   "lines": 1
+  },
+  {
+   "name": "equipment_economy",
+   "kind": "import",
+   "start": 8,
+   "def_line": 8,
+   "end": 8,
+   "lines": 1
+  },
+  {
+   "name": "refusals",
+   "kind": "import",
+   "start": 9,
+   "def_line": 9,
+   "end": 9,
+   "lines": 1
+  },
+  {
+   "name": "tr_case",
+   "kind": "import",
+   "start": 10,
+   "def_line": 10,
+   "end": 10,
+   "lines": 1
+  },
+  {
+   "name": "tr_names",
+   "kind": "import",
+   "start": 11,
+   "def_line": 11,
+   "end": 11,
+   "lines": 1
+  },
+  {
+   "name": "Path",
+   "kind": "import",
+   "start": 12,
+   "def_line": 12,
+   "end": 12,
+   "lines": 1
+  },
+  {
+   "name": "hashlib",
+   "kind": "import",
+   "start": 13,
+   "def_line": 13,
+   "end": 13,
+   "lines": 1
+  },
+  {
+   "name": "os",
+   "kind": "import",
+   "start": 14,
+   "def_line": 14,
+   "end": 14,
+   "lines": 1
+  },
+  {
+   "name": "tempfile",
+   "kind": "import",
+   "start": 15,
+   "def_line": 15,
+   "end": 15,
+   "lines": 1
+  },
+  {
+   "name": "contextlib",
+   "kind": "import",
+   "start": 16,
+   "def_line": 16,
+   "end": 16,
+   "lines": 1
+  },
+  {
+   "name": "contextvars",
+   "kind": "import",
+   "start": 17,
+   "def_line": 17,
+   "end": 17,
+   "lines": 1
+  },
+  {
+   "name": "functools",
+   "kind": "import",
+   "start": 18,
+   "def_line": 18,
+   "end": 18,
+   "lines": 1
+  },
+  {
+   "name": "sys",
+   "kind": "import",
+   "start": 19,
+   "def_line": 19,
+   "end": 19,
+   "lines": 1
+  },
+  {
+   "name": "types",
+   "kind": "import",
+   "start": 20,
+   "def_line": 20,
+   "end": 20,
+   "lines": 1
+  },
+  {
+   "name": "uuid4",
+   "kind": "import",
+   "start": 21,
+   "def_line": 21,
+   "end": 21,
+   "lines": 1
+  },
+  {
+   "name": "quest_catalog",
+   "kind": "import",
+   "start": 22,
+   "def_line": 22,
+   "end": 22,
+   "lines": 1
+  },
+  {
+   "name": "find_quest",
+   "kind": "import",
+   "start": 22,
+   "def_line": 22,
+   "end": 22,
+   "lines": 1
+  },
+  {
+   "name": "adventure",
+   "kind": "import",
+   "start": 23,
+   "def_line": 23,
+   "end": 23,
+   "lines": 1
+  },
+  {
+   "name": "adventure_director",
+   "kind": "import",
+   "start": 24,
+   "def_line": 24,
+   "end": 24,
+   "lines": 1
+  },
+  {
+   "name": "adventure_play",
+   "kind": "import",
+   "start": 25,
+   "def_line": 25,
+   "end": 25,
+   "lines": 1
+  },
+  {
+   "name": "incident_hooks",
+   "kind": "import",
+   "start": 26,
+   "def_line": 26,
+   "end": 26,
+   "lines": 1
+  },
+  {
+   "name": "incident_projection",
+   "kind": "import",
+   "start": 27,
+   "def_line": 27,
+   "end": 27,
+   "lines": 1
+  },
+  {
+   "name": "living_world",
+   "kind": "import",
+   "start": 28,
+   "def_line": 28,
+   "end": 28,
+   "lines": 1
+  },
+  {
+   "name": "local_dialogue",
+   "kind": "import",
+   "start": 29,
+   "def_line": 29,
+   "end": 29,
+   "lines": 1
+  },
+  {
+   "name": "local_exploration",
+   "kind": "import",
+   "start": 30,
+   "def_line": 30,
+   "end": 30,
+   "lines": 1
+  },
+  {
+   "name": "held_weapon",
+   "kind": "import",
+   "start": 31,
+   "def_line": 31,
+   "end": 31,
+   "lines": 1
+  },
+  {
+   "name": "monster_sense",
+   "kind": "import",
+   "start": 32,
+   "def_line": 32,
+   "end": 32,
+   "lines": 1
+  },
+  {
+   "name": "name_catalog",
+   "kind": "import",
+   "start": 33,
+   "def_line": 33,
+   "end": 33,
+   "lines": 1
+  },
+  {
+   "name": "campaign_time",
+   "kind": "import",
+   "start": 34,
+   "def_line": 34,
+   "end": 34,
+   "lines": 1
+  },
+  {
+   "name": "scheduled_events",
+   "kind": "import",
+   "start": 35,
+   "def_line": 35,
+   "end": 35,
+   "lines": 1
+  },
+  {
+   "name": "timed_gameplay",
+   "kind": "import",
+   "start": 36,
+   "def_line": 36,
+   "end": 36,
+   "lines": 1
+  },
+  {
+   "name": "combat_lifecycle",
+   "kind": "import",
+   "start": 37,
+   "def_line": 37,
+   "end": 37,
+   "lines": 1
+  },
+  {
+   "name": "action_economy",
+   "kind": "import",
+   "start": 38,
+   "def_line": 38,
+   "end": 38,
+   "lines": 1
+  },
+  {
+   "name": "initiative",
+   "kind": "import",
+   "start": 39,
+   "def_line": 39,
+   "end": 39,
+   "lines": 1
+  },
+  {
+   "name": "weapon_attack",
+   "kind": "import",
+   "start": 40,
+   "def_line": 40,
+   "end": 40,
+   "lines": 1
+  },
+  {
+   "name": "effect_targeting",
+   "kind": "import",
+   "start": 41,
+   "def_line": 41,
+   "end": 41,
+   "lines": 1
+  },
+  {
+   "name": "attributed_claims",
+   "kind": "import",
+   "start": 42,
+   "def_line": 42,
+   "end": 42,
+   "lines": 1
+  },
+  {
+   "name": "effect_lifecycle",
+   "kind": "import",
+   "start": 43,
+   "def_line": 43,
+   "end": 43,
+   "lines": 1
+  },
+  {
+   "name": "event_order",
+   "kind": "import",
+   "start": 44,
+   "def_line": 44,
+   "end": 44,
+   "lines": 1
+  },
+  {
+   "name": "interaction_adventure",
+   "kind": "import",
+   "start": 45,
+   "def_line": 45,
+   "end": 45,
+   "lines": 1
+  },
+  {
+   "name": "money_owner",
+   "kind": "import",
+   "start": 46,
+   "def_line": 46,
+   "end": 46,
+   "lines": 1
+  },
+  {
+   "name": "talk_front",
+   "kind": "import",
+   "start": 47,
+   "def_line": 47,
+   "end": 47,
+   "lines": 1
+  },
+  {
+   "name": "npc_statements",
+   "kind": "import",
+   "start": 48,
+   "def_line": 48,
+   "end": 48,
+   "lines": 1
+  },
+  {
+   "name": "talk_mode",
+   "kind": "import",
+   "start": 49,
+   "def_line": 49,
+   "end": 49,
+   "lines": 1
+  },
+  {
+   "name": "WEAPONS",
+   "kind": "import",
+   "start": 50,
+   "def_line": 50,
+   "end": 50,
+   "lines": 1
+  },
+  {
+   "name": "dataclass",
+   "kind": "import",
+   "start": 51,
+   "def_line": 51,
+   "end": 51,
+   "lines": 1
+  },
+  {
+   "name": "field",
+   "kind": "import",
+   "start": 51,
+   "def_line": 51,
+   "end": 51,
+   "lines": 1
+  },
+  {
+   "name": "Optional",
+   "kind": "import",
+   "start": 52,
+   "def_line": 52,
+   "end": 52,
+   "lines": 1
+  },
+  {
+   "name": "List",
+   "kind": "import",
+   "start": 52,
+   "def_line": 52,
+   "end": 52,
+   "lines": 1
+  },
+  {
+   "name": "Dict",
+   "kind": "import",
+   "start": 52,
+   "def_line": 52,
+   "end": 52,
+   "lines": 1
+  },
+  {
+   "name": "Any",
+   "kind": "import",
+   "start": 52,
+   "def_line": 52,
+   "end": 52,
+   "lines": 1
+  },
+  {
+   "name": "get_expertise_choice_count",
+   "kind": "import",
+   "start": 53,
+   "def_line": 53,
+   "end": 53,
+   "lines": 1
+  },
+  {
+   "name": "resolution_action_scope",
+   "kind": "import",
+   "start": 54,
+   "def_line": 54,
+   "end": 60,
+   "lines": 7
+  },
+  {
+   "name": "resolve_attack_roll",
+   "kind": "import",
+   "start": 54,
+   "def_line": 54,
+   "end": 60,
+   "lines": 7
+  },
+  {
+   "name": "resolve_death_save",
+   "kind": "import",
+   "start": 54,
+   "def_line": 54,
+   "end": 60,
+   "lines": 7
+  },
+  {
+   "name": "resolve_saving_throw",
+   "kind": "import",
+   "start": 54,
+   "def_line": 54,
+   "end": 60,
+   "lines": 7
+  },
+  {
+   "name": "resolve_skill_check",
+   "kind": "import",
+   "start": 54,
+   "def_line": 54,
+   "end": 60,
+   "lines": 7
+  },
+  {
+   "name": "ResolvedTurn",
+   "kind": "class",
+   "start": 62,
+   "def_line": 62,
+   "end": 84,
+   "lines": 22
+  },
+  {
+   "name": "ollama_response_content",
+   "kind": "function",
+   "start": 87,
+   "def_line": 87,
+   "end": 96,
+   "lines": 10
+  },
+  {
+   "name": "ollama_reply_was_cut",
+   "kind": "function",
+   "start": 99,
+   "def_line": 99,
+   "end": 103,
+   "lines": 5
+  },
+  {
+   "name": "roll_d20",
+   "kind": "function",
+   "start": 110,
+   "def_line": 110,
+   "end": 112,
+   "lines": 3
+  },
+  {
+   "name": "get_modifier",
+   "kind": "function",
+   "start": 115,
+   "def_line": 115,
+   "end": 116,
+   "lines": 2
+  },
+  {
+   "name": "roll_stat",
+   "kind": "function",
+   "start": 119,
+   "def_line": 119,
+   "end": 123,
+   "lines": 5
+  },
+  {
+   "name": "RACES",
+   "kind": "assign",
+   "start": 130,
+   "def_line": 130,
+   "end": 143,
+   "lines": 14
+  },
+  {
+   "name": "RACE_FEATURES",
+   "kind": "assign",
+   "start": 150,
+   "def_line": 150,
+   "end": 231,
+   "lines": 82
+  },
+  {
+   "name": "CLASSES",
+   "kind": "assign",
+   "start": 238,
+   "def_line": 238,
+   "end": 251,
+   "lines": 14
+  },
+  {
+   "name": "CLASS_FEATURES",
+   "kind": "assign",
+   "start": 258,
+   "def_line": 258,
+   "end": 317,
+   "lines": 60
+  },
+  {
+   "name": "CLASS_HIT_DICE",
+   "kind": "assign",
+   "start": 324,
+   "def_line": 324,
+   "end": 338,
+   "lines": 15
+  },
+  {
+   "name": "SKILLS",
+   "kind": "assign",
+   "start": 349,
+   "def_line": 349,
+   "end": 369,
+   "lines": 21
+  },
+  {
+   "name": "CLASS_SKILL_OPTIONS",
+   "kind": "assign",
+   "start": 376,
+   "def_line": 376,
+   "end": 505,
+   "lines": 130
+  },
+  {
+   "name": "DIFFICULTY_DC",
+   "kind": "assign",
+   "start": 512,
+   "def_line": 512,
+   "end": 519,
+   "lines": 8
+  },
+  {
+   "name": "choose_option",
+   "kind": "function",
+   "start": 526,
+   "def_line": 526,
+   "end": 550,
+   "lines": 25
+  },
+  {
+   "name": "RANDOM_NAMES",
+   "kind": "assign",
+   "start": 557,
+   "def_line": 557,
+   "end": 562,
+   "lines": 6
+  },
+  {
+   "name": "create_random_character",
+   "kind": "function",
+   "start": 565,
+   "def_line": 565,
+   "end": 622,
+   "lines": 58
+  },
+  {
+   "name": "assign_stats",
+   "kind": "function",
+   "start": 629,
+   "def_line": 629,
+   "end": 698,
+   "lines": 70
+  },
+  {
+   "name": "choose_skill_proficiencies",
+   "kind": "function",
+   "start": 705,
+   "def_line": 705,
+   "end": 767,
+   "lines": 63
+  },
+  {
+   "name": "calculate_hp",
+   "kind": "function",
+   "start": 774,
+   "def_line": 774,
+   "end": 778,
+   "lines": 5
+  },
+  {
+   "name": "calculate_ac",
+   "kind": "function",
+   "start": 785,
+   "def_line": 785,
+   "end": 800,
+   "lines": 16
+  },
+  {
+   "name": "perform_skill_check",
+   "kind": "function",
+   "start": 807,
+   "def_line": 807,
+   "end": 828,
+   "lines": 22
+  },
+  {
+   "name": "_perform_skill_check",
+   "kind": "function",
+   "start": 831,
+   "def_line": 831,
+   "end": 920,
+   "lines": 90
+  },
+  {
+   "name": "is_dialogue_or_emotion",
+   "kind": "function",
+   "start": 927,
+   "def_line": 927,
+   "end": 929,
+   "lines": 3
+  },
+  {
+   "name": "_is_negated_dialogue_action",
+   "kind": "function",
+   "start": 932,
+   "def_line": 932,
+   "end": 941,
+   "lines": 10
+  },
+  {
+   "name": "_reads_as_question",
+   "kind": "function",
+   "start": 944,
+   "def_line": 944,
+   "end": 949,
+   "lines": 6
+  },
+  {
+   "name": "_people_speak_for_themselves",
+   "kind": "function",
+   "start": 952,
+   "def_line": 952,
+   "end": 958,
+   "lines": 7
+  },
+  {
+   "name": "_ASKS_SOMETHING",
+   "kind": "assign",
+   "start": 961,
+   "def_line": 961,
+   "end": 963,
+   "lines": 3
+  },
+  {
+   "name": "_just_served",
+   "kind": "function",
+   "start": 966,
+   "def_line": 966,
+   "end": 969,
+   "lines": 4
+  },
+  {
+   "name": "_asked_of_the_one_at_hand",
+   "kind": "function",
+   "start": 972,
+   "def_line": 972,
+   "end": 980,
+   "lines": 9
+  },
+  {
+   "name": "is_npc_dialogue_input",
+   "kind": "function",
+   "start": 983,
+   "def_line": 983,
+   "end": 1027,
+   "lines": 45
+  },
+  {
+   "name": "_is_conversation_start_input",
+   "kind": "function",
+   "start": 1030,
+   "def_line": 1030,
+   "end": 1068,
+   "lines": 39
+  },
+  {
+   "name": "_is_local_place_question",
+   "kind": "function",
+   "start": 1071,
+   "def_line": 1071,
+   "end": 1079,
+   "lines": 9
+  },
+  {
+   "name": "_unverified_past_event_assertion",
+   "kind": "function",
+   "start": 1082,
+   "def_line": 1082,
+   "end": 1111,
+   "lines": 30
+  },
+  {
+   "name": "_claimed_completed_outcome",
+   "kind": "function",
+   "start": 1114,
+   "def_line": 1114,
+   "end": 1120,
+   "lines": 7
+  },
+  {
+   "name": "_THIRD_PERSON_REPORT",
+   "kind": "assign",
+   "start": 1123,
+   "def_line": 1123,
+   "end": 1125,
+   "lines": 3
+  },
+  {
+   "name": "_SECOND_PERSON_SAID",
+   "kind": "assign",
+   "start": 1126,
+   "def_line": 1126,
+   "end": 1129,
+   "lines": 4
+  },
+  {
+   "name": "_report_of_someone_else",
+   "kind": "function",
+   "start": 1132,
+   "def_line": 1132,
+   "end": 1142,
+   "lines": 11
+  },
+  {
+   "name": "_SAID_IT_AGAIN",
+   "kind": "assign",
+   "start": 1145,
+   "def_line": 1146,
+   "end": 1146,
+   "lines": 1
+  },
+  {
+   "name": "_ENDS_IN_SPEECH",
+   "kind": "assign",
+   "start": 1147,
+   "def_line": 1147,
+   "end": 1147,
+   "lines": 1
+  },
+  {
+   "name": "is_npc_historical_claim",
+   "kind": "function",
+   "start": 1150,
+   "def_line": 1150,
+   "end": 1171,
+   "lines": 22
+  },
+  {
+   "name": "_reported_npc_claim_followed_by_player_inspection",
+   "kind": "function",
+   "start": 1174,
+   "def_line": 1174,
+   "end": 1183,
+   "lines": 10
+  },
+  {
+   "name": "is_ordinary_environment_look",
+   "kind": "function",
+   "start": 1186,
+   "def_line": 1186,
+   "end": 1203,
+   "lines": 18
+  },
+  {
+   "name": "npc_ambiguity_response",
+   "kind": "function",
+   "start": 1206,
+   "def_line": 1206,
+   "end": 1209,
+   "lines": 4
+  },
+  {
+   "name": "_NEGATED_VERB_SUFFIX",
+   "kind": "assign",
+   "start": 1212,
+   "def_line": 1212,
+   "end": 1212,
+   "lines": 1
+  },
+  {
+   "name": "_affirmative_door_verb",
+   "kind": "function",
+   "start": 1215,
+   "def_line": 1215,
+   "end": 1232,
+   "lines": 18
+  },
+  {
+   "name": "_SKILL_CHECK_WORD",
+   "kind": "assign",
+   "start": 1235,
+   "def_line": 1235,
+   "end": 1235,
+   "lines": 1
+  },
+  {
+   "name": "_SKILL_ENDING",
+   "kind": "assign",
+   "start": 1236,
+   "def_line": 1237,
+   "end": 1237,
+   "lines": 1
+  },
+  {
+   "name": "_ABILITY_WORD",
+   "kind": "assign",
+   "start": 1238,
+   "def_line": 1238,
+   "end": 1239,
+   "lines": 2
+  },
+  {
+   "name": "named_skill",
+   "kind": "function",
+   "start": 1242,
+   "def_line": 1242,
+   "end": 1267,
+   "lines": 26
+  },
+  {
+   "name": "_OPEN_SCARE",
+   "kind": "assign",
+   "start": 1270,
+   "def_line": 1270,
+   "end": 1274,
+   "lines": 5
+  },
+  {
+   "name": "open_scare_try",
+   "kind": "function",
+   "start": 1277,
+   "def_line": 1277,
+   "end": 1286,
+   "lines": 10
+  },
+  {
+   "name": "_SOMEONE_ELSES_PURSE",
+   "kind": "assign",
+   "start": 1289,
+   "def_line": 1291,
+   "end": 1292,
+   "lines": 2
+  },
+  {
+   "name": "_COVER_WORD",
+   "kind": "assign",
+   "start": 1295,
+   "def_line": 1297,
+   "end": 1300,
+   "lines": 4
+  },
+  {
+   "name": "_COVER",
+   "kind": "assign",
+   "start": 1301,
+   "def_line": 1303,
+   "end": 1306,
+   "lines": 4
+  },
+  {
+   "name": "_OWN_THING_HIDDEN",
+   "kind": "assign",
+   "start": 1307,
+   "def_line": 1308,
+   "end": 1308,
+   "lines": 1
+  },
+  {
+   "name": "_stealth_skill",
+   "kind": "function",
+   "start": 1311,
+   "def_line": 1311,
+   "end": 1323,
+   "lines": 13
+  },
+  {
+   "name": "deterministic_check_for_action",
+   "kind": "function",
+   "start": 1326,
+   "def_line": 1326,
+   "end": 1340,
+   "lines": 15
+  },
+  {
+   "name": "_READING_CHECKS",
+   "kind": "assign",
+   "start": 1343,
+   "def_line": 1343,
+   "end": 1343,
+   "lines": 1
+  },
+  {
+   "name": "_word_check_for_action",
+   "kind": "function",
+   "start": 1346,
+   "def_line": 1346,
+   "end": 1431,
+   "lines": 86
+  },
+  {
+   "name": "known_player_action_narration",
+   "kind": "function",
+   "start": 1434,
+   "def_line": 1434,
+   "end": 1455,
+   "lines": 22
+  },
+  {
+   "name": "known_character_answer",
+   "kind": "function",
+   "start": 1458,
+   "def_line": 1458,
+   "end": 1482,
+   "lines": 25
+  },
+  {
+   "name": "_COMMON_SENTENCE_OPENERS",
+   "kind": "assign",
+   "start": 1485,
+   "def_line": 1487,
+   "end": 1491,
+   "lines": 5
+  },
+  {
+   "name": "_QUESTION_CUE_RE",
+   "kind": "assign",
+   "start": 1493,
+   "def_line": 1493,
+   "end": 1495,
+   "lines": 3
+  },
+  {
+   "name": "_model_query_type_is_plausible",
+   "kind": "function",
+   "start": 1498,
+   "def_line": 1498,
+   "end": 1505,
+   "lines": 8
+  },
+  {
+   "name": "_detect_query_type",
+   "kind": "function",
+   "start": 1508,
+   "def_line": 1508,
+   "end": 1589,
+   "lines": 82
+  },
+  {
+   "name": "_detect_explore_type",
+   "kind": "function",
+   "start": 1592,
+   "def_line": 1592,
+   "end": 1603,
+   "lines": 12
+  },
+  {
+   "name": "_query_location_candidates",
+   "kind": "function",
+   "start": 1606,
+   "def_line": 1606,
+   "end": 1615,
+   "lines": 10
+  },
+  {
+   "name": "_handle_query",
+   "kind": "function",
+   "start": 1617,
+   "def_line": 1617,
+   "end": 1673,
+   "lines": 57
+  },
+  {
+   "name": "resolve_python_world_action",
+   "kind": "function",
+   "start": 1676,
+   "def_line": 1676,
+   "end": 1824,
+   "lines": 149
+  },
+  {
+   "name": "analyze_player_action",
+   "kind": "function",
+   "start": 1826,
+   "def_line": 1826,
+   "end": 1835,
+   "lines": 10
+  },
+  {
+   "name": "clean_dm_response",
+   "kind": "function",
+   "start": 1843,
+   "def_line": 1843,
+   "end": 1888,
+   "lines": 46
+  },
+  {
+   "name": "recent_dm_narrations",
+   "kind": "assign",
+   "start": 1891,
+   "def_line": 1891,
+   "end": 1891,
+   "lines": 1
+  },
+  {
+   "name": "world_state",
+   "kind": "assign",
+   "start": 1892,
+   "def_line": 1892,
+   "end": 1965,
+   "lines": 74
+  },
+  {
+   "name": "INITIAL_WORLD_STATE",
+   "kind": "assign",
+   "start": 1966,
+   "def_line": 1966,
+   "end": 1966,
+   "lines": 1
+  },
+  {
+   "name": "SAVE_FORMAT_VERSION",
+   "kind": "assign",
+   "start": 1967,
+   "def_line": 1967,
+   "end": 1967,
+   "lines": 1
+  },
+  {
+   "name": "_SUPPORTED_SAVE_VERSIONS",
+   "kind": "assign",
+   "start": 1968,
+   "def_line": 1968,
+   "end": 1968,
+   "lines": 1
+  },
+  {
+   "name": "GIANT_ANCESTRY_IDS",
+   "kind": "assign",
+   "start": 1971,
+   "def_line": 1971,
+   "end": 1971,
+   "lines": 1
+  },
+  {
+   "name": "CELESTIAL_REVELATION_FORMS",
+   "kind": "assign",
+   "start": 1972,
+   "def_line": 1972,
+   "end": 1976,
+   "lines": 5
+  },
+  {
+   "name": "RULE_ORDER",
+   "kind": "assign",
+   "start": 1977,
+   "def_line": 1981,
+   "end": 1981,
+   "lines": 1
+  },
+  {
+   "name": "INNER_RADIANCE_SPEC",
+   "kind": "assign",
+   "start": 1982,
+   "def_line": 1982,
+   "end": 1982,
+   "lines": 1
+  },
+  {
+   "name": "NECROTIC_SHROUD_SPEC",
+   "kind": "assign",
+   "start": 1983,
+   "def_line": 1983,
+   "end": 1984,
+   "lines": 2
+  },
+  {
+   "name": "SPECIES_WITH_TRAIT_STATE",
+   "kind": "assign",
+   "start": 1985,
+   "def_line": 1985,
+   "end": 1985,
+   "lines": 1
+  },
+  {
+   "name": "_new_species_trait_state",
+   "kind": "function",
+   "start": 1988,
+   "def_line": 1988,
+   "end": 2009,
+   "lines": 22
+  },
+  {
+   "name": "_new_persisted_species_trait_state",
+   "kind": "function",
+   "start": 2012,
+   "def_line": 2012,
+   "end": 2015,
+   "lines": 4
+  },
+  {
+   "name": "_validate_species_trait_state",
+   "kind": "function",
+   "start": 2018,
+   "def_line": 2018,
+   "end": 2093,
+   "lines": 76
+  },
+  {
+   "name": "initialize_species_trait_state",
+   "kind": "function",
+   "start": 2096,
+   "def_line": 2096,
+   "end": 2112,
+   "lines": 17
+  },
+  {
+   "name": "_ABILITY_NAMES",
+   "kind": "assign",
+   "start": 2115,
+   "def_line": 2115,
+   "end": 2115,
+   "lines": 1
+  },
+  {
+   "name": "_ORIGIN_TEXT_KEYS",
+   "kind": "assign",
+   "start": 2116,
+   "def_line": 2116,
+   "end": 2116,
+   "lines": 1
+  },
+  {
+   "name": "_ORIGIN_LIST_KEYS",
+   "kind": "assign",
+   "start": 2117,
+   "def_line": 2117,
+   "end": 2117,
+   "lines": 1
+  },
+  {
+   "name": "_ORIGIN_SCORE_KEYS",
+   "kind": "assign",
+   "start": 2118,
+   "def_line": 2118,
+   "end": 2118,
+   "lines": 1
+  },
+  {
+   "name": "_origin_choices_valid",
+   "kind": "function",
+   "start": 2121,
+   "def_line": 2121,
+   "end": 2144,
+   "lines": 24
+  },
+  {
+   "name": "_origin_choices_for_save",
+   "kind": "function",
+   "start": 2147,
+   "def_line": 2147,
+   "end": 2153,
+   "lines": 7
+  },
+  {
+   "name": "_PERSISTED_PLAYER_CONDITION_FIELDS",
+   "kind": "assign",
+   "start": 2156,
+   "def_line": 2156,
+   "end": 2159,
+   "lines": 4
+  },
+  {
+   "name": "_validate_player_condition_state",
+   "kind": "function",
+   "start": 2162,
+   "def_line": 2162,
+   "end": 2179,
+   "lines": 18
+  },
+  {
+   "name": "_validate_player_weapon_proficiencies",
+   "kind": "function",
+   "start": 2182,
+   "def_line": 2182,
+   "end": 2192,
+   "lines": 11
+  },
+  {
+   "name": "_player_state_for_save",
+   "kind": "function",
+   "start": 2195,
+   "def_line": 2195,
+   "end": 2307,
+   "lines": 113
+  },
+  {
+   "name": "serialize_game_state",
+   "kind": "function",
+   "start": 2310,
+   "def_line": 2310,
+   "end": 2326,
+   "lines": 17
+  },
+  {
+   "name": "_validate_combat_v3_payload",
+   "kind": "function",
+   "start": 2329,
+   "def_line": 2329,
+   "end": 2447,
+   "lines": 119
+  },
+  {
+   "name": "_validate_long_rest_history",
+   "kind": "function",
+   "start": 2450,
+   "def_line": 2450,
+   "end": 2461,
+   "lines": 12
+  },
+  {
+   "name": "long_rest_gap_seconds",
+   "kind": "function",
+   "start": 2464,
+   "def_line": 2464,
+   "end": 2469,
+   "lines": 6
+  },
+  {
+   "name": "_validate_saved_multilevel_slots",
+   "kind": "function",
+   "start": 2472,
+   "def_line": 2472,
+   "end": 2483,
+   "lines": 12
+  },
+  {
+   "name": "_validate_save_payload",
+   "kind": "function",
+   "start": 2486,
+   "def_line": 2486,
+   "end": 2852,
+   "lines": 367
+  },
+  {
+   "name": "save_game",
+   "kind": "function",
+   "start": 2855,
+   "def_line": 2855,
+   "end": 2873,
+   "lines": 19
+  },
+  {
+   "name": "_repair_dilim1_fields",
+   "kind": "function",
+   "start": 2876,
+   "def_line": 2876,
+   "end": 2888,
+   "lines": 13
+  },
+  {
+   "name": "_known_happenings",
+   "kind": "function",
+   "start": 2891,
+   "def_line": 2891,
+   "end": 2900,
+   "lines": 10
+  },
+  {
+   "name": "_hand_names_something",
+   "kind": "function",
+   "start": 2903,
+   "def_line": 2903,
+   "end": 2911,
+   "lines": 9
+  },
+  {
+   "name": "_repair_dilim2_fields",
+   "kind": "function",
+   "start": 2914,
+   "def_line": 2914,
+   "end": 2951,
+   "lines": 38
+  },
+  {
+   "name": "load_game",
+   "kind": "function",
+   "start": 2954,
+   "def_line": 2954,
+   "end": 3139,
+   "lines": 186
+  },
+  {
+   "name": "_tavern_door_notice",
+   "kind": "function",
+   "start": 3142,
+   "def_line": 3142,
+   "end": 3150,
+   "lines": 9
+  },
+  {
+   "name": "_venue_door_id",
+   "kind": "function",
+   "start": 3153,
+   "def_line": 3153,
+   "end": 3154,
+   "lines": 2
+  },
+  {
+   "name": "_venue_door_for",
+   "kind": "function",
+   "start": 3157,
+   "def_line": 3157,
+   "end": 3164,
+   "lines": 8
+  },
+  {
+   "name": "_venue_entry_door",
+   "kind": "function",
+   "start": 3167,
+   "def_line": 3167,
+   "end": 3193,
+   "lines": 27
+  },
+  {
+   "name": "_locked_door_refusal",
+   "kind": "function",
+   "start": 3196,
+   "def_line": 3196,
+   "end": 3198,
+   "lines": 3
+  },
+  {
+   "name": "_mark_lock_seen",
+   "kind": "function",
+   "start": 3201,
+   "def_line": 3201,
+   "end": 3213,
+   "lines": 13
+  },
+  {
+   "name": "_lock_known_to_player",
+   "kind": "function",
+   "start": 3216,
+   "def_line": 3216,
+   "end": 3219,
+   "lines": 4
+  },
+  {
+   "name": "_current_door",
+   "kind": "function",
+   "start": 3222,
+   "def_line": 3222,
+   "end": 3233,
+   "lines": 12
+  },
+  {
+   "name": "_narration_fact_packet",
+   "kind": "function",
+   "start": 3236,
+   "def_line": 3236,
+   "end": 3246,
+   "lines": 11
+  },
+  {
+   "name": "_normalize_ground_items",
+   "kind": "function",
+   "start": 3249,
+   "def_line": 3249,
+   "end": 3268,
+   "lines": 20
+  },
+  {
+   "name": "DEATH_MODES",
+   "kind": "assign",
+   "start": 3271,
+   "def_line": 3271,
+   "end": 3271,
+   "lines": 1
+  },
+  {
+   "name": "_death_state_defaults",
+   "kind": "function",
+   "start": 3274,
+   "def_line": 3274,
+   "end": 3290,
+   "lines": 17
+  },
+  {
+   "name": "ensure_death_state",
+   "kind": "function",
+   "start": 3293,
+   "def_line": 3293,
+   "end": 3376,
+   "lines": 84
+  },
+  {
+   "name": "PlayerCannotAct",
+   "kind": "class",
+   "start": 3379,
+   "def_line": 3379,
+   "end": 3380,
+   "lines": 2
+  },
+  {
+   "name": "require_player_can_act",
+   "kind": "function",
+   "start": 3383,
+   "def_line": 3383,
+   "end": 3394,
+   "lines": 12
+  },
+  {
+   "name": "stabilize_player",
+   "kind": "function",
+   "start": 3397,
+   "def_line": 3397,
+   "end": 3410,
+   "lines": 14
+  },
+  {
+   "name": "attempt_player_stabilization",
+   "kind": "function",
+   "start": 3413,
+   "def_line": 3413,
+   "end": 3451,
+   "lines": 39
+  },
+  {
+   "name": "heal_player",
+   "kind": "function",
+   "start": 3454,
+   "def_line": 3454,
+   "end": 3468,
+   "lines": 15
+  },
+  {
+   "name": "set_player_max_hp",
+   "kind": "function",
+   "start": 3471,
+   "def_line": 3471,
+   "end": 3480,
+   "lines": 10
+  },
+  {
+   "name": "apply_npc_damage",
+   "kind": "function",
+   "start": 3483,
+   "def_line": 3483,
+   "end": 3503,
+   "lines": 21
+  },
+  {
+   "name": "_capture_combat_death_checkpoint",
+   "kind": "function",
+   "start": 3506,
+   "def_line": 3506,
+   "end": 3532,
+   "lines": 27
+  },
+  {
+   "name": "_restore_combat_death_checkpoint",
+   "kind": "function",
+   "start": 3535,
+   "def_line": 3535,
+   "end": 3615,
+   "lines": 81
+  },
+  {
+   "name": "_finalize_player_death",
+   "kind": "function",
+   "start": 3618,
+   "def_line": 3618,
+   "end": 3647,
+   "lines": 30
+  },
+  {
+   "name": "_apply_player_damage",
+   "kind": "function",
+   "start": 3650,
+   "def_line": 3650,
+   "end": 3750,
+   "lines": 101
+  },
+  {
+   "name": "_combat_defaults",
+   "kind": "function",
+   "start": 3753,
+   "def_line": 3753,
+   "end": 3768,
+   "lines": 16
+  },
+  {
+   "name": "_combat_record_for_actor",
+   "kind": "function",
+   "start": 3771,
+   "def_line": 3771,
+   "end": 3818,
+   "lines": 48
+  },
+  {
+   "name": "_migrate_legacy_combat_state",
+   "kind": "function",
+   "start": 3821,
+   "def_line": 3821,
+   "end": 3923,
+   "lines": 103
+  },
+  {
+   "name": "_sync_combat_participant_records",
+   "kind": "function",
+   "start": 3926,
+   "def_line": 3926,
+   "end": 3944,
+   "lines": 19
+  },
+  {
+   "name": "ensure_combat_state",
+   "kind": "function",
+   "start": 3947,
+   "def_line": 3947,
+   "end": 3972,
+   "lines": 26
+  },
+  {
+   "name": "_ARMED_ROLE",
+   "kind": "assign",
+   "start": 3975,
+   "def_line": 3975,
+   "end": 3975,
+   "lines": 1
+  },
+  {
+   "name": "_STRONG_ROLE",
+   "kind": "assign",
+   "start": 3976,
+   "def_line": 3976,
+   "end": 3976,
+   "lines": 1
+  },
+  {
+   "name": "_PERSON_FIGHT",
+   "kind": "assign",
+   "start": 3977,
+   "def_line": 3978,
+   "end": 3982,
+   "lines": 5
+  },
+  {
+   "name": "person_fight_kind",
+   "kind": "function",
+   "start": 3985,
+   "def_line": 3985,
+   "end": 3988,
+   "lines": 4
+  },
+  {
+   "name": "_person_fight",
+   "kind": "function",
+   "start": 3991,
+   "def_line": 3991,
+   "end": 4001,
+   "lines": 11
+  },
+  {
+   "name": "ensure_npc_enemy_stats",
+   "kind": "function",
+   "start": 4004,
+   "def_line": 4004,
+   "end": 4017,
+   "lines": 14
+  },
+  {
+   "name": "location_features",
+   "kind": "function",
+   "start": 4020,
+   "def_line": 4020,
+   "end": 4023,
+   "lines": 4
+  },
+  {
+   "name": "feature_descriptions",
+   "kind": "function",
+   "start": 4026,
+   "def_line": 4026,
+   "end": 4030,
+   "lines": 5
+  },
+  {
+   "name": "active_npcs",
+   "kind": "function",
+   "start": 4033,
+   "def_line": 4033,
+   "end": 4036,
+   "lines": 4
+  },
+  {
+   "name": "generate_npc_id",
+   "kind": "function",
+   "start": 4039,
+   "def_line": 4039,
+   "end": 4046,
+   "lines": 8
+  },
+  {
+   "name": "_clean_world_text",
+   "kind": "function",
+   "start": 4049,
+   "def_line": 4049,
+   "end": 4055,
+   "lines": 7
+  },
+  {
+   "name": "_clean_world_text_list",
+   "kind": "function",
+   "start": 4058,
+   "def_line": 4058,
+   "end": 4066,
+   "lines": 9
+  },
+  {
+   "name": "_scene_texts_for_referents",
+   "kind": "function",
+   "start": 4069,
+   "def_line": 4069,
+   "end": 4081,
+   "lines": 13
+  },
+  {
+   "name": "_has_unregistered_person_name",
+   "kind": "function",
+   "start": 4084,
+   "def_line": 4084,
+   "end": 4118,
+   "lines": 35
+  },
+  {
+   "name": "validate_npc_proposal",
+   "kind": "function",
+   "start": 4121,
+   "def_line": 4121,
+   "end": 4157,
+   "lines": 37
+  },
+  {
+   "name": "create_npc_from_ai",
+   "kind": "function",
+   "start": 4160,
+   "def_line": 4160,
+   "end": 4212,
+   "lines": 53
+  },
+  {
+   "name": "_ENGLISH_STOP_WORDS",
+   "kind": "assign",
+   "start": 4215,
+   "def_line": 4215,
+   "end": 4215,
+   "lines": 1
+  },
+  {
+   "name": "_reads_english",
+   "kind": "function",
+   "start": 4218,
+   "def_line": 4218,
+   "end": 4223,
+   "lines": 6
+  },
+  {
+   "name": "create_local_feature",
+   "kind": "function",
+   "start": 4226,
+   "def_line": 4226,
+   "end": 4295,
+   "lines": 70
+  },
+  {
+   "name": "_valid_local_feature_parent_id",
+   "kind": "function",
+   "start": 4298,
+   "def_line": 4298,
+   "end": 4322,
+   "lines": 25
+  },
+  {
+   "name": "_legacy_hidden_feature_name_collision",
+   "kind": "function",
+   "start": 4325,
+   "def_line": 4325,
+   "end": 4344,
+   "lines": 20
+  },
+  {
+   "name": "_local_detail_claims_unsupported_mechanics",
+   "kind": "function",
+   "start": 4347,
+   "def_line": 4347,
+   "end": 4365,
+   "lines": 19
+  },
+  {
+   "name": "_feature_proposal_conflicts_with_canonical_door",
+   "kind": "function",
+   "start": 4368,
+   "def_line": 4368,
+   "end": 4403,
+   "lines": 36
+  },
+  {
+   "name": "_SHOP_ECONOMY_PATTERN",
+   "kind": "assign",
+   "start": 4406,
+   "def_line": 4406,
+   "end": 4412,
+   "lines": 7
+  },
+  {
+   "name": "_SHOP_TRANSACTION_REQUEST_PATTERN",
+   "kind": "assign",
+   "start": 4413,
+   "def_line": 4413,
+   "end": 4418,
+   "lines": 6
+  },
+  {
+   "name": "_SHOP_ENTITY_QUERY_PATTERN",
+   "kind": "assign",
+   "start": 4419,
+   "def_line": 4419,
+   "end": 4424,
+   "lines": 6
+  },
+  {
+   "name": "_SHOP_CREATION_ACTION_PATTERN",
+   "kind": "assign",
+   "start": 4425,
+   "def_line": 4425,
+   "end": 4429,
+   "lines": 5
+  },
+  {
+   "name": "_is_shopkeeper_role",
+   "kind": "function",
+   "start": 4432,
+   "def_line": 4432,
+   "end": 4440,
+   "lines": 9
+  },
+  {
+   "name": "_runs_a_shop",
+   "kind": "function",
+   "start": 4443,
+   "def_line": 4443,
+   "end": 4454,
+   "lines": 12
+  },
+  {
+   "name": "_campaign_has_shopkeeper",
+   "kind": "function",
+   "start": 4457,
+   "def_line": 4457,
+   "end": 4472,
+   "lines": 16
+  },
+  {
+   "name": "_explicit_campaign_shop_request",
+   "kind": "function",
+   "start": 4475,
+   "def_line": 4475,
+   "end": 4497,
+   "lines": 23
+  },
+  {
+   "name": "_shop_economy_request",
+   "kind": "function",
+   "start": 4500,
+   "def_line": 4500,
+   "end": 4503,
+   "lines": 4
+  },
+  {
+   "name": "_explicit_campaign_shop_negative_request",
+   "kind": "function",
+   "start": 4506,
+   "def_line": 4506,
+   "end": 4520,
+   "lines": 15
+  },
+  {
+   "name": "_shop_presence_question",
+   "kind": "function",
+   "start": 4523,
+   "def_line": 4523,
+   "end": 4528,
+   "lines": 6
+  },
+  {
+   "name": "generate_shop_id",
+   "kind": "function",
+   "start": 4531,
+   "def_line": 4531,
+   "end": 4542,
+   "lines": 12
+  },
+  {
+   "name": "validate_shop_proposal",
+   "kind": "function",
+   "start": 4545,
+   "def_line": 4545,
+   "end": 4608,
+   "lines": 64
+  },
+  {
+   "name": "create_shop_from_proposal",
+   "kind": "function",
+   "start": 4611,
+   "def_line": 4611,
+   "end": 4638,
+   "lines": 28
+  },
+  {
+   "name": "ensure_npc_combat_stats",
+   "kind": "function",
+   "start": 4641,
+   "def_line": 4641,
+   "end": 4652,
+   "lines": 12
+  },
+  {
+   "name": "calculate_attack_bonus",
+   "kind": "function",
+   "start": 4655,
+   "def_line": 4655,
+   "end": 4657,
+   "lines": 3
+  },
+  {
+   "name": "roll_attack",
+   "kind": "function",
+   "start": 4660,
+   "def_line": 4660,
+   "end": 4662,
+   "lines": 3
+  },
+  {
+   "name": "roll_damage",
+   "kind": "function",
+   "start": 4665,
+   "def_line": 4665,
+   "end": 4674,
+   "lines": 10
+  },
+  {
+   "name": "resolve_combat_target",
+   "kind": "function",
+   "start": 4677,
+   "def_line": 4677,
+   "end": 4713,
+   "lines": 37
+  },
+  {
+   "name": "_species_trait_state",
+   "kind": "function",
+   "start": 4716,
+   "def_line": 4716,
+   "end": 4740,
+   "lines": 25
+  },
+  {
+   "name": "_set_temporary_hit_points",
+   "kind": "function",
+   "start": 4743,
+   "def_line": 4743,
+   "end": 4750,
+   "lines": 8
+  },
+  {
+   "name": "grant_temporary_hit_points",
+   "kind": "function",
+   "start": 4753,
+   "def_line": 4753,
+   "end": 4761,
+   "lines": 9
+  },
+  {
+   "name": "_species_bonus_action",
+   "kind": "function",
+   "start": 4764,
+   "def_line": 4764,
+   "end": 4777,
+   "lines": 14
+  },
+  {
+   "name": "_species_player_turn_id",
+   "kind": "function",
+   "start": 4780,
+   "def_line": 4780,
+   "end": 4784,
+   "lines": 5
+  },
+  {
+   "name": "_apply_species_on_hit_effects",
+   "kind": "function",
+   "start": 4787,
+   "def_line": 4787,
+   "end": 4858,
+   "lines": 72
+  },
+  {
+   "name": "_finish_species_player_turn",
+   "kind": "function",
+   "start": 4861,
+   "def_line": 4861,
+   "end": 4928,
+   "lines": 68
+  },
+  {
+   "name": "resolve_species_trait_action",
+   "kind": "function",
+   "start": 4931,
+   "def_line": 4931,
+   "end": 5291,
+   "lines": 361
+  },
+  {
+   "name": "resolve_attack",
+   "kind": "function",
+   "start": 5294,
+   "def_line": 5294,
+   "end": 5301,
+   "lines": 8
+  },
+  {
+   "name": "register_attack_hook",
+   "kind": "function",
+   "start": 5304,
+   "def_line": 5304,
+   "end": 5305,
+   "lines": 2
+  },
+  {
+   "name": "roll_initiative",
+   "kind": "function",
+   "start": 5308,
+   "def_line": 5308,
+   "end": 5310,
+   "lines": 3
+  },
+  {
+   "name": "roll_initiative_npc",
+   "kind": "function",
+   "start": 5313,
+   "def_line": 5313,
+   "end": 5315,
+   "lines": 3
+  },
+  {
+   "name": "roll_initiative_player",
+   "kind": "function",
+   "start": 5318,
+   "def_line": 5318,
+   "end": 5320,
+   "lines": 3
+  },
+  {
+   "name": "_combat_participant_can_act",
+   "kind": "function",
+   "start": 5323,
+   "def_line": 5323,
+   "end": 5348,
+   "lines": 26
+  },
+  {
+   "name": "_mark_combat_action_used",
+   "kind": "function",
+   "start": 5351,
+   "def_line": 5351,
+   "end": 5364,
+   "lines": 14
+  },
+  {
+   "name": "_resolve_player_death_turn",
+   "kind": "function",
+   "start": 5367,
+   "def_line": 5367,
+   "end": 5442,
+   "lines": 76
+  },
+  {
+   "name": "_spares_the_fallen",
+   "kind": "function",
+   "start": 5445,
+   "def_line": 5445,
+   "end": 5449,
+   "lines": 5
+  },
+  {
+   "name": "_combat_end_if_decided",
+   "kind": "function",
+   "start": 5452,
+   "def_line": 5452,
+   "end": 5481,
+   "lines": 30
+  },
+  {
+   "name": "_resolve_enemy_turns_until_player",
+   "kind": "function",
+   "start": 5484,
+   "def_line": 5484,
+   "end": 5552,
+   "lines": 69
+  },
+  {
+   "name": "find_weapon_in_inventory",
+   "kind": "function",
+   "start": 5555,
+   "def_line": 5555,
+   "end": 5571,
+   "lines": 17
+  },
+  {
+   "name": "start_combat",
+   "kind": "function",
+   "start": 5574,
+   "def_line": 5574,
+   "end": 5576,
+   "lines": 3
+  },
+  {
+   "name": "_start_combat_with_initiative",
+   "kind": "function",
+   "start": 5579,
+   "def_line": 5579,
+   "end": 5683,
+   "lines": 105
+  },
+  {
+   "name": "resolve_enemy_attack",
+   "kind": "function",
+   "start": 5686,
+   "def_line": 5686,
+   "end": 5724,
+   "lines": 39
+  },
+  {
+   "name": "_reduce_attack_damage_to_player",
+   "kind": "function",
+   "start": 5727,
+   "def_line": 5727,
+   "end": 5761,
+   "lines": 35
+  },
+  {
+   "name": "_storm_thunder_reaction",
+   "kind": "function",
+   "start": 5764,
+   "def_line": 5764,
+   "end": 5800,
+   "lines": 37
+  },
+  {
+   "name": "_apply_attack_damage_to_player",
+   "kind": "function",
+   "start": 5803,
+   "def_line": 5803,
+   "end": 5868,
+   "lines": 66
+  },
+  {
+   "name": "end_combat",
+   "kind": "function",
+   "start": 5871,
+   "def_line": 5871,
+   "end": 5900,
+   "lines": 30
+  },
+  {
+   "name": "_begin_combat_actor_turn",
+   "kind": "function",
+   "start": 5903,
+   "def_line": 5903,
+   "end": 5913,
+   "lines": 11
+  },
+  {
+   "name": "join_combat_participants",
+   "kind": "function",
+   "start": 5916,
+   "def_line": 5916,
+   "end": 5917,
+   "lines": 2
+  },
+  {
+   "name": "remove_combat_participant",
+   "kind": "function",
+   "start": 5920,
+   "def_line": 5920,
+   "end": 5921,
+   "lines": 2
+  },
+  {
+   "name": "register_initiative_hook",
+   "kind": "function",
+   "start": 5924,
+   "def_line": 5924,
+   "end": 5925,
+   "lines": 2
+  },
+  {
+   "name": "advance_combat_turn",
+   "kind": "function",
+   "start": 5928,
+   "def_line": 5928,
+   "end": 5967,
+   "lines": 40
+  },
+  {
+   "name": "_combat_snapshot",
+   "kind": "function",
+   "start": 5970,
+   "def_line": 5970,
+   "end": 5980,
+   "lines": 11
+  },
+  {
+   "name": "_finish_combat_result",
+   "kind": "function",
+   "start": 5983,
+   "def_line": 5983,
+   "end": 5986,
+   "lines": 4
+  },
+  {
+   "name": "_public_combatant_label",
+   "kind": "function",
+   "start": 5989,
+   "def_line": 5989,
+   "end": 6005,
+   "lines": 17
+  },
+  {
+   "name": "_combat_narration",
+   "kind": "function",
+   "start": 6008,
+   "def_line": 6008,
+   "end": 6063,
+   "lines": 56
+  },
+  {
+   "name": "_SAVE_ABILITY_TR",
+   "kind": "assign",
+   "start": 6066,
+   "def_line": 6066,
+   "end": 6066,
+   "lines": 1
+  },
+  {
+   "name": "_unarmed_save_text",
+   "kind": "function",
+   "start": 6069,
+   "def_line": 6069,
+   "end": 6087,
+   "lines": 19
+  },
+  {
+   "name": "_FALL_LINE",
+   "kind": "assign",
+   "start": 6090,
+   "def_line": 6090,
+   "end": 6091,
+   "lines": 2
+  },
+  {
+   "name": "_REWOUND_LINE",
+   "kind": "assign",
+   "start": 6092,
+   "def_line": 6092,
+   "end": 6093,
+   "lines": 2
+  },
+  {
+   "name": "_enemy_exchange_text",
+   "kind": "function",
+   "start": 6096,
+   "def_line": 6096,
+   "end": 6147,
+   "lines": 52
+  },
+  {
+   "name": "validate_world_updates",
+   "kind": "function",
+   "start": 6150,
+   "def_line": 6150,
+   "end": 6304,
+   "lines": 155
+  },
+  {
+   "name": "_bind_world_update_mentions",
+   "kind": "function",
+   "start": 6307,
+   "def_line": 6307,
+   "end": 6407,
+   "lines": 101
+  },
+  {
+   "name": "_PROPOSAL_MARKER_RE",
+   "kind": "assign",
+   "start": 6410,
+   "def_line": 6410,
+   "end": 6410,
+   "lines": 1
+  },
+  {
+   "name": "_INTERNAL_MARK_RE",
+   "kind": "assign",
+   "start": 6411,
+   "def_line": 6411,
+   "end": 6413,
+   "lines": 3
+  },
+  {
+   "name": "_strip_proposal_markers",
+   "kind": "function",
+   "start": 6416,
+   "def_line": 6416,
+   "end": 6417,
+   "lines": 2
+  },
+  {
+   "name": "_repair_internal_marks",
+   "kind": "function",
+   "start": 6420,
+   "def_line": 6420,
+   "end": 6461,
+   "lines": 42
+  },
+  {
+   "name": "_filter_unaccepted_proposal_mentions",
+   "kind": "function",
+   "start": 6464,
+   "def_line": 6464,
+   "end": 6491,
+   "lines": 28
+  },
+  {
+   "name": "_filter_unsupported_lore_paragraphs",
+   "kind": "function",
+   "start": 6494,
+   "def_line": 6494,
+   "end": 6506,
+   "lines": 13
+  },
+  {
+   "name": "merge_world_updates",
+   "kind": "function",
+   "start": 6509,
+   "def_line": 6509,
+   "end": 6543,
+   "lines": 35
+  },
+  {
+   "name": "_normalize_interaction_mode",
+   "kind": "function",
+   "start": 6546,
+   "def_line": 6546,
+   "end": 6549,
+   "lines": 4
+  },
+  {
+   "name": "_conversation_npcs",
+   "kind": "function",
+   "start": 6552,
+   "def_line": 6552,
+   "end": 6555,
+   "lines": 4
+  },
+  {
+   "name": "_active_interlocutor",
+   "kind": "function",
+   "start": 6558,
+   "def_line": 6558,
+   "end": 6560,
+   "lines": 3
+  },
+  {
+   "name": "_clear_active_interlocutor",
+   "kind": "function",
+   "start": 6563,
+   "def_line": 6563,
+   "end": 6564,
+   "lines": 2
+  },
+  {
+   "name": "_is_end_conversation_request",
+   "kind": "function",
+   "start": 6567,
+   "def_line": 6567,
+   "end": 6572,
+   "lines": 6
+  },
+  {
+   "name": "_without_place_names",
+   "kind": "function",
+   "start": 6575,
+   "def_line": 6575,
+   "end": 6582,
+   "lines": 8
+  },
+  {
+   "name": "_GUARD_ROLE",
+   "kind": "assign",
+   "start": 6585,
+   "def_line": 6585,
+   "end": 6585,
+   "lines": 1
+  },
+  {
+   "name": "_GUARD_WORD",
+   "kind": "assign",
+   "start": 6586,
+   "def_line": 6586,
+   "end": 6586,
+   "lines": 1
+  },
+  {
+   "name": "_GENERIC_PERSON",
+   "kind": "assign",
+   "start": 6587,
+   "def_line": 6587,
+   "end": 6591,
+   "lines": 5
+  },
+  {
+   "name": "_is_guard",
+   "kind": "function",
+   "start": 6594,
+   "def_line": 6594,
+   "end": 6595,
+   "lines": 2
+  },
+  {
+   "name": "_serves_at_a_counter",
+   "kind": "function",
+   "start": 6598,
+   "def_line": 6598,
+   "end": 6599,
+   "lines": 2
+  },
+  {
+   "name": "_words_fit_person",
+   "kind": "function",
+   "start": 6602,
+   "def_line": 6602,
+   "end": 6606,
+   "lines": 5
+  },
+  {
+   "name": "most_plausible_addressee",
+   "kind": "function",
+   "start": 6609,
+   "def_line": 6609,
+   "end": 6630,
+   "lines": 22
+  },
+  {
+   "name": "_topic_place_name",
+   "kind": "function",
+   "start": 6633,
+   "def_line": 6633,
+   "end": 6641,
+   "lines": 9
+  },
+  {
+   "name": "_LOCATED_PERSON",
+   "kind": "assign",
+   "start": 6644,
+   "def_line": 6644,
+   "end": 6648,
+   "lines": 5
+  },
+  {
+   "name": "_IN_REACH_WORDS",
+   "kind": "assign",
+   "start": 6649,
+   "def_line": 6649,
+   "end": 6652,
+   "lines": 4
+  },
+  {
+   "name": "_COUNTER_WORDS",
+   "kind": "assign",
+   "start": 6653,
+   "def_line": 6653,
+   "end": 6653,
+   "lines": 1
+  },
+  {
+   "name": "_COUNTER_ROLE",
+   "kind": "assign",
+   "start": 6654,
+   "def_line": 6654,
+   "end": 6654,
+   "lines": 1
+  },
+  {
+   "name": "_drop_repeated_sentences",
+   "kind": "function",
+   "start": 6657,
+   "def_line": 6657,
+   "end": 6671,
+   "lines": 15
+  },
+  {
+   "name": "_drop_absent_counter_sentences",
+   "kind": "function",
+   "start": 6674,
+   "def_line": 6674,
+   "end": 6694,
+   "lines": 21
+  },
+  {
+   "name": "_absent_described_person",
+   "kind": "function",
+   "start": 6697,
+   "def_line": 6697,
+   "end": 6721,
+   "lines": 25
+  },
+  {
+   "name": "_absent_person_text",
+   "kind": "function",
+   "start": 6724,
+   "def_line": 6724,
+   "end": 6730,
+   "lines": 7
+  },
+  {
+   "name": "_is_plain_person_reference",
+   "kind": "function",
+   "start": 6733,
+   "def_line": 6733,
+   "end": 6738,
+   "lines": 6
+  },
+  {
+   "name": "_settle_address",
+   "kind": "function",
+   "start": 6741,
+   "def_line": 6741,
+   "end": 6750,
+   "lines": 10
+  },
+  {
+   "name": "_npc_answers_to",
+   "kind": "function",
+   "start": 6753,
+   "def_line": 6753,
+   "end": 6779,
+   "lines": 27
+  },
+  {
+   "name": "_word_for_nobody_here",
+   "kind": "function",
+   "start": 6782,
+   "def_line": 6782,
+   "end": 6786,
+   "lines": 5
+  },
+  {
+   "name": "resolve_npc_reference",
+   "kind": "function",
+   "start": 6789,
+   "def_line": 6789,
+   "end": 6878,
+   "lines": 90
+  },
+  {
+   "name": "_ADDRESSEE_OPERATIONS",
+   "kind": "assign",
+   "start": 6881,
+   "def_line": 6884,
+   "end": 6887,
+   "lines": 4
+  },
+  {
+   "name": "_OFFER_OPERATIONS",
+   "kind": "assign",
+   "start": 6890,
+   "def_line": 6890,
+   "end": 6890,
+   "lines": 1
+  },
+  {
+   "name": "_OFFER_MARKER",
+   "kind": "assign",
+   "start": 6891,
+   "def_line": 6891,
+   "end": 6895,
+   "lines": 5
+  },
+  {
+   "name": "_interaction_proposal_applies",
+   "kind": "function",
+   "start": 6898,
+   "def_line": 6898,
+   "end": 6926,
+   "lines": 29
+  },
+  {
+   "name": "_grounded_item_request_proposal",
+   "kind": "function",
+   "start": 6929,
+   "def_line": 6929,
+   "end": 7001,
+   "lines": 73
+  },
+  {
+   "name": "_fold_keep_punctuation",
+   "kind": "function",
+   "start": 7004,
+   "def_line": 7004,
+   "end": 7009,
+   "lines": 6
+  },
+  {
+   "name": "_ADDRESS_VERB",
+   "kind": "assign",
+   "start": 7012,
+   "def_line": 7012,
+   "end": 7012,
+   "lines": 1
+  },
+  {
+   "name": "_explicit_addressee",
+   "kind": "function",
+   "start": 7015,
+   "def_line": 7015,
+   "end": 7058,
+   "lines": 44
+  },
+  {
+   "name": "_SPEAKING_VERB",
+   "kind": "assign",
+   "start": 7061,
+   "def_line": 7061,
+   "end": 7064,
+   "lines": 4
+  },
+  {
+   "name": "_is_spoken_to",
+   "kind": "function",
+   "start": 7067,
+   "def_line": 7067,
+   "end": 7076,
+   "lines": 10
+  },
+  {
+   "name": "_CONTINUATION_TERMS",
+   "kind": "assign",
+   "start": 7079,
+   "def_line": 7079,
+   "end": 7084,
+   "lines": 6
+  },
+  {
+   "name": "_is_short_conversation_continuation",
+   "kind": "function",
+   "start": 7087,
+   "def_line": 7087,
+   "end": 7090,
+   "lines": 4
+  },
+  {
+   "name": "_OBJECT_INSPECTION",
+   "kind": "assign",
+   "start": 7093,
+   "def_line": 7093,
+   "end": 7096,
+   "lines": 4
+  },
+  {
+   "name": "_is_object_inspection",
+   "kind": "function",
+   "start": 7099,
+   "def_line": 7099,
+   "end": 7100,
+   "lines": 2
+  },
+  {
+   "name": "_is_door_inspection_request",
+   "kind": "function",
+   "start": 7103,
+   "def_line": 7103,
+   "end": 7113,
+   "lines": 11
+  },
+  {
+   "name": "record_npc_interaction",
+   "kind": "function",
+   "start": 7116,
+   "def_line": 7116,
+   "end": 7170,
+   "lines": 55
+  },
+  {
+   "name": "_remember_owner_locked_tavern_focus",
+   "kind": "function",
+   "start": 7173,
+   "def_line": 7173,
+   "end": 7222,
+   "lines": 50
+  },
+  {
+   "name": "_remember_accepted_profile_focus",
+   "kind": "function",
+   "start": 7225,
+   "def_line": 7225,
+   "end": 7256,
+   "lines": 32
+  },
+  {
+   "name": "_claim_keywords",
+   "kind": "function",
+   "start": 7259,
+   "def_line": 7259,
+   "end": 7293,
+   "lines": 35
+  },
+  {
+   "name": "npc_memory_supports_claim",
+   "kind": "function",
+   "start": 7296,
+   "def_line": 7296,
+   "end": 7302,
+   "lines": 7
+  },
+  {
+   "name": "npc_memory_supporting_entry",
+   "kind": "function",
+   "start": 7305,
+   "def_line": 7305,
+   "end": 7377,
+   "lines": 73
+  },
+  {
+   "name": "_format_npc_memory",
+   "kind": "function",
+   "start": 7380,
+   "def_line": 7380,
+   "end": 7394,
+   "lines": 15
+  },
+  {
+   "name": "_CLAIM_DENIAL_LINES",
+   "kind": "assign",
+   "start": 7397,
+   "def_line": 7397,
+   "end": 7406,
+   "lines": 10
+  },
+  {
+   "name": "_SPEECH_REPEAT_LINES",
+   "kind": "assign",
+   "start": 7409,
+   "def_line": 7409,
+   "end": 7418,
+   "lines": 10
+  },
+  {
+   "name": "_STOCK_SAID",
+   "kind": "assign",
+   "start": 7421,
+   "def_line": 7423,
+   "end": 7423,
+   "lines": 1
+  },
+  {
+   "name": "_stock_said",
+   "kind": "function",
+   "start": 7426,
+   "def_line": 7426,
+   "end": 7436,
+   "lines": 11
+  },
+  {
+   "name": "_stock",
+   "kind": "function",
+   "start": 7439,
+   "def_line": 7439,
+   "end": 7442,
+   "lines": 4
+  },
+  {
+   "name": "_is_stock",
+   "kind": "function",
+   "start": 7445,
+   "def_line": 7445,
+   "end": 7447,
+   "lines": 3
+  },
+  {
+   "name": "_only_stock",
+   "kind": "function",
+   "start": 7450,
+   "def_line": 7450,
+   "end": 7457,
+   "lines": 8
+  },
+  {
+   "name": "_lines_already_said",
+   "kind": "function",
+   "start": 7460,
+   "def_line": 7460,
+   "end": 7462,
+   "lines": 3
+  },
+  {
+   "name": "_without_lines_already_said",
+   "kind": "function",
+   "start": 7465,
+   "def_line": 7465,
+   "end": 7475,
+   "lines": 11
+  },
+  {
+   "name": "speech_repeat_line",
+   "kind": "function",
+   "start": 7478,
+   "def_line": 7478,
+   "end": 7490,
+   "lines": 13
+  },
+  {
+   "name": "historical_claim_denial",
+   "kind": "function",
+   "start": 7493,
+   "def_line": 7493,
+   "end": 7505,
+   "lines": 13
+  },
+  {
+   "name": "_NARRATOR_PROFILE_FIELDS",
+   "kind": "assign",
+   "start": 7508,
+   "def_line": 7510,
+   "end": 7510,
+   "lines": 1
+  },
+  {
+   "name": "_narrator_visible_profile",
+   "kind": "function",
+   "start": 7513,
+   "def_line": 7513,
+   "end": 7516,
+   "lines": 4
+  },
+  {
+   "name": "_narrator_shop_record",
+   "kind": "function",
+   "start": 7519,
+   "def_line": 7519,
+   "end": 7530,
+   "lines": 12
+  },
+  {
+   "name": "_narrator_fact_view",
+   "kind": "function",
+   "start": 7533,
+   "def_line": 7533,
+   "end": 7541,
+   "lines": 9
+  },
+  {
+   "name": "_bodies_here_context",
+   "kind": "function",
+   "start": 7544,
+   "def_line": 7544,
+   "end": 7548,
+   "lines": 5
+  },
+  {
+   "name": "build_world_context",
+   "kind": "function",
+   "start": 7551,
+   "def_line": 7551,
+   "end": 7694,
+   "lines": 144
+  },
+  {
+   "name": "location_display_name",
+   "kind": "function",
+   "start": 7696,
+   "def_line": 7696,
+   "end": 7702,
+   "lines": 7
+  },
+  {
+   "name": "_location_alias_values",
+   "kind": "function",
+   "start": 7705,
+   "def_line": 7705,
+   "end": 7710,
+   "lines": 6
+  },
+  {
+   "name": "_reference_token_matches",
+   "kind": "function",
+   "start": 7713,
+   "def_line": 7713,
+   "end": 7727,
+   "lines": 15
+  },
+  {
+   "name": "named_by_sight",
+   "kind": "function",
+   "start": 7730,
+   "def_line": 7730,
+   "end": 7745,
+   "lines": 16
+  },
+  {
+   "name": "_entity_reference_in_text",
+   "kind": "function",
+   "start": 7748,
+   "def_line": 7748,
+   "end": 7758,
+   "lines": 11
+  },
+  {
+   "name": "resolve_location_reference",
+   "kind": "function",
+   "start": 7761,
+   "def_line": 7761,
+   "end": 7799,
+   "lines": 39
+  },
+  {
+   "name": "_location_reference_in_text",
+   "kind": "function",
+   "start": 7802,
+   "def_line": 7802,
+   "end": 7833,
+   "lines": 32
+  },
+  {
+   "name": "_travel_destination_reference_in_text",
+   "kind": "function",
+   "start": 7836,
+   "def_line": 7836,
+   "end": 7875,
+   "lines": 40
+  },
+  {
+   "name": "normalize_location_id",
+   "kind": "function",
+   "start": 7878,
+   "def_line": 7878,
+   "end": 7882,
+   "lines": 5
+  },
+  {
+   "name": "clean_location_description",
+   "kind": "function",
+   "start": 7885,
+   "def_line": 7885,
+   "end": 7896,
+   "lines": 12
+  },
+  {
+   "name": "validate_location_proposal",
+   "kind": "function",
+   "start": 7899,
+   "def_line": 7899,
+   "end": 7927,
+   "lines": 29
+  },
+  {
+   "name": "create_location_from_proposal",
+   "kind": "function",
+   "start": 7930,
+   "def_line": 7930,
+   "end": 7951,
+   "lines": 22
+  },
+  {
+   "name": "ensure_campaign_clock",
+   "kind": "function",
+   "start": 7954,
+   "def_line": 7954,
+   "end": 7959,
+   "lines": 6
+  },
+  {
+   "name": "advance_campaign_time",
+   "kind": "function",
+   "start": 7962,
+   "def_line": 7962,
+   "end": 8049,
+   "lines": 88
+  },
+  {
+   "name": "commit_location_change",
+   "kind": "function",
+   "start": 8052,
+   "def_line": 8052,
+   "end": 8105,
+   "lines": 54
+  },
+  {
+   "name": "INTENT_TYPES",
+   "kind": "assign",
+   "start": 8108,
+   "def_line": 8108,
+   "end": 8113,
+   "lines": 6
+  },
+  {
+   "name": "SKILL_INTENT_TO_SKILL",
+   "kind": "assign",
+   "start": 8114,
+   "def_line": 8114,
+   "end": 8119,
+   "lines": 6
+  },
+  {
+   "name": "INTENT_SCHEMA",
+   "kind": "assign",
+   "start": 8120,
+   "def_line": 8120,
+   "end": 8144,
+   "lines": 25
+  },
+  {
+   "name": "SCENE_DETAIL_KIND_ALLOWLIST",
+   "kind": "assign",
+   "start": 8145,
+   "def_line": 8145,
+   "end": 8145,
+   "lines": 1
+  },
+  {
+   "name": "_untrusted_player_block",
+   "kind": "function",
+   "start": 8158,
+   "def_line": 8158,
+   "end": 8165,
+   "lines": 8
+  },
+  {
+   "name": "_intent_scene_npc_candidates",
+   "kind": "function",
+   "start": 8168,
+   "def_line": 8168,
+   "end": 8184,
+   "lines": 17
+  },
+  {
+   "name": "_recent_player_visible_narration",
+   "kind": "function",
+   "start": 8187,
+   "def_line": 8187,
+   "end": 8198,
+   "lines": 12
+  },
+  {
+   "name": "_validated_scene_npc_id",
+   "kind": "function",
+   "start": 8201,
+   "def_line": 8201,
+   "end": 8222,
+   "lines": 22
+  },
+  {
+   "name": "_named_word_of",
+   "kind": "function",
+   "start": 8225,
+   "def_line": 8225,
+   "end": 8233,
+   "lines": 9
+  },
+  {
+   "name": "_validated_local_person_proposal",
+   "kind": "function",
+   "start": 8236,
+   "def_line": 8236,
+   "end": 8257,
+   "lines": 22
+  },
+  {
+   "name": "_scene_detail_proposals_allowed",
+   "kind": "function",
+   "start": 8260,
+   "def_line": 8260,
+   "end": 8275,
+   "lines": 16
+  },
+  {
+   "name": "_scene_observation_proposal_turn",
+   "kind": "function",
+   "start": 8278,
+   "def_line": 8278,
+   "end": 8289,
+   "lines": 12
+  },
+  {
+   "name": "_local_person_request_key",
+   "kind": "function",
+   "start": 8292,
+   "def_line": 8292,
+   "end": 8300,
+   "lines": 9
+  },
+  {
+   "name": "_extract_json_object",
+   "kind": "function",
+   "start": 8303,
+   "def_line": 8303,
+   "end": 8342,
+   "lines": 40
+  },
+  {
+   "name": "_EXPERIMENTAL_NPC_SPEECH_SCHEMA",
+   "kind": "assign",
+   "start": 8345,
+   "def_line": 8350,
+   "end": 8396,
+   "lines": 47
+  },
+  {
+   "name": "_EXPERIMENTAL_NPC_SPEECH_OPTIONS",
+   "kind": "assign",
+   "start": 8397,
+   "def_line": 8397,
+   "end": 8411,
+   "lines": 15
+  },
+  {
+   "name": "_NPC_SPEECH_LOG_KEY",
+   "kind": "assign",
+   "start": 8412,
+   "def_line": 8412,
+   "end": 8412,
+   "lines": 1
+  },
+  {
+   "name": "_NPC_SPEECH_KEEP",
+   "kind": "assign",
+   "start": 8413,
+   "def_line": 8413,
+   "end": 8413,
+   "lines": 1
+  },
+  {
+   "name": "_speech_debug_trail",
+   "kind": "function",
+   "start": 8416,
+   "def_line": 8416,
+   "end": 8432,
+   "lines": 17
+  },
+  {
+   "name": "_npc_speech_enabled",
+   "kind": "function",
+   "start": 8435,
+   "def_line": 8435,
+   "end": 8443,
+   "lines": 9
+  },
+  {
+   "name": "_experimental_recent_exchanges",
+   "kind": "function",
+   "start": 8446,
+   "def_line": 8446,
+   "end": 8463,
+   "lines": 18
+  },
+  {
+   "name": "_MENTIONS_PROMPT_RULE",
+   "kind": "assign",
+   "start": 8466,
+   "def_line": 8466,
+   "end": 8470,
+   "lines": 5
+  },
+  {
+   "name": "_VOICED_PROMPT_RULE",
+   "kind": "assign",
+   "start": 8473,
+   "def_line": 8473,
+   "end": 8477,
+   "lines": 5
+  },
+  {
+   "name": "_rumour_lane_on",
+   "kind": "function",
+   "start": 8480,
+   "def_line": 8480,
+   "end": 8482,
+   "lines": 3
+  },
+  {
+   "name": "_speech_answer_rules",
+   "kind": "function",
+   "start": 8485,
+   "def_line": 8485,
+   "end": 8491,
+   "lines": 7
+  },
+  {
+   "name": "_voiced_keys",
+   "kind": "function",
+   "start": 8494,
+   "def_line": 8494,
+   "end": 8497,
+   "lines": 4
+  },
+  {
+   "name": "_remember_experimental_npc_speech",
+   "kind": "function",
+   "start": 8500,
+   "def_line": 8500,
+   "end": 8529,
+   "lines": 30
+  },
+  {
+   "name": "_CLAIM_REJECTION_RE",
+   "kind": "assign",
+   "start": 8532,
+   "def_line": 8532,
+   "end": 8536,
+   "lines": 5
+  },
+  {
+   "name": "_CLAIM_ACCEPTANCE_RE",
+   "kind": "assign",
+   "start": 8537,
+   "def_line": 8537,
+   "end": 8544,
+   "lines": 8
+  },
+  {
+   "name": "_SPEECH_CUT_RE",
+   "kind": "assign",
+   "start": 8547,
+   "def_line": 8547,
+   "end": 8547,
+   "lines": 1
+  },
+  {
+   "name": "_SPEECH_META_RE",
+   "kind": "assign",
+   "start": 8548,
+   "def_line": 8548,
+   "end": 8552,
+   "lines": 5
+  },
+  {
+   "name": "_strip_pictographs",
+   "kind": "function",
+   "start": 8555,
+   "def_line": 8555,
+   "end": 8563,
+   "lines": 9
+  },
+  {
+   "name": "_REAL_WORLD_FAITH",
+   "kind": "assign",
+   "start": 8566,
+   "def_line": 8567,
+   "end": 8574,
+   "lines": 8
+  },
+  {
+   "name": "_without_real_world_faith",
+   "kind": "function",
+   "start": 8577,
+   "def_line": 8577,
+   "end": 8584,
+   "lines": 8
+  },
+  {
+   "name": "_clean_npc_speech",
+   "kind": "function",
+   "start": 8587,
+   "def_line": 8587,
+   "end": 8615,
+   "lines": 29
+  },
+  {
+   "name": "_is_explicit_name_led_gesture_line",
+   "kind": "function",
+   "start": 8618,
+   "def_line": 8618,
+   "end": 8634,
+   "lines": 17
+  },
+  {
+   "name": "_clean_npc_stage_direction",
+   "kind": "function",
+   "start": 8637,
+   "def_line": 8637,
+   "end": 8641,
+   "lines": 5
+  },
+  {
+   "name": "_compose_experimental_npc_speech",
+   "kind": "function",
+   "start": 8644,
+   "def_line": 8644,
+   "end": 8652,
+   "lines": 9
+  },
+  {
+   "name": "_render_experimental_npc_speech",
+   "kind": "function",
+   "start": 8655,
+   "def_line": 8655,
+   "end": 8666,
+   "lines": 12
+  },
+  {
+   "name": "_without_label_variant",
+   "kind": "function",
+   "start": 8669,
+   "def_line": 8669,
+   "end": 8684,
+   "lines": 16
+  },
+  {
+   "name": "_npc_speech_rejects_claim",
+   "kind": "function",
+   "start": 8687,
+   "def_line": 8687,
+   "end": 8692,
+   "lines": 6
+  },
+  {
+   "name": "_CLAIM_PLAIN_DENIAL_RE",
+   "kind": "assign",
+   "start": 8695,
+   "def_line": 8695,
+   "end": 8697,
+   "lines": 3
+  },
+  {
+   "name": "_npc_speech_grants_claim",
+   "kind": "function",
+   "start": 8700,
+   "def_line": 8700,
+   "end": 8703,
+   "lines": 4
+  },
+  {
+   "name": "_npc_speech_is_claim_refusal",
+   "kind": "function",
+   "start": 8706,
+   "def_line": 8706,
+   "end": 8718,
+   "lines": 13
+  },
+  {
+   "name": "_npc_name_stance",
+   "kind": "function",
+   "start": 8721,
+   "def_line": 8721,
+   "end": 8734,
+   "lines": 14
+  },
+  {
+   "name": "_spoken_name_answer",
+   "kind": "function",
+   "start": 8737,
+   "def_line": 8737,
+   "end": 8747,
+   "lines": 11
+  },
+  {
+   "name": "_SPEECH_ANSWER_RULES",
+   "kind": "assign",
+   "start": 8750,
+   "def_line": 8750,
+   "end": 8765,
+   "lines": 16
+  },
+  {
+   "name": "_town_note",
+   "kind": "function",
+   "start": 8768,
+   "def_line": 8768,
+   "end": 8778,
+   "lines": 11
+  },
+  {
+   "name": "_has_spoken_to_player",
+   "kind": "function",
+   "start": 8781,
+   "def_line": 8781,
+   "end": 8785,
+   "lines": 5
+  },
+  {
+   "name": "_job_news_line",
+   "kind": "function",
+   "start": 8788,
+   "def_line": 8788,
+   "end": 8796,
+   "lines": 9
+  },
+  {
+   "name": "_has_session",
+   "kind": "function",
+   "start": 8799,
+   "def_line": 8799,
+   "end": 8800,
+   "lines": 2
+  },
+  {
+   "name": "_job_talk_with",
+   "kind": "function",
+   "start": 8803,
+   "def_line": 8803,
+   "end": 8806,
+   "lines": 4
+  },
+  {
+   "name": "_offer_talk_with",
+   "kind": "function",
+   "start": 8809,
+   "def_line": 8809,
+   "end": 8812,
+   "lines": 4
+  },
+  {
+   "name": "_offer_terms_shown",
+   "kind": "function",
+   "start": 8815,
+   "def_line": 8815,
+   "end": 8825,
+   "lines": 11
+  },
+  {
+   "name": "_nobody_here",
+   "kind": "function",
+   "start": 8828,
+   "def_line": 8828,
+   "end": 8840,
+   "lines": 13
+  },
+  {
+   "name": "_thread_person",
+   "kind": "function",
+   "start": 8843,
+   "def_line": 8843,
+   "end": 8860,
+   "lines": 18
+  },
+  {
+   "name": "_physical_line",
+   "kind": "function",
+   "start": 8863,
+   "def_line": 8863,
+   "end": 8872,
+   "lines": 10
+  },
+  {
+   "name": "_carry_out_thread_turn",
+   "kind": "function",
+   "start": 8875,
+   "def_line": 8875,
+   "end": 8949,
+   "lines": 75
+  },
+  {
+   "name": "_job_gate",
+   "kind": "function",
+   "start": 8952,
+   "def_line": 8952,
+   "end": 8964,
+   "lines": 13
+  },
+  {
+   "name": "_thread_gate",
+   "kind": "function",
+   "start": 8967,
+   "def_line": 8967,
+   "end": 9008,
+   "lines": 42
+  },
+  {
+   "name": "_turns_to_someone_else",
+   "kind": "function",
+   "start": 9011,
+   "def_line": 9011,
+   "end": 9015,
+   "lines": 5
+  },
+  {
+   "name": "_town_in_play",
+   "kind": "function",
+   "start": 9018,
+   "def_line": 9018,
+   "end": 9020,
+   "lines": 3
+  },
+  {
+   "name": "_elsewhere_line",
+   "kind": "function",
+   "start": 9023,
+   "def_line": 9023,
+   "end": 9035,
+   "lines": 13
+  },
+  {
+   "name": "_named_elsewhere_line",
+   "kind": "function",
+   "start": 9038,
+   "def_line": 9038,
+   "end": 9053,
+   "lines": 16
+  },
+  {
+   "name": "_overheard_work",
+   "kind": "function",
+   "start": 9056,
+   "def_line": 9056,
+   "end": 9078,
+   "lines": 23
+  },
+  {
+   "name": "_ASKS_WHO_YOU_ARE",
+   "kind": "assign",
+   "start": 9081,
+   "def_line": 9081,
+   "end": 9081,
+   "lines": 1
+  },
+  {
+   "name": "_town_fallback",
+   "kind": "function",
+   "start": 9084,
+   "def_line": 9084,
+   "end": 9101,
+   "lines": 18
+  },
+  {
+   "name": "_person_fallback",
+   "kind": "function",
+   "start": 9104,
+   "def_line": 9104,
+   "end": 9107,
+   "lines": 4
+  },
+  {
+   "name": "_job_fallback",
+   "kind": "function",
+   "start": 9110,
+   "def_line": 9110,
+   "end": 9117,
+   "lines": 8
+  },
+  {
+   "name": "_accept_named_job",
+   "kind": "function",
+   "start": 9120,
+   "def_line": 9120,
+   "end": 9128,
+   "lines": 9
+  },
+  {
+   "name": "_coin_persuasion",
+   "kind": "function",
+   "start": 9131,
+   "def_line": 9131,
+   "end": 9158,
+   "lines": 28
+  },
+  {
+   "name": "_show_coin_roll",
+   "kind": "function",
+   "start": 9161,
+   "def_line": 9161,
+   "end": 9167,
+   "lines": 7
+  },
+  {
+   "name": "_settle_spoken_commitment",
+   "kind": "function",
+   "start": 9170,
+   "def_line": 9170,
+   "end": 9192,
+   "lines": 23
+  },
+  {
+   "name": "_with_only_backed_money",
+   "kind": "function",
+   "start": 9195,
+   "def_line": 9195,
+   "end": 9201,
+   "lines": 7
+  },
+  {
+   "name": "_REFUSED_MOVE_RULE",
+   "kind": "assign",
+   "start": 9204,
+   "def_line": 9205,
+   "end": 9205,
+   "lines": 1
+  },
+  {
+   "name": "_bag_note",
+   "kind": "function",
+   "start": 9208,
+   "def_line": 9208,
+   "end": 9210,
+   "lines": 3
+  },
+  {
+   "name": "_dm_prompt_note",
+   "kind": "function",
+   "start": 9213,
+   "def_line": 9213,
+   "end": 9216,
+   "lines": 4
+  },
+  {
+   "name": "_claim_denial_quotes",
+   "kind": "function",
+   "start": 9219,
+   "def_line": 9219,
+   "end": 9220,
+   "lines": 2
+  },
+  {
+   "name": "_has_private_profile_value",
+   "kind": "function",
+   "start": 9223,
+   "def_line": 9223,
+   "end": 9230,
+   "lines": 8
+  },
+  {
+   "name": "_experimental_speech_note",
+   "kind": "function",
+   "start": 9233,
+   "def_line": 9233,
+   "end": 9346,
+   "lines": 114
+  },
+  {
+   "name": "_experimental_npc_dialogue_context",
+   "kind": "function",
+   "start": 9349,
+   "def_line": 9349,
+   "end": 9432,
+   "lines": 84
+  },
+  {
+   "name": "_FOLLOWUP_WORDS",
+   "kind": "assign",
+   "start": 9435,
+   "def_line": 9435,
+   "end": 9439,
+   "lines": 5
+  },
+  {
+   "name": "_is_short_followup",
+   "kind": "function",
+   "start": 9442,
+   "def_line": 9442,
+   "end": 9451,
+   "lines": 10
+  },
+  {
+   "name": "_experimental_speech_final_line",
+   "kind": "function",
+   "start": 9454,
+   "def_line": 9454,
+   "end": 9468,
+   "lines": 15
+  },
+  {
+   "name": "_experimental_speech_recap",
+   "kind": "function",
+   "start": 9471,
+   "def_line": 9471,
+   "end": 9494,
+   "lines": 24
+  },
+  {
+   "name": "_local_place_recommendation_options",
+   "kind": "function",
+   "start": 9497,
+   "def_line": 9497,
+   "end": 9526,
+   "lines": 30
+  },
+  {
+   "name": "_local_place_access",
+   "kind": "function",
+   "start": 9529,
+   "def_line": 9529,
+   "end": 9540,
+   "lines": 12
+  },
+  {
+   "name": "_attributed_place_note",
+   "kind": "function",
+   "start": 9543,
+   "def_line": 9543,
+   "end": 9558,
+   "lines": 16
+  },
+  {
+   "name": "_ground_local_place_recommendation_reply",
+   "kind": "function",
+   "start": 9561,
+   "def_line": 9561,
+   "end": 9629,
+   "lines": 69
+  },
+  {
+   "name": "_ground_local_place_recommendation_stage",
+   "kind": "function",
+   "start": 9632,
+   "def_line": 9632,
+   "end": 9703,
+   "lines": 72
+  },
+  {
+   "name": "_local_place_recommendation_guidance",
+   "kind": "function",
+   "start": 9706,
+   "def_line": 9706,
+   "end": 9762,
+   "lines": 57
+  },
+  {
+   "name": "IntentInfrastructureError",
+   "kind": "class",
+   "start": 9765,
+   "def_line": 9765,
+   "end": 9770,
+   "lines": 6
+  },
+  {
+   "name": "parse_player_intent",
+   "kind": "function",
+   "start": 9773,
+   "def_line": 9773,
+   "end": 10192,
+   "lines": 420
+  },
+  {
+   "name": "_has_travel_language",
+   "kind": "function",
+   "start": 10195,
+   "def_line": 10195,
+   "end": 10214,
+   "lines": 20
+  },
+  {
+   "name": "_travel_completion",
+   "kind": "function",
+   "start": 10217,
+   "def_line": 10217,
+   "end": 10229,
+   "lines": 13
+  },
+  {
+   "name": "_normalize_turkish_typos",
+   "kind": "function",
+   "start": 10232,
+   "def_line": 10232,
+   "end": 10242,
+   "lines": 11
+  },
+  {
+   "name": "normalize_intent",
+   "kind": "function",
+   "start": 10245,
+   "def_line": 10245,
+   "end": 10359,
+   "lines": 115
+  },
+  {
+   "name": "_normalize_turkish_location",
+   "kind": "function",
+   "start": 10362,
+   "def_line": 10362,
+   "end": 10369,
+   "lines": 8
+  },
+  {
+   "name": "validate_intent",
+   "kind": "function",
+   "start": 10372,
+   "def_line": 10372,
+   "end": 10448,
+   "lines": 77
+  },
+  {
+   "name": "_ensure_location_entities",
+   "kind": "function",
+   "start": 10451,
+   "def_line": 10451,
+   "end": 10466,
+   "lines": 16
+  },
+  {
+   "name": "update_world_state_from_player",
+   "kind": "function",
+   "start": 10469,
+   "def_line": 10469,
+   "end": 10473,
+   "lines": 5
+  },
+  {
+   "name": "_explicit_sword_drop",
+   "kind": "function",
+   "start": 10476,
+   "def_line": 10476,
+   "end": 10484,
+   "lines": 9
+  },
+  {
+   "name": "update_inventory_from_player",
+   "kind": "function",
+   "start": 10487,
+   "def_line": 10487,
+   "end": 10553,
+   "lines": 67
+  },
+  {
+   "name": "apply_check_outcome_to_world_state",
+   "kind": "function",
+   "start": 10556,
+   "def_line": 10556,
+   "end": 10582,
+   "lines": 27
+  },
+  {
+   "name": "_current_npc_name",
+   "kind": "function",
+   "start": 10585,
+   "def_line": 10585,
+   "end": 10590,
+   "lines": 6
+  },
+  {
+   "name": "_mechanical_outcome",
+   "kind": "function",
+   "start": 10593,
+   "def_line": 10593,
+   "end": 10606,
+   "lines": 14
+  },
+  {
+   "name": "_stands_by_their_words",
+   "kind": "function",
+   "start": 10609,
+   "def_line": 10609,
+   "end": 10613,
+   "lines": 5
+  },
+  {
+   "name": "_fallback_narration",
+   "kind": "function",
+   "start": 10616,
+   "def_line": 10616,
+   "end": 10716,
+   "lines": 101
+  },
+  {
+   "name": "_GENERIC_NO_CHANGE_RESPONSE",
+   "kind": "assign",
+   "start": 10719,
+   "def_line": 10719,
+   "end": 10721,
+   "lines": 3
+  },
+  {
+   "name": "_GENERIC_NO_CHANGE_RESPONSES",
+   "kind": "assign",
+   "start": 10722,
+   "def_line": 10723,
+   "end": 10729,
+   "lines": 7
+  },
+  {
+   "name": "_quiet_place_line",
+   "kind": "function",
+   "start": 10732,
+   "def_line": 10732,
+   "end": 10743,
+   "lines": 12
+  },
+  {
+   "name": "_generic_no_change_response",
+   "kind": "function",
+   "start": 10746,
+   "def_line": 10746,
+   "end": 10752,
+   "lines": 7
+  },
+  {
+   "name": "_INTERNAL_PLAYER_FACING_RE",
+   "kind": "assign",
+   "start": 10754,
+   "def_line": 10754,
+   "end": 10760,
+   "lines": 7
+  },
+  {
+   "name": "_is_internal_player_facing_text",
+   "kind": "function",
+   "start": 10763,
+   "def_line": 10763,
+   "end": 10766,
+   "lines": 4
+  },
+  {
+   "name": "_natural_unresolved_action_response",
+   "kind": "function",
+   "start": 10769,
+   "def_line": 10769,
+   "end": 10777,
+   "lines": 9
+  },
+  {
+   "name": "_narration_scene_type",
+   "kind": "function",
+   "start": 10780,
+   "def_line": 10780,
+   "end": 10793,
+   "lines": 14
+  },
+  {
+   "name": "_NARRATION_PERSISTENT_OBJECT_HEADS",
+   "kind": "assign",
+   "start": 10796,
+   "def_line": 10796,
+   "end": 10799,
+   "lines": 4
+  },
+  {
+   "name": "_NARRATION_PERSISTENT_OBJECT_STATE",
+   "kind": "assign",
+   "start": 10800,
+   "def_line": 10800,
+   "end": 10804,
+   "lines": 5
+  },
+  {
+   "name": "_registered_persistent_object_names",
+   "kind": "function",
+   "start": 10807,
+   "def_line": 10807,
+   "end": 10856,
+   "lines": 50
+  },
+  {
+   "name": "_unregistered_persistent_object_claim",
+   "kind": "function",
+   "start": 10859,
+   "def_line": 10859,
+   "end": 10913,
+   "lines": 55
+  },
+  {
+   "name": "_HELD_SKIP",
+   "kind": "assign",
+   "start": 10916,
+   "def_line": 10916,
+   "end": 10919,
+   "lines": 4
+  },
+  {
+   "name": "_unregistered_held_object",
+   "kind": "function",
+   "start": 10922,
+   "def_line": 10922,
+   "end": 10943,
+   "lines": 22
+  },
+  {
+   "name": "_resolve_campaign_npc_reference",
+   "kind": "function",
+   "start": 10946,
+   "def_line": 10946,
+   "end": 10957,
+   "lines": 12
+  },
+  {
+   "name": "_unsupported_npc_history_or_relationship_claim",
+   "kind": "function",
+   "start": 10960,
+   "def_line": 10960,
+   "end": 11030,
+   "lines": 71
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_PREFIXES",
+   "kind": "assign",
+   "start": 11033,
+   "def_line": 11033,
+   "end": 11037,
+   "lines": 5
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_CONTEXT_RE",
+   "kind": "assign",
+   "start": 11038,
+   "def_line": 11038,
+   "end": 11042,
+   "lines": 5
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_COPULA_RE",
+   "kind": "assign",
+   "start": 11043,
+   "def_line": 11043,
+   "end": 11047,
+   "lines": 5
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE",
+   "kind": "assign",
+   "start": 11048,
+   "def_line": 11048,
+   "end": 11056,
+   "lines": 9
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_AFFECT_RE",
+   "kind": "assign",
+   "start": 11057,
+   "def_line": 11057,
+   "end": 11060,
+   "lines": 4
+  },
+  {
+   "name": "_PLAYER_FEELING_RE",
+   "kind": "assign",
+   "start": 11063,
+   "def_line": 11063,
+   "end": 11070,
+   "lines": 8
+  },
+  {
+   "name": "_unverified_player_mental_state_trigger",
+   "kind": "function",
+   "start": 11073,
+   "def_line": 11073,
+   "end": 11102,
+   "lines": 30
+  },
+  {
+   "name": "_authorized_item_transfer_matches",
+   "kind": "function",
+   "start": 11105,
+   "def_line": 11105,
+   "end": 11126,
+   "lines": 22
+  },
+  {
+   "name": "_is_explicitly_negated_transfer",
+   "kind": "function",
+   "start": 11129,
+   "def_line": 11129,
+   "end": 11150,
+   "lines": 22
+  },
+  {
+   "name": "_is_figurative_key_transfer",
+   "kind": "function",
+   "start": 11153,
+   "def_line": 11153,
+   "end": 11155,
+   "lines": 3
+  },
+  {
+   "name": "_experimental_private_npc_disclosure",
+   "kind": "function",
+   "start": 11158,
+   "def_line": 11158,
+   "end": 11228,
+   "lines": 71
+  },
+  {
+   "name": "_NARRATED_NAME_PATTERNS",
+   "kind": "assign",
+   "start": 11231,
+   "def_line": 11232,
+   "end": 11238,
+   "lines": 7
+  },
+  {
+   "name": "_unseen_registered_names",
+   "kind": "function",
+   "start": 11241,
+   "def_line": 11241,
+   "end": 11258,
+   "lines": 18
+  },
+  {
+   "name": "_SPEAKING_NAME_PATTERNS",
+   "kind": "assign",
+   "start": 11261,
+   "def_line": 11263,
+   "end": 11267,
+   "lines": 5
+  },
+  {
+   "name": "_inside_speech",
+   "kind": "function",
+   "start": 11270,
+   "def_line": 11270,
+   "end": 11271,
+   "lines": 2
+  },
+  {
+   "name": "_unseen_speakers",
+   "kind": "function",
+   "start": 11274,
+   "def_line": 11274,
+   "end": 11289,
+   "lines": 16
+  },
+  {
+   "name": "_unseen_self_introductions",
+   "kind": "function",
+   "start": 11292,
+   "def_line": 11292,
+   "end": 11301,
+   "lines": 10
+  },
+  {
+   "name": "_unseen_speaker_repaired",
+   "kind": "function",
+   "start": 11304,
+   "def_line": 11304,
+   "end": 11339,
+   "lines": 36
+  },
+  {
+   "name": "_narration_safety_decision",
+   "kind": "function",
+   "start": 11342,
+   "def_line": 11342,
+   "end": 12395,
+   "lines": 1054
+  },
+  {
+   "name": "_narration_is_unsafe",
+   "kind": "function",
+   "start": 12398,
+   "def_line": 12398,
+   "end": 12401,
+   "lines": 4
+  },
+  {
+   "name": "is_player_world_assertion",
+   "kind": "function",
+   "start": 12404,
+   "def_line": 12404,
+   "end": 12419,
+   "lines": 16
+  },
+  {
+   "name": "should_generate_npcs",
+   "kind": "function",
+   "start": 12422,
+   "def_line": 12422,
+   "end": 12428,
+   "lines": 7
+  },
+  {
+   "name": "should_generate_features",
+   "kind": "function",
+   "start": 12431,
+   "def_line": 12431,
+   "end": 12457,
+   "lines": 27
+  },
+  {
+   "name": "NPC_SCHEMA",
+   "kind": "assign",
+   "start": 12460,
+   "def_line": 12460,
+   "end": 12473,
+   "lines": 14
+  },
+  {
+   "name": "LOCATION_SCHEMA",
+   "kind": "assign",
+   "start": 12474,
+   "def_line": 12474,
+   "end": 12485,
+   "lines": 12
+  },
+  {
+   "name": "WORLD_UPDATE_SCHEMA",
+   "kind": "assign",
+   "start": 12486,
+   "def_line": 12486,
+   "end": 12549,
+   "lines": 64
+  },
+  {
+   "name": "_empty_lore_authority_context",
+   "kind": "function",
+   "start": 12550,
+   "def_line": 12550,
+   "end": 12567,
+   "lines": 18
+  },
+  {
+   "name": "_prepare_lore_authority_context",
+   "kind": "function",
+   "start": 12570,
+   "def_line": 12570,
+   "end": 12589,
+   "lines": 20
+  },
+  {
+   "name": "_lore_claims_are_supported",
+   "kind": "function",
+   "start": 12592,
+   "def_line": 12592,
+   "end": 12622,
+   "lines": 31
+  },
+  {
+   "name": "_lore_guard_text",
+   "kind": "function",
+   "start": 12625,
+   "def_line": 12625,
+   "end": 12632,
+   "lines": 8
+  },
+  {
+   "name": "_lore_fact_records",
+   "kind": "function",
+   "start": 12635,
+   "def_line": 12635,
+   "end": 12655,
+   "lines": 21
+  },
+  {
+   "name": "_lore_entity_names",
+   "kind": "function",
+   "start": 12658,
+   "def_line": 12658,
+   "end": 12711,
+   "lines": 54
+  },
+  {
+   "name": "_LORE_ENTITY_TITLE_RE",
+   "kind": "assign",
+   "start": 12714,
+   "def_line": 12714,
+   "end": 12721,
+   "lines": 8
+  },
+  {
+   "name": "_LORE_PROPER_NAME_RE",
+   "kind": "assign",
+   "start": 12722,
+   "def_line": 12722,
+   "end": 12725,
+   "lines": 4
+  },
+  {
+   "name": "_LORE_ENTITY_FOLLOWING_CUE_RE",
+   "kind": "assign",
+   "start": 12726,
+   "def_line": 12726,
+   "end": 12733,
+   "lines": 8
+  },
+  {
+   "name": "_LORE_SENTENCE_START_WORDS",
+   "kind": "assign",
+   "start": 12734,
+   "def_line": 12734,
+   "end": 12747,
+   "lines": 14
+  },
+  {
+   "name": "_is_registered_lore_name",
+   "kind": "function",
+   "start": 12750,
+   "def_line": 12750,
+   "end": 12769,
+   "lines": 20
+  },
+  {
+   "name": "_GENERIC_SPEAKER_LABEL_RE",
+   "kind": "assign",
+   "start": 12772,
+   "def_line": 12772,
+   "end": 12775,
+   "lines": 4
+  },
+  {
+   "name": "_is_generic_speaker_label",
+   "kind": "function",
+   "start": 12778,
+   "def_line": 12778,
+   "end": 12780,
+   "lines": 3
+  },
+  {
+   "name": "_has_unregistered_narrative_entity",
+   "kind": "function",
+   "start": 12783,
+   "def_line": 12783,
+   "end": 12840,
+   "lines": 58
+  },
+  {
+   "name": "_LORE_UNSUPPORTED_DETAIL_PATTERNS",
+   "kind": "assign",
+   "start": 12843,
+   "def_line": 12843,
+   "end": 12969,
+   "lines": 127
+  },
+  {
+   "name": "_LORE_RULER_TITLE_RE",
+   "kind": "assign",
+   "start": 12970,
+   "def_line": 12970,
+   "end": 12974,
+   "lines": 5
+  },
+  {
+   "name": "_LORE_ENTITY_RELATION_RE",
+   "kind": "assign",
+   "start": 12975,
+   "def_line": 12975,
+   "end": 12985,
+   "lines": 11
+  },
+  {
+   "name": "_LORE_ROUTE_DISTANCE_QUERY_RE",
+   "kind": "assign",
+   "start": 12986,
+   "def_line": 12986,
+   "end": 12993,
+   "lines": 8
+  },
+  {
+   "name": "_UNVERIFIED_LORE_RESPONSE",
+   "kind": "assign",
+   "start": 12994,
+   "def_line": 12998,
+   "end": 13000,
+   "lines": 3
+  },
+  {
+   "name": "_UNVERIFIED_DISTANCE_RESPONSE",
+   "kind": "assign",
+   "start": 13001,
+   "def_line": 13001,
+   "end": 13004,
+   "lines": 4
+  },
+  {
+   "name": "_UNVERIFIED_RULER_RESPONSE",
+   "kind": "assign",
+   "start": 13005,
+   "def_line": 13005,
+   "end": 13008,
+   "lines": 4
+  },
+  {
+   "name": "_rejected_lore_narration",
+   "kind": "function",
+   "start": 13011,
+   "def_line": 13011,
+   "end": 13019,
+   "lines": 9
+  },
+  {
+   "name": "_INDOOR_DETAIL",
+   "kind": "assign",
+   "start": 13022,
+   "def_line": 13022,
+   "end": 13024,
+   "lines": 3
+  },
+  {
+   "name": "_stage_within_the_street",
+   "kind": "function",
+   "start": 13027,
+   "def_line": 13027,
+   "end": 13053,
+   "lines": 27
+  },
+  {
+   "name": "_shown_stage_direction",
+   "kind": "function",
+   "start": 13056,
+   "def_line": 13056,
+   "end": 13062,
+   "lines": 7
+  },
+  {
+   "name": "_ASKS_DISTANCE",
+   "kind": "assign",
+   "start": 13065,
+   "def_line": 13065,
+   "end": 13065,
+   "lines": 1
+  },
+  {
+   "name": "_unverified_lore_response",
+   "kind": "function",
+   "start": 13068,
+   "def_line": 13068,
+   "end": 13092,
+   "lines": 25
+  },
+  {
+   "name": "_names_the_district_here",
+   "kind": "function",
+   "start": 13095,
+   "def_line": 13095,
+   "end": 13101,
+   "lines": 7
+  },
+  {
+   "name": "_narration_has_unsupported_lore_claim",
+   "kind": "function",
+   "start": 13104,
+   "def_line": 13104,
+   "end": 13206,
+   "lines": 103
+  },
+  {
+   "name": "_salvage_plain_speech",
+   "kind": "function",
+   "start": 13209,
+   "def_line": 13209,
+   "end": 13232,
+   "lines": 24
+  },
+  {
+   "name": "_SPEECH_SPAN_RE",
+   "kind": "assign",
+   "start": 13235,
+   "def_line": 13235,
+   "end": 13235,
+   "lines": 1
+  },
+  {
+   "name": "_TERMINATOR_MASK",
+   "kind": "assign",
+   "start": 13236,
+   "def_line": 13236,
+   "end": 13236,
+   "lines": 1
+  },
+  {
+   "name": "_split_sentences_keep_speech",
+   "kind": "function",
+   "start": 13239,
+   "def_line": 13239,
+   "end": 13248,
+   "lines": 10
+  },
+  {
+   "name": "_repair_unsupported_lore_narration",
+   "kind": "function",
+   "start": 13251,
+   "def_line": 13251,
+   "end": 13264,
+   "lines": 14
+  },
+  {
+   "name": "_scene_has_registered_craft_role",
+   "kind": "function",
+   "start": 13267,
+   "def_line": 13267,
+   "end": 13278,
+   "lines": 12
+  },
+  {
+   "name": "_spoken_lore_fact_ids",
+   "kind": "function",
+   "start": 13281,
+   "def_line": 13281,
+   "end": 13322,
+   "lines": 42
+  },
+  {
+   "name": "_has_active_local_npc_focus_for_place_request",
+   "kind": "function",
+   "start": 13325,
+   "def_line": 13325,
+   "end": 13351,
+   "lines": 27
+  },
+  {
+   "name": "_supported_lore_question_response",
+   "kind": "function",
+   "start": 13354,
+   "def_line": 13354,
+   "end": 13832,
+   "lines": 479
+  },
+  {
+   "name": "_player_question_has_unverified_lore_claim",
+   "kind": "function",
+   "start": 13835,
+   "def_line": 13835,
+   "end": 14030,
+   "lines": 196
+  },
+  {
+   "name": "DM_RESPONSE_SCHEMA",
+   "kind": "assign",
+   "start": 14033,
+   "def_line": 14033,
+   "end": 14063,
+   "lines": 31
+  },
+  {
+   "name": "_validated_player_line",
+   "kind": "function",
+   "start": 14065,
+   "def_line": 14065,
+   "end": 14088,
+   "lines": 24
+  },
+  {
+   "name": "_feature_refs_are_visible",
+   "kind": "function",
+   "start": 14091,
+   "def_line": 14091,
+   "end": 14102,
+   "lines": 12
+  },
+  {
+   "name": "_dm_response_schema_for_turn",
+   "kind": "function",
+   "start": 14105,
+   "def_line": 14105,
+   "end": 14136,
+   "lines": 32
+  },
+  {
+   "name": "_living_world_prompt_context",
+   "kind": "function",
+   "start": 14139,
+   "def_line": 14139,
+   "end": 14215,
+   "lines": 77
+  },
+  {
+   "name": "ask_dungeon_master",
+   "kind": "function",
+   "start": 14218,
+   "def_line": 14218,
+   "end": 14726,
+   "lines": 509
+  },
+  {
+   "name": "_WINDOW_WORDS",
+   "kind": "assign",
+   "start": 14729,
+   "def_line": 14729,
+   "end": 14729,
+   "lines": 1
+  },
+  {
+   "name": "_LOCK_WORDS",
+   "kind": "assign",
+   "start": 14730,
+   "def_line": 14730,
+   "end": 14730,
+   "lines": 1
+  },
+  {
+   "name": "_TRACK_WORDS",
+   "kind": "assign",
+   "start": 14731,
+   "def_line": 14731,
+   "end": 14731,
+   "lines": 1
+  },
+  {
+   "name": "_ensure_venue_window",
+   "kind": "function",
+   "start": 14734,
+   "def_line": 14734,
+   "end": 14757,
+   "lines": 24
+  },
+  {
+   "name": "_finding_says_too_much",
+   "kind": "function",
+   "start": 14760,
+   "def_line": 14760,
+   "end": 14773,
+   "lines": 14
+  },
+  {
+   "name": "_bound_on_a_named_word",
+   "kind": "function",
+   "start": 14776,
+   "def_line": 14776,
+   "end": 14801,
+   "lines": 26
+  },
+  {
+   "name": "_found_on_a_pass",
+   "kind": "function",
+   "start": 14804,
+   "def_line": 14804,
+   "end": 14823,
+   "lines": 20
+  },
+  {
+   "name": "_inspection_findings",
+   "kind": "function",
+   "start": 14826,
+   "def_line": 14826,
+   "end": 14933,
+   "lines": 108
+  },
+  {
+   "name": "_resolved_skill_result_narration",
+   "kind": "function",
+   "start": 14936,
+   "def_line": 14936,
+   "end": 14961,
+   "lines": 26
+  },
+  {
+   "name": "_TELLS_FAILURE",
+   "kind": "assign",
+   "start": 14964,
+   "def_line": 14964,
+   "end": 14964,
+   "lines": 1
+  },
+  {
+   "name": "_UNMOVED",
+   "kind": "assign",
+   "start": 14967,
+   "def_line": 14968,
+   "end": 14971,
+   "lines": 4
+  },
+  {
+   "name": "_states_the_failed_check",
+   "kind": "function",
+   "start": 14974,
+   "def_line": 14974,
+   "end": 14984,
+   "lines": 11
+  },
+  {
+   "name": "_fallback_for_action_result",
+   "kind": "function",
+   "start": 14987,
+   "def_line": 14987,
+   "end": 15050,
+   "lines": 64
+  },
+  {
+   "name": "_record_narration_safety",
+   "kind": "function",
+   "start": 15053,
+   "def_line": 15053,
+   "end": 15079,
+   "lines": 27
+  },
+  {
+   "name": "_QUOTE_CLOSER_RE",
+   "kind": "assign",
+   "start": 15082,
+   "def_line": 15082,
+   "end": 15082,
+   "lines": 1
+  },
+  {
+   "name": "_QUOTE_OPENER_RE",
+   "kind": "assign",
+   "start": 15083,
+   "def_line": 15083,
+   "end": 15083,
+   "lines": 1
+  },
+  {
+   "name": "_trim_dangling_quote",
+   "kind": "function",
+   "start": 15086,
+   "def_line": 15086,
+   "end": 15099,
+   "lines": 14
+  },
+  {
+   "name": "_remove_trigger_sentence",
+   "kind": "function",
+   "start": 15102,
+   "def_line": 15102,
+   "end": 15135,
+   "lines": 34
+  },
+  {
+   "name": "_dialogue_repair_has_attributed_answer",
+   "kind": "function",
+   "start": 15138,
+   "def_line": 15138,
+   "end": 15187,
+   "lines": 50
+  },
+  {
+   "name": "_repair_attributed_speech",
+   "kind": "function",
+   "start": 15190,
+   "def_line": 15190,
+   "end": 15218,
+   "lines": 29
+  },
+  {
+   "name": "_is_player_name_inquiry_to_npc",
+   "kind": "function",
+   "start": 15221,
+   "def_line": 15221,
+   "end": 15232,
+   "lines": 12
+  },
+  {
+   "name": "_is_historical_player_name_query",
+   "kind": "function",
+   "start": 15235,
+   "def_line": 15235,
+   "end": 15240,
+   "lines": 6
+  },
+  {
+   "name": "_hero_first_name",
+   "kind": "function",
+   "start": 15243,
+   "def_line": 15243,
+   "end": 15244,
+   "lines": 2
+  },
+  {
+   "name": "_explicit_player_name_disclosure",
+   "kind": "function",
+   "start": 15247,
+   "def_line": 15247,
+   "end": 15257,
+   "lines": 11
+  },
+  {
+   "name": "_known_player_name",
+   "kind": "function",
+   "start": 15260,
+   "def_line": 15260,
+   "end": 15267,
+   "lines": 8
+  },
+  {
+   "name": "_historical_player_name_from_npc_memory",
+   "kind": "function",
+   "start": 15270,
+   "def_line": 15270,
+   "end": 15283,
+   "lines": 14
+  },
+  {
+   "name": "_historical_player_name_from_claims",
+   "kind": "function",
+   "start": 15286,
+   "def_line": 15286,
+   "end": 15306,
+   "lines": 21
+  },
+  {
+   "name": "_narration_contradicts_supported_name_memory",
+   "kind": "function",
+   "start": 15309,
+   "def_line": 15309,
+   "end": 15327,
+   "lines": 19
+  },
+  {
+   "name": "_narrated_money_can_lie",
+   "kind": "function",
+   "start": 15330,
+   "def_line": 15330,
+   "end": 15335,
+   "lines": 6
+  },
+  {
+   "name": "finalize_narration",
+   "kind": "function",
+   "start": 15338,
+   "def_line": 15338,
+   "end": 15687,
+   "lines": 350
+  },
+  {
+   "name": "initialize_game",
+   "kind": "function",
+   "start": 15694,
+   "def_line": 15694,
+   "end": 15890,
+   "lines": 197
+  },
+  {
+   "name": "NARRATOR_VOICE",
+   "kind": "assign",
+   "start": 15897,
+   "def_line": 15897,
+   "end": 15903,
+   "lines": 7
+  },
+  {
+   "name": "system_prompt",
+   "kind": "assign",
+   "start": 15905,
+   "def_line": 15905,
+   "end": 15961,
+   "lines": 57
+  },
+  {
+   "name": "messages",
+   "kind": "assign",
+   "start": 15964,
+   "def_line": 15964,
+   "end": 15969,
+   "lines": 6
+  },
+  {
+   "name": "DEBUG_MODE",
+   "kind": "assign",
+   "start": 15972,
+   "def_line": 15972,
+   "end": 15972,
+   "lines": 1
+  },
+  {
+   "name": "_world_snapshot",
+   "kind": "function",
+   "start": 15975,
+   "def_line": 15975,
+   "end": 16001,
+   "lines": 27
+  },
+  {
+   "name": "_changed_state_fields",
+   "kind": "function",
+   "start": 16004,
+   "def_line": 16004,
+   "end": 16024,
+   "lines": 21
+  },
+  {
+   "name": "_skill_result_category",
+   "kind": "function",
+   "start": 16027,
+   "def_line": 16027,
+   "end": 16031,
+   "lines": 5
+  },
+  {
+   "name": "_print_skill_result",
+   "kind": "function",
+   "start": 16034,
+   "def_line": 16034,
+   "end": 16048,
+   "lines": 15
+  },
+  {
+   "name": "_commit_travel_action",
+   "kind": "function",
+   "start": 16051,
+   "def_line": 16051,
+   "end": 16095,
+   "lines": 45
+  },
+  {
+   "name": "_ATTACK_VERB_PATTERN",
+   "kind": "assign",
+   "start": 16098,
+   "def_line": 16098,
+   "end": 16098,
+   "lines": 1
+  },
+  {
+   "name": "_ATTACK_BLOW_PHRASE",
+   "kind": "assign",
+   "start": 16099,
+   "def_line": 16100,
+   "end": 16103,
+   "lines": 4
+  },
+  {
+   "name": "_CHARGING_IN",
+   "kind": "assign",
+   "start": 16104,
+   "def_line": 16107,
+   "end": 16107,
+   "lines": 1
+  },
+  {
+   "name": "_ATTACK_LOOKALIKE_TOKEN",
+   "kind": "assign",
+   "start": 16108,
+   "def_line": 16108,
+   "end": 16110,
+   "lines": 3
+  },
+  {
+   "name": "_ATTACK_INSTRUMENT_TOKENS",
+   "kind": "assign",
+   "start": 16111,
+   "def_line": 16111,
+   "end": 16111,
+   "lines": 1
+  },
+  {
+   "name": "_INANIMATE_HIT_OBJECT",
+   "kind": "assign",
+   "start": 16112,
+   "def_line": 16114,
+   "end": 16119,
+   "lines": 6
+  },
+  {
+   "name": "_CREATURE_REFERENCE",
+   "kind": "assign",
+   "start": 16120,
+   "def_line": 16120,
+   "end": 16124,
+   "lines": 5
+  },
+  {
+   "name": "_attack_verb_tokens",
+   "kind": "function",
+   "start": 16127,
+   "def_line": 16127,
+   "end": 16140,
+   "lines": 14
+  },
+  {
+   "name": "_names_present_creature",
+   "kind": "function",
+   "start": 16143,
+   "def_line": 16143,
+   "end": 16156,
+   "lines": 14
+  },
+  {
+   "name": "_has_explicit_attack_verb",
+   "kind": "function",
+   "start": 16159,
+   "def_line": 16159,
+   "end": 16195,
+   "lines": 37
+  },
+  {
+   "name": "_is_explicitly_negated_attack",
+   "kind": "function",
+   "start": 16198,
+   "def_line": 16198,
+   "end": 16212,
+   "lines": 15
+  },
+  {
+   "name": "CHECK_FEATURES",
+   "kind": "assign",
+   "start": 16215,
+   "def_line": 16215,
+   "end": 16215,
+   "lines": 1
+  },
+  {
+   "name": "_immediate_check_refusal",
+   "kind": "function",
+   "start": 16218,
+   "def_line": 16218,
+   "end": 16222,
+   "lines": 5
+  },
+  {
+   "name": "primal_knowledge_check_admission",
+   "kind": "function",
+   "start": 16225,
+   "def_line": 16225,
+   "end": 16269,
+   "lines": 45
+  },
+  {
+   "name": "execute_intent",
+   "kind": "function",
+   "start": 16272,
+   "def_line": 16272,
+   "end": 16294,
+   "lines": 23
+  },
+  {
+   "name": "_execute_intent_internal",
+   "kind": "function",
+   "start": 16297,
+   "def_line": 16297,
+   "end": 16844,
+   "lines": 548
+  },
+  {
+   "name": "_unsupported_available_quest_claim",
+   "kind": "function",
+   "start": 16847,
+   "def_line": 16847,
+   "end": 16876,
+   "lines": 30
+  },
+  {
+   "name": "_names_current_local_exit",
+   "kind": "function",
+   "start": 16879,
+   "def_line": 16879,
+   "end": 16909,
+   "lines": 31
+  },
+  {
+   "name": "_engine_location_parent",
+   "kind": "function",
+   "start": 16912,
+   "def_line": 16912,
+   "end": 16916,
+   "lines": 5
+  },
+  {
+   "name": "_existing_local_tavern",
+   "kind": "function",
+   "start": 16919,
+   "def_line": 16919,
+   "end": 16931,
+   "lines": 13
+  },
+  {
+   "name": "_resolve_explicit_local_scene_parent",
+   "kind": "function",
+   "start": 16934,
+   "def_line": 16934,
+   "end": 16966,
+   "lines": 33
+  },
+  {
+   "name": "_scene_detail_parent",
+   "kind": "function",
+   "start": 16969,
+   "def_line": 16969,
+   "end": 16990,
+   "lines": 22
+  },
+  {
+   "name": "_anchored_structure_features",
+   "kind": "function",
+   "start": 16993,
+   "def_line": 16993,
+   "end": 17019,
+   "lines": 27
+  },
+  {
+   "name": "_observe_anchored_structure",
+   "kind": "function",
+   "start": 17022,
+   "def_line": 17022,
+   "end": 17103,
+   "lines": 82
+  },
+  {
+   "name": "_ensure_local_tavern",
+   "kind": "function",
+   "start": 17106,
+   "def_line": 17106,
+   "end": 17157,
+   "lines": 52
+  },
+  {
+   "name": "_turkish_genitive_form",
+   "kind": "function",
+   "start": 17160,
+   "def_line": 17160,
+   "end": 17183,
+   "lines": 24
+  },
+  {
+   "name": "_ensure_local_merchant",
+   "kind": "function",
+   "start": 17186,
+   "def_line": 17186,
+   "end": 17246,
+   "lines": 61
+  },
+  {
+   "name": "_scene_feature_match",
+   "kind": "function",
+   "start": 17249,
+   "def_line": 17249,
+   "end": 17273,
+   "lines": 25
+  },
+  {
+   "name": "resolve_scene_seating",
+   "kind": "function",
+   "start": 17276,
+   "def_line": 17276,
+   "end": 17326,
+   "lines": 51
+  },
+  {
+   "name": "_asks_what_is_going_on",
+   "kind": "function",
+   "start": 17329,
+   "def_line": 17329,
+   "end": 17334,
+   "lines": 6
+  },
+  {
+   "name": "_direct_npc_smalltalk_response",
+   "kind": "function",
+   "start": 17337,
+   "def_line": 17337,
+   "end": 17453,
+   "lines": 117
+  },
+  {
+   "name": "_is_bare_greeting",
+   "kind": "function",
+   "start": 17456,
+   "def_line": 17456,
+   "end": 17474,
+   "lines": 19
+  },
+  {
+   "name": "_is_scene_referent_activity_observation",
+   "kind": "function",
+   "start": 17477,
+   "def_line": 17477,
+   "end": 17502,
+   "lines": 26
+  },
+  {
+   "name": "_scene_names",
+   "kind": "function",
+   "start": 17505,
+   "def_line": 17505,
+   "end": 17509,
+   "lines": 5
+  },
+  {
+   "name": "_public_scene_person_text",
+   "kind": "function",
+   "start": 17512,
+   "def_line": 17512,
+   "end": 17517,
+   "lines": 6
+  },
+  {
+   "name": "_scene_presence_text",
+   "kind": "function",
+   "start": 17520,
+   "def_line": 17520,
+   "end": 17565,
+   "lines": 46
+  },
+  {
+   "name": "_LOOK_OPENINGS",
+   "kind": "assign",
+   "start": 17568,
+   "def_line": 17568,
+   "end": 17573,
+   "lines": 6
+  },
+  {
+   "name": "_variation_index",
+   "kind": "function",
+   "start": 17576,
+   "def_line": 17576,
+   "end": 17588,
+   "lines": 13
+  },
+  {
+   "name": "_look_opening",
+   "kind": "function",
+   "start": 17591,
+   "def_line": 17591,
+   "end": 17594,
+   "lines": 4
+  },
+  {
+   "name": "_CONVERSATION_OPENINGS",
+   "kind": "assign",
+   "start": 17597,
+   "def_line": 17597,
+   "end": 17602,
+   "lines": 6
+  },
+  {
+   "name": "_conversation_opening_line",
+   "kind": "function",
+   "start": 17605,
+   "def_line": 17605,
+   "end": 17608,
+   "lines": 4
+  },
+  {
+   "name": "_scene_look_text",
+   "kind": "function",
+   "start": 17611,
+   "def_line": 17611,
+   "end": 17657,
+   "lines": 47
+  },
+  {
+   "name": "_look_scene_changed",
+   "kind": "function",
+   "start": 17660,
+   "def_line": 17660,
+   "end": 17674,
+   "lines": 15
+  },
+  {
+   "name": "_keep_people_in_look",
+   "kind": "function",
+   "start": 17677,
+   "def_line": 17677,
+   "end": 17690,
+   "lines": 14
+  },
+  {
+   "name": "_set_scene_active_npc",
+   "kind": "function",
+   "start": 17693,
+   "def_line": 17693,
+   "end": 17696,
+   "lines": 4
+  },
+  {
+   "name": "_promote_scene_referent",
+   "kind": "function",
+   "start": 17699,
+   "def_line": 17699,
+   "end": 17727,
+   "lines": 29
+  },
+  {
+   "name": "_reopen_public_doors",
+   "kind": "function",
+   "start": 17730,
+   "def_line": 17730,
+   "end": 17732,
+   "lines": 3
+  },
+  {
+   "name": "plan_living_world_turn",
+   "kind": "function",
+   "start": 17735,
+   "def_line": 17735,
+   "end": 18459,
+   "lines": 725
+  },
+  {
+   "name": "TurnResolved",
+   "kind": "class",
+   "start": 18462,
+   "def_line": 18462,
+   "end": 18465,
+   "lines": 4
+  },
+  {
+   "name": "_hideout_check",
+   "kind": "function",
+   "start": 18468,
+   "def_line": 18468,
+   "end": 18479,
+   "lines": 12
+  },
+  {
+   "name": "_adventure_scene_turn",
+   "kind": "function",
+   "start": 18482,
+   "def_line": 18482,
+   "end": 18513,
+   "lines": 32
+  },
+  {
+   "name": "_adventure_check_reply",
+   "kind": "function",
+   "start": 18516,
+   "def_line": 18516,
+   "end": 18545,
+   "lines": 30
+  },
+  {
+   "name": "_everyday_action_turn",
+   "kind": "function",
+   "start": 18548,
+   "def_line": 18548,
+   "end": 18607,
+   "lines": 60
+  },
+  {
+   "name": "_local_place_turn",
+   "kind": "function",
+   "start": 18610,
+   "def_line": 18610,
+   "end": 18699,
+   "lines": 90
+  },
+  {
+   "name": "_adventure_travel_reply",
+   "kind": "function",
+   "start": 18702,
+   "def_line": 18702,
+   "end": 18719,
+   "lines": 18
+  },
+  {
+   "name": "_intent_infrastructure_result",
+   "kind": "function",
+   "start": 18722,
+   "def_line": 18722,
+   "end": 18735,
+   "lines": 14
+  },
+  {
+   "name": "_clear_turn_transients",
+   "kind": "function",
+   "start": 18738,
+   "def_line": 18738,
+   "end": 18754,
+   "lines": 17
+  },
+  {
+   "name": "turn_source_key",
+   "kind": "function",
+   "start": 18757,
+   "def_line": 18757,
+   "end": 18763,
+   "lines": 7
+  },
+  {
+   "name": "run_player_turn",
+   "kind": "function",
+   "start": 18766,
+   "def_line": 18766,
+   "end": 18776,
+   "lines": 11
+  },
+  {
+   "name": "_run_player_turn_owned",
+   "kind": "function",
+   "start": 18779,
+   "def_line": 18779,
+   "end": 18825,
+   "lines": 47
+  },
+  {
+   "name": "COIN_LEFT_BEHIND",
+   "kind": "assign",
+   "start": 18828,
+   "def_line": 18828,
+   "end": 18828,
+   "lines": 1
+  },
+  {
+   "name": "_tell_the_coin",
+   "kind": "function",
+   "start": 18831,
+   "def_line": 18831,
+   "end": 18875,
+   "lines": 45
+  },
+  {
+   "name": "_run_player_turn",
+   "kind": "function",
+   "start": 18878,
+   "def_line": 18878,
+   "end": 18905,
+   "lines": 28
+  },
+  {
+   "name": "_run_player_turn_keyed",
+   "kind": "function",
+   "start": 18908,
+   "def_line": 18908,
+   "end": 19044,
+   "lines": 137
+  },
+  {
+   "name": "_OWN_ACTS",
+   "kind": "assign",
+   "start": 19047,
+   "def_line": 19048,
+   "end": 19048,
+   "lines": 1
+  },
+  {
+   "name": "_a_walk",
+   "kind": "function",
+   "start": 19051,
+   "def_line": 19051,
+   "end": 19057,
+   "lines": 7
+  },
+  {
+   "name": "_walked_there",
+   "kind": "function",
+   "start": 19060,
+   "def_line": 19060,
+   "end": 19076,
+   "lines": 17
+  },
+  {
+   "name": "_the_rest_of_the_line",
+   "kind": "function",
+   "start": 19079,
+   "def_line": 19079,
+   "end": 19162,
+   "lines": 84
+  },
+  {
+   "name": "_stock_hearer",
+   "kind": "function",
+   "start": 19165,
+   "def_line": 19165,
+   "end": 19185,
+   "lines": 21
+  },
+  {
+   "name": "_person_answers_stock",
+   "kind": "function",
+   "start": 19188,
+   "def_line": 19188,
+   "end": 19227,
+   "lines": 40
+  },
+  {
+   "name": "_death_closing",
+   "kind": "function",
+   "start": 19230,
+   "def_line": 19230,
+   "end": 19238,
+   "lines": 9
+  },
+  {
+   "name": "_death_save_line",
+   "kind": "function",
+   "start": 19241,
+   "def_line": 19241,
+   "end": 19258,
+   "lines": 18
+  },
+  {
+   "name": "_down_outside_combat_turn",
+   "kind": "function",
+   "start": 19261,
+   "def_line": 19261,
+   "end": 19304,
+   "lines": 44
+  },
+  {
+   "name": "_last_call",
+   "kind": "function",
+   "start": 19307,
+   "def_line": 19307,
+   "end": 19321,
+   "lines": 15
+  },
+  {
+   "name": "combat_refusal_turn",
+   "kind": "function",
+   "start": 19324,
+   "def_line": 19324,
+   "end": 19336,
+   "lines": 13
+  },
+  {
+   "name": "_approach_turn",
+   "kind": "function",
+   "start": 19339,
+   "def_line": 19339,
+   "end": 19358,
+   "lines": 20
+  },
+  {
+   "name": "player_cannot_act_turn",
+   "kind": "function",
+   "start": 19361,
+   "def_line": 19361,
+   "end": 19382,
+   "lines": 22
+  },
+  {
+   "name": "_WALKED_UP",
+   "kind": "assign",
+   "start": 19385,
+   "def_line": 19385,
+   "end": 19385,
+   "lines": 1
+  },
+  {
+   "name": "_said_after_approach",
+   "kind": "function",
+   "start": 19388,
+   "def_line": 19388,
+   "end": 19392,
+   "lines": 5
+  },
+  {
+   "name": "_reads_as_address",
+   "kind": "function",
+   "start": 19395,
+   "def_line": 19395,
+   "end": 19397,
+   "lines": 3
+  },
+  {
+   "name": "_SAY_VERBS",
+   "kind": "assign",
+   "start": 19400,
+   "def_line": 19400,
+   "end": 19400,
+   "lines": 1
+  },
+  {
+   "name": "_SAY_ENGLISH",
+   "kind": "assign",
+   "start": 19401,
+   "def_line": 19401,
+   "end": 19401,
+   "lines": 1
+  },
+  {
+   "name": "_HAIL_FILLERS",
+   "kind": "assign",
+   "start": 19402,
+   "def_line": 19402,
+   "end": 19402,
+   "lines": 1
+  },
+  {
+   "name": "_line_addresses",
+   "kind": "function",
+   "start": 19405,
+   "def_line": 19405,
+   "end": 19431,
+   "lines": 27
+  },
+  {
+   "name": "_addressed_in",
+   "kind": "function",
+   "start": 19434,
+   "def_line": 19434,
+   "end": 19441,
+   "lines": 8
+  },
+  {
+   "name": "_front_recovery",
+   "kind": "function",
+   "start": 19444,
+   "def_line": 19444,
+   "end": 19475,
+   "lines": 32
+  },
+  {
+   "name": "_front_step",
+   "kind": "function",
+   "start": 19478,
+   "def_line": 19478,
+   "end": 19708,
+   "lines": 231
+  },
+  {
+   "name": "_PLANNER_STAYS_OUT",
+   "kind": "assign",
+   "start": 19711,
+   "def_line": 19712,
+   "end": 19713,
+   "lines": 2
+  },
+  {
+   "name": "_defer_spoken_coin_offer",
+   "kind": "function",
+   "start": 19716,
+   "def_line": 19716,
+   "end": 19733,
+   "lines": 18
+  },
+  {
+   "name": "_record_spoken_coin_response",
+   "kind": "function",
+   "start": 19736,
+   "def_line": 19736,
+   "end": 19745,
+   "lines": 10
+  },
+  {
+   "name": "_economic_listing",
+   "kind": "function",
+   "start": 19748,
+   "def_line": 19748,
+   "end": 19752,
+   "lines": 5
+  },
+  {
+   "name": "_front_economic_offer",
+   "kind": "function",
+   "start": 19755,
+   "def_line": 19755,
+   "end": 19857,
+   "lines": 103
+  },
+  {
+   "name": "_purchase_refused",
+   "kind": "function",
+   "start": 19860,
+   "def_line": 19860,
+   "end": 19896,
+   "lines": 37
+  },
+  {
+   "name": "_hand_over_coin",
+   "kind": "function",
+   "start": 19899,
+   "def_line": 19899,
+   "end": 19942,
+   "lines": 44
+  },
+  {
+   "name": "_NO_BLOW_NOW",
+   "kind": "assign",
+   "start": 19943,
+   "def_line": 19943,
+   "end": 19943,
+   "lines": 1
+  },
+  {
+   "name": "_blow_stands",
+   "kind": "function",
+   "start": 19946,
+   "def_line": 19946,
+   "end": 19955,
+   "lines": 10
+  },
+  {
+   "name": "_BLOW_WORDS",
+   "kind": "assign",
+   "start": 19958,
+   "def_line": 19959,
+   "end": 19963,
+   "lines": 5
+  },
+  {
+   "name": "_blow_in_the_words",
+   "kind": "function",
+   "start": 19966,
+   "def_line": 19966,
+   "end": 19973,
+   "lines": 8
+  },
+  {
+   "name": "_ask_about_the_blow",
+   "kind": "function",
+   "start": 19976,
+   "def_line": 19976,
+   "end": 19986,
+   "lines": 11
+  },
+  {
+   "name": "_heavy_allowed",
+   "kind": "function",
+   "start": 19989,
+   "def_line": 19989,
+   "end": 19993,
+   "lines": 5
+  },
+  {
+   "name": "_ask_before_the_heavy",
+   "kind": "function",
+   "start": 19996,
+   "def_line": 19996,
+   "end": 20013,
+   "lines": 18
+  },
+  {
+   "name": "_answered_heavy_question",
+   "kind": "function",
+   "start": 20016,
+   "def_line": 20016,
+   "end": 20028,
+   "lines": 13
+  },
+  {
+   "name": "_ask_which_move",
+   "kind": "function",
+   "start": 20031,
+   "def_line": 20031,
+   "end": 20043,
+   "lines": 13
+  },
+  {
+   "name": "_narrated_person",
+   "kind": "function",
+   "start": 20046,
+   "def_line": 20046,
+   "end": 20062,
+   "lines": 17
+  },
+  {
+   "name": "front_read_ahead",
+   "kind": "function",
+   "start": 20065,
+   "def_line": 20065,
+   "end": 20082,
+   "lines": 18
+  },
+  {
+   "name": "_front_offer_gate",
+   "kind": "function",
+   "start": 20085,
+   "def_line": 20085,
+   "end": 20111,
+   "lines": 27
+  },
+  {
+   "name": "_line_gives",
+   "kind": "function",
+   "start": 20114,
+   "def_line": 20114,
+   "end": 20123,
+   "lines": 10
+  },
+  {
+   "name": "_front_consume",
+   "kind": "function",
+   "start": 20126,
+   "def_line": 20126,
+   "end": 20147,
+   "lines": 22
+  },
+  {
+   "name": "_front_wield",
+   "kind": "function",
+   "start": 20150,
+   "def_line": 20150,
+   "end": 20214,
+   "lines": 65
+  },
+  {
+   "name": "_word_root",
+   "kind": "function",
+   "start": 20217,
+   "def_line": 20217,
+   "end": 20219,
+   "lines": 3
+  },
+  {
+   "name": "_coin_not_parcel",
+   "kind": "function",
+   "start": 20222,
+   "def_line": 20222,
+   "end": 20232,
+   "lines": 11
+  },
+  {
+   "name": "_names_no_parcel",
+   "kind": "function",
+   "start": 20235,
+   "def_line": 20235,
+   "end": 20248,
+   "lines": 14
+  },
+  {
+   "name": "_front_hand_over",
+   "kind": "function",
+   "start": 20251,
+   "def_line": 20251,
+   "end": 20306,
+   "lines": 56
+  },
+  {
+   "name": "_front_work",
+   "kind": "function",
+   "start": 20309,
+   "def_line": 20309,
+   "end": 20330,
+   "lines": 22
+  },
+  {
+   "name": "_take_names_a_job",
+   "kind": "function",
+   "start": 20333,
+   "def_line": 20333,
+   "end": 20347,
+   "lines": 15
+  },
+  {
+   "name": "_front_take",
+   "kind": "function",
+   "start": 20350,
+   "def_line": 20350,
+   "end": 20399,
+   "lines": 50
+  },
+  {
+   "name": "_dispatch_player_turn",
+   "kind": "function",
+   "start": 20402,
+   "def_line": 20402,
+   "end": 20894,
+   "lines": 493
+  },
+  {
+   "name": "_dispatch_turn_body",
+   "kind": "function",
+   "start": 20897,
+   "def_line": 20897,
+   "end": 20918,
+   "lines": 22
+  },
+  {
+   "name": "_sleep_after_walk",
+   "kind": "function",
+   "start": 20921,
+   "def_line": 20921,
+   "end": 20952,
+   "lines": 32
+  },
+  {
+   "name": "_spoken_rest_of_turn",
+   "kind": "function",
+   "start": 20955,
+   "def_line": 20955,
+   "end": 20977,
+   "lines": 23
+  },
+  {
+   "name": "_current_procedural_entity_ids",
+   "kind": "function",
+   "start": 20980,
+   "def_line": 20980,
+   "end": 21002,
+   "lines": 23
+  },
+  {
+   "name": "_NOT_A_LOCAL_PLACE",
+   "kind": "assign",
+   "start": 21005,
+   "def_line": 21005,
+   "end": 21008,
+   "lines": 4
+  },
+  {
+   "name": "_may_propose_local_place",
+   "kind": "function",
+   "start": 21011,
+   "def_line": 21011,
+   "end": 21030,
+   "lines": 20
+  },
+  {
+   "name": "_accepted_local_place",
+   "kind": "function",
+   "start": 21033,
+   "def_line": 21033,
+   "end": 21049,
+   "lines": 17
+  },
+  {
+   "name": "_settle_local_place",
+   "kind": "function",
+   "start": 21052,
+   "def_line": 21052,
+   "end": 21070,
+   "lines": 19
+  },
+  {
+   "name": "_NARRATOR_PRONOUNS",
+   "kind": "assign",
+   "start": 21073,
+   "def_line": 21073,
+   "end": 21076,
+   "lines": 4
+  },
+  {
+   "name": "_NARRATOR_PLURAL",
+   "kind": "assign",
+   "start": 21077,
+   "def_line": 21077,
+   "end": 21091,
+   "lines": 15
+  },
+  {
+   "name": "_singular_narrator",
+   "kind": "function",
+   "start": 21094,
+   "def_line": 21094,
+   "end": 21102,
+   "lines": 9
+  },
+  {
+   "name": "_keep_town_portrait",
+   "kind": "function",
+   "start": 21105,
+   "def_line": 21105,
+   "end": 21133,
+   "lines": 29
+  },
+  {
+   "name": "_narrate_resolved_turn",
+   "kind": "function",
+   "start": 21136,
+   "def_line": 21136,
+   "end": 21486,
+   "lines": 351
+  },
+  {
+   "name": "_is_canonical_city_id",
+   "kind": "function",
+   "start": 21489,
+   "def_line": 21489,
+   "end": 21500,
+   "lines": 12
+  },
+  {
+   "name": "_death_resolution_from_actions",
+   "kind": "function",
+   "start": 21503,
+   "def_line": 21503,
+   "end": 21515,
+   "lines": 13
+  },
+  {
+   "name": "_owner_module_reply",
+   "kind": "function",
+   "start": 21518,
+   "def_line": 21518,
+   "end": 21536,
+   "lines": 19
+  },
+  {
+   "name": "_said_to_someone_here",
+   "kind": "function",
+   "start": 21539,
+   "def_line": 21539,
+   "end": 21554,
+   "lines": 16
+  },
+  {
+   "name": "_run_player_turn_internal",
+   "kind": "function",
+   "start": 21557,
+   "def_line": 21557,
+   "end": 24299,
+   "lines": 2743
+  },
+  {
+   "name": "DEFAULT_SAVE_PATH",
+   "kind": "assign",
+   "start": 24302,
+   "def_line": 24302,
+   "end": 24302,
+   "lines": 1
+  },
+  {
+   "name": "start_terminal_game",
+   "kind": "function",
+   "start": 24305,
+   "def_line": 24305,
+   "end": 24329,
+   "lines": 25
+  },
+  {
+   "name": "_ENGINE_FUNCTIONS",
+   "kind": "assign",
+   "start": 24332,
+   "def_line": 24334,
+   "end": 24336,
+   "lines": 3
+  },
+  {
+   "name": "_CHARACTER_GLOBALS",
+   "kind": "assign",
+   "start": 24337,
+   "def_line": 24337,
+   "end": 24347,
+   "lines": 11
+  },
+  {
+   "name": "_ACTIVE_SESSION",
+   "kind": "assign",
+   "start": 24348,
+   "def_line": 24348,
+   "end": 24348,
+   "lines": 1
+  },
+  {
+   "name": "_DEFAULT_SESSION",
+   "kind": "assign",
+   "start": 24349,
+   "def_line": 24349,
+   "end": 24349,
+   "lines": 1
+  },
+  {
+   "name": "_ENGINE_NAMESPACE",
+   "kind": "assign",
+   "start": 24350,
+   "def_line": 24350,
+   "end": 24350,
+   "lines": 1
+  },
+  {
+   "name": "_restore_in_place",
+   "kind": "function",
+   "start": 24353,
+   "def_line": 24353,
+   "end": 24376,
+   "lines": 24
+  },
+  {
+   "name": "GameSession",
+   "kind": "class",
+   "start": 24379,
+   "def_line": 24379,
+   "end": 24817,
+   "lines": 439
+  },
+  {
+   "name": "_dynamic_engine_transitions",
+   "kind": "function",
+   "start": 24820,
+   "def_line": 24820,
+   "end": 24873,
+   "lines": 54
+  },
+  {
+   "name": "_session",
+   "kind": "function",
+   "start": 24876,
+   "def_line": 24876,
+   "end": 24877,
+   "lines": 2
+  },
+  {
+   "name": "_bind_session_engine",
+   "kind": "function",
+   "start": 24880,
+   "def_line": 24880,
+   "end": 24896,
+   "lines": 17
+  },
+  {
+   "name": "_DEFAULT_SESSION",
+   "kind": "assign",
+   "start": 24899,
+   "def_line": 24899,
+   "end": 24899,
+   "lines": 1
+  },
+  {
+   "name": "<Assign@24900>",
+   "kind": "other",
+   "start": 24900,
+   "def_line": 24900,
+   "end": 24900,
+   "lines": 1
+  },
+  {
+   "name": "<Assign@24901>",
+   "kind": "other",
+   "start": 24901,
+   "def_line": 24901,
+   "end": 24901,
+   "lines": 1
+  },
+  {
+   "name": "<Assign@24902>",
+   "kind": "other",
+   "start": 24902,
+   "def_line": 24902,
+   "end": 24902,
+   "lines": 1
+  },
+  {
+   "name": "<Expr@24903>",
+   "kind": "other",
+   "start": 24903,
+   "def_line": 24903,
+   "end": 24903,
+   "lines": 1
+  },
+  {
+   "name": "<Expr@24904>",
+   "kind": "other",
+   "start": 24904,
+   "def_line": 24904,
+   "end": 24904,
+   "lines": 1
+  },
+  {
+   "name": "create_session",
+   "kind": "function",
+   "start": 24907,
+   "def_line": 24907,
+   "end": 24915,
+   "lines": 9
+  },
+  {
+   "name": "<If@24918>",
+   "kind": "other",
+   "start": 24918,
+   "def_line": 24918,
+   "end": 24934,
+   "lines": 17
+  },
+  {
+   "name": "<If@24941>",
+   "kind": "other",
+   "start": 24941,
+   "def_line": 24941,
+   "end": 25122,
+   "lines": 182
+  }
+ ],
+ "call_graph": {
+  "ollama_response_content": [],
+  "ollama_reply_was_cut": [],
+  "roll_d20": [
+   "_session"
+  ],
+  "get_modifier": [],
+  "roll_stat": [
+   "_session"
+  ],
+  "choose_option": [],
+  "create_random_character": [
+   "CLASSES",
+   "CLASS_SKILL_OPTIONS",
+   "RACES",
+   "RANDOM_NAMES",
+   "_session",
+   "roll_stat"
+  ],
+  "assign_stats": [
+   "roll_stat"
+  ],
+  "choose_skill_proficiencies": [
+   "CLASS_SKILL_OPTIONS"
+  ],
+  "calculate_hp": [
+   "CLASS_HIT_DICE"
+  ],
+  "calculate_ac": [],
+  "perform_skill_check": [
+   "_perform_skill_check",
+   "_session"
+  ],
+  "_perform_skill_check": [
+   "SKILLS",
+   "_session",
+   "resolve_skill_check",
+   "roll_d20",
+   "timed_gameplay",
+   "weapon_attack"
+  ],
+  "is_dialogue_or_emotion": [
+   "is_npc_dialogue_input"
+  ],
+  "_is_negated_dialogue_action": [
+   "_normalize_turkish_typos",
+   "living_world",
+   "re"
+  ],
+  "_reads_as_question": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_people_speak_for_themselves": [
+   "_npc_speech_enabled",
+   "living_world"
+  ],
+  "_just_served": [],
+  "_asked_of_the_one_at_hand": [
+   "_ASKS_SOMETHING",
+   "_entity_reference_in_text",
+   "_has_explicit_attack_verb",
+   "_just_served",
+   "_normalize_turkish_typos",
+   "_people_speak_for_themselves",
+   "_session"
+  ],
+  "is_npc_dialogue_input": [
+   "_explicit_player_name_disclosure",
+   "_is_negated_dialogue_action",
+   "_is_player_name_inquiry_to_npc",
+   "_normalize_turkish_typos",
+   "_reads_as_question",
+   "is_npc_historical_claim",
+   "is_ordinary_environment_look",
+   "living_world",
+   "local_dialogue",
+   "re"
+  ],
+  "_is_conversation_start_input": [
+   "_normalize_turkish_typos",
+   "is_npc_historical_claim",
+   "re"
+  ],
+  "_is_local_place_question": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_unverified_past_event_assertion": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_claimed_completed_outcome": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_report_of_someone_else": [
+   "_SECOND_PERSON_SAID",
+   "_THIRD_PERSON_REPORT",
+   "_entity_reference_in_text",
+   "_normalize_turkish_typos",
+   "living_world"
+  ],
+  "is_npc_historical_claim": [
+   "_SAID_IT_AGAIN",
+   "_explicit_player_name_disclosure",
+   "re"
+  ],
+  "_reported_npc_claim_followed_by_player_inspection": [
+   "_is_object_inspection",
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "is_ordinary_environment_look": [
+   "living_world",
+   "re"
+  ],
+  "npc_ambiguity_response": [
+   "living_world"
+  ],
+  "_affirmative_door_verb": [
+   "_NEGATED_VERB_SUFFIX",
+   "re"
+  ],
+  "named_skill": [
+   "_ABILITY_WORD",
+   "_SKILL_CHECK_WORD",
+   "_SKILL_ENDING",
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "open_scare_try": [
+   "_OPEN_SCARE",
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_stealth_skill": [
+   "_COVER",
+   "_OWN_THING_HIDDEN",
+   "_normalize_turkish_typos",
+   "_session",
+   "living_world",
+   "re"
+  ],
+  "deterministic_check_for_action": [
+   "_READING_CHECKS",
+   "_session",
+   "_word_check_for_action",
+   "named_skill"
+  ],
+  "_word_check_for_action": [
+   "_affirmative_door_verb",
+   "_current_door",
+   "_normalize_turkish_typos",
+   "named_skill",
+   "open_scare_try",
+   "re"
+  ],
+  "known_player_action_narration": [
+   "_current_npc_name",
+   "_session",
+   "equipment_economy",
+   "feature_descriptions",
+   "is_ordinary_environment_look",
+   "location_display_name",
+   "re"
+  ],
+  "known_character_answer": [
+   "_normalize_turkish_typos",
+   "_session"
+  ],
+  "_model_query_type_is_plausible": [
+   "_QUESTION_CUE_RE",
+   "_normalize_turkish_typos",
+   "living_world"
+  ],
+  "_detect_query_type": [
+   "_entity_reference_in_text",
+   "_location_reference_in_text",
+   "_normalize_turkish_typos",
+   "_query_location_candidates",
+   "_session",
+   "active_npcs",
+   "living_world",
+   "local_dialogue",
+   "re"
+  ],
+  "_detect_explore_type": [
+   "_detect_query_type",
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_query_location_candidates": [
+   "_entity_reference_in_text",
+   "_location_alias_values",
+   "_session",
+   "living_world"
+  ],
+  "_handle_query": [
+   "_detect_query_type",
+   "_location_reference_in_text",
+   "_public_scene_person_text",
+   "_query_location_candidates",
+   "_scene_presence_text",
+   "_session",
+   "active_npcs",
+   "create_local_feature",
+   "create_npc_from_ai",
+   "known_character_answer",
+   "living_world",
+   "local_dialogue",
+   "location_display_name"
+  ],
+  "resolve_python_world_action": [
+   "_current_door",
+   "_current_npc_name",
+   "_mark_lock_seen",
+   "_session",
+   "_stock",
+   "active_npcs",
+   "equipment_economy",
+   "location_display_name",
+   "re"
+  ],
+  "analyze_player_action": [
+   "normalize_intent",
+   "parse_player_intent",
+   "validate_intent"
+  ],
+  "clean_dm_response": [
+   "re"
+  ],
+  "_new_species_trait_state": [],
+  "_new_persisted_species_trait_state": [
+   "SPECIES_WITH_TRAIT_STATE",
+   "_new_species_trait_state"
+  ],
+  "_validate_species_trait_state": [
+   "CELESTIAL_REVELATION_FORMS",
+   "_new_species_trait_state",
+   "effect_lifecycle"
+  ],
+  "initialize_species_trait_state": [
+   "GIANT_ANCESTRY_IDS",
+   "_new_persisted_species_trait_state",
+   "_session",
+   "copy"
+  ],
+  "_origin_choices_valid": [
+   "_ABILITY_NAMES",
+   "_ORIGIN_LIST_KEYS",
+   "_ORIGIN_SCORE_KEYS",
+   "_ORIGIN_TEXT_KEYS"
+  ],
+  "_origin_choices_for_save": [
+   "_ORIGIN_LIST_KEYS",
+   "_ORIGIN_SCORE_KEYS",
+   "_ORIGIN_TEXT_KEYS",
+   "_origin_choices_valid",
+   "copy"
+  ],
+  "_validate_player_condition_state": [],
+  "_validate_player_weapon_proficiencies": [],
+  "_player_state_for_save": [
+   "SAVE_FORMAT_VERSION",
+   "SPECIES_WITH_TRAIT_STATE",
+   "_PERSISTED_PLAYER_CONDITION_FIELDS",
+   "_origin_choices_for_save",
+   "_session",
+   "_validate_player_condition_state",
+   "_validate_player_weapon_proficiencies",
+   "_validate_saved_multilevel_slots",
+   "copy",
+   "weapon_attack"
+  ],
+  "serialize_game_state": [
+   "SAVE_FORMAT_VERSION",
+   "_player_state_for_save",
+   "_session",
+   "copy",
+   "living_world"
+  ],
+  "_validate_combat_v3_payload": [
+   "action_economy",
+   "initiative"
+  ],
+  "_validate_long_rest_history": [
+   "campaign_time"
+  ],
+  "long_rest_gap_seconds": [
+   "_validate_long_rest_history"
+  ],
+  "_validate_saved_multilevel_slots": [],
+  "_validate_save_payload": [
+   "CLASSES",
+   "GIANT_ANCESTRY_IDS",
+   "INITIAL_WORLD_STATE",
+   "RACES",
+   "SKILLS",
+   "_SUPPORTED_SAVE_VERSIONS",
+   "_known_happenings",
+   "_origin_choices_valid",
+   "_validate_combat_v3_payload",
+   "_validate_long_rest_history",
+   "_validate_player_condition_state",
+   "_validate_player_weapon_proficiencies",
+   "_validate_saved_multilevel_slots",
+   "_validate_species_trait_state",
+   "adventure",
+   "campaign_time",
+   "copy",
+   "equipment_economy",
+   "get_expertise_choice_count",
+   "held_weapon",
+   "interaction_adventure",
+   "living_world",
+   "local_exploration",
+   "monster_sense",
+   "re",
+   "scheduled_events",
+   "timed_gameplay",
+   "weapon_attack"
+  ],
+  "save_game": [
+   "Path",
+   "_validate_save_payload",
+   "json",
+   "os",
+   "serialize_game_state",
+   "tempfile"
+  ],
+  "_repair_dilim1_fields": [],
+  "_known_happenings": [],
+  "_hand_names_something": [],
+  "_repair_dilim2_fields": [
+   "_hand_names_something",
+   "_known_happenings",
+   "talk_mode"
+  ],
+  "load_game": [
+   "Path",
+   "SAVE_FORMAT_VERSION",
+   "SPECIES_WITH_TRAIT_STATE",
+   "_ORIGIN_LIST_KEYS",
+   "_ORIGIN_SCORE_KEYS",
+   "_ORIGIN_TEXT_KEYS",
+   "_PERSISTED_PLAYER_CONDITION_FIELDS",
+   "_death_state_defaults",
+   "_normalize_ground_items",
+   "_repair_dilim1_fields",
+   "_repair_dilim2_fields",
+   "_session",
+   "_validate_save_payload",
+   "copy",
+   "ensure_combat_state",
+   "equipment_economy",
+   "get_modifier",
+   "initialize_species_trait_state",
+   "json",
+   "living_world",
+   "serialize_game_state"
+  ],
+  "_tavern_door_notice": [
+   "_venue_door_for"
+  ],
+  "_venue_door_id": [],
+  "_venue_door_for": [
+   "_session",
+   "_venue_door_id"
+  ],
+  "_venue_entry_door": [
+   "_venue_door_id"
+  ],
+  "_locked_door_refusal": [
+   "_mark_lock_seen",
+   "_session"
+  ],
+  "_mark_lock_seen": [],
+  "_lock_known_to_player": [],
+  "_current_door": [
+   "_session"
+  ],
+  "_narration_fact_packet": [
+   "_current_door",
+   "_session",
+   "_venue_door_for"
+  ],
+  "_normalize_ground_items": [
+   "_session"
+  ],
+  "_death_state_defaults": [],
+  "ensure_death_state": [
+   "DEATH_MODES",
+   "_death_state_defaults",
+   "_session",
+   "copy",
+   "talk_mode"
+  ],
+  "require_player_can_act": [
+   "PlayerCannotAct",
+   "_session",
+   "ensure_death_state"
+  ],
+  "stabilize_player": [
+   "_session",
+   "ensure_campaign_clock",
+   "ensure_death_state"
+  ],
+  "attempt_player_stabilization": [
+   "_mark_combat_action_used",
+   "_session",
+   "ensure_combat_state",
+   "ensure_death_state",
+   "roll_d20",
+   "stabilize_player"
+  ],
+  "heal_player": [
+   "_session",
+   "ensure_death_state"
+  ],
+  "set_player_max_hp": [
+   "_finalize_player_death",
+   "_session",
+   "ensure_death_state"
+  ],
+  "apply_npc_damage": [
+   "_session",
+   "person_fight_kind"
+  ],
+  "_capture_combat_death_checkpoint": [
+   "SAVE_FORMAT_VERSION",
+   "_session",
+   "copy",
+   "ensure_death_state"
+  ],
+  "_restore_combat_death_checkpoint": [
+   "GameSession",
+   "_SUPPORTED_SAVE_VERSIONS",
+   "_death_state_defaults",
+   "_session",
+   "_validate_save_payload",
+   "copy",
+   "ensure_death_state"
+  ],
+  "_finalize_player_death": [
+   "_restore_combat_death_checkpoint",
+   "_session",
+   "end_combat",
+   "ensure_death_state"
+  ],
+  "_apply_player_damage": [
+   "_finalize_player_death",
+   "_session",
+   "ensure_campaign_clock",
+   "ensure_death_state",
+   "uuid4"
+  ],
+  "_combat_defaults": [],
+  "_combat_record_for_actor": [
+   "_session",
+   "action_economy",
+   "ensure_npc_enemy_stats"
+  ],
+  "_migrate_legacy_combat_state": [
+   "_combat_defaults",
+   "_combat_record_for_actor",
+   "_session",
+   "uuid4"
+  ],
+  "_sync_combat_participant_records": [
+   "_combat_record_for_actor",
+   "_session"
+  ],
+  "ensure_combat_state": [
+   "_migrate_legacy_combat_state",
+   "_session",
+   "_sync_combat_participant_records",
+   "_validate_combat_v3_payload",
+   "action_economy",
+   "ensure_death_state"
+  ],
+  "person_fight_kind": [
+   "_ARMED_ROLE",
+   "_STRONG_ROLE",
+   "_normalize_turkish_typos"
+  ],
+  "_person_fight": [
+   "_PERSON_FIGHT",
+   "person_fight_kind"
+  ],
+  "ensure_npc_enemy_stats": [
+   "ensure_npc_combat_stats"
+  ],
+  "location_features": [
+   "_session"
+  ],
+  "feature_descriptions": [
+   "location_features"
+  ],
+  "active_npcs": [
+   "_session",
+   "scheduled_events"
+  ],
+  "generate_npc_id": [
+   "_session"
+  ],
+  "_clean_world_text": [],
+  "_clean_world_text_list": [
+   "_clean_world_text"
+  ],
+  "_scene_texts_for_referents": [],
+  "_has_unregistered_person_name": [
+   "_location_alias_values",
+   "_normalize_turkish_typos",
+   "_session",
+   "re"
+  ],
+  "validate_npc_proposal": [
+   "_clean_world_text",
+   "_clean_world_text_list",
+   "_has_unregistered_person_name",
+   "_session",
+   "normalize_location_id",
+   "re"
+  ],
+  "create_npc_from_ai": [
+   "_session",
+   "active_npcs",
+   "ensure_npc_combat_stats",
+   "equipment_economy",
+   "generate_npc_id",
+   "living_world",
+   "local_dialogue",
+   "re",
+   "validate_npc_proposal"
+  ],
+  "_reads_english": [
+   "_ENGLISH_STOP_WORDS",
+   "re"
+  ],
+  "create_local_feature": [
+   "_clean_world_text",
+   "_clean_world_text_list",
+   "_legacy_hidden_feature_name_collision",
+   "_local_detail_claims_unsupported_mechanics",
+   "_reads_english",
+   "_session",
+   "_valid_local_feature_parent_id",
+   "living_world",
+   "location_features",
+   "normalize_location_id"
+  ],
+  "_valid_local_feature_parent_id": [
+   "_clean_world_text",
+   "_session"
+  ],
+  "_legacy_hidden_feature_name_collision": [
+   "_session",
+   "living_world"
+  ],
+  "_local_detail_claims_unsupported_mechanics": [
+   "_feature_proposal_conflicts_with_canonical_door",
+   "_venue_door_for",
+   "living_world",
+   "re"
+  ],
+  "_feature_proposal_conflicts_with_canonical_door": [
+   "_venue_door_for",
+   "living_world",
+   "re"
+  ],
+  "_is_shopkeeper_role": [
+   "re"
+  ],
+  "_runs_a_shop": [
+   "_is_shopkeeper_role"
+  ],
+  "_campaign_has_shopkeeper": [
+   "_is_shopkeeper_role",
+   "_session"
+  ],
+  "_explicit_campaign_shop_request": [
+   "re"
+  ],
+  "_shop_economy_request": [
+   "_SHOP_TRANSACTION_REQUEST_PATTERN"
+  ],
+  "_explicit_campaign_shop_negative_request": [
+   "_SHOP_ENTITY_QUERY_PATTERN",
+   "re"
+  ],
+  "_shop_presence_question": [
+   "_SHOP_ENTITY_QUERY_PATTERN"
+  ],
+  "generate_shop_id": [
+   "_session"
+  ],
+  "validate_shop_proposal": [
+   "_SHOP_ECONOMY_PATTERN",
+   "_clean_world_text",
+   "_session",
+   "active_npcs",
+   "re"
+  ],
+  "create_shop_from_proposal": [
+   "_session",
+   "create_npc_from_ai",
+   "generate_shop_id",
+   "validate_shop_proposal"
+  ],
+  "ensure_npc_combat_stats": [
+   "_person_fight"
+  ],
+  "calculate_attack_bonus": [
+   "_session"
+  ],
+  "roll_attack": [
+   "roll_d20"
+  ],
+  "roll_damage": [
+   "_session"
+  ],
+  "resolve_combat_target": [
+   "_session",
+   "combat_lifecycle",
+   "ensure_npc_combat_stats",
+   "resolve_npc_reference"
+  ],
+  "_species_trait_state": [
+   "SPECIES_WITH_TRAIT_STATE",
+   "_new_species_trait_state",
+   "_session",
+   "initialize_species_trait_state"
+  ],
+  "_set_temporary_hit_points": [
+   "SPECIES_WITH_TRAIT_STATE",
+   "_session",
+   "_species_trait_state"
+  ],
+  "grant_temporary_hit_points": [
+   "_set_temporary_hit_points",
+   "_species_trait_state"
+  ],
+  "_species_bonus_action": [
+   "_session",
+   "_species_trait_state",
+   "action_economy",
+   "ensure_combat_state"
+  ],
+  "_species_player_turn_id": [
+   "_session",
+   "ensure_combat_state"
+  ],
+  "_apply_species_on_hit_effects": [
+   "GIANT_ANCESTRY_IDS",
+   "_session",
+   "_species_player_turn_id",
+   "_species_trait_state",
+   "weapon_attack"
+  ],
+  "_finish_species_player_turn": [
+   "INNER_RADIANCE_SPEC",
+   "_apply_attack_damage_to_player",
+   "_session",
+   "_species_trait_state",
+   "apply_npc_damage",
+   "effect_lifecycle",
+   "effect_targeting",
+   "ensure_combat_state",
+   "weapon_attack"
+  ],
+  "resolve_species_trait_action": [
+   "CELESTIAL_REVELATION_FORMS",
+   "GIANT_ANCESTRY_IDS",
+   "NECROTIC_SHROUD_SPEC",
+   "_combat_end_if_decided",
+   "_finish_species_player_turn",
+   "_mark_combat_action_used",
+   "_new_persisted_species_trait_state",
+   "_resolve_enemy_turns_until_player",
+   "_session",
+   "_species_bonus_action",
+   "_species_trait_state",
+   "action_economy",
+   "advance_campaign_time",
+   "advance_combat_turn",
+   "campaign_time",
+   "effect_lifecycle",
+   "effect_targeting",
+   "ensure_campaign_clock",
+   "ensure_combat_state",
+   "grant_temporary_hit_points",
+   "heal_player",
+   "long_rest_gap_seconds",
+   "require_player_can_act",
+   "resolve_saving_throw",
+   "roll_d20",
+   "weapon_attack"
+  ],
+  "resolve_attack": [
+   "_session",
+   "ensure_combat_state",
+   "weapon_attack"
+  ],
+  "register_attack_hook": [
+   "_session",
+   "weapon_attack"
+  ],
+  "roll_initiative": [
+   "roll_d20"
+  ],
+  "roll_initiative_npc": [
+   "roll_d20"
+  ],
+  "roll_initiative_player": [
+   "_session",
+   "roll_initiative"
+  ],
+  "_combat_participant_can_act": [
+   "ensure_death_state"
+  ],
+  "_mark_combat_action_used": [
+   "_session",
+   "_sync_combat_participant_records",
+   "_validate_combat_v3_payload",
+   "action_economy",
+   "combat_lifecycle",
+   "ensure_combat_state"
+  ],
+  "_resolve_player_death_turn": [
+   "_combat_end_if_decided",
+   "_finalize_player_death",
+   "_session",
+   "_sync_combat_participant_records",
+   "_validate_combat_v3_payload",
+   "copy",
+   "ensure_combat_state",
+   "ensure_death_state",
+   "heal_player",
+   "resolve_death_save",
+   "roll_d20",
+   "stabilize_player",
+   "uuid4"
+  ],
+  "_spares_the_fallen": [
+   "_session"
+  ],
+  "_combat_end_if_decided": [
+   "_session",
+   "_spares_the_fallen",
+   "end_combat",
+   "ensure_combat_state",
+   "ensure_death_state"
+  ],
+  "_resolve_enemy_turns_until_player": [
+   "_combat_end_if_decided",
+   "_combat_participant_can_act",
+   "_mark_combat_action_used",
+   "_session",
+   "action_economy",
+   "advance_combat_turn",
+   "end_combat",
+   "ensure_combat_state",
+   "ensure_death_state"
+  ],
+  "find_weapon_in_inventory": [
+   "_session"
+  ],
+  "start_combat": [
+   "_session",
+   "_start_combat_with_initiative",
+   "initiative"
+  ],
+  "_start_combat_with_initiative": [
+   "_capture_combat_death_checkpoint",
+   "_clear_active_interlocutor",
+   "_combat_record_for_actor",
+   "_session",
+   "_sync_combat_participant_records",
+   "_validate_combat_v3_payload",
+   "action_economy",
+   "ensure_combat_state",
+   "ensure_npc_enemy_stats",
+   "initiative",
+   "require_player_can_act",
+   "resolve_combat_target",
+   "uuid4"
+  ],
+  "resolve_enemy_attack": [
+   "_session",
+   "action_economy",
+   "combat_lifecycle",
+   "ensure_combat_state",
+   "ensure_death_state",
+   "ensure_npc_enemy_stats",
+   "resolve_combat_target",
+   "weapon_attack"
+  ],
+  "_reduce_attack_damage_to_player": [
+   "_session",
+   "_species_trait_state",
+   "action_economy",
+   "ensure_combat_state"
+  ],
+  "_storm_thunder_reaction": [
+   "_session",
+   "_species_trait_state",
+   "action_economy",
+   "apply_npc_damage",
+   "ensure_combat_state",
+   "weapon_attack"
+  ],
+  "_apply_attack_damage_to_player": [
+   "_apply_player_damage",
+   "_session",
+   "_set_temporary_hit_points",
+   "_species_trait_state",
+   "ensure_death_state"
+  ],
+  "end_combat": [
+   "_combat_defaults",
+   "_session",
+   "ensure_combat_state",
+   "ensure_death_state",
+   "person_fight_kind",
+   "scheduled_events"
+  ],
+  "_begin_combat_actor_turn": [
+   "_session",
+   "_sync_combat_participant_records",
+   "_validate_combat_v3_payload",
+   "action_economy"
+  ],
+  "join_combat_participants": [
+   "_session",
+   "initiative"
+  ],
+  "remove_combat_participant": [
+   "_session",
+   "initiative"
+  ],
+  "register_initiative_hook": [
+   "_session",
+   "initiative"
+  ],
+  "advance_combat_turn": [
+   "_begin_combat_actor_turn",
+   "_combat_end_if_decided",
+   "_combat_participant_can_act",
+   "_session",
+   "_sync_combat_participant_records",
+   "action_economy",
+   "advance_campaign_time",
+   "ensure_campaign_clock",
+   "ensure_combat_state",
+   "weapon_attack"
+  ],
+  "_combat_snapshot": [
+   "_session",
+   "copy",
+   "ensure_combat_state"
+  ],
+  "_finish_combat_result": [
+   "_changed_state_fields",
+   "_combat_snapshot"
+  ],
+  "_public_combatant_label": [
+   "_session",
+   "living_world"
+  ],
+  "_combat_narration": [
+   "_FALL_LINE",
+   "_REWOUND_LINE",
+   "_combat_narration",
+   "_death_closing",
+   "_death_resolution_from_actions",
+   "_enemy_exchange_text",
+   "_public_combatant_label",
+   "_unarmed_save_text"
+  ],
+  "_unarmed_save_text": [
+   "_SAVE_ABILITY_TR"
+  ],
+  "_enemy_exchange_text": [
+   "_public_combatant_label",
+   "_session",
+   "living_world"
+  ],
+  "validate_world_updates": [
+   "_SHOP_ECONOMY_PATTERN",
+   "_clean_world_text",
+   "_clean_world_text_list",
+   "_feature_proposal_conflicts_with_canonical_door",
+   "_has_unregistered_person_name",
+   "_is_shopkeeper_role",
+   "_legacy_hidden_feature_name_collision",
+   "_local_detail_claims_unsupported_mechanics",
+   "_session",
+   "_valid_local_feature_parent_id",
+   "location_features",
+   "normalize_location_id",
+   "re",
+   "validate_location_proposal",
+   "validate_npc_proposal",
+   "validate_shop_proposal"
+  ],
+  "_bind_world_update_mentions": [
+   "_clean_world_text",
+   "re"
+  ],
+  "_strip_proposal_markers": [
+   "_PROPOSAL_MARKER_RE"
+  ],
+  "_repair_internal_marks": [
+   "_INTERNAL_MARK_RE",
+   "_PROPOSAL_MARKER_RE",
+   "_is_generic_speaker_label",
+   "_normalize_turkish_typos",
+   "_session",
+   "active_npcs",
+   "living_world",
+   "re"
+  ],
+  "_filter_unaccepted_proposal_mentions": [
+   "_PROPOSAL_MARKER_RE",
+   "_strip_proposal_markers",
+   "re"
+  ],
+  "_filter_unsupported_lore_paragraphs": [
+   "_narration_has_unsupported_lore_claim",
+   "re"
+  ],
+  "merge_world_updates": [
+   "_session",
+   "create_local_feature",
+   "create_location_from_proposal",
+   "create_npc_from_ai",
+   "create_shop_from_proposal"
+  ],
+  "_normalize_interaction_mode": [],
+  "_conversation_npcs": [
+   "_session",
+   "active_npcs"
+  ],
+  "_active_interlocutor": [
+   "_session",
+   "talk_mode"
+  ],
+  "_clear_active_interlocutor": [
+   "_session",
+   "talk_mode"
+  ],
+  "_is_end_conversation_request": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_without_place_names": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_is_guard": [
+   "_GUARD_ROLE",
+   "living_world"
+  ],
+  "_serves_at_a_counter": [
+   "_COUNTER_ROLE",
+   "living_world"
+  ],
+  "_words_fit_person": [
+   "_COUNTER_WORDS",
+   "_GUARD_WORD",
+   "_is_guard",
+   "_serves_at_a_counter"
+  ],
+  "most_plausible_addressee": [
+   "_is_guard",
+   "_normalize_turkish_typos",
+   "_session",
+   "_words_fit_person"
+  ],
+  "_topic_place_name": [],
+  "_drop_repeated_sentences": [
+   "re"
+  ],
+  "_drop_absent_counter_sentences": [
+   "_COUNTER_WORDS",
+   "_normalize_turkish_typos",
+   "_serves_at_a_counter",
+   "_session",
+   "active_npcs",
+   "living_world",
+   "location_features",
+   "re"
+  ],
+  "_absent_described_person": [
+   "_COUNTER_WORDS",
+   "_IN_REACH_WORDS",
+   "_LOCATED_PERSON",
+   "_serves_at_a_counter",
+   "_session",
+   "living_world"
+  ],
+  "_absent_person_text": [
+   "active_npcs",
+   "living_world",
+   "tr_case"
+  ],
+  "_is_plain_person_reference": [
+   "living_world",
+   "re"
+  ],
+  "_settle_address": [
+   "_session",
+   "most_plausible_addressee",
+   "talk_mode"
+  ],
+  "_npc_answers_to": [
+   "_entity_reference_in_text",
+   "living_world",
+   "named_by_sight"
+  ],
+  "_word_for_nobody_here": [
+   "_normalize_turkish_typos",
+   "_npc_answers_to"
+  ],
+  "resolve_npc_reference": [
+   "_ASKS_SOMETHING",
+   "_absent_described_person",
+   "_conversation_npcs",
+   "_entity_reference_in_text",
+   "_explicit_addressee",
+   "_is_object_inspection",
+   "_is_plain_person_reference",
+   "_is_short_conversation_continuation",
+   "_just_served",
+   "_normalize_turkish_typos",
+   "_npc_answers_to",
+   "_session",
+   "_without_place_names",
+   "_word_for_nobody_here",
+   "active_npcs",
+   "interaction_adventure",
+   "is_npc_dialogue_input",
+   "living_world",
+   "local_dialogue",
+   "re",
+   "talk_mode"
+  ],
+  "_interaction_proposal_applies": [
+   "_ADDRESSEE_OPERATIONS",
+   "_OFFER_MARKER",
+   "_OFFER_OPERATIONS",
+   "_grounded_item_request_proposal",
+   "_normalize_turkish_typos",
+   "_session",
+   "combat_lifecycle",
+   "interaction_adventure"
+  ],
+  "_grounded_item_request_proposal": [
+   "_entity_reference_in_text",
+   "_normalize_turkish_typos",
+   "_session",
+   "living_world"
+  ],
+  "_fold_keep_punctuation": [
+   "re"
+  ],
+  "_explicit_addressee": [
+   "_ADDRESS_VERB",
+   "_fold_keep_punctuation",
+   "living_world",
+   "re"
+  ],
+  "_is_spoken_to": [
+   "_SPEAKING_VERB",
+   "_explicit_addressee",
+   "_has_explicit_attack_verb",
+   "_is_object_inspection",
+   "_normalize_turkish_typos",
+   "_npc_speech_enabled"
+  ],
+  "_is_short_conversation_continuation": [
+   "_CONTINUATION_TERMS",
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_is_object_inspection": [
+   "_OBJECT_INSPECTION",
+   "_normalize_turkish_typos"
+  ],
+  "_is_door_inspection_request": [
+   "_is_object_inspection",
+   "_normalize_turkish_typos",
+   "living_world",
+   "re"
+  ],
+  "record_npc_interaction": [
+   "_clean_world_text",
+   "_session",
+   "_unsupported_npc_history_or_relationship_claim",
+   "_unverified_past_event_assertion",
+   "is_npc_dialogue_input"
+  ],
+  "_remember_owner_locked_tavern_focus": [
+   "_engine_location_parent",
+   "_session",
+   "interaction_adventure",
+   "living_world"
+  ],
+  "_remember_accepted_profile_focus": [
+   "_session",
+   "interaction_adventure"
+  ],
+  "_claim_keywords": [
+   "re"
+  ],
+  "npc_memory_supports_claim": [
+   "_session",
+   "npc_memory_supporting_entry"
+  ],
+  "npc_memory_supporting_entry": [
+   "_claim_keywords",
+   "_claimed_completed_outcome",
+   "_unverified_past_event_assertion"
+  ],
+  "_format_npc_memory": [],
+  "_stock_said": [
+   "_STOCK_SAID",
+   "_session",
+   "collections"
+  ],
+  "_stock": [
+   "_stock_said"
+  ],
+  "_is_stock": [
+   "_stock_said"
+  ],
+  "_only_stock": [
+   "_is_stock",
+   "_stock_said",
+   "re"
+  ],
+  "_lines_already_said": [],
+  "_without_lines_already_said": [
+   "_drop_repeated_sentences",
+   "_lines_already_said"
+  ],
+  "speech_repeat_line": [
+   "_SPEECH_REPEAT_LINES",
+   "hashlib",
+   "living_world"
+  ],
+  "historical_claim_denial": [
+   "_CLAIM_DENIAL_LINES",
+   "_has_session",
+   "_lines_already_said",
+   "_session",
+   "hashlib",
+   "interaction_adventure",
+   "living_world"
+  ],
+  "_narrator_visible_profile": [
+   "_NARRATOR_PROFILE_FIELDS"
+  ],
+  "_narrator_shop_record": [
+   "_session",
+   "living_world"
+  ],
+  "_narrator_fact_view": [
+   "_current_door",
+   "_lock_known_to_player",
+   "_session",
+   "_venue_door_for"
+  ],
+  "_bodies_here_context": [
+   "living_world"
+  ],
+  "build_world_context": [
+   "_bodies_here_context",
+   "_current_door",
+   "_format_npc_memory",
+   "_lock_known_to_player",
+   "_narrator_shop_record",
+   "_narrator_visible_profile",
+   "_normalize_ground_items",
+   "_session",
+   "active_npcs",
+   "campaign_time",
+   "copy",
+   "equipment_economy",
+   "incident_projection",
+   "interaction_adventure",
+   "living_world",
+   "local_dialogue",
+   "location_display_name",
+   "scheduled_events",
+   "timed_gameplay"
+  ],
+  "location_display_name": [
+   "_session"
+  ],
+  "_location_alias_values": [
+   "_normalize_turkish_typos"
+  ],
+  "_reference_token_matches": [
+   "_normalize_turkish_typos"
+  ],
+  "named_by_sight": [
+   "_entity_reference_in_text",
+   "_normalize_turkish_typos",
+   "_reference_token_matches",
+   "living_world",
+   "re"
+  ],
+  "_entity_reference_in_text": [
+   "_normalize_turkish_typos",
+   "_reference_token_matches",
+   "re"
+  ],
+  "resolve_location_reference": [
+   "_entity_reference_in_text",
+   "_location_alias_values",
+   "_normalize_turkish_typos",
+   "_session"
+  ],
+  "_location_reference_in_text": [
+   "_entity_reference_in_text",
+   "_location_alias_values",
+   "_session"
+  ],
+  "_travel_destination_reference_in_text": [
+   "_location_alias_values",
+   "_location_reference_in_text",
+   "_normalize_turkish_typos",
+   "_reference_token_matches",
+   "_session",
+   "re"
+  ],
+  "normalize_location_id": [
+   "_session",
+   "resolve_location_reference"
+  ],
+  "clean_location_description": [
+   "_clean_world_text",
+   "re"
+  ],
+  "validate_location_proposal": [
+   "_clean_world_text",
+   "_clean_world_text_list",
+   "clean_location_description",
+   "re",
+   "resolve_location_reference"
+  ],
+  "create_location_from_proposal": [
+   "_session",
+   "validate_location_proposal"
+  ],
+  "ensure_campaign_clock": [
+   "_session",
+   "campaign_time"
+  ],
+  "advance_campaign_time": [
+   "RULE_ORDER",
+   "_resolve_player_death_turn",
+   "_session",
+   "adventure_play",
+   "campaign_time",
+   "effect_lifecycle",
+   "ensure_death_state",
+   "event_order",
+   "heal_player",
+   "stabilize_player",
+   "uuid4"
+  ],
+  "commit_location_change": [
+   "_ensure_location_entities",
+   "_session",
+   "_venue_door_for",
+   "_venue_entry_door",
+   "create_local_feature",
+   "create_npc_from_ai",
+   "end_combat",
+   "ensure_campaign_clock",
+   "ensure_combat_state",
+   "living_world",
+   "scheduled_events",
+   "talk_mode",
+   "turn_source_key"
+  ],
+  "_untrusted_player_block": [
+   "hashlib"
+  ],
+  "_intent_scene_npc_candidates": [
+   "active_npcs",
+   "living_world"
+  ],
+  "_recent_player_visible_narration": [
+   "_session"
+  ],
+  "_validated_scene_npc_id": [
+   "_intent_scene_npc_candidates",
+   "_normalize_turkish_typos"
+  ],
+  "_named_word_of": [
+   "_conversation_npcs",
+   "_validated_local_person_proposal",
+   "_word_for_nobody_here"
+  ],
+  "_validated_local_person_proposal": [
+   "_clean_world_text",
+   "re"
+  ],
+  "_scene_detail_proposals_allowed": [
+   "_scene_detail_parent",
+   "is_player_world_assertion",
+   "living_world",
+   "re",
+   "should_generate_features"
+  ],
+  "_scene_observation_proposal_turn": [
+   "_scene_detail_proposals_allowed",
+   "living_world",
+   "re"
+  ],
+  "_local_person_request_key": [
+   "_session",
+   "hashlib",
+   "living_world"
+  ],
+  "_extract_json_object": [
+   "json",
+   "re"
+  ],
+  "_speech_debug_trail": [
+   "json",
+   "os"
+  ],
+  "_npc_speech_enabled": [
+   "_session",
+   "os"
+  ],
+  "_experimental_recent_exchanges": [
+   "_NPC_SPEECH_KEEP",
+   "_NPC_SPEECH_LOG_KEY",
+   "_session"
+  ],
+  "_rumour_lane_on": [],
+  "_speech_answer_rules": [
+   "_SPEECH_ANSWER_RULES",
+   "_rumour_lane_on"
+  ],
+  "_voiced_keys": [],
+  "_remember_experimental_npc_speech": [
+   "_active_interlocutor",
+   "_has_private_profile_value",
+   "_job_talk_with",
+   "_offer_talk_with",
+   "_session",
+   "is_npc_historical_claim",
+   "local_dialogue"
+  ],
+  "_strip_pictographs": [
+   "unicodedata"
+  ],
+  "_without_real_world_faith": [
+   "_REAL_WORLD_FAITH"
+  ],
+  "_clean_npc_speech": [
+   "_SPEECH_CUT_RE",
+   "_SPEECH_META_RE",
+   "_strip_pictographs",
+   "_without_real_world_faith",
+   "re"
+  ],
+  "_is_explicit_name_led_gesture_line": [
+   "re"
+  ],
+  "_clean_npc_stage_direction": [
+   "re"
+  ],
+  "_compose_experimental_npc_speech": [],
+  "_render_experimental_npc_speech": [
+   "_without_label_variant",
+   "living_world",
+   "re"
+  ],
+  "_without_label_variant": [
+   "living_world"
+  ],
+  "_npc_speech_rejects_claim": [
+   "_CLAIM_ACCEPTANCE_RE",
+   "_CLAIM_REJECTION_RE",
+   "local_dialogue"
+  ],
+  "_npc_speech_grants_claim": [
+   "_CLAIM_ACCEPTANCE_RE",
+   "_CLAIM_PLAIN_DENIAL_RE",
+   "local_dialogue"
+  ],
+  "_npc_speech_is_claim_refusal": [
+   "_CLAIM_DENIAL_LINES",
+   "_npc_speech_grants_claim",
+   "living_world"
+  ],
+  "_npc_name_stance": [
+   "_detect_query_type",
+   "living_world",
+   "local_dialogue"
+  ],
+  "_spoken_name_answer": [
+   "re"
+  ],
+  "_town_note": [
+   "_has_session",
+   "_session"
+  ],
+  "_has_spoken_to_player": [
+   "_session",
+   "npc_statements"
+  ],
+  "_job_news_line": [],
+  "_has_session": [
+   "_ACTIVE_SESSION"
+  ],
+  "_job_talk_with": [
+   "_session"
+  ],
+  "_offer_talk_with": [
+   "_job_talk_with",
+   "_session"
+  ],
+  "_offer_terms_shown": [
+   "_session"
+  ],
+  "_nobody_here": [
+   "_session",
+   "active_npcs",
+   "living_world",
+   "talk_mode"
+  ],
+  "_thread_person": [
+   "_active_interlocutor",
+   "_explicit_addressee",
+   "_nobody_here",
+   "_session",
+   "_word_for_nobody_here",
+   "active_npcs",
+   "talk_mode"
+  ],
+  "_physical_line": [
+   "_normalize_turkish_typos",
+   "_session"
+  ],
+  "_carry_out_thread_turn": [],
+  "_job_gate": [
+   "_session"
+  ],
+  "_thread_gate": [
+   "PlayerCannotAct",
+   "_carry_out_thread_turn",
+   "_job_gate",
+   "_physical_line",
+   "_session",
+   "_thread_person"
+  ],
+  "_turns_to_someone_else": [
+   "living_world"
+  ],
+  "_town_in_play": [],
+  "_elsewhere_line": [],
+  "_named_elsewhere_line": [
+   "_elsewhere_line",
+   "active_npcs",
+   "living_world"
+  ],
+  "_overheard_work": [
+   "npc_statements"
+  ],
+  "_town_fallback": [
+   "_ASKS_WHO_YOU_ARE",
+   "_asks_what_is_going_on",
+   "_normalize_turkish_typos",
+   "interaction_adventure",
+   "local_dialogue"
+  ],
+  "_person_fallback": [
+   "_job_fallback",
+   "_town_fallback",
+   "interaction_adventure"
+  ],
+  "_job_fallback": [
+   "_session"
+  ],
+  "_accept_named_job": [],
+  "_coin_persuasion": [
+   "_session",
+   "_skill_result_category",
+   "perform_skill_check"
+  ],
+  "_show_coin_roll": [],
+  "_settle_spoken_commitment": [
+   "_accept_named_job",
+   "_heavy_allowed",
+   "_session"
+  ],
+  "_with_only_backed_money": [],
+  "_bag_note": [],
+  "_dm_prompt_note": [
+   "tr_names"
+  ],
+  "_claim_denial_quotes": [
+   "_CLAIM_DENIAL_LINES"
+  ],
+  "_has_private_profile_value": [
+   "interaction_adventure"
+  ],
+  "_experimental_speech_note": [
+   "_bag_note",
+   "_claim_denial_quotes",
+   "_known_player_name",
+   "_lines_already_said",
+   "_session",
+   "_speech_answer_rules",
+   "_town_note",
+   "living_world",
+   "local_dialogue",
+   "money_owner",
+   "npc_statements",
+   "talk_front"
+  ],
+  "_experimental_npc_dialogue_context": [
+   "_experimental_recent_exchanges",
+   "_has_private_profile_value",
+   "interaction_adventure",
+   "living_world",
+   "local_dialogue",
+   "talk_front"
+  ],
+  "_is_short_followup": [
+   "_FOLLOWUP_WORDS",
+   "local_dialogue"
+  ],
+  "_experimental_speech_final_line": [
+   "_is_short_followup",
+   "_untrusted_player_block"
+  ],
+  "_experimental_speech_recap": [],
+  "_local_place_recommendation_options": [
+   "_local_place_access"
+  ],
+  "_local_place_access": [],
+  "_attributed_place_note": [
+   "_local_place_recommendation_options",
+   "_lock_known_to_player",
+   "attributed_claims",
+   "local_dialogue",
+   "npc_statements"
+  ],
+  "_ground_local_place_recommendation_reply": [
+   "_local_place_recommendation_options",
+   "local_dialogue",
+   "npc_statements",
+   "re"
+  ],
+  "_ground_local_place_recommendation_stage": [
+   "_local_place_recommendation_options",
+   "local_dialogue",
+   "npc_statements",
+   "re"
+  ],
+  "_local_place_recommendation_guidance": [
+   "_local_place_recommendation_options",
+   "json",
+   "local_dialogue"
+  ],
+  "parse_player_intent": [
+   "INTENT_SCHEMA",
+   "IntentInfrastructureError",
+   "SCENE_DETAIL_KIND_ALLOWLIST",
+   "_EXPERIMENTAL_NPC_SPEECH_OPTIONS",
+   "_EXPERIMENTAL_NPC_SPEECH_SCHEMA",
+   "_MENTIONS_PROMPT_RULE",
+   "_VOICED_PROMPT_RULE",
+   "_experimental_speech_final_line",
+   "_experimental_speech_recap",
+   "_extract_json_object",
+   "_intent_scene_npc_candidates",
+   "_local_place_recommendation_guidance",
+   "_rumour_lane_on",
+   "_scene_detail_parent",
+   "_session",
+   "_untrusted_player_block",
+   "copy",
+   "interaction_adventure",
+   "is_npc_historical_claim",
+   "json",
+   "location_display_name",
+   "location_features",
+   "money_owner",
+   "ollama",
+   "ollama_reply_was_cut",
+   "ollama_response_content"
+  ],
+  "_has_travel_language": [
+   "_normalize_turkish_typos",
+   "living_world",
+   "re"
+  ],
+  "_travel_completion": [
+   "_has_travel_language",
+   "re"
+  ],
+  "_normalize_turkish_typos": [
+   "re"
+  ],
+  "normalize_intent": [
+   "INTENT_TYPES",
+   "SKILL_INTENT_TO_SKILL",
+   "_detect_explore_type",
+   "_detect_query_type",
+   "_entity_reference_in_text",
+   "_has_travel_language",
+   "_location_reference_in_text",
+   "_normalize_turkish_typos",
+   "_session",
+   "_travel_completion",
+   "_travel_destination_reference_in_text",
+   "_validated_scene_npc_id",
+   "deterministic_check_for_action",
+   "is_npc_dialogue_input",
+   "living_world",
+   "money_owner",
+   "re"
+  ],
+  "_normalize_turkish_location": [
+   "_entity_reference_in_text",
+   "_location_alias_values",
+   "_session",
+   "resolve_location_reference"
+  ],
+  "validate_intent": [
+   "INTENT_TYPES",
+   "SKILL_INTENT_TO_SKILL",
+   "_detect_explore_type",
+   "_detect_query_type",
+   "_has_travel_language",
+   "_location_reference_in_text",
+   "_model_query_type_is_plausible",
+   "_normalize_turkish_location",
+   "_normalize_turkish_typos",
+   "_session",
+   "_travel_completion",
+   "_travel_destination_reference_in_text",
+   "_validated_scene_npc_id",
+   "deterministic_check_for_action",
+   "is_npc_dialogue_input",
+   "re"
+  ],
+  "_ensure_location_entities": [
+   "_session"
+  ],
+  "update_world_state_from_player": [
+   "execute_intent",
+   "normalize_intent",
+   "parse_player_intent",
+   "validate_intent"
+  ],
+  "_explicit_sword_drop": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "update_inventory_from_player": [
+   "_normalize_ground_items",
+   "_normalize_turkish_typos",
+   "_session",
+   "equipment_economy",
+   "held_weapon"
+  ],
+  "apply_check_outcome_to_world_state": [
+   "_affirmative_door_verb",
+   "_current_door",
+   "_normalize_turkish_typos",
+   "_session"
+  ],
+  "_current_npc_name": [
+   "_session",
+   "living_world"
+  ],
+  "_mechanical_outcome": [
+   "re"
+  ],
+  "_stands_by_their_words": [
+   "_job_talk_with",
+   "_session"
+  ],
+  "_fallback_narration": [
+   "_current_door",
+   "_current_npc_name",
+   "_generic_no_change_response",
+   "_historical_player_name_from_npc_memory",
+   "_is_player_name_inquiry_to_npc",
+   "_job_fallback",
+   "_mechanical_outcome",
+   "_normalize_turkish_typos",
+   "_public_scene_person_text",
+   "_scene_look_text",
+   "_session",
+   "_stands_by_their_words",
+   "_stock",
+   "active_npcs",
+   "feature_descriptions",
+   "historical_claim_denial",
+   "interaction_adventure",
+   "is_npc_dialogue_input",
+   "is_npc_historical_claim",
+   "living_world",
+   "location_display_name",
+   "npc_memory_supporting_entry",
+   "npc_memory_supports_claim",
+   "re",
+   "resolve_npc_reference"
+  ],
+  "_quiet_place_line": [
+   "_session"
+  ],
+  "_generic_no_change_response": [
+   "_GENERIC_NO_CHANGE_RESPONSES",
+   "_quiet_place_line",
+   "_stock",
+   "_variation_index"
+  ],
+  "_is_internal_player_facing_text": [
+   "_INTERNAL_PLAYER_FACING_RE"
+  ],
+  "_natural_unresolved_action_response": [
+   "_stock"
+  ],
+  "_narration_scene_type": [],
+  "_registered_persistent_object_names": [
+   "equipment_economy"
+  ],
+  "_unregistered_persistent_object_claim": [
+   "_NARRATION_PERSISTENT_OBJECT_HEADS",
+   "_NARRATION_PERSISTENT_OBJECT_STATE",
+   "_normalize_turkish_typos",
+   "_registered_persistent_object_names",
+   "re"
+  ],
+  "_unregistered_held_object": [
+   "_HELD_SKIP",
+   "_normalize_turkish_typos",
+   "_registered_persistent_object_names",
+   "re"
+  ],
+  "_resolve_campaign_npc_reference": [
+   "_entity_reference_in_text",
+   "_normalize_turkish_typos",
+   "_session"
+  ],
+  "_unsupported_npc_history_or_relationship_claim": [
+   "_resolve_campaign_npc_reference",
+   "is_npc_historical_claim",
+   "npc_memory_supports_claim",
+   "re"
+  ],
+  "_unverified_player_mental_state_trigger": [
+   "_PLAYER_MENTAL_STATE_AFFECT_RE",
+   "_PLAYER_MENTAL_STATE_CONTEXT_RE",
+   "_PLAYER_MENTAL_STATE_COPULA_RE",
+   "_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE",
+   "_PLAYER_MENTAL_STATE_PREFIXES",
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_authorized_item_transfer_matches": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_is_explicitly_negated_transfer": [
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_is_figurative_key_transfer": [
+   "re"
+  ],
+  "_experimental_private_npc_disclosure": [
+   "_normalize_turkish_typos",
+   "interaction_adventure",
+   "local_dialogue",
+   "re"
+  ],
+  "_unseen_registered_names": [],
+  "_inside_speech": [
+   "_SPEECH_SPAN_RE"
+  ],
+  "_unseen_speakers": [
+   "_SPEAKING_NAME_PATTERNS",
+   "_inside_speech",
+   "re"
+  ],
+  "_unseen_self_introductions": [
+   "_SPEECH_SPAN_RE",
+   "_split_sentences_keep_speech",
+   "local_dialogue"
+  ],
+  "_unseen_speaker_repaired": [
+   "_unseen_registered_names",
+   "_unseen_self_introductions",
+   "_unseen_speakers",
+   "living_world",
+   "re"
+  ],
+  "_narration_safety_decision": [
+   "_COMMON_SENTENCE_OPENERS",
+   "_NARRATED_NAME_PATTERNS",
+   "_PLAYER_FEELING_RE",
+   "_UNMOVED",
+   "_authorized_item_transfer_matches",
+   "_current_door",
+   "_entity_reference_in_text",
+   "_experimental_private_npc_disclosure",
+   "_explicit_player_name_disclosure",
+   "_has_unregistered_person_name",
+   "_is_explicitly_negated_transfer",
+   "_is_figurative_key_transfer",
+   "_location_alias_values",
+   "_mechanical_outcome",
+   "_narration_fact_packet",
+   "_narration_has_unsupported_lore_claim",
+   "_narration_scene_type",
+   "_normalize_turkish_typos",
+   "_prepare_lore_authority_context",
+   "_scene_texts_for_referents",
+   "_session",
+   "_unregistered_held_object",
+   "_unregistered_persistent_object_claim",
+   "_unseen_registered_names",
+   "_unseen_self_introductions",
+   "_unseen_speakers",
+   "_unsupported_available_quest_claim",
+   "_unsupported_npc_history_or_relationship_claim",
+   "_unverified_player_mental_state_trigger",
+   "campaign_time",
+   "combat_lifecycle",
+   "living_world",
+   "local_dialogue",
+   "location_display_name",
+   "npc_statements",
+   "re"
+  ],
+  "_narration_is_unsafe": [
+   "_narration_safety_decision"
+  ],
+  "is_player_world_assertion": [
+   "is_npc_historical_claim",
+   "re"
+  ],
+  "should_generate_npcs": [
+   "active_npcs",
+   "is_player_world_assertion",
+   "re"
+  ],
+  "should_generate_features": [
+   "_mechanical_outcome",
+   "_scene_detail_parent",
+   "_session",
+   "is_player_world_assertion",
+   "living_world",
+   "location_features",
+   "re"
+  ],
+  "_empty_lore_authority_context": [],
+  "_prepare_lore_authority_context": [
+   "_empty_lore_authority_context",
+   "json"
+  ],
+  "_lore_claims_are_supported": [],
+  "_lore_guard_text": [
+   "re"
+  ],
+  "_lore_fact_records": [],
+  "_lore_entity_names": [
+   "_lore_guard_text"
+  ],
+  "_is_registered_lore_name": [
+   "_lore_guard_text"
+  ],
+  "_is_generic_speaker_label": [
+   "_GENERIC_SPEAKER_LABEL_RE"
+  ],
+  "_has_unregistered_narrative_entity": [
+   "_LORE_ENTITY_FOLLOWING_CUE_RE",
+   "_LORE_ENTITY_TITLE_RE",
+   "_LORE_PROPER_NAME_RE",
+   "_LORE_SENTENCE_START_WORDS",
+   "_is_generic_speaker_label",
+   "_is_registered_lore_name",
+   "_lore_guard_text",
+   "re"
+  ],
+  "_rejected_lore_narration": [
+   "_generic_no_change_response",
+   "_normalize_turkish_typos",
+   "_unverified_lore_response",
+   "re"
+  ],
+  "_stage_within_the_street": [
+   "_INDOOR_DETAIL",
+   "_normalize_turkish_typos",
+   "_serves_at_a_counter",
+   "living_world",
+   "re",
+   "scheduled_events"
+  ],
+  "_shown_stage_direction": [
+   "_stage_within_the_street",
+   "_unregistered_held_object"
+  ],
+  "_unverified_lore_response": [
+   "_ASKS_DISTANCE",
+   "_UNVERIFIED_DISTANCE_RESPONSE",
+   "_UNVERIFIED_LORE_RESPONSE",
+   "_UNVERIFIED_RULER_RESPONSE",
+   "_entity_reference_in_text",
+   "interaction_adventure",
+   "living_world",
+   "local_dialogue",
+   "re"
+  ],
+  "_names_the_district_here": [
+   "_lore_guard_text",
+   "re"
+  ],
+  "_narration_has_unsupported_lore_claim": [
+   "_LORE_ENTITY_RELATION_RE",
+   "_LORE_RULER_TITLE_RE",
+   "_LORE_UNSUPPORTED_DETAIL_PATTERNS",
+   "_has_unregistered_narrative_entity",
+   "_lore_entity_names",
+   "_lore_fact_records",
+   "_lore_guard_text",
+   "_names_the_district_here",
+   "_scene_has_registered_craft_role",
+   "re"
+  ],
+  "_salvage_plain_speech": [],
+  "_split_sentences_keep_speech": [
+   "_SPEECH_SPAN_RE",
+   "_TERMINATOR_MASK",
+   "re"
+  ],
+  "_repair_unsupported_lore_narration": [
+   "_narration_has_unsupported_lore_claim",
+   "_split_sentences_keep_speech",
+   "_trim_dangling_quote"
+  ],
+  "_scene_has_registered_craft_role": [
+   "_lore_guard_text"
+  ],
+  "_spoken_lore_fact_ids": [],
+  "_has_active_local_npc_focus_for_place_request": [],
+  "_supported_lore_question_response": [
+   "_has_unregistered_narrative_entity",
+   "_lore_entity_names",
+   "_lore_guard_text",
+   "re"
+  ],
+  "_player_question_has_unverified_lore_claim": [
+   "_LORE_ROUTE_DISTANCE_QUERY_RE",
+   "_LORE_UNSUPPORTED_DETAIL_PATTERNS",
+   "_has_unregistered_narrative_entity",
+   "_lore_entity_names",
+   "_lore_guard_text",
+   "re"
+  ],
+  "_validated_player_line": [],
+  "_feature_refs_are_visible": [
+   "_session",
+   "living_world"
+  ],
+  "_dm_response_schema_for_turn": [
+   "DM_RESPONSE_SCHEMA",
+   "copy"
+  ],
+  "_living_world_prompt_context": [
+   "_scene_names",
+   "_session",
+   "interaction_adventure",
+   "json",
+   "living_world",
+   "location_display_name"
+  ],
+  "ask_dungeon_master": [
+   "NARRATOR_VOICE",
+   "_REFUSED_MOVE_RULE",
+   "_bag_note",
+   "_dm_prompt_note",
+   "_dm_response_schema_for_turn",
+   "_extract_json_object",
+   "_fallback_for_action_result",
+   "_feature_refs_are_visible",
+   "_living_world_prompt_context",
+   "_lore_claims_are_supported",
+   "_mechanical_outcome",
+   "_narration_fact_packet",
+   "_narration_scene_type",
+   "_narrator_fact_view",
+   "_prepare_lore_authority_context",
+   "_resolve_explicit_local_scene_parent",
+   "_session",
+   "_untrusted_player_block",
+   "_validated_player_line",
+   "active_npcs",
+   "build_world_context",
+   "finalize_narration",
+   "interaction_adventure",
+   "is_player_world_assertion",
+   "json",
+   "living_world",
+   "location_features",
+   "merge_world_updates",
+   "ollama",
+   "ollama_response_content",
+   "re",
+   "system_prompt",
+   "talk_mode",
+   "validate_world_updates"
+  ],
+  "_ensure_venue_window": [
+   "_session",
+   "create_local_feature"
+  ],
+  "_finding_says_too_much": [
+   "_has_unregistered_person_name",
+   "_session",
+   "living_world",
+   "re"
+  ],
+  "_bound_on_a_named_word": [
+   "_clean_world_text",
+   "_session",
+   "create_local_feature",
+   "tr_case"
+  ],
+  "_found_on_a_pass": [
+   "_bound_on_a_named_word",
+   "_clean_world_text",
+   "_finding_says_too_much",
+   "_session",
+   "create_local_feature",
+   "tr_case"
+  ],
+  "_inspection_findings": [
+   "_LOCK_WORDS",
+   "_TRACK_WORDS",
+   "_WINDOW_WORDS",
+   "_current_door",
+   "_ensure_venue_window",
+   "_entity_reference_in_text",
+   "_found_on_a_pass",
+   "_normalize_turkish_typos",
+   "_scene_look_text",
+   "_session",
+   "_stock",
+   "living_world",
+   "re"
+  ],
+  "_resolved_skill_result_narration": [],
+  "_states_the_failed_check": [
+   "_TELLS_FAILURE",
+   "_fallback_for_action_result",
+   "_normalize_turkish_typos",
+   "tr_case"
+  ],
+  "_fallback_for_action_result": [
+   "_combat_narration",
+   "_current_door",
+   "_fallback_narration",
+   "_resolved_skill_result_narration",
+   "_scene_look_text",
+   "_scene_presence_text",
+   "_session",
+   "location_display_name"
+  ],
+  "_record_narration_safety": [
+   "DEBUG_MODE",
+   "_session",
+   "json"
+  ],
+  "_trim_dangling_quote": [
+   "_QUOTE_CLOSER_RE",
+   "_QUOTE_OPENER_RE"
+  ],
+  "_remove_trigger_sentence": [
+   "_normalize_turkish_typos",
+   "_split_sentences_keep_speech",
+   "_trim_dangling_quote"
+  ],
+  "_dialogue_repair_has_attributed_answer": [
+   "re"
+  ],
+  "_repair_attributed_speech": [
+   "_remove_trigger_sentence"
+  ],
+  "_is_player_name_inquiry_to_npc": [
+   "_normalize_turkish_typos",
+   "is_npc_historical_claim",
+   "re"
+  ],
+  "_is_historical_player_name_query": [
+   "_is_player_name_inquiry_to_npc",
+   "_normalize_turkish_typos",
+   "is_npc_historical_claim",
+   "re"
+  ],
+  "_hero_first_name": [
+   "_session"
+  ],
+  "_explicit_player_name_disclosure": [
+   "_hero_first_name",
+   "_normalize_turkish_typos",
+   "local_dialogue",
+   "re"
+  ],
+  "_known_player_name": [
+   "_explicit_player_name_disclosure"
+  ],
+  "_historical_player_name_from_npc_memory": [
+   "_explicit_player_name_disclosure",
+   "_is_historical_player_name_query"
+  ],
+  "_historical_player_name_from_claims": [
+   "_explicit_player_name_disclosure",
+   "_is_historical_player_name_query"
+  ],
+  "_narration_contradicts_supported_name_memory": [
+   "_normalize_turkish_typos",
+   "is_npc_historical_claim",
+   "npc_memory_supports_claim",
+   "re"
+  ],
+  "_narrated_money_can_lie": [],
+  "finalize_narration": [
+   "_GENERIC_NO_CHANGE_RESPONSES",
+   "_compose_experimental_npc_speech",
+   "_dialogue_repair_has_attributed_answer",
+   "_drop_absent_counter_sentences",
+   "_drop_repeated_sentences",
+   "_fallback_for_action_result",
+   "_historical_player_name_from_claims",
+   "_historical_player_name_from_npc_memory",
+   "_is_historical_player_name_query",
+   "_narrated_money_can_lie",
+   "_narration_contradicts_supported_name_memory",
+   "_narration_safety_decision",
+   "_narration_scene_type",
+   "_normalize_turkish_typos",
+   "_npc_speech_is_claim_refusal",
+   "_record_narration_safety",
+   "_rejected_lore_narration",
+   "_remove_trigger_sentence",
+   "_repair_attributed_speech",
+   "_repair_internal_marks",
+   "_resolve_campaign_npc_reference",
+   "_session",
+   "_town_fallback",
+   "_unseen_speaker_repaired",
+   "clean_dm_response",
+   "historical_claim_denial",
+   "is_npc_historical_claim",
+   "living_world",
+   "npc_memory_supports_claim",
+   "re",
+   "record_npc_interaction",
+   "resolve_npc_reference",
+   "speech_repeat_line"
+  ],
+  "initialize_game": [
+   "CLASSES",
+   "CLASS_FEATURES",
+   "RACES",
+   "RACE_FEATURES",
+   "SKILLS",
+   "_session",
+   "assign_stats",
+   "calculate_ac",
+   "calculate_hp",
+   "choose_option",
+   "choose_skill_proficiencies",
+   "create_random_character",
+   "get_modifier"
+  ],
+  "_world_snapshot": [
+   "_normalize_ground_items",
+   "_session",
+   "json"
+  ],
+  "_changed_state_fields": [
+   "_world_snapshot"
+  ],
+  "_skill_result_category": [],
+  "_print_skill_result": [],
+  "_commit_travel_action": [
+   "_combat_snapshot",
+   "_locked_door_refusal",
+   "_session",
+   "_venue_entry_door",
+   "commit_location_change",
+   "ensure_combat_state",
+   "resolve_location_reference",
+   "timed_gameplay"
+  ],
+  "_attack_verb_tokens": [
+   "_ATTACK_INSTRUMENT_TOKENS",
+   "_ATTACK_LOOKALIKE_TOKEN",
+   "_ATTACK_VERB_PATTERN",
+   "re"
+  ],
+  "_names_present_creature": [
+   "_CREATURE_REFERENCE",
+   "_entity_reference_in_text",
+   "_session",
+   "living_world"
+  ],
+  "_has_explicit_attack_verb": [
+   "_ATTACK_BLOW_PHRASE",
+   "_CHARGING_IN",
+   "_INANIMATE_HIT_OBJECT",
+   "_attack_verb_tokens",
+   "_names_present_creature",
+   "_normalize_turkish_typos",
+   "_session",
+   "combat_lifecycle"
+  ],
+  "_is_explicitly_negated_attack": [
+   "_ATTACK_VERB_PATTERN",
+   "_has_explicit_attack_verb",
+   "_normalize_turkish_typos",
+   "re"
+  ],
+  "_immediate_check_refusal": [
+   "combat_lifecycle"
+  ],
+  "primal_knowledge_check_admission": [
+   "SKILLS",
+   "_immediate_check_refusal",
+   "_normalize_turkish_typos",
+   "_session",
+   "_stealth_skill",
+   "adventure_play",
+   "campaign_time",
+   "deterministic_check_for_action",
+   "re",
+   "timed_gameplay"
+  ],
+  "execute_intent": [
+   "CHECK_FEATURES",
+   "_execute_intent_internal",
+   "_immediate_check_refusal",
+   "_session",
+   "combat_lifecycle",
+   "primal_knowledge_check_admission"
+  ],
+  "_execute_intent_internal": [
+   "DIFFICULTY_DC",
+   "SKILLS",
+   "SKILL_INTENT_TO_SKILL",
+   "_active_interlocutor",
+   "_approach_turn",
+   "_changed_state_fields",
+   "_combat_end_if_decided",
+   "_combat_snapshot",
+   "_current_door",
+   "_detect_query_type",
+   "_entity_reference_in_text",
+   "_finish_combat_result",
+   "_finish_species_player_turn",
+   "_handle_query",
+   "_inspection_findings",
+   "_is_door_inspection_request",
+   "_is_explicitly_negated_attack",
+   "_locked_door_refusal",
+   "_mark_combat_action_used",
+   "_model_query_type_is_plausible",
+   "_normalize_turkish_typos",
+   "_print_skill_result",
+   "_resolve_enemy_turns_until_player",
+   "_session",
+   "_skill_result_category",
+   "_species_trait_state",
+   "_stealth_skill",
+   "_venue_entry_door",
+   "_world_snapshot",
+   "action_economy",
+   "active_npcs",
+   "advance_combat_turn",
+   "apply_check_outcome_to_world_state",
+   "combat_lifecycle",
+   "commit_location_change",
+   "deterministic_check_for_action",
+   "ensure_combat_state",
+   "ensure_npc_enemy_stats",
+   "find_weapon_in_inventory",
+   "held_weapon",
+   "is_npc_dialogue_input",
+   "known_character_answer",
+   "known_player_action_narration",
+   "living_world",
+   "money_owner",
+   "monster_sense",
+   "perform_skill_check",
+   "refusals",
+   "resolve_attack",
+   "resolve_combat_target",
+   "resolve_location_reference",
+   "resolve_python_world_action",
+   "start_combat",
+   "timed_gameplay",
+   "update_inventory_from_player",
+   "weapon_attack"
+  ],
+  "_unsupported_available_quest_claim": [
+   "_session",
+   "living_world",
+   "re"
+  ],
+  "_names_current_local_exit": [
+   "_session",
+   "living_world",
+   "re"
+  ],
+  "_engine_location_parent": [
+   "_session"
+  ],
+  "_existing_local_tavern": [
+   "_session"
+  ],
+  "_resolve_explicit_local_scene_parent": [
+   "_entity_reference_in_text",
+   "_session",
+   "living_world",
+   "re"
+  ],
+  "_scene_detail_parent": [
+   "_resolve_explicit_local_scene_parent",
+   "living_world",
+   "location_display_name"
+  ],
+  "_anchored_structure_features": [
+   "_entity_reference_in_text",
+   "_session",
+   "living_world"
+  ],
+  "_observe_anchored_structure": [
+   "_anchored_structure_features",
+   "_resolve_explicit_local_scene_parent",
+   "_scene_detail_proposals_allowed",
+   "_session",
+   "_tavern_door_notice",
+   "_venue_door_for",
+   "living_world"
+  ],
+  "_ensure_local_tavern": [
+   "_session",
+   "_venue_door_id",
+   "living_world",
+   "name_catalog"
+  ],
+  "_turkish_genitive_form": [],
+  "_ensure_local_merchant": [
+   "_is_shopkeeper_role",
+   "_session",
+   "_turkish_genitive_form",
+   "create_npc_from_ai",
+   "generate_shop_id",
+   "living_world"
+  ],
+  "_scene_feature_match": [
+   "_entity_reference_in_text",
+   "_normalize_turkish_typos",
+   "_session",
+   "living_world",
+   "re"
+  ],
+  "resolve_scene_seating": [
+   "_scene_feature_match",
+   "_session",
+   "living_world"
+  ],
+  "_asks_what_is_going_on": [
+   "living_world",
+   "re"
+  ],
+  "_direct_npc_smalltalk_response": [
+   "_asks_what_is_going_on",
+   "_conversation_opening_line",
+   "_engine_location_parent",
+   "_ensure_local_tavern",
+   "_explicit_addressee",
+   "_is_bare_greeting",
+   "_is_conversation_start_input",
+   "_is_local_place_question",
+   "_npc_speech_enabled",
+   "_session",
+   "_town_in_play",
+   "is_npc_dialogue_input",
+   "is_npc_historical_claim",
+   "living_world",
+   "local_dialogue",
+   "location_display_name",
+   "re"
+  ],
+  "_is_bare_greeting": [
+   "living_world",
+   "re"
+  ],
+  "_is_scene_referent_activity_observation": [
+   "living_world",
+   "re"
+  ],
+  "_scene_names": [
+   "active_npcs"
+  ],
+  "_public_scene_person_text": [
+   "living_world"
+  ],
+  "_scene_presence_text": [
+   "_scene_names",
+   "_session",
+   "living_world"
+  ],
+  "_variation_index": [
+   "_session"
+  ],
+  "_look_opening": [
+   "_LOOK_OPENINGS",
+   "_variation_index"
+  ],
+  "_conversation_opening_line": [
+   "_CONVERSATION_OPENINGS",
+   "_variation_index"
+  ],
+  "_scene_look_text": [
+   "_look_opening",
+   "_scene_names",
+   "_session",
+   "living_world",
+   "location_display_name"
+  ],
+  "_look_scene_changed": [
+   "_scene_names",
+   "_session",
+   "living_world"
+  ],
+  "_keep_people_in_look": [
+   "_normalize_turkish_typos",
+   "_scene_names",
+   "_session",
+   "living_world"
+  ],
+  "_set_scene_active_npc": [
+   "_session",
+   "talk_mode"
+  ],
+  "_promote_scene_referent": [
+   "_session",
+   "create_npc_from_ai",
+   "living_world",
+   "local_dialogue"
+  ],
+  "_reopen_public_doors": [
+   "_session"
+  ],
+  "plan_living_world_turn": [
+   "_GENERIC_PERSON",
+   "_PLANNER_STAYS_OUT",
+   "_absent_person_text",
+   "_active_interlocutor",
+   "_changed_state_fields",
+   "_conversation_npcs",
+   "_current_procedural_entity_ids",
+   "_engine_location_parent",
+   "_ensure_local_merchant",
+   "_ensure_local_tavern",
+   "_entity_reference_in_text",
+   "_explicit_campaign_shop_request",
+   "_has_explicit_attack_verb",
+   "_is_scene_referent_activity_observation",
+   "_names_current_local_exit",
+   "_normalize_interaction_mode",
+   "_normalize_turkish_typos",
+   "_observe_anchored_structure",
+   "_promote_scene_referent",
+   "_reads_as_question",
+   "_reopen_public_doors",
+   "_scene_feature_match",
+   "_scene_look_text",
+   "_scene_presence_text",
+   "_session",
+   "_set_scene_active_npc",
+   "_settle_address",
+   "_tavern_door_notice",
+   "_venue_entry_door",
+   "_words_fit_person",
+   "_world_snapshot",
+   "active_npcs",
+   "campaign_time",
+   "commit_location_change",
+   "create_local_feature",
+   "create_npc_from_ai",
+   "ensure_campaign_clock",
+   "ensure_combat_state",
+   "interaction_adventure",
+   "is_npc_dialogue_input",
+   "known_character_answer",
+   "living_world",
+   "local_dialogue",
+   "location_display_name",
+   "most_plausible_addressee",
+   "npc_ambiguity_response",
+   "re",
+   "resolve_location_reference",
+   "resolve_npc_reference",
+   "resolve_scene_seating",
+   "scheduled_events",
+   "talk_front",
+   "timed_gameplay"
+  ],
+  "_hideout_check": [
+   "_session",
+   "perform_skill_check"
+  ],
+  "_adventure_scene_turn": [
+   "_adventure_check_reply",
+   "_adventure_travel_reply",
+   "_session",
+   "adventure_play",
+   "deterministic_check_for_action",
+   "re",
+   "resolve_location_reference"
+  ],
+  "_adventure_check_reply": [
+   "DIFFICULTY_DC",
+   "_hideout_check",
+   "copy"
+  ],
+  "_everyday_action_turn": [
+   "_current_door",
+   "_entity_reference_in_text",
+   "_session",
+   "interaction_adventure"
+  ],
+  "_local_place_turn": [
+   "_session",
+   "advance_campaign_time",
+   "commit_location_change",
+   "copy",
+   "create_local_feature",
+   "create_npc_from_ai",
+   "sys"
+  ],
+  "_adventure_travel_reply": [
+   "copy",
+   "timed_gameplay"
+  ],
+  "_intent_infrastructure_result": [],
+  "_clear_turn_transients": [],
+  "turn_source_key": [],
+  "run_player_turn": [
+   "_clear_turn_transients",
+   "_run_player_turn_owned",
+   "_session"
+  ],
+  "_run_player_turn_owned": [
+   "CHECK_FEATURES",
+   "IntentInfrastructureError",
+   "_immediate_check_refusal",
+   "_intent_infrastructure_result",
+   "_run_player_turn",
+   "_session",
+   "combat_lifecycle",
+   "money_owner",
+   "primal_knowledge_check_admission"
+  ],
+  "_tell_the_coin": [
+   "_record_spoken_coin_response",
+   "_session",
+   "active_npcs",
+   "money_owner"
+  ],
+  "_run_player_turn": [
+   "_run_player_turn_keyed",
+   "_session"
+  ],
+  "_run_player_turn_keyed": [
+   "IntentInfrastructureError",
+   "_dispatch_player_turn",
+   "_intent_infrastructure_result",
+   "_person_answers_stock",
+   "_session",
+   "_sleep_after_walk",
+   "_tell_the_coin",
+   "_the_rest_of_the_line",
+   "contextlib",
+   "copy",
+   "interaction_adventure",
+   "living_world",
+   "local_dialogue",
+   "resolution_action_scope"
+  ],
+  "_a_walk": [],
+  "_walked_there": [
+   "_session"
+  ],
+  "_the_rest_of_the_line": [
+   "_OWN_ACTS",
+   "_a_walk",
+   "_active_interlocutor",
+   "_addressed_in",
+   "_conversation_npcs",
+   "_dispatch_player_turn",
+   "_is_stock",
+   "_person_fallback",
+   "_session",
+   "_walked_there",
+   "copy"
+  ],
+  "_stock_hearer": [
+   "_active_interlocutor",
+   "_conversation_npcs",
+   "_reads_as_address",
+   "_session"
+  ],
+  "_person_answers_stock": [
+   "_conversation_npcs",
+   "_dispatch_player_turn",
+   "_is_stock",
+   "_only_stock",
+   "_person_fallback",
+   "_session",
+   "_stock_hearer"
+  ],
+  "_death_closing": [
+   "ensure_death_state"
+  ],
+  "_death_save_line": [
+   "_REWOUND_LINE",
+   "_death_closing",
+   "_enemy_exchange_text",
+   "ensure_death_state"
+  ],
+  "_down_outside_combat_turn": [
+   "PlayerCannotAct",
+   "_death_closing",
+   "_death_save_line",
+   "_resolve_player_death_turn",
+   "_session",
+   "advance_campaign_time",
+   "campaign_time",
+   "ensure_campaign_clock",
+   "ensure_death_state",
+   "re",
+   "uuid4"
+  ],
+  "_last_call": [
+   "_death_closing",
+   "_session",
+   "ensure_death_state",
+   "heal_player",
+   "roll_d20"
+  ],
+  "combat_refusal_turn": [
+   "_session",
+   "refusals"
+  ],
+  "_approach_turn": [
+   "_session",
+   "combat_lifecycle",
+   "refusals"
+  ],
+  "player_cannot_act_turn": [
+   "_death_closing",
+   "_last_call",
+   "_session",
+   "ensure_death_state"
+  ],
+  "_said_after_approach": [
+   "_WALKED_UP"
+  ],
+  "_reads_as_address": [
+   "is_npc_dialogue_input"
+  ],
+  "_line_addresses": [
+   "_HAIL_FILLERS",
+   "_SAY_ENGLISH",
+   "_SAY_VERBS",
+   "living_world",
+   "re",
+   "unicodedata"
+  ],
+  "_addressed_in": [
+   "_active_interlocutor",
+   "_session",
+   "resolve_npc_reference",
+   "talk_mode"
+  ],
+  "_front_recovery": [
+   "_session",
+   "active_npcs",
+   "living_world"
+  ],
+  "_front_step": [
+   "_BLOW_WORDS",
+   "_addressed_in",
+   "_blow_in_the_words",
+   "_blow_stands",
+   "_front_recovery",
+   "_hand_over_coin",
+   "_has_explicit_attack_verb",
+   "_heavy_allowed",
+   "_model_query_type_is_plausible",
+   "_narrated_person",
+   "_normalize_turkish_typos",
+   "_recent_player_visible_narration",
+   "_scene_detail_proposals_allowed",
+   "_session",
+   "active_npcs",
+   "adventure_play",
+   "combat_lifecycle",
+   "equipment_economy",
+   "interaction_adventure",
+   "living_world",
+   "money_owner",
+   "parse_player_intent",
+   "should_generate_npcs",
+   "timed_gameplay",
+   "weapon_attack"
+  ],
+  "_defer_spoken_coin_offer": [
+   "_session",
+   "active_npcs"
+  ],
+  "_record_spoken_coin_response": [
+   "_session",
+   "turn_source_key"
+  ],
+  "_economic_listing": [],
+  "_front_economic_offer": [
+   "_economic_listing",
+   "_hand_over_coin",
+   "_purchase_refused",
+   "_session",
+   "active_npcs",
+   "money_owner"
+  ],
+  "_purchase_refused": [
+   "_economic_listing",
+   "tr_case"
+  ],
+  "_hand_over_coin": [
+   "_session",
+   "active_npcs"
+  ],
+  "_blow_stands": [
+   "_ENDS_IN_SPEECH",
+   "_NO_BLOW_NOW",
+   "_normalize_turkish_typos",
+   "living_world",
+   "re"
+  ],
+  "_blow_in_the_words": [
+   "_BLOW_WORDS",
+   "_has_explicit_attack_verb",
+   "_normalize_turkish_typos",
+   "_session",
+   "active_npcs",
+   "living_world"
+  ],
+  "_ask_about_the_blow": [
+   "_session",
+   "active_npcs",
+   "living_world"
+  ],
+  "_heavy_allowed": [
+   "_session"
+  ],
+  "_ask_before_the_heavy": [
+   "_session",
+   "active_npcs",
+   "living_world"
+  ],
+  "_answered_heavy_question": [
+   "_session",
+   "combat_lifecycle"
+  ],
+  "_ask_which_move": [
+   "_session",
+   "active_npcs",
+   "living_world"
+  ],
+  "_narrated_person": [
+   "_conversation_npcs",
+   "_local_person_request_key",
+   "_recent_player_visible_narration",
+   "_session",
+   "create_npc_from_ai",
+   "living_world"
+  ],
+  "front_read_ahead": [
+   "_front_step",
+   "_is_end_conversation_request",
+   "_normalize_interaction_mode",
+   "_session",
+   "ensure_death_state"
+  ],
+  "_front_offer_gate": [
+   "PlayerCannotAct",
+   "_carry_out_thread_turn",
+   "_session",
+   "_thread_gate",
+   "active_npcs"
+  ],
+  "_line_gives": [
+   "_NO_BLOW_NOW",
+   "_normalize_turkish_typos",
+   "_session"
+  ],
+  "_front_consume": [
+   "_session"
+  ],
+  "_front_wield": [
+   "_session",
+   "refusals"
+  ],
+  "_word_root": [],
+  "_coin_not_parcel": [
+   "_names_no_parcel",
+   "money_owner"
+  ],
+  "_names_no_parcel": [
+   "_word_root",
+   "living_world"
+  ],
+  "_front_hand_over": [
+   "PlayerCannotAct",
+   "_carry_out_thread_turn",
+   "_coin_not_parcel",
+   "_line_gives",
+   "_names_no_parcel",
+   "_session",
+   "_thread_gate",
+   "active_npcs",
+   "refusals"
+  ],
+  "_front_work": [
+   "PlayerCannotAct",
+   "_carry_out_thread_turn",
+   "_session",
+   "_thread_gate",
+   "active_npcs"
+  ],
+  "_take_names_a_job": [
+   "_session"
+  ],
+  "_front_take": [
+   "_session",
+   "active_npcs",
+   "refusals",
+   "tr_case"
+  ],
+  "_dispatch_player_turn": [
+   "PlayerCannotAct",
+   "TurnResolved",
+   "_ENDS_IN_SPEECH",
+   "_SOMEONE_ELSES_PURSE",
+   "_active_interlocutor",
+   "_addressed_in",
+   "_adventure_scene_turn",
+   "_answered_heavy_question",
+   "_ask_about_the_blow",
+   "_ask_before_the_heavy",
+   "_ask_which_move",
+   "_clear_active_interlocutor",
+   "_conversation_npcs",
+   "_defer_spoken_coin_offer",
+   "_dispatch_player_turn",
+   "_dispatch_turn_body",
+   "_everyday_action_turn",
+   "_fallback_for_action_result",
+   "_front_consume",
+   "_front_economic_offer",
+   "_front_hand_over",
+   "_front_offer_gate",
+   "_front_step",
+   "_front_take",
+   "_front_wield",
+   "_front_work",
+   "_has_explicit_attack_verb",
+   "_heavy_allowed",
+   "_hideout_check",
+   "_is_end_conversation_request",
+   "_line_addresses",
+   "_local_place_turn",
+   "_narrate_resolved_turn",
+   "_normalize_interaction_mode",
+   "_normalize_turkish_typos",
+   "_owner_module_reply",
+   "_reads_as_address",
+   "_reopen_public_doors",
+   "_run_player_turn_internal",
+   "_scene_observation_proposal_turn",
+   "_session",
+   "_spoken_rest_of_turn",
+   "_take_names_a_job",
+   "_thread_gate",
+   "action_economy",
+   "active_npcs",
+   "adventure_play",
+   "combat_lifecycle",
+   "contextlib",
+   "ensure_death_state",
+   "equipment_economy",
+   "initiative",
+   "interaction_adventure",
+   "living_world",
+   "require_player_can_act",
+   "resolution_action_scope",
+   "timed_gameplay"
+  ],
+  "_dispatch_turn_body": [
+   "TurnResolved",
+   "_narrate_resolved_turn",
+   "_run_player_turn_internal",
+   "resolution_action_scope"
+  ],
+  "_sleep_after_walk": [
+   "_normalize_turkish_typos",
+   "_session",
+   "talk_mode",
+   "timed_gameplay",
+   "turn_source_key"
+  ],
+  "_spoken_rest_of_turn": [
+   "TurnResolved",
+   "_narrate_resolved_turn",
+   "_run_player_turn_internal",
+   "_session",
+   "active_npcs",
+   "contextlib",
+   "most_plausible_addressee",
+   "resolution_action_scope"
+  ],
+  "_current_procedural_entity_ids": [
+   "_session"
+  ],
+  "_may_propose_local_place": [
+   "_session",
+   "is_player_world_assertion",
+   "living_world"
+  ],
+  "_accepted_local_place": [
+   "_NOT_A_LOCAL_PLACE",
+   "living_world",
+   "validate_location_proposal"
+  ],
+  "_settle_local_place": [
+   "_session",
+   "living_world",
+   "resolve_location_reference"
+  ],
+  "_singular_narrator": [
+   "_NARRATOR_PLURAL",
+   "re"
+  ],
+  "_keep_town_portrait": [
+   "_session",
+   "_split_sentences_keep_speech",
+   "re"
+  ],
+  "_narrate_resolved_turn": [
+   "_accepted_local_place",
+   "_bind_world_update_mentions",
+   "_changed_state_fields",
+   "_commit_travel_action",
+   "_current_procedural_entity_ids",
+   "_fallback_for_action_result",
+   "_filter_unaccepted_proposal_mentions",
+   "_keep_people_in_look",
+   "_keep_town_portrait",
+   "_lore_claims_are_supported",
+   "_may_propose_local_place",
+   "_narrated_money_can_lie",
+   "_narration_has_unsupported_lore_claim",
+   "_narration_scene_type",
+   "_prepare_lore_authority_context",
+   "_repair_internal_marks",
+   "_repair_unsupported_lore_narration",
+   "_session",
+   "_settle_local_place",
+   "_singular_narrator",
+   "_states_the_failed_check",
+   "_world_snapshot",
+   "ask_dungeon_master",
+   "finalize_narration",
+   "incident_hooks",
+   "is_player_world_assertion",
+   "merge_world_updates",
+   "re",
+   "talk_mode",
+   "validate_world_updates"
+  ],
+  "_is_canonical_city_id": [],
+  "_death_resolution_from_actions": [
+   "copy"
+  ],
+  "_owner_module_reply": [
+   "_session",
+   "held_weapon",
+   "monster_sense"
+  ],
+  "_said_to_someone_here": [
+   "talk_mode"
+  ],
+  "_run_player_turn_internal": [
+   "DEBUG_MODE",
+   "PlayerCannotAct",
+   "ResolvedTurn",
+   "SCENE_DETAIL_KIND_ALLOWLIST",
+   "TurnResolved",
+   "_ASKS_DISTANCE",
+   "_SECOND_PERSON_SAID",
+   "_absent_person_text",
+   "_active_interlocutor",
+   "_asked_of_the_one_at_hand",
+   "_attributed_place_note",
+   "_campaign_has_shopkeeper",
+   "_claim_keywords",
+   "_clean_npc_speech",
+   "_clean_npc_stage_direction",
+   "_coin_persuasion",
+   "_combat_end_if_decided",
+   "_combat_narration",
+   "_compose_experimental_npc_speech",
+   "_conversation_npcs",
+   "_death_resolution_from_actions",
+   "_death_save_line",
+   "_detect_query_type",
+   "_direct_npc_smalltalk_response",
+   "_down_outside_combat_turn",
+   "_elsewhere_line",
+   "_enemy_exchange_text",
+   "_experimental_npc_dialogue_context",
+   "_experimental_speech_note",
+   "_explicit_addressee",
+   "_explicit_campaign_shop_negative_request",
+   "_explicit_campaign_shop_request",
+   "_explicit_player_name_disclosure",
+   "_explicit_sword_drop",
+   "_fallback_for_action_result",
+   "_ground_local_place_recommendation_reply",
+   "_ground_local_place_recommendation_stage",
+   "_grounded_item_request_proposal",
+   "_handle_query",
+   "_has_active_local_npc_focus_for_place_request",
+   "_has_explicit_attack_verb",
+   "_has_spoken_to_player",
+   "_historical_player_name_from_claims",
+   "_historical_player_name_from_npc_memory",
+   "_intent_scene_npc_candidates",
+   "_interaction_proposal_applies",
+   "_is_canonical_city_id",
+   "_is_conversation_start_input",
+   "_is_explicit_name_led_gesture_line",
+   "_is_historical_player_name_query",
+   "_is_internal_player_facing_text",
+   "_is_local_place_question",
+   "_is_negated_dialogue_action",
+   "_is_object_inspection",
+   "_is_player_name_inquiry_to_npc",
+   "_is_short_conversation_continuation",
+   "_is_short_followup",
+   "_is_spoken_to",
+   "_is_stock",
+   "_job_fallback",
+   "_job_talk_with",
+   "_known_player_name",
+   "_local_person_request_key",
+   "_look_scene_changed",
+   "_lore_guard_text",
+   "_mark_combat_action_used",
+   "_named_elsewhere_line",
+   "_named_word_of",
+   "_names_current_local_exit",
+   "_narration_scene_type",
+   "_natural_unresolved_action_response",
+   "_nobody_here",
+   "_normalize_interaction_mode",
+   "_normalize_turkish_typos",
+   "_npc_name_stance",
+   "_npc_speech_enabled",
+   "_npc_speech_is_claim_refusal",
+   "_npc_speech_rejects_claim",
+   "_offer_terms_shown",
+   "_overheard_work",
+   "_people_speak_for_themselves",
+   "_person_fallback",
+   "_player_question_has_unverified_lore_claim",
+   "_prepare_lore_authority_context",
+   "_promote_scene_referent",
+   "_recent_player_visible_narration",
+   "_record_narration_safety",
+   "_record_spoken_coin_response",
+   "_remember_accepted_profile_focus",
+   "_remember_experimental_npc_speech",
+   "_remember_owner_locked_tavern_focus",
+   "_render_experimental_npc_speech",
+   "_report_of_someone_else",
+   "_reported_npc_claim_followed_by_player_inspection",
+   "_resolve_campaign_npc_reference",
+   "_resolve_enemy_turns_until_player",
+   "_resolve_player_death_turn",
+   "_rumour_lane_on",
+   "_run_player_turn_internal",
+   "_runs_a_shop",
+   "_said_after_approach",
+   "_said_to_someone_here",
+   "_salvage_plain_speech",
+   "_scene_detail_parent",
+   "_scene_detail_proposals_allowed",
+   "_scene_observation_proposal_turn",
+   "_session",
+   "_set_scene_active_npc",
+   "_settle_address",
+   "_settle_spoken_commitment",
+   "_shop_economy_request",
+   "_shop_presence_question",
+   "_show_coin_roll",
+   "_shown_stage_direction",
+   "_speech_debug_trail",
+   "_spoken_lore_fact_ids",
+   "_spoken_name_answer",
+   "_supported_lore_question_response",
+   "_topic_place_name",
+   "_town_fallback",
+   "_town_in_play",
+   "_turns_to_someone_else",
+   "_unverified_lore_response",
+   "_unverified_past_event_assertion",
+   "_validated_local_person_proposal",
+   "_validated_scene_npc_id",
+   "_voiced_keys",
+   "_with_only_backed_money",
+   "_without_lines_already_said",
+   "active_npcs",
+   "advance_combat_turn",
+   "campaign_time",
+   "combat_lifecycle",
+   "copy",
+   "create_npc_from_ai",
+   "ensure_campaign_clock",
+   "ensure_combat_state",
+   "ensure_death_state",
+   "execute_intent",
+   "finalize_narration",
+   "historical_claim_denial",
+   "incident_hooks",
+   "interaction_adventure",
+   "is_npc_dialogue_input",
+   "is_npc_historical_claim",
+   "is_player_world_assertion",
+   "json",
+   "known_character_answer",
+   "living_world",
+   "local_dialogue",
+   "money_owner",
+   "most_plausible_addressee",
+   "normalize_intent",
+   "npc_memory_supporting_entry",
+   "parse_player_intent",
+   "plan_living_world_turn",
+   "re",
+   "record_npc_interaction",
+   "resolve_location_reference",
+   "resolve_npc_reference",
+   "scheduled_events",
+   "should_generate_features",
+   "should_generate_npcs",
+   "sys",
+   "talk_front",
+   "talk_mode",
+   "timed_gameplay",
+   "validate_intent",
+   "validate_world_updates"
+  ],
+  "start_terminal_game": [
+   "Path",
+   "initialize_game",
+   "load_game"
+  ],
+  "_restore_in_place": [
+   "_restore_in_place"
+  ],
+  "_dynamic_engine_transitions": [],
+  "_session": [
+   "_ACTIVE_SESSION",
+   "_DEFAULT_SESSION"
+  ],
+  "_bind_session_engine": [
+   "GameSession",
+   "_ACTIVE_SESSION",
+   "_ENGINE_FUNCTIONS",
+   "_ENGINE_NAMESPACE",
+   "_session",
+   "functools"
+  ],
+  "create_session": [
+   "GameSession",
+   "_ACTIVE_SESSION",
+   "initialize_game"
+  ]
+ },
+ "constant_clusters": [
+  [
+   "RACES"
+  ],
+  [
+   "RACE_FEATURES"
+  ],
+  [
+   "CLASSES"
+  ],
+  [
+   "CLASS_FEATURES"
+  ],
+  [
+   "CLASS_HIT_DICE"
+  ],
+  [
+   "SKILLS"
+  ],
+  [
+   "CLASS_SKILL_OPTIONS"
+  ],
+  [
+   "DIFFICULTY_DC"
+  ],
+  [
+   "RANDOM_NAMES"
+  ],
+  [
+   "_ASKS_SOMETHING"
+  ],
+  [
+   "_THIRD_PERSON_REPORT"
+  ],
+  [
+   "_SECOND_PERSON_SAID"
+  ],
+  [
+   "_SAID_IT_AGAIN"
+  ],
+  [
+   "_ENDS_IN_SPEECH"
+  ],
+  [
+   "_NEGATED_VERB_SUFFIX"
+  ],
+  [
+   "_SKILL_CHECK_WORD"
+  ],
+  [
+   "_SKILL_ENDING"
+  ],
+  [
+   "_ABILITY_WORD"
+  ],
+  [
+   "_OPEN_SCARE"
+  ],
+  [
+   "_SOMEONE_ELSES_PURSE"
+  ],
+  [
+   "_COVER_WORD",
+   "_COVER"
+  ],
+  [
+   "_OWN_THING_HIDDEN"
+  ],
+  [
+   "_READING_CHECKS"
+  ],
+  [
+   "_COMMON_SENTENCE_OPENERS"
+  ],
+  [
+   "_QUESTION_CUE_RE"
+  ],
+  [
+   "recent_dm_narrations"
+  ],
+  [
+   "world_state",
+   "INITIAL_WORLD_STATE"
+  ],
+  [
+   "SAVE_FORMAT_VERSION"
+  ],
+  [
+   "_SUPPORTED_SAVE_VERSIONS"
+  ],
+  [
+   "GIANT_ANCESTRY_IDS"
+  ],
+  [
+   "CELESTIAL_REVELATION_FORMS"
+  ],
+  [
+   "RULE_ORDER"
+  ],
+  [
+   "INNER_RADIANCE_SPEC"
+  ],
+  [
+   "NECROTIC_SHROUD_SPEC"
+  ],
+  [
+   "SPECIES_WITH_TRAIT_STATE"
+  ],
+  [
+   "_ABILITY_NAMES"
+  ],
+  [
+   "_ORIGIN_TEXT_KEYS"
+  ],
+  [
+   "_ORIGIN_LIST_KEYS"
+  ],
+  [
+   "_ORIGIN_SCORE_KEYS"
+  ],
+  [
+   "_PERSISTED_PLAYER_CONDITION_FIELDS"
+  ],
+  [
+   "DEATH_MODES"
+  ],
+  [
+   "_ARMED_ROLE"
+  ],
+  [
+   "_STRONG_ROLE"
+  ],
+  [
+   "_PERSON_FIGHT"
+  ],
+  [
+   "_ENGLISH_STOP_WORDS"
+  ],
+  [
+   "_SHOP_ECONOMY_PATTERN"
+  ],
+  [
+   "_SHOP_TRANSACTION_REQUEST_PATTERN"
+  ],
+  [
+   "_SHOP_ENTITY_QUERY_PATTERN"
+  ],
+  [
+   "_SHOP_CREATION_ACTION_PATTERN"
+  ],
+  [
+   "_SAVE_ABILITY_TR"
+  ],
+  [
+   "_FALL_LINE"
+  ],
+  [
+   "_REWOUND_LINE"
+  ],
+  [
+   "_PROPOSAL_MARKER_RE"
+  ],
+  [
+   "_INTERNAL_MARK_RE"
+  ],
+  [
+   "_GUARD_ROLE"
+  ],
+  [
+   "_GUARD_WORD"
+  ],
+  [
+   "_GENERIC_PERSON"
+  ],
+  [
+   "_LOCATED_PERSON"
+  ],
+  [
+   "_IN_REACH_WORDS"
+  ],
+  [
+   "_COUNTER_WORDS"
+  ],
+  [
+   "_COUNTER_ROLE"
+  ],
+  [
+   "_ADDRESSEE_OPERATIONS"
+  ],
+  [
+   "_OFFER_OPERATIONS"
+  ],
+  [
+   "_OFFER_MARKER"
+  ],
+  [
+   "_ADDRESS_VERB"
+  ],
+  [
+   "_SPEAKING_VERB"
+  ],
+  [
+   "_CONTINUATION_TERMS"
+  ],
+  [
+   "_OBJECT_INSPECTION"
+  ],
+  [
+   "_CLAIM_DENIAL_LINES"
+  ],
+  [
+   "_SPEECH_REPEAT_LINES"
+  ],
+  [
+   "_STOCK_SAID"
+  ],
+  [
+   "_NARRATOR_PROFILE_FIELDS"
+  ],
+  [
+   "INTENT_TYPES",
+   "INTENT_SCHEMA"
+  ],
+  [
+   "SKILL_INTENT_TO_SKILL"
+  ],
+  [
+   "SCENE_DETAIL_KIND_ALLOWLIST"
+  ],
+  [
+   "_EXPERIMENTAL_NPC_SPEECH_SCHEMA"
+  ],
+  [
+   "_EXPERIMENTAL_NPC_SPEECH_OPTIONS"
+  ],
+  [
+   "_NPC_SPEECH_LOG_KEY"
+  ],
+  [
+   "_NPC_SPEECH_KEEP"
+  ],
+  [
+   "_MENTIONS_PROMPT_RULE"
+  ],
+  [
+   "_VOICED_PROMPT_RULE"
+  ],
+  [
+   "_CLAIM_REJECTION_RE"
+  ],
+  [
+   "_CLAIM_ACCEPTANCE_RE"
+  ],
+  [
+   "_SPEECH_CUT_RE"
+  ],
+  [
+   "_SPEECH_META_RE"
+  ],
+  [
+   "_REAL_WORLD_FAITH"
+  ],
+  [
+   "_CLAIM_PLAIN_DENIAL_RE"
+  ],
+  [
+   "_SPEECH_ANSWER_RULES"
+  ],
+  [
+   "_ASKS_WHO_YOU_ARE"
+  ],
+  [
+   "_REFUSED_MOVE_RULE"
+  ],
+  [
+   "_FOLLOWUP_WORDS"
+  ],
+  [
+   "_GENERIC_NO_CHANGE_RESPONSE",
+   "_GENERIC_NO_CHANGE_RESPONSES"
+  ],
+  [
+   "_INTERNAL_PLAYER_FACING_RE"
+  ],
+  [
+   "_NARRATION_PERSISTENT_OBJECT_HEADS"
+  ],
+  [
+   "_NARRATION_PERSISTENT_OBJECT_STATE"
+  ],
+  [
+   "_HELD_SKIP"
+  ],
+  [
+   "_PLAYER_MENTAL_STATE_PREFIXES"
+  ],
+  [
+   "_PLAYER_MENTAL_STATE_CONTEXT_RE"
+  ],
+  [
+   "_PLAYER_MENTAL_STATE_COPULA_RE"
+  ],
+  [
+   "_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE"
+  ],
+  [
+   "_PLAYER_MENTAL_STATE_AFFECT_RE"
+  ],
+  [
+   "_PLAYER_FEELING_RE"
+  ],
+  [
+   "_NARRATED_NAME_PATTERNS"
+  ],
+  [
+   "_SPEAKING_NAME_PATTERNS"
+  ],
+  [
+   "NPC_SCHEMA",
+   "LOCATION_SCHEMA",
+   "WORLD_UPDATE_SCHEMA",
+   "DM_RESPONSE_SCHEMA"
+  ],
+  [
+   "_LORE_ENTITY_TITLE_RE"
+  ],
+  [
+   "_LORE_PROPER_NAME_RE"
+  ],
+  [
+   "_LORE_ENTITY_FOLLOWING_CUE_RE"
+  ],
+  [
+   "_LORE_SENTENCE_START_WORDS"
+  ],
+  [
+   "_GENERIC_SPEAKER_LABEL_RE"
+  ],
+  [
+   "_LORE_UNSUPPORTED_DETAIL_PATTERNS"
+  ],
+  [
+   "_LORE_RULER_TITLE_RE"
+  ],
+  [
+   "_LORE_ENTITY_RELATION_RE"
+  ],
+  [
+   "_LORE_ROUTE_DISTANCE_QUERY_RE"
+  ],
+  [
+   "_UNVERIFIED_LORE_RESPONSE"
+  ],
+  [
+   "_UNVERIFIED_DISTANCE_RESPONSE"
+  ],
+  [
+   "_UNVERIFIED_RULER_RESPONSE"
+  ],
+  [
+   "_INDOOR_DETAIL"
+  ],
+  [
+   "_ASKS_DISTANCE"
+  ],
+  [
+   "_SPEECH_SPAN_RE"
+  ],
+  [
+   "_TERMINATOR_MASK"
+  ],
+  [
+   "_WINDOW_WORDS"
+  ],
+  [
+   "_LOCK_WORDS"
+  ],
+  [
+   "_TRACK_WORDS"
+  ],
+  [
+   "_TELLS_FAILURE"
+  ],
+  [
+   "_UNMOVED"
+  ],
+  [
+   "_QUOTE_CLOSER_RE"
+  ],
+  [
+   "_QUOTE_OPENER_RE"
+  ],
+  [
+   "NARRATOR_VOICE",
+   "system_prompt",
+   "messages"
+  ],
+  [
+   "DEBUG_MODE"
+  ],
+  [
+   "_ATTACK_VERB_PATTERN"
+  ],
+  [
+   "_ATTACK_BLOW_PHRASE"
+  ],
+  [
+   "_CHARGING_IN"
+  ],
+  [
+   "_ATTACK_LOOKALIKE_TOKEN"
+  ],
+  [
+   "_ATTACK_INSTRUMENT_TOKENS"
+  ],
+  [
+   "_INANIMATE_HIT_OBJECT"
+  ],
+  [
+   "_CREATURE_REFERENCE"
+  ],
+  [
+   "CHECK_FEATURES"
+  ],
+  [
+   "_LOOK_OPENINGS"
+  ],
+  [
+   "_CONVERSATION_OPENINGS"
+  ],
+  [
+   "COIN_LEFT_BEHIND"
+  ],
+  [
+   "_OWN_ACTS"
+  ],
+  [
+   "_WALKED_UP"
+  ],
+  [
+   "_SAY_VERBS"
+  ],
+  [
+   "_SAY_ENGLISH"
+  ],
+  [
+   "_HAIL_FILLERS"
+  ],
+  [
+   "_PLANNER_STAYS_OUT"
+  ],
+  [
+   "_NO_BLOW_NOW"
+  ],
+  [
+   "_BLOW_WORDS"
+  ],
+  [
+   "_NOT_A_LOCAL_PLACE"
+  ],
+  [
+   "_NARRATOR_PRONOUNS",
+   "_NARRATOR_PLURAL"
+  ],
+  [
+   "DEFAULT_SAVE_PATH"
+  ],
+  [
+   "_ENGINE_FUNCTIONS"
+  ],
+  [
+   "_CHARACTER_GLOBALS"
+  ],
+  [
+   "_ACTIVE_SESSION"
+  ],
+  [
+   "_DEFAULT_SESSION"
+  ],
+  [
+   "_ENGINE_NAMESPACE"
+  ]
+ ],
+ "closed_helpers": [
+  "ollama_response_content",
+  "ollama_reply_was_cut",
+  "get_modifier",
+  "choose_option",
+  "choose_skill_proficiencies",
+  "calculate_hp",
+  "calculate_ac",
+  "_just_served",
+  "is_ordinary_environment_look",
+  "npc_ambiguity_response",
+  "_affirmative_door_verb",
+  "clean_dm_response",
+  "_new_species_trait_state",
+  "_origin_choices_valid",
+  "_validate_player_condition_state",
+  "_validate_player_weapon_proficiencies",
+  "_validate_combat_v3_payload",
+  "_validate_long_rest_history",
+  "_validate_saved_multilevel_slots",
+  "_repair_dilim1_fields",
+  "_known_happenings",
+  "_hand_names_something",
+  "_venue_door_id",
+  "_mark_lock_seen",
+  "_lock_known_to_player",
+  "_death_state_defaults",
+  "_combat_defaults",
+  "_clean_world_text",
+  "_scene_texts_for_referents",
+  "_reads_english",
+  "_is_shopkeeper_role",
+  "_explicit_campaign_shop_request",
+  "_shop_economy_request",
+  "_explicit_campaign_shop_negative_request",
+  "_shop_presence_question",
+  "_unarmed_save_text",
+  "_strip_proposal_markers",
+  "_normalize_interaction_mode",
+  "_is_guard",
+  "_serves_at_a_counter",
+  "_topic_place_name",
+  "_drop_repeated_sentences",
+  "_is_plain_person_reference",
+  "_fold_keep_punctuation",
+  "_claim_keywords",
+  "_format_npc_memory",
+  "_lines_already_said",
+  "speech_repeat_line",
+  "_narrator_visible_profile",
+  "_bodies_here_context",
+  "_untrusted_player_block",
+  "_extract_json_object",
+  "_speech_debug_trail",
+  "_rumour_lane_on",
+  "_voiced_keys",
+  "_strip_pictographs",
+  "_without_real_world_faith",
+  "_is_explicit_name_led_gesture_line",
+  "_clean_npc_stage_direction",
+  "_compose_experimental_npc_speech",
+  "_without_label_variant",
+  "_npc_speech_rejects_claim",
+  "_npc_speech_grants_claim",
+  "_spoken_name_answer",
+  "_job_news_line",
+  "_has_session",
+  "_carry_out_thread_turn",
+  "_turns_to_someone_else",
+  "_town_in_play",
+  "_elsewhere_line",
+  "_overheard_work",
+  "_accept_named_job",
+  "_show_coin_roll",
+  "_with_only_backed_money",
+  "_bag_note",
+  "_dm_prompt_note",
+  "_claim_denial_quotes",
+  "_has_private_profile_value",
+  "_is_short_followup",
+  "_experimental_speech_recap",
+  "_local_place_access",
+  "_normalize_turkish_typos",
+  "_mechanical_outcome",
+  "_is_internal_player_facing_text",
+  "_narration_scene_type",
+  "_registered_persistent_object_names",
+  "_is_figurative_key_transfer",
+  "_unseen_registered_names",
+  "_inside_speech",
+  "_empty_lore_authority_context",
+  "_lore_claims_are_supported",
+  "_lore_guard_text",
+  "_lore_fact_records",
+  "_is_generic_speaker_label",
+  "_salvage_plain_speech",
+  "_split_sentences_keep_speech",
+  "_spoken_lore_fact_ids",
+  "_has_active_local_npc_focus_for_place_request",
+  "_validated_player_line",
+  "_dm_response_schema_for_turn",
+  "_resolved_skill_result_narration",
+  "_trim_dangling_quote",
+  "_dialogue_repair_has_attributed_answer",
+  "_narrated_money_can_lie",
+  "_skill_result_category",
+  "_print_skill_result",
+  "_attack_verb_tokens",
+  "_immediate_check_refusal",
+  "_turkish_genitive_form",
+  "_asks_what_is_going_on",
+  "_is_bare_greeting",
+  "_is_scene_referent_activity_observation",
+  "_public_scene_person_text",
+  "_adventure_travel_reply",
+  "_intent_infrastructure_result",
+  "_clear_turn_transients",
+  "turn_source_key",
+  "_a_walk",
+  "_said_after_approach",
+  "_line_addresses",
+  "_economic_listing",
+  "_word_root",
+  "_singular_narrator",
+  "_is_canonical_city_id",
+  "_death_resolution_from_actions",
+  "_said_to_someone_here",
+  "_restore_in_place",
+  "_dynamic_engine_transitions",
+  "_session"
+ ]
+}
