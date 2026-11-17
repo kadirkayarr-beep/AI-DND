@@ -9909,6 +9909,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + "\n`asks_for`: oyuncu senden şimdi oda ya da listedeki bir malı istiyorsa onu seç; istemiyorsa `none`."
             + "\n`remember_player_line`: oyuncunun bu sözünü kişisel hafızaya seçmek istiyorsan true."
             + (f"\n{_MENTIONS_PROMPT_RULE}" if _rumour_lane_on() else "")
+            + _VOICED_PROMPT_RULE  # a field rule like the ones above: the last prompt line stays the player's message
             + _experimental_speech_recap(interaction_context)
             + _local_place_recommendation_guidance(
                 player_input, interaction_context, world_state
@@ -10096,7 +10097,6 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         import town_knowledge
         schema["properties"]["voiced"]["items"]["enum"] = [*town_knowledge.speech_keys(world_state, speech_npc), "none"]
         schema["required"] = [*schema["required"], "voiced"]
-        prompt += _VOICED_PROMPT_RULE
         import local_places
         if _rumour_lane_on():
             schema["properties"]["mentions"]["properties"]["place_kind"]["enum"] = list(local_places.PLACE_KINDS)

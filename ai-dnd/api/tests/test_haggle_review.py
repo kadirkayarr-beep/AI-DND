@@ -2,6 +2,7 @@
 from dataclasses import replace
 
 import bold_acts
+import campaign_time
 import economic_actions as ea
 import game
 import money_owner
@@ -14,9 +15,16 @@ def approved_haggle(session, npc, check):
     return money_owner.haggle(session, npc, check,
                               negotiation=proposal(session.world_state), player_input=LINE)
 
+def a_valid_clock(world, elapsed_seconds):
+    """The speech note reads the public hour (BM T6), so a stub `{"elapsed_seconds": n}` is no longer a clock."""
+    world.pop("campaign_time", None)
+    campaign_time.initialize(world)
+    world["campaign_time"]["elapsed_seconds"] = elapsed_seconds
+
+
 class ReviewedPrices(Spoken):
     def test_day_one_discount_is_the_price_in_the_speech_input(self):
-        self.w.setdefault("campaign_time", {})["elapsed_seconds"] = 86400
+        a_valid_clock(self.w, 86400)
         npc = self.npc("barman")
         shop_trade.apply_cut(self.w, npc, "bira", 4)
         self.assertEqual(shop_trade.quote(self.w, "barman", "bira", 1)["unit_cp"], 3)
@@ -27,7 +35,7 @@ class ReviewedPrices(Spoken):
     def test_expired_discount_does_not_survive_in_the_speech_input(self):
         npc = self.npc("barman")
         shop_trade.apply_cut(self.w, npc, "bira", 4)
-        self.w.setdefault("campaign_time", {})["elapsed_seconds"] = 86400
+        a_valid_clock(self.w, 86400)
         self.assertEqual(shop_trade.quote(self.w, "barman", "bira", 1)["unit_cp"], 4)
         note = game._experimental_speech_note(self.w, npc, "reveal", "bira ne kadar?")
         self.assertIn("bira 4 bakır", note)

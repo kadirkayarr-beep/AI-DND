@@ -87,6 +87,7 @@ Konuşma satırı artık ön okumadan geçer (`say`/`ask_dm`, kişi seçili olsu
 | `test_front_money.SayModeCoin.test_say_mode_reads_only_a_line_that_names_coin` (yeni ad `test_say_mode_reads_every_line_and_coin_stays_the_owners`) | parasız söz satırı artık okunur (eskiden okunmazdı, `skipped:typed`); aynı sıkılık: o satırda para 0, para satırı yine 50 okur | gevşetme olabilir |
 | `test_front_money.SayModeCoin.test_a_coin_line_to_nobody_typed_is_not_a_say_mode_reading` (yeni ad `test_a_coin_line_asked_of_the_dm_is_read_but_its_coin_is_never_taken`) | `ask_dm` satırı artık okunur; aynı sıkılık: okunan para alınmaz (`_front_coin == 0`), rota `typed:talk_read` | gevşetme olabilir |
 | `test_front_money.SayModeCoinKeepsTheTalk.test_a_say_line_without_coin_keeps_its_own_proposal_call` (yeni ad `test_a_say_line_without_coin_is_read_once_and_asks_no_second_call`) | eski öneri adımı kendi sınıflandırıcı çağrısını yapardı; şimdi ön okuma o çağrı (en çok 2 çağrı) | gevşetme olabilir |
+| `test_front_tip_pipeline.TipPipeline.test_say_mode_keeps_the_same_true_for_the_chosen_vendor` (süit düzeltmesi) | sahte model yanıtına `asks` ve `about_person_id` ('none') eklendi; "yanıt = sahibe giden girdi" karşılaştırması aynen tam eşitlik kaldı (para alanları dahil) | gevşetme yok (fikstür yeni okuma alanlarını bilmiyordu) |
 
 Davranış sınırı (BM T1, Opus incelemesi 2026-11-17): kişi seçili düz `say` satırında `_front_economic_none` kurulur; eski kelime yolları (`bold_acts.take_room`, `_room_asked`) oda kartını artık hazırlamaz, kararı modelin `economic_intent` okuması verir. Para hareketi ve satın alma yolları değişmedi. Gevşetme olabilir; onay bekliyor.
 
@@ -127,6 +128,8 @@ Kişi konuşması saati, oyuncuya gösterilen varış metnini (en çok 600 karak
 |---|---|---|
 | `test_arrival_narration.Narrate.test_world_is_identical_with_and_without_the_call` | dünya eskiden her yerde aynıydı; şimdi `scene_state.arrival_text` hariç aynı (iki yolun kendi gösterilen metni bu anahtarda ve dönen metne eşit), geri kalan dünya aynı sıklıkta karşılaştırılır | gevşetme olabilir (karşılaştırmadan bir anahtar çıktı) |
 | Yeni `test_npc_scene_time` (saat, sahne, kendi iş, kendi söz, son sözler, Geri Al, kayıt-yükleme) | yeni | gevşetme yok |
+| `test_economic_spoken_consent.PendingCoinPrompt.test_bound_pending_offer_tells_only_recipient_coin_is_not_transferred` (süit düzeltmesi) | fikstürün `{elapsed_seconds}` taslak saati geçerli saatle değiştirildi (konuşma notu artık saati okuyor); para iddiaları (5 bakır, "henüz sende değil", para değişmedi) aynen duruyor | gevşetme yok (para kodu değişmedi) |
+| `test_haggle_review.ReviewedPrices` (2 test, süit düzeltmesi) | `{elapsed_seconds}` taslak saati yerine geçerli saat kuruldu (`a_valid_clock`); fiyat iddiaları (bira 3/4 bakır) aynen duruyor | gevşetme yok (fiyat kodu değişmedi) |
 
 ## 11. BM görev 7 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
@@ -146,6 +149,8 @@ Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi
 |---|---|---|
 | `test_story_links.HalfTruths.test_saying_it_in_your_own_way_is` | yanlış söylenti söylenince tehlike işi eskiden "heard" oluyordu (günlük gerçek satırı gösterirdi); şimdi iş "open" kalır, söylenti kendi sözleriyle `heard_rumours`ta | gevşetme olabilir (sınır yeniden tanımlandı; daha sıkı) |
 | Yeni `test_journal_heard.OneJobIsNeverAnother`, `FalseRumourKeepsItsOwnWords` | yeni (60 sabit kasaba, tüm sıralı çiftler: 0 çapraz eşleşme; yanlış söylenti) | gevşetme yok |
+| `test_default_focus_acceptance` (flag kapalı, tüm kipler), `test_meaning_boundary_acceptance`, `test_query_request_acceptance`, `test_default_npc_targeting` (yer önerisi), `test_npc_p2_continuity` (3 test) (süit düzeltmesi) | `required` ve `properties` beklentilerine `voiced` eklendi (üstteki `test_experimental_npc_dialogue` satırıyla aynı şema değişikliği) | gevşetme olabilir (tam liste sabitleyen testler genişledi) |
+| `test_npc_p2_continuity.test_live3_short_followup_drops_rumor_and_names_the_referent` | test değişmedi; ürün düzeltildi: `voiced` kuralı istemin sonundan alan kuralları bloğuna alındı, son satır yine oyuncunun mesajı | gevşetme yok |
 
 ## 12. BM görev 8 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
@@ -170,3 +175,4 @@ Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi
 | Test | Değişiklik | İşaret |
 |---|---|---|
 | `test_ready_line_share.ReadyLineShare` (paylaşım, kaynaksız satırlar, boş kayıt; yeni: telemetrisiz tur, tezgâh varlık satırı) | tasarım 5.9'a uyar: payda TÜM oyuncu satırları (eskiden yalnız kaynağı bilinen, motor sahibi olmayan satırlar); kaynaksız satırlar atılmaz, `unknown` olarak sayılır; `shop_inquiry` motor sahibi değil (tezgâh varlık satırı hazır satırdır) | sınırı yeniden tanımlar, gevşetme olabilir |
+| `test_narration_source_record.TheListIsTheEngines.test_no_other_engine_module_reports_a_source` (T11, süit düzeltmesi) | izinli modül kümesine rota günlüğü yazıcısı `front_proposal.py` eklendi (`ROUTE_LOG_WRITERS`); küme hâlâ tam eşitlik; yeni: `python_direct` mağaza listesinde olmamalı | gevşetme olabilir (izinli modül kümesi genişledi) |
