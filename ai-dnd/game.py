@@ -4439,6 +4439,20 @@ def _is_shopkeeper_role(role):
     ))
 
 
+def _runs_a_shop(world_state, npc):
+    """This person keeps a shop or the ready counter: by her shop, her role, the counter or her tag."""
+    import shop_trade
+    if not isinstance(npc, dict):
+        return False
+    tags = npc.get("tags", [])
+    return bool(
+        npc.get("shop_id")
+        or _is_shopkeeper_role(npc.get("role"))
+        or shop_trade.is_vendor(world_state, npc)  # a Barmen who runs the ready counter
+        or (isinstance(tags, list) and any(isinstance(tag, str) and tag.casefold() == "shopkeeper" for tag in tags))
+    )
+
+
 def _campaign_has_shopkeeper():
     world_state = _session().world_state
     for npc in world_state.get("npcs", []):
@@ -7867,13 +7881,27 @@ def normalize_location_id(value):
     return resolve_location_reference(value)
 
 
+def clean_location_description(text, *, whole_words=False):
+    """A place description on one line, at most 240 characters and free of game mechanics; "" otherwise.
+
+    `whole_words` is for a heard rumour's claim only, which also loses unbacked money afterwards: there 'altında',
+    'pazar', 'zarar', 'öldürdü' stay. A place the model proposes keeps the substring check ('altınlık' goes too).
+    """
+    description = _clean_world_text(text, 240) or ""
+    mechanical_terms = ("hp", "damage", "hasar", "inventory", "envanter", "altın", "d20", "dc", "zar", "kapı açık", "öldü")
+    folded = description.casefold()
+    if any((re.search(rf"\b{re.escape(term)}\b", folded) if whole_words else term in folded) for term in mechanical_terms):
+        return ""
+    return description
+
+
 def validate_location_proposal(proposal):
     """Validate creative location data while assigning no model-provided ID."""
     if not isinstance(proposal, dict):
         return None
     name = _clean_world_text(proposal.get("name"), 60)
     location_type = _clean_world_text(proposal.get("type", "other"), 24) or "other"
-    description = _clean_world_text(proposal.get("description", ""), 240) or ""
+    description = clean_location_description(proposal.get("description", ""))
     if not name or not re.fullmatch(r"[\w .’'-]+", name, flags=re.UNICODE) or "_" in name:
         return None
     if resolve_location_reference(name):
@@ -7888,9 +7916,6 @@ def validate_location_proposal(proposal):
         location_type = "other"
     elif location_type.casefold() in ("city_gate", "city gate"):
         location_type = "city"
-    mechanical_terms = ("hp", "damage", "hasar", "inventory", "envanter", "altın", "d20", "dc", "zar", "kapı açık", "öldü")
-    if any(term in description.casefold() for term in mechanical_terms):
-        description = ""
     aliases = _clean_world_text_list(proposal.get("aliases", []), 60, 8)
     safe_aliases = []
     for alias in aliases:
@@ -8740,15 +8765,19 @@ def _has_spoken_to_player(npc):
     return bool(npc_statements.view(_session().world_state)["statements"].get(npc.get("id")))
 
 
-def _with_job_news(world, place_id, narration):
-    """Coming back to a place you had a job at, how it ended is simply there to see."""
+def _job_news_line(world, place_id):
+    """Coming back to a place you had a job at, how it ended is simply there to see ("" when nothing)."""
     import town_knowledge
     import world_threads
     try:
-        line = world_threads.arrival_line(world, place_id)
+        return world_threads.arrival_line(world, place_id) or ""
     except Exception:
         town_knowledge.log_failure()
-        return narration
+        return ""
+
+
+def _with_job_news(world, place_id, narration):
+    line = _job_news_line(world, place_id)
     return f"{narration} {line}" if line else narration
 
 
@@ -9031,7 +9060,9 @@ def _town_fallback(world, npc, player_input):
     if kind != "local_work" and not _asks_what_is_going_on(player_input) and not open_question:
         return None
     try:
-        return town_knowledge.fallback_line(world, npc)
+        import heard_rumours
+        # D-249 F2: asked about what she herself said, she says it again before any other lead.
+        return heard_rumours.own_line(world, npc, player_input) or town_knowledge.fallback_line(world, npc)
     except Exception:
         town_knowledge.log_failure()
         return None
@@ -14925,7 +14956,9 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
                 f"{place} konumuna ulaştın."
                 + (f" {presence}" if presence else "")
             )
-        return "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin."
+        import grounded_action
+        return (grounded_action.road_ends_line(_session())
+                or "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin.")
     if action == "explore" and isinstance(result.get("inspection"), dict):
         return str(result["inspection"].get("text") or "")
     if result.get("scene_look") and result.get("direct_response"):
@@ -19004,7 +19037,7 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             or (walk and not walked)  # stopped short: nobody the rest was for is here
             or (session.world_state.get("location") != place_before and not walked)  # the one asked is left behind
             or (walked and (getattr(session, "_front_coin", 0) or getattr(session, "_coin_paid", None)))  # coin read once
-            or action_result.get("action") in {"dialogue", "query", "lodging"}  # a room taken has answered its own price
+            or action_result.get("action") in {"dialogue", "query", "lodging", "shop_inquiry"}  # a room taken has answered its own price
             or action_result.get("status") in {"experimental_attributed_speech", "clarification"}
             or not ollama_adapter.model_calls_left()):
         return result
@@ -19056,7 +19089,8 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
     line = said.get("narration") or ""
     if hearer is not None and _is_stock(line):
         line = _person_fallback(session.world_state, hearer, rest)
-    result["narration"] = f"{result.get('narration') or ''} {line}".strip()
+    first_line = (result.get("narration") or "").strip()
+    result["narration"] = first_line if line.strip() == first_line else f"{first_line} {line}".strip()
     # Both parts are one turn: what each proved is handed on together, under that one turn's index.
     first, last = result.get("_engine_event_evidence"), said.get("_engine_event_evidence")
     if last and not first and action_result.get("quest_outcomes"):
@@ -19546,6 +19580,9 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             route = {"kind": "go_to", "id": out, "inside": False}
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
+        if (isinstance(raw_front, dict) and raw_front.get("kind") == "go_to"
+                and interaction_mode not in {"say", "ask_dm"}):
+            return {"kind": "walk_failed"}  # E5: a walk to nowhere listed is a failed walk, never a person to follow
         return None
     import grounded_action
     import npc_speech_boundary
@@ -20585,6 +20622,13 @@ def _dispatch_player_turn(
             flags["turn_index"] = flags.get("turn_index", 0) + 1
             return {"messages": _session().messages, "narration": passed["direct_response"], "model_calls": 0,
                     "action_result": passed}
+    if front is not None and front["kind"] == "walk_failed" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        text = _fallback_for_action_result(player_input, {"action": "travel", "status": "failed"})
+        flags = _session().world_state.setdefault("flags", {})
+        flags["turn_index"] = flags.get("turn_index", 0) + 1
+        return {"messages": _session().messages, "narration": text, "model_calls": 1,
+                "action_result": {"action": "travel", "status": "failed", "success": False,
+                                  "state_changes": [], "direct_response": text}}
     if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         import front_proposal
         import grounded_action
@@ -22791,6 +22835,8 @@ def _run_player_turn_internal(
         if action_result.get("status") == "proposal_rejected" and _has_spoken_to_player(npc_target):
             # Someone mid-conversation answers for themselves; a stock "I know nothing" disowns their own words.
             answer_in_person = True
+        if action_result.get("status") == "unbacked" and isinstance(npc_target, dict):
+            answer_in_person = True  # D-249 F2: nothing backs the answer, so it is theirs to give, not a stock line
         if (action_result.get("status") in {"proposal_rejected", "no_effect"} and isinstance(npc_target, dict)
                 and (getattr(_session(), "_front_read", None) or {}).get("kind") == "speak_to"):
             answer_in_person = True  # the reading said this is for that person: a proposal with nothing in it changes no ear
@@ -22875,7 +22921,12 @@ def _run_player_turn_internal(
             safety_handling="python_fallback",
         )
 
-    if _shop_presence_question(player_input):
+    if (_shop_presence_question(player_input)
+            and ((target_id is None and not isinstance(npc_target, dict)
+                  and (getattr(_session(), "_front_read", None) or {}).get("kind") != "speak_to")
+                 # asked of the one who keeps the shop here, the shop line is her answer (Review 11 A4)
+                 or (isinstance(npc_target, dict) and npc_target.get("location") == world_state.get("location")
+                     and _runs_a_shop(world_state, npc_target)))):
         current_location = world_state.get("location")
         local_shops = [
             shop
@@ -22884,25 +22935,10 @@ def _run_player_turn_internal(
             and shop.get("location") == current_location
         ]
         import shop_trade
-        local_shopkeepers = []
-        for npc in world_state.get("npcs", []):
-            if not isinstance(npc, dict) or npc.get("location") != current_location:
-                continue
-            tags = npc.get("tags", [])
-            if (
-                npc.get("shop_id")
-                or _is_shopkeeper_role(npc.get("role"))
-                or shop_trade.is_vendor(world_state, npc)  # a Barmen who runs the ready counter
-                or (
-                    isinstance(tags, list)
-                    and any(
-                        isinstance(tag, str)
-                        and tag.casefold() == "shopkeeper"
-                        for tag in tags
-                    )
-                )
-            ):
-                local_shopkeepers.append(npc)
+        local_shopkeepers = [
+            npc for npc in world_state.get("npcs", [])
+            if isinstance(npc, dict) and npc.get("location") == current_location and _runs_a_shop(world_state, npc)
+        ]
 
         if local_shops:
             names = ", ".join(
@@ -22997,8 +23033,10 @@ def _run_player_turn_internal(
         if safe_name:
             # Hearing the same name again is no moment for the greeting a second time.
             compound_speech = _known_player_name(npc_target) == safe_name or (
-                _npc_speech_enabled()
-                and local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
+                local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
+                # E9: a question Python cannot answer goes to speech; "who are you" Python answers itself.
+                and (_npc_speech_enabled() or (interaction_adventure._asks(player_input)
+                                               and _detect_query_type(player_input, npc_target) != "npc_identity"))
             )
             if compound_speech:
                 local_dialogue.remember_explicit_player_name(npc_target, safe_name)
@@ -23738,13 +23776,13 @@ def _run_player_turn_internal(
                 or raw_intent.get("lore_claims")
                 or not interaction_adventure.safe_narration(text)
             ):
-                text = (
-                    historical_claim_denial(npc_target, player_input)
-                    if experimental_unverified_claim
-                    else interaction_adventure.immersive_unknown(
-                        npc_target, player_input
-                    )
-                )
+                if experimental_unverified_claim:
+                    text = historical_claim_denial(npc_target, player_input)
+                else:
+                    # D-249 F1: the person passes on a lead (job, town, place to ask) before any bare "I don't know".
+                    text = _person_fallback(world_state, npc_target, player_input)
+                    if text != interaction_adventure.immersive_unknown(npc_target, player_input):
+                        python_town_response = text
 
             text_before_finalize = text
             text = finalize_narration(
@@ -23773,6 +23811,14 @@ def _run_player_turn_internal(
             if stock_swapped:
                 # A clear line never earns "say it again": the person answers from what Python has for them.
                 text = _person_fallback(world_state, npc_target, player_input)
+            elif (experimental_npc_dialogue and final_safety_handling == "python_fallback"
+                    and not experimental_unverified_claim and action_result.get("action") != "skill_check"
+                    and interaction_adventure._asks(player_input)):  # a greeting keeps the fallback's own answer
+                # D-249 F1: a speech the safety check rejected is replaced by what the person has to say from Python
+                # (job, town lead, place to ask), never by the stock "I don't know" the fallback wrote.
+                text = _person_fallback(world_state, npc_target, player_input)
+                if text != interaction_adventure.immersive_unknown(npc_target, player_input):
+                    python_town_response = text
             speech_checks = None
             if experimental_npc_dialogue:
                 # D-252: the names of the checks that changed or replaced this reply, for the route log. Never words.
@@ -24010,7 +24056,8 @@ def _run_player_turn_internal(
             action_result = interaction_adventure.resolve(
                 _session(), player_input, raw_intent["interaction"], npc_target,
             )
-            if action_result["status"] != "proposal_rejected":
+            if action_result["status"] != "proposal_rejected" and not (
+                    action_result["status"] == "unbacked" and isinstance(npc_target, dict)):
                 return finish_turn(
                     action_result, action_result["direct_response"],
                     is_final=action_result["status"] in {"no_effect", "answered", "blocked"},

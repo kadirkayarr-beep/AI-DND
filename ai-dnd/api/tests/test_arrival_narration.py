@@ -111,7 +111,7 @@ class Fixture(unittest.TestCase):
     def twin_sessions(self):
         return self.twin_worlds()
 
-    def narrate(self, *, answer, scene=None, used=0, player_input=WALK, session=None):
+    def narrate(self, *, answer, scene=None, used=0, player_input=WALK, session=None, lead="", tail=""):
         if session is not None:
             place = session
             scene = scene or self.parts_of(place)
@@ -122,7 +122,7 @@ class Fixture(unittest.TestCase):
         self.client = FakeModel(answer)
         with bound(place.session), patch.object(game, "ollama", self.client), counted_turn(used):
             return arrival_narration.narrate(game, scene, player_input=player_input,
-                                             messages=place.session.messages)
+                                             messages=place.session.messages, lead=lead, tail=tail)
 
     def sent_messages(self, hour):
         scene = self.scene(hour=hour)
@@ -295,8 +295,12 @@ class Narrate(Fixture):
     def test_first_visit_keeps_six_sentences_return_keeps_four(self):
         eight = "Bir. İki. Üç. Dört. Beş. Altı. Yedi. Sekiz."
         text, _ = self.narrate(answer=eight)
-        self.assertEqual(text.split(" ")[:6], ["Bir.", "İki.", "Üç.", "Dört.", "Beş.", "Altı."])
+        # the shaped body is 6 sentences; the whole arrival is capped at 6 too, so the unnamed resident's line
+        # (rank 5) now outranks the body's sentences beyond the fifth
+        self.assertEqual(text.split(" ")[:4], ["Bir.", "İki.", "Üç.", "Dört."])
+        self.assertLessEqual(len(game._split_sentences_keep_speech(text)), 6, text)
         self.assertNotIn("Yedi.", text)
+        self.assertNotIn("Sekiz.", text)
         scene = self.return_after(3 * 3600)
         shaped = arrival_narration._shaped(game, eight, scene)
         self.assertEqual(shaped, "Bir. İki. Üç. Dört.")
@@ -347,3 +351,76 @@ class Narrate(Fixture):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+LEAD = "Dışarı, Pazar Sokağı sokaklarına çıkıyorsun. "
+NOTICE = "Tahtada eski bir ilan asılı."
+
+
+class WholeArrivalCap(Fixture):
+    """F3/E11: the whole shown arrival is capped (6 first, 4 return), the fallback too; a return keeps a floor of 2."""
+
+    def crowded(self):
+        self.current = graveyard(local_issue=True)
+        record = self.current.record
+        self.current.world["locations"]["inner-room"] = {"id": "inner-room", "inner_of": record["id"]}
+        return self.parts_of(self.current)
+
+    def sentences(self, text):
+        return game._split_sentences_keep_speech(text)
+
+    def whole(self, *, answer, scene, lead=LEAD):
+        return self.narrate(scene=scene, answer=answer, lead=lead, tail=NOTICE)
+
+    def test_whole_first_arrival_is_at_most_six_sentences(self):
+        scene = self.crowded()
+        name = scene["name"]
+        reply = f"{name} sessiz. Rüzgâr esiyor. Otlar eğiliyor. Toprak nemli. Bir karga ötüyor. Gökyüzü gri."
+        text, _ = self.whole(answer=reply, scene=scene)
+        self.assertLessEqual(len(self.sentences(text)), 6, text)
+        self.assertIn(name, text)
+        self.assertTrue(text.startswith(LEAD.strip()), text)
+        self.assertIn("Daha içeri açılan ağır bir kapı var", text)
+
+    def test_python_fallback_arrival_is_capped_too(self):
+        scene = self.crowded()
+        text, info = self.whole(answer=RuntimeError("down"), scene=scene)
+        self.assertEqual(info["source"], "python")
+        self.assertLessEqual(len(self.sentences(text)), 6, text)
+        self.assertIn(scene["name"], text)
+
+    def test_return_arrival_has_at_least_two_sentences_and_names_the_place(self):
+        scene = self.return_after(3 * 3600)
+        self.assertTrue(scene["wants_model"])
+        text, info = self.whole(answer="Rüzgâr esiyor.", scene=scene, lead="")
+        self.assertEqual(info["source"], "model")
+        self.assertGreaterEqual(len(self.sentences(text)), 2, text)
+        self.assertLessEqual(len(self.sentences(text)), 4, text)
+        self.assertIn(scene["name"], text)
+
+    def test_crowded_lead_still_capped(self):
+        scene = self.crowded()
+        lead = "Kapı kilitliydi. Kolu çevirip açıyorsun. Önüne geliyorsun. "
+        reply = f"{scene['name']} sessiz. Rüzgâr esiyor. Otlar eğiliyor. Toprak nemli."
+        text, _ = self.whole(answer=reply, scene=scene, lead=lead)
+        self.assertLessEqual(len(self.sentences(text)), 6, text)
+        self.assertIn(scene["name"], text)
+        self.assertTrue(text.startswith("Kapı kilitliydi."), text)
+
+    def test_a_full_lead_on_a_return_never_cuts_the_job_news(self):
+        # Opus review: the tail (job news) is written to the save as learned before it is shown; the cap never drops it.
+        scene = self.return_after(3 * 3600)
+        lead = f"Kent kapısından geçip giriyorsun. {scene['name']} önüne geliyorsun. Kapı kapalı. Kapı kolunu çevirip açıyorsun. "
+        for answer in ("Rüzgâr esiyor. Otlar eğiliyor.", RuntimeError("down")):
+            with self.subTest(answer=answer):
+                text, _ = self.whole(answer=answer, scene=scene, lead=lead)
+                self.assertIn(NOTICE, text)
+                self.assertLessEqual(len(self.sentences(text)), 4, text)
+                self.assertIn(scene["name"], text)
+
+    def test_the_model_is_told_its_sentence_budget(self):
+        scene = self.crowded()
+        self.whole(answer="Rüzgâr esiyor.", scene=scene)
+        sent = json.loads(self.client.calls[0]["messages"][1]["content"])
+        used = sum(len(self.sentences(piece)) for piece in (LEAD, scene["facts_line"], NOTICE))
+        self.assertEqual(sent["sentence_budget"], max(arrival_narration.RETURN_FLOOR, 6 - used))

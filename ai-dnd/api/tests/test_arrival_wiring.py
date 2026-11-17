@@ -18,7 +18,10 @@ import arrival_narration
 import campaign_time
 import front_proposal
 import game
+import grounded_action
+import local_places
 import world_threads
+from api.ollama_adapter import _MODEL_CALLS
 from api.tests import test_campaign_api as fixtures
 from api.tests.journeys.runner import ScriptedClient, call_kind
 from api.tests.town_seed import fixed_town
@@ -197,6 +200,27 @@ class ArrivalWiring(_ArrivalApi):
         self.assertEqual(reply.status_code, 200, reply.text)
         self.assertEqual(self.session().last_arrival_narration["reason_code"], "no_budget")
         self.assertNotIn("arrival", self.client.kinds)
+
+    async def test_the_whole_shown_arrival_from_a_waystation_is_capped_and_leads_with_the_lead(self):
+        session = self.session()
+        world = session.world_state
+        stop = local_places.create_local_place(world, "fr:city:neverwinter", "waystation")
+        world["location"] = stop["id"]
+        self.client.script_turn(arrival="Ocak harlı yanıyor. Körük soluyor. Çekiç iniyor. Kıvılcım uçuşuyor. "
+                                        "Duvarlar isli. Zemin sıcak.")
+        token = game._ACTIVE_SESSION.set(session)
+        calls = _MODEL_CALLS.set([])
+        try:
+            with patch.object(game, "ollama", self.client):
+                result = grounded_action.resolve_turn(session, "demirhaneye gidiyorum", listed_place={
+                    "id": self.place_of("smithy"), "inside": False, "whole_line": True})
+        finally:
+            _MODEL_CALLS.reset(calls)
+            game._ACTIVE_SESSION.reset(token)
+        narration = result["narration"]
+        self.assertEqual(result["action_result"]["action"], "grounded_action", result["action_result"])
+        self.assertTrue(narration.startswith("Kent kapısından geçip "), narration)  # t4: from outside the walls there is no "Dışarı"
+        self.assertLessEqual(len(game._split_sentences_keep_speech(narration)), 6, narration)
 
     async def test_job_news_follows_the_model_text(self):
         await self.give_the_town_a_job_at("smithy")

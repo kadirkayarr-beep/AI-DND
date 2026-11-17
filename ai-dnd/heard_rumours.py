@@ -70,6 +70,21 @@ def said_in(text: Any, name: Any) -> bool:
     return re.search(rf"(?<!\w){re.escape(folded)}(?!\w)", npc_statements.fold(text)) is not None
 
 
+def own_line(world: dict[str, Any], npc: Any, player_input: Any) -> str | None:
+    """D-249 F2: asked about a place or trail she herself named, a person says what she said, never "I heard nothing"."""
+    import town_rumours
+    if not isinstance(npc, dict):
+        return None
+    for entry in reversed(world.get("heard_rumours") or []):
+        if not isinstance(entry, dict) or not isinstance(entry.get("text"), str) or not town_rumours._spoke(entry, npc):
+            continue
+        name, _, about = entry["text"].partition(": ")
+        if said_in(player_input, name):
+            about = about.strip().rstrip(".")
+            return f"{name} mi? Duyduğum şu: {about}." if about else f"{name} adını duydum; fazlasını bilmem."
+    return None
+
+
 def _exact_place(world: dict[str, Any], settlement_id: str, folded: str) -> str | None:
     """A place of this settlement (or the settlement itself) whose name or alias equals the name exactly."""
     for place_id, record in world.get("locations", {}).items():
@@ -104,8 +119,8 @@ def record_mention(game: Any, world: dict[str, Any], npc: dict[str, Any], mentio
     about = " ".join(about.split())[:MAX_ABOUT] if isinstance(about, str) else ""
     if town_knowledge.names_coin(about):
         about = ""  # a price, sum or item value is no place description: the place is kept, the claim is not
-    proposal = game.validate_location_proposal({"name": name, "type": "building", "description": about})
-    about = town_knowledge.without_unbacked_money(proposal["description"]) if proposal else ""
+    # D-249 X1: the claim is cleaned on its own, so a place that already exists keeps what was said about it.
+    about = town_knowledge.without_unbacked_money(game.clean_location_description(about, whole_words=True))
     settlement_id = local_places.settlement_of(world, npc.get("location"))
     if not settlement_id:
         return None
@@ -125,6 +140,15 @@ def record_mention(game: Any, world: dict[str, Any], npc: dict[str, Any], mentio
             return None
     for entry in rumours:
         if entry.get("settlement_id") == settlement_id and npc_statements.fold(str(entry.get("text", "")).partition(": ")[0]) == folded:
+            # D-249 X2: every person who said it is kept (first speaker first); the first claim wins, a bare entry takes one.
+            speakers = entry.get("speakers")
+            if not isinstance(speakers, list):
+                speakers = [entry["said_by"]] if entry.get("said_by") else []
+            if npc.get("id") not in speakers:
+                speakers.append(npc.get("id"))
+            entry["speakers"] = speakers
+            if about and ": " not in str(entry.get("text", "")):
+                entry["text"] = f"{entry['text']}: {about}"
             return entry
     if kind == "place" and place_id is None:
         if len(_rumoured_places(world, settlement_id)) >= MAX_RUMOURED_PER_SETTLEMENT:
@@ -142,6 +166,7 @@ def record_mention(game: Any, world: dict[str, Any], npc: dict[str, Any], mentio
         "id": _next_id(rumours),
         "text": f"{name}: {about}" if about else name,
         "said_by": npc.get("id"),
+        "speakers": [npc.get("id")],
         "place_id": place_id,
         "settlement_id": settlement_id,
         "turn": turn,

@@ -101,11 +101,17 @@ def _roles_at(world: dict[str, Any], place_id: str) -> str:
     return ", ".join(f"{_NUMBERS.get(n, 'birkaç')} {role}" for role, n in sorted(counts.items()))
 
 
+_SETTLEMENT_NOUNS = {"city": "kent", "şehir": "kent", "town": "kasaba", "kasaba": "kasaba", "village": "köy", "köy": "köy"}
+
+
 def _town_item(world: dict[str, Any], settlement_id: str) -> dict[str, Any] | None:
     record = world.get("locations", {}).get(settlement_id)
     if not isinstance(record, dict):
         return None
     text = _first_sentence(record.get("town_portrait"), TOWN_TEXT) or _first_sentence(record.get("description"), TOWN_TEXT)
+    if not text and isinstance(record.get("name"), str) and record["name"].strip():
+        noun = _SETTLEMENT_NOUNS.get(_lower(str(record.get("type") or "")), "yerleşim")
+        text = f"{record['name'].strip()}: bu çevrenin bağlı olduğu {noun}."
     return {"kind": "town", "text": text, "location_id": settlement_id, "thread_id": None} if text else None
 
 

@@ -761,8 +761,9 @@ def unresolved_named_address(player_input: Any, available: list) -> str | None:
     for npc in available:
         if not isinstance(npc, dict):
             continue
-        if normalized in {normalize_text(living_world.public_npc_name(npc)),
-                          normalize_text(living_world.public_npc_role(npc))}:
+        role = normalize_text(living_world.public_npc_role(npc))
+        # "Çavuş, ..." reaches "Nöbetçi çavuş": a role word is the person's own data, not a name nobody has.
+        if normalized in {normalize_text(living_world.public_npc_name(npc)), role, *role.split()}:
             return None
     return name
 
