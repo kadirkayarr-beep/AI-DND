@@ -27,7 +27,6 @@ _CAL = r"cal(?!is)\w*"
 _KNOCK = re.compile(rf"\b(?:kapi\w*)\b.{{0,60}}\b(?:vur\w*|{_CAL}|tiklat\w*|tikirdat\w*|yumrukla\w*)|\btak tak\b")
 _BELL = re.compile(rf"\b(?:zil\w*|can|cani|cana|canin|kampana\w*)\b.{{0,40}}\b(?:{_CAL}|cek\w*|salla\w*)")
 _READ = re.compile(r"\b(?:kitab\w*|kitap|defter\w*|gunlug\w*|parsomen\w*)\b.{0,50}\b(?:oku|ac|karistir|goz gezdir)\w*")
-_PERFORM = re.compile(r"\b(?:islik|sarki|turku|dans|oyna(?:yorum|rim)|zipla)\w*")
 _FOLLOW = re.compile(r"\b(?:pesin\w*|pesine|arkasindan|takip)\b")
 # "Eğer kapı açıksa içeri süzülürüm, değilse beklerim": the condition is checked
 # against the saved door; a closed door means the player waits, nothing moves.
@@ -142,10 +141,4 @@ def resolve(world: dict[str, Any], text: str, *, door: dict[str, Any] | None,
         return {"kind": kind, "npc_id": None, "text": (
             "Kalabalığın içinde gözünü bir an ayırınca izini kaybediyorsun; kimin peşinde olduğunu artık seçemiyorsun."
         )}
-    if kind == "perform":
-        watcher = living_world.public_npc_name(people[0]) if people else None
-        line = "Kendi kendine ıslık çalıp birkaç adım atıyorsun; sokağın gürültüsü bir an için hafifliyor gibi."
-        if watcher:
-            line += f" {watcher} göz ucuyla sana bakıp hafifçe gülümsüyor."
-        return {"kind": kind, "text": line}
     return None

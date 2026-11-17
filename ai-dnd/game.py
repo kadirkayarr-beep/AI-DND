@@ -20783,7 +20783,10 @@ def _dispatch_player_turn(
         local_place = None if talk else _local_place_turn(player_input)
         if local_place is not None:
             return local_place
-        everyday = _everyday_action_turn(player_input)
+        # BM Task 8: a reading that named something (a place, a person, a thing) belongs to that owner; the everyday
+        # words run only when there was no reading, or it said unclear / attempt.
+        everyday = (_everyday_action_turn(player_input)
+                    if front is None or front["kind"] in {"unclear", "attempt"} else None)
         if everyday is not None:
             return everyday
     import exploration
