@@ -1,55 +1,66 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppearance } from '@/components/appearance-provider';
+import { createOuroborosRenderer, type OuroborosRenderer } from '@/components/ouroboros-renderer';
 
-// Plan part D1 (simple path): a looped video per theme on a flat white (day, multiplied in) or black (night,
-// screened in) ground, so no alpha channel is needed. The still frame is always shown; while motion is on the
-// video loops all the time (owner decision 2026-11-17), never plays under reduced motion, pauses while the tab
-// is hidden and unmounts with the home screen.
-export function OuroborosLogo() {
-  const { resolvedTheme, prefersReducedMotion, effectsLevel } = useAppearance();
-  const base = import.meta.env.BASE_URL;
-  const still = `${base}logo/ouroboros-${resolvedTheme}-still.jpg`;
-  const video = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
+// v0 graphite ouroboros (owner-approved 2026-11-17), drawn live in WebGL. The renderer loops while motion is
+// on (owner decision 2026-11-17), and stops itself while the tab is hidden, the logo is off screen or the OS
+// asks for reduced motion. Without WebGL (or when the context is lost) the static emblem stays: the same
+// drawing as a mask, so it never needs a second image per theme. Day uses the ink as drawn; night is the same
+// logo with filter: invert(1) (CSS, see .unwritten-ouroboros in unwritten-play.css).
+// variant="mark" is the small 24-40 px mark: a static silhouette, no WebGL at all.
+export function OuroborosLogo({ size, variant = 'full' }: { size?: number; variant?: 'full' | 'mark' }) {
+  const { prefersReducedMotion, effectsLevel } = useAppearance();
   const motion = !prefersReducedMotion && effectsLevel !== 'off';
+  const mark = variant === 'mark';
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const dust = useRef<HTMLCanvasElement>(null);
+  const renderer = useRef<OuroborosRenderer | null>(null);
+  const motionNow = useRef(motion);
+  const [live, setLive] = useState(false);
 
-  // A theme change swaps the src, which reloads and stops the video, so the theme restarts it too.
   useEffect(() => {
-    const el = video.current;
-    if (!el || !motion) return undefined;
-    const start = () => { if (!document.hidden) void el.play().then(() => setPlaying(true), () => setPlaying(false)); };
-    const onVisibility = () => {
-      if (document.hidden) el.pause();
-      else start();
-    };
-    start();
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [motion, resolvedTheme]);
+    motionNow.current = motion;
+    renderer.current?.setRunning(motion);
+  }, [motion]);
 
+  useEffect(() => {
+    if (mark || !canvas.current || !dust.current) return undefined;
+    let disposed = false;
+    const element = canvas.current;
+    const onFailed = () => setLive(false);
+    element.addEventListener('ouroboros-renderer-failed', onFailed);
+    createOuroborosRenderer(element, dust.current).then(engine => {
+      if (disposed) { engine.destroy(); return; }
+      renderer.current = engine;
+      engine.setRunning(motionNow.current);
+      setLive(true);
+    }).catch(() => { if (!disposed) setLive(false); });
+    return () => {
+      disposed = true;
+      element.removeEventListener('ouroboros-renderer-failed', onFailed);
+      renderer.current?.destroy();
+      renderer.current = null;
+    };
+  }, [mark]);
+
+  const mask = `url("${import.meta.env.BASE_URL}logo/ouroboros-${mark ? 'mark' : 'emblem'}.png")`;
   return (
-    <div className={`ouroboros-art${playing ? ' is-playing' : ''}`}>
-      <img
-        className="ouroboros-still"
-        src={still}
-        alt="UNWRITTEN amblemi: kendi kuyruğunu ısıran kömür çizimi yılan"
-        data-testid="image-approved-ouroboros"
-      />
-      {motion && (
-        <video
-          ref={video}
-          className="ouroboros-video"
-          src={`${base}logo/ouroboros-${resolvedTheme}.mp4`}
-          poster={still}
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-          tabIndex={-1}
-          data-testid="video-ouroboros"
-        />
+    <span
+      className="unwritten-ouroboros"
+      style={size ? { width: size, height: size } : undefined}
+      data-renderer={live ? 'webgl' : 'static'}
+      data-variant={variant}
+      role="img"
+      aria-label="UNWRITTEN amblemi: kendi kuyruğunu ısıran kömür çizimi yılan"
+      data-testid={mark ? 'image-ouroboros-mark' : 'image-approved-ouroboros'}
+    >
+      <span className="unwritten-ouroboros-fallback" aria-hidden="true" style={{ maskImage: mask, WebkitMaskImage: mask }} />
+      {!mark && (
+        <>
+          <canvas ref={canvas} aria-hidden="true" />
+          <canvas ref={dust} aria-hidden="true" />
+        </>
       )}
-    </div>
+    </span>
   );
 }
