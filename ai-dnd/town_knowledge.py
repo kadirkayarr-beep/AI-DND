@@ -924,6 +924,25 @@ def _tells_outcome(item, thread, words):
             or bool({npc_statements.fold(word) for word in listed} & set(words.split())))
 
 
+def _keep_heard_rumour(world: dict[str, Any], npc: dict[str, Any], item: dict[str, Any], turn: int) -> None:
+    """A catalog rumour the person really passed on becomes a heard rumour with its own words (a false one stays false
+    and the trouble behind it stays unheard); said again, the speaker is added, not a second entry."""
+    settlement_id = _settlement(world)
+    rumours = world.get("heard_rumours")
+    rumours = rumours if isinstance(rumours, list) else []
+    for entry in rumours:
+        if isinstance(entry, dict) and entry.get("settlement_id") == settlement_id and entry.get("text") == item["text"]:
+            speakers = entry.get("speakers") if isinstance(entry.get("speakers"), list) else [entry.get("said_by")]
+            if npc.get("id") not in speakers:
+                entry["speakers"] = [*speakers, npc.get("id")]
+            return
+    numbers = [int(e["id"][7:]) for e in rumours if isinstance(e, dict) and isinstance(e.get("id"), str) and e["id"][7:].isdigit()]
+    rumours.append({"id": f"rumour_{max(numbers, default=0) + 1:03d}", "text": item["text"], "said_by": npc.get("id"),
+                    "speakers": [npc.get("id")], "place_id": item["location_id"], "settlement_id": settlement_id,
+                    "turn": turn})
+    world["heard_rumours"] = rumours[-64:]
+
+
 def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, voiced: list[str] | None = None,
                  job_talk: bool = False, offer_talk: bool = False) -> None:
     """Tie what was just said to the real record it means, so the player can follow it.
@@ -955,6 +974,8 @@ def note_mention(world: dict[str, Any], npc: Any, shown_text: Any, *, voiced: li
                     if _tells_outcome(item, thread, words):
                         world_happenings.learned(world, thread)
                         world_threads.learn_outcome(world, thread)
+                elif item["kind"] == "rumour":
+                    _keep_heard_rumour(world, npc, item, turn)  # the words said, never the trouble's own line
                 else:
                     world_threads.mark_heard(thread, turn)
         for thread in owned_threads(world, npc):

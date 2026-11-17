@@ -122,6 +122,55 @@ class HeardRumourTrail(unittest.TestCase):
         self.assertEqual([r for r in quest_log.trails(world) if r["source"] == "duyulan"], [])
 
 
+class OneJobIsNeverAnother(unittest.TestCase):
+    """Fix round 1, finding 1: lines of one job template share words; only what tells the jobs apart counts."""
+
+    def test_no_line_marks_a_different_job_and_each_matches_itself(self):
+        import npc_statements
+        import town_rumours
+        pairs = crossed = 0
+        for index in range(60):
+            world = seeded(f"cross-{index}")
+            items = [{"kind": "thread", "text": t["public_line"], "location_id": t["place_id"],
+                      "thread_id": t["thread_id"]} for t in world_threads.active(world)]
+            for item in items:
+                self.assertTrue(town_rumours.was_voiced(world, item, npc_statements.fold(item["text"])), item["text"])
+                for other in items:
+                    if other is not item:
+                        pairs += 1
+                        crossed += town_rumours.was_voiced(world, other, npc_statements.fold(item["text"]))
+        self.assertGreater(pairs, 300)
+        self.assertEqual(crossed, 0)
+
+
+class FalseRumourKeepsItsOwnWords(unittest.TestCase):
+    """Fix round 1, finding 2: a heard catalog rumour shows what was said, never the trouble's true line."""
+
+    def test_a_false_rumour_does_not_reveal_the_trouble(self):
+        import town_rumours
+        for index in range(80):
+            world = seeded(f"false-{index}")
+            npc = person("npc_5", "Barmen")
+            world["npcs"].append(npc)
+            item = next((i for i in town_knowledge.public_knowledge(world, npc)
+                         if i["kind"] == "rumour" and i["thread_id"]
+                         and not town_rumours.is_true(world, world_threads.by_id(world, i["thread_id"]))), None)
+            if item is None:
+                continue
+            thread = world_threads.by_id(world, item["thread_id"])
+            self.assertNotEqual(item["text"], thread["public_line"])
+            town_knowledge.note_mention(world, npc, item["text"])
+            self.assertNotEqual(thread["status"], "heard")
+            trail = [row for row in quest_log.trails(world) if row["source"] == "duyulan"]
+            self.assertNotIn(thread["public_line"], [row["what"] for row in trail])
+            self.assertEqual([row["what"] for row in trail], [item["text"]])
+            self.assertEqual(trail[0]["who"], npc["name"])
+            town_knowledge.note_mention(world, npc, item["text"])  # said twice: one entry
+            self.assertEqual(len(world["heard_rumours"]), 1)
+            return
+        self.fail("no seeded town with a false rumour")
+
+
 class NoGenericLine(unittest.TestCase):
     def test_no_generic_heard_line_in_journal(self):
         before = {"world_state": {"location": "tavern", "locations": {"tavern": {"id": "tavern", "name": "Taverna",

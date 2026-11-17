@@ -76,9 +76,26 @@ def rumour_for(world: dict[str, Any], npc: dict[str, Any], settlement_id: str, p
     return (own + rest)[:MAX_RUMOURS]
 
 
+def _other_words(world: dict[str, Any], item: dict[str, Any]) -> set[str]:
+    """Every word of every other job line and heard rumour: what two jobs of one template have in common."""
+    state = world_threads.view(world) or {}
+    lines = [t.get("public_line") for t in (*state.get("threads", ()), *state.get("history", ()))
+             if t.get("thread_id") != item.get("thread_id")]
+    lines += [e.get("text") for e in world.get("heard_rumours") or [] if isinstance(e, dict)]
+    return {word for line in lines if isinstance(line, str) and line != item["text"]
+            for word in npc_statements.fold(line).split()}
+
+
 def was_voiced(world: dict[str, Any], item: dict[str, Any], words: str) -> bool:
-    """The reply really passed this on: at least half its own words, a place named alone does not count."""
+    """The reply really passed this on: at least half of the words that tell it from every other job or rumour. A place
+    named alone, or words all jobs of one template share, do not count; a job whose words all recur elsewhere must be
+    said in full."""
     place = world.get("locations", {}).get(item["location_id"]) or {}
     own = npc_statements.fold(item["text"]).replace(npc_statements.fold(place.get("name", "")), " ").split()
+    if not own:
+        return False
+    rest = _other_words(world, item)
+    distinct = [word for word in own if word not in rest]
+    need = distinct or own
     said = set(words.split())
-    return bool(own) and sum(word in said for word in own) * 2 >= len(own)
+    return sum(word in said for word in need) * 2 >= len(need) and (bool(distinct) or all(word in said for word in need))

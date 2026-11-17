@@ -141,3 +141,10 @@ Günlük yalnız gerçekten söylenen şeyi tutar (B3). Bir iş ya da söylenti 
 | `test_heard_rumours_turn.MentionOverHttp.test_lane_off_schema_has_no_mentions_in_required` | `required` listesine `voiced` eklendi; `mentions` hâlâ yok | gevşetme olabilir |
 | Yolculuk 41 `is_haberi_sokakta` (adım 1 ve 2) | sokakta geçen kişinin cümlesi eskiden işi serbest bir cümleyle anıyordu (iş sahibinin adı yeterdi); şimdi işin kendi cümlesini söyler (`$is_satiri:potter`, koşucu canlı dünyadan okur). Beklenen sonuç ve sıfır tolerans aynı | gevşetme olabilir: yeniden anlatılan (aynı sözcükleri taşımayan) bir iş artık günlüğe düşmez; Kadir oynayışta bakmalı |
 | Yeni `test_journal_heard` (yer adı, sahip adı, voiced, söylenti izi, genel satır, şema, Geri Al) | yeni | gevşetme yok |
+
+Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi diğer işlerden ve söylentilerden ayıran sözcükleri sayar (ortak şablon sözcükleri sayılmaz; hiç ayırt edici sözcüğü olmayan iş tam söylenmelidir); hiçbir satır başka bir işi "duyuldu" yapmaz. (2) Duyulan katalog söylentisi tehlikeli işi "duyuldu" yapmaz, `heard_rumours` içine söylenen sözleriyle yazılır; yanlış söylentide gizli gerçek günlüğe sızmaz.
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_story_links.HalfTruths.test_saying_it_in_your_own_way_is` | yanlış söylenti söylenince tehlike işi eskiden "heard" oluyordu (günlük gerçek satırı gösterirdi); şimdi iş "open" kalır, söylenti kendi sözleriyle `heard_rumours`ta | gevşetme olabilir (sınır yeniden tanımlandı; daha sıkı) |
+| Yeni `test_journal_heard.OneJobIsNeverAnother`, `FalseRumourKeepsItsOwnWords` | yeni (60 sabit kasaba, tüm sıralı çiftler: 0 çapraz eşleşme; yanlış söylenti) | gevşetme yok |
