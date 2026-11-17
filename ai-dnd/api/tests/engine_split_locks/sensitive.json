@@ -1,0 +1,138 @@
+{
+  "functions": {
+    "_carry_out_thread_turn": [
+      "money"
+    ],
+    "_clear_turn_transients": [
+      "money"
+    ],
+    "_coin_not_parcel": [
+      "money"
+    ],
+    "_coin_persuasion": [
+      "money"
+    ],
+    "_defer_spoken_coin_offer": [
+      "money"
+    ],
+    "_dispatch_player_turn": [
+      "money"
+    ],
+    "_economic_listing": [
+      "money"
+    ],
+    "_execute_intent_internal": [
+      "money"
+    ],
+    "_experimental_speech_note": [
+      "money"
+    ],
+    "_front_economic_offer": [
+      "money"
+    ],
+    "_front_hand_over": [
+      "money"
+    ],
+    "_front_offer_gate": [
+      "money"
+    ],
+    "_front_step": [
+      "money"
+    ],
+    "_hand_over_coin": [
+      "money"
+    ],
+    "_keep_town_portrait": [
+      "money"
+    ],
+    "_line_gives": [
+      "money"
+    ],
+    "_names_no_parcel": [
+      "money"
+    ],
+    "_narrate_resolved_turn": [
+      "money"
+    ],
+    "_narrated_money_can_lie": [
+      "money"
+    ],
+    "_person_answers_stock": [
+      "snapshot"
+    ],
+    "_purchase_refused": [
+      "money"
+    ],
+    "_record_spoken_coin_response": [
+      "money"
+    ],
+    "_restore_combat_death_checkpoint": [
+      "save"
+    ],
+    "_run_player_turn_internal": [
+      "money"
+    ],
+    "_run_player_turn_keyed": [
+      "money",
+      "snapshot"
+    ],
+    "_run_player_turn_owned": [
+      "money",
+      "snapshot"
+    ],
+    "_show_coin_roll": [
+      "money"
+    ],
+    "_sleep_after_walk": [
+      "money"
+    ],
+    "_speech_debug_trail": [
+      "file_write"
+    ],
+    "_tell_the_coin": [
+      "money"
+    ],
+    "_the_rest_of_the_line": [
+      "money"
+    ],
+    "_thread_gate": [
+      "money",
+      "snapshot"
+    ],
+    "deterministic_check_for_action": [
+      "money"
+    ],
+    "execute_intent": [
+      "snapshot"
+    ],
+    "finalize_narration": [
+      "money"
+    ],
+    "front_read_ahead": [
+      "money"
+    ],
+    "load_game": [
+      "save"
+    ],
+    "normalize_intent": [
+      "money"
+    ],
+    "parse_player_intent": [
+      "money"
+    ],
+    "perform_skill_check": [
+      "snapshot"
+    ],
+    "save_game": [
+      "file_write",
+      "save"
+    ],
+    "serialize_game_state": [
+      "save"
+    ],
+    "start_terminal_game": [
+      "save"
+    ]
+  },
+  "removed": []
+}
