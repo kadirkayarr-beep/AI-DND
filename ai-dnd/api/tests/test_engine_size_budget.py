@@ -12,10 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-sys.path.insert(0, str(Path(__file__).parent))
 
 from engine_split.inventory import top_level_index  # noqa: E402
-from engine_sources import engine_source_files  # noqa: E402
+from api.tests.engine_sources import engine_source_files  # noqa: E402
 
 LOCK_PATH = Path(__file__).parent / "engine_split_locks" / "size_budget.json"
 LOCK = json.loads(LOCK_PATH.read_text(encoding="utf-8"))

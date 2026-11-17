@@ -153,6 +153,14 @@ class MoveTests(unittest.TestCase):
         with self.assertRaises(MoveRefused):
             move(self.game, self.part, ["K"], set())
 
+    def test_a_never_moved_name_is_refused(self):  # spec section 5: create_session stays in game.py
+        src = b"def create_session(seed=None):\n    return seed\n"
+        self.game.write_bytes(src)
+        with self.assertRaises(MoveRefused):
+            move(self.game, self.part, ["create_session"], set())
+        self.assertEqual(self.game.read_bytes(), src)
+        self.assertFalse(self.part.exists())
+
     def test_unknown_and_import_names_are_refused(self):
         self.game.write_bytes(b"import re\n\ndef f():\n    return re\n")
         for name in ("nope", "re"):

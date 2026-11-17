@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import shutil
 import sys
 import tempfile
 import unittest
@@ -17,6 +18,8 @@ BASE = "K = 1\n\n# why roll exists (D-123)\ndef roll():\n    return helper() + K
 GOOD_GAME = "K = 1\n\nfrom game_parts.dice import roll\n\ndef helper():\n    return 2\n"
 GOOD_PART = "import game\n\n# why roll exists (D-123)\ndef roll():\n    return game.helper() + game.K  # keep\n"
 MOVED = {"roll": "dice.py"}
+DICE = ('import random\n\ndef roll_d20():\n    """One d20."""\n    return random.randint(1, 20)\n\n'
+        'def roll_d6():\n    return random.randint(1, 6)\n')
 NO_LOCK = {"functions": {}}
 
 
@@ -145,6 +148,43 @@ class MoveCheckTests(unittest.TestCase):
         self.build(game=BASE, part="import game\n")
         move(self.new / "game.py", self.new / "game_parts" / "dice.py", ["roll"], set())
         self.assertEqual(self.check()["changed"], [])
+
+    def test_round_trip_of_a_multi_name_move_is_equivalent(self):  # deferred by the Task 5 review
+        self.build(game=BASE, part="import game\n")
+        move(self.new / "game.py", self.new / "game_parts" / "dice.py", ["roll", "helper"], set())
+        moved = {"roll": "dice.py", "helper": "dice.py"}
+        self.assertEqual(check_move(self.base, self.new, moved, NO_LOCK, "normal")["changed"], [])
+
+    def test_round_trip_of_a_decorated_function_is_equivalent(self):  # deferred by the Task 5 review
+        base = "import functools\n\n# cache it\n@functools.lru_cache(maxsize=None)\ndef roll():\n    return K\n\nK = 1\n"
+        self.build(base=base, game=base, part="import game\n")
+        move(self.new / "game.py", self.new / "game_parts" / "dice.py", ["roll"], set())
+        self.assertEqual(self.check()["changed"], [])
+
+    def second_move(self, edit=None):
+        """Base = game.py after moving roll_d20 into dice.py; new = base plus a second move of roll_d6 into it."""
+        self.base.mkdir()
+        (self.base / "game.py").write_text(DICE, encoding="utf-8")
+        (self.base / "game_parts").mkdir()
+        (self.base / "game_parts" / "dice.py").write_text("import random\n", encoding="utf-8")
+        move(self.base / "game.py", self.base / "game_parts" / "dice.py", ["roll_d20"], set())
+        shutil.copytree(self.base, self.new)
+        move(self.new / "game.py", self.new / "game_parts" / "dice.py", ["roll_d6"], set())
+        part = self.new / "game_parts" / "dice.py"
+        if edit:
+            part.write_text(edit(part.read_text(encoding="utf-8")), encoding="utf-8")
+        return check_move(self.base, self.new, {"roll_d6": "dice.py"}, NO_LOCK, "normal")["changed"]
+
+    def test_a_second_move_into_the_same_part_is_equivalent(self):
+        self.assertEqual(self.second_move(), [])
+
+    def test_a_deleted_line_in_an_earlier_moved_block_is_reported(self):  # gate TM0 review
+        self.assertTrue(self.second_move(lambda t: t.replace("    return random.randint(1, 20)\n", "", 1)))
+
+    def test_swapped_lines_in_an_earlier_moved_block_are_reported(self):  # gate TM0 review
+        swap = lambda t: t.replace('    """One d20."""\n    return random.randint(1, 20)\n',
+                                   '    return random.randint(1, 20)\n    """One d20."""\n', 1)
+        self.assertTrue(self.second_move(swap))
 
 
 if __name__ == "__main__":

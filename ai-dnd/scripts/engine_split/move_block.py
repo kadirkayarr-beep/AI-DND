@@ -25,6 +25,12 @@ DYNAMIC_NAMES = {"__file__", "__name__"}
 DYNAMIC_CALLS = {"globals", "locals", "vars"}
 COMPREHENSION_NAMES = {ast.ListComp: "listcomp", ast.SetComp: "setcomp", ast.DictComp: "dictcomp", ast.GeneratorExp: "genexpr"}
 MOVABLE_KINDS ={"function", "class", "assign"}
+# Spec section 5: names that stay in game.py (the `game.py (kalır)` row and the bullets under the table).
+NEVER_MOVED = frozenset({
+    "world_state", "messages", "RULE_ORDER", "GameSession", "_session", "_bind_session_engine", "create_session",
+    "_GameModule", "_speech_debug_trail", "DEFAULT_SAVE_PATH", "start_terminal_game",
+    "_DEFAULT_SESSION", "_ACTIVE_SESSION", "_ENGINE_FUNCTIONS", "_ENGINE_NAMESPACE", "_CHARACTER_GLOBALS",
+})
 
 
 class MoveRefused(Exception):
@@ -177,9 +183,14 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
 
     The import line takes the place of the first cut block. Both files are written only when every block was accepted.
     The part header (`import game`, stdlib and other non-engine imports) is written by hand; move() does not add it.
+    surface_targets is used as given: the caller must first drop the patch-census targets marked `absent`.
+    Names in NEVER_MOVED (spec section 5) are refused.
     Returns {"blocks": [{"names", "game_span", "part_span"}], "insertions": [(part line, col, name)], "import_line"}.
     """
     game_py, part_py = Path(game_py), Path(part_py)
+    for name in names:
+        if name in NEVER_MOVED:
+            raise MoveRefused(f"{name!r} never leaves game.py (spec section 5)")
     index = top_level_index(game_py)
     by_name = {entry["name"]: entry for entry in index}
     for name in names:

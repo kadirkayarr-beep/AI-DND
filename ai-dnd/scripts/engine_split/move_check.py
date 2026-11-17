@@ -18,7 +18,6 @@ import io
 import json
 import sys
 import tokenize
-from collections import Counter
 from pathlib import Path
 
 # A script run as a file has only its own folder on sys.path: add ai-dnd and ai-dnd/scripts (same as the tests).
@@ -180,18 +179,25 @@ def _import_only_lines(part: Path) -> set[int]:
 
 
 def _part_findings(base_part: Path, part: Path, part_name: str, spans: list[tuple], manual: list[str]) -> list[str]:
-    """F16: a part line outside the moved blocks must be an import statement, blank, a line the base part already had, or manual."""
-    known = Counter(l for l in _text(base_part).splitlines() if l.strip()) if base_part.exists() else Counter()
+    """F16: a part line outside the moved blocks must be an import statement, blank, a line the base part already had, or manual.
+
+    Gate TM0: every line of the base part must survive in the new part, in order; the new part may only insert lines.
+    """
+    base_lines = _text(base_part).splitlines() if base_part.exists() else []
+    new_lines = _text(part).splitlines()
     exempt = _manual_lines(manual, part_name)
     import_lines = _import_only_lines(part)
-    found = []
-    for number, line in enumerate(_text(part).splitlines(), start=1):
+    found, known = [], set()
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, base_lines, new_lines, autojunk=False).get_opcodes():
+        if tag == "equal":
+            known.update(range(j1 + 1, j2 + 1))
+        elif tag in ("delete", "replace"):
+            for i in range(i1, i2):
+                found.append(f"{part_name}: base line {i + 1} deleted or changed: {base_lines[i].strip()[:60]}")
+    for number, line in enumerate(new_lines, start=1):
         if not line.strip() or any(s <= number <= e for s, e in spans) or number in exempt:
             continue
-        if number in import_lines:
-            continue
-        if known[line] > 0:
-            known[line] -= 1
+        if number in import_lines or number in known:
             continue
         found.append(f"{part_name}:{number}: hand-written line outside the moved blocks: {line.strip()[:60]}")
     return found

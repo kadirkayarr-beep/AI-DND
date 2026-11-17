@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from engine_split.sensitivity import classify, is_sensitive  # noqa: E402
+from engine_split.sensitivity import classify, is_sensitive, main  # noqa: E402
 
 LOCK = Path(__file__).parent / "engine_split_locks" / "sensitive.json"
 GAME = ROOT / "game.py"
@@ -91,6 +91,23 @@ class SensitivityTests(unittest.TestCase):
                      "_restore_in_place", "_restore_combat_death_checkpoint", "_with_only_backed_money",
                      "create_shop_from_proposal", "validate_shop_proposal", "_ensure_local_merchant"):
             self.assertIn(name, lock)
+
+    def test_write_refuses_once_game_parts_exists(self):  # F20: a rebuild from game.py alone drops moved names
+        game = self.write("def pay():\n    return 'gold'\n")
+        (self.tmp / "game_parts").mkdir()
+        lock = self.tmp / "sensitive.json"
+        before = json.dumps({"functions": {"moved": ["money"]}, "removed": []})
+        lock.write_text(before, encoding="utf-8")
+        self.assertEqual(main(["--write", "--game", str(game), "--lock", str(lock)]), 1)
+        self.assertEqual(lock.read_text(encoding="utf-8"), before)
+
+    def test_write_keeps_the_removed_rows(self):
+        game = self.write("def pay():\n    return 'gold'\n\ndef tip():\n    return 'coin'\n")
+        lock = self.tmp / "sensitive.json"
+        row = {"name": "tip", "reason": "false alarm", "reviewer": "strong"}
+        lock.write_text(json.dumps({"functions": {}, "removed": [row]}), encoding="utf-8")
+        self.assertEqual(main(["--write", "--game", str(game), "--lock", str(lock)]), 0)
+        self.assertEqual(json.loads(lock.read_text(encoding="utf-8")), {"functions": {"pay": ["money"]}, "removed": [row]})
 
     def test_is_sensitive_reads_the_functions_table(self):
         lock = {"functions": {"a": ["money"]}, "removed": [{"name": "b", "reason": "x", "reviewer": "y"}]}

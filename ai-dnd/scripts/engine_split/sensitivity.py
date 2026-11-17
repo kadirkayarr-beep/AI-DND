@@ -100,6 +100,10 @@ def main(argv=None) -> int:
     gone = {row["name"] for row in removed}
     found = classify(Path(args.game))
     functions = {name: reasons for name, reasons in sorted(found.items()) if name not in gone}
+    if args.write and (Path(args.game).parent / "game_parts").exists():  # F20: the scan sees game.py only
+        print("REFUSED: game_parts/ exists next to game.py; a rewrite from game.py alone would drop moved names "
+              "from the lock. Edit the lock by hand under strong review.", file=sys.stderr)
+        return 1
     if args.write:
         lock_path.write_text(json.dumps({"functions": functions, "removed": removed}, indent=2) + "\n", encoding="utf-8")
     print(f"flagged={len(found)} functions={len(functions)} removed={len(removed)}")
