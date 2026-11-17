@@ -78,7 +78,15 @@ Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden t
 | `test_game_name.ProtectedIdsTests.test_env_variable_name_set_is_unchanged` | `AI_DND_*` ad sayısı 36'dan 37'ye (`AI_DND_RUMOUR_LANE`) | gevşetme olabilir |
 | `test_journey_schema` beklenti anahtarı kümesi | `duyulan` eklendi (yalnız ekleme) | - |
 
-## 6. BM görev 1 (dal `task/bm-t1-20261117`, onay bekliyor)
+## 6. Logo sürekli dönsün (dal `task/logo-donsun-20261117`, sahibin kararı, davranış değişimi)
+
+Kaynak: Kadir, 2026-11-17: "logonun otomatik dönmesi gerekiyor, dönmüyor". Bulgu: `OYNAYIS_NOTLARI_20261117.md` B8.
+
+| Test | Eski beklenti | Yeni beklenti | Not |
+|---|---|---|---|
+| `artifacts/ai-dnd-experience/tests/menu-logo-music.test.mjs`: "the logo plays only while something is loading..." yerine "with motion on the logo loops on its own, whatever is loading; a hidden tab pauses it and showing the tab resumes it" | video yalnız yükleme sürerken oynar, bekleme bitince en az 600 ms kalır (`loading` prop, `MIN_VISIBLE_MS`) | hareket açıkken video yüklemeden bağımsız döngüde oynar; gizli sekmede durur, sekme görününce yeniden başlar; tema değişince yeniden başlar; `autoPlay` yok. Azaltılmış hareket / efekt kapalı: video yok, yalnız durağan görsel (komşu test aynen duruyor) | sahibin kararı, davranış değişimi; aynı sıkılık; onay bekliyor |
+
+## 7. BM görev 1 (dal `task/bm-t1-20261117`, onay bekliyor)
 
 Konuşma satırı artık ön okumadan geçer (`say`/`ask_dm`, kişi seçili olsun olmasın); eski kelime yolları yedek. Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden tanımlar.
 
@@ -91,7 +99,7 @@ Konuşma satırı artık ön okumadan geçer (`say`/`ask_dm`, kişi seçili olsu
 
 Davranış sınırı (BM T1, Opus incelemesi 2026-11-17): kişi seçili düz `say` satırında `_front_economic_none` kurulur; eski kelime yolları (`bold_acts.take_room`, `_room_asked`) oda kartını artık hazırlamaz, kararı modelin `economic_intent` okuması verir. Para hareketi ve satın alma yolları değişmedi. Gevşetme olabilir; onay bekliyor.
 
-## 7. BM görev 2 (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 8. BM görev 2 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 Dükkân varlığı, bilinmeyen ad, yer adı ve ad söyleme: model okuması düz konuşma derse konuşma yanıtlar; eski satır yedek. Yeniden yazılan testler "gevşetme olabilir" işaretlidir.
 
@@ -100,7 +108,7 @@ Dükkân varlığı, bilinmeyen ad, yer adı ve ad söyleme: model okuması düz
 | `test_talk_front.SayLineIsRead.test_bad_about_person_is_none`, `test_unknown_asks_is_none` | okuma artık tur bitince temizlendiği için `session._front_talk` turdan sonra değil tur içinde (`_run_player_turn` dönerken) okunur; aynı değerler aynı sıklıkta denetlenir | gevşetme olabilir (okuma ömrü kısaldı) |
 | Yeni test `test_talk_front.SayOwnersAreFallback.test_shop_word_question_to_vendor_is_spoken` | satır "Satıcı esnafı arasında ne dönüyor?" (görev metnindeki "Satıcılar" çoğulu `_SHOP_ENTITY_QUERY_PATTERN` ile eşleşmez, dolayısıyla eski yolu hiç tetiklemezdi) | yeni, gevşetme değil |
 
-## 8. BM görev 3 (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 9. BM görev 3 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 Kişisel soru, küçük konuşma, bilgi kapısı, iş sorusu ve rol + kişi sorusu: model okuması düz konuşma derse kişi konuşmayla yanıtlar; eski satır yedek. Bu görevde eski bir test yeniden yazılmadı ve gevşetilmedi; yalnız yeni test eklendi.
 
@@ -110,7 +118,7 @@ Kişisel soru, küçük konuşma, bilgi kapısı, iş sorusu ve rol + kişi soru
 
 Davranış sınırı (BM T3): `ask_dm` satırında model düz konuşma okuyup listedeki bir kişiyi adlandırırsa o kişi konuşmayla yanıtlar (eskiden bilgi kapısı satırı, sahne listesi ya da iş satırı çıkardı). Bilgi kapısının ve rol listesinin `ask_dm` yolu bu yüzden okuma varken çalışmaz; "gevşetme olabilir" olarak işaretlendi: Kadir oynayışta bakmalı.
 
-## 9. BM görev 4 (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 10. BM görev 4 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 İş kapısı model okumasıyla karar verir (B1): başka bir kişiyi adlandıran soru iş konuşması sayılmaz; sahibin şart satırı da okuma "iş" demedikçe eklenmez. Bu görevde eski bir test yeniden yazılmadı ve gevşetilmedi; yalnız yeni test dosyası eklendi (`test_bm_thread_reading.py`).
 
@@ -120,7 +128,7 @@ Davranış sınırı (BM T3): `ask_dm` satırında model düz konuşma okuyup li
 
 Davranış sınırı (BM T4): okuma `speak_to` ya da bir iş türüyse (`work`, `offer_answer`, `hand_over`) ve iş adlandırmıyorsa (`job_id`, `offer_id`, `asks == "work"`), kelimeyle iş yakalama (kısa soru, "ücret", sahip terimleri) artık çalışmaz. "Paramı ver" gibi bir satır, okuma "iş" demiyorsa ücret ödetmez (kişiye konuşmayla söylenir). `matter`, `take_up` ve `lapsed` kararları okumadan geri getirildi (okuma iş diyorsa aynı Python doğrulayıcıları çalışır: `raises_the_matter`, `offers_to_help`, `lapsed_yes`; testleri var). Okuma kipi `take` (kabul edilmiş işte paketi sahibinden alma) ve `speak_to` okumasıyla sözle yapılan teslim (`give`/`give_late`, iş ücreti) okuma varken artık kelimeyle yakalanmaz: paket yerinde kalır, ücret ödenmez (güvenli yönde kapanır); model `take` ve `hand_over` okumazsa bu iki yol çalışmaz. Düzeltme: ilk sürümdeki "`_front_take`/`_front_offer_gate` karşılar" cümlesi `matter`, `take_up`, `lapsed` için yanlıştı. "gevşetme olabilir" olarak işaretlendi: Kadir oynayışta bakmalı.
 
-## 10. BM görev 6 (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 11. BM görev 6 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 Kişi konuşması saati, oyuncuya gösterilen varış metnini (en çok 600 karakter), kişinin kendi sözlerini, kendi işini ve son sözlerini bilir (B4, B5, B6). Varış metni kayıtlı durumdadır (`scene_state.arrival_text`); Geri Al onu geri alır.
 
@@ -131,7 +139,7 @@ Kişi konuşması saati, oyuncuya gösterilen varış metnini (en çok 600 karak
 | `test_economic_spoken_consent.PendingCoinPrompt.test_bound_pending_offer_tells_only_recipient_coin_is_not_transferred` (süit düzeltmesi) | fikstürün `{elapsed_seconds}` taslak saati geçerli saatle değiştirildi (konuşma notu artık saati okuyor); para iddiaları (5 bakır, "henüz sende değil", para değişmedi) aynen duruyor | gevşetme yok (para kodu değişmedi) |
 | `test_haggle_review.ReviewedPrices` (2 test, süit düzeltmesi) | `{elapsed_seconds}` taslak saati yerine geçerli saat kuruldu (`a_valid_clock`); fiyat iddiaları (bira 3/4 bakır) aynen duruyor | gevşetme yok (fiyat kodu değişmedi) |
 
-## 11. BM görev 7 (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 12. BM görev 7 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 Günlük yalnız gerçekten söylenen şeyi tutar (B3). Bir iş ya da söylenti "duyuldu" sayılması için cevabın o işin kendi sözcüklerinin en az yarısını taşıması gerekir (`town_rumours.was_voiced`, işlere de uygulandı) ve model `voiced` ile anahtarı (`k1..k10`) verdiyse o anahtar listede olmalıdır; yalnız yer ya da kişi adı hiçbir şeyi işaretlemez. "Söylediklerin konuşmada duyuldu." satırı günlüğe yazılmaz (K-BM-4). Duyulan söylenti günlükte "Ad: iddia" ve söyleyenin adıyla görünür.
 
@@ -152,25 +160,25 @@ Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi
 | `test_default_focus_acceptance` (flag kapalı, tüm kipler), `test_meaning_boundary_acceptance`, `test_query_request_acceptance`, `test_default_npc_targeting` (yer önerisi), `test_npc_p2_continuity` (3 test), `test_spoken_promises.TheField` (süit düzeltmesi) | `required` ve `properties` beklentilerine `voiced` eklendi (üstteki `test_experimental_npc_dialogue` satırıyla aynı şema değişikliği) | gevşetme olabilir (tam liste sabitleyen testler genişledi) |
 | `test_npc_p2_continuity.test_live3_short_followup_drops_rumor_and_names_the_referent` | test değişmedi; ürün düzeltildi: `voiced` kuralı istemin sonundan alan kuralları bloğuna alındı, son satır yine oyuncunun mesajı | gevşetme yok |
 
-## 12. BM görev 8 (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 13. BM görev 8 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 | Test | Değişiklik | İşaret |
 |---|---|---|
 | `test_world_keeps_its_word.LeavingTown.test_the_road_on_is_a_person_saying_why_not_now_and_nothing_moves` (şimdi `..._saying_why_not_and_the_walk_is_one_hour`), `test_the_road_on_read_as_an_attempt_is_still_no_journey` (şimdi `..._still_no_day_long_journey`), `test_a_far_city_read_as_the_street_stays_on_the_road` | BM T9 (K-BM-2) sonrası kırıktı (T9 bu üç testi güncellememişti): ilk "yola devam" artık uyarır VE bir sonraki yola yürür. Eski "hiçbir şey kıpırdamaz" yerine: konum değişir, saat tam +3600 sn (bir saatlik yol; günlük yolculuk ya da uzak şehre varış yok), kişi aynı turda tırnaklı söz söyler. Niyet aynı: gün sürecek yolculuk yok | gevşetme olabilir |
 
-## 13. BM görev 5 (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 14. BM görev 5 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 | Test | Değişiklik | İşaret |
 |---|---|---|
 | `test_town_knowledge.WiderKnowledge.test_speaker_keeps_own_rumour_when_the_cap_bites` | BM T5: konuşanın kendi söylediği söylenti artık tehdit maddesinden ÖNCE gelir (sıra `[tehdit, kendi]` yerine `[kendi, tehdit]`); iki yuva yine dolu | gevşetme olabilir |
 
-## 14. BM görev 9 (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 15. BM görev 9 (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 | Test | Değişiklik | İşaret |
 |---|---|---|
 | `test_carius_fifth_play.TheRoadOnIsNoWall.test_told_why_not_once_...` | BM T9 (K-BM-2): ilk "yola devam" artık uyarır VE yürür (eskiden durakta kalırdı); ikinci yürüyüş uyarısız | gevşetme olabilir |
 
-## 15. BM son düzeltme (dal `task/bm-once-model-20261117`, onay bekliyor)
+## 16. BM son düzeltme (dal `task/bm-once-model-20261117`, onay bekliyor)
 
 | Test | Değişiklik | İşaret |
 |---|---|---|

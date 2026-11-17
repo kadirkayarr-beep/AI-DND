@@ -99,7 +99,7 @@ export function OpeningScreen({ onCreate, onContinue, creating, notice, loadingC
       <section className="entry-page">
         <div className="entry-main">
           <div className="entry-art">
-            <OuroborosLogo loading={creating || loadingCampaigns} />
+            <OuroborosLogo />
           </div>
           <div className="entry-copy">
             <h1>UNWRITTEN</h1>
