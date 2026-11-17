@@ -87,8 +87,11 @@ class TheRoadOnIsNoWall(FrontScene):
         await self.line("şehirden çıkıyorum, kuzey yoluna")
         stop = self.world["location"]
         first = await self.line("duraktan geçip kuzey yoluna devam ediyorum, şehirden uzaklaşıyorum")
-        self.assertEqual(self.world["location"], stop, first["narration"])
+        # BM T9 (K-BM-2), gevşetme olabilir: the warning is said AND the walk happens (was: the player stayed at the stop)
+        self.assertNotEqual(self.world["location"], stop, first["narration"])
         self.assertIn("“", first["narration"])
+        self.assertTrue(self.world["locations"][stop]["road_warned"])
+        self.world["location"] = stop  # back at the stop, where the warning is already said
         clock = self.world["campaign_time"]["elapsed_seconds"]
         second = await self.line("günlerce gitmicem ki usta, yarım gün yürüyüp dönücem. yürüyorum ben")
         here = self.world["locations"][self.world["location"]]

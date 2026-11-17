@@ -20642,13 +20642,17 @@ def _dispatch_player_turn(
     if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         import front_proposal
         import grounded_action
+        road_warning = None
         if front["id"] == front_proposal.WAY_OUT:
             refused = grounded_action.road_goes_on(_session(), player_input)
-            if refused is not None:
+            road_warning = (refused or {}).get("road_warning")
+            if refused is not None and road_warning is None:
                 return refused
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             walked = grounded_action.resolve_turn(_session(), player_input, listed_place=front)
         if walked is not None:
+            if road_warning:
+                walked["narration"] = f"{road_warning} {walked.get('narration') or ''}".strip()
             return walked
         front_proposal.note(_session(), "fallback:no_walk")
     if combat_action is None:

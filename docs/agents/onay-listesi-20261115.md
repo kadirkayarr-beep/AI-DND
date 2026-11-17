@@ -78,6 +78,7 @@ Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden t
 | `test_game_name.ProtectedIdsTests.test_env_variable_name_set_is_unchanged` | `AI_DND_*` ad sayısı 36'dan 37'ye (`AI_DND_RUMOUR_LANE`) | gevşetme olabilir |
 | `test_journey_schema` beklenti anahtarı kümesi | `duyulan` eklendi (yalnız ekleme) | - |
 | `test_town_knowledge.WiderKnowledge.test_speaker_keeps_own_rumour_when_the_cap_bites` | BM T5: konuşanın kendi söylediği söylenti artık tehdit maddesinden ÖNCE gelir (sıra `[tehdit, kendi]` yerine `[kendi, tehdit]`); iki yuva yine dolu | gevşetme olabilir |
+| `test_carius_fifth_play.TheRoadOnIsNoWall.test_told_why_not_once_...` | BM T9 (K-BM-2): ilk "yola devam" artık uyarır VE yürür (eskiden durakta kalırdı); ikinci yürüyüş uyarısız | gevşetme olabilir |
 
 ## 6. BM görev 1 (dal `task/bm-t1-20261117`, onay bekliyor)
 
