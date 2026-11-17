@@ -19449,9 +19449,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     # ('tatar yayımı bacağına doğrultup ateş ediyorum'); anything else it says still goes the old way.
     fought = (fighting and target_id is not None and interaction_mode not in {"say", "ask_dm"}
               and target_id in world.get("combat", {}).get("participants", []))
+    # BM Task 1: a line said in conversation is read once, with or without a chosen person (talk_front decides which).
+    import talk_front
+    reads = talk_front.reads_say_line(session, player_input, target_id, interaction_mode, combat_action, check_feature)
     if (combat_action is not None or check_feature is not None
-            or (interaction_mode in {"say", "ask_dm"} and not (said_coin or served))
-            or (target_id is not None and not typed_economic and not fought)):
+            or (interaction_mode in {"say", "ask_dm"} and not reads)
+            or (target_id is not None and not typed_economic and not fought and not reads)):
         front_proposal.note(session, "skipped:typed")
         return None
     journey = world.get("journey")
@@ -19469,10 +19472,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         listed = front_proposal.listing(session)
     except Exception:
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
+        if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
+            session._front_reply = {"intent": "unknown", "classifier_unusable": True}
         return None
     hint = interaction_adventure.hint(player_input, True)
     addressed = None
-    if hint and said_coin:  # in say mode the line is for the person chosen, whoever its words name
+    if hint and typed_economic:  # in say mode the line is for the person chosen, whoever its words name
         addressed = next((npc for npc in active_npcs() if npc.get("id") == target_id), None)
     elif hint:
         addressed = _addressed_in(player_input)
@@ -19489,7 +19494,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         answered = len(reply) > 1  # a dead provider leaves only the bare unknown intent
         label = ("fallback:unusable" if reply.get("classifier_unusable")
                  else "fallback:no_front" if answered else "fallback:failed")
-        recovered = (None if fighting or typed_economic or label == "fallback:no_front"
+        recovered = (None if fighting or typed_economic or reads or label == "fallback:no_front"
                      else _front_recovery(player_input, listed))
         if recovered is not None:
             front_proposal.note(session, f"{label}:{recovered['kind']}", reached=answered)
@@ -19499,6 +19504,11 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         return None
     raw_front = reply.get("front")
     session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
+    if reads:
+        session._front_talk = front_proposal.talk_reading(raw_front, listed, target_id)  # what the old owners ask
+        if not typed_economic:  # said with no one chosen, or asked of the DM: the reading is held, the old chain goes on
+            front_proposal.note(session, "typed:talk_read", reached=True)
+            return None
     session._front_economic_none = True  # only the validated owner may prepare room/gift cards in a front-enabled turn
     economic = front_proposal.economic_route(reply, listed, target_id=target_id if typed_economic else None,
                                              line=player_input)

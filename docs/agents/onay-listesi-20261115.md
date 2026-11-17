@@ -77,3 +77,13 @@ Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden t
 | `test_local_gemma_12b` | bulut mesajları testi bulut üslup bloğunu bekler | gevşetme olabilir |
 | `test_game_name.ProtectedIdsTests.test_env_variable_name_set_is_unchanged` | `AI_DND_*` ad sayısı 36'dan 37'ye (`AI_DND_RUMOUR_LANE`) | gevşetme olabilir |
 | `test_journey_schema` beklenti anahtarı kümesi | `duyulan` eklendi (yalnız ekleme) | - |
+
+## 6. BM görev 1 (dal `task/bm-t1-20261117`, onay bekliyor)
+
+Konuşma satırı artık ön okumadan geçer (`say`/`ask_dm`, kişi seçili olsun olmasın); eski kelime yolları yedek. Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden tanımlar.
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_front_money.SayModeCoin.test_say_mode_reads_only_a_line_that_names_coin` (yeni ad `test_say_mode_reads_every_line_and_coin_stays_the_owners`) | parasız söz satırı artık okunur (eskiden okunmazdı, `skipped:typed`); aynı sıkılık: o satırda para 0, para satırı yine 50 okur | gevşetme olabilir |
+| `test_front_money.SayModeCoin.test_a_coin_line_to_nobody_typed_is_not_a_say_mode_reading` (yeni ad `test_a_coin_line_asked_of_the_dm_is_read_but_its_coin_is_never_taken`) | `ask_dm` satırı artık okunur; aynı sıkılık: okunan para alınmaz (`_front_coin == 0`), rota `typed:talk_read` | gevşetme olabilir |
+| `test_front_money.SayModeCoinKeepsTheTalk.test_a_say_line_without_coin_keeps_its_own_proposal_call` (yeni ad `test_a_say_line_without_coin_is_read_once_and_asks_no_second_call`) | eski öneri adımı kendi sınıflandırıcı çağrısını yapardı; şimdi ön okuma o çağrı (en çok 2 çağrı) | gevşetme olabilir |
