@@ -129,3 +129,15 @@ Kişi konuşması saati, oyuncuya gösterilen varış metnini (en çok 600 karak
 |---|---|---|
 | `test_arrival_narration.Narrate.test_world_is_identical_with_and_without_the_call` | dünya eskiden her yerde aynıydı; şimdi `scene_state.arrival_text` hariç aynı (iki yolun kendi gösterilen metni bu anahtarda ve dönen metne eşit), geri kalan dünya aynı sıklıkta karşılaştırılır | gevşetme olabilir (karşılaştırmadan bir anahtar çıktı) |
 | Yeni `test_npc_scene_time` (saat, sahne, kendi iş, kendi söz, son sözler, Geri Al, kayıt-yükleme) | yeni | gevşetme yok |
+
+## 11. BM görev 7 (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+Günlük yalnız gerçekten söylenen şeyi tutar (B3). Bir iş ya da söylenti "duyuldu" sayılması için cevabın o işin kendi sözcüklerinin en az yarısını taşıması gerekir (`town_rumours.was_voiced`, işlere de uygulandı) ve model `voiced` ile anahtarı (`k1..k10`) verdiyse o anahtar listede olmalıdır; yalnız yer ya da kişi adı hiçbir şeyi işaretlemez. "Söylediklerin konuşmada duyuldu." satırı günlüğe yazılmaz (K-BM-4). Duyulan söylenti günlükte "Ad: iddia" ve söyleyenin adıyla görünür.
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_town_knowledge.WhatWasSaidIsTiedToTheRecord.test_a_place_named_with_a_case_ending_is_that_place` | yer adı eskiden işi "duyuldu" yapıyordu; şimdi yer bağı kalır (`last_said_place`), iş "duyuldu" olmaz | gevşetme olabilir (sınır yeniden tanımlandı, ama daha sıkı) |
+| `test_experimental_npc_dialogue` (3 yer: `required` listeleri, `properties` kümesi) | şemaya `voiced` eklendi: `required` sonuna (mentions'tan önce), `properties` kümesine | gevşetme olabilir (tam liste sabitleyen test genişledi) |
+| `test_heard_rumours_turn.MentionOverHttp.test_lane_off_schema_has_no_mentions_in_required` | `required` listesine `voiced` eklendi; `mentions` hâlâ yok | gevşetme olabilir |
+| Yolculuk 41 `is_haberi_sokakta` (adım 1 ve 2) | sokakta geçen kişinin cümlesi eskiden işi serbest bir cümleyle anıyordu (iş sahibinin adı yeterdi); şimdi işin kendi cümlesini söyler (`$is_satiri:potter`, koşucu canlı dünyadan okur). Beklenen sonuç ve sıfır tolerans aynı | gevşetme olabilir: yeniden anlatılan (aynı sözcükleri taşımayan) bir iş artık günlüğe düşmez; Kadir oynayışta bakmalı |
+| Yeni `test_journal_heard` (yer adı, sahip adı, voiced, söylenti izi, genel satır, şema, Geri Al) | yeni | gevşetme yok |

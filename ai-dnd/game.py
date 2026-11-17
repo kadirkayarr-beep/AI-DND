@@ -8387,6 +8387,9 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
         },
         # Required, because a small model leaves an optional field out: real play never once filled one for a threat.
         "threat": {"type": "string", "maxLength": 48},
+        # BM T7: which of the listed knowledge items (k1..) the reply really passed on. The engine fills the keys per
+        # person and makes the field required; Python still checks the reply's own words before it marks anything heard.
+        "voiced": {"type": "array", "items": {"type": "string", "enum": ["none"]}, "maxItems": 3},
     },
     "required": ["spoken_text", "stage_direction", "threat"],
     "additionalProperties": False,
@@ -8467,6 +8470,13 @@ _MENTIONS_PROMPT_RULE = (
 )
 
 
+_VOICED_PROMPT_RULE = (
+    "\nvoiced: Kentte duyduğun ve bildiğin şeyler listesinden konuşmanda gerçekten aktardıklarının anahtarlarını "
+    "(k1, k2, ...) yaz, en çok üç; hiçbirini aktarmadıysan [\"none\"]. Bir şeyi aktardıysan onun kendi sözcüklerini "
+    "kullan: oyuncunun günlüğüne konuşmanda gerçekten geçen yazılır."
+)
+
+
 def _rumour_lane_on() -> bool:
     import heard_rumours
     return heard_rumours.lane_enabled()
@@ -8481,7 +8491,13 @@ def _speech_answer_rules() -> str:
             .replace("yeni kişi, yer veya olgu uydurmadan", "yeni kişi ya da olgu uydurmadan"))
 
 
-def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False):
+def _voiced_keys(raw_intent):
+    """The keys the model said it passed on; None (not given or not a list) leaves the reply's own words to decide."""
+    value = raw_intent.get("voiced") if isinstance(raw_intent, dict) else None
+    return [key for key in value if isinstance(key, str)] if isinstance(value, list) else None
+
+
+def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False, voiced=None):
     """Remember one exchange the player actually saw. Not state, not evidence."""
     if (
         not isinstance(npc_id, str)
@@ -8509,7 +8525,8 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: b
             npc_told.remember(world, npc_id, player_text,
                               turn=world.get("flags", {}).get("turn_index", 0))
         npc_statements.record(world, npc, player_text, npc_text, turn=None)
-        town_knowledge.note_mention(world, npc, npc_text, job_talk=_job_talk_with(npc), offer_talk=_offer_talk_with(npc))
+        town_knowledge.note_mention(world, npc, npc_text, voiced=voiced, job_talk=_job_talk_with(npc),
+                                    offer_talk=_offer_talk_with(npc))
 
 
 _CLAIM_REJECTION_RE = re.compile(
@@ -10076,6 +10093,10 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         speech_npc = next((n for n in world_state.get("npcs", [])
                            if isinstance(n, dict) and n.get("id") == speech_npc_id), None)
         schema["properties"]["asks_for"]["enum"] = money_owner.askable(world_state, speech_npc)
+        import town_knowledge
+        schema["properties"]["voiced"]["items"]["enum"] = [*town_knowledge.speech_keys(world_state, speech_npc), "none"]
+        schema["required"] = [*schema["required"], "voiced"]
+        prompt += _VOICED_PROMPT_RULE
         import local_places
         if _rumour_lane_on():
             schema["properties"]["mentions"]["properties"]["place_kind"]["enum"] = list(local_places.PLACE_KINDS)
@@ -23639,6 +23660,7 @@ def _run_player_turn_internal(
                         "asks_for",
                         "remember_player_line",
                         "mentions",
+                        "voiced",
                         "witness_recall",
                         "price_negotiation",
                         "commitment",
@@ -24022,7 +24044,9 @@ def _run_player_turn_internal(
                 terms = _offer_terms_shown(world_state, npc_target, player_input, spoken)
                 if terms:
                     text, spoken = f"{text} “{terms}”", f"{spoken} {terms}"
-                _remember_experimental_npc_speech(npc_target["id"], player_input, spoken, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True)
+                _remember_experimental_npc_speech(npc_target["id"], player_input, spoken,
+                                                  remember=valid_speech_packet and raw_intent.get("remember_player_line") is True,
+                                                  voiced=_voiced_keys(raw_intent) if accepted_model_speech and valid_speech_packet else None)
                 if settled_money.get("note"):
                     text = f"{text} {settled_money['note']}"
             return finish_turn(

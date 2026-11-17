@@ -192,7 +192,7 @@ class WhatWasSaidIsTiedToTheRecord(unittest.TestCase):
     def test_a_place_named_with_a_case_ending_is_that_place(self):
         said = self.say(f"Bence {self.place['name']}ne bir uğra.")
         self.assertEqual(said["location_id"], self.place["id"])
-        self.assertEqual(self.thread["status"], "heard")
+        self.assertNotEqual(self.thread["status"], "heard")  # BM T7: a place named alone marks nothing (gevşetme olabilir)
 
     def test_a_person_named_alone_leads_to_their_place(self):
         said = self.say(f"{self.thread['owner_name']} ile konuş, o bilir.")

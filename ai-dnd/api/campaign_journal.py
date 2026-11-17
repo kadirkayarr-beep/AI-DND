@@ -780,6 +780,8 @@ def update_campaign_journal(
     for event in interaction_adventure.get(after_world)["events"]:
         if event["event_id"] in previous_ids or not event["player_known"]:
             continue
+        if event["kind"] == "statement_heard":
+            continue  # K-BM-4: "Söylediklerin konuşmada duyuldu." says nothing; the event stays in the adventure state
         _add_event(
             journal, event_type="adventure_event", summary=event["summary"],
             created_at=now, turn_index=event["turn"], location=current_location,

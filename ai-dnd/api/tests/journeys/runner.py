@@ -114,6 +114,9 @@ SCRIPT_KEYS = frozenset({"intent", "front", "fronts", "spoken", "narration", "sp
 # that scene kind (tavern, temple, ...) in the town the scenario started in: a seeded town's places are numbered by
 # the engine, never by the scenario. A kind the town lacks is made (a local place kind) at setup.
 TOWN_PLACE = "$yer:"
+# A scripted ``spoken`` of ``$is_satiri:PERSON`` is the public line of the open job that person owns, read from the live
+# world: a street line only counts as heard when it carries the job's own words (BM T7), so the scenario cannot spell them.
+STREET_LINE = "$is_satiri:"
 # ``arrival``: the model's arrival text (a str), or a whole packet ({narration, world_updates, lore_claims}) returned as
 # written, so a scenario can try a broken one. A step that scripts none leaves the arrival call to fail (the Python line).
 # ``speech``: the speech answer's own optional fields, added to the speech call's answer as written (a broken value
@@ -441,6 +444,14 @@ def _with_live_ids(case: Any, script: Mapping[str, Any] | None) -> Mapping[str, 
     """A front reading's ``place_id`` ``$iz:N`` turned into the place of the record the N-th trail of the quest log
     points at (1 = the newest), and its ``offer_id`` ``$is:PERSON`` into the one job that person has on offer, both
     read from the live world: a trail's place and a job's id are the engine's, never the scenario's."""
+    spoken = (script or {}).get("spoken")
+    if isinstance(spoken, str) and spoken.startswith(STREET_LINE):  # a person passes on a job in the job's own words
+        world = case.manager.get(case.last_session_id).game_session.world_state
+        lines = [t["public_line"] for t in (world_threads.view(world) or {}).get("threads", [])
+                 if t.get("owner_npc_id") == spoken[len(STREET_LINE):] and t.get("status") in {"open", "heard"}]
+        if len(lines) != 1:
+            raise ScenarioError(f"'{spoken}': o kişinin sokakta konuşulan tam bir işi olmalı ({len(lines)} var)")
+        script = {**script, "spoken": lines[0]}
     front = (script or {}).get("front")
     offer = front.get("offer_id") if isinstance(front, Mapping) else None
     if isinstance(offer, str) and offer.startswith("$is:"):  # the one job this person has on offer

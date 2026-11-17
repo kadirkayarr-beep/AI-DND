@@ -187,6 +187,22 @@ def _opaque(world: dict[str, Any], record_id: str) -> str:
     return hashlib.sha256(f"{seed}\x00{record_id}".encode("utf-8")).hexdigest()[:12]
 
 
+def _rumour_trail(world: dict[str, Any], entry: Any) -> dict[str, Any] | None:
+    """A heard rumour: what the person said ("Ad: iddia") and who said it first. It points at no job, only at a place;
+    ``_at`` is the turn it was heard, which sorts it after any job trail (those carry game seconds)."""
+    if not isinstance(entry, dict) or not isinstance(entry.get("text"), str) or not entry.get("id"):
+        return None
+    place = (world.get("locations") or {}).get(entry.get("place_id"))
+    speaker = _npc(world, entry.get("said_by"))
+    if not isinstance(place, dict) or not place.get("name"):
+        return None
+    turn = entry.get("turn")
+    return {"id": f"duyulan:{_opaque(world, str(entry['id']))}", "what": entry["text"], "where": place["name"],
+            "who": living_world.public_npc_name(speaker) if speaker is not None else None,
+            "source": "duyulan", "followed": bool(place.get("visited")),
+            "_at": turn if type(turn) is int else 0, "_from_thread_id": None, "_to_thread_id": None}
+
+
 def _players_job(thread: Any) -> bool:
     return isinstance(thread, dict) and thread.get("offered_at") is not None
 
@@ -225,6 +241,8 @@ def _trail_rows(world: dict[str, Any]) -> list[dict[str, Any]]:
             found.append(_trail(world, key=f"duyulan:{_opaque(world, thread['thread_id'])}",
                                 at=thread.get("opened_at") or 0, what=thread.get("public_line"), record=thread,
                                 source="duyulan", from_id=None))
+    for entry in world.get("heard_rumours") or []:  # (5) a place or trail a person said aloud, in their own claim
+        found.append(_rumour_trail(world, entry))
     found = [trail for trail in found if trail is not None]
     found.sort(key=lambda trail: trail["_at"], reverse=True)
     return found[:MAX_TRAILS]

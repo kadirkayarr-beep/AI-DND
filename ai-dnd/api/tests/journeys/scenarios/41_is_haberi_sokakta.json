@@ -48,7 +48,7 @@
           "kind": "speak_to",
           "person_id": "passer"
         },
-        "spoken": "Çömlekçi Halil'in iade takımını iskeledeki Tuna'ya götürecek birini aradığını duydum."
+        "spoken": "$is_satiri:potter"
       },
       "expect": {
         "gunluk": {
@@ -81,7 +81,7 @@
           "kind": "speak_to",
           "person_id": "passer"
         },
-        "spoken": "Çömlekçi Halil'in iade takımını iskeledeki Tuna'ya götürecek birini aradığını duydum."
+        "spoken": "$is_satiri:potter"
       },
       "expect": {
         "gunluk": {
