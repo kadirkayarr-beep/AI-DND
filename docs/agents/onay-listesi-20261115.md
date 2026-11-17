@@ -77,3 +77,4 @@ Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden t
 | `test_local_gemma_12b` | bulut mesajları testi bulut üslup bloğunu bekler | gevşetme olabilir |
 | `test_game_name.ProtectedIdsTests.test_env_variable_name_set_is_unchanged` | `AI_DND_*` ad sayısı 36'dan 37'ye (`AI_DND_RUMOUR_LANE`) | gevşetme olabilir |
 | `test_journey_schema` beklenti anahtarı kümesi | `duyulan` eklendi (yalnız ekleme) | - |
+| `test_carius_fifth_play.TheRoadOnIsNoWall.test_told_why_not_once_...` | BM T9 (K-BM-2): ilk "yola devam" artık uyarır VE yürür (eskiden durakta kalırdı); ikinci yürüyüş uyarısız | gevşetme olabilir |

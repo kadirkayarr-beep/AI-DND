@@ -3101,7 +3101,8 @@ def leaves_town(session, player_input: Any) -> bool:
 
 
 def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
-    """Standing where the town ends, someone says once why not; asked again the player goes. None: an ordinary walk on."""
+    """Standing where the town ends, someone says once why not, and the player goes on in the same turn (K-BM-2).
+    {"road_warning": text}: the caller walks on with the warning first. None: an ordinary walk on."""
     import local_places
     world = session.world_state
     here = world.get("location")
@@ -3115,8 +3116,11 @@ def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
     flags = world.setdefault("flags", {})
     if not record.get("road_warned") and person is not None and person.get("combat_status") != "dead":
         record["road_warned"] = True  # said once; the choice to go on stays the player's
-        line = _pick(world, _ROAD_ON, here, flags.get("turn_index", 0))
-        text, status, changes = line.format(who=living_world.public_npc_name(person)), "not_now", ["locations"]
+        warning = _pick(world, _ROAD_ON, here, flags.get("turn_index", 0)).format(who=living_world.public_npc_name(person))
+        if spec.get("road_on"):
+            return {"road_warning": warning}  # K-BM-2: said now, and the caller walks on in the same turn
+        _Run(session, player_input).spend(_ROAD_END_SECONDS)  # no place beyond: the same turn walks the hours
+        text, status, changes = f"{warning} {_ROAD_ON_ALONE}", "walked", ["locations", "campaign_time"]
     elif spec.get("road_on"):
         return None  # the walk on to the next real place on the road
     else:  # the end of the short road: the hours are really walked, and nothing is found that is not there
