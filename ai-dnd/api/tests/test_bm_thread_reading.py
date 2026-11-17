@@ -112,6 +112,15 @@ class ThreadReading(delivery.JourneyCase):
         self.assertNotIn("bakır", out["narration"])
         self.assertEqual(self.thread()["status"], "open")
 
+    async def test_work_asked_about_another_person_is_not_this_persons_job_talk(self):
+        """I1: `asks=work` plus `about_person_id` naming someone else, no job id: the owner's own job is not started."""
+        self.reopen()
+        self.assertIn(self.thread(), world_threads.jobs_of(self.world, self.person(OWNER)))
+        out = await self.say("Selin'in işi ne, biliyor musun?", front=self.reading(asks="work", about_person_id="stranger"))
+        self.assertNotIn("bakır", out["narration"])
+        self.assertEqual(self.thread()["status"], "open")
+        self.assertIsNone(getattr(self.session, "_thread_turn", None))
+
     async def test_reading_job_id_still_opens_terms(self):
         self.reopen()
         out = await self.say("Bu iş neydi?", front=self.reading(asks="work", job_id=self.thread_id))

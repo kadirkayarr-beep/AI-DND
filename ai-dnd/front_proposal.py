@@ -292,7 +292,7 @@ def guidance(listed: Mapping[str, Any]) -> str:
           "Fiyat ve ürün yetkisi tezgâhın kendi motorunundur; kişi person_id ile listedeki aynı alıcıdır. "
           "Odayı yalnız anmak oda istemek değildir. Alıntı, geçmişte olan veya koşullu ödeme none; fiyat belirleme. "
         "asks: oyuncu bu satırda biriyle konuşuyorsa onun neyi sorduğu: place = bir yer, rumour = söylenti ya da haber, "
-        "work = iş, person = bir kişi, shop = dükkân ya da satıcı, name = adı ya da kendini tanıtma, small_talk = hal hatır, "
+        "work = iş: iş istemek, bir işi kabul ya da reddetmek, bir işin ücretini ya da parasını istemek, bir işin derdini ya da teslimatını bildirmek ya da halletmek (ücret, dert ve üstlenme kararı yalnız work ya da job_id ile verilir), person = bir kişi, shop = dükkân ya da satıcı, name = adı ya da kendini tanıtma, small_talk = hal hatır, "
         "other = bunlardan başkası; konuşma yoksa none. "
         "about_person_id: sorulan ya da söz edilen kişi, konuştuğu kişiden başkasıysa people listesinden onun kimliği; yoksa none. "
         "want: oyuncu karakterinin hayatta neyin peşinde olduğunu açıkça söylüyorsa (sheet varsa orada yazıyorsa) wants listesinden seç; yoksa none. "
@@ -721,7 +721,9 @@ def log_turn(session, result: Any) -> None:
     telemetry = telemetry if isinstance(telemetry, dict) else {}
     source = telemetry.get("narration_source")
     calls = telemetry.get("total_model_calls")
-    entry["narration_source"] = source if isinstance(source, str) else None  # None: the engine reported nothing
+    if not isinstance(source, str) and isinstance(result, dict) and not telemetry and result.get("model_calls") == 0             and isinstance(result.get("narration"), str) and result["narration"].strip():
+        source = "python_direct"  # an early-return owner: no engine telemetry, but a ready line shown with no model call
+    entry["narration_source"] = source if isinstance(source, str) else None  # None: truly unknown
     entry["model_calls"] = calls if type(calls) is int else 0
     checks = getattr(session, "_speech_checks", None)
     if isinstance(checks, list):
@@ -755,15 +757,17 @@ def share(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
 # the owners in the 2026-11-16/17 local route log (attack, death_save, skill_check, theft, shop_offer, shop_inquiry,
 # equipment_transaction, consume, action_economy, combat_action) plus shop_economy and character_query (design 5.9).
 ENGINE_OWNERS = frozenset({
-    "shop_economy", "shop_offer", "shop_inquiry", "equipment_transaction", "consume", "theft",
+    "shop_economy", "shop_offer", "equipment_transaction", "consume", "theft",
     "attack", "combat_action", "death_save", "skill_check", "action_economy", "character_query",
 })
 
 
 def ready_line_share(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
-    """Of the moves with a known narration source (engine-owned money, dice, XP, purchase and rule rows excluded),
-    how many ended in a ready-made engine or Python line instead of one the model wrote."""
-    moves = [row for row in rows
-             if isinstance(row.get("narration_source"), str) and row.get("owner") not in ENGINE_OWNERS]
-    ready = sum(1 for row in moves if row["narration_source"].startswith(("deterministic_", "python_")))
-    return {"moves": len(moves), "ready": ready, "share": ready / len(moves) if moves else 0.0}
+    """Design 5.9: over all player rows, how many ended in a ready-made engine or Python line instead of one the
+    model wrote. Engine-owned money, dice, XP, purchase and rule rows stay in the count but are never ready lines;
+    `unknown` counts rows whose source the log could not tell (it never hides them)."""
+    ready = sum(1 for row in rows if isinstance(row.get("narration_source"), str)
+                and row.get("owner") not in ENGINE_OWNERS
+                and row["narration_source"].startswith(("deterministic_", "python_")))
+    unknown = sum(1 for row in rows if not isinstance(row.get("narration_source"), str))
+    return {"moves": len(rows), "ready": ready, "share": ready / len(rows) if rows else 0.0, "unknown": unknown}

@@ -77,8 +77,6 @@ Yeniden yazılan testler; "gevşetme olabilir" işaretlileri sınırı yeniden t
 | `test_local_gemma_12b` | bulut mesajları testi bulut üslup bloğunu bekler | gevşetme olabilir |
 | `test_game_name.ProtectedIdsTests.test_env_variable_name_set_is_unchanged` | `AI_DND_*` ad sayısı 36'dan 37'ye (`AI_DND_RUMOUR_LANE`) | gevşetme olabilir |
 | `test_journey_schema` beklenti anahtarı kümesi | `duyulan` eklendi (yalnız ekleme) | - |
-| `test_town_knowledge.WiderKnowledge.test_speaker_keeps_own_rumour_when_the_cap_bites` | BM T5: konuşanın kendi söylediği söylenti artık tehdit maddesinden ÖNCE gelir (sıra `[tehdit, kendi]` yerine `[kendi, tehdit]`); iki yuva yine dolu | gevşetme olabilir |
-| `test_carius_fifth_play.TheRoadOnIsNoWall.test_told_why_not_once_...` | BM T9 (K-BM-2): ilk "yola devam" artık uyarır VE yürür (eskiden durakta kalırdı); ikinci yürüyüş uyarısız | gevşetme olabilir |
 
 ## 6. BM görev 1 (dal `task/bm-t1-20261117`, onay bekliyor)
 
@@ -117,7 +115,7 @@ Davranış sınırı (BM T3): `ask_dm` satırında model düz konuşma okuyup li
 
 | Test | Değişiklik | İşaret |
 |---|---|---|
-| Yeni `test_bm_thread_reading.ThreadReading` (8 test: B1, şart satırı, kabul + soru, Geri Al, okuma yok, ücret, ücret + iş okuması yok) | yeni; eski kelime kapısı yalnız okuma yokken kalır | gevşetme yok |
+| Yeni `test_bm_thread_reading.ThreadReading` (15 test: B1, şart satırı, kabul + soru, Geri Al, okuma yok, ücret, ücret + iş okuması yok, başka kişi hakkında iş sorusu) | yeni; eski kelime kapısı yalnız okuma yokken kalır | gevşetme yok |
 
 Davranış sınırı (BM T4): okuma `speak_to` ya da bir iş türüyse (`work`, `offer_answer`, `hand_over`) ve iş adlandırmıyorsa (`job_id`, `offer_id`, `asks == "work"`), kelimeyle iş yakalama (kısa soru, "ücret", sahip terimleri) artık çalışmaz. "Paramı ver" gibi bir satır, okuma "iş" demiyorsa ücret ödetmez (kişiye konuşmayla söylenir). `matter`, `take_up` ve `lapsed` kararları okumadan geri getirildi (okuma iş diyorsa aynı Python doğrulayıcıları çalışır: `raises_the_matter`, `offers_to_help`, `lapsed_yes`; testleri var). Okuma kipi `take` (kabul edilmiş işte paketi sahibinden alma) ve `speak_to` okumasıyla sözle yapılan teslim (`give`/`give_late`, iş ücreti) okuma varken artık kelimeyle yakalanmaz: paket yerinde kalır, ücret ödenmez (güvenli yönde kapanır); model `take` ve `hand_over` okumazsa bu iki yol çalışmaz. Düzeltme: ilk sürümdeki "`_front_take`/`_front_offer_gate` karşılar" cümlesi `matter`, `take_up`, `lapsed` için yanlıştı. "gevşetme olabilir" olarak işaretlendi: Kadir oynayışta bakmalı.
 
@@ -154,3 +152,21 @@ Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi
 | Test | Değişiklik | İşaret |
 |---|---|---|
 | `test_world_keeps_its_word.LeavingTown.test_the_road_on_is_a_person_saying_why_not_now_and_nothing_moves` (şimdi `..._saying_why_not_and_the_walk_is_one_hour`), `test_the_road_on_read_as_an_attempt_is_still_no_journey` (şimdi `..._still_no_day_long_journey`), `test_a_far_city_read_as_the_street_stays_on_the_road` | BM T9 (K-BM-2) sonrası kırıktı (T9 bu üç testi güncellememişti): ilk "yola devam" artık uyarır VE bir sonraki yola yürür. Eski "hiçbir şey kıpırdamaz" yerine: konum değişir, saat tam +3600 sn (bir saatlik yol; günlük yolculuk ya da uzak şehre varış yok), kişi aynı turda tırnaklı söz söyler. Niyet aynı: gün sürecek yolculuk yok | gevşetme olabilir |
+
+## 13. BM görev 5 (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_town_knowledge.WiderKnowledge.test_speaker_keeps_own_rumour_when_the_cap_bites` | BM T5: konuşanın kendi söylediği söylenti artık tehdit maddesinden ÖNCE gelir (sıra `[tehdit, kendi]` yerine `[kendi, tehdit]`); iki yuva yine dolu | gevşetme olabilir |
+
+## 14. BM görev 9 (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_carius_fifth_play.TheRoadOnIsNoWall.test_told_why_not_once_...` | BM T9 (K-BM-2): ilk "yola devam" artık uyarır VE yürür (eskiden durakta kalırdı); ikinci yürüyüş uyarısız | gevşetme olabilir |
+
+## 15. BM son düzeltme (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_ready_line_share.ReadyLineShare` (paylaşım, kaynaksız satırlar, boş kayıt; yeni: telemetrisiz tur, tezgâh varlık satırı) | tasarım 5.9'a uyar: payda TÜM oyuncu satırları (eskiden yalnız kaynağı bilinen, motor sahibi olmayan satırlar); kaynaksız satırlar atılmaz, `unknown` olarak sayılır; `shop_inquiry` motor sahibi değil (tezgâh varlık satırı hazır satırdır) | sınırı yeniden tanımlar, gevşetme olabilir |

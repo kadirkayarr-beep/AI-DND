@@ -80,7 +80,7 @@ def work_reading(front: dict | None, npc: dict, world: dict) -> dict | None:
 
     The line speaks of work when the reading's kind is a job kind, or it names one of this person's jobs (`job_id` for
     work in hand, `offer_id` for work put to the player), or it asks for work (`asks == "work"`) of someone who has
-    jobs. `about_person_id` naming another person never starts this person's job talk."""
+    jobs. `about_person_id` naming another person never starts this person's job talk, except a matter that person sent."""
     if not isinstance(front, dict) or not isinstance(npc, dict):
         return None
     import world_threads
@@ -91,7 +91,15 @@ def work_reading(front: dict | None, npc: dict, world: dict) -> dict | None:
     thread = next((t for t in mine if t.get("thread_id") in named), None)
     if thread is None and front.get("kind") == "hand_over":
         thread = next(iter([*world_threads.deliveries_to(world, npc), *world_threads.late_parcels(world, npc)]), None)
-    if thread is None and mine and (front.get("kind") in JOB_KINDS or front.get("asks") == "work"):
+    about = front.get("about_person_id")
+    if isinstance(about, str) and about not in ("", "none") and about != npc.get("id") and thread is None:
+        # the line is about someone else: only a trouble that ties the two people is this person's to talk of
+        owner = next((n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("id") == about), None)
+        theirs = world_threads._folded((owner or {}).get("name")).split()[:1]
+        mine = [t for t in world_threads.matters_with(world, npc)
+                if theirs and world_threads._folded(t.get("owner_name")).split()[:1] == theirs]
+        thread = next(iter(mine), None)
+    elif thread is None and mine and (front.get("kind") in JOB_KINDS or front.get("asks") == "work"):
         thread = mine[0]
     return {"thread_id": thread["thread_id"], "decision": None} if thread is not None else None
 
