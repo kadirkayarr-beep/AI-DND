@@ -6,6 +6,7 @@ is scripted. The scenario pins the town (seed 7)."""
 
 from __future__ import annotations
 
+import os
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -13,8 +14,14 @@ from uuid import uuid4
 import front_proposal
 import game
 import living_world
+import talk_front
+import town_knowledge
 import world_threads
 from api.tests import test_quest_delivery as delivery
+from api.tests import test_experimental_npc_dialogue as speech
+from api.tests import test_thread_gate as gate_tests
+from api.tests.test_front_proposal import FrontClient
+from api.tests.town_seed import fixed_town
 from api.tests.journeys.runner import SCENARIO_DIR, ScriptedModel, _front_setting, apply_setup
 from api.tests.journeys.schema import Step, load_scenario
 
@@ -132,15 +139,46 @@ class ThreadReading(delivery.JourneyCase):
         self.assertEqual(self.observed(), before)
 
     async def test_no_reading_keeps_the_old_words(self):
-        """The reading call failed: the word reader runs as before. The line says 'iş' (a work term), so it opens the job
-        talk exactly as `turn_gate` does; B1 reproduced, the word is the work term."""
+        """Flag on, the reading failed (no reading held): the word reader `turn_gate` runs and its answer drives the turn.
+        'Selin nerede?' after an open offer is a short line: the old gate takes it for the owner's job talk."""
+        line = "Selin nerede?"
+        expected = world_threads.turn_gate(self.world, self.person(OWNER), line)
+        self.assertIsNotNone(expected)
+        answers = []
+        real = world_threads.turn_gate
+
+        def spy(*args):
+            answers.append(real(*args))
+            return answers[-1]
+
+        with patch.object(talk_front, "current", return_value=None), patch.object(world_threads, "turn_gate", spy):
+            await self.say(line)
+        self.assertEqual(len(answers), 1)
+        self.assertEqual(answers[0]["thread_id"], expected["thread_id"])
+        self.assertIsNone(answers[0]["decision"])
+        # and the old word 'iş' (a work term) is read as work, too
         line = "Selin'in iş hakkında söylediği ne?"
-        gate = world_threads.turn_gate(self.world, self.person(OWNER), line)
-        self.assertIsNotNone(gate)
-        with patch.object(game, "_thread_gate", wraps=game._thread_gate) as spy:
-            with patch.object(front_proposal, "enabled", return_value=False):
-                await self.say(line)
-        self.assertEqual(spy.call_count, 1)
+        self.assertIsNotNone(world_threads.turn_gate(self.world, self.person(OWNER), line))
+
+    async def test_b1_play_shape_names_the_recipient_and_asks_a_rumour(self):
+        """The play's line: five words, the job's recipient named, a rumour asked of the owner. The old gate took it for job
+        talk twice (the short-line rule and the work-term table that adds the owner's terms line); the reading says rumour."""
+        self.reopen()
+        self.person("stranger")["name"] = "Tuna"  # the job's recipient stands here, listed
+        self.thread()["recipient_name"] = "Tuna"
+        line = "Tuna'nın iş yerindeki gerginlik ne?"
+        self.assertIsNotNone(world_threads.turn_gate(self.world, self.person(OWNER), line))
+        self.assertTrue(town_knowledge.asks_about_work(line, self.thread()))
+        purse, quests = self.purse(), len(self.world["quests"])
+        out = await self.say(line, front=self.reading(asks="rumour", about_person_id="stranger"))
+        self.assertNotIn("bakır", out["narration"])
+        self.assertNotIn("Teslim edene", out["narration"])
+        self.assertEqual((self.purse(), len(self.world["quests"]), self.thread()["status"]), (purse, quests, "open"))
+
+    async def test_a_list_valued_job_id_is_none(self):
+        self.reopen()
+        out = await self.say("Bu iş neydi?", front=self.reading(asks="work", job_id=["x"], offer_id={"a": 1}))
+        self.assertIn("On iki bakır", out["narration"])  # asks=work still opens the terms; no crash, no lost gate
 
     # --- money stays with Python ----------------------------------------------------------------------------------
     def hire(self):
@@ -167,6 +205,70 @@ class ThreadReading(delivery.JourneyCase):
         purse = self.purse()
         await self.say("sen söyledin yirmi bakır diye, paramı ver", front=self.reading(asks="none"))
         self.assertEqual(self.purse(), purse)
+
+
+class ReadingDecisions(unittest.IsolatedAsyncioTestCase):
+    """The decisions the word reader used to make alone (`take_up`, `matter`, `lapsed`) still happen when the reading
+    says the line speaks of that job: the reading chooses the thread, Python's validators decide."""
+
+    asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
+    asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
+    campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
+    line = gate_tests.ThreadTable.line
+    status = gate_tests.ThreadTable.status
+
+    async def trouble(self):
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}))
+        with fixed_town(self, 4401):
+            await gate_tests.ThreadTable.open_job(self, kind="trouble")
+        self.client = FrontClient("Sağ ol.")
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "asks": "work", "about_person_id": "none"}
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+        self.thread.update(owner_line="Hesap tutmuyor, bakan biri lazım.", fires_at=2 * 86400, expires_at=2 * 86400,
+                           public_line="Burada hesap tutmuyormuş.",
+                           terms={"pay": None, "work_days": None, "pay_basis": None, "pay_timing": None,
+                                  "deadline_text": None})
+        self.thread.pop("night_only", None)
+        self.thread.update(target_place_id=None, recipient_name=None)
+        world_threads.mark_heard(self.thread, 0)
+
+    async def test_take_up_from_the_reading(self):
+        await self.trouble()
+        await self.line("derdini ben hallederim abi", mode="say", target=True)
+        self.assertEqual(self.status(), "accepted")
+
+    async def test_no_work_reading_takes_nothing_up(self):
+        await self.trouble()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "asks": "rumour", "about_person_id": "none"}
+        await self.line("derdini ben hallederim abi", mode="say", target=True)
+        self.assertNotEqual(self.status(), "accepted")
+
+    async def test_matter_from_the_reading(self):
+        """A trouble that comes down to speaking with this person: the player brings it up, the trouble is over."""
+        await self.trouble()
+        world_threads.accept_hired(self.world, self.thread, 0)
+        self.thread.update(status="accepted", target_place_id=self.place_id, owner_name="Kalila")
+        self.assertIn(self.thread, world_threads.matters_with(self.world, self.npc))
+        await self.line("Kalila gönderdi, derdi konuşmaya geldim", mode="say", target=True)
+        self.assertEqual(self.status(), "done")
+
+    async def test_lapsed_from_the_reading(self):
+        """A yes to an offer the clock took back, read as the very yes the open offer would have heard."""
+        await self.trouble()
+        state = world_threads.view(self.world)
+        thread = self.thread
+        turn = self.world["flags"].get("turn_index", 0)
+        thread.update(status="expired", offered_at=0, offered_turn=turn, offer_line_turn=turn, offer_line="Hesap tutmuyor, bakan biri lazım.",
+                      closed_at=world_threads._now(self.world))
+        thread.pop("accepted_at", None)
+        state["threads"] = []
+        state["history"] = [thread]
+        self.world["npc_speech_log"] = {self.npc["id"]: [{"player": "selam", "npc": thread["offer_line"]}]}
+        text = "tamam ben hallederim"
+        self.assertTrue(world_threads.lapsed_yes(self.world, thread, text, self.npc))
+        found = talk_front.work_reading(self.client.front, self.npc, self.world)
+        gate = world_threads.reading_gate(self.world, self.npc, found["thread_id"], text, self.client.front)
+        self.assertEqual(gate["decision"], "lapsed")
 
 
 if __name__ == "__main__":

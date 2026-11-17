@@ -84,8 +84,10 @@ def work_reading(front: dict | None, npc: dict, world: dict) -> dict | None:
     if not isinstance(front, dict) or not isinstance(npc, dict):
         return None
     import world_threads
-    mine = [*world_threads.jobs_of(world, npc), *world_threads.recent_closed(world, npc)]
-    named = {front.get("job_id"), front.get("offer_id")} - {None, "", "none"}
+    # a trouble that comes down to speaking with this person is theirs too (`matter`)
+    mine = [*world_threads.jobs_of(world, npc), *world_threads.recent_closed(world, npc),
+            *world_threads.matters_with(world, npc)]
+    named = {value for value in (front.get("job_id"), front.get("offer_id")) if isinstance(value, str)} - {"", "none"}
     thread = next((t for t in mine if t.get("thread_id") in named), None)
     if thread is None and front.get("kind") == "hand_over":
         thread = next(iter([*world_threads.deliveries_to(world, npc), *world_threads.late_parcels(world, npc)]), None)

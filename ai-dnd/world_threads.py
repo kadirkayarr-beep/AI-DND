@@ -1636,7 +1636,8 @@ def reading_gate(world: dict[str, Any], npc: Any, thread_id: str, text: Any, fro
     """What a line does to the one thread the model's reading said it speaks of (BM Task 4).
 
     The reading chose the thread; nothing here searches the player's words for work. Python only validates what the
-    reading proposed, with the same checks `turn_gate` uses: a hand-over needs `gives_item`, a wage needs a plain ask and
+    reading proposed, with the same checks `turn_gate` uses: a hand-over needs `gives_item`, bringing a matter up needs `raises_the_matter`, a
+    yes to a lapsed offer `lapsed_yes`, taking a trouble on `offers_to_help`, a wage needs a plain ask and
     the stored amount (`wage_due`, written by `pay_day`), a yes or a no needs `bind_player_decision`. No money or
     item moves here; the writers run later in `_carry_out_thread_turn`."""
     thread = by_id(world, thread_id)
@@ -1651,12 +1652,18 @@ def reading_gate(world: dict[str, Any], npc: Any, thread_id: str, text: Any, fro
         if thread in late_parcels(world, npc) and gives_item(text, npc, thread):
             return {**gate, "decision": "give_late"}
         return gate
+    if thread in matters_with(world, npc) and raises_the_matter(world, text, npc, thread):
+        return {**gate, "decision": "matter"}
     if thread.get("status") in ("accepted", "done") and asks_for_pay(text):
         return {**gate, "decision": "pay"}
     if (front.get("kind") == "work" and thread.get("status") == "accepted" and thread.get("type") in WORKED
             and "?" not in text and not says_later(text)):
         return {**gate, "decision": "work" if worked_on_the_spot(thread) else None}
+    if lapsed_yes(world, thread, text, npc):
+        return {**gate, "decision": "lapsed"}
     decision = bind_player_decision(world, thread, text, npc)
+    if not decision and offers_to_help(world, text, npc, thread):
+        return {**gate, "decision": "take_up"}
     return {**gate, "decision": decision, "yes_heard": decision == "accepted"} if decision else gate
 
 
