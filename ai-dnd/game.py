@@ -8777,11 +8777,6 @@ def _job_news_line(world, place_id):
         return ""
 
 
-def _with_job_news(world, place_id, narration):
-    line = _job_news_line(world, place_id)
-    return f"{narration} {line}" if line else narration
-
-
 def _has_session():
     return _ACTIVE_SESSION.get(None) is not None
 
@@ -17778,6 +17773,10 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         action = None
     elif interaction_mode == "ask_dm" and action not in {"presence", "look"}:
         action = None
+    if (action == "presence" and interaction_mode == "ask_dm"
+            and (_front_say := talk_front.current(_session())) is not None
+            and _front_say.get("asks") == "person" and talk_front.spoken_to(_front_say, active_npcs()) is not None):
+        action = None  # D-326: "Çavuş, bu gece kim var?" is asked of the person the reading names, not a scene list
     if (
         action is None
         and interaction_mode not in {"say", "ask_dm"}
@@ -22637,6 +22636,9 @@ def _run_player_turn_internal(
             or f"Burada {unresolved_address} adıyla tanıdığın biri görünmüyor.",
             is_final=True,
         )
+    if npc_target is None and interaction_mode == "ask_dm" and not combat["active"]:
+        # BM Task 3: asked of the DM, a plain-talk reading that names a listed person is the line for them
+        npc_target = talk_front.spoken_to(front_talk, active_npcs())
 
     # "Özpil nerede?", or Konuş with no one to say it to: a person the town named is somewhere real.
     asks_for_someone = interaction_mode == "say" or re.search(r"\bner(?:e)?de\b", _normalize_turkish_typos(player_input))
@@ -23013,6 +23015,7 @@ def _run_player_turn_internal(
         )
 
     disclosed_name = _explicit_player_name_disclosure(player_input)
+    intro_fallback_name = None  # BM Task 3: the name the speech call voices; the intro line if it gives no usable line
     if (
         disclosed_name
         and isinstance(npc_target, dict)
@@ -23031,6 +23034,9 @@ def _run_player_turn_internal(
                 and (_npc_speech_enabled() or (interaction_adventure._asks(player_input)
                                                and _detect_query_type(player_input, npc_target) != "npc_identity"))
             )
+            if compound_speech and _known_player_name(npc_target) != safe_name and not talk_front.old_owner_allowed(
+                    talk_front.current(_session()), "name_disclosure"):
+                intro_fallback_name = safe_name
             if compound_speech:
                 local_dialogue.remember_explicit_player_name(npc_target, safe_name)
             if compound_speech and _detect_query_type(player_input, npc_target) == "npc_identity":
@@ -23299,9 +23305,11 @@ def _run_player_turn_internal(
         or (_is_short_followup(player_input) and profile_focus
             and profile_focus.get("predicate") in interaction_adventure.PROFILE_FIELD_BY_MEANING.values())
     ) and not local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
-    experimental_dialogue_session = (
-        npc_dialogue_route and interaction_mode != "ask_dm"
-        and (_npc_speech_enabled() or experimental_unverified_claim or not canonical_profile_question)
+    experimental_dialogue_session = npc_dialogue_route and (
+        # BM Task 3: the model read a plain talk line to this person: they answer by speech, even asked of the DM
+        (isinstance(npc_target, dict) and not talk_front.old_owner_allowed(front_talk, "personal"))
+        or (interaction_mode != "ask_dm"
+            and (_npc_speech_enabled() or experimental_unverified_claim or not canonical_profile_question))
     )
     lore_safety_input = player_input
     if npc_place_recommendation:
@@ -23371,6 +23379,9 @@ def _run_player_turn_internal(
     if (
         smalltalk_response
         and isinstance(npc_target, dict)
+        # BM Task 3: a plain-talk reading means the person answers by speech; these fixed lines are the fallback
+        and talk_front.old_owner_allowed(
+            front_talk, "personal" if local_dialogue.personal_answer(npc_target, player_input) else "small_talk")
         and (
             not experimental_dialogue_session
             or (interaction_mode != "say" and not local_dialogue.has_multiple_dialogue_clauses(
@@ -23730,9 +23741,17 @@ def _run_player_turn_internal(
             if invalid_or_empty:
                 if name_stance == "reveal":
                     text = _spoken_name_answer("", npc_target)
+                elif intro_fallback_name:
+                    text = local_dialogue.introduction_reply(world_state, npc_target, intro_fallback_name)
                 else:
-                    text = (_job_fallback(world_state)
+                    # D-325: what this person herself said is hers to repeat before any denial of the claim
+                    import heard_rumours
+                    own_rumour = heard_rumours.own_line(world_state, npc_target, player_input)
+                    text = (_job_fallback(world_state) or own_rumour
                             or (experimental_unverified_claim and historical_claim_denial(npc_target, player_input)))
+                    if own_rumour and text == own_rumour:
+                        python_town_response = own_rumour
+                        action_result["own_words"] = True  # what she told is hers: not an unrecorded claim, nothing granted
                     if not text:
                         town_reply = _town_fallback(world_state, npc_target, player_input)
                         if isinstance(town_reply, str) and town_reply.strip():

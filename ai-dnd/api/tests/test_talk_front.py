@@ -226,6 +226,17 @@ class SayOwnersAreFallback(TalkFrontTable):
         self.assertTrue(any(reply.format(name="Dorin") in body["narration"]
                             for reply in local_dialogue.INTRODUCTION_REPLIES), body["narration"])
 
+    async def test_name_disclosure_pool_when_the_speech_failed(self):
+        """Task 2 carry: the reading is fine, the speech call gives no usable line; the old intro line is the
+        fallback (spec 5.3)."""
+        await self.start(front=None)
+        self.client.front = self.talk(asks="name")
+        self.client.narration = ""
+        body = await self.say("Adım Dorin.")
+        self.assertEqual(game._known_player_name(self.marek), "Dorin")
+        self.assertTrue(any(reply.format(name="Dorin") in body["narration"]
+                            for reply in local_dialogue.INTRODUCTION_REPLIES), body["narration"])
+
     async def test_place_name_question_is_spoken(self):
         await self.start()
         self.client.front = self.talk(asks="place")
@@ -323,3 +334,90 @@ class TheSchemaAndTheGate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RemainingSayOwnersAreFallback(TalkFrontTable):
+    """BM Task 3: personal, small talk, quest/work, lore gate, role + person answer by speech when the reading is
+    plain talk; with no reading the old line stands. Also D-325 and the dead `_with_job_news`."""
+
+    def talk(self, **extra):
+        return {"kind": "speak_to", "person_id": self.marek["id"], "about_person_id": "none", "asks": "none", **extra}
+
+    def action(self, body):
+        return (body.get("turn_outcome") or {}).get("action")
+
+    async def spoken(self, line, mode="say", target=True, **front):
+        await self.start(front=None)
+        self.marek["role"] = "Çavuş"
+        self.client.front = self.talk(**front)
+        body = await self.say(line, mode=mode, target=target)
+        self.assertIn(SPOKEN, body["narration"], body["narration"])
+        self.assertEqual(self.client.chat_calls, 2)
+        return body
+
+    async def old_line(self, line, mode="say", target=True, role=None):
+        await self.start(front=None)
+        if role:
+            self.marek["role"] = role
+        self.client.fails = RuntimeError("provider gone")
+        body = await self.say(line, mode=mode, target=target)
+        self.assertNotIn(SPOKEN, body["narration"])
+        self.assertTrue(body["narration"].strip(), body)
+        return body
+
+    async def test_personal_question_is_spoken(self):
+        await self.spoken("Nereden geldin?", asks="other")
+        await self.spoken("Nereden geldin?", mode="ask_dm", target=False, asks="other")
+
+    async def test_personal_question_old_line_when_the_reading_failed(self):
+        body = await self.old_line("Nereden geldin?")
+        self.assertEqual(self.action(body), "dialogue")
+        self.assertEqual((body.get("turn_outcome") or {}).get("status"), "answered_personal_question")
+
+    async def test_small_talk_is_spoken(self):
+        await self.spoken("Günün nasıl geçiyor?", mode="ask_dm", target=False, asks="small_talk")
+
+    async def test_small_talk_old_line_when_the_reading_failed(self):
+        body = await self.old_line("Günün nasıl geçiyor?", mode="ask_dm", target=False)
+        self.assertIn("söylentiler belirsiz", body["narration"])  # the lore gate's line
+
+    async def test_quest_question_is_spoken(self):
+        await self.spoken("Burada iş var mı?", mode="ask_dm", target=False, asks="work")
+        await self.spoken("Burada iş var mı?", asks="work")
+
+    async def test_quest_question_old_line_when_the_reading_failed(self):
+        body = await self.old_line("Burada iş var mı?", mode="ask_dm", target=False)
+        self.assertEqual(self.action(body), "local_inquiry")
+
+    async def test_lore_question_is_spoken(self):
+        await self.spoken("Kralın adı ne?", mode="ask_dm", target=False, asks="other")
+        await self.spoken("Kralın adı ne?", asks="other")
+
+    async def test_lore_question_old_line_when_the_reading_failed(self):
+        body = await self.old_line("Kralın adı ne?", mode="ask_dm", target=False)
+        self.assertEqual((body.get("turn_outcome") or {}).get("status"), "unverified")
+
+    async def test_role_who_is_here_is_spoken(self):
+        await self.spoken("Çavuş, bu gece nöbette kim var?", target=False, asks="person")
+        await self.spoken("Çavuş, bu gece nöbette kim var?", mode="ask_dm", target=False, asks="person")
+
+    async def test_role_who_is_here_old_line_when_the_reading_failed(self):
+        body = await self.old_line("Çavuş, bu gece nöbette kim var?", mode="ask_dm", target=False, role="Çavuş")
+        self.assertEqual((body.get("turn_outcome") or {}).get("status"), "answered_from_current_scene")
+        body = await self.old_line("Çavuş, bu gece nöbette kim var?", target=False)
+        self.assertEqual((body.get("turn_outcome") or {}).get("status"), "invalid_target")
+
+    async def test_told_before_line_gets_own_rumour(self):
+        await self.start(front=None)
+        self.world["heard_rumours"] = [{
+            "id": "rum_own", "settlement_id": self.world.get("current_settlement_id") or "x",
+            "text": "Kespur Tapınağı: kilitte taze çizikler", "said_by": self.marek["id"],
+            "speakers": [self.marek["id"]]}]
+        self.client.fails = RuntimeError("provider gone")
+        self.client.narration = ""  # and the speech call gives no usable line either
+        body = await self.say("Bana Kespur Tapınağı'ndan bahsetmiştin")
+        self.assertIn("kilitte taze çizikler", body["narration"])
+
+class WithJobNewsIsGone(unittest.TestCase):
+    def test_with_job_news_is_gone(self):
+        self.assertFalse(hasattr(game, "_with_job_news"))

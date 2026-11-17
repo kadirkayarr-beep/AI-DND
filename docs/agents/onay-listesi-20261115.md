@@ -100,3 +100,13 @@ Dükkân varlığı, bilinmeyen ad, yer adı ve ad söyleme: model okuması düz
 |---|---|---|
 | `test_talk_front.SayLineIsRead.test_bad_about_person_is_none`, `test_unknown_asks_is_none` | okuma artık tur bitince temizlendiği için `session._front_talk` turdan sonra değil tur içinde (`_run_player_turn` dönerken) okunur; aynı değerler aynı sıklıkta denetlenir | gevşetme olabilir (okuma ömrü kısaldı) |
 | Yeni test `test_talk_front.SayOwnersAreFallback.test_shop_word_question_to_vendor_is_spoken` | satır "Satıcı esnafı arasında ne dönüyor?" (görev metnindeki "Satıcılar" çoğulu `_SHOP_ENTITY_QUERY_PATTERN` ile eşleşmez, dolayısıyla eski yolu hiç tetiklemezdi) | yeni, gevşetme değil |
+
+## 8. BM görev 3 (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+Kişisel soru, küçük konuşma, bilgi kapısı, iş sorusu ve rol + kişi sorusu: model okuması düz konuşma derse kişi konuşmayla yanıtlar; eski satır yedek. Bu görevde eski bir test yeniden yazılmadı ve gevşetilmedi; yalnız yeni test eklendi.
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| Yeni `test_talk_front.RemainingSayOwnersAreFallback` (kişisel, küçük konuşma, iş, bilgi kapısı, rol + kişi, D-325) ve `SayOwnersAreFallback.test_name_disclosure_pool_when_the_speech_failed` | yeni; eski satır yalnız okuma başarısızken kalır | gevşetme yok |
+
+Davranış sınırı (BM T3): `ask_dm` satırında model düz konuşma okuyup listedeki bir kişiyi adlandırırsa o kişi konuşmayla yanıtlar (eskiden bilgi kapısı satırı, sahne listesi ya da iş satırı çıkardı). Bilgi kapısının ve rol listesinin `ask_dm` yolu bu yüzden okuma varken çalışmaz; "gevşetme olabilir" olarak işaretlendi: Kadir oynayışta bakmalı.
