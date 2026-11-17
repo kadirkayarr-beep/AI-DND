@@ -107,8 +107,10 @@ class SharedMitigationTests(unittest.TestCase):
         import pathlib
         import re
         root = pathlib.Path(__file__).resolve().parents[2]
-        for name in ("game.py", "weapon_attack.py", "spell_scope.py", "exploration.py"):
-            lines = (root / name).read_text(encoding="utf-8").splitlines()
+        from api.tests.engine_sources import engine_source_files
+        for path in [*engine_source_files(), *(root / name for name in ("weapon_attack.py", "spell_scope.py", "exploration.py"))]:
+            name = path.name
+            lines = path.read_text(encoding="utf-8").splitlines()
             for index, line in enumerate(lines):
                 if re.search(r"\bapply_npc_damage\(", line) and not line.lstrip().startswith("def "):
                     window = "\n".join(lines[max(0, index - 40):index])

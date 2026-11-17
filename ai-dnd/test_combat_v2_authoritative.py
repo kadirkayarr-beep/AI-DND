@@ -11,7 +11,6 @@ import unittest
 from unittest.mock import patch
 
 
-SOURCE = __import__('pathlib').Path(game.__file__)
 INITIAL_WORLD = copy.deepcopy(game.create_session().world_state)
 
 
@@ -318,9 +317,10 @@ class CombatV2(unittest.TestCase):
 
     def test_W_single_end_combat_definition(self):
         import ast
-        tree = ast.parse(SOURCE.read_text(encoding='utf-8-sig'))
+        from api.tests.engine_sources import engine_source_files
+        trees = [ast.parse(path.read_text(encoding='utf-8-sig')) for path in engine_source_files()]
         self.assertEqual(sum(isinstance(n, ast.FunctionDef) and n.name == 'end_combat'
-                             for n in ast.walk(tree)), 1)
+                             for tree in trees for n in ast.walk(tree)), 1)
 
     def test_W_npc_death_narration(self):
         self.npc['current_hp'] = 1

@@ -18,6 +18,7 @@ import local_places
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.engine_sources import engine_source_files
 from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, describe_problems
 from api.tests.journeys.schema import _load_step, load_scenario
 from api.tests.test_house_door import stub_feature, stub_npc
@@ -208,7 +209,8 @@ class OnlyExitsReadsTests(unittest.TestCase):
     def test_only_exits_reads_the_exit_fields(self):
         root = Path(__file__).resolve().parents[2]
         readers = []
-        for path in root.glob("*.py"):
+        parts = [p for p in engine_source_files() if p.parent.name == "game_parts"]  # game.py is in root.glob already
+        for path in [*root.glob("*.py"), *parts]:
             if path.name.startswith("test_") or path.name == "exits.py":
                 continue
             text = path.read_text(encoding="utf-8")

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import game
 from api import auth, schemas
+from api.tests.engine_sources import engine_source_text
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 # Distinct AI_DND_ names in ai-dnd/**/*.py (tests and docs excluded) plus tools/**, counted in Task 3.
@@ -30,9 +31,7 @@ class SaveFileNameTests(unittest.TestCase):
 
 class TerminalBannerTests(unittest.TestCase):
     def test_terminal_banner_says_unwritten(self):
-        import inspect
-
-        source = inspect.getsource(game)
+        source = engine_source_text()
         self.assertIn('print_fn("       UNWRITTEN")', source)
         self.assertNotIn('print_fn("       AI DUNGEON MASTER")', source)
 
@@ -46,7 +45,7 @@ class ProtectedIdsTests(unittest.TestCase):
         return path.read_text(encoding="utf-8")
 
     def test_save_format_id_is_ai_dnd_save(self):
-        self.assertIn('"format": "ai-dnd-save"', self._read("ai-dnd/game.py"))
+        self.assertIn('"format": "ai-dnd-save"', engine_source_text(REPO_ROOT / "ai-dnd"))
 
     def test_request_marker_and_health_engine(self):
         self.assertEqual(auth.REQUEST_MARKER, "X-AI-DND-Request")

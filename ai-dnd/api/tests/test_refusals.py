@@ -9,6 +9,7 @@ import game
 import refusals
 from combat_lifecycle import CombatRequestError
 from api.tests import test_combat_lifecycle as lifecycle
+from api.tests.engine_sources import engine_source_text
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -27,7 +28,7 @@ class RefusalTexts(unittest.TestCase):
         self.assertEqual(turn["action_result"]["status"], "fight_refused")
 
     def test_the_old_vague_line_is_gone(self):
-        self.assertNotIn("Dövüşün ortasında bu olmuyor", (ROOT / "game.py").read_text(encoding="utf-8"))
+        self.assertNotIn("Dövüşün ortasında bu olmuyor", engine_source_text())
         self.assertFalse(hasattr(game, "_FIGHT_REFUSALS"))
         for code in ("combat_travel", "out_of_turn", "no_weapon", "invalid_ready_trigger"):
             with self.subTest(code=code):

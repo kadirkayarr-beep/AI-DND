@@ -12,18 +12,26 @@ import re
 import unittest
 from pathlib import Path
 
+from api.tests.engine_sources import engine_source_files
+
 AI_DND = Path(__file__).resolve().parents[2]
 TEST_IMPORT = re.compile(r"^\s*(?:from\s+api\.tests\b|import\s+api\.tests\b|from\s+api\s+import\s+tests\b)", re.MULTILINE)
 
 
 def _product_modules():
+    yielded = set()
     for path in sorted(AI_DND.glob("*.py")):
         if not path.name.startswith("test_"):
+            yielded.add(path)
+            yield path
+    for path in engine_source_files():  # game_parts/*.py is engine code even when it has no __init__.py
+        if path not in yielded:
+            yielded.add(path)
             yield path
     for package in sorted(init.parent for init in AI_DND.glob("*/__init__.py")):  # api, adventure, class_progression...
         for path in sorted(package.rglob("*.py")):
             relative = path.relative_to(AI_DND).as_posix()
-            if relative.startswith("api/tests/") or path.name.startswith("test_"):
+            if relative.startswith("api/tests/") or path.name.startswith("test_") or path in yielded:
                 continue
             yield path
 
