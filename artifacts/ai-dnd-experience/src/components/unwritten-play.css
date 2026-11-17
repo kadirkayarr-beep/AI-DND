@@ -396,7 +396,6 @@
 .entry-ribbon strong { color:var(--unw-accent-light); font-weight:600; letter-spacing:.12em; }
 .entry-brand { display:flex; align-items:center; gap:12px; color:var(--unw-text); }
 .entry-brand-icon { display:grid; width:36px; height:36px; place-items:center; border:1px solid var(--unw-border); color:var(--unw-accent-light); }
-.entry-brand-icon .ouroboros { width:27px; height:27px; }
 .entry-brand strong,.entry-brand small { display:block; }
 .entry-brand strong { font:500 14px 'Cormorant Garamond',Georgia,serif; letter-spacing:.2em; }
 .entry-brand small { margin-top:3px; color:var(--unw-text-soft); font-size:12px; letter-spacing:.19em; }
@@ -406,13 +405,16 @@
 .unwritten-entry .entry-page { width:min(920px,calc(100% - 40px)); margin:0 auto; padding:clamp(22px,3.5vh,38px) 0 26px; }
 .unwritten-entry .entry-main { display:flex; min-height:0; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; }
 .unwritten-entry .entry-art { width:min(100%,430px); margin:0 auto; }
-.unwritten-entry .ouroboros-art { position:relative; display:block; width:100%; max-width:min(100%,300px); aspect-ratio:1; margin:0 auto; max-height:min(31vh,300px); mix-blend-mode:screen; }
-/* Night art is warm line on flat black, screened in; day art is dark line on flat white, multiplied in. Neither needs an alpha channel. */
-:root[data-unw-theme="day"] .unwritten-entry .ouroboros-art { mix-blend-mode:multiply; }
-.unwritten-entry .ouroboros-still,.unwritten-entry .ouroboros-video { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:contain; }
-.unwritten-entry .ouroboros-video { opacity:0; transition:opacity .25s ease; }
-.unwritten-entry .ouroboros-art.is-playing .ouroboros-video { opacity:1; }
-@media (prefers-reduced-motion: reduce) { .unwritten-entry .ouroboros-video { display:none; } }
+/* v0 graphite ouroboros. Ink is the dark page colour at night and the text colour by day; night is the same logo
+   inverted (owner decision 2026-11-17), so the drawn ink must be dark in both themes. */
+.unwritten-ouroboros { position:relative; display:inline-block; flex-shrink:0; overflow:hidden; isolation:isolate; vertical-align:middle; color:var(--unw-page); filter:invert(1); }
+:root[data-unw-theme="day"] .unwritten-ouroboros { color:var(--unw-text); filter:none; }
+.unwritten-ouroboros canvas,.unwritten-ouroboros-fallback { position:absolute; inset:0; display:block; width:100%; height:100%; pointer-events:none; }
+.unwritten-ouroboros-fallback { background:currentColor; mask-size:contain; mask-repeat:no-repeat; mask-position:center; -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center; transform:rotate(-21.77deg); }
+.unwritten-ouroboros[data-variant="mark"] .unwritten-ouroboros-fallback { transform:none; }
+.unwritten-ouroboros[data-renderer="webgl"] .unwritten-ouroboros-fallback { opacity:0; }
+.unwritten-ouroboros:not([data-renderer="webgl"]) canvas { visibility:hidden; }
+.unwritten-entry .entry-art .unwritten-ouroboros { display:block; width:min(100%,300px,31vh); aspect-ratio:1; margin:0 auto; }
 .entry-header-controls { display:flex; align-items:center; gap:4px; }
 .menu-music-button { display:grid; width:44px; height:44px; place-items:center; border:0; background:transparent; color:var(--unw-text-soft); cursor:pointer; }
 .menu-music-button:hover { color:var(--unw-accent-light); }
@@ -439,7 +441,7 @@
   .entry-header .gate-sound label { display:none; }
   .unwritten-entry .entry-page { width:calc(100% - 32px); padding:20px 0 24px; }
   .unwritten-entry .entry-art { width:min(100%,390px); }
-  .unwritten-entry .ouroboros-art { max-height:none; }
+  .unwritten-entry .entry-art .unwritten-ouroboros { width:min(100%,300px); }
   .unwritten-entry .entry-copy h1 { margin:8px 0 3px; font-size:clamp(34px,10vw,42px); }
   .unwritten-entry .entry-lede { font-size:17px; }
   .unwritten-entry .entry-actions { width:100%; align-items:stretch; flex-direction:column; gap:8px; margin-top:17px; }

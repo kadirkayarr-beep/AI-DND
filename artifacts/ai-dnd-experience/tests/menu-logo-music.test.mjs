@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 
-// Plan parts D and D1 (simple path): themed looped logo video, main-menu music, compressed assets.
+// Plan parts D and D1: v0 graphite ouroboros (WebGL, owner-approved 2026-11-17), main-menu music, compressed assets.
 const logo = await readFile('src/components/ouroboros-logo.tsx', 'utf8');
+const renderer = await readFile('src/components/ouroboros-renderer.ts', 'utf8');
 const music = await readFile('src/lib/menu-music.ts', 'utf8');
 const button = await readFile('src/components/menu-music.tsx', 'utf8');
 const shell = await readFile('src/pages/game/shell-parts.tsx', 'utf8');
@@ -11,33 +12,45 @@ const css = await readFile('src/components/unwritten-play.css', 'utf8');
 const panel = await readFile('src/components/appearance-settings-panel.tsx', 'utf8');
 const html = await readFile('index.html', 'utf8');
 
-// Owner decision 2026-11-17 (behaviour change): the logo turns all the time while motion is on, not only
-// while something is loading. Reduced motion / effects off still show only the still (next test).
-test('with motion on the logo loops on its own, whatever is loading; a hidden tab pauses it and showing the tab resumes it', () => {
+// Owner decision 2026-11-17 (behaviour kept from PR #122): the logo turns all the time while motion is on.
+test('with motion on the logo loops on its own; reduced motion or effects off stop it; the loop pauses for a hidden tab, an off-screen logo and the OS reduced-motion setting', () => {
   assert.match(shell, /<OuroborosLogo \/>/);
-  assert.match(logo, /export function OuroborosLogo\(\) \{/);
-  assert.doesNotMatch(logo, /loading=|\{ loading \}|MIN_VISIBLE_MS|shownAt/);
-  assert.match(logo, /if \(!el \|\| !motion\) return undefined;/);
-  assert.match(logo, /const start = \(\) => \{ if \(!document\.hidden\) void el\.play\(\)/);
-  assert.match(logo, /if \(document\.hidden\) el\.pause\(\);\s*else start\(\);/);
-  assert.match(logo, /\}, \[motion, resolvedTheme\]\);/);
-  assert.doesNotMatch(logo, /autoPlay|autoplay/);
-});
-test('reduced motion or effects off: no video at all, only the still image', () => {
+  assert.match(logo, /export function OuroborosLogo\(/);
   assert.match(logo, /const motion = !prefersReducedMotion && effectsLevel !== 'off'/);
-  assert.match(logo, /\{motion && \(\s*<video/);
-  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.unwritten-entry \.ouroboros-video \{ display:none/);
+  assert.match(logo, /renderer\.current\?\.setRunning\(motion\)/);
+  assert.match(logo, /engine\.setRunning\(motionNow\.current\)/);
+  assert.match(renderer, /function shouldRun\(\) \{ return running && visible && !document\.hidden && !media\.matches/);
+  assert.match(renderer, /document\.addEventListener\('visibilitychange'/);
+  assert.match(renderer, /new IntersectionObserver\(/);
+  assert.match(renderer, /matchMedia\('\(prefers-reduced-motion: reduce\)'\)/);
+  assert.match(renderer, /if \(!shouldRun\(\)\) return;/);
+  assert.match(renderer, /cancelAnimationFrame\(frame\)/);
 });
-test('video pauses while the tab is hidden and the one-tag video is muted, looped, inline', () => {
-  assert.match(logo, /document\.hidden/);
-  assert.match(logo, /visibilitychange/);
-  assert.match(logo, /\bmuted\b[\s\S]*\bloop\b[\s\S]*playsInline/);
+test('without WebGL, on a lost context or a failed texture the static emblem stays; the small mark never starts WebGL', () => {
+  assert.match(renderer, /if \(!gl \|\| !ctx\) throw new Error/);
+  assert.match(renderer, /ouroboros-renderer-failed/);
+  assert.match(logo, /\.catch\(\(\) => \{ if \(!disposed\) setLive\(false\); \}\)/);
+  assert.match(logo, /data-renderer=\{live \? 'webgl' : 'static'\}/);
+  assert.match(logo, /if \(mark \|\| !canvas\.current \|\| !dust\.current\) return undefined;/);
+  assert.match(logo, /logo\/ouroboros-\$\{mark \? 'mark' : 'emblem'\}\.png/);
+  assert.match(logo, /role="img"/);
+  assert.match(logo, /aria-label="[^"]*yılan/);
+  assert.match(logo, /image-approved-ouroboros/);
 });
-test('each theme has its own video and still; day multiplies, night screens (flat opaque ground, no alpha)', () => {
-  assert.match(logo, /ouroboros-\$\{resolvedTheme\}\.mp4/);
-  assert.match(logo, /ouroboros-\$\{resolvedTheme\}-still\.jpg/);
-  assert.match(css, /\.unwritten-entry \.ouroboros-art \{[^}]*mix-blend-mode:screen/);
-  assert.match(css, /data-unw-theme="day"\] \.unwritten-entry \.ouroboros-art \{ mix-blend-mode:multiply/);
+test('night is the same logo inverted; the ink is dark in both themes and comes from theme variables, not colour codes', () => {
+  assert.match(css, /\.unwritten-ouroboros \{[^}]*color:var\(--unw-page\); filter:invert\(1\)/);
+  assert.match(css, /data-unw-theme="day"\] \.unwritten-ouroboros \{ color:var\(--unw-text\); filter:none/);
+  const logoRules = css.split(/\r?\n/).filter(line => line.includes('.unwritten-ouroboros')).join(' ');
+  assert.ok(logoRules.length > 0);
+  assert.doesNotMatch(logoRules, /#[0-9a-fA-F]{3,8}/);
+  assert.doesNotMatch(logo, /resolvedTheme/);
+});
+test('the logo textures are plain png files (no base64 in the bundle) and the old video files are gone', async () => {
+  assert.doesNotMatch(renderer, /data:image\/png;base64/);
+  assert.doesNotMatch(logo, /data:image\/png;base64/);
+  assert.match(renderer, /logo\/ouroboros-\$\{name\}\.png/);
+  for (const name of ['skin', 'head', 'profile', 'phase', 'emblem', 'mark']) assert.ok((await stat(`public/logo/ouroboros-${name}.png`)).size > 0, name);
+  for (const gone of ['ouroboros-day.mp4', 'ouroboros-night.mp4', 'ouroboros-day-still.jpg', 'ouroboros-night-still.jpg']) await assert.rejects(stat(`public/logo/${gone}`), gone);
 });
 test('music: autoplay attempt, first-gesture fallback, fade out on leaving, remembered through the settings store', () => {
   assert.match(music, /await el\.play\(\)/);
@@ -56,8 +69,8 @@ test('favicon is the logo ring', () => {
   assert.match(html, /rel="icon" type="image\/png"[^>]*favicon\.png/);
 });
 test('assets are compressed and documented', async () => {
-  const limit = { 'public/logo/ouroboros-day.mp4': 2.0, 'public/logo/ouroboros-night.mp4': 2.0, 'public/audio/nordisk-ritual.mp3': 3.0, 'public/favicon.png': 0.05 };
+  const limit = { 'public/logo/ouroboros-skin.png': 0.4, 'public/logo/ouroboros-head.png': 0.4, 'public/logo/ouroboros-emblem.png': 0.4, 'public/logo/ouroboros-mark.png': 0.05, 'public/audio/nordisk-ritual.mp3': 3.0, 'public/favicon.png': 0.05 };
   for (const [file, mb] of Object.entries(limit)) assert.ok((await stat(file)).size < mb * 1024 * 1024, `${file} is under ${mb} MB`);
   const notes = await readFile('public/ASSET_NOTES.md', 'utf8');
-  for (const name of ['ouroboros-day.mp4', 'ouroboros-night.mp4', 'nordisk-ritual.mp3', 'favicon.png', 'ffmpeg']) assert.ok(notes.includes(name), name);
+  for (const name of ['ouroboros-skin.png', 'ouroboros-head.png', 'ouroboros-emblem.png', 'ouroboros-mark.png', 'nordisk-ritual.mp3', 'favicon.png', 'ffmpeg']) assert.ok(notes.includes(name), name);
 });

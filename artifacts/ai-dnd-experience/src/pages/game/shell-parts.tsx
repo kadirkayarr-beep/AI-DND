@@ -93,7 +93,7 @@ export function OpeningScreen({ onCreate, onContinue, creating, notice, loadingC
   return (
     <main className="design-preview unwritten-entry" data-testid="app-start">
       <header className="entry-header">
-        <div className="entry-brand"><span className="entry-brand-icon"><OuroborosMark /></span><span><strong>UNWRITTEN</strong><small>GERÇEK OYUN</small></span></div>
+        <div className="entry-brand"><span className="entry-brand-icon"><OuroborosLogo variant="mark" size={27} /></span><span><strong>UNWRITTEN</strong><small>GERÇEK OYUN</small></span></div>
         <div className="entry-header-controls"><MenuMusicButton /><GateSoundControl /></div>
       </header>
       <section className="entry-page">
