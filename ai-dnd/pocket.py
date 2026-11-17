@@ -233,12 +233,30 @@ def not_in_bag(world: dict[str, Any], stems: Any) -> tuple[str, ...]:
         for item in world.get("inventory", [])))
 
 
+def _sentences_with_gaps(narration: str) -> list[tuple[str, str]]:
+    """Each sentence with the white space that stood before it, so a repair can keep a paragraph break."""
+    parts = re.split(r"(?<=[.!?…])(\s+)", narration.strip())
+    return list(zip(["", *parts[1::2]], parts[0::2]))
+
+
+def _joined(sentences: list[tuple[str, str, bool]]) -> str:
+    """The sentences marked as staying, each after the longest gap beside the sentences dropped before it (the first
+    has none), so a paragraph break next to a dropped sentence is still a paragraph break."""
+    out, carried = "", ""
+    for gap, sentence, stays in sentences:
+        carried = max(carried, gap, key=len)
+        if stays:
+            out += (carried if out else "") + sentence
+            carried = ""
+    return out
+
+
 def without_the_taking(narration: Any, stems: tuple[str, ...]) -> Any:
     """Repair: the sentences that say the player has what Python never gave them leave the line."""
     if not isinstance(narration, str) or not narration.strip() or not stems:
         return narration
-    kept = [sentence for sentence in re.split(r"(?<=[.!?…])\s+", narration.strip()) if not _tells_it_taken(sentence, stems)]
-    return " ".join(kept) or EMPTY_HANDED
+    kept = [(gap, sentence, not _tells_it_taken(sentence, stems)) for gap, sentence in _sentences_with_gaps(narration)]
+    return _joined(kept) or EMPTY_HANDED
 
 
 def _tells_it_taken(sentence: str, stems: tuple[str, ...]) -> bool:
@@ -353,7 +371,7 @@ def without_false_purse(narration: Any, world: dict[str, Any]) -> Any:
     import front_proposal
     held = shop_trade.purse_cp(world)
     kept = []
-    for sentence in re.split(r"(?<=[.!?…])\s+", narration.strip()):
+    for gap, sentence in _sentences_with_gaps(narration):
         false = _tells_coin_moving(sentence)
         for words in _purse_clauses(sentence):
             if not _tells_the_purse(words):
@@ -362,9 +380,8 @@ def without_false_purse(narration: Any, world: dict[str, Any]) -> Any:
             unpriced = any(word.startswith("sikke") and front_proposal._number_before(words, at)
                            for at, word in enumerate(words))
             false = false or unpriced or (said is not None and said != held)
-        if not false:
-            kept.append(sentence)
-    return " ".join(kept)
+        kept.append((gap, sentence, not false))
+    return _joined(kept)
 
 
 def _says_it(text: str, stem: str) -> bool:

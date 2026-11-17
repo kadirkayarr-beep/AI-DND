@@ -32,6 +32,7 @@ from api.persistence import campaign_store
 from api.tests.journeys import real_run
 from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, ScriptedClient, StepResult
 from api.tests.journeys.schema import ScenarioError, load_scenario
+from api.tests.slot_guard import GUARDED
 from api.usage_ledger import UsageLedger
 
 FAKE_KEY = "AIzaFAKE-test-key-0000000000000000"
@@ -155,6 +156,9 @@ class TheNetworkGuard(Offline):
     """The guard shuts every connect but the in-process pipe an event loop is built on (D-196: on Windows
     ``socket.socketpair`` is the stdlib's loopback fallback, which connects, so every run broke there)."""
 
+    # The slot's B06 guard forbids the loopback TCP socket the fallback is built from, so under it this cannot run
+    # (CI has no guard and runs it); the second test below is the same refusal on a socket the guard allows.
+    @unittest.skipIf(GUARDED, "B06 slot guard: no TCP loopback socket (D-304); runs in CI")
     def test_an_event_loop_still_starts_and_any_other_connect_still_fails(self):
         left, right = getattr(socket, "_fallback_socketpair", socket.socketpair)()
         left.close()
@@ -167,7 +171,9 @@ class TheNetworkGuard(Offline):
         # ``socket._fallback_socketpair`` is private: Python 3.12.3 (before gh-122133) has no such name.
         with patch.dict(socket.__dict__):
             socket.__dict__.pop("_fallback_socketpair", None)
-            with self.assertRaisesRegex(AssertionError, "External network is disabled"), socket.socket() as other:
+            # Under the B06 slot guard only an AF_UNIX stream socket may be made; the patched connect refuses any address.
+            kind = (socket.AF_UNIX, socket.SOCK_STREAM) if GUARDED else ()
+            with self.assertRaisesRegex(AssertionError, "External network is disabled"), socket.socket(*kind) as other:
                 other.connect(("127.0.0.1", 9))
 
 
