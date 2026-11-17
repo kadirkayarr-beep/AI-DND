@@ -716,6 +716,13 @@ def log_turn(session, result: Any) -> None:
         "owner": action.get("action"),
         "status": action.get("status"),
     }
+    evidence = result.get("_engine_event_evidence") if isinstance(result, dict) else None
+    telemetry = evidence.get("telemetry") if isinstance(evidence, dict) else None
+    telemetry = telemetry if isinstance(telemetry, dict) else {}
+    source = telemetry.get("narration_source")
+    calls = telemetry.get("total_model_calls")
+    entry["narration_source"] = source if isinstance(source, str) else None  # None: the engine reported nothing
+    entry["model_calls"] = calls if type(calls) is int else 0
     checks = getattr(session, "_speech_checks", None)
     if isinstance(checks, list):
         entry["speech"] = list(checks)  # D-252: which speech checks changed or replaced the reply
@@ -742,3 +749,21 @@ def share(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
     free = [row for row in rows if not str(row.get("route")).startswith("skipped:")]
     reached = sum(1 for row in free if row.get("reached_model"))
     return {"free_lines": len(free), "reached_model": reached, "share": reached / len(free) if free else 0.0}
+
+
+# Owners whose lines are money, dice, XP, purchase or rule results: a ready-made line is right for them. Chosen from
+# the owners in the 2026-11-16/17 local route log (attack, death_save, skill_check, theft, shop_offer, shop_inquiry,
+# equipment_transaction, consume, action_economy, combat_action) plus shop_economy and character_query (design 5.9).
+ENGINE_OWNERS = frozenset({
+    "shop_economy", "shop_offer", "shop_inquiry", "equipment_transaction", "consume", "theft",
+    "attack", "combat_action", "death_save", "skill_check", "action_economy", "character_query",
+})
+
+
+def ready_line_share(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """Of the moves with a known narration source (engine-owned money, dice, XP, purchase and rule rows excluded),
+    how many ended in a ready-made engine or Python line instead of one the model wrote."""
+    moves = [row for row in rows
+             if isinstance(row.get("narration_source"), str) and row.get("owner") not in ENGINE_OWNERS]
+    ready = sum(1 for row in moves if row["narration_source"].startswith(("deterministic_", "python_")))
+    return {"moves": len(moves), "ready": ready, "share": ready / len(moves) if moves else 0.0}
