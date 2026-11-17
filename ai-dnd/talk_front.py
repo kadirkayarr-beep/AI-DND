@@ -64,6 +64,36 @@ def spoken_to(front: dict | None, people: list) -> dict | None:
     return next((npc for npc in people if isinstance(npc, dict) and npc.get("id") == front.get("person_id")), None)
 
 
+JOB_KINDS = ("work", "offer_answer", "hand_over")
+
+
+def job_reading(session) -> dict | None:
+    """This turn's reading, when it is one the thread gate can decide by: the player talks (`speak_to`) or the model
+    read a job act. Any other kind (a walk, a blow, 'unclear') says nothing about a job, so the word reader stays."""
+    front = current(session)
+    return front if isinstance(front, dict) and front.get("kind") in ("speak_to", *JOB_KINDS) else None
+
+
+def work_reading(front: dict | None, npc: dict, world: dict) -> dict | None:
+    """The job this reading says the line speaks of, else None (BM Task 4, B1). `{"thread_id", "decision": None}`:
+    Python's own validators choose the decision (pay, accept, hand over) for that thread and write it.
+
+    The line speaks of work when the reading's kind is a job kind, or it names one of this person's jobs (`job_id` for
+    work in hand, `offer_id` for work put to the player), or it asks for work (`asks == "work"`) of someone who has
+    jobs. `about_person_id` naming another person never starts this person's job talk."""
+    if not isinstance(front, dict) or not isinstance(npc, dict):
+        return None
+    import world_threads
+    mine = [*world_threads.jobs_of(world, npc), *world_threads.recent_closed(world, npc)]
+    named = {front.get("job_id"), front.get("offer_id")} - {None, "", "none"}
+    thread = next((t for t in mine if t.get("thread_id") in named), None)
+    if thread is None and front.get("kind") == "hand_over":
+        thread = next(iter([*world_threads.deliveries_to(world, npc), *world_threads.late_parcels(world, npc)]), None)
+    if thread is None and mine and (front.get("kind") in JOB_KINDS or front.get("asks") == "work"):
+        thread = mine[0]
+    return {"thread_id": thread["thread_id"], "decision": None} if thread is not None else None
+
+
 def shop_presence_reply(world_state: dict, npc_target: dict | None) -> str:
     """The shop presence sentence (moved from `_run_player_turn_internal`, same sentences). `npc_target` is the
     person asked, if any; the sentence only depends on the place."""

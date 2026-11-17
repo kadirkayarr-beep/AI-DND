@@ -110,3 +110,13 @@ Kişisel soru, küçük konuşma, bilgi kapısı, iş sorusu ve rol + kişi soru
 | Yeni `test_talk_front.RemainingSayOwnersAreFallback` (kişisel, küçük konuşma, iş, bilgi kapısı, rol + kişi, D-325) ve `SayOwnersAreFallback.test_name_disclosure_pool_when_the_speech_failed` | yeni; eski satır yalnız okuma başarısızken kalır | gevşetme yok |
 
 Davranış sınırı (BM T3): `ask_dm` satırında model düz konuşma okuyup listedeki bir kişiyi adlandırırsa o kişi konuşmayla yanıtlar (eskiden bilgi kapısı satırı, sahne listesi ya da iş satırı çıkardı). Bilgi kapısının ve rol listesinin `ask_dm` yolu bu yüzden okuma varken çalışmaz; "gevşetme olabilir" olarak işaretlendi: Kadir oynayışta bakmalı.
+
+## 9. BM görev 4 (dal `task/bm-once-model-20261117`, onay bekliyor)
+
+İş kapısı model okumasıyla karar verir (B1): başka bir kişiyi adlandıran soru iş konuşması sayılmaz; sahibin şart satırı da okuma "iş" demedikçe eklenmez. Bu görevde eski bir test yeniden yazılmadı ve gevşetilmedi; yalnız yeni test dosyası eklendi (`test_bm_thread_reading.py`).
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| Yeni `test_bm_thread_reading.ThreadReading` (8 test: B1, şart satırı, kabul + soru, Geri Al, okuma yok, ücret, ücret + iş okuması yok) | yeni; eski kelime kapısı yalnız okuma yokken kalır | gevşetme yok |
+
+Davranış sınırı (BM T4): okuma `speak_to` ya da bir iş türüyse (`work`, `offer_answer`, `hand_over`) ve iş adlandırmıyorsa (`job_id`, `offer_id`, `asks == "work"`), kelimeyle iş yakalama (kısa soru, "ücret", sahip terimleri) artık çalışmaz. "Paramı ver" gibi bir satır, okuma "iş" demiyorsa ücret ödetmez (kişiye konuşmayla söylenir). `matter`, `take_up`, `lapsed` ve okuma kipi `take` kelime kapısından çıktı; bunlar ayrı yolundan (`_front_take`, `_front_offer_gate`) ya da yedekten (okuma yok) gelir. "gevşetme olabilir" olarak işaretlendi: Kadir oynayışta bakmalı.

@@ -823,11 +823,15 @@ def _shows_terms(thread, text):
         not terms.get("work_days") or world_threads.figure_before(text, terms.get("work_days"), ("gun", "gece")))
 
 
-def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any) -> str | None:
-    """The owner's terms, when they were asked for the work and the reply left the figures out."""
+def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any,
+                 asked_about_work: bool | None = None) -> str | None:
+    """The owner's terms, when they were asked for the work and the reply left the figures out.
+
+    asked_about_work: the model's reading of the line when there is one; None leaves it to the word table."""
     thread = _offerable(world, npc) if isinstance(npc, dict) else None
     if (thread is None or not isinstance(reply, str) or _shows_terms(thread, reply) or thread["owner_line"] in reply
-            or world_threads.owner_mood(world, thread, npc) != "yes" or not asks_about_work(player_text, thread)):
+            or world_threads.owner_mood(world, thread, npc) != "yes"
+            or not (asks_about_work(player_text, thread) if asked_about_work is None else asked_about_work)):
         return None
     return thread["owner_line"]
 

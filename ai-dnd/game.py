@@ -8795,9 +8795,12 @@ def _offer_talk_with(npc):
 
 def _offer_terms_shown(world, npc, player_input, shown):
     """An owner asked for the work always shows the real terms; a reply that left them out gets them added."""
+    import talk_front
     import town_knowledge
     try:
-        return town_knowledge.terms_to_add(world, npc, player_input, shown)
+        reading = talk_front.job_reading(_session())  # the reading says whether the line speaks of work (BM Task 4)
+        asked = None if reading is None else talk_front.work_reading(reading, npc, world) is not None
+        return town_knowledge.terms_to_add(world, npc, player_input, shown, asked_about_work=asked)
     except Exception:
         town_knowledge.log_failure()
         return None
@@ -8927,6 +8930,21 @@ def _carry_out_thread_turn(session, world, gate, person, player_input):
     return gate
 
 
+def _job_gate(world, person, player_input):
+    """What this line does to this person's work. With the model's reading (BM Task 4) the reading chooses the job and
+    Python validates the decision; without a reading (flag off, the reading failed, a kind that is no talk) the word
+    reader `turn_gate` answers as before."""
+    import talk_front
+    import world_threads
+    if not isinstance(person, dict):
+        return None
+    reading = talk_front.job_reading(_session())
+    if reading is None:
+        return world_threads.turn_gate(world, person, player_input)
+    found = talk_front.work_reading(reading, person, world)
+    return world_threads.reading_gate(world, person, found["thread_id"], player_input, reading) if found else None
+
+
 def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     """A line about someone's work is decided here, before any phrase owner reads it.
 
@@ -8945,7 +8963,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     saved = None
     try:
         person = _thread_person(player_input, target_id)
-        gate = world_threads.turn_gate(world, person, player_input) if isinstance(person, dict) else None
+        gate = _job_gate(world, person, player_input)
         if gate is None:
             # Money asked of someone with no job to their name is still said to them, and they answer it.
             spoken_to = isinstance(person, dict) and world_threads.asks_for_pay(player_input) and not _physical_line(player_input)
