@@ -111,9 +111,7 @@ def ollama_reply_was_cut(response):
 # ZAR SİSTEMİ
 # ---------------------------------------------------------
 
-def roll_d20():
-    random = _session().rng
-    return random.randint(1, 20)
+from game_parts.character_rules import roll_d20
 
 
 def get_modifier(stat):
@@ -11271,8 +11269,7 @@ _SPEAKING_NAME_PATTERNS = (
 )
 
 
-def _inside_speech(text, position):
-    return any(span.start() < position < span.end() for span in _SPEECH_SPAN_RE.finditer(text))
+from game_parts.text_rules_a import _inside_speech, _SPEECH_SPAN_RE
 
 
 def _unseen_speakers(text, unseen):
@@ -13236,7 +13233,6 @@ def _salvage_plain_speech(raw_intent):
     return True
 
 
-_SPEECH_SPAN_RE = re.compile(r"""“[^”]*”|"[^"]*"|(?<!\w)'[^']*'(?!\w)""")
 _TERMINATOR_MASK = {".": "\u0001", "!": "\u0002", "?": "\u0003"}
 
 
@@ -24335,9 +24331,10 @@ def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_P
 
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
+_PART_MODULES = ("game_parts.character_rules", "game_parts.text_rules_a")
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
                           if isinstance(value, types.FunctionType)
-                          and value.__module__ == __name__)
+                          and (value.__module__ == __name__ or value.__module__ in _PART_MODULES))
 _CHARACTER_GLOBALS = {
     "character_name": "name", "character_race": "race",
     "character_class": "class",

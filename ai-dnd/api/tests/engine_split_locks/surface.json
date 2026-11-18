@@ -499,6 +499,10 @@
   "kind": "data",
   "type": "Pattern"
  },
+ "_PART_MODULES": {
+  "kind": "data",
+  "type": "tuple"
+ },
  "_PERSISTED_PLAYER_CONDITION_FIELDS": {
   "kind": "data",
   "type": "tuple"
@@ -1577,7 +1581,7 @@
  },
  "_inside_speech": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(text, position)"
  },
@@ -3862,7 +3866,7 @@
  },
  "roll_d20": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.character_rules",
   "session_bound": true,
   "signature": "()"
  },

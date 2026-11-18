@@ -4,6 +4,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -394,6 +395,39 @@ class DevelopmentToolingTests(unittest.TestCase):
         self.assertIn("ai-dnd/game.py", scope["detail"]["protected_changes"])
         self.assertFalse(owner.protected_path("ai-dnd/api/tests/test_example.py"))
         self.assertTrue(owner.protected_path("artifacts/ai-dnd-experience/src/App.tsx"))
+
+    def test_engine_parts_change_is_a_protected_change(self):
+        (self.repo / "ai-dnd/game_parts").mkdir(parents=True, exist_ok=True)
+        (self.repo / "ai-dnd/game_parts/terminal.py").write_text("changed")
+        rows = owner.structural_checks(self.config, owner.repository_state(self.repo), self.repo)
+        scope = next(row for row in rows if row["name"] == "Infrastructure scope")
+        self.assertEqual(scope["status"], "FAIL")
+        self.assertIn("ai-dnd/game_parts/terminal.py", scope["detail"]["protected_changes"])
+
+    def test_architecture_row_needs_game_parts(self):
+        def architecture():
+            rows = owner.structural_checks(
+                self.config, owner.repository_state(self.repo), self.repo)
+            return next(row for row in rows if row["name"] == "Architecture structure")
+        (self.repo / "ai-dnd/game_parts").mkdir(parents=True, exist_ok=True)
+        self.assertEqual(architecture()["status"], "PASS")
+        shutil.rmtree(self.repo / "ai-dnd/game_parts")
+        self.assertEqual(architecture()["status"], "FAIL")
+
+    def test_archive_guard_names_game_parts_as_verifier_source(self):
+        # An outside root contains nothing, so every guarded path is evaluated.
+        # A spy, not assertRaises: a raise for game_parts alone is unreachable (any root holding it also holds game.py, and game_parts itself is inside the checkout), so the spy proves the path is evaluated.
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        seen = []
+        real_resolve = Path.resolve
+
+        def spy(path, *args, **kwargs):
+            seen.append(path)
+            return real_resolve(path, *args, **kwargs)
+        with self.fixture_owner(), patch.object(Path, "resolve", spy):
+            Archive(Path(outside.name) / "runs", "fixture", [sys.executable])
+        self.assertIn(self.repo / "ai-dnd/game_parts", seen)
 
     def test_archives_must_not_exclude_verifier_sources(self):
         with self.fixture_owner():

@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -25,7 +24,10 @@ def api_path(suffix: str) -> str:
 
 def main() -> int:
     game_file = Path(__file__).resolve().parents[1] / "game.py"
-    game_hash = hashlib.sha256(game_file.read_bytes()).hexdigest()
+    if str(game_file.parent) not in sys.path:  # run as a script, only api/ is on the path
+        sys.path.insert(0, str(game_file.parent))
+    from api.persistence import campaign_store
+    game_hash = campaign_store._engine_digest(game_file)
     issues: list[str] = []
     turns: list[dict[str, Any]] = []
     timeout = httpx.Timeout(120.0, connect=10.0)
