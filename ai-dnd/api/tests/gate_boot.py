@@ -7,6 +7,8 @@ It never imports the engine (`game`, `game_parts`).
 import os
 from pathlib import Path
 
+from api.tests import engine_probe
+
 
 def tokens(run_root: str) -> set[str]:
     return set(Path(run_root).name.split("-")[1:])
@@ -18,6 +20,9 @@ def boot(run_root: str, environ=os.environ) -> set[str]:
     if "fon" in found:
         environ["AI_DND_FRONT_PROPOSAL"] = "1"
         applied.add("fon")
+    if "n4" in found:
+        engine_probe.install_ledger(Path(run_root) / "engine-probe")
+        applied.add("n4")
     return applied
 
 
