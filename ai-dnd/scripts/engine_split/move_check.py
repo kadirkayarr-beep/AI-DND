@@ -90,13 +90,30 @@ def _block(path: Path, entry: dict) -> str:
     return "\n".join(_text(path).splitlines()[entry["start"] - 1:entry["end"]]) + "\n"
 
 
-def _manual_lines(manual: list[str], file: str) -> set[int]:
-    lines = set()
+def _manual_lines(manual: list[str], part_names: list[str]) -> dict[str, set[int]]:
+    """Exempt line numbers by key: "game.py:base", "game.py:new" and "game_parts/<part>" for each part in this check.
+
+    game.py entries name their side (`game.py:base:N:reason` or `game.py:new:N:reason`), so an entry exempts only
+    the base line or only the new line with that number. Part entries are `game_parts/<part>:N:reason`.
+    Any other entry raises ValueError.
+    """
+    lines = {"game.py:base": set(), "game.py:new": set(), **{f"game_parts/{p}": set() for p in part_names}}
     for item in manual:
         name, _, rest = item.partition(":")
+        if name == "game.py":
+            side, _, rest = rest.partition(":")
+            key = f"game.py:{side}"
+            if key not in lines:
+                raise ValueError(f"--manual {item!r}: a game.py entry is game.py:base:N:reason or game.py:new:N:reason")
+        elif name in lines:
+            key = name
+        else:
+            raise ValueError(f"--manual {item!r}: {name} is neither game.py nor a part in this check "
+                             f"({', '.join(sorted(k for k in lines if k.startswith('game_parts/'))) or 'none'})")
         number = rest.partition(":")[0]
-        if name == file and number.isdigit():
-            lines.add(int(number))
+        if not number.isdigit():
+            raise ValueError(f"--manual {item!r}: the line number {number!r} is not a number")
+        lines[key].add(int(number))
     return lines
 
 
@@ -138,26 +155,25 @@ def _import_group_problem(lines: list[str], moved: dict[str, str]) -> str | None
     return None
 
 
-def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], manual: list[str],
-                      moved: dict[str, str]) -> list[str]:
+def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], exempt_base: set[int],
+                      exempt_new: set[int], moved: dict[str, str]) -> list[str]:
     base_lines, new_lines = _text(base_game).splitlines(), _text(new_game).splitlines()
-    exempt = _manual_lines(manual, "game.py")
     found, deleted = [], set()
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, base_lines, new_lines, autojunk=False).get_opcodes():
         if tag == "equal":
             continue
         deleted.update(range(i1 + 1, i2 + 1))
         for i in range(i1, i2):  # a deleted line must be blank or sit inside a moved block
-            if base_lines[i].strip() and not any(s <= i + 1 <= e for s, e in spans) and (i + 1) not in exempt:
+            if base_lines[i].strip() and not any(s <= i + 1 <= e for s, e in spans) and (i + 1) not in exempt_base:
                 found.append(f"game.py: base line {i + 1} deleted outside the moved blocks: {base_lines[i].strip()[:60]}")
-        group = [(j + 1, new_lines[j]) for j in range(j1, j2) if new_lines[j].strip() and (j + 1) not in exempt]
+        group = [(j + 1, new_lines[j]) for j in range(j1, j2) if new_lines[j].strip() and (j + 1) not in exempt_new]
         if group:  # inserted or replaced lines must parse as import statements of moved names only
             problem = _import_group_problem([line for _, line in group], moved)
             if problem:
                 found.append(f"game.py:{group[0][0]}: {problem}: {group[0][1].strip()[:60]}")
     for start, end in spans:  # every non-blank line of a moved block must be deleted
         for number in range(start, end + 1):
-            if base_lines[number - 1].strip() and number not in deleted and number not in exempt:
+            if base_lines[number - 1].strip() and number not in deleted and number not in exempt_base:
                 found.append(f"game.py: base line {number} of a moved block is still in game.py: {base_lines[number - 1].strip()[:60]}")
     try:
         for entry in top_level_index(new_game):
@@ -178,14 +194,13 @@ def _import_only_lines(part: Path) -> set[int]:
     return imports - others
 
 
-def _part_findings(base_part: Path, part: Path, part_name: str, spans: list[tuple], manual: list[str]) -> list[str]:
+def _part_findings(base_part: Path, part: Path, part_name: str, spans: list[tuple], exempt: set[int]) -> list[str]:
     """F16: a part line outside the moved blocks must be an import statement, blank, a line the base part already had, or manual.
 
     Gate TM0: every line of the base part must survive in the new part, in order; the new part may only insert lines.
     """
     base_lines = _text(base_part).splitlines() if base_part.exists() else []
     new_lines = _text(part).splitlines()
-    exempt = _manual_lines(manual, part_name)
     import_lines = _import_only_lines(part)
     found, known = [], set()
     # a new block's line must not stand in for a base line deleted from an earlier block (tail delete): mask it
@@ -208,6 +223,7 @@ def _part_findings(base_part: Path, part: Path, part_name: str, spans: list[tupl
 def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive: dict, tier: str,
                manual: list[str] = []) -> dict:
     base_root, new_root = Path(base_root), Path(new_root)
+    exempt = _manual_lines(manual, list(moved.values()))  # ValueError on an entry outside this check
     changed: list[str] = []
     spans_by_part: dict[str, list[tuple]] = {}
     base_spans: list[tuple] = []
@@ -221,10 +237,11 @@ def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive
         for entry in _entries(base_root / "game.py", name):  # statements that bind several names move whole
             base_spans += [(e["start"], e["end"]) for e in top_level_index(base_root / "game.py")
                            if (e["start"], e["end"]) == (entry["start"], entry["end"])]
-    changed += _game_py_findings(base_root / "game.py", new_root / "game.py", base_spans, manual, moved)
+    changed += _game_py_findings(base_root / "game.py", new_root / "game.py", base_spans, exempt["game.py:base"],
+                                 exempt["game.py:new"], moved)
     for part_name, spans in spans_by_part.items():
         changed += _part_findings(base_root / "game_parts" / part_name, new_root / "game_parts" / part_name,
-                                  part_name, spans, manual)
+                                  part_name, spans, exempt[f"game_parts/{part_name}"])
     try:
         comments_base, comments_now = comment_counts(base_root, new_root)
     except (tokenize.TokenError, SyntaxError) as exc:
@@ -241,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--root", required=True, type=Path, help="folder holding the new game.py and game_parts/")
     ap.add_argument("--moved", default="", help="name=part.py,name=part.py")
     ap.add_argument("--tier", choices=["normal", "strong"], default="normal")
-    ap.add_argument("--manual", action="append", default=[], help="file:line:reason (repeatable)")
+    ap.add_argument("--manual", action="append", default=[], help="game.py:base|new:line:reason or game_parts/<part>:line:reason (repeatable)")
     ap.add_argument("--comments-only", action="store_true")
     args = ap.parse_args(argv)
     if args.comments_only:
@@ -250,7 +267,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if base == now else 1
     moved = dict(pair.split("=", 1) for pair in args.moved.split(",") if pair)
     lock = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
-    result = check_move(args.base_root, args.root, moved, lock, args.tier, args.manual)
+    try:
+        result = check_move(args.base_root, args.root, moved, lock, args.tier, args.manual)
+    except ValueError as exc:
+        print(f"ERROR {exc}", file=sys.stderr)
+        return 2
     for line in result["changed"]:
         print(f"  {line}")
     for item in result["manual"]:

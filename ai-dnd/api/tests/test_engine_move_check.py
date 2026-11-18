@@ -121,15 +121,52 @@ class MoveCheckTests(unittest.TestCase):
     def test_a_manual_line_in_game_py_is_exempt_and_echoed(self):
         self.build(game=GOOD_GAME.replace("K = 1", "K = 2"))
         self.assertTrue(self.check()["changed"])
-        result = self.check(manual=["game.py:1:test"])
+        manual = ["game.py:base:1:test", "game.py:new:1:test"]  # T2.4 prep: one edited line, seen from both sides
+        result = self.check(manual=manual)
         self.assertEqual(result["changed"], [])
-        self.assertEqual(result["manual"], ["game.py:1:test"])
+        self.assertEqual(result["manual"], manual)
+
+    def test_a_game_py_manual_line_exempts_only_its_own_side(self):  # T2.4 prep
+        self.build(game=GOOD_GAME.replace("K = 1", "K = 2"))  # base line 1 deleted, new line 1 inserted
+        base_only = self.check(manual=["game.py:base:1:test"])["changed"]
+        self.assertEqual(len(base_only), 1)
+        self.assertIn("game.py:1:", base_only[0])
+        new_only = self.check(manual=["game.py:new:1:test"])["changed"]
+        self.assertEqual(len(new_only), 1)
+        self.assertIn("base line 1 deleted", new_only[0])
+
+    def test_a_game_py_manual_line_without_a_side_is_refused(self):  # T2.4 prep
+        self.build(game=GOOD_GAME.replace("K = 1", "K = 2"))
+        for item in ("game.py:1:test", "game.py:both:1:test", "game.py:base:x:test"):
+            with self.subTest(item=item), self.assertRaises(ValueError):
+                self.check(manual=[item])
 
     def test_a_hand_written_part_line_is_reported_unless_manual(self):  # F16
         part = GOOD_PART.replace("import game\n", "import game\nEXTRA = 1\n")
         self.build(part=part)
         self.assertTrue(self.check()["changed"])
-        self.assertEqual(self.check(manual=["dice.py:2:header constant"])["changed"], [])
+        # T2.4 prep: a part is named by its path under the ai-dnd root
+        self.assertEqual(self.check(manual=["game_parts/dice.py:2:header constant"])["changed"], [])
+
+    def test_a_manual_line_naming_a_file_outside_the_check_is_refused(self):  # T2.4 prep
+        self.build(part=GOOD_PART.replace("import game\n", "import game\nEXTRA = 1\n"))
+        for item in ("dice.py:2:bare name", "game_parts/other.py:2:not moved here", "other.py:1:x"):
+            with self.subTest(item=item):
+                with self.assertRaises(ValueError) as caught:
+                    self.check(manual=[item])
+                self.assertIn(item.rsplit(":", 2)[0], str(caught.exception))
+
+    def test_the_command_line_fails_on_a_manual_line_outside_the_check(self):  # T2.4 prep
+        import contextlib
+        import io
+        from engine_split.move_check import main
+        self.build()
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = main(["--base-root", str(self.base), "--root", str(self.new), "--moved", "roll=dice.py",
+                         "--manual", "other.py:1:x"])
+        self.assertNotEqual(code, 0)
+        self.assertIn("other.py", err.getvalue())
 
     def test_a_part_header_of_import_lines_is_allowed(self):  # F16
         self.build(part=GOOD_PART.replace("import game\n", "import re\nimport game\nfrom pathlib import Path\n"))

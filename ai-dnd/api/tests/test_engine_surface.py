@@ -29,7 +29,7 @@ class SurfaceTests(unittest.TestCase):
         fresh = importlib.util.module_from_spec(spec)
         saved = sys.modules.get("game")
         # the fresh copy loads its own parts: a cached part module would still read the original engine as `game`
-        saved_parts = {key: sys.modules.pop(key) for key in list(sys.modules) if key.startswith("game_parts")}
+        saved_parts = {key: sys.modules.pop(key) for key in list(sys.modules) if key == "game_parts" or key.startswith("game_parts.")}
         sys.modules["game"] = fresh
         try:
             spec.loader.exec_module(fresh)
@@ -39,7 +39,7 @@ class SurfaceTests(unittest.TestCase):
                 sys.modules.pop("game", None)
             else:
                 sys.modules["game"] = saved
-            for key in [key for key in sys.modules if key.startswith("game_parts")]:
+            for key in [key for key in sys.modules if key == "game_parts" or key.startswith("game_parts.")]:
                 del sys.modules[key]
             sys.modules.update(saved_parts)
         self.assertIsInstance(fresh, types.ModuleType)
