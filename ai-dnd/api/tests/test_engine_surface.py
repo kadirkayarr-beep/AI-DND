@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import inspect
 import json
 import sys
 import unittest
@@ -10,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import game  # noqa: E402
+from engine_split import routing_audit  # noqa: E402
 from engine_split.surface import diff_rule, new_engine_functions, normal_signature, snapshot  # noqa: E402
 
 GOLDEN_PATH = Path(__file__).parent / "engine_split_locks" / "surface.json"
@@ -47,6 +50,20 @@ class SurfaceTests(unittest.TestCase):
             if isinstance(value, types.FunctionType) and (value.__module__ or "").startswith("game_parts"):
                 self.assertIs(getattr(value, "__wrapped__", value).__globals__["game"], fresh, name)
         self.assertEqual(live, self.golden)
+
+    def test_every_re_export_is_the_parts_own_object(self):
+        # Task 4: proves "game.X is <part>.X" at run time (R8 proves it statically); tests may not import game_parts (R2)
+        parts = {name: module for name, module in sys.modules.items() if name.startswith("game_parts.")}
+        for part, names in routing_audit.re_exports(ROOT).items():
+            module = parts["game_parts." + part]
+            for name in names:
+                own, seen = vars(module)[name], getattr(game, name)
+                if inspect.isfunction(own):
+                    self.assertIs(seen.__wrapped__, own, name)
+                    self.assertTrue(seen._session_bound, name)
+                    self.assertIn(module.__name__, game._PART_MODULES, name)
+                else:
+                    self.assertIs(seen, own, name)
 
     def test_a_missing_name_is_reported(self):
         live = dict(self.golden)

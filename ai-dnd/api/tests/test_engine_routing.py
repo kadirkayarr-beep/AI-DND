@@ -1,4 +1,4 @@
-"""Tests for the N3 routing audit (scripts/engine_split/routing_audit.py): seven static rules on ai-dnd/game_parts."""
+"""Tests for the N3 routing audit (scripts/engine_split/routing_audit.py): thirteen static rules on ai-dnd/game_parts."""
 from __future__ import annotations
 
 import json
@@ -16,7 +16,7 @@ from api.tests.engine_sources import engine_source_files  # noqa: E402
 from engine_split.routing_audit import audit, character_names, game_imports, part_files  # noqa: E402
 
 LOCKS = Path(__file__).parent / "engine_split_locks"
-TARGETS = set(json.loads((LOCKS / "patch_census.json").read_text(encoding="utf-8"))["targets"])
+TARGETS = json.loads((LOCKS / "patch_census.json").read_text(encoding="utf-8"))["targets"]  # name -> kind (R11 reads the kind)
 ALLOWED = set(json.loads((LOCKS / "allowed_imports.json").read_text(encoding="utf-8")))
 ALLOWLIST = json.loads((LOCKS / "identity_allowlist.json").read_text(encoding="utf-8"))
 CHARACTER_NAMES = character_names(ROOT / "game.py")
@@ -55,8 +55,8 @@ MORE = {
 # Fix round 1: escapes the strong review found; each must give exactly its rule and nothing else.
 ESCAPES = [
  ("R3", "import game\nfrom uuid import uuid4 as _u4\ndef f():\n    return _u4()\n"),         # I1 aliased patched name
- ("R3", "import game\nimport ollama as _ol\ndef f():\n    return _ol.chat\n"),
- ("R3", "import game\nimport random as _r\ndef f():\n    return _r.random()\n"),
+ ("R3 R11", "import game\nimport ollama as _ol\ndef f():\n    return _ol.chat\n"),       # R11 (Task 4): target via a module
+ ("R3 R11", "import game\nimport random as _r\ndef f():\n    return _r.random()\n"),
  ("R3", "import game\nfrom os import path\ndef f():\n    return path.sep\n"),                  # patched module, other name
  ("R7", "def f():\n    return game.K\n"),                                                    # I2 no `import game`
  ("R7", "import game\ndef f():\n    import game\n    return game.K\n"),                       # I2 local import shadows
@@ -66,7 +66,7 @@ ESCAPES = [
  ("R3", "import game\ndef f(xs):\n    return [u for uuid4 in xs for u in [uuid4]], [uuid4() for _ in xs]\n"),  # I3 PEP 709
  ("R3", "import game\ndef f():\n    from uuid import uuid4\n    return uuid4()\n"),          # I4 function-local import
  ("R3", "import game\ndef f():\n    import ollama\n    return ollama\n"),
- ("R3", "import game\ndef f():\n    import random\n    return random.random()\n"),
+ ("R3 R11", "import game\ndef f():\n    import random\n    return random.random()\n"),
  ("R7", "import game\ndef f(s):\n    return eval(s)\n"),                                      # M4
  ("R7", "import game\ndef f(s):\n    exec(s)\n"),
  ("R7", "def f():\n    return __import__('game').K\n"),                                        # I2 game reached dynamically
@@ -76,14 +76,55 @@ ESCAPES = [
 # M1: game.py re-exports roll_d20 from part p (the only case a part may define a patched name).
 GAME_REEXPORT = (GAME_PY.replace("def roll_d20():\n    return random.randint(1, 20)\n", "from game_parts.p import roll_d20\n")
                  + '_PART_MODULES = ("game_parts.p",)\n')
-FINDING = re.compile(r"^R[1-7] \S+:\d+: ")
+FINDING = re.compile(r"^R(?:1[0-3]|[1-9]) \S+:\d+: ")
+
+
+def reexporting(names: str, part_modules: bool = True) -> str:
+    """GAME_PY plus `from game_parts.p import <names>`, and _PART_MODULES when a def is among the names."""
+    return GAME_PY + f"from game_parts.p import {names}\n" + ('_PART_MODULES = ("game_parts.p",)\n' if part_modules else "")
+
+
+# Task 4 (D-349): rules R8-R13. Each bad row gives exactly its rule on the full audit: (rule, part, game.py, extra files).
+NEW_BAD = [
+ ("R8", "import game\ndef f():\n    return 1\n", GAME_PY, None),                                    # f not imported by game.py
+ ("R8", "import game\nK = 2\n", reexporting("K", False), None),                                     # K also bound in game.py
+ ("R8", "import game\nX = 1\n", reexporting("X", False) + "from game_parts.q import X\n",
+  {"game_parts/q.py": "import game\nX = 2\n"}),                                                       # two parts bind X
+ ("R9", "import game\ndef f():\n    return g()\ndef g():\n    return 1\n", reexporting("f, g"), None),
+ ("R9", "import game\nclass C:\n    pass\ndef f():\n    return C()\n", reexporting("C, f"), None),
+ ("R9", "import game\ndef g():\n    return 1\nX = g()\n", reexporting("X, g"), None),                  # at import time
+ ("R10", "import game\ndef f():\n    game.K = 2\n", reexporting("f"), None),
+ ("R10", "import game\ndef f():\n    del game.K\n", reexporting("f"), None),
+ ("R11", "import game\nimport uuid\ndef f():\n    return uuid.uuid4()\n", reexporting("f"), None),
+ ("R11", "import game\nimport builtins\ndef f(p):\n    return builtins.open(p)\n", reexporting("f"), None),
+ ("R11", "import game\nimport io\ndef f(p):\n    return io.open(p)\n", reexporting("f"), None),
+ ("R12", "import game\ndef f():\n    return getattr(game, 'K')\n", reexporting("f"), None),
+ ("R12", "import game\ndef f():\n    g = game\n    return g.K\n", reexporting("f"), None),
+ ("R12", "import game\ndef f():\n    setattr(game, 'K', 2)\n", reexporting("f"), None),             # game as an argument
+ ("R13", None, GAME_PY, {"game_parts/__init__.py": "import game\nimport re\n"}),
+ ("R13", None, GAME_PY, {"game_parts/__init__.py": '"""Parts."""\nimport game\n'}),
+]
+GAME_ALIAS_ROW = {"file": "game_parts/p.py", "function": "f", "name": "game", "reason": "test"}
+# One clean fixture per rule: the full audit gives nothing. (rule, part, game.py, extra files, identity allow-list)
+NEW_CLEAN = [
+ ("R8", None, GAME_PY, {"game_parts/terminal.py": "import game\ndef run(input_fn, print_fn):\n    return game.K\n"}, None),
+ ("R9", "import game\nRX = 1\ndef f():\n    return game.g(), RX\ndef g():\n    return 1\n", reexporting("RX, f, g"), None, None),
+ ("R10", "import game\ndef f():\n    return game.K\n", reexporting("f"), None, None),
+ ("R11", "import game\ndef f():\n    return game._session().rng.randint(1, 20)\n", reexporting("f"), None, None),
+ ("R12", "import game\ndef f():\n    g = game\n    return g.K\n", reexporting("f"), None, [GAME_ALIAS_ROW]),
+ ("R13", None, GAME_PY, {"game_parts/__init__.py": "import game\n"}, None),
+]
 
 
 class RoutingAuditTests(unittest.TestCase):
     def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self._tmp.cleanup)
-        self.tmp = Path(self._tmp.name)
+        self.fresh()
+
+    def fresh(self):
+        """A new empty root: rows that write different files (q.py, terminal.py) must not leak into the next row."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
 
     def tree(self, part: str | None = None, game: str = GAME_PY, extra: dict[str, str] | None = None) -> Path:
         files = {"game.py": game, "game_parts/__init__.py": "import game\n", **(extra or {})}
@@ -95,8 +136,12 @@ class RoutingAuditTests(unittest.TestCase):
             path.write_text(text, encoding="utf-8")
         return self.tmp
 
-    def run_audit(self, root: Path, allowlist=None) -> list[str]:
+    def run_all(self, root: Path, allowlist=None) -> list[str]:
         return audit(root, TARGETS, ALLOWED, ALLOWLIST if allowlist is None else allowlist, CHARACTER_NAMES)
+
+    def run_audit(self, root: Path, allowlist=None) -> list[str]:
+        """The full audit minus R8: the R1-R7 fixtures define names game.py does not re-export (R8 has its own rows)."""
+        return [f for f in self.run_all(root, allowlist) if not f.startswith("R8 ")]
 
     def test_each_rule_fires_on_its_fixture(self):
         for key, src in [*BAD.items(), *MORE.items()]:
@@ -115,7 +160,28 @@ class RoutingAuditTests(unittest.TestCase):
         for rule, src in ESCAPES:
             with self.subTest(src=src):
                 findings = self.run_audit(self.tree(src))
+                self.assertEqual({f.split()[0] for f in findings}, set(rule.split()), findings)
+
+    def test_each_new_rule_fires_alone_on_its_fixture(self):
+        for rule, src, game, extra in NEW_BAD:
+            with self.subTest(rule=rule, src=src, extra=extra):
+                self.fresh()
+                findings = self.run_all(self.tree(src, game=game, extra=extra))
                 self.assertEqual({f.split()[0] for f in findings}, {rule}, findings)
+                for f in findings:
+                    self.assertRegex(f, FINDING)
+
+    def test_each_new_rule_passes_its_clean_fixture(self):
+        for rule, src, game, extra, allowlist in NEW_CLEAN:
+            with self.subTest(rule=rule):
+                self.fresh()
+                self.assertEqual(self.run_all(self.tree(src, game=game, extra=extra), allowlist), [])
+
+    def test_re_exports_reads_the_top_level_part_imports_of_game_py(self):
+        from engine_split.routing_audit import re_exports
+        game = reexporting("f, g") + "from game_parts.q import X\n"
+        self.assertEqual(re_exports(self.tree(game=game)), {"p": ["f", "g"], "q": ["X"]})
+        self.assertEqual(re_exports(self.tree(game=GAME_PY)), {})   # the __main__ guard's terminal import is not one
 
     def test_a_moved_surface_function_may_be_defined_in_its_part(self):
         src = "import game\ndef roll_d20():\n    return game._session().rng.randint(1, 20)\n"
