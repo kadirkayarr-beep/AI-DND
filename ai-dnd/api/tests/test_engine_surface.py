@@ -1,7 +1,9 @@
 """Tests for the golden surface of the `game` module (scripts/engine_split/surface.py)."""
 from __future__ import annotations
 
+import ast
 import copy
+import inspect
 import json
 import sys
 import unittest
@@ -10,9 +12,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import game  # noqa: E402
+from api.tests import engine_sources  # noqa: E402
+from engine_split import inventory, routing_audit  # noqa: E402
+from engine_split.inventory import top_level_index  # noqa: E402
+from engine_split.move_block import MOVABLE_KINDS, NEVER_MOVED, MoveRefused, prefix_names  # noqa: E402
 from engine_split.surface import diff_rule, new_engine_functions, normal_signature, snapshot  # noqa: E402
 
 GOLDEN_PATH = Path(__file__).parent / "engine_split_locks" / "surface.json"
+SENSITIVE_PATH = Path(__file__).parent / "engine_split_locks" / "sensitive.json"
+CENSUS_PATH = Path(__file__).parent / "engine_split_locks" / "patch_census.json"
+# Plan 2 batch file -> the part it moves into, in move order (Tasks 9-14)
+T3_BATCHES = {"tables": "tables", "schemas": "schemas", "text-a1": "text_rules_a", "text-a2": "text_rules_a",
+              "text-b1": "text_rules_b", "text-b2": "text_rules_b"}
 
 
 class SurfaceTests(unittest.TestCase):
@@ -46,7 +58,93 @@ class SurfaceTests(unittest.TestCase):
         for name, value in vars(fresh).items():  # every moved function reads the fresh engine through `game`
             if isinstance(value, types.FunctionType) and (value.__module__ or "").startswith("game_parts"):
                 self.assertIs(getattr(value, "__wrapped__", value).__globals__["game"], fresh, name)
-        self.assertEqual(live, self.golden)
+        self.assert_surface(live)
+
+    def assert_surface(self, live):
+        # exact equality as before; the message is diff_rule's lines (every missing, new and changed name)
+        if live != self.golden:
+            self.fail("\n".join(diff_rule(self.golden, live, moved=set())) or "the surface differs from surface.json")
+
+    def test_a_missing_re_export_is_named_in_the_failure(self):
+        # D-351: the failure names the lost name (diff_rule lines), not a dict diff cut at maxDiff
+        live = copy.deepcopy(self.golden)
+        del live["_inside_speech"]
+        with self.assertRaises(AssertionError) as caught:
+            self.assert_surface(live)
+        self.assertIn("missing: _inside_speech", str(caught.exception))
+
+    def test_every_re_export_is_the_parts_own_object(self):
+        # Task 4: proves "game.X is <part>.X" at run time (R8 proves it statically); tests may not import game_parts (R2)
+        parts = {name: module for name, module in sys.modules.items() if name.startswith("game_parts.")}
+        for part, names in routing_audit.re_exports(ROOT).items():
+            module = parts["game_parts." + part]
+            for name in names:
+                own, seen = vars(module)[name], getattr(game, name)
+                if inspect.isfunction(own):
+                    self.assertIs(seen.__wrapped__, own, name)
+                    self.assertTrue(seen._session_bound, name)
+                    self.assertIn(module.__name__, game._PART_MODULES, name)
+                else:
+                    self.assertIs(seen, own, name)
+
+    def test_t3_batches_are_movable(self):
+        # Plan 2 T3 batches (Tasks 9-14) against game.py before each move; a moved batch is checked by its re-exports
+        game_py = ROOT / "game.py"
+        index = top_level_index(game_py)
+        entries: dict[str, list[dict]] = {}
+        for entry in index:
+            entries.setdefault(entry["name"], []).append(entry)
+        re_exports = routing_audit.re_exports(ROOT)
+        sensitive = set(json.loads(SENSITIVE_PATH.read_text(encoding="utf-8"))["functions"])
+        census = json.loads(CENSUS_PATH.read_text(encoding="utf-8"))["targets"]
+        surface_targets = {name for name, kind in census.items() if kind != "absent"}
+        # engine names as move_block.move() builds them (preflight finding 5: module imports are not engine names)
+        engine_names = ({e["name"] for e in index if e["kind"] in MOVABLE_KINDS}
+                        | {n for names in re_exports.values() for n in names} | surface_targets)
+        game_lines = game_py.read_text(encoding="utf-8").split("\n")
+        # directed edges of inventory.constant_clusters: which top-level statement's value reads which names
+        reads = [(node.lineno, {n.id for n in ast.walk(node.value) if isinstance(n, ast.Name)},
+                  set(inventory._bound(node)[1]))
+                 for node in ast.parse("\n".join(game_lines)).body
+                 if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)) and node.value is not None]
+        seen: dict[str, str] = {}
+        part_constants: dict[str, set[str]] = {}
+        for batch, part in T3_BATCHES.items():
+            names = engine_sources.batch_names(batch)
+            moved = set(re_exports.get(part, []))
+            part_py = ROOT / "game_parts" / f"{part}.py"
+            if part_py.exists():
+                part_constants.setdefault(part, set()).update(
+                    e["name"] for e in top_level_index(part_py) if e["kind"] == "assign")
+            for name in names:
+                with self.subTest(batch=batch, name=name):
+                    self.assertNotIn(name, NEVER_MOVED)
+                    self.assertNotIn(name, sensitive)
+                    self.assertNotIn(name, seen)
+                    seen[name] = batch
+                    if name not in moved:
+                        self.assertEqual([e["kind"] in MOVABLE_KINDS for e in entries.get(name, [])], [True])
+            staying = [n for n in names if n not in moved and n in entries]
+            if not staying:
+                continue
+            constants = {n for n in staying if entries[n][0]["kind"] == "assign"}
+            keep_bare = (part_constants.get(part, set()) | constants) - surface_targets
+            for name in sorted(constants):  # the mover's F6: a batch constant reads no engine name left in game.py
+                entry = entries[name][0]
+                block = "\n".join(game_lines[entry["start"] - 1:entry["end"]]) + "\n"
+                with self.subTest(batch=batch, constant=name):
+                    try:
+                        prefix_names(block, engine_names, keep_bare)
+                    except MoveRefused as refused:
+                        self.fail(f"{batch}: {refused}")
+            first_cut = min(entries[n][0]["start"] for n in staying)  # the re-export line takes its place
+            for line, read, bound in reads:
+                if bound & set(names) or not read & set(staying):
+                    continue
+                with self.subTest(batch=batch, staying=sorted(bound)):
+                    self.assertGreater(line, first_cut, f"{sorted(bound)} reads {sorted(read & set(staying))} "
+                                                        f"above the first cut block of {batch}")
+            part_constants.setdefault(part, set()).update(constants)
 
     def test_a_missing_name_is_reported(self):
         live = dict(self.golden)
