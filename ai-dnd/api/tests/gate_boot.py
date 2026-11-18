@@ -5,16 +5,18 @@ Put `api.tests.gate_boot` first in the selector list: importing it applies the t
 It never imports the engine (`game`, `game_parts`).
 """
 import os
+import sys
 from pathlib import Path
 
 from api.tests import engine_probe
+from api.tests.engine_sources import engine_source_files
 
 
 def tokens(run_root: str) -> set[str]:
     return set(Path(run_root).name.split("-")[1:])
 
 
-def boot(run_root: str, environ=os.environ) -> set[str]:
+def boot(run_root: str, environ=os.environ, tool_id: int = sys.monitoring.COVERAGE_ID) -> set[str]:
     applied = set()
     found = tokens(run_root)
     if "fon" in found:
@@ -23,6 +25,9 @@ def boot(run_root: str, environ=os.environ) -> set[str]:
     if "n4" in found:
         engine_probe.install_ledger(Path(run_root) / "engine-probe")
         applied.add("n4")
+    if "n7" in found:
+        engine_probe.install_lines(Path(run_root) / "engine-probe", engine_source_files(), tool_id)
+        applied.add("n7")
     return applied
 
 

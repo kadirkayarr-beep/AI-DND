@@ -7,8 +7,13 @@ JSON line per record to `out_dir/ledger-<pid>.jsonl`:
 Installs stack: each install wraps the three functions as they are at that moment (possibly an outer install's
 wrappers), so an outer ledger keeps recording through an inner one; `uninstall` pops the top install only.
 Blind spots (N3 is their only guard): tests that patch without calling, plain `game.X = ...` assignments, kind "other".
+N7 probe (Task 3): `install_lines(out_dir, engine_files, tool_id)` records which lines of the engine files ran, over
+`sys.monitoring` (each line once, then DISABLE), and an `atexit` writer stores them in `out_dir/lines-<pid>.json` as
+{"<posix path relative to ai-dnd>": [sorted lines]}. State is kept per tool id: a self-test probe on a free id does not
+touch the gate's probe on COVERAGE_ID. `stop_lines(tool_id)` frees that id only and unregisters its writer.
 It never imports the engine (`game`, `game_parts`).
 """
+import atexit
 import json
 import os
 import sys
@@ -18,6 +23,8 @@ from pathlib import Path
 from unittest import mock
 
 _STACK = []
+_LINES = {}             # tool id -> (code objects with local LINE events, {(file, line)}, atexit writer)
+_N7 = "engine-split-n7"
 _OUTCOME_LISTS = (("errors", "error"), ("failures", "fail"), ("unexpectedSuccesses", "xpass"),
                   ("expectedFailures", "xfail"), ("skipped", "skip"))
 
@@ -101,3 +108,62 @@ def uninstall() -> None:
     sink["closed"] = True
     if "file" in sink:
         sink["file"].close()
+
+
+def install_lines(out_dir: Path, engine_files: list[Path], tool_id: int = sys.monitoring.COVERAGE_ID) -> None:
+    held = sys.monitoring.get_tool(tool_id)
+    if held == _N7:
+        raise RuntimeError(f"{_N7} already installed")
+    if held is not None:
+        raise RuntimeError(f"{_N7}: tool id {tool_id} is held by {held!r}")
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    root = Path(engine_files[0]).resolve().parent           # game.py's folder: ai-dnd
+    wanted = {str(Path(f).resolve()): Path(f).resolve().relative_to(root).as_posix() for f in engine_files}
+    keys, codes, hits = {}, [], set()
+    events = sys.monitoring.events
+
+    def start(code, offset):
+        filename = code.co_filename
+        if filename not in keys:
+            keys[filename] = wanted.get(str(Path(filename).resolve()))
+        if keys[filename] is not None:
+            sys.monitoring.set_local_events(tool_id, code, events.LINE)
+            codes.append(code)
+        return sys.monitoring.DISABLE
+
+    def line(code, line_number):
+        hits.add((keys[code.co_filename], line_number))
+        return sys.monitoring.DISABLE
+
+    def write():
+        (out_dir / f"lines-{os.getpid()}.json").write_text(json.dumps(_by_file(hits), sort_keys=True), encoding="utf-8")
+
+    sys.monitoring.use_tool_id(tool_id, _N7)
+    sys.monitoring.register_callback(tool_id, events.PY_START, start)
+    sys.monitoring.register_callback(tool_id, events.LINE, line)
+    sys.monitoring.set_events(tool_id, events.PY_START)
+    atexit.register(write)
+    _LINES[tool_id] = (codes, hits, write)
+
+
+def stop_lines(tool_id: int = sys.monitoring.COVERAGE_ID) -> dict[str, list[int]]:
+    if tool_id not in _LINES:           # never frees an id this module does not hold
+        return {}
+    codes, hits, write = _LINES.pop(tool_id)
+    atexit.unregister(write)
+    events = sys.monitoring.events
+    sys.monitoring.set_events(tool_id, events.NO_EVENTS)
+    for code in codes:
+        sys.monitoring.set_local_events(tool_id, code, events.NO_EVENTS)
+    sys.monitoring.register_callback(tool_id, events.PY_START, None)
+    sys.monitoring.register_callback(tool_id, events.LINE, None)
+    sys.monitoring.free_tool_id(tool_id)
+    return _by_file(hits)
+
+
+def _by_file(hits) -> dict[str, list[int]]:
+    out = {}
+    for name, line_number in hits:
+        out.setdefault(name, []).append(line_number)
+    return {name: sorted(lines) for name, lines in out.items()}
