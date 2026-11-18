@@ -1,5 +1,9 @@
 """The bound-session wrapper filter reads an explicit list of part modules (game.py split, T2.1)."""
 import ast
+import dataclasses
+import hashlib
+import json
+import re
 import subprocess
 import sys
 import unittest
@@ -8,11 +12,51 @@ from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "scripts"))
 
 import game  # noqa: E402
-from api.tests.engine_sources import engine_source_files  # noqa: E402
+from api.auth import FixedAuthenticator  # noqa: E402
+from api.main import create_app  # noqa: E402
+from api.session_manager import SessionManager  # noqa: E402
+from api.tests.auth_fixture import TEST_PLAYER  # noqa: E402
+from api.tests.engine_sources import batch_names, engine_source_files  # noqa: E402
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound  # noqa: E402
 from api.tests.town_seed import fixed_town  # noqa: E402
+from engine_split import routing_audit  # noqa: E402
+
+TABLES = tuple(batch_names("tables"))
+
+
+def _canonical(value):
+    """A form of a table value that is the same in every process (repr of a set of str is not: hash seed order).
+
+    set/frozenset -> sorted list, dict -> same order (str keys only), tuple/list -> list, compiled regex ->
+    [pattern, flags without the UNICODE bit re adds to every str pattern], frozen dataclass instance (EffectSpec)
+    -> [class name, [[field, value] ...] in declaration order]; any other type raises TypeError naming it.
+    """
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (set, frozenset)):
+        return sorted(_canonical(item) for item in value)
+    if isinstance(value, dict):
+        if not all(isinstance(key, str) for key in value):
+            raise TypeError(f"_canonical: dict key of type {sorted({type(k).__name__ for k in value})}")
+        return {key: _canonical(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_canonical(item) for item in value]
+    if isinstance(value, re.Pattern):
+        return [value.pattern, value.flags & ~re.UNICODE.value]
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return [type(value).__qualname__,
+                [[field.name, _canonical(getattr(value, field.name))] for field in dataclasses.fields(value)]]
+    raise TypeError(f"_canonical: no digest form for type {type(value).__name__}")
+
+
+def value_digest(names) -> str:
+    """sha256 of the canonical values of game.<name> for names, in name order (Tasks 9-14 pin one per batch)."""
+    pairs = [[name, _canonical(getattr(game, name))] for name in sorted(names)]
+    return hashlib.sha256(json.dumps(pairs, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
 class WrapperFilter(unittest.TestCase):
@@ -90,6 +134,36 @@ class PilotSpeechSpan(unittest.TestCase):
         text = "Kapı açıldı. “Dur! Kim var? Çık dışarı.” dedi muhafız. Sonra sustu."
         self.assertEqual(game._split_sentences_keep_speech(text),
                          ["Kapı açıldı.", "“Dur! Kim var? Çık dışarı.” dedi muhafız.", "Sonra sustu."])
+
+
+class TablesPart(unittest.TestCase):
+    """T3.1: the twenty data tables live in game_parts/tables.py; game.py re-exports them unchanged."""
+
+    def test_the_digest_form_sorts_sets(self):
+        self.assertEqual(_canonical({"b", "a", "c"}), ["a", "b", "c"])
+        self.assertEqual(_canonical(frozenset({"y", "x"})), ["x", "y"])
+        self.assertEqual(_canonical(re.compile("a", re.I)), ["a", re.I.value])
+        self.assertEqual(_canonical(game.INNER_RADIANCE_SPEC),
+                         ["EffectSpec", [["effect_id", "inner_radiance"], ["range_ft", 10],
+                                         ["source_ref", "PHB 2024 p.185 (PDF) Aasimar: Inner Radiance"],
+                                         ["excludes_allies", False]]])
+        with self.assertRaisesRegex(TypeError, "object"):
+            _canonical(object())
+
+    def test_the_tables_live_in_the_part(self):
+        self.assertEqual(set(TABLES) - set(routing_audit.re_exports(ROOT).get("tables", [])), set())
+
+    def test_the_table_values_did_not_change(self):
+        # captured on 714b3b0f before the move (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave this same hex)
+        self.assertEqual(value_digest(TABLES), "3fe2c4fd649ce85ff068164b70be9699701d63c784534753646e94a190f709eb")
+
+    def test_a_patched_class_table_reaches_the_api_reader(self):
+        # GET /api/character-options (api/main.py character_creation_options) reads game.CLASSES at call time
+        app = create_app(session_manager=SessionManager(), ollama_adapter=None,
+                         authenticator=FixedAuthenticator(TEST_PLAYER))
+        reader = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/api/character-options")
+        with patch("game.CLASSES", ["Wizard"]):
+            self.assertEqual(reader()["classes"], ["Wizard"])
 
 
 if __name__ == "__main__":

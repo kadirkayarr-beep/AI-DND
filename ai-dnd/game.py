@@ -129,215 +129,31 @@ def roll_stat():
 # IRKLAR
 # ---------------------------------------------------------
 
-RACES = [
-    "Aasimar",
-    "Human",
-    "Elf",
-    "Dwarf",
-    "Halfling",
-    "Gnome",
-    "Half-Elf",
-    "Half-Orc",
-    "Tiefling",
-    "Dragonborn",
-    "Goliath",
-    "Orc",
-]
+from game_parts.tables import RACES, RACE_FEATURES, CLASSES, CLASS_FEATURES, CLASS_HIT_DICE, SKILLS, CLASS_SKILL_OPTIONS, DIFFICULTY_DC, RANDOM_NAMES, GIANT_ANCESTRY_IDS, CELESTIAL_REVELATION_FORMS, INNER_RADIANCE_SPEC, NECROTIC_SHROUD_SPEC, SPECIES_WITH_TRAIT_STATE, _ABILITY_NAMES, _ORIGIN_TEXT_KEYS, _ORIGIN_LIST_KEYS, _ORIGIN_SCORE_KEYS, DEATH_MODES, CHECK_FEATURES
 
 
 # ---------------------------------------------------------
 # IRK ÖZELLİKLERİ
 # ---------------------------------------------------------
 
-RACE_FEATURES = {
-
-    "Human": [
-        "Resourceful",
-        "Skillful",
-        "Versatile",
-    ],
-
-    "Elf": [
-        "Darkvision",
-        "Elven Lineage",
-        "Fey Ancestry",
-        "Keen Senses",
-        "Trance",
-    ],
-
-    "Dwarf": [
-        "Darkvision",
-        "Dwarven Resilience",
-        "Dwarven Toughness",
-        "Stonecunning",
-    ],
-
-    "Halfling": [
-        "Brave",
-        "Halfling Nimbleness",
-        "Lucky",
-        "Naturally Stealthy",
-    ],
-
-    "Gnome": [
-        "Darkvision",
-        "Gnomish Cunning",
-        "Gnomish Lineage",
-    ],
-
-    "Half-Elf": [
-        "Darkvision",
-        "Fey Ancestry",
-        "Skill Versatility",
-    ],
-
-    "Half-Orc": [
-        "Darkvision",
-        "Menacing",
-        "Relentless Endurance",
-        "Savage Attacks",
-    ],
-
-    "Tiefling": [
-        "Darkvision",
-        "Fiendish Legacy",
-        "Otherworldly Presence",
-    ],
-
-    "Dragonborn": [
-        "Breath Weapon",
-        "Darkvision",
-        "Draconic Ancestry",
-        "Draconic Flight",
-    ],
-
-    "Aasimar": [
-        "Celestial Resistance",
-        "Celestial Revelation",
-        "Darkvision",
-        "Healing Hands",
-        "Light Bearer",
-    ],
-
-    "Goliath": [
-        "Giant Ancestry",
-        "Large Form",
-        "Powerful Build",
-    ],
-
-    "Orc": [
-        "Adrenaline Rush",
-        "Darkvision",
-        "Relentless Endurance",
-    ],
-}
 
 
 # ---------------------------------------------------------
 # SINIFLAR
 # ---------------------------------------------------------
 
-CLASSES = [
-    "Barbarian",
-    "Bard",
-    "Cleric",
-    "Druid",
-    "Fighter",
-    "Monk",
-    "Paladin",
-    "Ranger",
-    "Rogue",
-    "Sorcerer",
-    "Warlock",
-    "Wizard"
-]
 
 
 # ---------------------------------------------------------
 # SINIF ÖZELLİKLERİ
 # ---------------------------------------------------------
 
-CLASS_FEATURES = {
-
-    "Barbarian": [
-        "Rage"
-    ],
-
-    "Bard": [
-        "Bardic Inspiration"
-    ],
-
-    "Cleric": [
-        "Spellcasting",
-        "Divine Domain"
-    ],
-
-    "Druid": [
-        "Spellcasting",
-        "Wild Shape"
-    ],
-
-    "Fighter": [
-        "Fighting Style",
-        "Second Wind"
-    ],
-
-    "Monk": [
-        "Martial Arts",
-        "Unarmored Defense"
-    ],
-
-    "Paladin": [
-        "Divine Sense",
-        "Lay on Hands"
-    ],
-
-    "Ranger": [
-        "Favored Enemy",
-        "Natural Explorer"
-    ],
-
-    "Rogue": [
-        "Sneak Attack",
-        "Thieves' Cant"
-    ],
-
-    "Sorcerer": [
-        "Spellcasting",
-        "Sorcerous Origin"
-    ],
-
-    "Warlock": [
-        "Pact Magic",
-        "Otherworldly Patron"
-    ],
-
-    "Wizard": [
-        "Spellcasting",
-        "Arcane Recovery"
-    ]
-}
 
 
 # ---------------------------------------------------------
 # HIT DICE
 # ---------------------------------------------------------
 
-CLASS_HIT_DICE = {
-
-    "Barbarian": 12,
-    "Bard": 8,
-    "Cleric": 8,
-    "Druid": 8,
-    "Fighter": 10,
-    "Monk": 8,
-    "Paladin": 10,
-    "Ranger": 10,
-    "Rogue": 8,
-    "Sorcerer": 6,
-    "Warlock": 8,
-    "Wizard": 6
-}
 
 
 # ---------------------------------------------------------
@@ -348,177 +164,18 @@ CLASS_HIT_DICE = {
 # SKILLER
 # ---------------------------------------------------------
 
-SKILLS = {
-
-    "Acrobatics": "dexterity",
-    "Animal Handling": "wisdom",
-    "Arcana": "intelligence",
-    "Athletics": "strength",
-    "Deception": "charisma",
-    "History": "intelligence",
-    "Insight": "wisdom",
-    "Intimidation": "charisma",
-    "Investigation": "intelligence",
-    "Medicine": "wisdom",
-    "Nature": "intelligence",
-    "Perception": "wisdom",
-    "Performance": "charisma",
-    "Persuasion": "charisma",
-    "Religion": "intelligence",
-    "Sleight of Hand": "dexterity",
-    "Stealth": "dexterity",
-    "Survival": "wisdom"
-}
 
 
 # ---------------------------------------------------------
 # SINIF SKILL SEÇENEKLERİ
 # ---------------------------------------------------------
 
-CLASS_SKILL_OPTIONS = {
-
-    "Barbarian": [
-        "Animal Handling",
-        "Athletics",
-        "Intimidation",
-        "Nature",
-        "Perception",
-        "Survival"
-    ],
-
-    "Bard": [
-        "Acrobatics",
-        "Animal Handling",
-        "Arcana",
-        "Deception",
-        "History",
-        "Insight",
-        "Intimidation",
-        "Investigation",
-        "Medicine",
-        "Nature",
-        "Perception",
-        "Performance",
-        "Persuasion",
-        "Sleight of Hand",
-        "Stealth"
-    ],
-
-    "Cleric": [
-        "History",
-        "Insight",
-        "Medicine",
-        "Persuasion",
-        "Religion"
-    ],
-
-    "Druid": [
-        "Arcana",
-        "Animal Handling",
-        "Insight",
-        "Medicine",
-        "Nature",
-        "Perception",
-        "Religion",
-        "Survival"
-    ],
-
-    "Fighter": [
-        "Acrobatics",
-        "Animal Handling",
-        "Athletics",
-        "History",
-        "Insight",
-        "Intimidation",
-        "Perception",
-        "Survival"
-    ],
-
-    "Monk": [
-        "Acrobatics",
-        "Athletics",
-        "History",
-        "Insight",
-        "Religion",
-        "Stealth"
-    ],
-
-    "Paladin": [
-        "Athletics",
-        "Insight",
-        "Intimidation",
-        "Medicine",
-        "Persuasion",
-        "Religion"
-    ],
-
-    "Ranger": [
-        "Animal Handling",
-        "Athletics",
-        "Insight",
-        "Investigation",
-        "Nature",
-        "Perception",
-        "Stealth",
-        "Survival"
-    ],
-
-    "Rogue": [
-        "Acrobatics",
-        "Athletics",
-        "Deception",
-        "Insight",
-        "Intimidation",
-        "Investigation",
-        "Perception",
-        "Persuasion",
-        "Sleight of Hand",
-        "Stealth"
-    ],
-
-    "Sorcerer": [
-        "Arcana",
-        "Deception",
-        "Insight",
-        "Intimidation",
-        "Persuasion",
-        "Religion"
-    ],
-
-    "Warlock": [
-        "Arcana",
-        "Deception",
-        "History",
-        "Intimidation",
-        "Investigation",
-        "Nature",
-        "Religion"
-    ],
-
-    "Wizard": [
-        "Arcana",
-        "History",
-        "Insight",
-        "Investigation",
-        "Medicine",
-        "Nature",
-        "Religion"
-    ]
-}
 
 
 # ---------------------------------------------------------
 # ZORLUKLAR
 # ---------------------------------------------------------
 
-DIFFICULTY_DC = {
-
-    "easy": 10,
-    "medium": 15,
-    "hard": 20,
-    "very_hard": 25,
-    "extreme": 30
-}
 
 
 # ---------------------------------------------------------
@@ -556,12 +213,6 @@ def choose_option(title, options):
 # RANDOM KARAKTER İSİMLERİ
 # ---------------------------------------------------------
 
-RANDOM_NAMES = [
-    "Aldric", "Kael", "Thorne", "Riven", "Darius",
-    "Elias", "Garrick", "Rowan", "Cedric", "Aric",
-    "Mira", "Lyra", "Elara", "Seraphine", "Nyra",
-    "Freya", "Astrid", "Kara", "Selene", "Rhea"
-]
 
 
 def create_random_character():
@@ -1970,21 +1621,11 @@ SAVE_FORMAT_VERSION = 4
 _SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5, 6)
 
 
-GIANT_ANCESTRY_IDS = ("cloud", "fire", "frost", "hill", "stone", "storm")
-CELESTIAL_REVELATION_FORMS = (
-    "heavenly_wings",
-    "inner_radiance",
-    "necrotic_shroud",
-)
 # K01: PHB 2024 (D&D 5e - Players Handbook 2024.pdf, PDF page 185, Aasimar > Celestial Revelation > Necrotic Shroud):
 # "Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw ... or have the Frightened condition".
 # K02: "each creature within 10 feet of you takes Radiant damage" (same page, Inner Radiance); allies are not excluded.
 # K04: the recorded order of simultaneous due items (technical decision record, see event_order.py).
 RULE_ORDER = event_order.DEFAULT_RULE_ORDER
-INNER_RADIANCE_SPEC = effect_targeting.EffectSpec("inner_radiance", 10, "PHB 2024 p.185 (PDF) Aasimar: Inner Radiance")
-NECROTIC_SHROUD_SPEC = effect_targeting.EffectSpec(
-    "necrotic_shroud", 10, "PHB 2024 p.185 (PDF) Aasimar: Necrotic Shroud", excludes_allies=True)
-SPECIES_WITH_TRAIT_STATE = frozenset({"Aasimar", "Goliath", "Orc", "Half-Orc"})
 
 
 def _new_species_trait_state(species, proficiency_bonus):
@@ -2114,10 +1755,6 @@ def initialize_species_trait_state(giant_ancestry=None):
     return copy.deepcopy(character["species_trait_state"])
 
 
-_ABILITY_NAMES = ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")
-_ORIGIN_TEXT_KEYS = ("background", "alignment", "ability_score_method", "background_equipment_option", "species_bonus_feat")
-_ORIGIN_LIST_KEYS = ("languages", "origin_feats")
-_ORIGIN_SCORE_KEYS = ("background_ability_bonuses", "base_ability_scores")
 
 
 def _origin_choices_valid(choices):
@@ -3270,7 +2907,6 @@ def _normalize_ground_items():
         world_state["ground_items"] = []
 
 
-DEATH_MODES = ("NORMAL", "PERMADEATH", "IRONMAN")
 
 
 def _death_state_defaults():
@@ -16212,7 +15848,6 @@ def _is_explicitly_negated_attack(player_input):
     return refused.search(text) is not None and not _has_explicit_attack_verb(refused.sub(" ", text))
 
 
-CHECK_FEATURES = ('primal_knowledge', 'tactical_mind')
 
 
 def _immediate_check_refusal(check_feature, message):
