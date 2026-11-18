@@ -23,6 +23,7 @@ class Archive:
         if (root.is_relative_to((evidence.ROOT / "scripts").resolve()) or
                 any(path.resolve().is_relative_to(root) for path in (
                     evidence.ROOT / "scripts", evidence.ROOT / "game.py",
+                    evidence.ROOT / "game_parts",
                     evidence.ROOT / "docs/regression-evidence.md",
                     evidence.ROOT / "docs/development-infrastructure.md"))):
             raise ValueError("Archive cannot contain verifier source")

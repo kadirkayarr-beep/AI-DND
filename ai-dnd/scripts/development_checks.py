@@ -150,7 +150,7 @@ def structural_checks(config, state, repo, baseline=None, ci=None):
     rows.append(check("Evidence infrastructure", "PASS" if callable(evidence.source_snapshot)
                       and all((repo / path).exists() for path in evidence_paths) else "FAIL",
                       "Existing regression runner, source_snapshot and timestamp/UUID archives"))
-    owners = ["ai-dnd/game.py", "ai-dnd/api/ollama_adapter.py",
+    owners = ["ai-dnd/game.py", "ai-dnd/game_parts", "ai-dnd/api/ollama_adapter.py",
               "ai-dnd/api/tests/test_model_isolation.py", "artifacts/ai-dnd-experience/src"]
     rows.append(check("Architecture structure", "PASS" if all((repo / p).exists() for p in owners) else "FAIL",
                       "Structural presence only: Python backend, presentation client, offline model guards; "

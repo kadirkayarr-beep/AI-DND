@@ -2,6 +2,7 @@
   "schema_version": 1,
   "required_paths": [
     "ai-dnd/game.py",
+    "ai-dnd/game_parts",
     "ai-dnd/api/main.py",
     "ai-dnd/api/ollama_adapter.py",
     "ai-dnd/api/session_manager.py",
