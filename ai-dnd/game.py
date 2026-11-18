@@ -24335,9 +24335,10 @@ def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_P
 
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
+_PART_MODULES = ()
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
                           if isinstance(value, types.FunctionType)
-                          and value.__module__ == __name__)
+                          and (value.__module__ == __name__ or value.__module__ in _PART_MODULES))
 _CHARACTER_GLOBALS = {
     "character_name": "name", "character_race": "race",
     "character_class": "class",

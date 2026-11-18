@@ -499,6 +499,10 @@
   "kind": "data",
   "type": "Pattern"
  },
+ "_PART_MODULES": {
+  "kind": "data",
+  "type": "tuple"
+ },
  "_PERSISTED_PLAYER_CONDITION_FIELDS": {
   "kind": "data",
   "type": "tuple"
