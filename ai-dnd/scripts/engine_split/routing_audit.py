@@ -4,18 +4,21 @@ Read-only: parses with ast and symtable and never rewrites a source file. audit(
 `R<n> <file>:<line>: <what>`; an empty list means clean.
 Run: python scripts/engine_split/routing_audit.py                                  (findings; exit 1 when any)
      python scripts/engine_split/routing_audit.py --write-allowed-imports <path>   (Task 17 only: freeze the R1 lock)
+The lock equals engine_imports() (game.py + parts); a test asserts equality, so no module can be appended quietly.
 """
 from __future__ import annotations
 
 import argparse
 import ast
 import builtins
+import dis
 import json
 import re
 import symtable
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from types import CodeType
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCKS = ROOT / "api" / "tests" / "engine_split_locks"
@@ -25,8 +28,12 @@ MODULE_DUNDERS = {"__name__", "__file__", "__doc__", "__spec__", "__loader__", "
 KNOWN = set(dir(builtins)) | MODULE_DUNDERS  # always defined in a module; R6 handles the identity ones
 SKIP_PARTS = {"docs", "__pycache__"}  # same skip rule as patch_census (F2): these differ between the slot and CI
 COMPREHENSIONS = {ast.ListComp: "listcomp", ast.SetComp: "setcomp", ast.DictComp: "dictcomp", ast.GeneratorExp: "genexpr"}
-DEFINING_KINDS = {"def", "class", "assign", "reexport"}  # how a moved definition is bound (R3 allows these only)
+DEFINING_KINDS = {"def", "class", "assign"}  # how a moved definition is bound (R3 allows these only, and only when re-exported)
 GAME_PARTS_IMPORT = re.compile(r"^\s*(?:from|import)\s+game_parts\b", re.MULTILINE)
+GAME_PARTS_STRING = re.compile(r"^game_parts\.\w")  # a dotted part path: patch(...), resolve_name(...), sys.modules[...]
+EXEC_NAMES = {"eval", "exec"}  # code the audit cannot see (game.py has none)
+# bytecode reads that resolve through module globals (names differ by Python version; only those that exist are used)
+GLOBAL_LOADS = {name for name in ("LOAD_GLOBAL", "LOAD_NAME", "LOAD_FROM_DICT_OR_GLOBALS") if name in dis.opmap}
 
 
 @dataclass
@@ -71,9 +78,13 @@ class _Walker:
         self.globals: list[tuple[str, int]] = []
         self.stars: list[int] = []
         self.internal: list[tuple[int, str]] = []
-        self.sys_names: set[str] = set()
-        self.importlib_names: set[str] = set()
-        self.import_module_names: set[str] = set()
+        # module aliases are collected before the walk: a function body may use `sys` imported further down
+        imported = [(a.name, a.asname or a.name) for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
+        self.sys_names: set[str] = {bound for name, bound in imported if name == "sys"}
+        self.importlib_names: set[str] = {bound for name, bound in imported if name == "importlib"}
+        self.import_module_names: set[str] = {a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)
+                                              and n.level == 0 and n.module == "importlib"
+                                              for a in n.names if a.name == "import_module"}
         for stmt in tree.body:
             self.walk(stmt)
 
@@ -217,10 +228,11 @@ class _Walker:
 
     def w_Attribute(self, node):
         value = node.value
-        if isinstance(value, ast.Name) and value.id == "game" and self._is_global("game"):
+        if isinstance(value, ast.Name) and value.id == "game":
             self.game_attrs.append((self._use("game", node.lineno), node.attr, isinstance(node.ctx, ast.Load)))
             return
-        if isinstance(value, ast.Name) and value.id in self.sys_names and node.attr == "modules":
+        through_game = isinstance(value, ast.Attribute) and value.attr == "sys" and isinstance(value.value, ast.Name)             and value.value.id == "game"  # game.sys.modules
+        if node.attr == "modules" and (through_game or isinstance(value, ast.Name) and value.id in self.sys_names):
             self.identity.append(self._use("sys.modules", node.lineno))
         self.walk(value)
 
@@ -229,7 +241,8 @@ class _Walker:
         saved = self.module_assign
         self.module_assign = saved or module_level
         self._with(values)
-        self._with(targets, bind_kind="assign")
+        plain = isinstance(node, (ast.Assign, ast.AnnAssign)) and all(isinstance(t, ast.Name) for t in targets)
+        self._with(targets, bind_kind="assign" if plain else "augassign" if isinstance(node, ast.AugAssign) else "unpack")
         self.module_assign = saved
 
     def w_Assign(self, node):
@@ -285,11 +298,7 @@ class _Walker:
         self.imports.append(node)
         for alias in node.names:
             bound = alias.asname or alias.name.split(".")[0]
-            if alias.name == "sys":
-                self.sys_names.add(bound)
-            if alias.name == "importlib":
-                self.importlib_names.add(bound)
-            self._bind(bound, node.lineno, "import")
+            self._bind(bound, node.lineno, "import game" if (alias.name, alias.asname) == ("game", None) else "import")
 
     def w_ImportFrom(self, node):
         self.imports.append(node)
@@ -301,8 +310,6 @@ class _Walker:
                 continue
             if node.level == 0 and module == "sys" and alias.name == "modules":
                 self.identity.append(self._use("sys.modules", node.lineno))
-            if node.level == 0 and module == "importlib" and alias.name == "import_module":
-                self.import_module_names.add(alias.asname or alias.name)
             self._bind(alias.asname or alias.name, node.lineno, kind)
 
     def w_Call(self, node):
@@ -351,12 +358,12 @@ def _main_guard(tree: ast.Module):
 
 
 def _game_facts(root: Path, findings: list[str]):
-    """R2 on game.py; returns (names game.py binds at module level, names it binds by def/class/assign/re-export)."""
+    """R2 on game.py; returns (names game.py binds at module level, {"game_parts.<x>": names it re-exports from it})."""
     path = root / "game.py"
     tree, top = _read(path)
     if tree is None:
         findings.append(f"R2 game.py:1: {top}")
-        return set(), set()
+        return set(), {}
     guard = _main_guard(tree)
     allowed = {id(node) for node in guard.body[:2]} if guard else set()
     for node in ast.walk(tree):
@@ -382,12 +389,34 @@ def _game_facts(root: Path, findings: list[str]):
             findings.append(f"R2 game.py:{line}: dynamic import of {constant}")
     guard_lines = range(guard.lineno, guard.end_lineno + 1) if guard else range(0)
     binds = [b for b in walker.binds if b.module_level and not b.via_global and b.line not in guard_lines]
-    return {b.name for b in binds}, {b.name for b in binds if b.kind in DEFINING_KINDS}
+    reexports: dict[str, set[str]] = {}
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.level == 0 and (node.module or "").startswith("game_parts."):
+            reexports.setdefault(node.module, set()).update(a.name for a in node.names if a.name != "*")
+    return {b.name for b in binds}, reexports
+
+
+def _resolvable(node: ast.AST, parents: dict) -> bool:
+    """True when a string reaches a call argument (patch, resolve_name, import_module...) or a subscript key
+    (sys.modules[...]), through containers. Data (assignments, dict values kept aside, == operands, assert* arguments)
+    is not resolved as a module."""
+    child, parent = node, parents.get(node)
+    while isinstance(parent, (ast.Tuple, ast.List, ast.Set, ast.Dict, ast.Starred, ast.keyword)):
+        child, parent = parent, parents.get(parent)
+    if isinstance(parent, ast.Subscript):
+        return child is parent.slice
+    if not isinstance(parent, ast.Call) or child is parent.func:
+        return False
+    return not (isinstance(parent.func, ast.Attribute) and parent.func.attr.startswith("assert"))
 
 
 def _imports_game_parts(tree: ast.Module) -> list[int]:
     lines = []
+    parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
     for node in ast.walk(tree):
+        if (isinstance(node, ast.Constant) and isinstance(node.value, str) and GAME_PARTS_STRING.match(node.value)
+                and _resolvable(node, parents)):
+            lines.append(node.lineno)
         if isinstance(node, ast.Import):
             lines += [node.lineno for a in node.names if a.name.split(".")[0] == "game_parts"]
         elif isinstance(node, ast.ImportFrom) and node.level == 0 and (node.module or "").split(".")[0] == "game_parts":
@@ -397,7 +426,7 @@ def _imports_game_parts(tree: ast.Module) -> list[int]:
             name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else ""
             if name in {"__import__", "import_module"} and str(node.args[0].value).split(".")[0] == "game_parts":
                 lines.append(node.lineno)
-    return lines
+    return sorted(set(lines))
 
 
 def _outside_findings(root: Path) -> list[str]:
@@ -418,8 +447,31 @@ def _outside_findings(root: Path) -> list[str]:
             lines = _imports_game_parts(ast.parse(text))
         except SyntaxError:  # unparsable: fall back to the plain import line
             lines = [text.count("\n", 0, m.start()) + 1 for m in GAME_PARTS_IMPORT.finditer(text)]
-        findings += [f"R2 {rel.as_posix()}:{line}: imports game_parts (only game.py may)" for line in lines]
+        findings += [f"R2 {rel.as_posix()}:{line}: imports or names a game_parts module (only game.py may)" for line in lines]
     return findings
+
+
+def _global_loads(code: CodeType):
+    """(line, name) for every bytecode read that resolves through module globals, in every nested code object."""
+    line = code.co_firstlineno
+    for ins in dis.get_instructions(code):
+        line = (ins.positions.lineno if ins.positions else None) or line
+        if ins.opname in GLOBAL_LOADS:
+            yield line, ins.argval
+    for const in code.co_consts:
+        if isinstance(const, CodeType):
+            yield from _global_loads(const)
+
+
+def _imports_patched(node: ast.Import | ast.ImportFrom, patched: set[str]) -> list[str]:
+    """The patched names an import binds or reaches: its module root, the imported name or the bound alias."""
+    if isinstance(node, ast.Import):
+        return [a.name for a in node.names if a.name != "game"
+                and ({a.name.split(".")[0], a.asname or a.name.split(".")[0]} & patched)]
+    if node.level or (node.module or "").split(".")[0] in {"game", "game_parts"}:
+        return []  # R2 reports these
+    root = (node.module or "").split(".")[0]
+    return [f"{node.module}.{a.name}" for a in node.names if {root, a.name, a.asname or a.name} & patched]
 
 
 def _module_ok(module: str, allowed_imports: set[str]) -> bool:
@@ -458,17 +510,32 @@ def _part_findings(path: Path, rel: str, ctx: dict) -> list[str]:
             out.append(f"R1 {rel}:{line}: computed dynamic import cannot be checked")
         elif constant.split(".")[0] == "game_parts":
             out.append(f"R2 {rel}:{line}: a part imports {constant}")
-        elif constant != "game" and not _module_ok(constant, ctx["allowed"]):
+        elif constant.split(".")[0] == "game":
+            out.append(f"R7 {rel}:{line}: game reached through a dynamic import; only a module-level `import game` may bind it")
+        elif not _module_ok(constant, ctx["allowed"]):
             out.append(f"R1 {rel}:{line}: {constant} is neither stdlib, game nor in allowed_imports.json")
 
-    # R3: patched names never bound by the part (except the moved definition itself) and never read bare
+    # R3: patched names never imported (any scope, any alias), never bound by the part except the definition
+    # game.py re-exports from this very part, and never read bare (symtable view plus the bytecode view)
     defined = {b.name for b in w.binds if b.module_level and not b.via_global}
     out += [f"R3 {rel}:{line}: star import binds names the audit cannot see" for line in w.stars]
+    for node in w.imports:
+        out += [f"R3 {rel}:{node.lineno}: imports patched name {name}; a patch on game cannot reach it"
+                for name in _imports_patched(node, patched)]
+    reexported = ctx["reexports"].get(f"game_parts.{Path(rel).stem}", set())
     for b in w.binds:
-        if b.module_level and b.name in patched and (
-                b.via_global or b.kind not in DEFINING_KINDS or b.name not in ctx["game_defined"]):
+        if b.module_level and b.name in patched and b.kind not in {"import", "import game", "reexport"} and (
+                b.via_global or b.kind not in DEFINING_KINDS or b.name not in reexported):
             out.append(f"R3 {rel}:{b.line}: patched name {b.name} is bound in the part ({b.kind}); a patch on game.{b.name} cannot reach it")
-    out += [f"R3 {rel}:{u.line}: bare read of patched name {u.name}; a patch on game.{u.name} cannot reach it" for u in w.reads if u.name in patched]
+    bare = {(u.line, u.name) for u in w.reads if u.name in patched}
+    out += [f"R3 {rel}:{line}: bare read of patched name {name}; a patch on game.{name} cannot reach it" for line, name in sorted(bare)]
+    try:
+        loads = sorted(set(_global_loads(compile(tree, rel, "exec", dont_inherit=True))))
+    except SyntaxError as error:
+        loads = []
+        out.append(f"R7 {rel}:{error.lineno or 1}: does not compile: {error.msg}")
+    out += [f"R3 {rel}:{line}: bytecode reads patched name {name} from globals; a patch on game.{name} cannot reach it"
+            for line, name in loads if name in patched and (line, name) not in bare]
 
     # R4: game.<x> and game itself only inside function bodies
     for use, attr, _ in w.game_attrs:
@@ -485,6 +552,17 @@ def _part_findings(path: Path, rel: str, ctx: dict) -> list[str]:
         rule = "R5" if u.module_assign and not u.in_function else "R7"
         out.append(f"{rule} {rel}:{u.line}: {u.name} is not bound in this part, its imports or builtins")
     out += [f"R7 {rel}:{line}: `global {name}` rebinds the part's namespace, not game" for name, line in w.globals]
+    executed = {(u.line, u.name) for u in w.reads if u.name in EXEC_NAMES} | {(ln, n) for ln, n in loads if n in EXEC_NAMES}
+    out += [f"R7 {rel}:{line}: {name} runs code the audit cannot see" for line, name in sorted(executed)]
+    # game must be the module bound by a plain module-level `import game`; any other binding of the name hides game.<x>
+    plain = [b for b in w.binds if b.name == "game" and b.kind == "import game" and b.module_level and not b.via_global]
+    out += [f"R7 {rel}:{b.line}: the name game is rebound ({b.kind}); only a module-level `import game` may bind it"
+            for b in w.binds if b.name == "game" and b not in plain]
+    out += [f"R7 {rel}:{t.get_lineno()}: the name game is a parameter of {t.get_name()}"
+            for t in _tables(top) if "game" in t.get_identifiers() and t.lookup("game").is_parameter()]
+    if (w.game_attrs or w.bare_game) and not plain:
+        out.append(f"R7 {rel}:{(w.game_attrs[0][0] if w.game_attrs else w.bare_game[0]).line}: "
+                   "the part uses game without a module-level `import game`")
     for use, attr, _ in w.game_attrs:
         if attr in ctx["character_names"]:
             out.append(f"R7 {rel}:{use.line}: game.{attr} is a character attribute; read it from the session")
@@ -501,6 +579,12 @@ def _part_findings(path: Path, rel: str, ctx: dict) -> list[str]:
     return out
 
 
+def _tables(table):
+    yield table
+    for child in table.get_children():
+        yield from _tables(child)
+
+
 def part_files(root: Path) -> list[Path]:
     """The audited parts: the same list engine_source_files gives after game.py."""
     return sorted((Path(root) / "game_parts").glob("*.py"))
@@ -511,7 +595,7 @@ def audit(root: Path, surface_targets: set[str], allowed_imports: set[str], iden
     """Every N3 finding under root (ai-dnd); empty = clean. Each finding starts with `R<n> <file>:<line>`."""
     root = Path(root)
     findings: list[str] = []
-    game_bound, game_defined = _game_facts(root, findings)
+    game_bound, reexports = _game_facts(root, findings)
     allow, rows = set(), []
     for index, row in enumerate(identity_allowlist, 1):
         if not (isinstance(row, dict) and set(row) == {"file", "function", "name", "reason"}
@@ -522,7 +606,7 @@ def audit(root: Path, surface_targets: set[str], allowed_imports: set[str], iden
         allow.add(key)
         rows.append((index, key))
     ctx = {"targets": set(surface_targets), "allowed": set(allowed_imports), "character_names": set(character_names),
-           "game_bound": game_bound, "game_defined": game_defined, "allow": allow, "allow_used": set()}
+           "game_bound": game_bound, "reexports": reexports, "allow": allow, "allow_used": set()}
     for path in part_files(root):
         findings += _part_findings(path, path.relative_to(root).as_posix(), ctx)
     findings += [f"R6 identity_allowlist.json:{index}: row {key} matches nothing" for index, key in rows
@@ -552,9 +636,17 @@ def character_names(game_py: Path) -> set[str]:
 
 def game_imports(game_py: Path) -> list[str]:
     """Every non-stdlib module game.py imports (top level, in-function and constant __import__), minus game/game_parts."""
-    tree = ast.parse(Path(game_py).read_text(encoding="utf-8"))
+    return _project_imports([Path(game_py)])
+
+
+def engine_imports(root: Path) -> list[str]:
+    """game_imports over game.py and every part: a move keeps this list, a newly imported project module changes it."""
+    return _project_imports([Path(root) / "game.py", *part_files(root)])
+
+
+def _project_imports(paths: list[Path]) -> list[str]:
     modules = set()
-    for node in ast.walk(tree):
+    for node in (n for path in paths for n in ast.walk(ast.parse(path.read_text(encoding="utf-8")))):
         if isinstance(node, ast.Import):
             modules |= {a.name for a in node.names}
         elif isinstance(node, ast.ImportFrom) and node.level == 0:
@@ -570,7 +662,7 @@ def main(argv=None) -> int:
     ap.add_argument("--write-allowed-imports", metavar="PATH")
     args = ap.parse_args(argv)
     if args.write_allowed_imports:
-        modules = game_imports(ROOT / "game.py")
+        modules = engine_imports(ROOT)
         Path(args.write_allowed_imports).write_text(json.dumps(modules, indent=2) + "\n", encoding="utf-8", newline="\n")
         print(f"allowed_imports={len(modules)}")
         return 0

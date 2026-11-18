@@ -24,7 +24,7 @@ CHARACTER_NAMES = character_names(ROOT / "game.py")
 # The T1 guard is game.py's first statement (Ruling 1); the rest binds the names the fixtures read through game.
 GAME_PY = ('if __name__ == "__main__":\n    import game\n    from game_parts import terminal\n'
            '    raise SystemExit(terminal.run(input_fn=input, print_fn=print))\n'
-           "import random\nK = 1\ndef roll_d20():\n    return random.randint(1, 20)\ndef _session():\n    return None\n")
+           "import random\nimport sys\nK = 1\ndef roll_d20():\n    return random.randint(1, 20)\ndef _session():\n    return None\n")
 
 BAD = {
  "R1": "import game\nimport requests\n",
@@ -52,6 +52,29 @@ MORE = {
  "R7": "import game\ndef f():\n    return game.no_such_name()\n",                           # Ruling 3: misspelt engine name
  "R7 ": "import game\ndef f():\n    global LATE\n    LATE = 1\n",                            # `global` rebinds the part, not game
 }
+# Fix round 1: escapes the strong review found; each must give exactly its rule and nothing else.
+ESCAPES = [
+ ("R3", "import game\nfrom uuid import uuid4 as _u4\ndef f():\n    return _u4()\n"),         # I1 aliased patched name
+ ("R3", "import game\nimport ollama as _ol\ndef f():\n    return _ol.chat\n"),
+ ("R3", "import game\nimport random as _r\ndef f():\n    return _r.random()\n"),
+ ("R3", "import game\nfrom os import path\ndef f():\n    return path.sep\n"),                  # patched module, other name
+ ("R7", "def f():\n    return game.K\n"),                                                    # I2 no `import game`
+ ("R7", "import game\ndef f():\n    import game\n    return game.K\n"),                       # I2 local import shadows
+ ("R7", "import game\ndef f(game):\n    return game.K\n"),                                   # I2 parameter shadows
+ ("R7", "import game\ngame = None\n"),                                                      # I2 module rebinding
+ ("R3", "import game\nclass C:\n    roll_d20 = staticmethod(roll_d20)\n"),                  # I3 LOAD_NAME falls to global
+ ("R3", "import game\ndef f(xs):\n    return [u for uuid4 in xs for u in [uuid4]], [uuid4() for _ in xs]\n"),  # I3 PEP 709
+ ("R3", "import game\ndef f():\n    from uuid import uuid4\n    return uuid4()\n"),          # I4 function-local import
+ ("R3", "import game\ndef f():\n    import ollama\n    return ollama\n"),
+ ("R3", "import game\ndef f():\n    import random\n    return random.random()\n"),
+ ("R7", "import game\ndef f(s):\n    return eval(s)\n"),                                      # M4
+ ("R7", "import game\ndef f(s):\n    exec(s)\n"),
+ ("R7", "def f():\n    return __import__('game').K\n"),                                        # I2 game reached dynamically
+ ("R6", "import game\ndef f():\n    return sys.modules\nimport sys\n"),                     # sys imported below its use
+ ("R6", "import game\ndef f():\n    return game.sys.modules\n"),                             # sys.modules through game
+]
+# M1: game.py re-exports roll_d20 from part p (the only case a part may define a patched name).
+GAME_REEXPORT = GAME_PY.replace("def roll_d20():\n    return random.randint(1, 20)\n", "from game_parts.p import roll_d20\n")
 FINDING = re.compile(r"^R[1-7] \S+:\d+: ")
 
 
@@ -87,10 +110,47 @@ class RoutingAuditTests(unittest.TestCase):
         src = "import game\nimport re\nRX = re.compile('a')\ndef f(s):\n    random = game._session().rng\n    return RX.match(s), game.roll_d20(), random\n"
         self.assertEqual(self.run_audit(self.tree(src)), [])
 
+    def test_each_escape_gives_exactly_its_rule(self):
+        for rule, src in ESCAPES:
+            with self.subTest(src=src):
+                findings = self.run_audit(self.tree(src))
+                self.assertEqual({f.split()[0] for f in findings}, {rule}, findings)
+
     def test_a_moved_surface_function_may_be_defined_in_its_part(self):
         src = "import game\ndef roll_d20():\n    return game._session().rng.randint(1, 20)\n"
-        game = GAME_PY.replace("def roll_d20():\n    return random.randint(1, 20)\n", "from game_parts.p import roll_d20\n")
-        self.assertEqual(self.run_audit(self.tree(src, game=game)), [])
+        self.assertEqual(self.run_audit(self.tree(src, game=GAME_REEXPORT)), [])
+
+    def test_a_patched_name_is_defined_only_in_the_part_game_py_reexports_it_from(self):
+        bound = "patched name roll_d20 is bound in the part"
+        q = {"game_parts/q.py": "import game\ndef roll_d20():\n    return 1\n"}
+        cases = [
+            ("import game\ndef open(p):\n    return p\n", GAME_REEXPORT, None, "patched name open is bound in the part"),
+            ("import game\ndef roll_d20():\n    return 1\n", GAME_PY, None, bound),         # game.py defines it itself
+            ("import game\ndef roll_d20():\n    return 1\n",
+             GAME_PY.replace("def roll_d20():\n    return random.randint(1, 20)\n", "from game_parts.q import roll_d20\n"), q, bound),
+            ("import game\nroll_d20 += 1\n", GAME_REEXPORT, None, bound),
+            ("import game\nroll_d20, b = 1, 2\n", GAME_REEXPORT, None, bound),
+        ]
+        for src, game, extra, message in cases:
+            with self.subTest(src=src, game=game[-40:]):
+                findings = [f for f in self.run_audit(self.tree(src, game=game, extra=extra)) if f.startswith("R3 game_parts/p.py")]
+                self.assertTrue(any(message in f for f in findings), findings)
+
+    def test_a_string_patch_target_on_a_part_is_reported_outside_game_py(self):
+        extra = {"api/tests/test_x.py": "from unittest.mock import patch\nimport pkgutil, sys\n"
+                 "def test_a():\n    with patch('game_parts.terminal.run'):\n        pass\n"
+                 "    pkgutil.resolve_name('game_parts.x')\n    sys.modules['game_parts.x']\n"}
+        self.assertEqual([f.split(":")[0] + ":" + f.split(":")[1] for f in self.run_audit(self.tree(extra=extra))],
+                         ["R2 api/tests/test_x.py:4", "R2 api/tests/test_x.py:6", "R2 api/tests/test_x.py:7"])
+
+    def test_a_part_module_name_used_as_data_is_not_an_import(self):
+        extra = {"api/tests/test_x.py": "import game\ndef test_a(self):\n"
+                 "    self.assertEqual(game.f.__module__, 'game_parts.p')\n"
+                 "    self.assertEqual(game._PART_MODULES, ('game_parts.p',))\n"
+                 "    assert game.f.__module__ == 'game_parts.p'\n"
+                 "    surface = {'f': {'kind': 'function', 'module': 'game_parts.x'}}\n"
+                 "    surface['f']['module'] = 'game_parts.y'\n"}
+        self.assertEqual(self.run_audit(self.tree(extra=extra)), [])
 
     def test_an_allowlisted_identity_name_passes_and_only_that_one(self):
         src = "import game\ndef f():\n    return __file__\ndef g():\n    return __file__, __name__\n"
@@ -130,9 +190,11 @@ class RoutingAuditTests(unittest.TestCase):
         self.assertEqual(len(CHARACTER_NAMES), 22)
         self.assertLessEqual({"character_name", "character_race", "character_class", "current_hp", "modifiers"}, CHARACTER_NAMES)
 
-    def test_the_allowed_imports_lock_covers_every_project_module_game_py_imports(self):
+    def test_the_allowed_imports_lock_equals_what_the_engine_imports(self):
+        from engine_split.routing_audit import engine_imports
         lock = json.loads((LOCKS / "allowed_imports.json").read_text(encoding="utf-8"))
         self.assertEqual(lock, sorted(set(lock)))
+        self.assertEqual(lock, engine_imports(ROOT))   # game.py + parts: a move keeps the union, an appended module fails
         self.assertLessEqual(set(game_imports(ROOT / "game.py")), set(lock))
         self.assertEqual([m for m in lock if m.split(".")[0] in sys.stdlib_module_names or m.split(".")[0] in {"game", "game_parts"}], [])
 
