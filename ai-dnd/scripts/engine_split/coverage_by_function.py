@@ -2,6 +2,8 @@
 per top-level engine name and compare a run with two bases.
 
 A count is the number of executed lines inside a name's `def_line..end`, summed over game.py and every part by name.
+Only functions, classes and assignments count: import lines (a move's re-export) and line-numbered statements
+(`<If@N>`) would change on every move.
 The index is built on the measured tree (`--engine-root` = a `git archive <measured sha>` copy of ai-dnd), never on
 the current worktree: line numbers only mean something in the tree that produced them.
 A base is two equal runs (`--base`, `--base2`); names they disagree on are noise and never count.
@@ -27,10 +29,17 @@ from api.tests.engine_sources import engine_source_files  # noqa: E402
 from engine_split.inventory import top_level_index  # noqa: E402
 
 
+COUNTED_KINDS = {"function", "class", "assign"}
+
+
 def function_hits(lines: dict[str, list[int]], index: dict[str, list[dict]]) -> dict[str, int]:
+    # Only names whose count survives a move: kind 'other' is named by its line number and 'import' is the
+    # re-export a move adds to game.py (or a part's own import), so both are left out. No kind = counted.
     hits: dict[str, int] = {}
     for path, executed in lines.items():
         for entry in index.get(path, []):
+            if entry.get("kind", "function") not in COUNTED_KINDS:
+                continue
             count = sum(1 for line in executed if entry["def_line"] <= line <= entry["end"])
             if count:
                 hits[entry["name"]] = hits.get(entry["name"], 0) + count

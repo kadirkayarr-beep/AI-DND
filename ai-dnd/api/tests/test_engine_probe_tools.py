@@ -269,6 +269,19 @@ class FunctionCounts(unittest.TestCase):
     def test_unequal_ignores_only_the_noise_names(self):
         self.assertEqual(unequal({"f": 3, "g": 2}, {"f": 2, "g": 1}, {"g"}), ["f"])
 
+    def test_a_moved_name_keeps_its_count_and_its_re_export_import_is_not_counted(self):
+        base = function_hits({"game.py": [1, 2, 3, 5]},
+                             {"game.py": [{"name": "f", "kind": "function", "def_line": 1, "end": 3},
+                                          {"name": "_T", "kind": "assign", "def_line": 5, "end": 5}]})
+        new = function_hits({"game.py": [1], "game_parts/p.py": [1, 3, 4, 5, 7]},
+                            {"game.py": [{"name": "f", "kind": "import", "def_line": 1, "end": 1},
+                                         {"name": "_T", "kind": "import", "def_line": 1, "end": 1}],
+                             "game_parts/p.py": [{"name": "re", "kind": "import", "def_line": 1, "end": 1},
+                                                 {"name": "f", "kind": "function", "def_line": 3, "end": 5},
+                                                 {"name": "_T", "kind": "assign", "def_line": 7, "end": 7}]})
+        self.assertEqual(base, {"f": 3, "_T": 1})
+        self.assertEqual(new, base)
+
 
 class FunctionCountsCli(unittest.TestCase):
     def test_collect_counts_the_lines_of_all_shards_on_the_given_engine_root(self):
@@ -304,6 +317,28 @@ class FunctionCountsCli(unittest.TestCase):
                                                   "--new", str(paths[2])])
             self.assertEqual(code, 1)
             self.assertEqual(printed.getvalue().split("\n"), ["NOISE 1", "DOWN 1", "  f", "UP 1", "  h", ""])
+
+    def test_a_move_that_shifts_line_numbers_is_no_drop(self):
+        # Before: f at game.py 1-3, a top-level `if` at 5-6. After: f's body in a part, game.py re-exports it and the
+        # `if` (a line-numbered name) moved up to 3-4. Same lines ran, so nothing is DOWN or UP.
+        base = function_hits({"game.py": [1, 2, 3, 5, 6]},
+                             {"game.py": [{"name": "f", "kind": "function", "def_line": 1, "end": 3},
+                                          {"name": "<If@5>", "kind": "other", "def_line": 5, "end": 6}]})
+        new = function_hits({"game.py": [1, 3, 4], "game_parts/p.py": [1, 2, 3]},
+                            {"game.py": [{"name": "f", "kind": "import", "def_line": 1, "end": 1},
+                                         {"name": "<If@3>", "kind": "other", "def_line": 3, "end": 4}],
+                             "game_parts/p.py": [{"name": "f", "kind": "function", "def_line": 1, "end": 3}]})
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for name, functions in (("a", base), ("b", base), ("c", new)):
+                paths.append(Path(tmp) / f"{name}.json")
+                paths[-1].write_text(json.dumps({"functions": functions, "seconds": 1, "tree": "a"}), encoding="utf-8")
+            printed = io.StringIO()
+            with contextlib.redirect_stdout(printed):
+                code = coverage_by_function.main(["--diff", "--base", str(paths[0]), "--base2", str(paths[1]),
+                                                  "--new", str(paths[2])])
+            self.assertEqual(printed.getvalue().split("\n"), ["NOISE 0", "DOWN 0", "UP 0", ""])
+            self.assertEqual(code, 0)
 
 
 class LineProbe(unittest.TestCase):
