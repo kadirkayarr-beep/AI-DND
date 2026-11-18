@@ -1,5 +1,7 @@
 """gate_boot: tokens in the guarded run root's name reach the test child before any test module loads (game.py split, Plan 2 Task 1)."""
 import ast
+import contextlib
+import io
 import os
 import unittest
 from pathlib import Path
@@ -8,6 +10,7 @@ import front_proposal
 from api.tests import gate_boot
 
 GATE_BOOT_FILE = Path(__file__).with_name("gate_boot.py")
+SLOT_GATE = Path(__file__).resolve().parents[2] / "scripts" / "engine_split" / "slot_gate.sh"
 
 
 def _engine_import(node):
@@ -39,6 +42,36 @@ class GateBoot(unittest.TestCase):
         if "fon" not in gate_boot.tokens(os.environ.get("AI_DND_GUARD_RUN_ROOT", "")):
             self.skipTest("no fon token")       # proof: outcome ok in fon ledgers, skip in off ledgers (Task 8 Step 5 a)
         self.assertTrue(front_proposal.enabled())
+
+    # Stage A review finding 7. The guarded child may not start a process (B06), so the label rule lives here and
+    # slot_gate.sh runs this module's command line before it stages or syncs anything.
+    def label_main(self, label: str) -> tuple[int, str, str]:
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = gate_boot.main(["--label", label])
+        return code, out.getvalue(), err.getvalue()
+
+    def test_a_label_names_the_tokens_boot_will_apply(self):
+        for label in ("p2g0", "p2g0-fon-a", "p2g0-n7-n4-fon", "p2g0-n4", "fon"):
+            with self.subTest(label=label):
+                applied = [t for t in ("fon", "n4", "n7") if t in gate_boot.tokens(f"/x/20261118T000000-{label}-0")]
+                self.assertEqual(gate_boot.label_tokens(label), applied)
+                self.assertEqual(self.label_main(label), (0, f"TOKENS {' '.join(applied) or 'none'}\n", ""))
+
+    def test_a_token_word_that_is_not_a_dash_token_is_refused(self):
+        for label in ("p2g0fon-a", "fon_a", "p2g0-fonx", "x-n4b", "n7-x7n7", "p2g0-fon-xn4"):
+            with self.subTest(label=label):
+                with self.assertRaises(ValueError):
+                    gate_boot.label_tokens(label)
+                code, out, err = self.label_main(label)
+                self.assertEqual((code, out), (2, ""))
+                self.assertTrue(err.startswith(f"BAD_LABEL {label}: "), err)
+
+    def test_slot_gate_checks_the_label_before_it_stages_or_syncs(self):
+        text = SLOT_GATE.read_text(encoding="utf-8")
+        check = text.index('-m api.tests.gate_boot --label "$label"')
+        self.assertLess(check, text.index("git add"))
+        self.assertLess(check, text.index("slot_sync.sh\""))
 
     def test_boot_never_imports_the_engine(self):
         tree = ast.parse(GATE_BOOT_FILE.read_text(encoding="utf-8"))

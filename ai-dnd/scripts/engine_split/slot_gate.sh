@@ -5,11 +5,13 @@
 # every shard's selector list starts with api.tests.gate_boot, so the label's tokens (fon, n4, n7) reach the guarded child
 # before any test module loads. The launcher builds the child's environment from scratch: a flag set outside never arrives.
 # Inside WSL this file runs itself from the synced slot copy: slot_gate.sh --shards ROOT PREFIX JOBS TIMEOUT REGEXFILE
-# Exit: 0 only when every shard reported PASS and printed a summary (NO_SUMMARY counts as at least 1); otherwise the worst launcher code (1 FAIL, 2 BLOCKED, 3 TIMEOUT, 4 no modules).
+# Exit: 0 only when every shard reported PASS and printed a summary (NO_SUMMARY counts as at least 1); otherwise the worst launcher code (1 FAIL, 2 BLOCKED, 3 TIMEOUT, 4 no modules); 2 before any sync for a label gate_boot refuses.
 if [ "${1:-}" != --shards ]; then
   set -euo pipefail; unset MSYS_NO_PATHCONV
   N=$1; WT=$2; label=$3; jobs=$4; t=$5; rx=$6
   D=/c/Users/Kadir/Desktop/$WT; R=/root/aidnd-env-$N; S=/c/Users/Kadir/Desktop/AI-DND-TOOLS; M=/mnt/c/Users/Kadir/Desktop/AI-DND-TOOLS
+  # gate_boot's own rule prints the tokens the label applies (TOKENS ...) and refuses a glued one, before any staging or sync
+  MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-24.04 --cd "/mnt/c/Users/Kadir/Desktop/$WT/ai-dnd" -- "$R/proj/.venv/bin/python" -B -m api.tests.gate_boot --label "$label" < /dev/null || exit 2
   cd "$D"
   if [ -z "${NOSTAGE:-}" ]; then git add -A -- ai-dnd content lib artifacts .github start_local.ps1; T=$(git write-tree); else T=HEAD; fi
   git -c core.autocrlf=false -c core.eol=lf archive -o "$S/tree-$N.tar" "$T" ai-dnd content tools lib .github artifacts start_local.ps1
