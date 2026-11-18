@@ -26,6 +26,7 @@ from api.tests.town_seed import fixed_town  # noqa: E402
 from engine_split import routing_audit  # noqa: E402
 
 TABLES = tuple(batch_names("tables"))
+SCHEMAS = tuple(batch_names("schemas"))
 
 
 def _canonical(value):
@@ -164,6 +165,24 @@ class TablesPart(unittest.TestCase):
         reader = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/api/character-options")
         with patch("game.CLASSES", ["Wizard"]):
             self.assertEqual(reader()["classes"], ["Wizard"])
+
+
+class SchemasPart(unittest.TestCase):
+    """T3.2: the schema and prompt constants live in game_parts/schemas.py; game.py re-exports them unchanged."""
+
+    def test_the_schemas_live_in_the_part(self):
+        self.assertEqual(set(SCHEMAS) - set(routing_audit.re_exports(ROOT).get("schemas", [])), set())
+
+    def test_the_schema_values_did_not_change(self):
+        # captured on 7240d31c before the move, batch without the held _EXPERIMENTAL_NPC_SPEECH_SCHEMA and
+        # _EXPERIMENTAL_NPC_SPEECH_OPTIONS (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave this same hex)
+        self.assertEqual(value_digest(SCHEMAS), "bcd588f6fa318cc64ed3b88ab1dc7786e8bb5b364ca37bdbd7150288ceaea97f")
+
+    def test_the_system_prompt_is_one_object_for_module_and_sessions(self):
+        self.assertIs(game.messages[0]["content"], game.system_prompt)
+        with fixed_town(self, 20261121):
+            s = game.create_session(seed=7)
+            self.assertEqual(s.messages[0]["content"], game.system_prompt)  # GameSession.__init__ seeds self.messages
 
 
 if __name__ == "__main__":
