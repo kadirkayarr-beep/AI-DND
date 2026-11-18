@@ -7,6 +7,7 @@ Kural: önce bu dizine bak. Güncel belgeler depo kökünde durur (çalışan aj
 |---|---|
 | docs/design/ZAR_KURALLARI_DND2024_20261114.md (depoda) | zar kuralları rehberi, D&D 2024 / SRD 5.2.1; bağlayıcı (Kadir, 2026-11-14): oyundaki her zar, test, kurtarma ve saldırı buna uyar |
 | docs/superpowers/specs/2026-11-17-game-py-bolme-design.md ve docs/superpowers/plans/2026-11-17-game-py-bolme-plan-1.md (depoda) | game.py bölme tasarımı (onaylı, Kadir 2026-11-17, 11 karar öneri yönünde) ve Plan 1 (T0-T2, onaylı); T3-T7 ayrı planlar |
+| docs/superpowers/plans/2026-11-18-game-py-bolme-plan-2.md (depoda) | game.py bölme Plan 2: eksik ağlar (bayrak düzeltmesi, N4, N7, N3 kör noktaları) ve T3 yaprakları (`tables`, `schemas`, `text_rules_a/b`) TM2'ye kadar; Kadir onayı 2026-11-18 |
 | docs/design/NPC_BILGI_ANLATICI_TASARIM_20261116.md (depoda) | D-249 + D-250 dilimi: NPC bilgisi genişler, duyulmuş yer ve söylenti kayda girer (Ş4), anlatıcı sınırları gevşer; onaylı (Kadir, 2026-11-16) |
 | YOL_HARITASI_20261112.md | güncel yol haritası, onaylı (Kadir, 2026-11-12); şu an Faz 0 |
 | KARAR_LISTESI_20261112.md | Kadir'i bekleyen onay ve kararlar |

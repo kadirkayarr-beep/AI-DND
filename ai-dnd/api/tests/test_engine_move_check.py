@@ -227,6 +227,91 @@ class MoveCheckTests(unittest.TestCase):
         twin = DICE.replace("random.randint(1, 6)", "random.randint(1, 20)")
         self.assertTrue(self.second_move(lambda t: t.replace("    return random.randint(1, 20)\n", "", 1), twin))
 
+    def main(self, *argv: str) -> tuple[int, str, str]:
+        import contextlib
+        import io
+        from engine_split.move_check import main
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                code = main(["--base-root", str(self.base), "--root", str(self.new), *argv])
+            except SystemExit as exc:  # argparse: an unknown option exits instead of returning
+                code = exc.code
+        return code, out.getvalue(), err.getvalue()
+
+    def test_a_manual_entry_that_exempts_nothing_is_a_finding(self):  # D-350
+        self.build()
+        # an unchanged base line, the moved-name import line, and a part header import line (F16 accepts it already)
+        stale = ["game.py:base:1:unchanged", "game.py:new:3:moved import", "game_parts/dice.py:1:import header"]
+        self.assertEqual(self.check(manual=stale)["changed"], [f"manual entry exempts nothing: {e}" for e in stale])
+        self.build(game=GOOD_GAME.replace("K = 1", "K = 2"))
+        used = ["game.py:base:1:edited", "game.py:new:1:edited"]
+        self.assertEqual(self.check(manual=used + ["game.py:base:6:stale"])["changed"],
+                         ["manual entry exempts nothing: game.py:base:6:stale"])
+
+    def test_an_undecodable_file_is_named(self):  # D-350
+        for target, argv in ((self.base / "game.py", ("--moved", "roll=dice.py")),
+                             (self.new / "game_parts" / "dice.py", ("--moved", "roll=dice.py")),
+                             (self.new / "game_parts" / "dice.py", ("--comments-only",))):
+            with self.subTest(target=target.name, argv=argv):
+                self.build()
+                target.write_bytes(b"x = '\xff\xfe'\n")
+                code, _, err = self.main(*argv)
+                self.assertEqual(code, 2)
+                self.assertEqual(err, f"ERROR cannot decode {target}\n")
+
+    def test_a_manual_entry_without_a_reason_is_refused(self):  # D-350
+        self.build(game=GOOD_GAME.replace("K = 1", "K = 2"))
+        for item in ("game.py:base:1", "game.py:base:1:", "game.py:base:1:  "):
+            with self.subTest(item=item):
+                code, _, err = self.main("--moved", "roll=dice.py", "--manual", item, "--manual", "game.py:new:1:edited")
+                self.assertEqual(code, 2)
+                self.assertIn("reason", err)
+
+    def test_a_part_that_does_not_parse_is_a_finding_not_a_traceback(self):  # D-350
+        self.build(part=GOOD_PART.replace("def roll():", "def roll(:"))
+        try:
+            changed = self.check()["changed"]
+        except SyntaxError as exc:
+            self.fail(f"traceback instead of a finding: {exc!r}")
+        self.assertTrue(any("dice.py does not parse" in line for line in changed), changed)
+
+    def test_moved_file_equals_the_long_moved_form(self):  # D-348
+        self.build(game=BASE, part="import game\n")
+        move(self.new / "game.py", self.new / "game_parts" / "dice.py", ["roll", "helper"], set())
+        names = Path(self._tmp.name) / "names.txt"
+        names.write_text("roll\nhelper\n", encoding="utf-8")
+        long_form = self.main("--moved", "roll=dice.py,helper=dice.py")
+        self.assertEqual(long_form, (0, "CHANGED 0 names=2\n", ""))
+        self.assertEqual(self.main("--moved-file", str(names), "--part", "dice.py"), long_form)
+        (self.new / "game_parts" / "dice.py").write_text("import game\n", encoding="utf-8")  # both forms see a broken move
+        broken = self.main("--moved", "roll=dice.py,helper=dice.py")
+        self.assertEqual(broken[0], 1)
+        self.assertEqual(self.main("--moved-file", str(names), "--part", "dice.py"), broken)
+
+    def test_an_empty_moved_set_is_refused(self):  # stage A review finding 4
+        self.build()
+        names = Path(self._tmp.name) / "names.txt"
+        names.write_text("\n", encoding="utf-8")
+        for argv in ((), ("--moved", ""), ("--moved-file", str(names), "--part", "dice.py")):
+            with self.subTest(argv=argv):
+                code, out, err = self.main(*argv)
+                self.assertEqual((code, out), (2, ""))
+                self.assertIn("no moved names", err)
+        self.assertEqual(self.main("--comments-only"), (0, "COMMENTS base=2 now=2\n", ""))
+
+    def test_a_part_that_is_not_a_bare_file_name_is_refused(self):  # stage A review finding 5
+        self.build()
+        names = Path(self._tmp.name) / "names.txt"
+        names.write_text("roll\n", encoding="utf-8")
+        for part in (str(self.new / "game_parts" / "dice.py"), "game_parts/dice.py", "../dice.py", "dice", "di-ce.py"):
+            for argv in (("--moved-file", str(names), "--part", part), ("--moved", f"roll={part}")):
+                with self.subTest(argv=argv):
+                    code, out, err = self.main(*argv)
+                    self.assertEqual((code, out), (2, ""))
+                    self.assertIn("bare", err)
+        self.assertEqual(self.main("--moved-file", str(names), "--part", "dice.py"), (0, "CHANGED 0 names=1\n", ""))
+
 
 if __name__ == "__main__":
     unittest.main()

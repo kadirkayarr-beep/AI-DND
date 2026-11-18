@@ -1,4 +1,5 @@
-"""N3 routing audit for the engine split: seven static rules every file in ai-dnd/game_parts obeys (spec section 6, N3).
+"""N3 routing audit for the engine split: thirteen static rules every file in ai-dnd/game_parts obeys (spec section 6, N3;
+R8-R13 close the D-349 holes).
 
 Read-only: parses with ast and symtable and never rewrites a source file. audit() returns the findings, each
 `R<n> <file>:<line>: <what>`; an empty list means clean.
@@ -71,6 +72,7 @@ class _Walker:
         self.reads: list[_Use] = []          # global (module or builtin) name reads
         self.binds: list[_Bind] = []
         self.game_attrs: list[tuple[_Use, str, bool]] = []  # (use, attribute, is_load)
+        self.name_attrs: list[tuple[str, str, int]] = []   # (name, attribute, line) for `<name>.<attr>`, name not game (R11)
         self.bare_game: list[_Use] = []
         self.identity: list[_Use] = []       # sys.modules and `from sys import modules`
         self.imports: list[ast.Import | ast.ImportFrom] = []
@@ -234,6 +236,8 @@ class _Walker:
         through_game = isinstance(value, ast.Attribute) and value.attr == "sys" and isinstance(value.value, ast.Name)             and value.value.id == "game"  # game.sys.modules
         if node.attr == "modules" and (through_game or isinstance(value, ast.Name) and value.id in self.sys_names):
             self.identity.append(self._use("sys.modules", node.lineno))
+        if isinstance(value, ast.Name):
+            self.name_attrs.append((value.id, node.attr, node.lineno))
         self.walk(value)
 
     def _assignment(self, node, targets, values):
@@ -358,12 +362,14 @@ def _main_guard(tree: ast.Module):
 
 
 def _game_facts(root: Path, findings: list[str]):
-    """R2 on game.py; returns (names game.py binds at module level, {"game_parts.<x>": names it re-exports from it})."""
+    """R2 on game.py; returns (names game.py binds at module level, {"game_parts.<x>": names it re-exports from it},
+    {name: line} game.py binds at module level other than by a re-export (R8), {"game_parts.<x>": names game.py takes
+    from it, the guard's `terminal.<name>` uses included} (R8))."""
     path = root / "game.py"
     tree, top = _read(path)
     if tree is None:
         findings.append(f"R2 game.py:1: {top}")
-        return set(), {}
+        return set(), {}, {}, {}
     guard = _main_guard(tree)
     allowed = {id(node) for node in guard.body[:2]} if guard else set()
     for node in ast.walk(tree):
@@ -389,12 +395,34 @@ def _game_facts(root: Path, findings: list[str]):
             findings.append(f"R2 game.py:{line}: dynamic import of {constant}")
     guard_lines = range(guard.lineno, guard.end_lineno + 1) if guard else range(0)
     binds = [b for b in walker.binds if b.module_level and not b.via_global and b.line not in guard_lines]
+    reexports = _reexports(tree)
+    findings += _part_modules_findings(root, tree, reexports)
+    defined: dict[str, int] = {}
+    for b in walker.binds:  # a `global` rebinding in a game.py function counts: it replaces the re-exported object
+        if b.module_level and b.kind != "reexport" and b.line not in guard_lines:
+            defined.setdefault(b.name, b.line)
+    imported = {module: set(names) for module, names in reexports.items()}
+    if guard:  # `from game_parts import terminal` in the guard: its `terminal.<name>` uses count as imports
+        modules = {a.asname or a.name: f"game_parts.{a.name}" for a in guard.body[1].names}
+        for node in ast.walk(guard.body[2]):
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in modules:
+                imported.setdefault(modules[node.value.id], set()).add(node.attr)
+    return {b.name for b in binds}, reexports, defined, imported
+
+
+def _reexports(tree: ast.Module) -> dict[str, set[str]]:
+    """{"game_parts.<x>": names game.py imports from it at top level}; the __main__ guard is not top level."""
     reexports: dict[str, set[str]] = {}
     for node in tree.body:
         if isinstance(node, ast.ImportFrom) and node.level == 0 and (node.module or "").startswith("game_parts."):
             reexports.setdefault(node.module, set()).update(a.name for a in node.names if a.name != "*")
-    findings += _part_modules_findings(root, tree, reexports)
-    return {b.name for b in binds}, reexports
+    return reexports
+
+
+def re_exports(root: Path) -> dict[str, list[str]]:
+    """Part short name -> sorted names game.py imports from it at top level (the reader R2, R3 and R8 use)."""
+    tree = ast.parse((Path(root) / "game.py").read_text(encoding="utf-8"))
+    return {module.split(".", 1)[1]: sorted(names) for module, names in _reexports(tree).items()}
 
 
 def _part_modules_findings(root: Path, tree: ast.Module, reexports: dict[str, set[str]]) -> list[str]:
@@ -617,6 +645,40 @@ def _part_findings(path: Path, rel: str, ctx: dict) -> list[str]:
             ctx["allow_used"].add(key)
         else:
             out.append(f"R6 {rel}:{u.line}: identity name in {u.function}: {u.name}")
+
+    # R8: every name the part binds at top level (import bindings aside) is taken by game.py from this part and
+    # is not bound by game.py itself; audit() checks that no two parts bind the same name
+    module = f"game_parts.{Path(rel).stem}"
+    own = [b for b in w.binds if b.module_level and not b.via_global and b.kind not in {"import", "import game", "reexport", "del"}]
+    ctx["part_binds"][rel] = own
+    for b in own:
+        if b.name not in ctx["imported"].get(module, set()):
+            out.append(f"R8 {rel}:{b.line}: {b.name} is bound in the part but game.py does not import it from {module}")
+        if b.name in ctx["game_defined"]:
+            out.append(f"R8 {rel}:{b.line}: {b.name} is also bound at top level in game.py (line {ctx['game_defined'][b.name]})")
+
+    # R9: the part's own functions and classes are reached through game (constants stay bare)
+    own_defs = {b.name for b in own if b.kind in {"def", "class"}}
+    bare_defs = {(u.line, u.name) for u in w.reads if u.name in own_defs} | {(ln, n) for ln, n in loads if n in own_defs}
+    out += [f"R9 {rel}:{line}: bare read of {name}, a def or class of this part; write game.{name}"
+            for line, name in sorted(bare_defs)]
+
+    # R10: a part never writes game.<name> (store or del)
+    out += [f"R10 {rel}:{use.line}: writes game.{attr}; a part never rebinds an engine name"
+            for use, attr, is_load in w.game_attrs if not is_load]
+
+    # R11: a patched name of kind import/absent reached through an imported module (or builtins/io), not through game
+    via_import = {b.name for b in w.binds if b.kind in {"import", "reexport"}} | {"builtins", "io"}
+    out += [f"R11 {rel}:{line}: {name}.{attr} reaches patched name {attr} past game; a patch on game.{attr} cannot reach it"
+            for name, attr, line in w.name_attrs if attr in ctx["module_targets"] and name in via_import]
+
+    # R12: game itself as a value (getattr(game, ...), an alias, an argument) unless an allowlist row names it
+    for u in w.bare_game:
+        key = (rel, u.function, "game")
+        if key in ctx["allow"]:
+            ctx["allow_used"].add(key)
+        else:
+            out.append(f"R12 {rel}:{u.line}: game used as a value in {u.function} (getattr, alias or argument); write game.<name>")
     return out
 
 
@@ -631,12 +693,15 @@ def part_files(root: Path) -> list[Path]:
     return sorted((Path(root) / "game_parts").glob("*.py"))
 
 
-def audit(root: Path, surface_targets: set[str], allowed_imports: set[str], identity_allowlist: list[dict],
+def audit(root: Path, surface_targets: dict[str, str], allowed_imports: set[str], identity_allowlist: list[dict],
           character_names: set[str]) -> list[str]:
-    """Every N3 finding under root (ai-dnd); empty = clean. Each finding starts with `R<n> <file>:<line>`."""
+    """Every N3 finding under root (ai-dnd); empty = clean. Each finding starts with `R<n> <file>:<line>`.
+
+    surface_targets is the patch census `targets` map (name -> kind); R11 reads the kinds `import` and `absent`.
+    """
     root = Path(root)
     findings: list[str] = []
-    game_bound, reexports = _game_facts(root, findings)
+    game_bound, reexports, game_defined, imported = _game_facts(root, findings)
     allow, rows = set(), []
     for index, row in enumerate(identity_allowlist, 1):
         if not (isinstance(row, dict) and set(row) == {"file", "function", "name", "reason"}
@@ -647,9 +712,19 @@ def audit(root: Path, surface_targets: set[str], allowed_imports: set[str], iden
         allow.add(key)
         rows.append((index, key))
     ctx = {"targets": set(surface_targets), "allowed": set(allowed_imports), "character_names": set(character_names),
-           "game_bound": game_bound, "reexports": reexports, "allow": allow, "allow_used": set()}
+           "game_bound": game_bound, "reexports": reexports, "allow": allow, "allow_used": set(),
+           "module_targets": {name for name, kind in surface_targets.items() if kind in {"import", "absent"}},
+           "game_defined": game_defined, "imported": imported, "part_binds": {}}
     for path in part_files(root):
-        findings += _part_findings(path, path.relative_to(root).as_posix(), ctx)
+        rel = path.relative_to(root).as_posix()
+        if rel == "game_parts/__init__.py" and path.read_text(encoding="utf-8").strip() != "import game":
+            findings.append(f"R13 {rel}:1: the package entry holds something other than `import game`")
+        findings += _part_findings(path, rel, ctx)
+    first: dict[str, str] = {}
+    for rel, binds in ctx["part_binds"].items():  # R8: no two parts bind the same name
+        for b in binds:
+            if first.setdefault(b.name, rel) != rel:
+                findings.append(f"R8 {rel}:{b.line}: {b.name} is also bound in {first[b.name]}")
     findings += [f"R6 identity_allowlist.json:{index}: row {key} matches nothing" for index, key in rows
                  if key not in ctx["allow_used"]]
     findings += _outside_findings(root)
@@ -708,7 +783,7 @@ def main(argv=None) -> int:
         print(f"allowed_imports={len(modules)}")
         return 0
     load = lambda name: json.loads((LOCKS / name).read_text(encoding="utf-8"))  # noqa: E731
-    findings = audit(ROOT, set(load("patch_census.json")["targets"]), set(load("allowed_imports.json")),
+    findings = audit(ROOT, load("patch_census.json")["targets"], set(load("allowed_imports.json")),
                      load("identity_allowlist.json"), character_names(ROOT / "game.py"))
     print("\n".join(findings) or "clean")
     return 1 if findings else 0

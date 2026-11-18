@@ -2,6 +2,7 @@
 
 Read-only: parses with ast, symtable and tokenize and never rewrites a source file.
 Run: python scripts/engine_split/inventory.py --root . --out-json <inventory.json> --out-claims <claims.md>
+     python scripts/engine_split/inventory.py --root . --touching <names file>   (prints the touching test modules)
 """
 from __future__ import annotations
 
@@ -17,6 +18,8 @@ from pathlib import Path
 # A script run as a file has only its own folder on sys.path: add ai-dnd and ai-dnd/scripts (same as the tests).
 if __name__ == "__main__":
     sys.path[:0] = [str(Path(__file__).resolve().parents[2]), str(Path(__file__).resolve().parents[1])]
+
+from engine_split.patch_census import _aliases  # noqa: E402
 
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -136,11 +139,128 @@ def constant_clusters(path: Path) -> list[list[str]]:
     return sorted(groups.values(), key=lambda g: order.index(g[0]))
 
 
+def _re_export_kinds(path: Path) -> dict[str, str]:
+    """Names game.py binds with `from game_parts.<x> import`: their kind in the part file, else "function" (D-347)."""
+    _, tree = _parse(path)
+    kinds: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("game_parts."):
+            part = Path(path).parent / "game_parts" / (node.module.split(".", 1)[1] + ".py")
+            in_part = {d["name"]: d["kind"] for d in top_level_index(part)} if part.exists() else {}
+            kinds.update({(a.asname or a.name): in_part.get(a.name, "function") for a in node.names})
+    return kinds
+
+
 def closed_helpers(path: Path) -> list[str]:
-    """Functions whose call-graph entry holds no function or class name (a self-call does not count)."""
-    kinds = {d["name"]: d["kind"] for d in top_level_index(path)}
+    """Functions whose call-graph entry holds no function or class name (a self-call does not count).
+
+    A name re-exported from a part counts as what the part binds (a moved function is still a function)."""
+    kinds = {d["name"]: d["kind"] for d in top_level_index(path)} | _re_export_kinds(path)
     return [name for name, reads in call_graph(path).items()
             if not any(kinds.get(r) in ("function", "class") and r != name for r in reads)]
+
+
+_GAME_STRING = re.compile(r"(?<![\w.])game\.(\w+)")
+
+
+def _touches(node: ast.AST, aliases: set[str], names: set[str]) -> bool:
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in aliases:
+        return node.attr in names
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return any(m in names for m in _GAME_STRING.findall(node.value))
+    if isinstance(node, ast.Call) and len(node.args) > 1:  # patch.object(game, "<name>"), getattr(game, "<name>")
+        first, second = node.args[0], node.args[1]
+        return (isinstance(first, ast.Name) and first.id in aliases
+                and isinstance(second, ast.Constant) and second.value in names)
+    if isinstance(node, ast.ImportFrom) and node.module == "game":
+        return any(a.name in names for a in node.names)
+    return False
+
+
+def _attr_reads(tree: ast.Module):
+    """Returns alias -> the attributes read as `alias.<attr>` in the module, or None when alias is used bare."""
+    attrs: dict[str, set[str]] = {}
+    on_attribute = set()
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name):
+            attrs.setdefault(n.value.id, set()).add(n.attr)
+            on_attribute.add(id(n.value))
+    bare = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and id(n) not in on_attribute}
+    return lambda alias: None if alias in bare else attrs.get(alias, set())
+
+
+def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
+    """One unit per top-level def/class/statement and per imported alias: the names it binds, whether it runs on
+    import ("run"), whether it touches a name itself, the bare names it reads and the (module, name, attrs) it
+    imports (name None = the module named; attrs = what is read on a module imported whole, None = all of it)."""
+    _attrs_read = _attr_reads(tree)
+    units = []
+    for stmt in tree.body:
+        if isinstance(stmt, (ast.Import, ast.ImportFrom)) and not getattr(stmt, "level", 0):
+            for a in stmt.names:
+                if isinstance(stmt, ast.Import):  # `import a.b` binds `a`: the whole module counts
+                    units.append({"binds": {a.asname or a.name.split(".")[0]}, "run": False, "direct": False,
+                                  "reads": set(), "refs": [(a.name, None, _attrs_read(a.asname) if a.asname
+                                                            else None)]})
+                else:
+                    units.append({"binds": {a.asname or a.name} - {"*"}, "run": a.name == "*", "reads": set(),
+                                  "direct": stmt.module == "game" and a.name in names,
+                                  "refs": [(stmt.module, None if a.name == "*" else a.name,
+                                            None if a.name == "*" else _attrs_read(a.asname or a.name))]})
+            continue
+        refs = []
+        for node in ast.walk(stmt):
+            if isinstance(node, ast.Import):
+                refs += [(a.name, None, None) for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+                refs += [(node.module, None if a.name == "*" else a.name,
+                          None if a.name == "*" else _attrs_read(a.asname or a.name)) for a in node.names]
+        is_def = isinstance(stmt, (*FUNCTION_NODES, ast.ClassDef))
+        units.append({"binds": {stmt.name} if is_def else set(_bound(stmt)[1]), "run": not is_def, "refs": refs,
+                      "direct": any(_touches(node, aliases, names) for node in ast.walk(stmt)),
+                      "reads": {n.id for n in ast.walk(stmt) if isinstance(n, ast.Name)}})
+        if isinstance(stmt, ast.ClassDef):  # a class body (not its methods) runs on import
+            body = [s for s in stmt.body if not isinstance(s, FUNCTION_NODES)]
+            units.append({"binds": set(), "run": True, "refs": [], "reads": set(),
+                          "direct": any(_touches(n, aliases, names) for s in body for n in ast.walk(s))})
+    return units
+
+
+def touching_tests(root: Path, names: set[str]) -> list[str]:
+    """Dotted test modules (root/test_*.py, root/api/tests/test_*.py) that read game.<name> (also through an
+    `import game as x` alias, `patch.object(game, "<name>")` or `from game import <name>`) or hold "game.<name>",
+    directly or through a name they import (transitively) from a module under api/tests that does
+    (e.g. rule_oracles reads game.SKILLS). Name level: importing an untouched helper of a touching module does
+    not count, unless that module touches while it is imported."""
+    root = Path(root)
+    tests = sorted(root.glob("test_*.py")) + sorted((root / "api" / "tests").glob("test_*.py"))
+    modules: dict[str, list[dict]] = {}
+    for path in tests + [p for p in sorted((root / "api" / "tests").rglob("*.py")) if p not in tests]:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        parts = path.relative_to(root).with_suffix("").parts
+        modules[".".join(parts[:-1] if parts[-1] == "__init__" else parts)] = _units(tree, _aliases(tree), names)
+
+    def any_touch(m):
+        return any(u["direct"] for u in modules[m])
+
+    def touch_by(m, wanted):  # a run unit touches every importer; a def or name only the importer that reads it
+        return any(u["direct"] and (u["run"] or u["binds"] & wanted) for u in modules[m])
+
+    def ref_touches(mod, name, attrs):
+        whole = f"{mod}.{name}" if name is not None and f"{mod}.{name}" in modules else mod if name is None else None
+        if whole is not None:  # `import m` or `from package import m`: m counts by the attributes read on it
+            return whole in modules and (any_touch(whole) if attrs is None else touch_by(whole, attrs))
+        return mod in modules and touch_by(mod, {name})
+
+    changed = True
+    while changed:  # "direct" grows into "touches" until nothing changes
+        changed = False
+        for units in modules.values():
+            touching_binds = {b for u in units if u["direct"] for b in u["binds"]}
+            for u in units:
+                if not u["direct"] and (u["reads"] & touching_binds or any(ref_touches(*r) for r in u["refs"])):
+                    u["direct"] = changed = True
+    return sorted(m for m in (".".join(p.relative_to(root).with_suffix("").parts) for p in tests) if any_touch(m))
 
 
 # ---------------------------------------------------------------- spec claim re-check
@@ -326,9 +446,16 @@ def claims_markdown(rows: list[dict]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("."), help="the ai-dnd folder (holds game.py)")
-    parser.add_argument("--out-json", type=Path, required=True)
-    parser.add_argument("--out-claims", type=Path, required=True)
+    parser.add_argument("--out-json", type=Path)
+    parser.add_argument("--out-claims", type=Path)
+    parser.add_argument("--touching", type=Path, help="a file of names, one per line (a batch file)")
     args = parser.parse_args(argv)
+    if args.touching:
+        names = {line.strip() for line in args.touching.read_text(encoding="utf-8").splitlines() if line.strip()}
+        print(" ".join(touching_tests(args.root, names)))
+        return 0
+    if not (args.out_json and args.out_claims):
+        parser.error("--out-json and --out-claims are required without --touching")
     game = args.root / "game.py"
     inventory = {"index": top_level_index(game), "call_graph": call_graph(game),
                  "constant_clusters": constant_clusters(game), "closed_helpers": closed_helpers(game)}

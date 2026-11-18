@@ -28,6 +28,11 @@ class EngineSourceFiles(unittest.TestCase):
         self.assertEqual(engine_source_files()[0].name, "game.py")
         self.assertTrue(engine_source_files()[0].is_file())
 
+    def test_part_file_names_are_lower_case(self):
+        # D-351: sorted(Path) ignores case on Windows and not on POSIX; lower-case identifier names keep one order
+        names = [p.name for p in engine_source_files()[1:]]
+        self.assertEqual([n for n in names if n != n.lower() or not n[:-3].isidentifier()], [])
+
     def test_the_text_joins_the_files_with_a_newline(self):
         (self.root / "game_parts").mkdir()
         (self.root / "game_parts" / "a.py").write_text("A = 2", encoding="utf-8")
