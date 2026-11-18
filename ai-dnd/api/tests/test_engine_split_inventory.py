@@ -98,6 +98,41 @@ class InventoryTests(unittest.TestCase):
                          ["api.tests.test_alias", "api.tests.test_attr", "api.tests.test_from",
                           "api.tests.test_object", "api.tests.test_string", "test_root"])
 
+    def test_touching_tests_follows_imports_of_touching_helpers(self):
+        files = {
+            "api/tests/helper.py": "import game\ngame.X()\n",
+            "api/tests/test_uses_helper.py": "from api.tests import helper\n",
+            "api/tests/sub/__init__.py": "",
+            "api/tests/sub/deep.py": "import game\nprint(game.Y)\n",
+            "api/tests/mid.py": "from api.tests.sub.deep import f\n",
+            "api/tests/test_transitive.py": "import api.tests.mid\n",
+            "api/tests/test_from_module.py": "from api.tests.sub import deep\n",
+            "api/tests/clean.py": "import game\ngame.Z()\n",
+            "api/tests/test_clean.py": "from api.tests import clean\n",
+            "test_root_helper.py": "def t():\n    from api.tests.helper import x\n",
+            # name level: only names that reach a touching read carry it (town_seed imports one runner helper)
+            "api/tests/two.py": "import game\ndef a():\n    return game.X\ndef b():\n    return 1\n",
+            "api/tests/test_a.py": "from api.tests.two import a\n",
+            "api/tests/test_b.py": "from api.tests.two import b\n",
+            "api/tests/seed.py": "from api.tests.two import b, a as aa\ndef fixed():\n    return b()\n"
+                                 "def bad():\n    return aa()\n",
+            "api/tests/test_seed.py": "from api.tests.seed import fixed\n",
+            "api/tests/test_seed_bad.py": "from api.tests.seed import bad\n",
+            "api/tests/test_sub.py": "from api.tests.two import a as aa\nclass T:\n    def m(self):\n        return aa()\n",
+            # a module imported whole counts by the attributes read on it; a bare use counts the whole module
+            "api/tests/test_mod_b.py": "from api.tests import two\ndef t():\n    return two.b()\n",
+            "api/tests/test_mod_a.py": "from api.tests import two as t2\ndef t():\n    return t2.a()\n",
+            "api/tests/test_mod_bare.py": "from api.tests import two\nprint(two)\n",
+        }
+        for rel, src in files.items():
+            (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.tmp / rel).write_text(src, encoding="utf-8")
+        self.assertEqual(inventory.touching_tests(self.tmp, {"X", "Y"}),
+                         ["api.tests.test_a", "api.tests.test_from_module", "api.tests.test_mod_a",
+                          "api.tests.test_mod_bare", "api.tests.test_seed_bad",
+                          "api.tests.test_sub", "api.tests.test_transitive", "api.tests.test_uses_helper",
+                          "test_root_helper"])
+
     def test_verify_claims_marks_a_changed_named_set_false_and_a_changed_count_shifted(self):
         game = (
             "from uuid import uuid4\n"

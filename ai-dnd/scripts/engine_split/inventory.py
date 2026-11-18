@@ -177,17 +177,90 @@ def _touches(node: ast.AST, aliases: set[str], names: set[str]) -> bool:
     return False
 
 
+def _attr_reads(tree: ast.Module):
+    """Returns alias -> the attributes read as `alias.<attr>` in the module, or None when alias is used bare."""
+    attrs: dict[str, set[str]] = {}
+    on_attribute = set()
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name):
+            attrs.setdefault(n.value.id, set()).add(n.attr)
+            on_attribute.add(id(n.value))
+    bare = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and id(n) not in on_attribute}
+    return lambda alias: None if alias in bare else attrs.get(alias, set())
+
+
+def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
+    """One unit per top-level def/class/statement and per imported alias: the names it binds, whether it runs on
+    import ("run"), whether it touches a name itself, the bare names it reads and the (module, name, attrs) it
+    imports (name None = the module named; attrs = what is read on a module imported whole, None = all of it)."""
+    _attrs_read = _attr_reads(tree)
+    units = []
+    for stmt in tree.body:
+        if isinstance(stmt, (ast.Import, ast.ImportFrom)) and not getattr(stmt, "level", 0):
+            for a in stmt.names:
+                if isinstance(stmt, ast.Import):  # `import a.b` binds `a`: the whole module counts
+                    units.append({"binds": {a.asname or a.name.split(".")[0]}, "run": False, "direct": False,
+                                  "reads": set(), "refs": [(a.name, None, _attrs_read(a.asname) if a.asname
+                                                            else None)]})
+                else:
+                    units.append({"binds": {a.asname or a.name} - {"*"}, "run": a.name == "*", "reads": set(),
+                                  "direct": stmt.module == "game" and a.name in names,
+                                  "refs": [(stmt.module, None if a.name == "*" else a.name,
+                                            None if a.name == "*" else _attrs_read(a.asname or a.name))]})
+            continue
+        refs = []
+        for node in ast.walk(stmt):
+            if isinstance(node, ast.Import):
+                refs += [(a.name, None, None) for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+                refs += [(node.module, None if a.name == "*" else a.name,
+                          None if a.name == "*" else _attrs_read(a.asname or a.name)) for a in node.names]
+        is_def = isinstance(stmt, (*FUNCTION_NODES, ast.ClassDef))
+        units.append({"binds": {stmt.name} if is_def else set(_bound(stmt)[1]), "run": not is_def, "refs": refs,
+                      "direct": any(_touches(node, aliases, names) for node in ast.walk(stmt)),
+                      "reads": {n.id for n in ast.walk(stmt) if isinstance(n, ast.Name)}})
+        if isinstance(stmt, ast.ClassDef):  # a class body (not its methods) runs on import
+            body = [s for s in stmt.body if not isinstance(s, FUNCTION_NODES)]
+            units.append({"binds": set(), "run": True, "refs": [], "reads": set(),
+                          "direct": any(_touches(n, aliases, names) for s in body for n in ast.walk(s))})
+    return units
+
+
 def touching_tests(root: Path, names: set[str]) -> list[str]:
     """Dotted test modules (root/test_*.py, root/api/tests/test_*.py) that read game.<name> (also through an
-    `import game as x` alias, `patch.object(game, "<name>")` or `from game import <name>`) or hold "game.<name>"."""
+    `import game as x` alias, `patch.object(game, "<name>")` or `from game import <name>`) or hold "game.<name>",
+    directly or through a name they import (transitively) from a module under api/tests that does
+    (e.g. rule_oracles reads game.SKILLS). Name level: importing an untouched helper of a touching module does
+    not count, unless that module touches while it is imported."""
     root = Path(root)
-    out = []
-    for path in sorted(root.glob("test_*.py")) + sorted((root / "api" / "tests").glob("test_*.py")):
+    tests = sorted(root.glob("test_*.py")) + sorted((root / "api" / "tests").glob("test_*.py"))
+    modules: dict[str, list[dict]] = {}
+    for path in tests + [p for p in sorted((root / "api" / "tests").rglob("*.py")) if p not in tests]:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        aliases = _aliases(tree)
-        if any(_touches(node, aliases, names) for node in ast.walk(tree)):
-            out.append(".".join(path.relative_to(root).with_suffix("").parts))
-    return sorted(out)
+        parts = path.relative_to(root).with_suffix("").parts
+        modules[".".join(parts[:-1] if parts[-1] == "__init__" else parts)] = _units(tree, _aliases(tree), names)
+
+    def any_touch(m):
+        return any(u["direct"] for u in modules[m])
+
+    def touch_by(m, wanted):  # a run unit touches every importer; a def or name only the importer that reads it
+        return any(u["direct"] and (u["run"] or u["binds"] & wanted) for u in modules[m])
+
+    def ref_touches(mod, name, attrs):
+        whole = f"{mod}.{name}" if name is not None and f"{mod}.{name}" in modules else mod if name is None else None
+        if whole is not None:  # `import m` or `from package import m`: m counts by the attributes read on it
+            return whole in modules and (any_touch(whole) if attrs is None else touch_by(whole, attrs))
+        return mod in modules and touch_by(mod, {name})
+
+    changed = True
+    while changed:  # "direct" grows into "touches" until nothing changes
+        changed = False
+        for units in modules.values():
+            touching_binds = {b for u in units if u["direct"] for b in u["binds"]}
+            for u in units:
+                if not u["direct"] and (u["reads"] & touching_binds or any(ref_touches(*r) for r in u["refs"])):
+                    u["direct"] = changed = True
+    return sorted(m for m in (".".join(p.relative_to(root).with_suffix("").parts) for p in tests) if any_touch(m))
 
 
 # ---------------------------------------------------------------- spec claim re-check
