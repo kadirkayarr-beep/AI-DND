@@ -24,7 +24,8 @@ def api_path(suffix: str) -> str:
 
 def main() -> int:
     game_file = Path(__file__).resolve().parents[1] / "game.py"
-    sys.path.insert(0, str(game_file.parent))  # run as a script, only api/ is on the path
+    if str(game_file.parent) not in sys.path:  # run as a script, only api/ is on the path
+        sys.path.insert(0, str(game_file.parent))
     from api.persistence import campaign_store
     game_hash = campaign_store._engine_digest(game_file)
     issues: list[str] = []

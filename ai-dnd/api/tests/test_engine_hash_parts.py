@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import httpx
 import json
 from pathlib import Path
 import tempfile
@@ -51,7 +52,9 @@ class EngineHashPartsTests(unittest.TestCase):
         self.assertEqual(self._digest(), self._digest())
 
     def test_product_and_test_helper_list_the_same_files(self):
-        self.assertEqual(campaign_store._engine_files(ENGINE_ROOT / "game.py"), engine_source_files())
+        files = campaign_store._engine_files(ENGINE_ROOT / "game.py")
+        self.assertEqual(files, engine_source_files())
+        self.assertGreater(len(files), 1)   # game_parts must be present
 
     def test_a_missing_engine_file_is_a_storage_error(self):
         with patch.object(campaign_store, "_engine_digest", side_effect=OSError):
@@ -61,8 +64,10 @@ class EngineHashPartsTests(unittest.TestCase):
     def test_live_smoke_reports_the_engine_digest(self):
         from api import live_smoke
         out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            live_smoke.main()   # no server in the test slot: the FAIL report still carries the hash
+        with patch.object(live_smoke.httpx, "Client", side_effect=httpx.ConnectError("no server")) as client:
+            with contextlib.redirect_stdout(out):
+                live_smoke.main()   # the FAIL report still carries the hash; no real HTTP client opens
+        client.assert_called_once()
         report = json.loads(out.getvalue())
         self.assertEqual(
             report["game_sha256"], campaign_store._engine_digest(ENGINE_ROOT / "game.py")
