@@ -2,6 +2,7 @@
 
 Read-only: parses with ast, symtable and tokenize and never rewrites a source file.
 Run: python scripts/engine_split/inventory.py --root . --out-json <inventory.json> --out-claims <claims.md>
+     python scripts/engine_split/inventory.py --root . --touching <names file>   (prints the touching test modules)
 """
 from __future__ import annotations
 
@@ -17,6 +18,8 @@ from pathlib import Path
 # A script run as a file has only its own folder on sys.path: add ai-dnd and ai-dnd/scripts (same as the tests).
 if __name__ == "__main__":
     sys.path[:0] = [str(Path(__file__).resolve().parents[2]), str(Path(__file__).resolve().parents[1])]
+
+from engine_split.patch_census import _aliases  # noqa: E402
 
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -136,11 +139,55 @@ def constant_clusters(path: Path) -> list[list[str]]:
     return sorted(groups.values(), key=lambda g: order.index(g[0]))
 
 
+def _re_export_kinds(path: Path) -> dict[str, str]:
+    """Names game.py binds with `from game_parts.<x> import`: their kind in the part file, else "function" (D-347)."""
+    _, tree = _parse(path)
+    kinds: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("game_parts."):
+            part = Path(path).parent / "game_parts" / (node.module.split(".", 1)[1] + ".py")
+            in_part = {d["name"]: d["kind"] for d in top_level_index(part)} if part.exists() else {}
+            kinds.update({(a.asname or a.name): in_part.get(a.name, "function") for a in node.names})
+    return kinds
+
+
 def closed_helpers(path: Path) -> list[str]:
-    """Functions whose call-graph entry holds no function or class name (a self-call does not count)."""
-    kinds = {d["name"]: d["kind"] for d in top_level_index(path)}
+    """Functions whose call-graph entry holds no function or class name (a self-call does not count).
+
+    A name re-exported from a part counts as what the part binds (a moved function is still a function)."""
+    kinds = {d["name"]: d["kind"] for d in top_level_index(path)} | _re_export_kinds(path)
     return [name for name, reads in call_graph(path).items()
             if not any(kinds.get(r) in ("function", "class") and r != name for r in reads)]
+
+
+_GAME_STRING = re.compile(r"(?<![\w.])game\.(\w+)")
+
+
+def _touches(node: ast.AST, aliases: set[str], names: set[str]) -> bool:
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in aliases:
+        return node.attr in names
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return any(m in names for m in _GAME_STRING.findall(node.value))
+    if isinstance(node, ast.Call) and len(node.args) > 1:  # patch.object(game, "<name>"), getattr(game, "<name>")
+        first, second = node.args[0], node.args[1]
+        return (isinstance(first, ast.Name) and first.id in aliases
+                and isinstance(second, ast.Constant) and second.value in names)
+    if isinstance(node, ast.ImportFrom) and node.module == "game":
+        return any(a.name in names for a in node.names)
+    return False
+
+
+def touching_tests(root: Path, names: set[str]) -> list[str]:
+    """Dotted test modules (root/test_*.py, root/api/tests/test_*.py) that read game.<name> (also through an
+    `import game as x` alias, `patch.object(game, "<name>")` or `from game import <name>`) or hold "game.<name>"."""
+    root = Path(root)
+    out = []
+    for path in sorted(root.glob("test_*.py")) + sorted((root / "api" / "tests").glob("test_*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        aliases = _aliases(tree)
+        if any(_touches(node, aliases, names) for node in ast.walk(tree)):
+            out.append(".".join(path.relative_to(root).with_suffix("").parts))
+    return sorted(out)
 
 
 # ---------------------------------------------------------------- spec claim re-check
@@ -326,9 +373,16 @@ def claims_markdown(rows: list[dict]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("."), help="the ai-dnd folder (holds game.py)")
-    parser.add_argument("--out-json", type=Path, required=True)
-    parser.add_argument("--out-claims", type=Path, required=True)
+    parser.add_argument("--out-json", type=Path)
+    parser.add_argument("--out-claims", type=Path)
+    parser.add_argument("--touching", type=Path, help="a file of names, one per line (a batch file)")
     args = parser.parse_args(argv)
+    if args.touching:
+        names = {line.strip() for line in args.touching.read_text(encoding="utf-8").splitlines() if line.strip()}
+        print(" ".join(touching_tests(args.root, names)))
+        return 0
+    if not (args.out_json and args.out_claims):
+        parser.error("--out-json and --out-claims are required without --touching")
     game = args.root / "game.py"
     inventory = {"index": top_level_index(game), "call_graph": call_graph(game),
                  "constant_clusters": constant_clusters(game), "closed_helpers": closed_helpers(game)}

@@ -54,11 +54,13 @@ def real_sizes() -> dict[str, int]:
 
 
 def real_function_lengths() -> dict[str, int]:
+    """`<file>::<name>` -> lines (D-351: keyed by file too, so a same-named function in another file is its own entry)."""
     out: dict[str, int] = {}
     for p in engine_source_files(ROOT):
         for row in top_level_index(p):
             if row["kind"] == "function":
-                out[row["name"]] = max(out.get(row["name"], 0), row["lines"])
+                key = f"{p.relative_to(ROOT).as_posix()}::{row['name']}"
+                out[key] = max(out.get(key, 0), row["lines"])
     return out
 
 
@@ -79,10 +81,21 @@ class SizeBudgetTests(unittest.TestCase):
         self.assertEqual(budget_findings({"game.py": LOCK["files"]["game.py"], "game_parts/x.py": 2500}, LOCK), [])
 
     def test_long_functions_cannot_grow_or_appear(self):
-        self.assertNotEqual(long_function_findings({"brand_new": 151}, LOCK), [])
-        grown = {"_run_player_turn_internal": LOCK["long_functions"]["_run_player_turn_internal"] + 1}
+        self.assertNotEqual(long_function_findings({"game.py::brand_new": 151}, LOCK), [])
+        key = "game.py::_run_player_turn_internal"
+        grown = {key: LOCK["long_functions"][key] + 1}
         self.assertNotEqual(long_function_findings(grown, LOCK), [])
-        self.assertEqual(long_function_findings({"brand_new": 150}, LOCK), [])
+        self.assertEqual(long_function_findings({"game.py::brand_new": 150}, LOCK), [])
+
+    def test_long_functions_are_keyed_by_file_and_name(self):
+        # D-351: a bare name (`run`) would let a same-named function in another file share its budget
+        files = set(real_sizes())
+        for key in LOCK["long_functions"]:
+            file, sep, name = key.partition("::")
+            self.assertTrue(sep and file in files and name.isidentifier(), key)
+        lengths = real_function_lengths()
+        self.assertTrue(lengths and all("::" in key for key in lengths))
+        self.assertEqual(lengths["game_parts/terminal.py::run"], LOCK["long_functions"]["game_parts/terminal.py::run"])
 
     def test_the_lock_matches_the_spec_values(self):
         self.assertEqual((LOCK["part_max"], LOCK["slack"], LOCK["long_function_min"]), (2500, 50, 151))

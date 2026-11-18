@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from engine_split import inventory  # noqa: E402
 from engine_split.inventory import (  # noqa: E402
     call_graph,
     closed_helpers,
@@ -67,6 +68,35 @@ class InventoryTests(unittest.TestCase):
     def test_closed_helpers_reference_no_engine_function(self):
         src = "K = 1\ndef a():\n    return K\ndef b():\n    return a()\n"
         self.assertEqual(closed_helpers(self.write(src)), ["a"])
+
+    def test_a_caller_of_a_re_exported_function_is_not_closed(self):
+        # D-347 helper: a name game.py binds with `from game_parts.<x> import` is a moved function, not an import;
+        # a re-exported constant keeps its own kind when the part file says so
+        (self.tmp / "game_parts").mkdir()
+        (self.tmp / "game_parts" / "p.py").write_text("K = 1\ndef f():\n    return K\n", encoding="utf-8")
+        src = ("from game_parts.p import f, K\nimport os\n"
+               "def g():\n    return f()\ndef h():\n    return K + os.sep.count('/')\n")
+        self.assertEqual(closed_helpers(self.write(src)), ["h"])
+        self.assertEqual(closed_helpers(self.write("from game_parts.q import f\ndef g():\n    return f()\n")), [])
+
+    def test_touching_tests_finds_attribute_and_string_uses(self):
+        files = {
+            "api/tests/test_attr.py": "import game\ngame.X()\n",
+            "api/tests/test_string.py": "from unittest.mock import patch\np = patch('game.Y', 1)\n",
+            "api/tests/test_object.py": "import game\nfrom unittest import mock\nmock.patch.object(game, 'X')\n",
+            "api/tests/test_alias.py": "def t():\n    import game as engine\n    return engine.Y\n",
+            "api/tests/test_from.py": "from game import X\n",
+            "api/tests/test_other.py": "import game\ngame.XY()\np = 'game.XY'\nq = 'xgame.X'\n",
+            "api/tests/helper.py": "import game\ngame.X()\n",
+            "test_root.py": "import game\nprint(game.Y)\n",
+            "tools/test_elsewhere.py": "import game\ngame.X()\n",
+        }
+        for rel, src in files.items():
+            (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.tmp / rel).write_text(src, encoding="utf-8")
+        self.assertEqual(inventory.touching_tests(self.tmp, {"X", "Y"}),
+                         ["api.tests.test_alias", "api.tests.test_attr", "api.tests.test_from",
+                          "api.tests.test_object", "api.tests.test_string", "test_root"])
 
     def test_verify_claims_marks_a_changed_named_set_false_and_a_changed_count_shifted(self):
         game = (
