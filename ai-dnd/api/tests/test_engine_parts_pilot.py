@@ -3,6 +3,7 @@ import ast
 import dataclasses
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -27,6 +28,7 @@ from engine_split import routing_audit  # noqa: E402
 
 TABLES = tuple(batch_names("tables"))
 SCHEMAS = tuple(batch_names("schemas"))
+TEXT_A1 = tuple(batch_names("text-a1"))
 
 
 def _canonical(value):
@@ -183,6 +185,62 @@ class SchemasPart(unittest.TestCase):
         with fixed_town(self, 20261121):
             s = game.create_session(seed=7)
             self.assertEqual(s.messages[0]["content"], game.system_prompt)  # GameSession.__init__ seeds self.messages
+
+
+class TextA1Part(unittest.TestCase):
+    """T3.3 batch text-a1: text helpers and regexes live in game_parts/text_rules_a.py; game.py re-exports them."""
+
+    def test_text_a1_lives_in_the_part(self):
+        self.assertEqual(set(TEXT_A1) - set(routing_audit.re_exports(ROOT)["text_rules_a"]), set())
+
+    def test_text_a1_helpers_answer_as_before(self):
+        # inputs from each helper's existing tests (test_ai_pipeline_port, test_lr00_p1_intent, test_dilim3d_small,
+        # test_narration_proposal_marker) or, for _drop_repeated_sentences, strings its split regex matches;
+        # expected values captured on 26f93dfd before the move (slot Python 3.13)
+        cases = (
+            (game.clean_dm_response,
+             ("<think>plan</think>```json\nKapı gıcırdayarak açılır.\nDC 12 zar sonucu 9\n1. Kaç\n- Saklan\n"
+              "Hangisini seçersin?\nİçerisi karanlık.```",),
+             "Kapı gıcırdayarak açılır.\nİçerisi karanlık."),
+            (game.clean_dm_response,
+             ("Odun dumanı hafifçe havaya karışır.\n\n\nAlçak konuşmalar uğultu oluşturur.\nNe yaparsın?",),
+             "Odun dumanı hafifçe havaya karışır.\nAlçak konuşmalar uğultu oluşturur."),
+            (game._affirmative_door_verb, ("kapiyi kirmaya calisiyorum", r"kapiyi\s+", ("kir",)), True),
+            (game._affirmative_door_verb, ("kapiyi kirmayacagim", r"kapiyi\s+", ("kir",)), False),
+            (game._reads_english, ("A chest on the bench",), True),
+            (game._reads_english, ("Tezgâhta the sandık",), False),
+            (game._strip_proposal_markers, ("[[n1]]Marek, [[l2]]arşiv, [[f12]]kapı [[s1]]dükkân [not] [[x1]]",),
+             "Marek, arşiv, kapı dükkân [not] [[x1]]"),
+            (game._strip_proposal_markers, (None,), None),
+            (game._drop_repeated_sentences,
+             ("Kapı açıldı. Rüzgâr esti. Bir köpek havladı.", ["Rüzgâr esti. Sessizlik."]),
+             "Kapı açıldı. Bir köpek havladı."),
+            (game._drop_repeated_sentences, ("Kapı açıldı. Rüzgâr esti.", ["Kapı açıldı. Rüzgâr esti."]),
+             "Kapı açıldı. Rüzgâr esti."),
+        )
+        for helper, args, expected in cases:
+            with self.subTest(helper=helper.__name__, args=args):
+                self.assertEqual(helper(*args), expected)
+
+    def test_a_moved_text_helper_still_takes_a_session(self):  # spec §6: session binding survives the move
+        # real claim: the moved helper is still wrapped as an engine function (it accepts session= and is marked
+        # _session_bound); a pure helper answers the same either way, so the binding proof stays with PilotRollD20
+        with fixed_town(self, 20261122):
+            s = game.create_session(seed=9)
+            self.assertEqual(game._strip_proposal_markers("a", session=s), game._strip_proposal_markers("a"))
+        self.assertTrue(game._strip_proposal_markers._session_bound)
+
+    def test_a_patch_on_a_moved_helper_reaches_its_caller_in_game_py(self):
+        # test_talk_front patches game._topic_place_name; its caller _run_player_turn_internal stays in game.py
+        # and reads the module global at call time (flag off: no front reading, the name line answers)
+        self.enterContext(patch.dict(os.environ))
+        os.environ.pop("AI_DND_FRONT_PROPOSAL", None)
+        with fixed_town(self, 20261123):
+            s = game.create_session(seed=9)
+            with patch.object(game, "_topic_place_name", return_value="X") as named:
+                result = game.run_player_turn("Peki oranın adı ne?", session=s)
+        named.assert_called_once()
+        self.assertEqual(result["narration"], "Adı X.")
 
 
 if __name__ == "__main__":

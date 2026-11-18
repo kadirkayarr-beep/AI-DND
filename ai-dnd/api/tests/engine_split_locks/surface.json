@@ -765,7 +765,7 @@
  },
  "_affirmative_door_verb": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(normalized_text, prefix, stems)"
  },
@@ -957,7 +957,7 @@
  },
  "_clean_world_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(value, limit=240)"
  },
@@ -1161,7 +1161,7 @@
  },
  "_drop_repeated_sentences": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(narration, earlier)"
  },
@@ -1479,7 +1479,7 @@
  },
  "_hand_names_something": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(inventory, held)"
  },
@@ -1671,7 +1671,7 @@
  },
  "_is_guard": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -1785,7 +1785,7 @@
  },
  "_just_served": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(world)"
  },
@@ -2121,7 +2121,7 @@
  },
  "_normalize_interaction_mode": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(value)"
  },
@@ -2331,7 +2331,7 @@
  },
  "_reads_english": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -2601,13 +2601,13 @@
  },
  "_scene_texts_for_referents": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(world_state)"
  },
  "_serves_at_a_counter": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -2811,7 +2811,7 @@
  },
  "_strip_proposal_markers": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(narration)"
  },
@@ -2865,7 +2865,7 @@
  },
  "_topic_place_name": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(world)"
  },
@@ -2919,7 +2919,7 @@
  },
  "_unarmed_save_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(target, result, save)"
  },
@@ -3267,7 +3267,7 @@
  },
  "clean_dm_response": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(text, *, spoken=False)"
  },
@@ -3537,7 +3537,7 @@
  },
  "is_ordinary_environment_look": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3652,7 +3652,7 @@
  },
  "npc_ambiguity_response": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(resolution)"
  },
@@ -3676,13 +3676,13 @@
  },
  "ollama_reply_was_cut": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(response)"
  },
  "ollama_response_content": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(response)"
  },
