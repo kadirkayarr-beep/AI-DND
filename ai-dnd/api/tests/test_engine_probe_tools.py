@@ -358,7 +358,8 @@ class PatchLedger(unittest.TestCase):
 
         class Tiny(unittest.TestCase):
             def test_tiny(self):
-                with mock.patch.dict(sys.modules, {"game": fake}), mock.patch("game.x"):
+                # built, not a literal: a "game.x" literal is a real patch site for the N3 census lock
+                with mock.patch.dict(sys.modules, {"game": fake}), mock.patch(f"{fake.__name__}.x"):
                     fake.x()
 
         engine_probe.install_ledger(self.tmp)
