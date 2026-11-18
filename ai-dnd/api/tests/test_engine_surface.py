@@ -76,7 +76,9 @@ class SurfaceTests(unittest.TestCase):
     def test_every_re_export_is_the_parts_own_object(self):
         # Task 4: proves "game.X is <part>.X" at run time (R8 proves it statically); tests may not import game_parts (R2)
         parts = {name: module for name, module in sys.modules.items() if name.startswith("game_parts.")}
-        for part, names in routing_audit.re_exports(ROOT).items():
+        re_exports = routing_audit.re_exports(ROOT)
+        self.assertTrue(re_exports)     # zero re-exports would pass with zero iterations (stage A review finding 9)
+        for part, names in re_exports.items():
             module = parts["game_parts." + part]
             for name in names:
                 own, seen = vars(module)[name], getattr(game, name)
