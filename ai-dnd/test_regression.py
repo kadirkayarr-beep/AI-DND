@@ -815,18 +815,24 @@ def test_terminal_skill_command():
     input_iter = iter(inputs)
 
     captured_out = io.StringIO()
-    with patch("builtins.input", lambda prompt="": next(input_iter)), \
-         patch("sys.stdout", captured_out):
-        try:
-            mod = runpy.run_path(str(game_file), run_name="__main__")
-        except SystemExit:
-            pass
+    snapshot = engine._session()._capture_runtime_snapshot()
+    try:
+        with patch("builtins.input", lambda prompt="": next(input_iter)), \
+             patch("sys.stdout", captured_out):
+            try:
+                runpy.run_path(str(game_file), run_name="__main__")
+            except SystemExit as stop:
+                assert stop.code == 0, f"FAIL: terminal run should exit 0, got {stop.code!r}"
+            else:
+                raise AssertionError("FAIL: terminal run should end in SystemExit(0)")
+        assert sys.modules["game"] is engine, "FAIL: the terminal run must use the one engine module"
+        dex_mod = engine._session().character["modifiers"]["dexterity"]
+    finally:
+        engine._session()._restore_runtime_snapshot(snapshot)
 
     output = captured_out.getvalue()
     assert "🎲 SKILL CHECK" in output, f"FAIL: Output should contain SKILL CHECK header:\n{output}"
     assert "Skill: Stealth" in output, f"FAIL: Output should contain Skill: Stealth:\n{output}"
-    active_char = mod["_session"]().character
-    dex_mod = active_char["modifiers"]["dexterity"]
     expected_mod_str = f"+{dex_mod}" if dex_mod >= 0 else str(dex_mod)
     assert f"Ability Modifier: {expected_mod_str}" in output, \
         f"FAIL: Expected Ability Modifier {expected_mod_str} in output:\n{output}"
