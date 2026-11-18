@@ -17,6 +17,7 @@ from unittest.mock import patch
 
 import game
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound
+from api.tests.town_seed import fixed_town
 
 
 class SessionTests(unittest.TestCase):
@@ -4190,19 +4191,23 @@ class CompatibilityTests(unittest.TestCase):
                 default.messages[:] = original_default_messages
                 default.rng.setstate(original_default_rng_state)
 
-    def test_exec_namespace_scalars_are_not_a_state_input(self):
-        namespace = {"__name__": "isolated_engine", "__file__": game.__file__}
-        exec(compile(Path(game.__file__).read_text(encoding="utf-8"), game.__file__, "exec"),
-             namespace)
-        before = namespace["serialize_game_state"]()
-        namespace["current_hp"] = 0
-        namespace["character_name"] = "Unowned character"
-        session = namespace["create_session"](seed=17)
-        session.character["current_hp"] = 2
-        self.assertEqual(session.serialize_game_state()["player"]["current_hp"], 2)
-        self.assertEqual(namespace["serialize_game_state"](), before)
-        self.assertEqual(namespace["serialize_game_state"](session=session),
-                         session.serialize_game_state())
+    def test_module_scalars_are_not_a_state_input_for_another_session(self):
+        with fixed_town(self, 20261119):
+            session = game.create_session(seed=17)
+        before = session.serialize_game_state()
+        default_before = game.serialize_game_state()
+        hp_before, name_before = game.current_hp, game.character_name
+        try:
+            game.current_hp = 0
+            game.character_name = "Unowned character"
+            self.assertEqual(session.serialize_game_state(), before)
+            session.character["current_hp"] = 2
+            self.assertEqual(session.serialize_game_state()["player"]["current_hp"], 2)
+            self.assertEqual(game.serialize_game_state(session=session), session.serialize_game_state())
+            self.assertNotIn("current_hp", vars(game))
+        finally:
+            game.current_hp, game.character_name = hp_before, name_before
+        self.assertEqual(game.serialize_game_state(), default_before)
 
     @guard_bound(CHILD_PROCESS)
     def test_terminal_initialization_dice_and_exit(self):
