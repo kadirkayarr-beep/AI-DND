@@ -1,0 +1,4054 @@
+{
+ "Any": {
+  "kind": "class",
+  "module": "typing"
+ },
+ "CELESTIAL_REVELATION_FORMS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "CHECK_FEATURES": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "CLASSES": {
+  "kind": "data",
+  "type": "list"
+ },
+ "CLASS_FEATURES": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "CLASS_HIT_DICE": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "CLASS_SKILL_OPTIONS": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "COIN_LEFT_BEHIND": {
+  "kind": "data",
+  "type": "str"
+ },
+ "DEATH_MODES": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "DEBUG_MODE": {
+  "kind": "data",
+  "type": "bool"
+ },
+ "DEFAULT_SAVE_PATH": {
+  "kind": "data",
+  "type": "PosixPath"
+ },
+ "DIFFICULTY_DC": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "DM_RESPONSE_SCHEMA": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "Dict": {
+  "kind": "data",
+  "type": "_SpecialGenericAlias"
+ },
+ "GIANT_ANCESTRY_IDS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "GameSession": {
+  "kind": "class",
+  "module": "game"
+ },
+ "INITIAL_WORLD_STATE": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "INNER_RADIANCE_SPEC": {
+  "kind": "data",
+  "type": "EffectSpec"
+ },
+ "INTENT_SCHEMA": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "INTENT_TYPES": {
+  "kind": "data",
+  "type": "set"
+ },
+ "IntentInfrastructureError": {
+  "kind": "class",
+  "module": "game"
+ },
+ "LOCATION_SCHEMA": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "List": {
+  "kind": "data",
+  "type": "_SpecialGenericAlias"
+ },
+ "NARRATOR_VOICE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "NECROTIC_SHROUD_SPEC": {
+  "kind": "data",
+  "type": "EffectSpec"
+ },
+ "NPC_SCHEMA": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "Optional": {
+  "kind": "data",
+  "type": "_SpecialForm"
+ },
+ "Path": {
+  "kind": "class",
+  "module": "pathlib._local"
+ },
+ "PlayerCannotAct": {
+  "kind": "class",
+  "module": "game"
+ },
+ "RACES": {
+  "kind": "data",
+  "type": "list"
+ },
+ "RACE_FEATURES": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "RANDOM_NAMES": {
+  "kind": "data",
+  "type": "list"
+ },
+ "RULE_ORDER": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "ResolvedTurn": {
+  "kind": "class",
+  "module": "game"
+ },
+ "SAVE_FORMAT_VERSION": {
+  "kind": "data",
+  "type": "int"
+ },
+ "SCENE_DETAIL_KIND_ALLOWLIST": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "SKILLS": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "SKILL_INTENT_TO_SKILL": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "SPECIES_WITH_TRAIT_STATE": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "TurnResolved": {
+  "kind": "class",
+  "module": "game"
+ },
+ "WEAPONS": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "WORLD_UPDATE_SCHEMA": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_ABILITY_NAMES": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_ABILITY_WORD": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_ACTIVE_SESSION": {
+  "kind": "data",
+  "type": "ContextVar"
+ },
+ "_ADDRESSEE_OPERATIONS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_ADDRESS_VERB": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_ARMED_ROLE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_ASKS_DISTANCE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_ASKS_SOMETHING": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_ASKS_WHO_YOU_ARE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_ATTACK_BLOW_PHRASE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_ATTACK_INSTRUMENT_TOKENS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_ATTACK_LOOKALIKE_TOKEN": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_ATTACK_VERB_PATTERN": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_BLOW_WORDS": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_CHARACTER_GLOBALS": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_CHARGING_IN": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_CLAIM_ACCEPTANCE_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_CLAIM_DENIAL_LINES": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_CLAIM_PLAIN_DENIAL_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_CLAIM_REJECTION_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_COMMON_SENTENCE_OPENERS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_CONTINUATION_TERMS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_CONVERSATION_OPENINGS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_COUNTER_ROLE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_COUNTER_WORDS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_COVER": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_COVER_WORD": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_CREATURE_REFERENCE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_DEFAULT_SESSION": {
+  "kind": "data",
+  "type": "GameSession"
+ },
+ "_ENDS_IN_SPEECH": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_ENGINE_FUNCTIONS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_ENGINE_NAMESPACE": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_ENGLISH_STOP_WORDS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_EXPERIMENTAL_NPC_SPEECH_OPTIONS": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_EXPERIMENTAL_NPC_SPEECH_SCHEMA": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_FALL_LINE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_FOLLOWUP_WORDS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_GENERIC_NO_CHANGE_RESPONSE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_GENERIC_NO_CHANGE_RESPONSES": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_GENERIC_PERSON": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_GENERIC_SPEAKER_LABEL_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_GUARD_ROLE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_GUARD_WORD": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_GameModule": {
+  "kind": "class",
+  "module": "game"
+ },
+ "_HAIL_FILLERS": {
+  "kind": "data",
+  "type": "set"
+ },
+ "_HELD_SKIP": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_INANIMATE_HIT_OBJECT": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_INDOOR_DETAIL": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_INTERNAL_MARK_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_INTERNAL_PLAYER_FACING_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_IN_REACH_WORDS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_LOCATED_PERSON": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_LOCK_WORDS": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_LOOK_OPENINGS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_LORE_ENTITY_FOLLOWING_CUE_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_LORE_ENTITY_RELATION_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_LORE_ENTITY_TITLE_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_LORE_PROPER_NAME_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_LORE_ROUTE_DISTANCE_QUERY_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_LORE_RULER_TITLE_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_LORE_SENTENCE_START_WORDS": {
+  "kind": "data",
+  "type": "set"
+ },
+ "_LORE_UNSUPPORTED_DETAIL_PATTERNS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_MENTIONS_PROMPT_RULE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_NARRATED_NAME_PATTERNS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_NARRATION_PERSISTENT_OBJECT_HEADS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_NARRATION_PERSISTENT_OBJECT_STATE": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_NARRATOR_PLURAL": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_NARRATOR_PROFILE_FIELDS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_NARRATOR_PRONOUNS": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_NEGATED_VERB_SUFFIX": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_NOT_A_LOCAL_PLACE": {
+  "kind": "data",
+  "type": "set"
+ },
+ "_NO_BLOW_NOW": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_NPC_SPEECH_KEEP": {
+  "kind": "data",
+  "type": "int"
+ },
+ "_NPC_SPEECH_LOG_KEY": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_OBJECT_INSPECTION": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_OFFER_MARKER": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_OFFER_OPERATIONS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_OPEN_SCARE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_ORIGIN_LIST_KEYS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_ORIGIN_SCORE_KEYS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_ORIGIN_TEXT_KEYS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_OWN_ACTS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_OWN_THING_HIDDEN": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_PERSISTED_PLAYER_CONDITION_FIELDS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_PERSON_FIGHT": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_PLANNER_STAYS_OUT": {
+  "kind": "data",
+  "type": "set"
+ },
+ "_PLAYER_FEELING_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_PLAYER_MENTAL_STATE_AFFECT_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_PLAYER_MENTAL_STATE_CONTEXT_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_PLAYER_MENTAL_STATE_COPULA_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_PLAYER_MENTAL_STATE_PREFIXES": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_PROPOSAL_MARKER_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_QUESTION_CUE_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_QUOTE_CLOSER_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_QUOTE_OPENER_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_READING_CHECKS": {
+  "kind": "data",
+  "type": "frozenset"
+ },
+ "_REAL_WORLD_FAITH": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_REFUSED_MOVE_RULE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_REWOUND_LINE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_SAID_IT_AGAIN": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SAVE_ABILITY_TR": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_SAY_ENGLISH": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_SAY_VERBS": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SECOND_PERSON_SAID": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SHOP_CREATION_ACTION_PATTERN": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SHOP_ECONOMY_PATTERN": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SHOP_ENTITY_QUERY_PATTERN": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SHOP_TRANSACTION_REQUEST_PATTERN": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SKILL_CHECK_WORD": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_SKILL_ENDING": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_SOMEONE_ELSES_PURSE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SPEAKING_NAME_PATTERNS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_SPEAKING_VERB": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SPEECH_ANSWER_RULES": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_SPEECH_CUT_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SPEECH_META_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SPEECH_REPEAT_LINES": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_SPEECH_SPAN_RE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_STOCK_SAID": {
+  "kind": "data",
+  "type": "deque"
+ },
+ "_STRONG_ROLE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_SUPPORTED_SAVE_VERSIONS": {
+  "kind": "data",
+  "type": "tuple"
+ },
+ "_TELLS_FAILURE": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_TERMINATOR_MASK": {
+  "kind": "data",
+  "type": "dict"
+ },
+ "_THIRD_PERSON_REPORT": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_TRACK_WORDS": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_UNMOVED": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_UNVERIFIED_DISTANCE_RESPONSE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_UNVERIFIED_LORE_RESPONSE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_UNVERIFIED_RULER_RESPONSE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_VOICED_PROMPT_RULE": {
+  "kind": "data",
+  "type": "str"
+ },
+ "_WALKED_UP": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_WINDOW_WORDS": {
+  "kind": "data",
+  "type": "Pattern"
+ },
+ "_a_walk": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(read, action_result)"
+ },
+ "_absent_described_person": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, people)"
+ },
+ "_absent_person_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(place_word)"
+ },
+ "_accept_named_job": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session, world, npc, thread)"
+ },
+ "_accepted_local_place": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(packet, action_result)"
+ },
+ "_active_interlocutor": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_addressed_in": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, *, or_the_talk=True)"
+ },
+ "_adventure_check_reply": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session, skill)"
+ },
+ "_adventure_scene_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_adventure_travel_reply": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session, destination)"
+ },
+ "_affirmative_door_verb": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(normalized_text, prefix, stems)"
+ },
+ "_anchored_structure_features": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, location_id, parent_id)"
+ },
+ "_answered_heavy_question": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_apply_attack_damage_to_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(damage, critical, hit)"
+ },
+ "_apply_player_damage": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(hp_damage, *, critical=False, took_damage=False, resolved_damage=None)"
+ },
+ "_apply_species_on_hit_effects": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(target_npc, *, critical=False, deals_damage)"
+ },
+ "_approach_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(target_id)"
+ },
+ "_ask_about_the_blow": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(person_id, player_input='', with_word='')"
+ },
+ "_ask_before_the_heavy": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(asked)"
+ },
+ "_ask_which_move": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(person_id)"
+ },
+ "_asked_of_the_one_at_hand": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc)"
+ },
+ "_asks_what_is_going_on": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_attack_verb_tokens": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_attributed_place_note": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(spoken_text, npc_target, world_state, player_input)"
+ },
+ "_authorized_item_transfer_matches": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, action_result)"
+ },
+ "_bag_note": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(names)"
+ },
+ "_begin_combat_actor_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(participant_id)"
+ },
+ "_bind_session_engine": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": false,
+  "signature": "()"
+ },
+ "_bind_world_update_mentions": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_updates, location_updates, validated_updates, world_state)"
+ },
+ "_blow_in_the_words": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, target_id)"
+ },
+ "_blow_stands": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_bodies_here_context": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state)"
+ },
+ "_bound_on_a_named_word": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(word, line)"
+ },
+ "_campaign_has_shopkeeper": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_capture_combat_death_checkpoint": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_carry_out_thread_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session, world, gate, person, player_input)"
+ },
+ "_changed_state_fields": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(before)"
+ },
+ "_claim_denial_quotes": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_claim_keywords": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_claimed_completed_outcome": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_clean_npc_speech": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw)"
+ },
+ "_clean_npc_stage_direction": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw)"
+ },
+ "_clean_world_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(value, limit=240)"
+ },
+ "_clean_world_text_list": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(value, item_limit=180, max_items=8)"
+ },
+ "_clear_active_interlocutor": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(reason)"
+ },
+ "_clear_turn_transients": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session) -> None"
+ },
+ "_coin_not_parcel": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session, world, person, item_id, player_input)"
+ },
+ "_coin_persuasion": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_result)"
+ },
+ "_combat_defaults": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(end_reason=None)"
+ },
+ "_combat_end_if_decided": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(excluded_participant_ids=<tuple>)"
+ },
+ "_combat_narration": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result)"
+ },
+ "_combat_participant_can_act": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(combat, participant_id)"
+ },
+ "_combat_record_for_actor": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(participant_id, initiative=None, actions_used=<tuple>)"
+ },
+ "_combat_snapshot": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_commit_travel_action": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_result)"
+ },
+ "_compose_experimental_npc_speech": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(payload)"
+ },
+ "_conversation_npcs": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_conversation_opening_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(name)"
+ },
+ "_current_door": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_current_npc_name": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_current_procedural_entity_ids": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_death_closing": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_death_resolution_from_actions": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(actions)"
+ },
+ "_death_save_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(save_result, enemy_actions=<tuple>, resolution=None)"
+ },
+ "_death_state_defaults": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_defer_spoken_coin_offer": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route)"
+ },
+ "_detect_explore_type": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_detect_query_type": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target=None)"
+ },
+ "_dialogue_repair_has_attributed_answer": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, npc_target, action_result)"
+ },
+ "_direct_npc_smalltalk_response": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target)"
+ },
+ "_dispatch_player_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
+ },
+ "_dispatch_turn_body": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, messages, target_id, scene_plan, interaction_mode, action_id, session_id, check_feature, check_evidence)"
+ },
+ "_dm_prompt_note": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(character, bag_names)"
+ },
+ "_dm_response_schema_for_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(allow_new_shops=False, narration_only=False)"
+ },
+ "_down_outside_combat_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_drop_absent_counter_sentences": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration)"
+ },
+ "_drop_repeated_sentences": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, earlier)"
+ },
+ "_dynamic_engine_transitions": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": false,
+  "signature": "(notes, world, before_world=None)"
+ },
+ "_economic_listing": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session, person)"
+ },
+ "_elsewhere_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, name)"
+ },
+ "_empty_lore_authority_context": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_enemy_exchange_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(enemies, named=None)"
+ },
+ "_engine_location_parent": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id)"
+ },
+ "_ensure_local_merchant": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id, *, create=True)"
+ },
+ "_ensure_local_tavern": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(parent_location_id, *, open_for_entry=False)"
+ },
+ "_ensure_location_entities": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location)"
+ },
+ "_ensure_venue_window": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(door)"
+ },
+ "_entity_reference_in_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(reference, text)"
+ },
+ "_everyday_action_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_execute_intent_internal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None)"
+ },
+ "_existing_local_tavern": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(parent_location_id)"
+ },
+ "_experimental_npc_dialogue_context": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, npc, *, unverified_claim=False, followup=False, personal_context=True)"
+ },
+ "_experimental_private_npc_disclosure": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, world_state, *, npc_target=None, speech_fields=None)"
+ },
+ "_experimental_recent_exchanges": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc_id)"
+ },
+ "_experimental_speech_final_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, interaction_context)"
+ },
+ "_experimental_speech_note": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, npc, name_stance, player_input)"
+ },
+ "_experimental_speech_recap": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(interaction_context)"
+ },
+ "_explicit_addressee": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, candidates)"
+ },
+ "_explicit_campaign_shop_negative_request": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_explicit_campaign_shop_request": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_explicit_player_name_disclosure": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_explicit_sword_drop": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_extract_json_object": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw)"
+ },
+ "_fallback_for_action_result": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, action_result=None, npc_target=None)"
+ },
+ "_fallback_narration": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target=None)"
+ },
+ "_feature_proposal_conflicts_with_canonical_door": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal, parent_id)"
+ },
+ "_feature_refs_are_visible": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(refs)"
+ },
+ "_filter_unaccepted_proposal_mentions": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, accepted_keys, rejected_names)"
+ },
+ "_filter_unsupported_lore_paragraphs": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, lore_claims, lore_context, world_state)"
+ },
+ "_finalize_player_death": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(cause)"
+ },
+ "_finding_says_too_much": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_finish_combat_result": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result, before)"
+ },
+ "_finish_species_player_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_fold_keep_punctuation": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_format_npc_memory": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(memory_entries)"
+ },
+ "_found_on_a_pass": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(line='')"
+ },
+ "_front_consume": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route, player_input)"
+ },
+ "_front_economic_offer": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route, player_input)"
+ },
+ "_front_hand_over": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route, player_input)"
+ },
+ "_front_offer_gate": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route, player_input)"
+ },
+ "_front_recovery": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, listed)"
+ },
+ "_front_step": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, target_id, interaction_mode, combat_action, check_feature)"
+ },
+ "_front_take": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route, player_input)"
+ },
+ "_front_wield": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route, player_input)"
+ },
+ "_front_work": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route, player_input)"
+ },
+ "_generic_no_change_response": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_ground_local_place_recommendation_reply": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(spoken_text, npc_target, world_state, player_input)"
+ },
+ "_ground_local_place_recommendation_stage": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(stage_direction, npc_target, world_state, player_input)"
+ },
+ "_grounded_item_request_proposal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_intent, npc_target, player_input)"
+ },
+ "_hand_names_something": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(inventory, held)"
+ },
+ "_hand_over_coin": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route, listed, front=None, *, owner_routed=False)"
+ },
+ "_handle_query": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, query_type, npc_target=None)"
+ },
+ "_has_active_local_npc_focus_for_place_request": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state, *, target_id=None)"
+ },
+ "_has_explicit_attack_verb": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_has_private_profile_value": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, text) -> bool"
+ },
+ "_has_session": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_has_spoken_to_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "_has_travel_language": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_has_unregistered_narrative_entity": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(sentence, known_phrases, known_tokens)"
+ },
+ "_has_unregistered_person_name": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(value, extra_names=<tuple>)"
+ },
+ "_heavy_allowed": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(what, player_input, *, person_id=None, deed=None)"
+ },
+ "_hero_first_name": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_hideout_check": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(skill, dc)"
+ },
+ "_historical_player_name_from_claims": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, player_input, supported_player_claims)"
+ },
+ "_historical_player_name_from_npc_memory": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, player_input)"
+ },
+ "_immediate_check_refusal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(check_feature, message)"
+ },
+ "_inside_speech": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, position)"
+ },
+ "_inspection_findings": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, outcome, *, rolled=True)"
+ },
+ "_intent_infrastructure_result": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(error)"
+ },
+ "_intent_scene_npc_candidates": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_interaction_proposal_applies": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_intent, npc_target, player_input)"
+ },
+ "_is_bare_greeting": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target)"
+ },
+ "_is_canonical_city_id": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(loc_id)"
+ },
+ "_is_conversation_start_input": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_door_inspection_request": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_end_conversation_request": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_explicit_name_led_gesture_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(spoken_text, npc)"
+ },
+ "_is_explicitly_negated_attack": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_explicitly_negated_transfer": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(match, text)"
+ },
+ "_is_figurative_key_transfer": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, match_start)"
+ },
+ "_is_generic_speaker_label": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(label)"
+ },
+ "_is_guard": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "_is_historical_player_name_query": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_internal_player_facing_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(value)"
+ },
+ "_is_local_place_question": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_negated_dialogue_action": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_object_inspection": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_plain_person_reference": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(words_before, target)"
+ },
+ "_is_player_name_inquiry_to_npc": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_registered_lore_name": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(candidate, known_phrases, known_tokens)"
+ },
+ "_is_scene_referent_activity_observation": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_shopkeeper_role": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(role)"
+ },
+ "_is_short_conversation_continuation": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_short_followup": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_is_spoken_to": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc)"
+ },
+ "_is_stock": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_job_fallback": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world)"
+ },
+ "_job_gate": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, person, player_input)"
+ },
+ "_job_news_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, place_id)"
+ },
+ "_job_talk_with": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "_just_served": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world)"
+ },
+ "_keep_people_in_look": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, action_result)"
+ },
+ "_keep_town_portrait": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_result, narration)"
+ },
+ "_known_happenings": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(state)"
+ },
+ "_known_player_name": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "_last_call": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_legacy_hidden_feature_name_collision": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal, location, parent_id, name)"
+ },
+ "_line_addresses": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc)"
+ },
+ "_line_gives": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(item_id, player_input)"
+ },
+ "_lines_already_said": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, world_state)"
+ },
+ "_living_world_prompt_context": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(scene_plan=None, npc_target=None, player_input=None)"
+ },
+ "_local_detail_claims_unsupported_mechanics": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal, parent_id)"
+ },
+ "_local_person_request_key": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_local_place_access": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(place_id, world_state)"
+ },
+ "_local_place_recommendation_guidance": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, interaction_context, world_state)"
+ },
+ "_local_place_recommendation_options": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc_target, world_state, place_kind=None)"
+ },
+ "_local_place_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_location_alias_values": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location)"
+ },
+ "_location_reference_in_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_lock_known_to_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state, door_id)"
+ },
+ "_locked_door_refusal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(door)"
+ },
+ "_look_opening": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_name)"
+ },
+ "_look_scene_changed": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_lore_claims_are_supported": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(lore_claims, lore_context)"
+ },
+ "_lore_entity_names": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(lore_context, world_state)"
+ },
+ "_lore_fact_records": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(lore_context, lore_claims)"
+ },
+ "_lore_guard_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(value)"
+ },
+ "_mark_combat_action_used": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(participant_id, action_type='attack')"
+ },
+ "_mark_lock_seen": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state, door)"
+ },
+ "_may_propose_local_place": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(resolved_turn, player_input)"
+ },
+ "_mechanical_outcome": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_migrate_legacy_combat_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(legacy)"
+ },
+ "_model_query_type_is_plausible": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_named_elsewhere_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, player_input)"
+ },
+ "_named_word_of": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_intent)"
+ },
+ "_names_current_local_exit": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_names_no_parcel": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, person, item_id, player_input)"
+ },
+ "_names_present_creature": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_names_the_district_here": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(word, world_state)"
+ },
+ "_narrate_resolved_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(resolved_turn: game.ResolvedTurn, player_input, messages, target_id)"
+ },
+ "_narrated_money_can_lie": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_result)"
+ },
+ "_narrated_person": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(word, player_input, listed)"
+ },
+ "_narration_contradicts_supported_name_memory": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, player_input, narration)"
+ },
+ "_narration_fact_packet": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_result)"
+ },
+ "_narration_has_unsupported_lore_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, lore_claims, lore_context, world_state)"
+ },
+ "_narration_is_unsafe": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, player_input, npc_target=None, action_result=None)"
+ },
+ "_narration_safety_decision": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, player_input, npc_target=None, action_result=None, *, attributed_speech=None)"
+ },
+ "_narration_scene_type": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_result)"
+ },
+ "_narrator_fact_view": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(packet, action_result)"
+ },
+ "_narrator_shop_record": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(shop)"
+ },
+ "_narrator_visible_profile": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(profile)"
+ },
+ "_natural_unresolved_action_response": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, action_result=None)"
+ },
+ "_new_persisted_species_trait_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(species, proficiency_bonus)"
+ },
+ "_new_species_trait_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(species, proficiency_bonus)"
+ },
+ "_nobody_here": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(word)"
+ },
+ "_normalize_ground_items": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_normalize_interaction_mode": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(value)"
+ },
+ "_normalize_turkish_location": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, reference)"
+ },
+ "_normalize_turkish_typos": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_npc_answers_to": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, text)"
+ },
+ "_npc_name_stance": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, npc, player_input)"
+ },
+ "_npc_speech_enabled": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_npc_speech_grants_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_npc_speech_is_claim_refusal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, npc=None)"
+ },
+ "_npc_speech_rejects_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_observe_anchored_structure": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, interaction_mode=None)"
+ },
+ "_offer_talk_with": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "_offer_terms_shown": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, npc, player_input, shown)"
+ },
+ "_only_stock": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_origin_choices_for_save": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(character)"
+ },
+ "_origin_choices_valid": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(choices)"
+ },
+ "_overheard_work": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world)"
+ },
+ "_owner_module_reply": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, interaction_mode)"
+ },
+ "_people_speak_for_themselves": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state)"
+ },
+ "_perform_skill_check": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(skill, dc, modifiers, proficient_skills, proficiency_bonus, advantage=False, disadvantage=False, expertise_skills=None, check_feature=None, check_evidence=None)"
+ },
+ "_person_answers_stock": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result, player_input, messages, target_id, interaction_mode, action_id, session_id, snapshot)"
+ },
+ "_person_fallback": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, npc, player_input)"
+ },
+ "_person_fight": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "_physical_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_player_question_has_unverified_lore_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, lore_context, world_state)"
+ },
+ "_player_state_for_save": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_prepare_lore_authority_context": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(lore_context)"
+ },
+ "_print_skill_result": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result, difficulty)"
+ },
+ "_promote_scene_referent": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(referent, location_id)"
+ },
+ "_public_combatant_label": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(identity, *, player_fallback=None, fallback=None)"
+ },
+ "_public_scene_person_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "_purchase_refused": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session, person, amount, player_input)"
+ },
+ "_query_location_candidates": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_quiet_place_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_reads_as_address": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_reads_as_question": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_reads_english": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_recent_player_visible_narration": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(limit=600)"
+ },
+ "_record_narration_safety": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(decision, handling)"
+ },
+ "_record_spoken_coin_response": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, response)"
+ },
+ "_reduce_attack_damage_to_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(damage)"
+ },
+ "_reference_token_matches": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(reference_token, input_token)"
+ },
+ "_registered_persistent_object_names": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state, include_carried=False)"
+ },
+ "_rejected_lore_narration": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target=None)"
+ },
+ "_remember_accepted_profile_focus": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target, action_id, field=None)"
+ },
+ "_remember_experimental_npc_speech": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc_id, player_text, npc_text, remember: bool = False, voiced=None)"
+ },
+ "_remember_owner_locked_tavern_focus": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target, action_id)"
+ },
+ "_remove_trigger_sentence": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, decision, action_result=None)"
+ },
+ "_render_experimental_npc_speech": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(payload, npc)"
+ },
+ "_reopen_public_doors": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_repair_attributed_speech": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(payload, decision)"
+ },
+ "_repair_dilim1_fields": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world: dict) -> list[str]"
+ },
+ "_repair_dilim2_fields": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world: dict) -> list[str]"
+ },
+ "_repair_internal_marks": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration)"
+ },
+ "_repair_unsupported_lore_narration": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, lore_claims, lore_context, world_state)"
+ },
+ "_report_of_someone_else": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target)"
+ },
+ "_reported_npc_claim_followed_by_player_inspection": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_resolve_campaign_npc_reference": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, world_state=None)"
+ },
+ "_resolve_enemy_turns_until_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_resolve_explicit_local_scene_parent": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(parent_location_id, player_input, *, fallback_single=True)"
+ },
+ "_resolve_player_death_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(*, noncombat_key=None)"
+ },
+ "_resolved_skill_result_narration": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result)"
+ },
+ "_restore_combat_death_checkpoint": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(cause)"
+ },
+ "_restore_in_place": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": false,
+  "signature": "(live, saved)"
+ },
+ "_rumour_lane_on": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "() -> bool"
+ },
+ "_run_player_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
+ },
+ "_run_player_turn_internal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, messages=None, target_id=None, scene_plan=None, interaction_mode=None, action_id=None, check_feature=None, check_evidence=None)"
+ },
+ "_run_player_turn_keyed": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
+ },
+ "_run_player_turn_owned": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, messages, target_id, scene_plan, action_id, session_id, combat_action, interaction_mode, check_feature, check_evidence)"
+ },
+ "_runs_a_shop": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state, npc)"
+ },
+ "_said_after_approach": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_said_to_someone_here": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session, reading) -> dict | None"
+ },
+ "_salvage_plain_speech": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_intent)"
+ },
+ "_scene_detail_parent": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(scene_id, player_input)"
+ },
+ "_scene_detail_proposals_allowed": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, world_state, interaction_mode)"
+ },
+ "_scene_feature_match": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, location_id)"
+ },
+ "_scene_has_registered_craft_role": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(term, world_state)"
+ },
+ "_scene_look_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id)"
+ },
+ "_scene_names": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id)"
+ },
+ "_scene_observation_proposal_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, world_state, interaction_mode)"
+ },
+ "_scene_presence_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id)"
+ },
+ "_scene_texts_for_referents": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state)"
+ },
+ "_serves_at_a_counter": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "_session": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": false,
+  "signature": "()"
+ },
+ "_set_scene_active_npc": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, turn_index)"
+ },
+ "_set_temporary_hit_points": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(amount, state=None)"
+ },
+ "_settle_address": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(resolution, player_input)"
+ },
+ "_settle_local_place": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_result)"
+ },
+ "_settle_spoken_commitment": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, npc, player_input, raw, spoken, *, threat=None, persuade=None, stage=None)"
+ },
+ "_shop_economy_request": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_shop_presence_question": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_show_coin_roll": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_result, card)"
+ },
+ "_shown_stage_direction": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(stage, world_state)"
+ },
+ "_singular_narrator": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_skill_result_category": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result)"
+ },
+ "_sleep_after_walk": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(walked, player_input, place_before, scene_plan=None)"
+ },
+ "_spares_the_fallen": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(actor_id)"
+ },
+ "_species_bonus_action": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_species_player_turn_id": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_species_trait_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_speech_answer_rules": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "() -> str"
+ },
+ "_speech_debug_trail": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(record)"
+ },
+ "_split_sentences_keep_speech": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_spoken_lore_fact_ids": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(lore_context, response, selected_ids)"
+ },
+ "_spoken_name_answer": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(spoken_text, npc)"
+ },
+ "_spoken_rest_of_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(grounded, player_input, messages, action_id, session_id)"
+ },
+ "_stage_within_the_street": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(stage, world_state)"
+ },
+ "_stands_by_their_words": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, player_input)"
+ },
+ "_start_combat_with_initiative": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_target_npc)"
+ },
+ "_states_the_failed_check": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, result, player_input)"
+ },
+ "_stealth_skill": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_stock": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_stock_hearer": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result, player_input, target_id)"
+ },
+ "_stock_said": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "_storm_thunder_reaction": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(attacker_npc, damage_taken, distance_ft)"
+ },
+ "_strip_pictographs": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_strip_proposal_markers": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration)"
+ },
+ "_supported_lore_question_response": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, lore_context, world_state)"
+ },
+ "_sync_combat_participant_records": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(combat)"
+ },
+ "_take_names_a_job": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(route)"
+ },
+ "_tavern_door_notice": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(tavern_id)"
+ },
+ "_tell_the_coin": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result)"
+ },
+ "_the_rest_of_the_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(result, messages, action_id, session_id, place_before)"
+ },
+ "_thread_gate": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, target_id, interaction_mode, *, front=None)"
+ },
+ "_thread_person": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, target_id)"
+ },
+ "_topic_place_name": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world)"
+ },
+ "_town_fallback": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, npc, player_input)"
+ },
+ "_town_in_play": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world)"
+ },
+ "_town_note": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world, npc)"
+ },
+ "_travel_completion": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, model_completion='unclear')"
+ },
+ "_travel_destination_reference_in_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_trim_dangling_quote": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_turkish_genitive_form": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(name)"
+ },
+ "_turns_to_someone_else": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_unarmed_save_text": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(target, result, save)"
+ },
+ "_unregistered_held_object": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state, narration)"
+ },
+ "_unregistered_persistent_object_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state, narration)"
+ },
+ "_unseen_registered_names": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state)"
+ },
+ "_unseen_self_introductions": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, unseen)"
+ },
+ "_unseen_speaker_repaired": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, world_state, npc_target)"
+ },
+ "_unseen_speakers": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, unseen)"
+ },
+ "_unsupported_available_quest_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration)"
+ },
+ "_unsupported_npc_history_or_relationship_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, npc_target=None, player_input='', *, spoken_start=None, own_words=False)"
+ },
+ "_untrusted_player_block": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(prefix, text)"
+ },
+ "_unverified_lore_response": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target=None)"
+ },
+ "_unverified_past_event_assertion": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_unverified_player_mental_state_trigger": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_action_text, second_person_verb)"
+ },
+ "_valid_local_feature_parent_id": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(parent_id, location)"
+ },
+ "_validate_combat_v3_payload": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(combat)"
+ },
+ "_validate_long_rest_history": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world)"
+ },
+ "_validate_player_condition_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player)"
+ },
+ "_validate_player_weapon_proficiencies": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player, version)"
+ },
+ "_validate_save_payload": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(payload)"
+ },
+ "_validate_saved_multilevel_slots": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player, saved_world)"
+ },
+ "_validate_species_trait_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(value, species, proficiency_bonus=2)"
+ },
+ "_validated_local_person_proposal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_intent)"
+ },
+ "_validated_player_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_line, player_input)"
+ },
+ "_validated_scene_npc_id": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_intent, player_input)"
+ },
+ "_variation_index": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(key, size)"
+ },
+ "_venue_door_for": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id)"
+ },
+ "_venue_door_id": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id)"
+ },
+ "_venue_entry_door": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world_state, origin, destination)"
+ },
+ "_voiced_keys": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_intent)"
+ },
+ "_walked_there": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(read, action_result, place_before)"
+ },
+ "_with_only_backed_money": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(speech, settled)"
+ },
+ "_without_label_variant": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(stage, name)"
+ },
+ "_without_lines_already_said": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(spoken, npc, world_state, player_input)"
+ },
+ "_without_place_names": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, world_state)"
+ },
+ "_without_real_world_faith": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text)"
+ },
+ "_word_check_for_action": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "_word_for_nobody_here": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(word, people)"
+ },
+ "_word_root": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(word)"
+ },
+ "_words_fit_person": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, text)"
+ },
+ "_world_snapshot": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "action_economy": {
+  "kind": "module"
+ },
+ "active_npcs": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location=None)"
+ },
+ "advance_campaign_time": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(seconds, reason, source=None, observation=None)"
+ },
+ "advance_combat_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "adventure": {
+  "kind": "module"
+ },
+ "adventure_director": {
+  "kind": "module"
+ },
+ "adventure_play": {
+  "kind": "module"
+ },
+ "analyze_player_action": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, character_class, proficient_skills)"
+ },
+ "apply_check_outcome_to_world_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, result)"
+ },
+ "apply_npc_damage": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, damage, *, knock_out=False)"
+ },
+ "ask_dungeon_master": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(messages, player_input, allow_new_npcs=False, allow_new_features=False, npc_target=None, world_entry=False, action_result=None, allow_new_locations=False, return_details=False, lore_context=None, allow_new_shops=False, scene_plan=None, narration_only=False)"
+ },
+ "assign_stats": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "attempt_player_stabilization": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(healer_id)"
+ },
+ "attributed_claims": {
+  "kind": "module"
+ },
+ "build_world_context": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc_target=None)"
+ },
+ "calculate_ac": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(character_class, dexterity_mod, constitution_mod, wisdom_mod)"
+ },
+ "calculate_attack_bonus": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "calculate_hp": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(character_class, constitution_mod)"
+ },
+ "campaign_time": {
+  "kind": "module"
+ },
+ "choose_option": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(title, options)"
+ },
+ "choose_skill_proficiencies": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(character_class)"
+ },
+ "clean_dm_response": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, *, spoken=False)"
+ },
+ "clean_location_description": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(text, *, whole_words=False)"
+ },
+ "collections": {
+  "kind": "module"
+ },
+ "combat_lifecycle": {
+  "kind": "module"
+ },
+ "combat_refusal_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(error)"
+ },
+ "commit_location_change": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id, turn_index=None)"
+ },
+ "contextlib": {
+  "kind": "module"
+ },
+ "contextvars": {
+  "kind": "module"
+ },
+ "copy": {
+  "kind": "module"
+ },
+ "create_local_feature": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal)"
+ },
+ "create_location_from_proposal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal)"
+ },
+ "create_npc_from_ai": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal, request_key=None, *, allow_other_location=False)"
+ },
+ "create_random_character": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "create_session": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": false,
+  "signature": "(seed=None)"
+ },
+ "create_shop_from_proposal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal)"
+ },
+ "dataclass": {
+  "kind": "function",
+  "module": "dataclasses",
+  "session_bound": false,
+  "signature": "(cls=None, /, *, init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False, match_args=True, kw_only=False, slots=False, weakref_slot=False)"
+ },
+ "deterministic_check_for_action": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "effect_lifecycle": {
+  "kind": "module"
+ },
+ "effect_targeting": {
+  "kind": "module"
+ },
+ "end_combat": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(reason='combat_ended')"
+ },
+ "ensure_campaign_clock": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "ensure_combat_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "ensure_death_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "ensure_npc_combat_stats": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "ensure_npc_enemy_stats": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "equipment_economy": {
+  "kind": "module"
+ },
+ "event_order": {
+  "kind": "module"
+ },
+ "execute_intent": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None)"
+ },
+ "feature_descriptions": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location=None)"
+ },
+ "field": {
+  "kind": "function",
+  "module": "dataclasses",
+  "session_bound": false,
+  "signature": "(*, default=<_MISSING_TYPE>, default_factory=<_MISSING_TYPE>, init=True, repr=True, hash=None, compare=True, metadata=None, kw_only=<_MISSING_TYPE>)"
+ },
+ "finalize_narration": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(narration, player_input, npc_target=None, action_result=None, fallback_reason_code=None, supported_player_claims=None, target_id=None, *, resolved_fallback_response=None, attributed_speech=None, python_town_response=None)"
+ },
+ "find_quest": {
+  "kind": "function",
+  "module": "quest_catalog",
+  "session_bound": false,
+  "signature": "(quest_id: 'str') -> 'Mapping[str, Any] | None'"
+ },
+ "find_weapon_in_inventory": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(weapon_name)"
+ },
+ "front_read_ahead": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, target_id=None, interaction_mode=None)"
+ },
+ "functools": {
+  "kind": "module"
+ },
+ "generate_npc_id": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "generate_shop_id": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "get_expertise_choice_count": {
+  "kind": "function",
+  "module": "api.dnd_2024_rules",
+  "session_bound": false,
+  "signature": "(character_class: 'str', level: 'int') -> 'int'"
+ },
+ "get_modifier": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(stat)"
+ },
+ "grant_temporary_hit_points": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(amount)"
+ },
+ "hashlib": {
+  "kind": "module"
+ },
+ "heal_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(amount)"
+ },
+ "held_weapon": {
+  "kind": "module"
+ },
+ "historical_claim_denial": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, player_input='')"
+ },
+ "incident_hooks": {
+  "kind": "module"
+ },
+ "incident_projection": {
+  "kind": "module"
+ },
+ "initialize_game": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(creation_choice=None, input_fn=<builtin_function_or_method>, print_fn=<builtin_function_or_method>)"
+ },
+ "initialize_species_trait_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(giant_ancestry=None)"
+ },
+ "initiative": {
+  "kind": "module"
+ },
+ "interaction_adventure": {
+  "kind": "module"
+ },
+ "is_dialogue_or_emotion": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "is_npc_dialogue_input": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "is_npc_historical_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "is_ordinary_environment_look": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "is_player_world_assertion": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "join_combat_participants": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(actor_ids)"
+ },
+ "json": {
+  "kind": "module"
+ },
+ "known_character_answer": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "known_player_action_narration": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "living_world": {
+  "kind": "module"
+ },
+ "load_game": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(path)"
+ },
+ "local_dialogue": {
+  "kind": "module"
+ },
+ "local_exploration": {
+  "kind": "module"
+ },
+ "location_display_name": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location_id=None)"
+ },
+ "location_features": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(location=None)"
+ },
+ "long_rest_gap_seconds": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(world)"
+ },
+ "merge_world_updates": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(updates)"
+ },
+ "messages": {
+  "kind": "data",
+  "type": "list"
+ },
+ "money_owner": {
+  "kind": "module"
+ },
+ "monster_sense": {
+  "kind": "module"
+ },
+ "most_plausible_addressee": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(people, player_input='')"
+ },
+ "name_catalog": {
+  "kind": "module"
+ },
+ "named_by_sight": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, text)"
+ },
+ "named_skill": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "normalize_intent": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(raw_intent, player_input)"
+ },
+ "normalize_location_id": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(value)"
+ },
+ "npc_ambiguity_response": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(resolution)"
+ },
+ "npc_memory_supporting_entry": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, player_input)"
+ },
+ "npc_memory_supports_claim": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, player_input)"
+ },
+ "npc_statements": {
+  "kind": "module"
+ },
+ "ollama": {
+  "kind": "module"
+ },
+ "ollama_reply_was_cut": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(response)"
+ },
+ "ollama_response_content": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(response)"
+ },
+ "open_scare_try": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input) -> bool"
+ },
+ "os": {
+  "kind": "module"
+ },
+ "parse_player_intent": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, interaction_context=None, dialogue_narration=False, operation_hint=None, require_conversation=False, allow_scene_detail_proposals=False, allow_local_person_proposal=False, experimental_npc_dialogue=False, recent_scene_narration='', strict=False, speech_note='', front_list=None)"
+ },
+ "perform_skill_check": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(skill, dc, modifiers, proficient_skills, proficiency_bonus, advantage=False, disadvantage=False, expertise_skills=None, check_feature=None, check_evidence=None)"
+ },
+ "person_fight_kind": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc)"
+ },
+ "plan_living_world_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, target_id=None, interaction_mode=None)"
+ },
+ "player_cannot_act_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "primal_knowledge_check_admission": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None, check_feature='primal_knowledge')"
+ },
+ "quest_catalog": {
+  "kind": "function",
+  "module": "quest_catalog",
+  "session_bound": false,
+  "signature": "() -> 'tuple[Mapping[str, Any], ...]'"
+ },
+ "random": {
+  "kind": "module"
+ },
+ "re": {
+  "kind": "module"
+ },
+ "recent_dm_narrations": {
+  "kind": "data",
+  "type": "list"
+ },
+ "record_npc_interaction": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, npc_reply, player_input, npc_target=None)"
+ },
+ "refusals": {
+  "kind": "module"
+ },
+ "register_attack_hook": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(event, callback)"
+ },
+ "register_initiative_hook": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(event, callback)"
+ },
+ "remove_combat_participant": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(actor_id)"
+ },
+ "require_player_can_act": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "resolution_action_scope": {
+  "kind": "function",
+  "module": "api.core_resolution",
+  "session_bound": false,
+  "signature": "(action_id: 'str', session_id: 'str | None' = None) -> 'Iterator[None]'"
+ },
+ "resolve_attack": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, weapon_name, weapon_data, target_npc, *, attack_choice=None, origin='action')"
+ },
+ "resolve_attack_roll": {
+  "kind": "function",
+  "module": "api.core_resolution",
+  "session_bound": false,
+  "signature": "(*, roll_fn: 'Callable[[], int]', attack_bonus: 'int', target_ac: 'int', advantage: 'bool' = False, disadvantage: 'bool' = False, action_id: 'str | None' = None, resolution_id: 'str | None' = None, actor_id: 'str | None' = None, target_id: 'str | None' = None) -> 'dict[str, Any]'"
+ },
+ "resolve_combat_target": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, npc_target=None, target_id=None)"
+ },
+ "resolve_death_save": {
+  "kind": "function",
+  "module": "api.core_resolution",
+  "session_bound": false,
+  "signature": "(*, roll_fn: 'Callable[[], int]', action_id: 'str | None' = None, resolution_id: 'str | None' = None) -> 'dict[str, Any]'"
+ },
+ "resolve_enemy_attack": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(target_npc)"
+ },
+ "resolve_location_reference": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(reference)"
+ },
+ "resolve_npc_reference": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, force_dialogue=False, allow_active_fallback=True, *, named_word=None)"
+ },
+ "resolve_python_world_action": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "resolve_saving_throw": {
+  "kind": "function",
+  "module": "api.core_resolution",
+  "session_bound": false,
+  "signature": "(*, roll_fn: 'Callable[[], int]', ability: 'str', dc: 'int', ability_modifier: 'int', proficiency_modifier: 'int' = 0, circumstantial_modifier: 'int' = 0, advantage: 'bool' = False, disadvantage: 'bool' = False, action_id: 'str | None' = None, resolution_id: 'str | None' = None) -> 'dict[str, Any]'"
+ },
+ "resolve_scene_seating": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action_input)"
+ },
+ "resolve_skill_check": {
+  "kind": "function",
+  "module": "api.core_resolution",
+  "session_bound": false,
+  "signature": "(*, roll_fn: 'Callable[[], int]', skill: 'str', ability: 'str', dc: 'int', ability_modifier: 'int', proficiency_modifier: 'int' = 0, circumstantial_modifier: 'int' = 0, proficient: 'bool' = False, expertise: 'bool' = False, advantage: 'bool' = False, disadvantage: 'bool' = False, action_id: 'str | None' = None, resolution_id: 'str | None' = None) -> 'dict[str, Any]'"
+ },
+ "resolve_species_trait_action": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None, draconic_ancestry=None, shape=None, target_id=None)"
+ },
+ "roll_attack": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "roll_d20": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "roll_damage": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(damage_die, damage_dice, ability_mod, *, rolls=None)"
+ },
+ "roll_initiative": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(dex_mod=0)"
+ },
+ "roll_initiative_npc": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "roll_initiative_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "roll_stat": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "run_player_turn": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
+ },
+ "save_game": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(path)"
+ },
+ "scheduled_events": {
+  "kind": "module"
+ },
+ "serialize_game_state": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "set_player_max_hp": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(maximum)"
+ },
+ "should_generate_features": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, location_changed=False, interaction_mode=None)"
+ },
+ "should_generate_npcs": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, location_changed=False)"
+ },
+ "speech_repeat_line": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(npc, player_input='', salt=0)"
+ },
+ "stabilize_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "()"
+ },
+ "start_combat": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_target_npc)"
+ },
+ "start_terminal_game": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(input_fn=<builtin_function_or_method>, print_fn=<builtin_function_or_method>, save_path=<PosixPath>)"
+ },
+ "sys": {
+  "kind": "module"
+ },
+ "system_prompt": {
+  "kind": "data",
+  "type": "str"
+ },
+ "talk_front": {
+  "kind": "module"
+ },
+ "talk_mode": {
+  "kind": "module"
+ },
+ "tempfile": {
+  "kind": "module"
+ },
+ "timed_gameplay": {
+  "kind": "module"
+ },
+ "tr_case": {
+  "kind": "module"
+ },
+ "tr_names": {
+  "kind": "module"
+ },
+ "turn_source_key": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(session)"
+ },
+ "types": {
+  "kind": "module"
+ },
+ "unicodedata": {
+  "kind": "module"
+ },
+ "update_inventory_from_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "update_world_state_from_player": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input)"
+ },
+ "uuid4": {
+  "kind": "function",
+  "module": "uuid",
+  "session_bound": false,
+  "signature": "()"
+ },
+ "validate_intent": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(intent, player_input)"
+ },
+ "validate_location_proposal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal)"
+ },
+ "validate_npc_proposal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal, allow_other_location=False)"
+ },
+ "validate_shop_proposal": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(proposal)"
+ },
+ "validate_world_updates": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(updates, allow_new_npcs=False, allow_new_features=False, allow_new_locations=False, allow_new_shops=False, allowed_feature_kinds=None)"
+ },
+ "weapon_attack": {
+  "kind": "module"
+ },
+ "world_state": {
+  "kind": "data",
+  "type": "dict"
+ }
+}

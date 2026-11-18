@@ -72,4 +72,5 @@ class TrNamesTests(unittest.TestCase):
         import inspect
         import game
         self.assertIn("tr_names.narrator_note(", inspect.getsource(game._dm_prompt_note))
-        self.assertGreaterEqual(inspect.getsource(game).count("_dm_prompt_note("), 2)  # defined and called in the narrator prompt
+        from api.tests.engine_sources import engine_source_text
+        self.assertGreaterEqual(engine_source_text().count("_dm_prompt_note("), 2)  # defined and called in the narrator prompt

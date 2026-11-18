@@ -28,6 +28,7 @@ from api.persistence.campaign_models import CampaignStaleError, CampaignStorageE
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_ambient_actions as ambient
+from api.tests.engine_sources import engine_source_text
 from api.tests import test_campaign_api
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.journeys.runner import _campaign_seeded
@@ -668,6 +669,9 @@ ENGINE_ROOT = Path(game.__file__).resolve().parent
 # Scanned: literals assigned to `narration_source` / `narration_src`, the dict key "narration_source", and
 # that keyword argument. `test_no_other_engine_module_reports_a_source` keeps this pair complete.
 ENGINE_REPORTERS = ("game.py", "dialogue_runtime.py")
+# game.py split: a game_parts file that mentions the source must be named here, as a move task moves the code (pinned, like
+# test_talk_mode_writers); the value scan above already reads every part through engine_source_text().
+ENGINE_PART_REPORTERS = ()
 # BM T11: the route log (`front_proposal.log_turn`) reads the engine's source from the turn telemetry and writes it,
 # with the route-log-only label "python_direct", into its own line. It stores nothing in the campaign history, so it is
 # no reporter for the store list; it is named here so a third module cannot join unnoticed.
@@ -679,8 +683,9 @@ class TheListIsTheEngines(unittest.TestCase):
 
     def engine_values(self, extra_source=""):
         found = set()
-        for name in ENGINE_REPORTERS:
-            found |= reported_sources((ENGINE_ROOT / name).read_text(encoding="utf-8"))
+        for name in ENGINE_REPORTERS:  # "game.py" stands for the engine file and its game_parts
+            text = engine_source_text() if name == "game.py" else (ENGINE_ROOT / name).read_text(encoding="utf-8")
+            found |= reported_sources(text)
         return found | reported_sources(extra_source)
 
     def test_the_store_list_equals_what_the_engine_reports(self):
@@ -710,7 +715,7 @@ class TheListIsTheEngines(unittest.TestCase):
             text = path.read_text(encoding="utf-8", errors="ignore")
             if "narration_source" in text or "narration_src" in text:
                 mentioning.add(relative.as_posix())
-        self.assertEqual(mentioning, set(ENGINE_REPORTERS) | set(ROUTE_LOG_WRITERS))
+        self.assertEqual(mentioning, set(ENGINE_REPORTERS) | set(ENGINE_PART_REPORTERS) | set(ROUTE_LOG_WRITERS))
         self.assertNotIn("python_direct", campaign_store._NARRATION_SOURCES)  # the route-log label never reaches the store
 
 

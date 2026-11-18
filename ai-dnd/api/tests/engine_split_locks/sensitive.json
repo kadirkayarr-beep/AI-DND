@@ -1,0 +1,273 @@
+{
+  "functions": {
+    "_begin_combat_actor_turn": [
+      "save"
+    ],
+    "_bind_world_update_mentions": [
+      "money"
+    ],
+    "_campaign_has_shopkeeper": [
+      "money"
+    ],
+    "_capture_combat_death_checkpoint": [
+      "snapshot"
+    ],
+    "_carry_out_thread_turn": [
+      "money"
+    ],
+    "_changed_state_fields": [
+      "money"
+    ],
+    "_clear_turn_transients": [
+      "money"
+    ],
+    "_coin_not_parcel": [
+      "money"
+    ],
+    "_coin_persuasion": [
+      "money"
+    ],
+    "_current_procedural_entity_ids": [
+      "money"
+    ],
+    "_defer_spoken_coin_offer": [
+      "money"
+    ],
+    "_dispatch_player_turn": [
+      "money"
+    ],
+    "_dm_response_schema_for_turn": [
+      "money"
+    ],
+    "_economic_listing": [
+      "money"
+    ],
+    "_ensure_local_merchant": [
+      "money"
+    ],
+    "_execute_intent_internal": [
+      "money"
+    ],
+    "_experimental_speech_note": [
+      "money"
+    ],
+    "_explicit_campaign_shop_negative_request": [
+      "money"
+    ],
+    "_explicit_campaign_shop_request": [
+      "money"
+    ],
+    "_finalize_player_death": [
+      "snapshot"
+    ],
+    "_finding_says_too_much": [
+      "money"
+    ],
+    "_front_economic_offer": [
+      "money"
+    ],
+    "_front_hand_over": [
+      "money"
+    ],
+    "_front_offer_gate": [
+      "money"
+    ],
+    "_front_step": [
+      "money"
+    ],
+    "_hand_over_coin": [
+      "money"
+    ],
+    "_is_shopkeeper_role": [
+      "money"
+    ],
+    "_job_fallback": [
+      "money"
+    ],
+    "_keep_town_portrait": [
+      "money"
+    ],
+    "_line_gives": [
+      "money"
+    ],
+    "_lore_entity_names": [
+      "money"
+    ],
+    "_mark_combat_action_used": [
+      "save"
+    ],
+    "_migrate_legacy_combat_state": [
+      "save"
+    ],
+    "_names_no_parcel": [
+      "money"
+    ],
+    "_narrate_resolved_turn": [
+      "money"
+    ],
+    "_narrated_money_can_lie": [
+      "money"
+    ],
+    "_narrator_shop_record": [
+      "money"
+    ],
+    "_npc_answers_to": [
+      "money"
+    ],
+    "_offer_talk_with": [
+      "money"
+    ],
+    "_origin_choices_for_save": [
+      "save"
+    ],
+    "_person_answers_stock": [
+      "snapshot"
+    ],
+    "_player_state_for_save": [
+      "save"
+    ],
+    "_purchase_refused": [
+      "money"
+    ],
+    "_record_spoken_coin_response": [
+      "money"
+    ],
+    "_resolve_player_death_turn": [
+      "save"
+    ],
+    "_restore_combat_death_checkpoint": [
+      "save",
+      "snapshot"
+    ],
+    "_restore_in_place": [
+      "snapshot"
+    ],
+    "_run_player_turn_internal": [
+      "money"
+    ],
+    "_run_player_turn_keyed": [
+      "money",
+      "snapshot"
+    ],
+    "_run_player_turn_owned": [
+      "money",
+      "snapshot"
+    ],
+    "_runs_a_shop": [
+      "money"
+    ],
+    "_scene_presence_text": [
+      "money"
+    ],
+    "_shop_economy_request": [
+      "money"
+    ],
+    "_shop_presence_question": [
+      "money"
+    ],
+    "_show_coin_roll": [
+      "money"
+    ],
+    "_sleep_after_walk": [
+      "money"
+    ],
+    "_speech_debug_trail": [
+      "file_write"
+    ],
+    "_start_combat_with_initiative": [
+      "save",
+      "snapshot"
+    ],
+    "_tell_the_coin": [
+      "money"
+    ],
+    "_the_rest_of_the_line": [
+      "money"
+    ],
+    "_thread_gate": [
+      "money",
+      "snapshot"
+    ],
+    "_validate_combat_v3_payload": [
+      "save"
+    ],
+    "_validate_save_payload": [
+      "save"
+    ],
+    "_validate_saved_multilevel_slots": [
+      "save"
+    ],
+    "_with_only_backed_money": [
+      "money"
+    ],
+    "_world_snapshot": [
+      "money"
+    ],
+    "ask_dungeon_master": [
+      "money"
+    ],
+    "build_world_context": [
+      "money"
+    ],
+    "clean_location_description": [
+      "money"
+    ],
+    "create_shop_from_proposal": [
+      "money"
+    ],
+    "deterministic_check_for_action": [
+      "money"
+    ],
+    "ensure_combat_state": [
+      "save"
+    ],
+    "execute_intent": [
+      "snapshot"
+    ],
+    "finalize_narration": [
+      "money"
+    ],
+    "front_read_ahead": [
+      "money"
+    ],
+    "generate_shop_id": [
+      "money"
+    ],
+    "load_game": [
+      "money",
+      "save"
+    ],
+    "merge_world_updates": [
+      "money"
+    ],
+    "normalize_intent": [
+      "money"
+    ],
+    "parse_player_intent": [
+      "money"
+    ],
+    "perform_skill_check": [
+      "snapshot"
+    ],
+    "plan_living_world_turn": [
+      "money"
+    ],
+    "save_game": [
+      "file_write",
+      "save"
+    ],
+    "serialize_game_state": [
+      "save"
+    ],
+    "start_terminal_game": [
+      "save"
+    ],
+    "validate_shop_proposal": [
+      "money"
+    ],
+    "validate_world_updates": [
+      "money"
+    ]
+  },
+  "removed": []
+}

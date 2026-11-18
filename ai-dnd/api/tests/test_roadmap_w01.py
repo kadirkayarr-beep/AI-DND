@@ -125,8 +125,10 @@ class KnowledgeLayerTests(unittest.TestCase):
 
     def test_no_mind_reading_mechanic_discloses_thoughts_today(self):
         root = pathlib.Path(__file__).resolve().parents[2]
-        for name in ("game.py", "interaction_adventure.py", "npc_statements.py"):
-            text = (root / name).read_text(encoding="utf-8").casefold()
+        from api.tests.engine_sources import engine_source_files
+        for path in [*engine_source_files(), *(root / name for name in ("interaction_adventure.py", "npc_statements.py"))]:
+            name = path.name
+            text = path.read_text(encoding="utf-8").casefold()
             self.assertNotIn("detect thoughts", text, f"{name}: a mind-reading rule would need a permitted-scope test")
 
 

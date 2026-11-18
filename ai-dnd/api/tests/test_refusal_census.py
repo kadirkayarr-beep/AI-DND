@@ -5,9 +5,10 @@ import unittest
 from pathlib import Path
 
 import refusals
+from api.tests.engine_sources import engine_source_files
 
 ROOT = Path(__file__).resolve().parents[2]          # ai-dnd/
-SCANNED = ("action_economy.py", "combat_lifecycle.py", "weapon_attack.py", "game.py")   # + spell modules below
+SCANNED = ("action_economy.py", "combat_lifecycle.py", "weapon_attack.py")   # + the engine files and the spell modules below
 
 
 def _spell_modules():
@@ -16,8 +17,8 @@ def _spell_modules():
 
 def codes_found():
     codes = set()
-    for rel in (*SCANNED, *_spell_modules()):
-        for node in ast.walk(ast.parse((ROOT / rel).read_text(encoding="utf-8-sig"))):
+    for path in [*(ROOT / rel for rel in SCANNED), *engine_source_files(), *(ROOT / rel for rel in _spell_modules())]:
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8-sig"))):
             if (isinstance(node, ast.Call) and (getattr(node.func, "id", None) or getattr(node.func, "attr", None))
                     in {"fail", "CombatRequestError"} and node.args and isinstance(node.args[0], ast.Constant)
                     and isinstance(node.args[0].value, str)):
@@ -48,7 +49,8 @@ class RefusalCensus(unittest.TestCase):
                 if "text_for" in called and "note" not in called:
                     missing.append(f"{rel}:{node.name}")
         self.assertEqual(missing, [])
-        self.assertIn("combat_refusal_turn", {n.name for n in ast.walk(ast.parse((ROOT / "game.py").read_text(encoding="utf-8-sig")))
+        self.assertIn("combat_refusal_turn", {n.name for path in engine_source_files()
+                                              for n in ast.walk(ast.parse(path.read_text(encoding="utf-8-sig")))
                                               if isinstance(n, ast.FunctionDef)
                                               and "note" in {s.func.attr for s in ast.walk(n) if isinstance(s, ast.Call)
                                                              and isinstance(s.func, ast.Attribute)}})
