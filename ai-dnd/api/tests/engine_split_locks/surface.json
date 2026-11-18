@@ -1497,7 +1497,7 @@
  },
  "_has_active_local_npc_focus_for_place_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(world_state, *, target_id=None)"
  },
@@ -1659,13 +1659,13 @@
  },
  "_is_figurative_key_transfer": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(text, match_start)"
  },
  "_is_generic_speaker_label": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(label)"
  },
@@ -1923,7 +1923,7 @@
  },
  "_lore_claims_are_supported": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(lore_claims, lore_context)"
  },
@@ -1935,13 +1935,13 @@
  },
  "_lore_fact_records": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(lore_context, lore_claims)"
  },
  "_lore_guard_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(value)"
  },
@@ -2367,7 +2367,7 @@
  },
  "_registered_persistent_object_names": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(world_state, include_carried=False)"
  },
@@ -2547,7 +2547,7 @@
  },
  "_salvage_plain_speech": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(raw_intent)"
  },
@@ -2727,13 +2727,13 @@
  },
  "_split_sentences_keep_speech": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(text)"
  },
  "_spoken_lore_fact_ids": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(lore_context, response, selected_ids)"
  },
@@ -2937,7 +2937,7 @@
  },
  "_unseen_registered_names": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(world_state)"
  },
@@ -2955,7 +2955,7 @@
  },
  "_unseen_speakers": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(text, unseen)"
  },

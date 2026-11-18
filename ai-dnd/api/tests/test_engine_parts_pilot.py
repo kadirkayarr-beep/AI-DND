@@ -30,6 +30,7 @@ TABLES = tuple(batch_names("tables"))
 SCHEMAS = tuple(batch_names("schemas"))
 TEXT_A1 = tuple(batch_names("text-a1"))
 TEXT_A2 = tuple(batch_names("text-a2"))
+TEXT_B1 = tuple(batch_names("text-b1"))
 
 
 def _canonical(value):
@@ -65,7 +66,8 @@ def value_digest(names) -> str:
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.text_rules_a"))  # Task 18 (pilot a), Task 19 (pilot b)
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.text_rules_a",
+                                              "game_parts.text_rules_b"))  # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -105,11 +107,13 @@ class PilotRollD20(unittest.TestCase):
 
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
-        show = "print(game.roll_d20.__module__); print(game._inside_speech.__module__)"
+        show = ("print(game.roll_d20.__module__); print(game._inside_speech.__module__); "
+                "print(game._split_sentences_keep_speech.__module__)")
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
             self.assertEqual((done.returncode, done.stdout.split()),
-                             (0, ["game_parts.character_rules", "game_parts.text_rules_a"]), done.stderr)
+                             (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b"]),
+                             done.stderr)
 
 
 class PilotSpeechSpan(unittest.TestCase):
@@ -133,11 +137,14 @@ class PilotSpeechSpan(unittest.TestCase):
         self.assertEqual(game._inside_speech.__module__, "game_parts.text_rules_a")
 
     def test_the_reader_left_in_game_py_still_works(self):
-        # _split_sentences_keep_speech stays in game.py and reads _SPEECH_SPAN_RE; expected value captured on 5da99a42
-        self.assertEqual(game._split_sentences_keep_speech.__module__, "game")
-        text = "Kapı açıldı. “Dur! Kim var? Çık dışarı.” dedi muhafız. Sonra sustu."
+        # _split_sentences_keep_speech reads _SPEECH_SPAN_RE through game (it moved to text_rules_b in Plan 2 Task 13;
+        # the id is kept so TM2 does not count it LOST); expected value captured on 5da99a42
+        text ="Kapı açıldı. “Dur! Kim var? Çık dışarı.” dedi muhafız. Sonra sustu."
         self.assertEqual(game._split_sentences_keep_speech(text),
                          ["Kapı açıldı.", "“Dur! Kim var? Çık dışarı.” dedi muhafız.", "Sonra sustu."])
+
+    def test_the_speech_reader_lives_in_text_rules_b(self):
+        self.assertEqual(game._split_sentences_keep_speech.__module__, "game_parts.text_rules_b")
 
 
 class TablesPart(unittest.TestCase):
@@ -273,6 +280,60 @@ class TextA2Part(unittest.TestCase):
         for helper, args, expected in cases:
             with self.subTest(helper=helper.__name__, args=args):
                 self.assertEqual(helper(*args), expected)
+
+
+class TextB1Part(unittest.TestCase):
+    """T3.5 batch text-b1: lore and narration text helpers live in game_parts/text_rules_b.py; game.py re-exports them."""
+
+    def test_text_b1_lives_in_the_part(self):
+        self.assertEqual(set(TEXT_B1) - set(routing_audit.re_exports(ROOT).get("text_rules_b", [])), set())
+
+    def test_text_b1_helpers_answer_as_before(self):
+        # inputs carry Turkish letters and curly quotes; expected values captured on 86bdd45a before the move
+        # (slot Python 3.13)
+        cases = (
+            (game._split_sentences_keep_speech,
+             ("Muhafız bağırdı: “Dur! Kim var orada? Çık dışarı.” Sonra İlkay güldü. Şükrü sustu…",),
+             ["Muhafız bağırdı: “Dur! Kim var orada? Çık dışarı.” Sonra İlkay güldü.", "Şükrü sustu…"]),
+            (game._split_sentences_keep_speech,
+             ("Kâtip: “Defter kapandı. Yarın gel!” dedi! Çarşı boşaldı?  Işıklar söndü.",),
+             ["Kâtip: “Defter kapandı. Yarın gel!” dedi!", "Çarşı boşaldı?", "Işıklar söndü."]),
+            (game._unseen_speakers,
+             ("Marek yaklaşır ve tezgâha eğilir. Şükrü: “Hoş geldin, yolcu.”",
+              {"marek": "Marek Özpil", "şükrü": "Şükrü"}),
+             [(0, 5), (34, 39)]),
+            (game._unseen_speakers,
+             ("Özpil, “Marek yaklaşır sanma.” der. Özpil Marek yaklaşır.", {"marek": "Özpil Marek"}), [(36, 47)]),
+            (game._lore_guard_text, ("Kral’ın Şövalyesi IŞIK Çarşısı'nda, 1492 DR’de “öldü”.",),
+             "kral sovalyesi isik carsisi 1492 dr oldu"),
+            (game._lore_guard_text, ("  Özgür Ağa'nın gölgesi, Çiğdem’s Inn!  ",), "ozgur aga golgesi cigdem inn"),
+            (game._is_generic_speaker_label, ("Yakındaki kişi",), True),
+            (game._is_generic_speaker_label, ("  bir yaşlı kadın ",), True),
+            (game._is_generic_speaker_label, ("Kapıdaki uzun boylu biri",), True),
+            (game._is_generic_speaker_label, ("Marek Özpil",), False),
+            (game._is_generic_speaker_label, ("Bir “muhafız”",), False),
+        )
+        for helper, args, expected in cases:
+            with self.subTest(helper=helper.__name__, args=args):
+                self.assertEqual(helper(*args), expected)
+        salvage = (
+            ({"interaction": {"operation": "none", "conversation": {"meaning": "other", "topic": "hava"}},
+              "narration": "Özpil: “Hoş geldin.”"},
+             True, {"interaction": {"operation": "none", "conversation": None}, "narration": "Özpil: “Hoş geldin.”"}),
+            ({"interaction": {"operation": None, "conversation": {"meaning": "identity"}},
+              "narration": "“Ben kimim?” diye sorar."},
+             False, {"interaction": {"operation": None, "conversation": {"meaning": "identity"}},
+                     "narration": "“Ben kimim?” diye sorar."}),
+            ({"interaction": {"operation": "trade", "conversation": None}, "narration": "“Şu kılıcı al.”"},
+             False, {"interaction": {"operation": "trade", "conversation": None}, "narration": "“Şu kılıcı al.”"}),
+            ({"interaction": {"operation": "none", "conversation": None}, "narration": "   "},
+             False, {"interaction": {"operation": "none", "conversation": None}, "narration": "   "}),
+            ("düz metin", False, "düz metin"),
+        )
+        for raw, expected, after in salvage:
+            with self.subTest(helper="_salvage_plain_speech", raw=after):
+                self.assertIs(game._salvage_plain_speech(raw), expected)
+                self.assertEqual(raw, after)
 
 
 if __name__ == "__main__":

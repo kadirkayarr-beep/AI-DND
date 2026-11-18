@@ -248,3 +248,10 @@ Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi
 |---|---|---|
 | `test_engine_probe_tools.LedgerCli.test_the_diff_fails_on_a_drop_and_a_lost_test`, `test_the_diff_fails_on_a_new_red_subtest_inside_a_test_that_was_already_red` | beklenen `--diff` çıktısına yeni iki satır eklendi (`SUBNOISE 0` `NOISE`'dan sonra, `SUBGONE 0` `SUBLOST`'tan sonra); eski satırlar ve exit kodu aynı | eşit sıkılık (iddia eklendi) |
 | `test_engine_probe_tools.FunctionCountsCli.test_the_diff_fails_on_a_function_that_ran_fewer_lines` | N7 `--diff` bant kuralı: iki tabanın uyuşmadığı ad (`g`: 2 ve 1) artık dışlanmıyor; yeni 0 < alt taban 1 olduğu için `DOWN 1  f` yerine `DOWN 2  f  g` bekleniyor. Gürültüsüz adda bant tek değer, davranış aynı | eşit sıkılık (gürültülü ad için daha sıkı; alt tabanı içe aktarma tabanı olan ad yine kör, D-373) |
+
+### 18.5 game.py bölme Plan 2 Görev 13 (dal `task/game-py-bolme-t3`, onay bekliyor)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_engine_parts_pilot.PilotSpeechSpan.test_the_reader_left_in_game_py_still_works` | `_split_sentences_keep_speech` `game_parts/text_rules_b.py`'ye taşındı; `__module__ == "game"` iddiası bu testten çıktı ve aynı sıkılıkla yeni `test_the_speech_reader_lives_in_text_rules_b` testine geçti (`__module__ == "game_parts.text_rules_b"`, taşımadan önce kırmızı görüldü). Test kimliği ve sabitlenen değer iddiası aynı kaldı (TM2'de `LOST` sayılmasın diye); yalnız yorum satırı düzeltildi | eşit sıkılık (iddia yeni teste taşındı) |
+| `test_engine_parts_pilot.WrapperFilter.test_the_wrapper_filter_reads_an_explicit_part_list` | beklenen `_PART_MODULES` değerine `"game_parts.text_rules_b"` eklendi | eşit sıkılık (tam değer eşitliği korunuyor) |
