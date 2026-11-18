@@ -74,7 +74,8 @@ ESCAPES = [
  ("R6", "import game\ndef f():\n    return game.sys.modules\n"),                             # sys.modules through game
 ]
 # M1: game.py re-exports roll_d20 from part p (the only case a part may define a patched name).
-GAME_REEXPORT = GAME_PY.replace("def roll_d20():\n    return random.randint(1, 20)\n", "from game_parts.p import roll_d20\n")
+GAME_REEXPORT = (GAME_PY.replace("def roll_d20():\n    return random.randint(1, 20)\n", "from game_parts.p import roll_d20\n")
+                 + '_PART_MODULES = ("game_parts.p",)\n')
 FINDING = re.compile(r"^R[1-7] \S+:\d+: ")
 
 
@@ -119,6 +120,26 @@ class RoutingAuditTests(unittest.TestCase):
     def test_a_moved_surface_function_may_be_defined_in_its_part(self):
         src = "import game\ndef roll_d20():\n    return game._session().rng.randint(1, 20)\n"
         self.assertEqual(self.run_audit(self.tree(src, game=GAME_REEXPORT)), [])
+
+    def test_part_modules_and_the_reexport_lines_agree(self):
+        moved = "import game\ndef roll_d20():\n    return game._session().rng.randint(1, 20)\nK2 = 1\n"
+        plain = GAME_REEXPORT.replace('_PART_MODULES = ("game_parts.p",)\n', "")
+        cases = [
+            (moved, plain + "_PART_MODULES = ()\n", "game_parts.p"),                         # re-exported def, empty list
+            (moved, plain, "game_parts.p"),                                                  # re-exported def, no list at all
+            ("import game\n", GAME_PY + '_PART_MODULES = ("game_parts.p",)\n', "game_parts.p"),  # entry with no re-export
+            (moved, GAME_REEXPORT + '_PART_MODULES = ("game_parts.p",)\n', "_PART_MODULES"),  # bound twice
+            (moved, plain + '_PART_MODULES = tuple(["game_parts.p"])\n', "_PART_MODULES"),    # not a tuple literal
+        ]
+        for src, game, word in cases:
+            with self.subTest(game=game[-60:]):
+                findings = self.run_audit(self.tree(src, game=game))
+                self.assertEqual([f.split(":")[0] for f in findings], ["R2 game.py"], findings)
+                self.assertIn(word, findings[0])
+        # a re-exported constant alone (like _SPEECH_SPAN_RE) does not put its part in the list
+        constant_only = GAME_PY + "from game_parts.p import K2\n"
+        self.assertEqual(self.run_audit(self.tree("import game\nK2 = 1\n", game=constant_only)), [])
+        self.assertEqual(self.run_audit(self.tree(moved, game=GAME_REEXPORT)), [])
 
     def test_a_patched_name_is_defined_only_in_the_part_game_py_reexports_it_from(self):
         bound = "patched name roll_d20 is bound in the part"

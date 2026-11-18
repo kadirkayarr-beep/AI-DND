@@ -393,7 +393,48 @@ def _game_facts(root: Path, findings: list[str]):
     for node in tree.body:
         if isinstance(node, ast.ImportFrom) and node.level == 0 and (node.module or "").startswith("game_parts."):
             reexports.setdefault(node.module, set()).update(a.name for a in node.names if a.name != "*")
+    findings += _part_modules_findings(root, tree, reexports)
     return {b.name for b in binds}, reexports
+
+
+def _part_modules_findings(root: Path, tree: ast.Module, reexports: dict[str, set[str]]) -> list[str]:
+    """R2: game._PART_MODULES (a top-level tuple literal) names exactly the parts game.py re-exports a def from.
+
+    The wrapper filter reads that list, so a re-exported part function missing from it loses its session wrapper,
+    and an extra entry wraps a part game.py does not re-export. The terminal part is reached only inside the
+    __main__ guard, re-exports nothing and stays out of the list.
+    """
+    assigns = [n for n in tree.body if isinstance(n, (ast.Assign, ast.AnnAssign, ast.AugAssign))
+               and any(isinstance(t, ast.Name) and t.id == "_PART_MODULES"
+                       for t in (n.targets if isinstance(n, ast.Assign) else [n.target]))]
+    findings, listed = [], set()
+    if len(assigns) > 1:
+        findings.append(f"R2 game.py:{assigns[1].lineno}: _PART_MODULES is bound more than once")
+    elif assigns:
+        node = assigns[0]
+        value = node.value
+        if not (isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(value, ast.Tuple)
+                and all(isinstance(e, ast.Constant) and isinstance(e.value, str) for e in value.elts)):
+            findings.append(f"R2 game.py:{node.lineno}: _PART_MODULES is not a tuple literal of strings")
+        else:
+            listed = {e.value for e in value.elts}
+    if findings:
+        return findings
+    needed = {}
+    for node in tree.body:
+        if not (isinstance(node, ast.ImportFrom) and node.level == 0 and (node.module or "").startswith("game_parts.")):
+            continue
+        path = root / "game_parts" / (node.module.split(".", 1)[1] + ".py")
+        part = _read(path)[0] if path.is_file() else None   # a part that does not parse is reported by _part_findings
+        defs = {n.name for n in part.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))} if part else set()
+        if defs & reexports[node.module]:
+            needed.setdefault(node.module, node.lineno)
+    line = assigns[0].lineno if assigns else 1
+    findings += [f"R2 game.py:{lineno}: re-exports a function from {module} but _PART_MODULES does not list it"
+                 for module, lineno in sorted(needed.items()) if module not in listed]
+    findings += [f"R2 game.py:{line}: _PART_MODULES lists {module} but game.py re-exports no function from it"
+                 for module in sorted(listed - set(needed))]
+    return findings
 
 
 def _resolvable(node: ast.AST, parents: dict) -> bool:

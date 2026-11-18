@@ -416,6 +416,7 @@ class DevelopmentToolingTests(unittest.TestCase):
 
     def test_archive_guard_names_game_parts_as_verifier_source(self):
         # An outside root contains nothing, so every guarded path is evaluated.
+        # A spy, not assertRaises: a raise for game_parts alone is unreachable (any root holding it also holds game.py, and game_parts itself is inside the checkout), so the spy proves the path is evaluated.
         outside = tempfile.TemporaryDirectory()
         self.addCleanup(outside.cleanup)
         seen = []

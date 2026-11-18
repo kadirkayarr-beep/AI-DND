@@ -57,10 +57,11 @@ class PilotRollD20(unittest.TestCase):
 
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
-        for code in ("import game, game_parts; print(game.roll_d20.__module__)",
-                     "import game_parts, game; print(game.roll_d20.__module__)"):
+        show = "print(game.roll_d20.__module__); print(game._inside_speech.__module__)"
+        for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
-            self.assertEqual((done.returncode, done.stdout.strip()), (0, "game_parts.character_rules"), done.stderr)
+            self.assertEqual((done.returncode, done.stdout.split()),
+                             (0, ["game_parts.character_rules", "game_parts.text_rules_a"]), done.stderr)
 
 
 class PilotSpeechSpan(unittest.TestCase):
