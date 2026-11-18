@@ -161,6 +161,24 @@ class MoveTests(unittest.TestCase):
         self.assertEqual(self.game.read_bytes(), src)
         self.assertFalse(self.part.exists())
 
+    def test_a_never_moved_name_bound_by_the_same_statement_is_refused(self):  # T2.4 prep
+        src = b"X, RULE_ORDER = 1, 2\n"
+        self.game.write_bytes(src)
+        with self.assertRaises(MoveRefused):
+            move(self.game, self.part, ["X"], set())
+        self.assertEqual(self.game.read_bytes(), src)
+        self.assertFalse(self.part.exists())
+
+    def test_the_part_list_and_the_narration_list_never_move(self):  # T2.4 prep
+        for name in ("_PART_MODULES", "recent_dm_narrations"):
+            with self.subTest(name):
+                src = f"{name} = ()\n".encode()
+                self.game.write_bytes(src)
+                with self.assertRaises(MoveRefused):
+                    move(self.game, self.part, [name], set())
+                self.assertEqual(self.game.read_bytes(), src)
+                self.assertFalse(self.part.exists())
+
     def test_unknown_and_import_names_are_refused(self):
         self.game.write_bytes(b"import re\n\ndef f():\n    return re\n")
         for name in ("nope", "re"):

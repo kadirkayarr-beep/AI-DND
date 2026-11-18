@@ -188,7 +188,9 @@ def _part_findings(base_part: Path, part: Path, part_name: str, spans: list[tupl
     exempt = _manual_lines(manual, part_name)
     import_lines = _import_only_lines(part)
     found, known = [], set()
-    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, base_lines, new_lines, autojunk=False).get_opcodes():
+    # a new block's line must not stand in for a base line deleted from an earlier block (tail delete): mask it
+    masked = [None if any(s <= j <= e for s, e in spans) else line for j, line in enumerate(new_lines, start=1)]
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, base_lines, masked, autojunk=False).get_opcodes():
         if tag == "equal":
             known.update(range(j1 + 1, j2 + 1))
         elif tag in ("delete", "replace"):

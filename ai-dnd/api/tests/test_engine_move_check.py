@@ -161,10 +161,10 @@ class MoveCheckTests(unittest.TestCase):
         move(self.new / "game.py", self.new / "game_parts" / "dice.py", ["roll"], set())
         self.assertEqual(self.check()["changed"], [])
 
-    def second_move(self, edit=None):
+    def second_move(self, edit=None, source=DICE):
         """Base = game.py after moving roll_d20 into dice.py; new = base plus a second move of roll_d6 into it."""
         self.base.mkdir()
-        (self.base / "game.py").write_text(DICE, encoding="utf-8")
+        (self.base / "game.py").write_text(source, encoding="utf-8")
         (self.base / "game_parts").mkdir()
         (self.base / "game_parts" / "dice.py").write_text("import random\n", encoding="utf-8")
         move(self.base / "game.py", self.base / "game_parts" / "dice.py", ["roll_d20"], set())
@@ -185,6 +185,10 @@ class MoveCheckTests(unittest.TestCase):
         swap = lambda t: t.replace('    """One d20."""\n    return random.randint(1, 20)\n',
                                    '    return random.randint(1, 20)\n    """One d20."""\n', 1)
         self.assertTrue(self.second_move(swap))
+
+    def test_a_tail_delete_in_an_earlier_block_is_reported_when_the_new_block_has_the_same_line(self):  # T2.4 prep
+        twin = DICE.replace("random.randint(1, 6)", "random.randint(1, 20)")
+        self.assertTrue(self.second_move(lambda t: t.replace("    return random.randint(1, 20)\n", "", 1), twin))
 
 
 if __name__ == "__main__":

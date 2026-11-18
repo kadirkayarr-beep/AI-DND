@@ -30,6 +30,7 @@ NEVER_MOVED = frozenset({
     "world_state", "messages", "RULE_ORDER", "GameSession", "_session", "_bind_session_engine", "create_session",
     "_GameModule", "_speech_debug_trail", "DEFAULT_SAVE_PATH", "start_terminal_game",
     "_DEFAULT_SESSION", "_ACTIVE_SESSION", "_ENGINE_FUNCTIONS", "_ENGINE_NAMESPACE", "_CHARACTER_GLOBALS",
+    "_PART_MODULES", "recent_dm_narrations",
 })
 
 
@@ -205,6 +206,10 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
     for entry in index:  # a statement that binds several names moves whole
         if (entry["start"], entry["end"]) in spans:
             spans[(entry["start"], entry["end"])].append(entry["name"])
+    for bound in spans.values():  # a never-moved name must not ride along with a requested one
+        for name in bound:
+            if name in NEVER_MOVED:
+                raise MoveRefused(f"{name!r} never leaves game.py (spec section 5); it shares a statement with a moved name")
     ordered = sorted(spans)
     for (_, end), (start, _) in zip(ordered, ordered[1:]):
         if start <= end:
