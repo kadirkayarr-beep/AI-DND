@@ -55,7 +55,8 @@ class SurfaceTests(unittest.TestCase):
 
     def test_only_the_module_of_a_moved_name_may_change(self):
         live = copy.deepcopy(self.golden)
-        live["roll_d20"]["module"] = "game_parts.character_rules"
+        live["roll_d20"]["module"] = "game_parts.another_part"  # T2.4: the golden now says game_parts.character_rules
+        self.assertNotEqual(live["roll_d20"]["module"], self.golden["roll_d20"]["module"])
         self.assertEqual(diff_rule(self.golden, live, moved={"roll_d20"}), [])
         self.assertNotEqual(diff_rule(self.golden, live, moved=set()), [])
         live["roll_d20"]["signature"] = "(x)"

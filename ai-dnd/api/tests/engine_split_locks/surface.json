@@ -3866,7 +3866,7 @@
  },
  "roll_d20": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.character_rules",
   "session_bound": true,
   "signature": "()"
  },

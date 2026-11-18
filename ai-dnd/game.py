@@ -111,9 +111,7 @@ def ollama_reply_was_cut(response):
 # ZAR SİSTEMİ
 # ---------------------------------------------------------
 
-def roll_d20():
-    random = _session().rng
-    return random.randint(1, 20)
+from game_parts.character_rules import roll_d20
 
 
 def get_modifier(stat):
@@ -24335,7 +24333,7 @@ def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_P
 
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
-_PART_MODULES = ()
+_PART_MODULES = ("game_parts.character_rules",)
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
                           if isinstance(value, types.FunctionType)
                           and (value.__module__ == __name__ or value.__module__ in _PART_MODULES))
