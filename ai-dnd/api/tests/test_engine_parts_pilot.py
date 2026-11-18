@@ -139,7 +139,7 @@ class PilotSpeechSpan(unittest.TestCase):
     def test_the_reader_left_in_game_py_still_works(self):
         # _split_sentences_keep_speech reads _SPEECH_SPAN_RE through game (it moved to text_rules_b in Plan 2 Task 13;
         # the id is kept so TM2 does not count it LOST); expected value captured on 5da99a42
-        text ="Kapı açıldı. “Dur! Kim var? Çık dışarı.” dedi muhafız. Sonra sustu."
+        text = "Kapı açıldı. “Dur! Kim var? Çık dışarı.” dedi muhafız. Sonra sustu."
         self.assertEqual(game._split_sentences_keep_speech(text),
                          ["Kapı açıldı.", "“Dur! Kim var? Çık dışarı.” dedi muhafız.", "Sonra sustu."])
 
