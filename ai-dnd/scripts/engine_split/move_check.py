@@ -304,6 +304,11 @@ def main(argv: list[str] | None = None) -> int:
         moved = {name: args.part for name in read_names(args.moved_file)}
     else:
         moved = dict(pair.split("=", 1) for pair in args.moved.split(",") if pair)
+    if not moved and not args.comments_only:
+        ap.error("no moved names: give --moved or a non-empty --moved-file (or --comments-only)")
+    bad_parts = sorted(p for p in set(moved.values()) if not (p.endswith(".py") and p[:-3].isidentifier()))
+    if bad_parts:   # a path would be joined under game_parts/ (an absolute one replaces it): only a bare file name
+        ap.error(f"a part is a bare <identifier>.py file name under game_parts/, not {', '.join(bad_parts)}")
     lock = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
     try:
         if args.comments_only:
@@ -318,7 +323,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {line}")
     for item in result["manual"]:
         print(f"MANUAL {item} (mekanik değil)")
-    print(f"CHANGED {len(result['changed'])}")
+    print(f"CHANGED {len(result['changed'])} names={len(moved)}")
     return 1 if result["changed"] else 0
 
 

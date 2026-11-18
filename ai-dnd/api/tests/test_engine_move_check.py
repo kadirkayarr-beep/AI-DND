@@ -282,12 +282,35 @@ class MoveCheckTests(unittest.TestCase):
         names = Path(self._tmp.name) / "names.txt"
         names.write_text("roll\nhelper\n", encoding="utf-8")
         long_form = self.main("--moved", "roll=dice.py,helper=dice.py")
-        self.assertEqual(long_form, (0, "CHANGED 0\n", ""))
+        self.assertEqual(long_form, (0, "CHANGED 0 names=2\n", ""))
         self.assertEqual(self.main("--moved-file", str(names), "--part", "dice.py"), long_form)
         (self.new / "game_parts" / "dice.py").write_text("import game\n", encoding="utf-8")  # both forms see a broken move
         broken = self.main("--moved", "roll=dice.py,helper=dice.py")
         self.assertEqual(broken[0], 1)
         self.assertEqual(self.main("--moved-file", str(names), "--part", "dice.py"), broken)
+
+    def test_an_empty_moved_set_is_refused(self):  # stage A review finding 4
+        self.build()
+        names = Path(self._tmp.name) / "names.txt"
+        names.write_text("\n", encoding="utf-8")
+        for argv in ((), ("--moved", ""), ("--moved-file", str(names), "--part", "dice.py")):
+            with self.subTest(argv=argv):
+                code, out, err = self.main(*argv)
+                self.assertEqual((code, out), (2, ""))
+                self.assertIn("no moved names", err)
+        self.assertEqual(self.main("--comments-only"), (0, "COMMENTS base=2 now=2\n", ""))
+
+    def test_a_part_that_is_not_a_bare_file_name_is_refused(self):  # stage A review finding 5
+        self.build()
+        names = Path(self._tmp.name) / "names.txt"
+        names.write_text("roll\n", encoding="utf-8")
+        for part in (str(self.new / "game_parts" / "dice.py"), "game_parts/dice.py", "../dice.py", "dice", "di-ce.py"):
+            for argv in (("--moved-file", str(names), "--part", part), ("--moved", f"roll={part}")):
+                with self.subTest(argv=argv):
+                    code, out, err = self.main(*argv)
+                    self.assertEqual((code, out), (2, ""))
+                    self.assertIn("bare", err)
+        self.assertEqual(self.main("--moved-file", str(names), "--part", "dice.py"), (0, "CHANGED 0 names=1\n", ""))
 
 
 if __name__ == "__main__":
