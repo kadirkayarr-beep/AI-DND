@@ -17,7 +17,7 @@ from api.tests.town_seed import fixed_town  # noqa: E402
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules",))  # Task 18 (pilot a)
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.text_rules_a"))  # Task 18 (pilot a), Task 19 (pilot b)
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -61,6 +61,34 @@ class PilotRollD20(unittest.TestCase):
                      "import game_parts, game; print(game.roll_d20.__module__)"):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
             self.assertEqual((done.returncode, done.stdout.strip()), (0, "game_parts.character_rules"), done.stderr)
+
+
+class PilotSpeechSpan(unittest.TestCase):
+    """Pilot (b): _SPEECH_SPAN_RE and its pure reader _inside_speech live in game_parts/text_rules_a.py."""
+
+    def test_the_constant_is_one_object_under_both_names(self):
+        # no test imports game_parts (N3 R2): reach the part's namespace through the unwrapped helper
+        self.assertIs(game._SPEECH_SPAN_RE, game._inside_speech.__wrapped__.__globals__["_SPEECH_SPAN_RE"])
+
+    def test_the_helper_gives_the_same_answers_as_before(self):
+        # inputs from test_ownerless_shop's speech tests; expected values captured on 5da99a42 before the move
+        cases = (("Bir dükkâncı: “Özpil konakta olur, Marek sana bir iş verir.”", "Marek", True),
+                 ("Tezgâhın ardında Marek yaklaşır.", "Marek", False),
+                 ("Özpil, “Hoş geldin, yolcu.” der.", "Hoş", True))
+        for text, word, expected in cases:
+            with self.subTest(text=text, word=word):
+                self.assertIs(game._inside_speech(text, text.index(word)), expected)
+
+    def test_the_helper_is_session_bound_and_lives_in_the_part(self):
+        self.assertTrue(game._inside_speech._session_bound)
+        self.assertEqual(game._inside_speech.__module__, "game_parts.text_rules_a")
+
+    def test_the_reader_left_in_game_py_still_works(self):
+        # _split_sentences_keep_speech stays in game.py and reads _SPEECH_SPAN_RE; expected value captured on 5da99a42
+        self.assertEqual(game._split_sentences_keep_speech.__module__, "game")
+        text = "Kapı açıldı. “Dur! Kim var? Çık dışarı.” dedi muhafız. Sonra sustu."
+        self.assertEqual(game._split_sentences_keep_speech(text),
+                         ["Kapı açıldı.", "“Dur! Kim var? Çık dışarı.” dedi muhafız.", "Sonra sustu."])
 
 
 if __name__ == "__main__":

@@ -1581,7 +1581,7 @@
  },
  "_inside_speech": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_a",
   "session_bound": true,
   "signature": "(text, position)"
  },
