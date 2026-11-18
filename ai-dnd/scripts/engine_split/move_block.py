@@ -2,12 +2,16 @@
 
 The source text is edited in place: blocks are cut byte for byte, and the only change inside a moved block is the
 six characters `game.` before each free reference to an engine name. Nothing is regenerated from a syntax tree.
-Run from code (tests, the move briefs); there is no CLI.
+Run: python scripts/engine_split/move_block.py --game game.py --part game_parts/<x>.py (--names a,b | --names-file F)
+     --census api/tests/engine_split_locks/patch_census.json [--report out.json]
+A refusal prints `REFUSED <reason>` on stderr, exits 2 and writes no file.
 """
 from __future__ import annotations
 
+import argparse
 import ast
 import io
+import json
 import symtable
 import sys
 import tokenize
@@ -248,3 +252,42 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
     part_py.write_bytes(("\n".join(appended) + "\n").encode("utf-8"))
     game_py.write_bytes("\n".join(kept).encode("utf-8"))
     return {"blocks": blocks, "insertions": insertions, "import_line": ordered[0][0]}
+
+
+def read_names(path: Path) -> list[str]:
+    """Names from a file: one per line; blank lines are skipped."""
+    return [line.strip() for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--game", required=True, type=Path, help="game.py to cut the blocks from")
+    ap.add_argument("--part", required=True, type=Path, help="game_parts/<x>.py to append the blocks to")
+    names_group = ap.add_mutually_exclusive_group(required=True)
+    names_group.add_argument("--names", help="a,b")
+    names_group.add_argument("--names-file", type=Path, help="one name per line")
+    ap.add_argument("--census", required=True, type=Path, help="patch_census.json lock; its `absent` targets are dropped")
+    ap.add_argument("--report", type=Path, help="write move()'s result here as JSON")
+    args = ap.parse_args(argv)
+    if args.names is not None:
+        names = [name.strip() for name in args.names.split(",") if name.strip()]
+    else:
+        names = read_names(args.names_file)
+    if not names:
+        ap.error("no names given")
+    targets = json.loads(args.census.read_text(encoding="utf-8"))["targets"]
+    surface_targets = {name for name, kind in targets.items() if kind != "absent"}
+    try:
+        result = move(args.game, args.part, names, surface_targets)
+    except MoveRefused as exc:
+        print(f"REFUSED {exc}", file=sys.stderr)
+        return 2
+    moved = sum(len(block["names"]) for block in result["blocks"])
+    print(f"MOVED names={moved} import_line={result['import_line']} insertions={len(result['insertions'])}")
+    if args.report:
+        args.report.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

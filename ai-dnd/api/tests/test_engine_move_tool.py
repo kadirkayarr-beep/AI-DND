@@ -1,6 +1,9 @@
 """Tests for the in-place move tool (scripts/engine_split/move_block.py)."""
 from __future__ import annotations
 
+import contextlib
+import io
+import json
 import sys
 import tempfile
 import unittest
@@ -185,6 +188,100 @@ class MoveTests(unittest.TestCase):
             with self.subTest(name):
                 with self.assertRaises(MoveRefused):
                     move(self.game, self.part, [name], set())
+
+
+class MoveCliTests(unittest.TestCase):  # D-348: the command line of move_block.py
+    GAME = b"import functools\n\nK = 1\n\ndef a():\n    return K\n\ndef b():\n    return a() + Z\n"
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+        self.census = self.tmp / "patch_census.json"
+        self.census.write_text(json.dumps({"targets": {"Z": "data", "Q": "absent"}, "not_called_tests": []}),
+                               encoding="utf-8")
+
+    def files(self, folder: str, game: bytes = GAME, part: bytes | None = None) -> tuple[Path, Path]:
+        root = self.tmp / folder
+        root.mkdir()
+        (root / "game.py").write_bytes(game)
+        if part is not None:
+            (root / "p.py").write_bytes(part)
+        return root / "game.py", root / "p.py"
+
+    def cli(self, game: Path, part: Path, *names_args: str, report: Path | None = None) -> tuple[int, str, str]:
+        from engine_split.move_block import main
+        out, err = io.StringIO(), io.StringIO()
+        argv = ["--game", str(game), "--part", str(part), *names_args, "--census", str(self.census)]
+        if report:
+            argv += ["--report", str(report)]
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                code = main(argv)
+            except SystemExit as exc:  # argparse: an unknown option exits instead of returning
+                code = exc.code
+        return code, out.getvalue(), err.getvalue()
+
+    def test_the_cli_gives_the_same_files_as_move(self):
+        game, part = self.files("direct", part=b"import game\n")
+        expected = move(game, part, ["a", "b"], {"Z"})
+        names_file = self.tmp / "names.txt"
+        names_file.write_text("a\nb\n", encoding="utf-8")
+        for label, names_args in (("names", ("--names", "a,b")), ("names-file", ("--names-file", str(names_file)))):
+            with self.subTest(label):
+                cli_game, cli_part = self.files(label, part=b"import game\n")
+                report = self.tmp / f"{label}.json"
+                code, out, err = self.cli(cli_game, cli_part, *names_args, report=report)
+                self.assertEqual((code, err), (0, ""))
+                self.assertEqual((cli_game.read_bytes(), cli_part.read_bytes()), (game.read_bytes(), part.read_bytes()))
+                self.assertEqual(out, f"MOVED names=2 import_line={expected['import_line']} "
+                                      f"insertions={len(expected['insertions'])}\n")
+                self.assertEqual(json.loads(report.read_text(encoding="utf-8")), json.loads(json.dumps(expected)))
+
+    def test_a_refusal_exits_2_and_changes_no_byte(self):
+        src = self.GAME + b"\ndef create_session(seed=None):\n    return seed\n"
+        game, part = self.files("refused", game=src, part=b"import game\n")
+        code, out, err = self.cli(game, part, "--names", "a,create_session")
+        self.assertEqual(code, 2)
+        self.assertTrue(err.startswith("REFUSED "), err)
+        self.assertIn("create_session", err)
+        self.assertEqual(out, "")
+        self.assertEqual((game.read_bytes(), part.read_bytes()), (src, b"import game\n"))
+
+    def test_an_absent_census_target_is_not_prefixed(self):
+        game, part = self.files("absent", game=b"def f():\n    return Q + Z\n")
+        code, _, err = self.cli(game, part, "--names", "f")
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(part.read_bytes(), b"def f():\n    return Q + game.Z\n")
+
+    def test_the_cli_keeps_utf8_bytes_and_line_endings(self):  # Review Focus 2
+        block = '# ğüşıöç “x” —\ndef f():\n    return "ğüşıöç “x” —"\n'.encode("utf-8")
+        game, part = self.files("utf8", game=block + b"\nK = 1\n")
+        code, _, err = self.cli(game, part, "--names", "f")
+        self.assertEqual((code, err), (0, ""))
+        moved = part.read_bytes()
+        self.assertFalse(moved.startswith(b"\xef\xbb\xbf"))
+        self.assertNotIn(b"\r", moved)
+        self.assertEqual(moved, block)
+        self.assertEqual(game.read_bytes(), b"from game_parts.p import f\n\nK = 1\n")
+
+    def test_a_multi_name_block_and_a_decorated_function_round_trip(self):  # Plan 1 Task 5 deferred minor
+        from engine_split.move_check import check_move
+        base = ("import functools\n\nX, Y = 1, 2\n\n# cache it\n@functools.lru_cache(maxsize=None)\n"
+                "def roll():\n    return X + K\n\nK = 1\n").encode("utf-8")
+        (self.tmp / "base").mkdir()
+        (self.tmp / "base" / "game.py").write_bytes(base)
+        (self.tmp / "new" / "game_parts").mkdir(parents=True)
+        (self.tmp / "new" / "game.py").write_bytes(base)
+        part = self.tmp / "new" / "game_parts" / "dice.py"
+        part.write_bytes(b"import functools\nimport game\n")
+        code, out, err = self.cli(self.tmp / "new" / "game.py", part, "--names", "X,roll")
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("MOVED names=3 ", out)  # Y rides along: the statement binds both names
+        self.assertIn(b"from game_parts.dice import X, Y, roll\n", (self.tmp / "new" / "game.py").read_bytes())
+        moved = {"X": "dice.py", "Y": "dice.py", "roll": "dice.py"}
+        result = check_move(self.tmp / "base", self.tmp / "new", moved, {"functions": {}}, "normal")
+        self.assertEqual(result["changed"], [])
 
 
 if __name__ == "__main__":
