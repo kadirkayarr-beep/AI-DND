@@ -12223,30 +12223,7 @@ def _player_question_has_unverified_lore_claim(
 
 
 
-def _validated_player_line(raw_line, player_input):
-    """Return the player's own line to show, or None. The model never writes it.
-
-    A quote the player supplied beats any model rewrite. Otherwise the model may
-    only point at words the player actually typed: the line must be a bounded,
-    single-line, quote-free substring of the player's own input (whitespace and
-    case normalized). Anything else the model invents is dropped.
-    """
-    if not isinstance(raw_line, dict):
-        return None
-    import npc_speech_boundary
-    supplied = npc_speech_boundary.player_supplied_quote(player_input)
-    if supplied:
-        return supplied
-    text = raw_line.get("text")
-    if not isinstance(text, str) or "\n" in text or "\r" in text:
-        return None
-    text = text.strip()
-    if not text or len(text) > 300 or any(mark in text for mark in "“”«»\""):
-        return None
-    squash = lambda value: " ".join(str(value).split()).casefold()
-    if squash(text) not in squash(player_input or ""):
-        return None
-    return text
+from game_parts.text_rules_b import _validated_player_line, _WINDOW_WORDS, _LOCK_WORDS, _TRACK_WORDS, _resolved_skill_result_narration, _TELLS_FAILURE, _UNMOVED, _QUOTE_CLOSER_RE, _QUOTE_OPENER_RE, _trim_dangling_quote, _dialogue_repair_has_attributed_answer, _skill_result_category, _print_skill_result, _ATTACK_VERB_PATTERN, _ATTACK_BLOW_PHRASE, _CHARGING_IN, _ATTACK_LOOKALIKE_TOKEN, _ATTACK_INSTRUMENT_TOKENS, _INANIMATE_HIT_OBJECT, _CREATURE_REFERENCE, _attack_verb_tokens, _immediate_check_refusal, _turkish_genitive_form, _asks_what_is_going_on, _is_bare_greeting, _is_scene_referent_activity_observation, _public_scene_person_text, _LOOK_OPENINGS, _CONVERSATION_OPENINGS, _OWN_ACTS, _WALKED_UP, _said_after_approach, _SAY_VERBS, _SAY_ENGLISH, _HAIL_FILLERS, _line_addresses, _PLANNER_STAYS_OUT, _NO_BLOW_NOW, _BLOW_WORDS, _word_root, _NOT_A_LOCAL_PLACE, _NARRATOR_PRONOUNS, _NARRATOR_PLURAL, _singular_narrator
 
 
 def _feature_refs_are_visible(refs):
@@ -12887,9 +12864,6 @@ def ask_dungeon_master(
     )
 
 
-_WINDOW_WORDS = re.compile(r"\b(?:pencere\w*|kepenk\w*|panjur\w*|cam(?:dan|a|i)?)\b")
-_LOCK_WORDS = re.compile(r"\b(?:kilit\w*|kilid\w*|surgu\w*|mandal\w*|kapi kolu\w*)\b")
-_TRACK_WORDS = re.compile(r"\b(?:iz|izler\w*|izleri\w*|ayak izi\w*|ayak izler\w*)\b")
 
 
 def _ensure_venue_window(door):
@@ -13094,42 +13068,10 @@ def _inspection_findings(player_input, outcome, *, rolled=True):
     return _found_on_a_pass(text) if proposed else None
 
 
-def _resolved_skill_result_narration(result):
-    """Describe only the already resolved Python check, with no added consequences."""
-    if not isinstance(result, dict) or result.get("action") != "skill_check" or result.get("status") != "resolved":
-        return None
-    outcome = result.get("outcome")
-    if outcome not in ("success", "failure"):
-        return None
-    if result.get("skill") == "Stealth":
-        if outcome == "success":
-            return "Gizlenme girişimin tutar."
-        return "Gizlenme girişimin tutmaz; gizli sayılmazsın."
-    if result.get("skill") in {"Perception", "Investigation", "Survival"}:
-        # A look is described by what it saw (_fallback_narration), not as a
-        # bare "check succeeded/failed" line.
-        return None
-    prefix = {
-        "Perception": "Dikkatini topladığın kontrol",
-        "Investigation": "İnceleme girişimin",
-        "Athletics": "Fiziksel çaban",
-        "Acrobatics": "Akrobatik girişimin",
-        "Persuasion": "İkna girişimin",
-        "Deception": "Kandırma girişimin",
-        "Survival": "İz sürme girişimin",
-        "Sleight of Hand": "El becerisi girişimin",
-    }.get(result.get("skill"), "Yetenek kontrolün")
-    return f"{prefix} {'başarılı' if outcome == 'success' else 'başarısız'} olur."
 
 
-_TELLS_FAILURE = re.compile(r"\w+m[iu]yor\w*|\w+(?:ama|eme)(?:z|di|yacak)\w*|\bbasarisiz|\bsonuc vermedi|\byok\b|\bdegil\b")
 
 
-# D-226: what tells a scared person unmoved ("geri adım atmıyor", "sözlerin ona işlemiyor", "korkmuyorum").
-_UNMOVED = re.compile(
-    r"\b(?:geri\s+adim\s+atm(?:iyor|az|adi)|cekilm(?:iyor|ez|edi)|"
-    r"islem(?:iyor|ez|edi)|etkilen?m(?:iyor|ez|edi)|umursam(?:iyor|az|adi)|"
-    r"aldirm(?:iyor|az|adi)|korkm(?:uyor|az|adi)|yol\s+verm(?:iyor|ez|edi)|istifini\s+bozm(?:uyor|az|adi))\w*")
 
 
 def _states_the_failed_check(narration, result, player_input):
@@ -13240,24 +13182,8 @@ def _record_narration_safety(decision, handling):
         )
 
 
-_QUOTE_CLOSER_RE = re.compile(r"""(?<=[.!?…,])['"”’](?=\s|$)""")
-_QUOTE_OPENER_RE = re.compile(r"""(?:(?<=^)|(?<=[\s:(]))['"“‘](?=\S)""")
 
 
-def _trim_dangling_quote(text):
-    """Drop a leading fragment that ends in a closing quote nobody opened.
-
-    Removing the sentence that carried the opening quote leaves "...alırız.' Fırın
-    kokusu..."; keep only what follows. Untouched when balanced; empty when nothing follows
-    (a line nobody opened is no line, and the caller falls back).
-    """
-    closer = _QUOTE_CLOSER_RE.search(text)
-    if closer is None:
-        return text
-    opener = _QUOTE_OPENER_RE.search(text)
-    if opener is not None and opener.start() < closer.start():
-        return text
-    return text[closer.end():].strip()
 
 
 def _remove_trigger_sentence(narration, decision, action_result=None):
@@ -13296,56 +13222,6 @@ def _remove_trigger_sentence(narration, decision, action_result=None):
     return repaired if removed else None
 
 
-def _dialogue_repair_has_attributed_answer(narration, npc_target, action_result):
-    """Require a bound dialogue turn and actual speech content after repair."""
-    if isinstance(narration, dict):
-        from npc_speech_boundary import bound_fields
-        return bound_fields(narration, npc_target, action_result) is not None
-    if (
-        not isinstance(narration, str)
-        or not narration.strip()
-        or not isinstance(npc_target, dict)
-        or not isinstance(npc_target.get("id"), str)
-        or not isinstance(action_result, dict)
-        or action_result.get("action") != "dialogue"
-    ):
-        return False
-    target_id = npc_target["id"]
-    result_npc_id = action_result.get("npc_id")
-    experimental_speech = (
-        action_result.get("status") == "experimental_attributed_speech"
-    )
-    if result_npc_id is not None and result_npc_id != target_id:
-        return False
-    if experimental_speech and result_npc_id != target_id:
-        return False
-
-    quoted_answers = (
-        r"“([^”\n]{3,})”",
-        r'"([^"\n]{3,})"',
-        r"‘([^’\n]{3,})’",
-        r"'([^'\n]{3,})'",
-    )
-    has_quoted_answer = any(
-        len(re.sub(r"[^\wçğıöşü]", "", match.group(1))) >= 3
-        for pattern in quoted_answers
-        for match in re.finditer(pattern, narration)
-    )
-    if has_quoted_answer:
-        return True
-
-    if not experimental_speech:
-        return False
-    # Experimental speech is deliberately unquoted until the API adds its
-    # speaker wrapper. Require a first-person predicate so a lone stage
-    # direction cannot qualify as the NPC's retained answer.
-    first_person_predicate = re.search(
-        r"\b[\wçğıöşü]+(?:ıyorum|iyorum|uyorum|üyorum|yordum|[dt][ıiuü]m|"
-        r"[ıiuü]r[ıiuü]m|(?:y)?(?:acağım|eceğim)|(?:sa|se)m)\b",
-        narration,
-        re.IGNORECASE,
-    )
-    return first_person_predicate is not None
 
 
 def _repair_attributed_speech(payload, decision):
@@ -14121,28 +13997,8 @@ def _changed_state_fields(before):
     return [fields[key] for key in fields if before.get(key) != after.get(key)]
 
 
-def _skill_result_category(result):
-    return {
-        "BAŞARILI": "success",
-        "BAŞARISIZ": "failure",
-    }.get(result, "failure")
 
 
-def _print_skill_result(result, difficulty):
-    print()
-    print("=" * 35)
-    print("D&D SKILL CHECK")
-    print("=" * 35)
-    print("Skill:", result["skill"])
-    print("Difficulty:", difficulty)
-    print("DC:", result["dc"])
-    print("D20:", result["dice"])
-    print("Ability Modifier:", f"+{result['modifier']}" if result["modifier"] >= 0 else result["modifier"])
-    print("Proficiency:", f"+{result['proficiency_bonus']}")
-    print("Total Bonus:", f"+{result['total_bonus']}" if result["total_bonus"] >= 0 else result["total_bonus"])
-    print("Total:", result["total"])
-    print("Result:", result["result"])
-    print("=" * 35)
 
 
 def _commit_travel_action(action_result):
@@ -14192,49 +14048,8 @@ def _commit_travel_action(action_result):
     return True
 
 
-_ATTACK_VERB_PATTERN = r"(?:saldir|vur|dov|kes|sapl|bicakl|yumrukl|oldur|bayilt)"
-# A blow said as noun + verb, the usual Turkish way: "yumruk atıyorum", "tekme savuruyorum".
-_ATTACK_BLOW_PHRASE = re.compile(
-    r"\b(?:yumruk|tekme|tokat|kafa|dirsek)\w*\s+(?:\w+\s+)?(?:at|savur|indir|gecir|patlat)"
-    r"(?:iyorum|ip|tim|acagim|ar|iyoruz|tik)\b"
-)
-# Folded words that share an attack stem but are not attacks: kesinlikle,
-# keşif/keşfetmek, kestirme (shortcut), vurgulamak, and the instrumental nouns
-# "bıçakla"/"yumrukla" ("with a knife/fist") that only name the means.
-_CHARGING_IN = re.compile(r"\b\w+(?:la|le|yla|yle)\s+(?:\w+\s+)?(?:giriyorum|daliyorum|atiliyorum)\b")
-_ATTACK_LOOKALIKE_TOKEN = re.compile(
-    r"^(?:kesin|kesif|kesfe|kesfi|kestirme|vurgu|vurdumduymaz)"
-)
-_ATTACK_INSTRUMENT_TOKENS = frozenset({"bicakla", "yumrukla", "bicaklar", "bicaklarla"})
-# Things one knocks on, rings, cuts or taps. Hitting one of these is knocking,
-# ringing or cutting - never a combat decision - unless a creature is named.
-_INANIMATE_HIT_OBJECT = re.compile(
-    r"\b(?:kapi(?!ci)|pencere|kepenk|panjur|masa|tezgah|duvar|zil|can(?:i|a|in)?\b"
-    r"|sandi[kg]|kutu|ip(?:i|in|e|ini|ine|ten|ler\w*)?\b|halat|urgan|zincir|cuval|fici|varil|sepet"
-    r"|kilit|cam(?:a|i)?\b|tahta|agac|odun|kaya"
-    r"|kitap|ekmek|sopa|direk|kazik|kumas|bez|dal(?:i|a)?\b|davul|gong|tokmak)\w*"
-)
-_CREATURE_REFERENCE = re.compile(
-    r"\b(?:ona|onu|ondan|onunla|kendisine|adam\w*|kadin\w*|cocug\w*|muhafiz\w*"
-    r"|nobetci\w*|asker\w*|haydut\w*|eskiya\w*|goblin\w*|ork\w*|kurt\w*|yaratig\w*"
-    r"|canavar\w*|dusman\w*|rakib\w*|hirsiz\w*|haydud\w*)\b"
-)
 
 
-def _attack_verb_tokens(text):
-    import grounded_action
-    verbs = []
-    for token in text.split():
-        match = re.match(_ATTACK_VERB_PATTERN, token)
-        if not match or _ATTACK_LOOKALIKE_TOKEN.match(token) or token in _ATTACK_INSTRUMENT_TOKENS:
-            continue
-        tail = token[match.end():]
-        # Reuse the action owner's morphology instead of treating every word
-        # beginning with an attack stem as an attack (Kestrin, keskin, saldırgan).
-        if (not tail or grounded_action._VERB_TAIL.fullmatch(tail)
-                or grounded_action._NEGATIVE_TAIL.match(tail)):
-            verbs.append(token)
-    return verbs
 
 
 def _names_present_creature(text):
@@ -14311,11 +14126,6 @@ def _is_explicitly_negated_attack(player_input):
 
 
 
-def _immediate_check_refusal(check_feature, message):
-    """The route refusal in the chosen feature's own name; `{feature}` in a message is that name."""
-    code, name = (('tactical_mind_immediate_check_only', 'Tactical Mind') if check_feature == 'tactical_mind'
-                  else ('primal_knowledge_immediate_check_only', 'Primal Knowledge'))
-    return combat_lifecycle.CombatRequestError(code, message.format(feature=name), 400)
 
 
 def primal_knowledge_check_admission(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None, check_feature='primal_knowledge'):
@@ -15253,30 +15063,6 @@ def _ensure_local_tavern(parent_location_id, *, open_for_entry=False):
     return record
 
 
-def _turkish_genitive_form(name):
-    value = str(name or "").strip()
-    if not value:
-        return ""
-    vowels = "aıeiouöü"
-    last_vowel = next(
-        (character for character in reversed(value.casefold()) if character in vowels),
-        None,
-    )
-    if last_vowel is None:
-        return value
-    suffix = {
-        "a": "ın",
-        "ı": "ın",
-        "o": "un",
-        "u": "un",
-        "e": "in",
-        "i": "in",
-        "ö": "ün",
-        "ü": "ün",
-    }[last_vowel]
-    if value[-1].casefold() in vowels:
-        suffix = "n" + suffix
-    return f"{value}'{suffix}"
 
 
 def _ensure_local_merchant(location_id, *, create=True):
@@ -15422,12 +15208,6 @@ def resolve_scene_seating(action_input):
     }
 
 
-def _asks_what_is_going_on(player_input):
-    text = living_world.normalize_text(player_input)
-    return bool(
-        re.search(r"\b(?:bugun|burada|buralarda|su an)\b", text)
-        and re.search(r"\b(?:ne oluyor|neler oluyor|ne var|neler var)\b", text)
-    )
 
 
 def _direct_npc_smalltalk_response(player_input, npc_target):
@@ -15549,53 +15329,8 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
     return None
 
 
-def _is_bare_greeting(player_input, npc_target):
-    """'Merhaba Marek' yes; 'selam verip burada bir sorun var mı diye soruyorum' no."""
-    if "?" in str(player_input):
-        return False
-    text = living_world.normalize_text(player_input)
-    words = text.split()
-    name_words = set(living_world.normalize_text(
-        npc_target.get("name", "") if isinstance(npc_target, dict) else ""
-    ).split())
-    rest = [
-        word for word in words
-        if word not in name_words and not re.match(
-            r"(?:selam|merhaba|iyi|gunler|gunaydin|aksamlar|veriyorum|ver|basimla|"
-            r"bas|sallay\w*|el|elimi|ona|onunla|kendisiyle|kisa|bir|biraz|yanina|gidip|"
-            r"yaklasip|dostum|hey)", word)
-    ]
-    return len(rest) <= 2 and not re.search(
-        r"\b(?:sor\w*|anlat\w*|soyle\w*|ogren\w*|nasil|neden|nerede|kim|ne)\b", text
-    )
 
 
-def _is_scene_referent_activity_observation(player_input):
-    if not isinstance(player_input, str):
-        return False
-    text = living_world.normalize_text(player_input)
-    activity_question = bool(
-        re.search(
-            r"\b(?:ne|neler)\s+yap\w*\b|\bneyle\s+ugras\w*\b",
-            text,
-        )
-    )
-    return bool(
-        (
-            activity_question
-            or (
-                re.search(r"\b(?:dikkat\w*|gozlemle\w*|izle\w*)\b", text)
-                and re.search(
-                    r"\b(?:etkinli\w*|davran\w*|hareket\w*|yaptig\w*)\b",
-                    text,
-                )
-            )
-        )
-        and not re.search(
-            r"\b(?:sor\w*|konus\w*|selam\w*|yaklas\w*)\b",
-            text,
-        )
-    )
 
 
 def _scene_names(location_id):
@@ -15605,12 +15340,6 @@ def _scene_names(location_id):
     ]
 
 
-def _public_scene_person_text(npc):
-    label = living_world.public_npc_name(npc)
-    role = living_world.public_npc_role(npc)
-    if living_world.npc_name_known_to_player(npc) and role and role.casefold() != label.casefold():
-        return f"{label} ({role})"
-    return label
 
 
 def _scene_presence_text(location_id):
@@ -15661,12 +15390,6 @@ def _scene_presence_text(location_id):
     return "Şu an yakınında konuşabileceğin biri görünmüyor; çevredeki hareketliliği izleyebilirsin."
 
 
-_LOOK_OPENINGS = (
-    "{name} çevresine göz gezdiriyorsun.",
-    "Bakışların {name} çevresinde bir kez daha dolaşıyor.",
-    "Bir an durup {name} çevresindeki hareketi izliyorsun.",
-    "{name} çevresini yeniden, bu sefer daha dikkatle süzüyorsun.",
-)
 
 
 def _variation_index(key, size):
@@ -15690,12 +15413,6 @@ def _look_opening(location_name):
     return openings[_variation_index(("look", location_name), len(openings))]
 
 
-_CONVERSATION_OPENINGS = (
-    "{name} sana dönüyor. “Seni dinliyorum,” der.",
-    "{name} işini bir an bırakıp sana bakıyor. “Buyur, ne vardı?” diye sorar.",
-    "{name} başını kaldırıyor. “Evet, söyle bakalım,” der.",
-    "{name} hafifçe gülümsüyor. “Yine sen! Dinliyorum,” der.",
-)
 
 
 def _conversation_opening_line(name):
@@ -17140,8 +16857,6 @@ def _run_player_turn_keyed(
     return result
 
 
-# Front readings that are the player's own doing, with no one spoken to: a second part after one is read on its own.
-_OWN_ACTS = frozenset({"consume", "wield", "sit", "bag", "look", "wait"})
 
 
 def _a_walk(read, action_result):
@@ -17478,14 +17193,8 @@ def player_cannot_act_turn():
     }
 
 
-_WALKED_UP = re.compile(r"(?i)\b(?:yaklaş\w*|yanaş\w*|yanına\s+gid\w*|yanına\s+git\w*|sokul\w*)[.,;:!]?\s+")
 
 
-def _said_after_approach(player_input):
-    """"...adama yaklaşıyorum. selam, ne yazıyorsun?": what comes after the walk is said to them."""
-    match = _WALKED_UP.search(player_input) if isinstance(player_input, str) else None
-    rest = player_input[match.end():].strip() if match else ""
-    return rest if len(rest.split()) >= 2 else None
 
 
 def _reads_as_address(player_input):
@@ -17493,38 +17202,8 @@ def _reads_as_address(player_input):
     return "?" in player_input or is_npc_dialogue_input(player_input) or "," in player_input[:40]
 
 
-_SAY_VERBS = re.compile(r"^(?:soyl|sor|anlat|ver|diyorum|dedim|ilet|seslen|danis|rica|teklif|uzat|goster|tesekkur)")
-_SAY_ENGLISH = r"\b(?:tell|ask|give|hand|pay|show|thank|say to|speak to|talk to|offer)\s+(?:the\s+)?"
-_HAIL_FILLERS = {"ey", "hey", "pardon", "selam", "merhaba", "sayin", "affedersiniz", "bakin", "bak"}
 
 
-def _line_addresses(player_input, npc):
-    """Whether the line is said TO this person: their name or role at the head with a comma after it ("Orhan, kapı
-    nerede?"), or their name in the dative with a say verb ("Orhan'a soruyorum"). A mention is no address
-    ("Orhan'ı tanıyor musun?", "Orhan nerede?", "Muhafız sana ne dedi?")."""
-    if not isinstance(player_input, str) or not isinstance(npc, dict):
-        return False
-    ascii_line = unicodedata.normalize("NFKD", player_input.casefold().replace("İ", "i").replace("ı", "i"))
-    tokens = re.findall(r"[^\W_]+|,", ascii_line.encode("ascii", "ignore").decode())  # words and commas, folded
-    words = {w for w in living_world.normalize_text(f"{living_world.public_npc_name(npc)} {npc.get('role') or ''}").split()
-             if len(w) >= 3}
-    if not words:
-        return False
-    head = tokens[:6]
-    first = next((i for i, t in enumerate(head) if t in words), None)
-    if first is not None and all(t in _HAIL_FILLERS for t in head[:first]):
-        j = first
-        while j < len(tokens) and (tokens[j] in words or (j > first and len(tokens[j]) <= 3 and tokens[j] != ",")):
-            j += 1
-        if j < len(tokens) and tokens[j] == ",":
-            return True
-    for i, token in enumerate(tokens):
-        dative = (token in words and i + 1 < len(tokens) and tokens[i + 1] in {"a", "e", "ya", "ye"}) or any(
-            token in {w + "a", w + "e", w + "ya", w + "ye"} for w in words)
-        if dative and any(_SAY_VERBS.match(t) for t in tokens):
-            return True
-    folded_text = " ".join(tokens)
-    return any(re.search(_SAY_ENGLISH + re.escape(w) + r"\b", folded_text) for w in words)
 
 
 def _addressed_in(player_input, *, or_the_talk=True):
@@ -17804,9 +17483,6 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     return route
 
 
-# What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
-_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
-                      "blow_asked", "heavy_asked", "which_move", "wait", "consume", "wield"}  # D-109: asked moves nothing
 
 
 def _defer_spoken_coin_offer(route):
@@ -18036,7 +17712,6 @@ def _hand_over_coin(route, listed, front=None, *, owner_routed=False):
         session._coin_paid = held_out  # read by that offer as its tender, and never turned into a gift
         return
     session._coin_paid = held_out  # the decided card's tender or amount; never "now theirs" before it is confirmed
-_NO_BLOW_NOW = re.compile(r"\b(?!yarim\b)\w+(?:m[iu]yorum|m[iu]yom|mayacag\w*|meyeceg\w*|[aeiu]r[iu]m)\b")
 
 
 def _blow_stands(player_input):
@@ -18051,12 +17726,6 @@ def _blow_stands(player_input):
                 or _NO_BLOW_NOW.search(text) or any(grounded_action._CONDITION_WORD.match(t) for t in text.split()))
 
 
-# Hands, things swung and things thrown: what a blow is made of, whatever else the sentence says.
-_BLOW_WORDS = re.compile(
-    r"\b(?:yumru[kg]|tekme|tokat|samar|dirsek)\w*"
-    r"|\b(?:cak|gecir|firlat|savur|indir|patlat|yapistir|sall)(?:[iuae]|ip|up)\w*"
-    r"|\b(?:surat|kafa|yuz)\w*\s+(?:\w+\s+)?at(?:iyorum|ip)\b"
-)
 
 
 def _blow_in_the_words(player_input, target_id):
@@ -18310,9 +17979,6 @@ def _front_wield(route, player_input):
     refusals.note(session, "nothing_to_draw", have=have)
 
 
-def _word_root(word):
-    """A word cut to a root that still meets its endings ('takımı' 'takımını', 'emanet' 'emanetini'); short words whole."""
-    return word if len(word) <= 5 else word[:max(5, len(word) - 2)]
 
 
 def _coin_not_parcel(session, world, person, item_id, player_input):
@@ -19098,10 +18764,6 @@ def _current_procedural_entity_ids():
     return ids
 
 
-_NOT_A_LOCAL_PLACE = {
-    "city", "town", "village", "settlement", "region", "wilderness", "dungeon",
-    "şehir", "kasaba", "köy", "orman",
-}
 
 
 def _may_propose_local_place(resolved_turn, player_input):
@@ -19166,36 +18828,8 @@ def _settle_local_place(action_result):
             place["scene_kind"] = "building"
 
 
-_NARRATOR_PRONOUNS = {
-    "siz": "sen", "size": "sana", "sizi": "seni", "sizin": "senin",
-    "sizden": "senden", "sizinle": "seninle", "sizde": "sende",
-}
-_NARRATOR_PLURAL = (
-    (re.compile(r"\b(?:siz|size|sizi|sizin|sizden|sizinle|sizde)\b", re.IGNORECASE),
-     lambda match: (
-         _NARRATOR_PRONOUNS[match.group(0).lower()].capitalize()
-         if match.group(0)[0].isupper()
-         else _NARRATOR_PRONOUNS[match.group(0).lower()]
-     )),
-    (re.compile(
-        r"\b(etraf|çevre|üzer|yakın|ön|arka|yan|karşı|iç|ayak|ayaklar|el|eller|göz|gözler|omuz|"
-        r"omuzlar|sırt|baş|yüz|ses|bakış|bakışlar|şarkı|teklif|söz|hareket|gösteri|adım|adımlar)"
-        r"([ıiuü]?n)[ıiuü]z(\w*)", re.IGNORECASE),
-     r"\1\2\3"),
-    (re.compile(r"\b(\w+[ıiuü]yor)sunuz\b"), r"\1sun"),
-    (re.compile(r"\b(\w{2,}[dt][ıiuü]n)[ıiuü]z\b"), r"\1"),
-)
 
 
-def _singular_narrator(text):
-    """The narrator's own words say sen; anything inside a quote belongs to the speaker."""
-    if not isinstance(text, str):
-        return text
-    parts = re.split(r"(“[^”]*”|«[^»]*»|\"[^\"]*\")", text)
-    for index in range(0, len(parts), 2):
-        for pattern, replacement in _NARRATOR_PLURAL:
-            parts[index] = pattern.sub(replacement, parts[index])
-    return "".join(parts)
 
 
 def _keep_town_portrait(action_result, narration):

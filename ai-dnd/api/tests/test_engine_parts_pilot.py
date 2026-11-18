@@ -31,6 +31,7 @@ SCHEMAS = tuple(batch_names("schemas"))
 TEXT_A1 = tuple(batch_names("text-a1"))
 TEXT_A2 = tuple(batch_names("text-a2"))
 TEXT_B1 = tuple(batch_names("text-b1"))
+TEXT_B2 = tuple(batch_names("text-b2"))
 
 
 def _canonical(value):
@@ -334,6 +335,51 @@ class TextB1Part(unittest.TestCase):
             with self.subTest(helper="_salvage_plain_speech", raw=after):
                 self.assertIs(game._salvage_plain_speech(raw), expected)
                 self.assertEqual(raw, after)
+
+
+class TextB2Part(unittest.TestCase):
+    """T3.6 batch text-b2: narration and combat-text helpers live in game_parts/text_rules_b.py; game.py re-exports them."""
+
+    def test_text_b2_lives_in_the_part(self):
+        self.assertEqual(set(TEXT_B2) - set(routing_audit.re_exports(ROOT)["text_rules_b"]), set())
+
+    def test_text_b2_helpers_answer_as_before(self):
+        # inputs carry Turkish letters and curly quotes; expected values captured on 1c1c820b before the move
+        # (slot Python 3.13)
+        cases = (
+            (game._trim_dangling_quote, ("…alırız.’ Fırın kokusu çarşıyı sarar.",), "Fırın kokusu çarşıyı sarar."),
+            (game._trim_dangling_quote, ("Kâtip: “Defter kapandı.” Işıklar söner.",),
+             "Kâtip: “Defter kapandı.” Işıklar söner."),
+            (game._trim_dangling_quote, ("Gidelim artık.”",), ""),
+            (game._trim_dangling_quote, ("Hiç tırnak yok, Şükrü güler.",), "Hiç tırnak yok, Şükrü güler."),
+            (game._turkish_genitive_form, ("Şükrü",), "Şükrü'nün"),
+            (game._turkish_genitive_form, ("İlkay",), "İlkay'ın"),
+            (game._turkish_genitive_form, ("Özpil",), "Özpil'in"),
+            (game._turkish_genitive_form, ("Kâtip",), "Kâtip'in"),
+            (game._turkish_genitive_form, ("  Marek ",), "Marek'in"),
+            (game._turkish_genitive_form, ("Kale",), "Kale'nin"),
+            (game._turkish_genitive_form, ("Brr",), "Brr"),
+            (game._turkish_genitive_form, ("",), ""),
+            (game._turkish_genitive_form, (None,), ""),
+            (game._word_root, ("takımını",), "takımı"),
+            (game._word_root, ("emanetini",), "emaneti"),
+            (game._word_root, ("çarşı",), "çarşı"),
+            (game._word_root, ("kılıçlarımızı",), "kılıçlarımı"),
+            (game._word_root, ("ışıklı",), "ışıkl"),
+            (game._singular_narrator,
+             ("Siz kapıya yaklaşırken etrafınızda fısıltılar yükselir; gözleriniz kararır.",),
+             "Sen kapıya yaklaşırken etrafında fısıltılar yükselir; gözlerin kararır."),
+            (game._singular_narrator,
+             ("Muhafız size bakar: “Siz kimsiniz?” Sonra adımlarınızı izler, gidiyorsunuz, durdunuz.",),
+             "Muhafız sana bakar: “Siz kimsiniz?” Sonra adımlarını izler, gidiyorsun, durdun."),
+            (game._singular_narrator, (42,), 42),
+            (game._attack_verb_tokens, ("muhafiza saldiriyorum ve vuruyorum",), ["saldiriyorum", "vuruyorum"]),
+            (game._attack_verb_tokens, ("kesinlikle kestirme yoldan bicakla gidiyorum",), []),
+            (game._attack_verb_tokens, ("kestrin keskin saldirgan vurmadim dovdum",), ["vurmadim", "dovdum"]),
+        )
+        for helper, args, expected in cases:
+            with self.subTest(helper=helper.__name__, args=args):
+                self.assertEqual(helper(*args), expected)
 
 
 if __name__ == "__main__":

@@ -831,13 +831,13 @@
  },
  "_asks_what_is_going_on": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_attack_verb_tokens": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -1113,7 +1113,7 @@
  },
  "_dialogue_repair_has_attributed_answer": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(narration, npc_target, action_result)"
  },
@@ -1575,7 +1575,7 @@
  },
  "_immediate_check_refusal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(check_feature, message)"
  },
@@ -1611,7 +1611,7 @@
  },
  "_is_bare_greeting": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(player_input, npc_target)"
  },
@@ -1725,7 +1725,7 @@
  },
  "_is_scene_referent_activity_observation": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1827,7 +1827,7 @@
  },
  "_line_addresses": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(player_input, npc)"
  },
@@ -2277,7 +2277,7 @@
  },
  "_print_skill_result": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(result, difficulty)"
  },
@@ -2295,7 +2295,7 @@
  },
  "_public_scene_person_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -2481,7 +2481,7 @@
  },
  "_resolved_skill_result_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(result)"
  },
@@ -2535,7 +2535,7 @@
  },
  "_said_after_approach": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2673,13 +2673,13 @@
  },
  "_singular_narrator": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(text)"
  },
  "_skill_result_category": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(result)"
  },
@@ -2901,13 +2901,13 @@
  },
  "_trim_dangling_quote": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(text)"
  },
  "_turkish_genitive_form": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(name)"
  },
@@ -3051,7 +3051,7 @@
  },
  "_validated_player_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(raw_line, player_input)"
  },
@@ -3141,7 +3141,7 @@
  },
  "_word_root": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.text_rules_b",
   "session_bound": true,
   "signature": "(word)"
  },
