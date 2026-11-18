@@ -29,6 +29,7 @@ from engine_split import routing_audit  # noqa: E402
 TABLES = tuple(batch_names("tables"))
 SCHEMAS = tuple(batch_names("schemas"))
 TEXT_A1 = tuple(batch_names("text-a1"))
+TEXT_A2 = tuple(batch_names("text-a2"))
 
 
 def _canonical(value):
@@ -241,6 +242,37 @@ class TextA1Part(unittest.TestCase):
                 result = game.run_player_turn("Peki oranın adı ne?", session=s)
         named.assert_called_once()
         self.assertEqual(result["narration"], "Adı X.")
+
+
+class TextA2Part(unittest.TestCase):
+    """T3.4 batch text-a2: more text helpers and regexes live in game_parts/text_rules_a.py; game.py re-exports them."""
+
+    def test_text_a2_lives_in_the_part(self):
+        self.assertEqual(set(TEXT_A2) - set(routing_audit.re_exports(ROOT)["text_rules_a"]), set())
+
+    def test_text_a2_helpers_answer_as_before(self):
+        # inputs carry Turkish letters, curly quotes, emoji and an unclosed JSON object;
+        # expected values captured on 19a181d8 before the move (slot Python 3.13)
+        cases = (
+            (game._fold_keep_punctuation, ("İstanbul’un KAPISI`nda Dükkâncı",), "istanbulun kapisinda dukkanci"),
+            (game._fold_keep_punctuation, ("Şükrü'nün ÇIRAĞI, hâlâ orada!",), "sukrunun ciragi, hala orada!"),
+            (game._extract_json_object,
+             ('<think>plan</think>```json\n{"say": "“Selam,” dedi {köşede}", "list": [1, {"a": "çiğ"}',),
+             {"say": "“Selam,” dedi {köşede}", "list": [1, {"a": "çiğ"}]}),
+            (game._extract_json_object, ('Önce söz: {"a": "x\\"y", "b": [2, 3]} sonra artık }',),
+             {"a": 'x"y', "b": [2, 3]}),
+            (game._strip_pictographs, ("Selam 👋🏽 dostum ❤️ nasılsın?",), "Selam  dostum  nasılsın?"),
+            (game._strip_pictographs, ("“Çarşı açık” ✨ dedi‍ ☕",), "“Çarşı açık”  dedi "),
+            (game._normalize_turkish_typos, ("Dükkâncı’ya GİT, şimdi!",), "dukkanci ya git simdi"),
+            (game._normalize_turkish_typos, ("  Kâtip'in   ÇIRAĞI?  “Işık” ",), "katip in ciragi isik"),
+            (game._without_real_world_faith, ("Aleyküm selam. İnşallah yarın gelirim.",),
+             "Selam. Tanrılar izin verirse yarın gelirim."),
+            (game._without_real_world_faith, ("“Maşallah,” dedi. Allah’a emanet ol, elhamdülillah!",),
+             "“Vay be,” dedi. Tymora yar olsun, tanrılara şükür!"),
+        )
+        for helper, args, expected in cases:
+            with self.subTest(helper=helper.__name__, args=args):
+                self.assertEqual(helper(*args), expected)
 
 
 if __name__ == "__main__":
