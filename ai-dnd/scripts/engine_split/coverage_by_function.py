@@ -6,9 +6,12 @@ Only functions, classes and assignments count: import lines (a move's re-export)
 (`<If@N>`) would change on every move.
 The index is built on the measured tree (`--engine-root` = a `git archive <measured sha>` copy of ai-dnd), never on
 the current worktree: line numbers only mean something in the tree that produced them.
-A base is two equal runs (`--base`, `--base2`); names they disagree on are noise and never count.
-  DOWN: names that ran fewer lines in `--new` than in `--base` (exit 1).
-  UP:   names that ran more lines (new tests may explain them; each is listed in the ledger with its test).
+A base is two equal runs (`--base`, `--base2`); the two counts of a name are its band.
+  NOISE: names the two bases disagree on (printed; such a name is still checked against its band).
+  DOWN: names that ran fewer lines in `--new` than in the lower base (exit 1). A name whose lower base is its import
+        floor (only the lines that run when the module loads) cannot show DOWN.
+  UP:   names that ran more lines than the higher base (new tests may explain them; each is listed in the ledger with
+        its test).
 Refusals (exit 2): a run without its lines file or its proof; shards on different trees; a lines file naming a path the
 engine root does not hold; a run that counts no function; two bases on different trees.
 Usage (from ai-dnd/):
@@ -94,9 +97,9 @@ def _diff(base_path: Path, base2_path: Path, new_path: Path) -> int:
         return 2
     base, base2, new = (f["functions"] for f in files)
     noise_names = set(unequal(base, base2, set()))
-    changed = unequal(base, new, noise_names)
-    down = [n for n in changed if new.get(n, 0) < base.get(n, 0)]
-    up = [n for n in changed if new.get(n, 0) > base.get(n, 0)]
+    names = sorted(set(base) | set(base2) | set(new))
+    down = [n for n in names if new.get(n, 0) < min(base.get(n, 0), base2.get(n, 0))]
+    up = [n for n in names if new.get(n, 0) > max(base.get(n, 0), base2.get(n, 0))]
     print(f"NOISE {len(noise_names)}")
     print(f"DOWN {len(down)}", *(f"  {n}" for n in down), sep="\n")
     print(f"UP {len(up)}", *(f"  {n}" for n in up), sep="\n")

@@ -4,12 +4,16 @@ A base is two equal runs (`--base`, `--base2`); what they disagree on is noise a
   DROPS: `<test>|<target>` patches that fired (called) in `--base` and not in `--new`.
   LOST:  tests `ok` in `--base` and not `ok` in `--new` (a test not `ok` in `--base2` is noise).
   SUBLOST: subtests failed or errored in `--new` and in neither base (a test already red hides them from LOST).
+           A test named under SUBNOISE is no excuse: its new red subtests still count here.
+  SUBNOISE: tests whose red-subtest lists differ between the two bases (printed, never counts, exit code unchanged).
+  SUBGONE: tests with the same non-empty red-subtest list in both bases that are not `ok` in `--new` and lost one of
+           those red subtests there (crashed before or inside their subtest loop; exit 1, like LOST).
 Refusals (exit 2): a run without its ledger, its proof or any outcome record; shards on different trees; two bases on
 different trees or with different tests (a dead shard in one base would turn every test after the cut into noise).
 Blind spots (N3 is their only guard): tests that patch without calling, plain `game.X = ...` assignments, kind "other".
 Usage (from ai-dnd/):
     python scripts/engine_split/ledger_diff.py --collect "<runs glob>" --out <file.json>
-    python scripts/engine_split/ledger_diff.py --diff --base A.json --base2 B.json --new C.json   # exit 1 on DROPS/LOST/SUBLOST
+    python scripts/engine_split/ledger_diff.py --diff --base A.json --base2 B.json --new C.json   # exit 1 on DROPS/LOST/SUBLOST/SUBGONE
 """
 from __future__ import annotations
 
@@ -81,6 +85,12 @@ def sublost(base: dict[str, list[str]], base2: dict[str, list[str]], new: dict[s
     return sorted(s for subtests in new.values() for s in subtests if s not in seen)
 
 
+def subgone(base: dict[str, list[str]], base2: dict[str, list[str]], new_outcomes: dict[str, str],
+            new: dict[str, list[str]]) -> list[str]:
+    return sorted(t for t, reds in base.items() if reds and base2.get(t) == reds and new_outcomes.get(t) != "ok"
+                  and not set(reds) <= set(new.get(t, [])))
+
+
 def _collect(pattern: str, out: Path) -> int:
     runs = [Path(d) for d in sorted(glob.glob(pattern))]
     missing = [d for d in runs if not (d / "engine-probe").is_dir()]
@@ -124,11 +134,17 @@ def _diff(base_path: Path, base2_path: Path, new_path: Path) -> int:
     dropped = drops(base["hits"], new["hits"], hit_noise)
     lost = lost_tests(base["outcomes"], new["outcomes"], outcome_noise)
     sub = sublost(base["subtests"], base2["subtests"], new["subtests"])
+    sub_noise = noise(base["subtests"], base2["subtests"])
+    gone = subgone(base["subtests"], base2["subtests"], new["outcomes"], new["subtests"])
     print(f"NOISE {len(hit_noise | outcome_noise)}")
+    print(f"SUBNOISE {len(sub_noise)}", *(f"  {k}" for k in sub_noise[:20]), sep="\n")
+    if len(sub_noise) > 20:
+        print(f"  ... {len(sub_noise) - 20} more")
     print(f"DROPS {len(dropped)}", *(f"  {k}" for k in dropped), sep="\n")
     print(f"LOST {len(lost)}", *(f"  {k}" for k in lost), sep="\n")
     print(f"SUBLOST {len(sub)}", *(f"  {k}" for k in sub), sep="\n")
-    return 1 if dropped or lost or sub else 0
+    print(f"SUBGONE {len(gone)}", *(f"  {k}" for k in gone), sep="\n")
+    return 1 if dropped or lost or sub or gone else 0
 
 
 def main(argv=None) -> int:

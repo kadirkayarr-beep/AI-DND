@@ -151,7 +151,7 @@ class LedgerCli(unittest.TestCase):
                 code = ledger_diff.main(["--diff", "--base", str(paths[0]), "--base2", str(paths[1]), "--new", str(paths[2])])
             self.assertEqual(code, 1)
             self.assertEqual(printed.getvalue().split("\n"), [
-                "NOISE 2", "DROPS 1", "  t|roll_d20", "LOST 1", "  t", "SUBLOST 0", ""])
+                "NOISE 2", "SUBNOISE 0", "DROPS 1", "  t|roll_d20", "LOST 1", "  t", "SUBLOST 0", "SUBGONE 0", ""])
 
     def test_the_diff_fails_on_a_new_red_subtest_inside_a_test_that_was_already_red(self):  # review finding 1
         base = {"hits": {}, "outcomes": {"t": "fail"}, "subtests": {"t": ["t (n=1)"]}, "seconds": 1, "tree": "a"}
@@ -159,7 +159,49 @@ class LedgerCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base, new))
         self.assertEqual(code, 1)
-        self.assertEqual(printed, ["NOISE 0", "DROPS 0", "LOST 0", "SUBLOST 1", "  t (n=5)", ""])
+        self.assertEqual(printed, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 1", "  t (n=5)", "SUBGONE 0", ""])
+
+    def test_subnoise_names_the_tests_whose_red_subtests_differ_between_the_bases_and_keeps_the_exit_code(self):
+        # Plan 2 Task 9 Step 0 (re-review Minor 1): 22 tests, each with a different red subtest in each base.
+        names = [f"t{n:02}" for n in range(22)]
+        base = {"hits": {}, "outcomes": {n: "fail" for n in names}, "subtests": {n: [f"{n} (k=1)"] for n in names},
+                "seconds": 1, "tree": "a"}
+        base2 = dict(base, subtests={n: [f"{n} (k=2)"] for n in names})
+        with tempfile.TemporaryDirectory() as tmp:
+            code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base2, base))
+        self.assertEqual(code, 0)
+        self.assertEqual(printed, ["NOISE 0", "SUBNOISE 22", *(f"  {n}" for n in names[:20]), "  ... 2 more",
+                                   "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 0", ""])
+
+    def test_a_subtest_of_a_subnoise_test_red_in_new_and_in_neither_base_is_still_sublost(self):
+        base = {"hits": {}, "outcomes": {"t": "fail"}, "subtests": {"t": ["t (k=1)"]}, "seconds": 1, "tree": "a"}
+        base2 = dict(base, subtests={"t": ["t (k=2)"]})
+        new = dict(base, subtests={"t": ["t (k=1)", "t (k=3)"]})
+        with tempfile.TemporaryDirectory() as tmp:
+            code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base2, new))
+        self.assertEqual(code, 1)
+        self.assertEqual(printed, ["NOISE 0", "SUBNOISE 1", "  t", "DROPS 0", "LOST 0", "SUBLOST 1", "  t (k=3)",
+                                   "SUBGONE 0", ""])
+
+    def subgone_diff(self, new_outcome: str, new_subtests: list[str]) -> tuple[int, list[str]]:
+        # The same three red subtests in both bases (D-361 item 3); `new` is the given outcome and red subtest list.
+        reds = ["t (n=1)", "t (n=2)", "t (n=3)"]
+        base = {"hits": {}, "outcomes": {"t": "fail", "u": "ok"}, "subtests": {"t": reds}, "seconds": 1, "tree": "a"}
+        new = dict(base, outcomes={"t": new_outcome, "u": "ok"}, subtests={"t": new_subtests} if new_subtests else {})
+        with tempfile.TemporaryDirectory() as tmp:
+            return _cli(ledger_diff, *_diff_files(tmp, base, base, new))
+
+    def test_subgone_fails_on_a_base_red_test_that_now_crashes_before_its_subtest_loop(self):  # D-361 item 3
+        self.assertEqual(self.subgone_diff("error", []),
+                         (1, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 1", "  t", ""]))
+
+    def test_subgone_fails_on_a_base_red_test_that_now_crashes_part_way_through_its_subtests(self):  # D-361 item 3
+        self.assertEqual(self.subgone_diff("error", ["t (n=1)"]),
+                         (1, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 1", "  t", ""]))
+
+    def test_subgone_is_silent_when_the_base_red_test_now_passes(self):
+        self.assertEqual(self.subgone_diff("ok", []),
+                         (0, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 0", ""]))
 
     def test_collect_refuses_a_run_with_no_outcome_record(self):  # review finding 2: an n7-only run, a dead shard
         with tempfile.TemporaryDirectory() as tmp:
@@ -456,7 +498,22 @@ class FunctionCountsCli(unittest.TestCase):
                 code = coverage_by_function.main(["--diff", "--base", str(paths[0]), "--base2", str(paths[1]),
                                                   "--new", str(paths[2])])
             self.assertEqual(code, 1)
-            self.assertEqual(printed.getvalue().split("\n"), ["NOISE 1", "DOWN 1", "  f", "UP 1", "  h", ""])
+            self.assertEqual(printed.getvalue().split("\n"), ["NOISE 1", "DOWN 2", "  f", "  g", "UP 1", "  h", ""])
+
+    def band_diff(self, new: int) -> tuple[int, list[str]]:
+        # Plan 2 Task 9 Step 0: a noisy name (249 in one base, 252 in the other) is checked against the band.
+        with tempfile.TemporaryDirectory() as tmp:
+            return _cli(coverage_by_function, *_diff_files(tmp, *({"functions": {"f": count}, "seconds": 1, "tree": "a"}
+                                                                  for count in (249, 252, new))))
+
+    def test_a_noisy_name_below_its_lower_base_is_down(self):
+        self.assertEqual(self.band_diff(240), (1, ["NOISE 1", "DOWN 1", "  f", "UP 0", ""]))
+
+    def test_a_noisy_name_inside_its_band_is_neither_down_nor_up(self):
+        self.assertEqual(self.band_diff(250), (0, ["NOISE 1", "DOWN 0", "UP 0", ""]))
+
+    def test_a_noisy_name_above_its_higher_base_is_up(self):
+        self.assertEqual(self.band_diff(260), (0, ["NOISE 1", "DOWN 0", "UP 1", "  f", ""]))
 
     def test_a_move_that_shifts_line_numbers_is_no_drop(self):
         # Before: f at game.py 1-3, a top-level `if` at 5-6. After: f's body in a part, game.py re-exports it and the
