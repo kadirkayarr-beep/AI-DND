@@ -201,6 +201,18 @@ _OWNED_SQL = (
 )
 
 
+def _engine_files(game_file: Path) -> list[Path]:
+    return [game_file] + sorted((game_file.parent / "game_parts").glob("*.py"))
+
+
+def _engine_digest(game_file: Path) -> str:
+    digest = hashlib.sha256()
+    for path in _engine_files(game_file):
+        digest.update(path.relative_to(game_file.parent).as_posix().encode("utf-8") + b"\0")
+        digest.update(path.read_bytes() + b"\0")
+    return digest.hexdigest()
+
+
 class CampaignStore:
     """Stores canonical engine saves and safe campaign metadata transactionally."""
 
@@ -582,7 +594,7 @@ class CampaignStore:
     @staticmethod
     def _engine_hash() -> str:
         try:
-            return hashlib.sha256(Path(game.__file__).resolve().read_bytes()).hexdigest()
+            return _engine_digest(Path(game.__file__).resolve())
         except OSError:
             raise CampaignStorageError("Campaign engine metadata is unavailable.") from None
 
