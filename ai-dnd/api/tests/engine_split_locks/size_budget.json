@@ -1,6 +1,6 @@
 {
   "files": {
-    "game.py": 25122
+    "game.py": 24953
   },
   "part_max": 2500,
   "slack": 50,
@@ -22,6 +22,7 @@
     "parse_player_intent": 420,
     "plan_living_world_turn": 725,
     "resolve_species_trait_action": 361,
+    "run": 184,
     "validate_world_updates": 155
   }
 }
