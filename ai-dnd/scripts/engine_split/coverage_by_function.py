@@ -9,6 +9,8 @@ the current worktree: line numbers only mean something in the tree that produced
 A base is two equal runs (`--base`, `--base2`); names they disagree on are noise and never count.
   DOWN: names that ran fewer lines in `--new` than in `--base` (exit 1).
   UP:   names that ran more lines (new tests may explain them; each is listed in the ledger with its test).
+Refusals (exit 2): a run without its lines file or its proof; shards on different trees; a lines file naming a path the
+engine root does not hold; a run that counts no function; two bases on different trees.
 Usage (from ai-dnd/):
     python scripts/engine_split/coverage_by_function.py --collect "<runs glob>" --engine-root <dir> --out <file.json>
     python scripts/engine_split/coverage_by_function.py --diff --base A.json --base2 B.json --new C.json
@@ -56,6 +58,10 @@ def _collect(pattern: str, engine_root: Path, out: Path) -> int:
     if not runs or missing:     # a run without its lines file means the probe never wrote: refuse, do not count less
         print(f"NO_LINES runs={len(runs)}", *missing, sep="\n")
         return 2
+    no_proof = [d for d in runs if not (d / "proof.json").is_file()]
+    if no_proof:
+        print(f"NO_PROOF runs={len(runs)}", *no_proof, sep="\n")
+        return 2
     proofs = [json.loads((d / "proof.json").read_text(encoding="utf-8")) for d in runs]
     trees = {p["source_identity"]["total_digest_sha256"] for p in proofs}
     if len(trees) != 1:         # shards of one run share one synced tree
@@ -67,16 +73,26 @@ def _collect(pattern: str, engine_root: Path, out: Path) -> int:
             for name, executed in json.loads(path.read_text(encoding="utf-8")).items():
                 lines.setdefault(name, set()).update(executed)
     index = {p.relative_to(engine_root).as_posix(): top_level_index(p) for p in engine_source_files(engine_root)}
+    unknown = sorted(set(lines) - set(index))
+    if unknown:                 # a path the engine root does not hold would count as nothing: refuse
+        print("UNKNOWN_FILE", *unknown, sep="\n")
+        return 2
     data = {"functions": function_hits({k: sorted(v) for k, v in lines.items()}, index),
             "seconds": max(p["seconds"] for p in proofs), "tree": trees.pop()}
+    if not data["functions"]:
+        print("NO_FUNCTIONS")
+        return 2
     Path(out).write_text(json.dumps(data, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(f"COLLECTED runs={len(runs)} files={len(lines)} functions={len(data['functions'])} seconds={data['seconds']}")
     return 0
 
 
 def _diff(base_path: Path, base2_path: Path, new_path: Path) -> int:
-    base, base2, new = (json.loads(Path(p).read_text(encoding="utf-8"))["functions"]
-                        for p in (base_path, base2_path, new_path))
+    files = [json.loads(Path(p).read_text(encoding="utf-8")) for p in (base_path, base2_path, new_path)]
+    if files[0]["tree"] != files[1]["tree"]:
+        print("TREES_DIFFER", files[0]["tree"], files[1]["tree"], sep="\n")
+        return 2
+    base, base2, new = (f["functions"] for f in files)
     noise_names = set(unequal(base, base2, set()))
     changed = unequal(base, new, noise_names)
     down = [n for n in changed if new.get(n, 0) < base.get(n, 0)]

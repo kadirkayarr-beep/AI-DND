@@ -3,6 +3,7 @@
 `install_ledger(out_dir)` wraps `unittest.TestCase.run` and `unittest.mock._patch.__enter__/__exit__` and writes one
 JSON line per record to `out_dir/ledger-<pid>.jsonl`:
     {"test": id, "outcome": "ok|fail|error|skip|xfail|xpass"}           after every TestCase.run
+        (+ "subtests": [sorted ids of its failed or errored subtests], only when there are any)
     {"test": id, "target": attribute, "kind": "mock|other", "called": bool|None}   at the __exit__ of a patch on `game`
 Installs stack: each install wraps the three functions as they are at that moment (possibly an outer install's
 wrappers), so an outer ledger keeps recording through an inner one; `uninstall` pops the top install only.
@@ -44,6 +45,11 @@ def _outcome(before, result):
     return "ok"
 
 
+def _failed_subtests(before, result, test) -> list[str]:
+    new = [*result.errors[before[0]:], *result.failures[before[1]:]]        # _OUTCOME_LISTS order: errors, failures
+    return sorted({case.id() for case, _ in new if case is not test})
+
+
 def _outside_test() -> str:
     frame = sys._getframe(1)
     skip = (Path(__file__).resolve(), Path(mock.__file__).resolve().parent)
@@ -76,7 +82,11 @@ def install_ledger(out_dir: Path, is_target=_is_game) -> None:
             result = saved_run(self, result)
         finally:
             tests.pop()
-        write({"test": self.id(), "outcome": _outcome(before, result)})
+        record = {"test": self.id(), "outcome": _outcome(before, result)}
+        subtests = _failed_subtests(before, result, self)
+        if subtests:
+            record["subtests"] = subtests
+        write(record)
         return result
 
     def enter(self):

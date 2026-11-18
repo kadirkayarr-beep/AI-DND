@@ -3,10 +3,13 @@
 A base is two equal runs (`--base`, `--base2`); what they disagree on is noise and never counts.
   DROPS: `<test>|<target>` patches that fired (called) in `--base` and not in `--new`.
   LOST:  tests `ok` in `--base` and not `ok` in `--new` (a test not `ok` in `--base2` is noise).
+  SUBLOST: subtests failed or errored in `--new` and in neither base (a test already red hides them from LOST).
+Refusals (exit 2): a run without its ledger, its proof or any outcome record; shards on different trees; two bases on
+different trees or with different tests (a dead shard in one base would turn every test after the cut into noise).
 Blind spots (N3 is their only guard): tests that patch without calling, plain `game.X = ...` assignments, kind "other".
 Usage (from ai-dnd/):
     python scripts/engine_split/ledger_diff.py --collect "<runs glob>" --out <file.json>
-    python scripts/engine_split/ledger_diff.py --diff --base A.json --base2 B.json --new C.json   # exit 1 on DROPS/LOST
+    python scripts/engine_split/ledger_diff.py --diff --base A.json --base2 B.json --new C.json   # exit 1 on DROPS/LOST/SUBLOST
 """
 from __future__ import annotations
 
@@ -44,6 +47,14 @@ def _outcomes(records: list[dict]) -> dict[str, str]:
     return outcomes
 
 
+def _subtests(records: list[dict]) -> dict[str, list[str]]:
+    subtests: dict[str, set[str]] = {}
+    for r in records:
+        if r.get("subtests"):
+            subtests.setdefault(r["test"], set()).update(r["subtests"])
+    return {test: sorted(ids) for test, ids in subtests.items()}
+
+
 def merge_ledger(lines_dir: Path) -> dict[str, bool | None]:
     return _hits(_records([lines_dir]))
 
@@ -65,11 +76,24 @@ def lost_tests(base: dict[str, str], new: dict[str, str], noise_keys: set[str]) 
     return sorted(k for k, v in base.items() if v == "ok" and new.get(k) != "ok" and k not in noise_keys)
 
 
+def sublost(base: dict[str, list[str]], base2: dict[str, list[str]], new: dict[str, list[str]]) -> list[str]:
+    seen = {s for subtests in (*base.values(), *base2.values()) for s in subtests}
+    return sorted(s for subtests in new.values() for s in subtests if s not in seen)
+
+
 def _collect(pattern: str, out: Path) -> int:
     runs = [Path(d) for d in sorted(glob.glob(pattern))]
     missing = [d for d in runs if not (d / "engine-probe").is_dir()]
     if not runs or missing:     # a run without its ledger means the probe never started: refuse, do not merge less
         print(f"NO_LEDGER runs={len(runs)}", *missing, sep="\n")
+        return 2
+    no_proof = [d for d in runs if not (d / "proof.json").is_file()]
+    if no_proof:
+        print(f"NO_PROOF runs={len(runs)}", *no_proof, sep="\n")
+        return 2
+    no_outcome = [d for d in runs if not _outcomes(_records([d / "engine-probe"]))]
+    if no_outcome:              # an n7-only run, or a shard that died before its first test ended
+        print(f"NO_OUTCOMES runs={len(runs)}", *no_outcome, sep="\n")
         return 2
     proofs = [json.loads((d / "proof.json").read_text(encoding="utf-8")) for d in runs]
     trees = {p["source_identity"]["total_digest_sha256"] for p in proofs}
@@ -77,7 +101,7 @@ def _collect(pattern: str, out: Path) -> int:
         print("TREES_DIFFER", *sorted(trees), sep="\n")
         return 2
     records = _records([d / "engine-probe" for d in runs])
-    data = {"hits": _hits(records), "outcomes": _outcomes(records),
+    data = {"hits": _hits(records), "outcomes": _outcomes(records), "subtests": _subtests(records),
             "seconds": max(p["seconds"] for p in proofs), "tree": trees.pop()}
     Path(out).write_text(json.dumps(data, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(f"COLLECTED runs={len(runs)} hits={len(data['hits'])} outcomes={len(data['outcomes'])} seconds={data['seconds']}")
@@ -86,14 +110,25 @@ def _collect(pattern: str, out: Path) -> int:
 
 def _diff(base_path: Path, base2_path: Path, new_path: Path) -> int:
     base, base2, new = (json.loads(Path(p).read_text(encoding="utf-8")) for p in (base_path, base2_path, new_path))
+    if base["tree"] != base2["tree"]:
+        print("TREES_DIFFER", base["tree"], base2["tree"], sep="\n")
+        return 2
+    keys = sorted(set(base["outcomes"]) ^ set(base2["outcomes"]))
+    if keys:
+        print(f"KEYS_DIFFER {len(keys)}", *(f"  {k}" for k in keys[:20]), sep="\n")
+        if len(keys) > 20:
+            print(f"  ... {len(keys) - 20} more")
+        return 2
     hit_noise = set(noise(base["hits"], base2["hits"]))
     outcome_noise = set(noise(base["outcomes"], base2["outcomes"]))
     dropped = drops(base["hits"], new["hits"], hit_noise)
     lost = lost_tests(base["outcomes"], new["outcomes"], outcome_noise)
+    sub = sublost(base["subtests"], base2["subtests"], new["subtests"])
     print(f"NOISE {len(hit_noise | outcome_noise)}")
     print(f"DROPS {len(dropped)}", *(f"  {k}" for k in dropped), sep="\n")
     print(f"LOST {len(lost)}", *(f"  {k}" for k in lost), sep="\n")
-    return 1 if dropped or lost else 0
+    print(f"SUBLOST {len(sub)}", *(f"  {k}" for k in sub), sep="\n")
+    return 1 if dropped or lost or sub else 0
 
 
 def main(argv=None) -> int:
