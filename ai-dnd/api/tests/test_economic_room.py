@@ -22,6 +22,7 @@ import world_reactions
 from api.core_resolution import resolution_action_scope
 from api.tests import test_last_play_blockers as blockers
 from api.tests.coin_seam import planted, read_as
+from api.tests.test_economic_action_http import EconomicHttpFixture
 from api.tests.test_three_plays import PlayClient
 
 HOUR = 3600
@@ -302,6 +303,83 @@ class AFailedReadingFollowsTheWords(Counter):
         self.assertIsNone(self.w["flags"].get("counter_offer_v1"))
         self.assertIn("kesen olduğu gibi duruyor", result["narration"])
         self.assertEqual(self.w["currency"]["player"], 500)
+
+    def test_a_room_asked_for_with_coin_below_its_price_opens_the_room_card_as_with_the_flag_off(self):
+        # D-402 (Task D): ten coppers fit no room (50), so the structural decision is unclear and names the innkeeper;
+        # the bed the words ask for is still the room card's, as with the flag off, and the coin is told back.
+        before = self.money()
+        result = self.turn("hancıya 1 gümüş verip oda tutuyorum")
+        self.assertEqual(self.s._front_route, "fallback:failed")
+        self.assertIsNone(money_owner.current(self.s))
+        action = result["action_result"]
+        self.assertEqual((action["action"], action["status"], action.get("coin_seen_by")),
+                         ("lodging", "offered", "room"), result["narration"])
+        [card] = self.offers().values()
+        self.assertEqual((card["status"], card["proposal"]["purpose"], card["proposal"]["recipient_id"],
+                          card["proposal"]["tender_cp"]), ("prepared", "room", "barman", None))
+        self.assertIn(bold_acts.COIN_NOT_TENDERED, result["narration"])
+        self.assertIsNone(self.s._coin_paid)
+        self.assertEqual(self.money(), before)
+        resolution = self.confirm(card)
+        self.assertEqual((resolution.status, resolution.net_debit_cp, resolution.tender_cp), ("applied", 50, None))
+        self.assertEqual(self.w["currency"]["player"], 450)
+
+    def test_coin_held_out_to_nobody_named_is_asked_about_not_lost(self):
+        # The narrowing's other branch stays: an unclear decision naming nobody is dropped, the coin waits in hand
+        # (`bold_acts.held_out_coin` reads it as with no reading) and who it is for is asked; nothing moves.
+        seen = []
+        original = game._coin_without_a_reading
+
+        def watch(*args):
+            original(*args)
+            seen.append((money_owner.current(self.s), self.s._coin_paid))
+
+        with patch("game._coin_without_a_reading", side_effect=watch):
+            result = self.turn("1 altın uzatıyorum")
+        self.assertEqual(self.s._front_route, "fallback:failed")
+        self.assertEqual(seen, [(None, (100, None, self.here))])
+        self.assertEqual(self.offers(), {}, result["narration"])
+        self.assertIn("kesen olduğu gibi duruyor", result["narration"])
+        self.assertIn("kişiyi seçer misin", result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500)
+
+
+class AFailedReadingRoomIsPaidAndUndoneAsWithTheFlagOff(EconomicHttpFixture):
+    """D-402 (Task D) over HTTP: the room card a failed reading leaves for "hancıya 1 gümüş verip oda tutuyorum" is
+    confirmed, replayed and undone exactly as the card the flag-off line opens: one payment, no second one, and the
+    purse and the card come back on Undo."""
+
+    async def played(self, flag):
+        session = self.record.game_session
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+                patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+            session.run_player_turn("hancıya 1 gümüş verip oda tutuyorum")
+        self.save()
+        [card] = self.offers().values()
+        opened = (card["status"], card["proposal"]["purpose"], card["proposal"]["recipient_id"],
+                  card["proposal"]["tender_cp"], self.purse())
+        answer, body = await self.confirm(card)
+        resolution = answer["economic_resolution"]
+        paid = (resolution["status"], resolution["net_debit_cp"], self.purse(),
+                self.world["flags"]["economic_ledger"]["sink_totals"])
+        replay = await self.post(body)
+        self.assertEqual(replay.json(), answer)
+        self.assertEqual(self.purse(), 50)
+        undone = await self.undo(body["action_id"])
+        self.assertEqual(undone.status_code, 200, undone.text)
+        back = (self.purse(), self.offers()[card["offer_id"]]["status"], self.world["flags"].get("inn_room"))
+        return opened, paid, back
+
+    def expected(self):
+        return (("prepared", "room", "barman", None, 100),
+                ("applied", 50, 50, {f"sink:lodging:{self.here}": 50}),
+                (100, "prepared", None))
+
+    async def test_flag_on_failed_reading(self):
+        self.assertEqual(await self.played("1"), self.expected())
+
+    async def test_flag_off(self):
+        self.assertEqual(await self.played(""), self.expected())
 
 
 class Walks(unittest.IsolatedAsyncioTestCase):

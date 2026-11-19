@@ -17726,12 +17726,13 @@ def _coin_without_a_reading(player_input, target_id, listed):
     talk is with; nobody found is the structural rule's own case (`_hand_over_coin`: the arresting guard weighs it).
     An unclear decision that names nobody is not kept: the coin stays in hand with no decision and is read as it is
     with no reading (`bold_acts.held_out_coin`): the room or the counter the words ask for takes it as tender or
-    tells it back, else who it is for is asked (`money_owner.open_card_after_reply`). A structural room decision is
-    not kept either when the words ask for no bed (a beer ordered, a tip): the coin stays in hand the same way."""
+    tells it back, else who it is for is asked (`money_owner.open_card_after_reply`). Nor a room decision when the
+    words ask for no bed (a beer, a tip), nor an unclear one when they ask for a bed outside an arrest (D-402)."""
     import bold_acts
     import front_proposal
     import money_owner
     import shop_trade
+    import world_reactions
     session = _session()
     amount = front_proposal.coin_in(None, player_input, moves=True)  # `moves`: the words' figure stands with no reading
     if not amount:
@@ -17747,13 +17748,12 @@ def _coin_without_a_reading(player_input, target_id, listed):
         person = person or _active_interlocutor()
     _hand_over_coin({"kind": "speak_to", "id": person["id"]} if person is not None else {"kind": "attempt"}, listed)
     decided = money_owner.current(session)
-    if decided is not None and decided.kind == "unclear" and decided.npc_id is None:
-        session._coin_decision = None
     folded = bold_acts.fold(session, player_input)
-    if (decided is not None and decided.kind == "room"
-            and not (bold_acts._ROOM.search(folded) and bold_acts._wants_the_bed(folded))):
-        # No room asked for (a beer ordered, a tip): the structural room is a guess the words do not make; the coin
-        # stays in hand with no decision, for the counter the words ask for or told back (FA2 fix round 1)
+    bed = bool(bold_acts._ROOM.search(folded) and bold_acts._wants_the_bed(folded))
+    if decided is not None and ((decided.kind == "room" and not bed) or (decided.kind == "unclear" and (
+            decided.npc_id is None or (bed and world_reactions.arrester(session.world_state) is None)))):
+        # No room asked for (a beer ordered, a tip): the structural room is a guess the words do not make. A bed asked
+        # for outside an arrest is the room card's, as with the flag off (D-402). The coin stays in hand, undecided
         session._coin_decision = None
 
 
