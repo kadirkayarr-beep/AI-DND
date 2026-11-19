@@ -3,6 +3,7 @@
   "title": "Sohbetle bira, ön okumayla (35, D29): 'bir bira alabilir miyim' (ön okuma: barmenle konuşuyor, deal goods, mal bira, para yok) kelimeye bakılmadan tezgâh teklifini açar, para uzatılmadığı için kart açılmaz ve kese değişmez; tezgâh alışverişi 4 bakır öder",
   "source_items": [35],
   "setup": {
+    "campaign_seed": 10102,
     "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
     "currency": {"player": 100, "barman": 0},
     "inventory": [],

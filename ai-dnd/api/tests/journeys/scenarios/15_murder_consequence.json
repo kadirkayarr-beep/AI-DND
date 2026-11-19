@@ -3,6 +3,7 @@
   "title": "Cinayetin sonucu: Neverwinter sokağında, yolcu Orsik'in gözü önünde seyyar satıcı Ferumel öldürülür; tanık o turda adıyla karşılık verir (silahsız tanık kalabalığın içine koşar ve yan sokağa taşınır; muhafız silahını çeker). Sonradan gelen karşılık da çalışır: ceset yerde yatar, 8 saat sonra kaldırılır, bir muhafız gelip sorguya çeker",
   "source_items": [47],
   "setup": {
+    "campaign_seed": 11500,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",

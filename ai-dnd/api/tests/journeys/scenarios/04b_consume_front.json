@@ -4,6 +4,7 @@
     54
   ],
   "setup": {
+    "campaign_seed": 10402,
     "character": {
       "mode": "custom",
       "starting_level": 1,

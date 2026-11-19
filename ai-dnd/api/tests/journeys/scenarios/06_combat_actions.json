@@ -3,6 +3,7 @@
   "title": "Savaş eylemleri (Fighter 3, Haydut yanında, Okçu 30 feet ötede): tetik ve karşılıkla Ready çalışır ve tetiklenince karşılık uygulanır; Dash, Second Wind, Action Surge ve açık 'N feet' hareketi çalışır (yeşil, korunur); tetiksiz 'ready' Türkçe, ne eksik olduğunu söyleyen bir mesaj verir, 'Dövüşün ortasında bu olmuyor' demez; 'okçuya yaklaşıyorum' savaş hareketidir (25 feet, Okçunun yanına; iki rakip varken 'rakibe' belirsiz olduğu için rakip adıyla); Kadir'in 'rakibin yanına gidiyorum' cümlesi seyahat diye reddedilmez",
   "source_items": [40],
   "setup": {
+    "campaign_seed": 10600,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",

@@ -5,6 +5,7 @@
     110
   ],
   "setup": {
+    "campaign_seed": 11803,
     "character": {
       "mode": "custom",
       "starting_level": 3,

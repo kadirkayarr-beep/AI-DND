@@ -6,6 +6,7 @@
   ],
   "real_chain_core": true,
   "setup": {
+    "campaign_seed": 20300,
     "character": {
       "mode": "custom",
       "starting_level": 1,

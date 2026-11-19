@@ -1,6 +1,7 @@
 {
   "id": "24r_personal_memory_real",
   "setup": {
+    "campaign_seed": 12418,
     "seed": 7,
     "npcs": [
       {

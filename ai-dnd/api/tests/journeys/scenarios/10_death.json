@@ -3,6 +3,7 @@
   "title": "Ölüm (gerçek ölüm kipi, ürünün yeni kampanya varsayılanı; Kadir'in oynayışında da 'Öldün' ve son sesleniş vardı): muhafız Brenna ile konuşurken 1 canla Haydut'a saldırılır; 0 HP'de yere yığılır, ölüm kurtarma zarları atılır, üç başarısızlıkta ölür; ölünce savaş da konuşma kipi de kapalıdır, ölüyle konuşma kipi yeniden açılmaz",
   "source_items": [25, 26, 27],
   "setup": {
+    "campaign_seed": 11000,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",
