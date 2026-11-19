@@ -24,6 +24,7 @@ from api.tests import test_last_play_blockers as blockers
 from api.tests.coin_seam import planted, read_as
 from api.tests.test_economic_action_http import EconomicHttpFixture
 from api.tests.test_three_plays import PlayClient
+from api.tests.town_seed import fixed_town
 
 HOUR = 3600
 WALK_AND_SLEEP = "neyse ben hana dönüp oda tutayım, yarın sabaha kadar uyuyorum"
@@ -348,6 +349,10 @@ class AFailedReadingRoomIsPaidAndUndoneAsWithTheFlagOff(EconomicHttpFixture):
     """D-402 (Task D) over HTTP: the room card a failed reading leaves for "hancıya 1 gümüş verip oda tutuyorum" is
     confirmed, replayed and undone exactly as the card the flag-off line opens: one payment, no second one, and the
     purse and the card come back on Undo."""
+
+    async def asyncSetUp(self):
+        with fixed_town(self, 402):
+            await super().asyncSetUp()
 
     async def played(self, flag):
         session = self.record.game_session
