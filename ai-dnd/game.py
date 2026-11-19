@@ -17422,7 +17422,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
         if (isinstance(raw_front, dict) and raw_front.get("kind") == "go_to"
-                and interaction_mode not in {"say", "ask_dm"}):
+                and interaction_mode not in {"say", "ask_dm"}
+                and not timed_gameplay.names_a_route(world, player_input)):  # a timed road is walked by its owner
             return {"kind": "walk_failed"}  # E5: a walk to nowhere listed is a failed walk, never a person to follow
         return None
     import grounded_action

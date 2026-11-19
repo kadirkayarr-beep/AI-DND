@@ -876,6 +876,27 @@ def is_timed_wait(text):
 _A_WHILE = 1800
 
 
+def _named_locations(world, normalized):
+    return [loc for loc in world.get("locations", {}) if (
+        clock.normalize(loc) in normalized
+        or clock.normalize(world["locations"][loc].get("name", loc)) in normalized
+    )]
+
+
+def names_a_route(world, text):
+    """The line walks to the one place a timed road from here leads to (FA3 Park 1): the front reading does not
+    list timed roads, so its go_to is no failed walk here; the timed owner below walks the line as it reads it."""
+    normalized = clock.normalize(text)
+    if says_no(normalized):
+        return False
+    movement, wait, task, _ = input_route_markers(world, normalized)
+    if not movement or wait or task:
+        return False
+    named = _named_locations(world, normalized)
+    routes = world.get("locations", {}).get(world.get("location"), {}).get("travel_routes", {})
+    return len(named) == 1 and named[0] in routes
+
+
 def names_a_stretch(world, text):
     """The line names how long it lasts, and it is no sleep, task or question: time is what it spends."""
     normalized = clock.normalize(text)
@@ -992,10 +1013,7 @@ def resolve_input(session, text):
     if movement and not wait and not task:
         if (getattr(session, "_front_read", None) or {}).get("kind") in {"talk_around", "look", "sit"}:
             return None  # the reading already said this line is no walk
-        candidates = [loc for loc in world.get("locations", {}) if (
-            clock.normalize(loc) in normalized
-            or clock.normalize(world["locations"][loc].get("name", loc)) in normalized
-        )]
+        candidates = _named_locations(world, normalized)
         if len(candidates) == 1:
             return start_travel(session, candidates[0])
         return None

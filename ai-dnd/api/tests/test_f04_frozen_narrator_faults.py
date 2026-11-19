@@ -185,10 +185,9 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_D04_location_contradiction_cannot_relocate_player(self):
         bad = 'Eski Han konumuna ulaştın.'
-        # D04 tests the narrator fault after a committed walk, so the reading is the one that walks today: `unclear`.
-        # Flag on, a `go_to` reading of this timed route (place forest or none) fails the walk; that gap is pinned
-        # by test_D04_a_go_to_reading_of_a_timed_route_still_walks below (FA3 Park 1), not stepped around here.
-        read = reading(kind='unclear')
+        # Flag on, the reading is local play's most likely one: go_to with no listed place (the forest is a timed
+        # route, not on the place list). The timed owner walks it (FA3 Park 1, fixed in Fix round 2).
+        read = reading(kind='go_to', place_id='none')
         provider = ScriptedProvider(read + [narration(bad)])
         fixture = Fixture(self.folder/'campaign.sqlite3', provider)
         with no_network() as network, fixture.adapter.engine_binding():
@@ -253,29 +252,30 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
 
 
 
-    @unittest.expectedFailure  # Known gap, FA3 Park 1 (debt row id given at merge; owner chosen by Task M).
     async def test_D04_a_go_to_reading_of_a_timed_route_still_walks(self):
-        # Local play's model most likely reads 'Ormana gidiyorum' as go_to with no listed place (the forest is
-        # a timed route, not on the place list). Flag on, that reading must still walk, as flag off and `unclear` do.
+        # FA3 Park 1: the forest is a timed route, not on the place list. Flag on, a go_to reading with no listed
+        # place (local play's most likely one) or with the off-list forest must still walk, as flag off does.
         if not front_proposal.enabled():
             self.skipTest('flag off: no reading; D04 covers this walk')
-        provider = ScriptedProvider(reading(kind='go_to', place_id='none'))
-        fixture = Fixture(self.folder/'campaign.sqlite3', provider)
-        with no_network(), fixture.adapter.engine_binding():
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=fixture.build_app()),
-                                         base_url='http://testserver', trust_env=False) as client:
-                await fixture.create(client)
-                fixture.tavern()
-                fixture.session.world_state['locations']['tavern']['travel_routes'] = {'forest': [600]}
-                fixture.session.rng.seed(5)
-                fixture.save()
-                response = await fixture.turn(client, 'Ormana gidiyorum.')
-                self.assertEqual(response.status_code, 200, response.text)
-                self.assertEqual(kinds(provider), ['front'])
-                action = fixture.engine_results[-1]['action_result']
-                self.assertEqual((action['action'], action.get('status')), ('travel', 'completed'))
-                self.assertEqual(fixture.session.world_state['location'], 'forest')
-                self.assertEqual(fixture.session.world_state['campaign_time']['elapsed_seconds'], 600)
+        for place in ('none', 'forest'):
+            with self.subTest(place_id=place):
+                provider = ScriptedProvider(reading(kind='go_to', place_id=place))
+                fixture = Fixture(self.folder/f'campaign-{place}.sqlite3', provider)
+                with no_network(), fixture.adapter.engine_binding():
+                    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=fixture.build_app()),
+                                                 base_url='http://testserver', trust_env=False) as client:
+                        await fixture.create(client)
+                        fixture.tavern()
+                        fixture.session.world_state['locations']['tavern']['travel_routes'] = {'forest': [600]}
+                        fixture.session.rng.seed(5)
+                        fixture.save()
+                        response = await fixture.turn(client, 'Ormana gidiyorum.')
+                        self.assertEqual(response.status_code, 200, response.text)
+                        self.assertEqual(kinds(provider), ['front'])
+                        action = fixture.engine_results[-1]['action_result']
+                        self.assertEqual((action['action'], action.get('status')), ('travel', 'completed'))
+                        self.assertEqual(fixture.session.world_state['location'], 'forest')
+                        self.assertEqual(fixture.session.world_state['campaign_time']['elapsed_seconds'], 600)
 
     async def test_D05_success_failure_and_shop_contradictions(self):
         summaries = []
