@@ -9,6 +9,7 @@ into a separate gift card. A change of place cancels the cards prepared before t
 from __future__ import annotations
 
 import copy
+import os
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +17,7 @@ import bold_acts
 import campaign_time
 import economic_actions as ea
 import game
+import money_owner
 import world_reactions
 from api.core_resolution import resolution_action_scope
 from api.tests import test_last_play_blockers as blockers
@@ -258,6 +260,48 @@ class CoinWithTheLine(Counter):
         self.s._economic_turn_key = "flee-turn"
         self.assertTrue(game.commit_location_change(away, session=self.s))
         self.assertEqual(self.offers()[card["offer_id"]]["status"], "cancelled")
+
+
+class AFailedReadingFollowsTheWords(Counter):
+    """G11 with the flag on: a failed reading's structural decision never gives the coin a room or the counter the
+    words do not ask for. Coin held out to whoever serves with a beer ordered, or as a tip, stays in hand with no
+    decision and is read as it is with no reading (FA2 fix round 1)."""
+
+    def setUp(self):
+        super().setUp()
+        flag = patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"})
+        flag.start()
+        self.addCleanup(flag.stop)
+
+    def rooms(self):
+        return [data for data in self.offers().values() if data["proposal"]["purpose"] == "room"]
+
+    def test_a_beer_ordered_with_gold_to_the_barman_is_the_counter_tender_not_a_room(self):
+        result = self.turn("barmene bi altın verip bi bira istiyorum")
+        self.assertEqual(self.s._front_route, "fallback:failed")
+        self.assertEqual(self.rooms(), [], result["narration"])
+        self.assertEqual(self.w["flags"]["counter_offer_v1"]["tender_cp"], 100, result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500)
+
+    def test_a_tip_of_gold_to_the_innkeeper_opens_no_room(self):
+        seen = []
+        original = game._coin_without_a_reading
+
+        def watch(*args):
+            original(*args)
+            seen.append((money_owner.current(self.s), self.s._coin_paid))
+
+        with patch("game._coin_without_a_reading", side_effect=watch):
+            result = self.turn("hancıya 1 altın bahşiş veriyorum")
+        self.assertEqual(self.s._front_route, "fallback:failed")
+        # The tip turns into no card and no counter: the coin waits in hand for Marek with no decision, nothing opens
+        # for it, and the purse is told back as it is (the same line as with the flag off; FA2 fix round 2).
+        [(decision, (amount, person, place))] = seen
+        self.assertEqual((decision, amount, person["id"], place), (None, 100, "barman", self.here))
+        self.assertEqual(self.offers(), {}, result["narration"])
+        self.assertIsNone(self.w["flags"].get("counter_offer_v1"))
+        self.assertIn("kesen olduğu gibi duruyor", result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500)
 
 
 class Walks(unittest.IsolatedAsyncioTestCase):
