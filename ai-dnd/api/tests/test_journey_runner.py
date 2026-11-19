@@ -1227,6 +1227,24 @@ class TheDilim3Additions(JourneyCase):
         self.assertEqual(read_observed(self, sid)["zirh"], 17)
 
 
+class ASeededSetupMadeAgain(JourneyCase):
+    async def test_each_new_campaign_of_one_seeded_setup_in_a_test_takes_the_next_seed(self):
+        """A seed is the campaign's id and one store holds one of each, so a test that makes the same seeded setup
+        again (a reset, a subtest) gets the next seed for each new campaign, as fixed_town does: the same towns in
+        the same order on every run, never a refused second campaign."""
+        made = [(await self._journey_campaign({"campaign_seed": 2711}))["campaign_id"] for _ in range(3)]
+        self.assertEqual([campaign_id[-12:] for campaign_id in made],
+                         ["000000002711", "000000002712", "000000002713"])
+
+    async def test_a_fresh_store_starts_from_the_setup_seed_again(self):
+        """A test that replays a seeded scenario in a store of its own (36's reading on and off) sees the same town."""
+        first = (await self._journey_campaign({"campaign_seed": 2711}))["campaign_id"]
+        await self.asyncTearDown()
+        await self.asyncSetUp()
+        again = (await self._journey_campaign({"campaign_seed": 2711}))["campaign_id"]
+        self.assertEqual((first[-12:], again[-12:]), ("000000002711", "000000002711"))
+
+
 class TheStartHour(JourneyCase):
     async def campaign_at(self, **extra):
         setup = {**beer_scenario().setup, "campaign_start": NEVERWINTER, "campaign_seed": 38, **extra}

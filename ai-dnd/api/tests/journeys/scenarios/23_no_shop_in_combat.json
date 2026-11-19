@@ -5,6 +5,7 @@
     122
   ],
   "setup": {
+    "campaign_seed": 12300,
     "campaign_start": {
       "setting_id": "forgotten_realms",
       "region_pack_id": "fr:pack:the_north:neverwinter:v1",

@@ -3,6 +3,7 @@
   "title": "Kaçış, başlangıç sahnesi (9c): Neverwinter'in başlangıç/sokak sahnesinde bir çıkış tanımlıdır; Haydut'la dövüşürken 'kaçıyorum' 'çıkış göremiyorsun' demez ve (tohum 1, 9a ile aynı zarlar: Acrobatics başarılı) dövüş biter. Çıkış, şehrin bir kez yazılan yan sokağıdır (Dilim 3 Görev 4)",
   "source_items": [21],
   "setup": {
+    "campaign_seed": 10903,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",

@@ -5,6 +5,7 @@
     35
   ],
   "setup": {
+    "campaign_seed": 10200,
     "npcs": [
       {
         "id": "barman",

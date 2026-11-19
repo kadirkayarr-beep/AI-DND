@@ -3,6 +3,7 @@
   "title": "Kaçış, çıkışlı sahne (9a): handa Haydut'la dövüşürken 'kaçıyorum' hanın çıkışından (Neverwinter sokağı) kaçırır, dövüş biter (tohum 1: Acrobatics başarılı)",
   "source_items": [21],
   "setup": {
+    "campaign_seed": 10901,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",

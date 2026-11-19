@@ -4,6 +4,7 @@
   "source_items": [29, 31],
   "zero_tolerance": true,
   "setup": {
+    "campaign_seed": 11100,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",

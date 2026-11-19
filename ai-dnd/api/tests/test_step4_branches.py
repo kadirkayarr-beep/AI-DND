@@ -10,18 +10,22 @@ import living_world
 import town_knowledge
 import world_threads
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.town_seed import fixed_town
 
 SEEDS = [f"branch-{number}" for number in range(20)]
 MODES = (None, "say")
+FIRST_TOWN = 1  # each campaign a test makes takes the next town: 1, 2, 3 ... (CLAUDE.md "Sabit kasaba")
 
 
 class Branches(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
     asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
     campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
+    first_town = FIRST_TOWN
 
     async def town(self, seed):
-        self.city, self.session_id, self.session, self.turn_url, self.owner = await self.campaign_with_npc()
+        with fixed_town(self, self.first_town):
+            self.city, self.session_id, self.session, self.turn_url, self.owner = await self.campaign_with_npc()
         self.client = speech.ScriptedNpcSpeechClient("Hmm.")
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         self.world = self.session.world_state
@@ -43,6 +47,8 @@ class Branches(unittest.IsolatedAsyncioTestCase):
                            owner_line="Bir günlük iş; günlüğü on iki bakır.",
                            terms={"pay": 12, "work_days": 1, "pay_basis": "daily", "pay_timing": "end_of_day",
                                   "deadline_text": "bir gün içinde"})
+        # the town may have drawn a night watch for this record; a day job is not kept to the night (D-374)
+        self.drawn_night = self.thread.pop("night_only", False)
         state["threads"] = [self.thread]
         self.world["campaign_time"]["start_second"] = 7 * 3600
         # someone sizing a stranger up is its own path; here everyone gets as far as the offer
@@ -121,10 +127,27 @@ class Branches(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(filled, 14)
 
     async def test_the_wage_is_the_only_money_that_moved(self):
+        self.first_town = 14  # D-374: this town draws a night watch as its first job
         await self.start("wage", None)
         start = self.world.get("currency", {}).get("player", 0)
         await self.line("olur", "Güzel.")
         self.assertEqual(self.world.get("currency", {}).get("player", 0), start)
+        await self.line("başlayalım")
+        self.assertEqual(self.world.get("currency", {}).get("player", 0) - start, 12)
+
+    async def test_a_night_watch_the_town_drew_is_not_worked_by_day_and_pays_at_night(self):
+        self.first_town = 22  # D-374: this town draws a night watch as its first job; here it stays one
+        await self.start("wage", None)
+        self.assertTrue(self.drawn_night)
+        world_threads.by_id(self.world, self.tid)["night_only"] = True
+        start = self.world.get("currency", {}).get("player", 0)
+        await self.line("olur", "Güzel.")
+        clock = dict(self.world["campaign_time"])
+        await self.line("başlayalım", "Akşam gel.")
+        self.assertEqual(self.world.get("currency", {}).get("player", 0), start)
+        self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock["elapsed_seconds"])
+        self.assertEqual(world_threads.by_id(self.world, self.tid)["status"], "accepted")
+        self.world["campaign_time"]["start_second"] = 21 * 3600
         await self.line("başlayalım")
         self.assertEqual(self.world.get("currency", {}).get("player", 0) - start, 12)
 
@@ -152,7 +175,9 @@ class SaidButNeverRecorded(unittest.IsolatedAsyncioTestCase):
     campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
 
     async def begin(self):
-        self.city, self.session_id, self.session, self.turn_url, self.npc = await self.campaign_with_npc(experimental=False)
+        with fixed_town(self, FIRST_TOWN):
+            made = await self.campaign_with_npc(experimental=False)
+        self.city, self.session_id, self.session, self.turn_url, self.npc = made
         self.client = speech.ScriptedNpcSpeechClient("Yazmasına yazdım, etkinlik yarın sabah.")
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         self.world = self.session.world_state

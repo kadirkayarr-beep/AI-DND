@@ -4,6 +4,7 @@
   "source_items": [52],
   "zero_tolerance": true,
   "setup": {
+    "campaign_seed": 11302,
     "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
     "currency": {"player": 100, "barman": 0},
     "inventory": [],

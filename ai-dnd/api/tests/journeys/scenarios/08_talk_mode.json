@@ -3,6 +3,7 @@
   "title": "Konuşma kipi (handa, Fighter, barmen Marek): Marek'le konuşurken 'bir oda tutmak istiyorum' (konuşma cevabının asks_for önerisiyle) oda kartını açar (madde 4); odama gidip uyuyunca konuşma kipi kapanır (madde 41); 'konuşmayı bitiriyorum' kipi kapatır; sonra 'satıcıya yaklaşıp ne sattığını soruyorum' (burada satıcı yok) eski kişiyle, Marek'le, cevaplanmaz ve kip ona kilitlenmez (madde 15); hanın dışına çıkınca kip kapanır. Ölüm sonrası kip 10_death senaryosunda",
   "source_items": [4, 15, 41],
   "setup": {
+    "campaign_seed": 10800,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",

@@ -3,6 +3,7 @@
   "title": "Ham komut sızmaz: tezgâhtan ve kartla alışverişte anlatıya shop_buy komutu düşmez",
   "source_items": [52],
   "setup": {
+    "campaign_seed": 11300,
     "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
     "currency": {"player": 100, "barman": 0},
     "inventory": [],
