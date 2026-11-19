@@ -622,9 +622,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             return await self.http.post(url, json=body)
 
     async def test_unpunctuated_locked_followup_reaches_same_npc_door_context(self):
-        # This test's subject is the Python owner answer and its locked-door focus; flag on, a plain-talk reading
-        # makes that answer the fallback and the person answers by speech (BM Task 3), so the subject is flag off.
-        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "0"}))
+        # Flag off, the Python owner answers the locked tavern and writes its locked-door focus. Flag on, a plain-talk
+        # reading makes that answer only the fallback and the person answers by speech (BM Task 3), so flag on the
+        # speech request's own context must carry the locked door; the save rollback and retry checks run either way.
+        reading = front_proposal.enabled()
         city_id, session_id, session, turn_url, tavern_id, door = (
             await create_city_with_locked_tavern(self)
         )
@@ -661,7 +662,21 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "current_hp": 12,
             "status": "active",
         })
-        client = CapturingConversationContextClient()
+        class MarekReadingClient(CapturingConversationContextClient):
+            """Flag on, every line here is read as local play's model reads it: words said to Marek."""
+
+            def chat(self, *args, **kwargs):
+                if "front" not in (kwargs.get("format") or {}).get("properties", {}):
+                    return super().chat(*args, **kwargs)
+                self.chat_calls += 1
+                self.kinds.append("front")
+                front = {"kind": "speak_to", "person_id": marek["id"], "place_id": "none", "offer_id": "none",
+                         "thing_id": "none", "answer": "none", "inside": False, "timing": "now"}
+                return {"message": {"content": json.dumps({
+                    "intent": "dialogue", "action": "dialogue", "target": {"type": "none", "reference": ""},
+                    "completion": "unclear", "confidence": 0.9, "front": front})}}
+
+        client = MarekReadingClient()
         trace = {
             "api_turns": [],
             "owner_answer": [],
@@ -761,19 +776,37 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             trace["api_turns"]
             and trace["api_turns"][-1]["player_input"] == "Buralarda han var mı Marek?",
-            json.dumps(trace, ensure_ascii=False),
+            json.dumps(trace, ensure_ascii=False, default=str),  # flag on, the scene plan holds a set
         )
-        self.assertIn("kilitli", tavern_payload["narration"].casefold())
         stored_focus = session.world_state.get(
             "interaction_adventure_v1", {}
         ).get("conversation_focus")
-        self.assertIsInstance(stored_focus, dict, json.dumps(trace, ensure_ascii=False))
-        self.assertEqual(stored_focus.get("speaker_id"), marek["id"])
-        self.assertEqual(stored_focus.get("scene_id"), city_id)
-        self.assertEqual(stored_focus.get("subject_id"), door["id"])
-        self.assertEqual(stored_focus.get("predicate"), "locked")
-        self.assertIs(stored_focus.get("value"), True)
-        self.assertEqual(stored_focus.get("epistemic"), "owner_verified")
+        if reading:
+            # Flag on: greeting, failed save and its retry each spend one reading and one speech call; the person
+            # answers by speech, so the speech request itself must carry the locked tavern (its door's place).
+            self.assertEqual(client.kinds, read_first("speech") * 3)
+            marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+            speech_context = next(
+                _first_json(item["content"].split(marker, 1)[1])
+                for item in client.message_batches[-1] if marker in item.get("content", "")
+            )
+            self.assertEqual(speech_context["npc_id"], marek["id"])
+            self.assertEqual(speech_context["conversation_so_far"][-1]["player"], "Merhaba Marek.")
+            locked_place = next(
+                place for place in speech_context["scene"]["nearby_places"] if place["id"] == tavern_id
+            )
+            self.assertEqual(door["id"], f"venue-door:{locked_place['id']}")
+            self.assertEqual(locked_place["access"], "locked")
+            self.assertNotIn(private_other_npc_fact, json.dumps(client.message_batches, ensure_ascii=False))
+        else:
+            self.assertIn("kilitli", tavern_payload["narration"].casefold())
+            self.assertIsInstance(stored_focus, dict, json.dumps(trace, ensure_ascii=False))
+            self.assertEqual(stored_focus.get("speaker_id"), marek["id"])
+            self.assertEqual(stored_focus.get("scene_id"), city_id)
+            self.assertEqual(stored_focus.get("subject_id"), door["id"])
+            self.assertEqual(stored_focus.get("predicate"), "locked")
+            self.assertIs(stored_focus.get("value"), True)
+            self.assertEqual(stored_focus.get("epistemic"), "owner_verified")
         campaign_id = self.manager.get(session_id).campaign_id
         focus_before_failed_save = copy.deepcopy(stored_focus)
         memory_before_failed_save = copy.deepcopy(marek["memory"])
@@ -790,7 +823,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             failed_focus_save.status_code, 500, failed_focus_save.text
         )
         self.assertEqual(
-            session.world_state["interaction_adventure_v1"]["conversation_focus"],
+            session.world_state.get("interaction_adventure_v1", {}).get("conversation_focus"),
             focus_before_failed_save,
         )
         current_marek = next(
@@ -809,10 +842,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(abandoned.json()["state"], "not_applied", abandoned.text)
         calls_before_replay = len(client.message_batches)
+        kinds_before_replay = len(client.kinds)
         replay = await say("Buralarda han var mı Marek?", tavern_action_id)
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), tavern_answer.json())
         self.assertEqual(len(client.message_batches), calls_before_replay)
+        self.assertEqual(client.kinds[kinds_before_replay:], [])  # receipt replay spends no reading
 
         old_http = self.http
         resumed_manager = SessionManager(campaign_store=self.store)
@@ -838,6 +873,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "interaction_adventure_v1", {}
         ).get("conversation_focus")
         self.assertEqual(resumed_focus, stored_focus)
+        if reading:
+            return  # the follow-ups below build on the owner-verified locked-door focus, which flag on is not written
         trace["focus_before_followup"] = {
             "raw": copy.deepcopy(stored_focus),
             "validated": game.interaction_adventure.current_conversation_focus(
