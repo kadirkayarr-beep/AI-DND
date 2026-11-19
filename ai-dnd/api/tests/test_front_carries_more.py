@@ -12,11 +12,25 @@ import equipment_economy
 import fallen
 import front_proposal
 import grounded_action
+import living_world
 from api.tests.test_front_proposal import FrontClient, FrontTable
 from api.tests.town_seed import fixed_town
 
+FIRST_TOWN = 1  # D-375: each test's first campaign is town 1, every further campaign the next town
 
-class ReadsBeforeThePlanner(FrontTable):
+
+class SeededTown:
+    """Every campaign a test of this module starts gets a fixed town (CLAUDE.md "Sabit kasaba"); a test may set its own
+    ``first_town``. A mixin, not a test case, so FrontTable's own tests do not run once more under it."""
+
+    first_town = FIRST_TOWN
+
+    async def begin(self, **kwargs):
+        with fixed_town(self, self.first_town):
+            await super().begin(**kwargs)
+
+
+class ReadsBeforeThePlanner(SeededTown, FrontTable):
     async def test_a_place_named_in_a_question_to_someone_does_not_walk_the_player(self):
         await self.begin()
         where = self.world["location"]
@@ -79,7 +93,7 @@ class ProposalClient(FrontClient):
         return reply
 
 
-class TheReadingCarriesTheProposal(FrontTable):
+class TheReadingCarriesTheProposal(SeededTown, FrontTable):
     async def set_up(self):
         await self.begin()
         # This fixture tests general proposals, not the random template's parcel job.
@@ -135,7 +149,7 @@ class TheReadingCarriesTheProposal(FrontTable):
         self.assertNotEqual(reply["turn_outcome"]["status"], "recorded")
 
 
-class ReadsBeforeTheOldOwners(FrontTable):
+class ReadsBeforeTheOldOwners(SeededTown, FrontTable):
     async def test_lighting_a_lantern_is_no_arson(self):
         await self.begin()
         self.client.front = {"kind": "attempt"}
@@ -256,7 +270,7 @@ class ReadsBeforeTheOldOwners(FrontTable):
         self.assertIn("24 altın 12 bakır", reply["narration"])
 
 
-class SomeoneLiesOutCold(FrontTable):
+class SomeoneLiesOutCold(SeededTown, FrontTable):
     async def lay_out(self):
         await self.begin()
         for npc in self.world["npcs"]:
@@ -278,8 +292,8 @@ class SomeoneLiesOutCold(FrontTable):
         self.assertNotIn("sesini duyacak durumda", reply["narration"])
 
     async def test_a_walk_runs(self):
-        with fixed_town(self, 2711):
-            await self.lay_out()
+        self.first_town = 2711
+        await self.lay_out()
         place = self.the_inn()
         self.client.front = {"kind": "go_to", "place_id": place}
         name = self.world["locations"][place]["name"]
@@ -293,7 +307,7 @@ class SomeoneLiesOutCold(FrontTable):
         self.assertIn("sesini duyacak durumda", reply["narration"])
 
 
-class TalkWithNobodyNamed(FrontTable):
+class TalkWithNobodyNamed(SeededTown, FrontTable):
     async def test_a_line_read_as_talk_with_nobody_named_walks_nowhere(self):
         await self.begin()
         for npc in self.world["npcs"]:
@@ -341,7 +355,7 @@ class TalkWithNobodyNamed(FrontTable):
         old_journey.assert_not_called()
 
 
-class TheOldOwnersThatLostTheirTraffic(FrontTable):
+class TheOldOwnersThatLostTheirTraffic(SeededTown, FrontTable):
     async def test_a_look_that_names_a_place_stays_a_look(self):
         await self.begin()
         where = self.world["location"]
@@ -372,7 +386,7 @@ class TheOldOwnersThatLostTheirTraffic(FrontTable):
         self.assertNotEqual(self.routes()[-1]["owner"], "dialogue")
 
 
-class SomeoneTheNarrationDescribed(FrontTable):
+class SomeoneTheNarrationDescribed(SeededTown, FrontTable):
     def narrated(self, text):
         self.session.messages.append({"role": "assistant", "content": text})
 
@@ -449,7 +463,7 @@ class SomeoneTheNarrationDescribed(FrontTable):
         self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
 
 
-class WhatAClarificationNames(FrontTable):
+class WhatAClarificationNames(SeededTown, FrontTable):
     def place(self, label, known=False):
         record = {"id": f"place_{label}", "name": label, "visited": known}
         self.world["locations"][record["id"]] = record
@@ -473,7 +487,7 @@ class WhatAClarificationNames(FrontTable):
         self.assertEqual(options, [inn, known])
 
 
-class APassedCheckFindsSomething(FrontTable):
+class APassedCheckFindsSomething(SeededTown, FrontTable):
     FOUND = "Çamurda sağ ayağını sürüyen birinin izi var."
 
     def roll(self, line, outcome="success", word="izler"):
@@ -482,6 +496,14 @@ class APassedCheckFindsSomething(FrontTable):
 
     def saved(self):
         return [row for row in self.world["features"] if row.get("description") == self.FOUND]
+
+    def holders(self, word):
+        """The names of the world's people, places and things that hold ``word`` as a whole word (so it is known)."""
+        word = living_world.normalize_text(word)
+        names = [*(npc.get("name") for npc in self.world["npcs"]),
+                 *(place.get("name") for place in self.world["locations"].values() if isinstance(place, dict)),
+                 *(row.get("name") for row in self.world["features"] if isinstance(row, dict))]
+        return [name for name in names if word in living_world.normalize_text(str(name or "")).split()]
 
     async def test_a_pass_on_tracks_says_what_the_reading_proposed_and_keeps_it(self):
         await self.begin()
@@ -532,8 +554,8 @@ class APassedCheckFindsSomething(FrontTable):
         self.assertEqual(front_proposal.found_in(reply, "yerdeki izleri inceliyorum")[0], self.FOUND)
 
     async def test_a_finding_carries_no_money_key_figure_or_new_name(self):
-        with fixed_town(self, 2731):
-            await self.begin()
+        self.first_town = 2731
+        await self.begin()
         for said in ("Masanın altında paslı bir anahtar duruyor.", "Köşede parlayan üç altın sikke duruyor.",
                      "Kâğıtta kâhyanın adı Umerişa diye yazılı duruyor.", "Kutunun dibinde kazınmış 12 sayısı görünüyor."):
             self.session._front_found = (said, "masa")
@@ -543,8 +565,21 @@ class APassedCheckFindsSomething(FrontTable):
     async def test_a_new_name_hidden_inside_a_known_name_is_still_new(self):
         await self.begin()
         self.world["npcs"][0]["name"] = "Sumerişan"
+        self.assertEqual(self.holders("Umerişa"), [])  # the name is new only in a town that does not hold it (D-375)
         self.session._front_found = ("Kâğıtta kâhyanın adı Umerişa diye yazılı duruyor.", "masa")
         self.assertIsNone(self.session._inspection_findings("masanin altina bakiyorum", "success"))
+
+    async def test_a_name_the_town_already_holds_is_no_new_name(self):
+        # D-375: town 30 has a temple named for Umerişa, so there the name is a known whole word, not a new one.
+        self.first_town = 30
+        await self.begin()
+        self.assertEqual(self.holders("Umerişa"), ["Umerişa Tapınağı"])
+        self.world["npcs"][0]["name"] = "Sumerişan"
+        self.session._front_found = ("Kâğıtta kâhyanın adı Merişa diye yazılı duruyor.", "masa")
+        self.assertIsNone(self.session._inspection_findings("masanin altina bakiyorum", "success"))  # inside both: new
+        said = "Kâğıtta kâhyanın adı Umerişa diye yazılı duruyor."
+        self.session._front_found = (said, "masa")
+        self.assertEqual(self.session._inspection_findings("masanin altina bakiyorum", "success")["text"], said)
 
     async def test_a_detail_under_something_is_still_a_finding(self):
         await self.begin()
