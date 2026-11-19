@@ -3,6 +3,7 @@
   "title": "Kaçış, çıkışsız sahne (9b): çıkışı olmayan kilitli mahzende 'kaçıyorum' turu kaybettirir; yer değişmez, dövüş sürer (BİLİNÇLİ, yeşil olmalı)",
   "source_items": [21],
   "setup": {
+    "campaign_seed": 10902,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",

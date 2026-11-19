@@ -8,6 +8,7 @@
   ],
   "zero_tolerance": true,
   "setup": {
+    "campaign_seed": 13100,
     "character": {
       "mode": "custom",
       "starting_level": 3,

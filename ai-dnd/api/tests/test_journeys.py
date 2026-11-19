@@ -39,6 +39,12 @@ class JourneysTest(JourneyCase):
                  if "campaign_seed" in load_scenario(path).setup]
         self.assertEqual(len(seeds), len(set(seeds)), seeds)
 
+    def test_every_scenario_fixes_its_campaign_seed(self):
+        """CLAUDE.md "Sabit kasaba": without a campaign seed the campaign id is random, so each run draws a new town."""
+        unseeded = [path.stem for path in sorted(SCENARIO_DIR.glob("*.json"))
+                    if "campaign_seed" not in load_scenario(path).setup]
+        self.assertEqual(unseeded, [])
+
     async def test_every_scenario_file(self):
         results = {}
         for path in sorted(SCENARIO_DIR.glob("*.json")):

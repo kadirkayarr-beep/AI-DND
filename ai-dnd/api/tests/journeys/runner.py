@@ -1060,6 +1060,15 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
         return results
 
     async def _journey_campaign(self, setup: Mapping[str, Any]) -> dict:
+        # A seed is the campaign's id and one store holds one of each: a test that makes the same seeded setup
+        # again in the same store (a reset, a subtest) takes the next seed for each new campaign, as fixed_town
+        # does; a fresh store (a new asyncSetUp) starts from the setup's own seed again.
+        if type(setup.get("campaign_seed")) is int:
+            if vars(self).get("_seeded_store") is not self.store:
+                self._seeded_store, self._seeded_campaigns = self.store, {}
+            first = setup["campaign_seed"]
+            self._seeded_campaigns[first] = self._seeded_campaigns.get(first, -1) + 1
+            setup = {**setup, "campaign_seed": first + self._seeded_campaigns[first]}
         with _campaign_seeded(setup):
             return await self._new_journey_campaign(setup)
 

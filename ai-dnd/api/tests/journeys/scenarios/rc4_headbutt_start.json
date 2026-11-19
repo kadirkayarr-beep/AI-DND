@@ -7,6 +7,7 @@
   ],
   "real_chain_core": true,
   "setup": {
+    "campaign_seed": 20400,
     "campaign_start": {
       "setting_id": "forgotten_realms",
       "region_pack_id": "fr:pack:the_north:neverwinter:v1",

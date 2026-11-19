@@ -5,6 +5,7 @@
     103
   ],
   "setup": {
+    "campaign_seed": 11700,
     "npcs": [
       {
         "id": "caravaner",
