@@ -129,8 +129,9 @@ Lane B is merged into lane A locally. Then both full suites run and the whole br
 ## Task G: gate
 
 - [ ] Two full suites on slot 3, one at a time:
-  - `slot_gate.sh 3 AI-DND-k2-fon-a fon-off 3 3600 '.'`: pass is `failing_ids 0` and `PAR_EXIT=0`.
-  - Then `fon-on-fon`: pass is failing ids ⊆ the Task Z set below.
+  - `slot_gate.sh 3 AI-DND-k2-fon-a bayrak-off 3 3600 '.'`: pass is `failing_ids 0` and `PAR_EXIT=0`.
+  - Then label `bayrak-fon`: pass is failing ids ⊆ the Task Z set (`.superpowers/sdd/2026-11-19-fon/Z-ids.txt`).
+  - A label's dash-separated words are tokens: never put the word `fon` in a flag-off label.
 - [ ] `python test_regression.py` as a script: 30/30.
 
 ## Task R: whole-branch review
