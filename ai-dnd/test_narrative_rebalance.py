@@ -13,6 +13,7 @@ import local_dialogue
 import living_world
 import interaction_adventure
 import campaign_time
+import front_proposal
 
 
 
@@ -36,6 +37,16 @@ def stock_unknown_lines(npc):
     """Any of them: the one chosen depends on what this person already said and whether the line asked anything."""
     name = living_world.public_npc_name(npc)
     return [line.format(n=name) for line in (*interaction_adventure._UNKNOWN_LINES, *interaction_adventure._HEARD_LINES)]
+
+
+def model_call_kinds(mock_chat):
+    """Each model call by its schema: "front" is the reading the front proposal asks first, "speech" a person's reply."""
+    kinds = []
+    for call in mock_chat.call_args_list:
+        properties = call.kwargs["format"]["properties"]
+        kinds.append("front" if "front" in properties else "narration" if "narration" in properties
+                     else "speech" if "spoken_text" in properties else "other")
+    return kinds
 
 
 class TestNarrativeRebalance(unittest.TestCase):
@@ -137,8 +148,12 @@ class TestNarrativeRebalance(unittest.TestCase):
         )
         result = self.session.run_player_turn("Hancı, buralarda neler dönüyor?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        # The innkeeper's reply is told as the turn's narration call.
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["speech"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], reading + 1)
         self.assertNotIn("savurursun", result["narration"])
 
     # 5. narration cannot create canonical state
@@ -541,9 +556,11 @@ class TestNarrativeRebalance(unittest.TestCase):
         ]
         result = self.session.run_player_turn("Gromm'a selam veriyorum")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], reading + 1)
         self.assertEqual(result["action_result"]["action"], "dialogue")
         self.assertEqual(result["action_result"]["status"], "answered_smalltalk")
 
@@ -555,9 +572,11 @@ class TestNarrativeRebalance(unittest.TestCase):
         )
         result = self.session.run_player_turn("Etrafıma bakıyorum")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], reading + 1)
         self.assertEqual(result["action_result"]["action"], "explore")
         self.assertEqual(result["action_result"]["status"], "observed")
 
@@ -787,7 +806,9 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafımda neler var?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
         self.assertIn("Waterdeep", result["narration"])
@@ -807,7 +828,9 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafıma bakıyorum.")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
         self.assertIn("Waterdeep", result["narration"])
@@ -828,7 +851,9 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafımda neler var?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
 
@@ -849,7 +874,9 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafıma bakıyorum.")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
 
@@ -870,7 +897,9 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafımda neler var?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["intent_source"], "deterministic")
 
@@ -887,9 +916,11 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "city"}
         result = self.session.run_player_turn("Etrafımda neler var?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], reading + 1)
         self.assertEqual(telemetry["narration_source"], "qwen")
 
     # 38. forest exploration preserves 1 Qwen model call
@@ -905,9 +936,11 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.session.world_metadata = {"environment": "wilderness"}
         result = self.session.run_player_turn("Etrafıma bakıyorum.")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["intent_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the turn's one intent call
+        self.assertEqual(model_call_kinds(mock_chat), ["front"] * reading + ["narration"])
+        self.assertEqual(telemetry["intent_model_calls"], reading)
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], reading + 1)
         self.assertEqual(telemetry["narration_source"], "qwen")
 
 

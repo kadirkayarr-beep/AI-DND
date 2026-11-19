@@ -460,7 +460,7 @@ class HarnessServerWiringTests(unittest.TestCase):
             for owner, name in ((game.ollama, "chat"), (game, "validate_world_updates"),
                                 (game, "_bind_world_update_mentions"), (game.GameSession, "run_player_turn")):
                 stack.enter_context(patch.object(owner, name, getattr(owner, name, None), create=True))
-            stack.enter_context(patch.object(game.ollama, "chat", side_effect=AssertionError("No model permitted")))
+            chat = stack.enter_context(patch.object(game.ollama, "chat", side_effect=AssertionError("No model permitted")))
             stack.enter_context(patch.object(telemetry, "_SMOKE_DIAGNOSTIC_PATH", None))
             stack.enter_context(patch.object(telemetry, "private_replay_directory",
                                              side_effect=lambda _: Path(tempfile.mkdtemp(dir=root))))
@@ -503,7 +503,11 @@ class HarnessServerWiringTests(unittest.TestCase):
             rows = [json.loads(line) for line in (root / "audit.jsonl").read_text(encoding="utf-8").splitlines()]
             row = next(row for row in rows if row.get("request_id") == "c" * 32)
             self.assertEqual(row["request_id"], "c" * 32)
-            self.assertEqual(row["observed_model_calls"], 0)
+            # The native line spends no model work of its own; with the flag on the front reading is its one call
+            # (owner rule G1). The stand-in refuses it, so the reading fails and the old chain answers the line.
+            from api.tests.test_experimental_npc_dialogue import call_kinds, with_reading
+            self.assertEqual(call_kinds([call.kwargs.get("format") for call in chat.call_args_list]), with_reading())
+            self.assertEqual(row["observed_model_calls"], len(with_reading()))
             self.assertTrue(row["diagnostic_evidence_complete"])
 
 

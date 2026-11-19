@@ -15,7 +15,7 @@ import npc_statements
 import local_dialogue
 import talk_mode
 from api.tests import test_campaign_api
-from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
+from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient, call_kinds, with_reading
 from api.tests.town_seed import fixed_town
 from api.tests.test_campaign_api import (
     create_city_with_locked_tavern,
@@ -1516,8 +1516,9 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
             )
         )
         # The already active canonical NPC no longer needs a target-parser call.
-        # The actual uncertainty answer still takes exactly one speech request.
-        self.assertEqual(fallback_client.chat_calls, 1)
+        # The actual uncertainty answer still takes exactly one speech request
+        # (after the front reading when AI_DND_FRONT_PROPOSAL is on).
+        self.assertEqual(call_kinds(fallback_client.schemas), with_reading("speech"))
         self.assertIn(
             "Bu konuda söyleyecek bir şey bilmiyorum.",
             fallback_response.json()["narration"],
@@ -1592,7 +1593,7 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
                      "ledger": npc_statements.claim_support(session.world_state, guard, message),
                      "response": response.json()},
                 )
-                self.assertEqual(recommendation_client.chat_calls, before_veto_calls + 1)
+                self.assertEqual(call_kinds(recommendation_client.schemas[before_veto_calls:]), with_reading("speech"))
                 self.assertEqual(set(session.world_state["locations"]), places_before)
                 self.assertNotIn("Mavi Fener", response.json()["narration"])
                 if message == history_claims[1]:

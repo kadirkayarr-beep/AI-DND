@@ -3,7 +3,7 @@ import copy
 import unittest
 from unittest.mock import patch
 from api.tests import test_intent_response_consistency as fixture
-from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
+from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient, call_kinds, with_reading
 
 
 class NpcPlayerAddressTests(unittest.IsolatedAsyncioTestCase):
@@ -21,12 +21,15 @@ class NpcPlayerAddressTests(unittest.IsolatedAsyncioTestCase):
         client=ScriptedNpcSpeechClient(speech,stage_direction=stage)
         with patch.object(self.app.state.ollama_adapter,'_client',client):
             out=await self.turn(message,target_id=self.npc['id'],interaction_mode='say')
-        self.assertEqual(client.chat_calls,1)
+        self.assertEqual(call_kinds(client.schemas),with_reading('speech'))
         return out
     async def introduce(self):
-        before=self.client.calls
-        out=await self.turn('Benim adım Riven.',target_id=self.npc['id'],interaction_mode='say')
-        self.assertIn('Riven',out['narration']);self.assertEqual(self.client.calls,before)
+        seen=[];chat=self.client.chat
+        def record(*args,**kwargs):seen.append(kwargs.get('format'));return chat(*args,**kwargs)
+        with patch.object(self.client,'chat',side_effect=record):
+            out=await self.turn('Benim adım Riven.',target_id=self.npc['id'],interaction_mode='say')
+        # Python answers the introduction; with the flag on the only model call is the front reading.
+        self.assertIn('Riven',out['narration']);self.assertEqual(call_kinds(seen),with_reading())
 
     async def test_plain_introduction_remains_deterministic(self):
         await self.introduce()

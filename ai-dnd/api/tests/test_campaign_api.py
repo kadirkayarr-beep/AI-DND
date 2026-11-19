@@ -8174,10 +8174,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         narrations = []
         reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
+        # Unexpected model calls fail offline rather than inventing lore; only the front reading is answered.
+        from api.tests.test_ai_freedom_resolution_boundary import _reading_only
+        kinds = []
+        reading_model = FakeOllamaClient()
+        reading_model.chat = _reading_only(kinds)
         reopened_app = create_app(
             session_manager=reopened_manager,
-            # Unexpected model calls fail offline rather than inventing lore.
-            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+            ollama_adapter=AuthenticatedOllamaAdapter(reading_model),
             authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
@@ -8218,6 +8222,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             reopened_store.get_turn_action(campaign_id, body["action_id"])
                         )
                         before = reopened_store.get_campaign(campaign_id)
+                        kinds.clear()
                         response = await http.post(
                             f"/api/game/sessions/{session_id}/turn", json=body
                         )
@@ -8225,6 +8230,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         turn = response.json()
                         self.assertEqual(turn["action_id"], body["action_id"])
                         self.assertEqual(len(results), index + 1)  # Not receipt replay.
+                        # The front reading is the line's one call; a line sent to a chosen person is not read.
+                        reading = int(front_proposal.enabled() and "target_id" not in body)
+                        self.assertEqual(kinds, ["front"] * reading)
                         self.assertIn(
                             ruler_fact_id, contexts[-1]["diagnostics"]["selected_fact_ids"]
                         )
@@ -8236,7 +8244,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         self.assertNotIn("npc_id", action)
                         self.assertEqual(
                             results[-1]["_engine_event_evidence"]["telemetry"]["total_model_calls"],
-                            0,
+                            reading,
                         )
                         narration = results[-1]["narration"]
                         self.assertEqual(

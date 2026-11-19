@@ -48,7 +48,7 @@ class PairedHistoryTests(unittest.IsolatedAsyncioTestCase):
             return result
         with patch.object(game, "_experimental_npc_dialogue_context", side_effect=capture):
             await self.post(url, client, {"action_id": str(uuid4()), "message": "Peki neden?", "interaction_mode": "say"})
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(speech.call_kinds(client.schemas), speech.with_reading("speech"))
         self.assertEqual(contexts[-1]["last_exchange"], {"player": expected["player"], "npc_reply": expected["npc"]})
         self.assertIn(expected["player"], str(client.message_batches[-1]))
         self.assertEqual(len(self.pairs(session, npc)), 2)
@@ -198,7 +198,7 @@ class PairedHistoryTests(unittest.IsolatedAsyncioTestCase):
                 f"npc-profile:{npc['id']}:v1:reason_for_being_here"],
         })
         response = await self.post(url, client, self.request(npc, message="Selam, bugün nasılsın?"))
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(speech.call_kinds(client.schemas), speech.with_reading("speech"))
         # A shown, accepted Python fallback is dialogue context, not the
         # rejected model proposal. Preserve the original pair and reject raw
         # malformed prose; do not forbid the already-supported shown fallback.
@@ -216,7 +216,7 @@ class PairedHistoryTests(unittest.IsolatedAsyncioTestCase):
                 response = await self.post(url, client, self.request(npc))
                 self.assertNotIn(bad, response.json()["narration"])
                 self.assertNotIn(bad, str(self.pairs(session, npc)))
-                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(speech.call_kinds(client.schemas), speech.with_reading("speech"))
 
     def test_pair_limits_do_not_promote_speech_or_increase_memory(self):
         world = {"npcs": [{"id": "a"}], "locations": {}, "lore": {}}

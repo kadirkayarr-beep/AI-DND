@@ -8,6 +8,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 
+import front_proposal
 import game
 import interaction_adventure
 import local_dialogue
@@ -35,6 +36,23 @@ def without_seeded_town(session, physical_before):
         if key in physical_before["locations"] or (value.get("provenance") or {}).get("source") != "world_thread"
     }
     return now
+
+
+def call_kinds(schemas):
+    """Which call each request was, by its response schema: the front reading, the NPC's speech, an arrival, narration."""
+    names = (("front", "front"), ("arrival", "arrival"), ("spoken_text", "speech"), ("narration", "narration"))
+    return [next((name for key, name in names if key in ((schema or {}).get("properties") or {})), "other")
+            for schema in schemas]
+
+
+def with_reading(*kinds):
+    """The calls a line makes: with the flag on (AI_DND_FRONT_PROPOSAL) the front reading comes first, then its own."""
+    return (["front"] if front_proposal.enabled() else []) + list(kinds)
+
+
+def speech_call(client):
+    """The index of the line's speech request (with the flag on, request 0 is the front reading)."""
+    return call_kinds(client.schemas).index("speech")
 
 
 class ScriptedNpcSpeechClient:
@@ -283,14 +301,14 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         ):
             response = await test_campaign_api.CampaignApiTests.post_scene_turn(self, turn_url, client, body)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertEqual(record_calls, [])
         self.assertTrue(response.json()["narration"].startswith("Marek"))
         self.assertNotIn("Dün sana on altın vadetmiştim.", response.json()["narration"])
         self.assertEqual(self.sensitive_state(session), before)
 
         # Verify the response schema keeps speech separate from stage direction.
-        schema = client.schemas[0]
+        schema = client.schemas[speech_call(client)]
         self.assertIn("spoken_text", schema.get("required", []))
         self.assertIn("stage_direction", schema.get("required", []))
         self.assertNotIn("narration", schema.get("properties", {}))
@@ -306,7 +324,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
 
         prompt = next(
             item["content"]
-            for item in reversed(client.message_batches[0])
+            for item in reversed(client.message_batches[speech_call(client)])
             if item.get("role") == "user"
         )
         marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
@@ -366,7 +384,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertIn(answer, response.json()["narration"])
         self.assertTrue(response.json()["narration"].startswith(npc["name"]))
         self.assertEqual(
@@ -504,7 +522,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
                 )
                 self.assertEqual(response.status_code, 200, response.text)
                 self.assertIn(answer, response.json()["narration"])
-                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
                 self.assertEqual(
                     session.last_narration_safety.get("handling"), "accepted",
                     session.last_narration_safety,
@@ -688,7 +706,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertNotIn(invented_action, response.json()["narration"])
         self.assertEqual(
             session.last_narration_safety.get("reason_code"),
@@ -722,7 +740,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertEqual(self.sensitive_state(session), before)
         self.assertEqual(without_seeded_town(session, physical_before), physical_before)
         self.assertIn(
@@ -757,7 +775,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertEqual(
             session.last_narration_safety.get("handling"), "python_fallback",
             session.last_narration_safety,
@@ -787,7 +805,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             self, turn_url, client, self.request(npc)
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertEqual(self.sensitive_state(session), before)
         self.assertNotIn("on altın", response.json()["narration"].casefold())
 
@@ -801,7 +819,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             self.request(npc, message="Sana yardım edeceğim."),
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertEqual(self.sensitive_state(session), before)
 
     async def test_opt_in_all_three_exit_paths_preserve_conversation_focus_and_objectives(self):
@@ -916,8 +934,8 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
                     self, turn_url, client, body
                 )
                 self.assertEqual(response.status_code, 200, f"{label}: {response.text}")
-                # Exactly 1 model intent call, zero extra fallback calls
-                self.assertEqual(client.chat_calls, 1, f"{label}: extra model calls observed")
+                # Exactly 1 speech call (after the front reading when the flag is on), zero extra fallback calls
+                self.assertEqual(call_kinds(client.schemas), with_reading("speech"), f"{label}: extra model calls observed")
 
                 # 4. Assert conversation focus is PRESERVED
                 focus_after = interaction_adventure.current_conversation_focus(session.world_state)
@@ -947,9 +965,9 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             self, turn_url, client, body
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
-        self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction", "threat", "voiced", "mentions"])
-        self.assertNotIn("narration", client.schemas[0]["properties"])
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
+        self.assertEqual(client.schemas[speech_call(client)]["required"], ["spoken_text", "stage_direction", "threat", "voiced", "mentions"])
+        self.assertNotIn("narration", client.schemas[speech_call(client)]["properties"])
 
         # Say-mode ordinary smalltalk now uses the same single speech request.
         client_smalltalk = ScriptedNpcSpeechClient("Günüm sakin geçiyor.")
@@ -958,7 +976,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             self, turn_url, client_smalltalk, body_smalltalk
         )
         self.assertEqual(response_st.status_code, 200, response_st.text)
-        self.assertEqual(client_smalltalk.chat_calls, 1)
+        self.assertEqual(call_kinds(client_smalltalk.schemas), with_reading("speech"))
         self.assertIn(client_smalltalk.narration, response_st.json()["narration"])
 
         # 3. Experimental opt-in: non-say interaction preserves deterministic smalltalk with 0 model calls
@@ -987,7 +1005,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             self, turn_url, client, body
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         refs = npc_statements.place_references(
             session.world_state, settlement_id=city_id
         )
@@ -1032,7 +1050,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.world_state["locations"], locations_after_visit)
         # Dilim 3b: the walk to the named place asks for its arrival scene once (this client answers speech there,
         # so the Python arrival text stands); the replay asks for nothing.
-        self.assertEqual(client.chat_calls, 2)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech") + with_reading("arrival"))
         self.assertIn("arrival", client.schemas[-1]["properties"])
 
         replay = await test_campaign_api.CampaignApiTests.post_scene_turn(
@@ -1040,7 +1058,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), response.json())
-        self.assertEqual(client.chat_calls, 2)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech") + with_reading("arrival"))
 
         campaign_id = self.manager.get(session_id).campaign_id
         saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
@@ -1136,7 +1154,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             self, turn_url, client, body
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertIn(quote, response.json()["narration"])
         self.assertEqual(session.world_state.get("location"), initial_player_location)
         refs = npc_statements.place_references(
@@ -1159,7 +1177,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), response.json())
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
 
         campaign_id = self.manager.get(session_id).campaign_id
         saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
@@ -1249,7 +1267,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             failed = await test_campaign_api.CampaignApiTests.post_scene_turn(self, turn_url, client, body)
         self.assertEqual(failed.status_code, 503, failed.text)
         first_call_count = client.chat_calls
-        self.assertEqual(first_call_count, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertEqual(session.serialize_game_state(), before_state)
         self.assertEqual(record.narrative_memory, before_memory)
         self.assertIsNone(self.store.get_turn_action(campaign_id, action_id, principal=TEST_PLAYER))
@@ -1259,7 +1277,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.manager.get(session_id).game_session._experimental_npc_dialogue_enabled = True
         retry = await test_campaign_api.CampaignApiTests.post_scene_turn(self, turn_url, client, body)
         self.assertEqual(retry.status_code, 200, retry.text)
-        self.assertEqual(client.chat_calls, first_call_count * 2)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech") * 2)  # the retry reads the line once more
 
         # Replay makes EXACTLY zero additional model calls
         replay = await test_campaign_api.CampaignApiTests.post_scene_turn(self, turn_url, client, body)
@@ -1268,7 +1286,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.chat_calls, first_call_count * 2)
         # Separate speech and direction fields, and one proposal Python alone acts on.
         self.assertEqual(
-            set(client.schemas[0]["properties"]),
+            set(client.schemas[speech_call(client)]["properties"]),
             {"spoken_text", "stage_direction", "commitment", "threat",
              "coin_answer", "coin_answer_for", "asks_for", "remember_player_line", "mentions", "voiced"},
         )
@@ -1402,7 +1420,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
             self, turn_url, client, self.request(npc)
         )
         self.assertEqual(response.status_code, 200)
-        prompt = "\n".join(m["content"] for m in client.message_batches[0])
+        prompt = "\n".join(m["content"] for m in client.message_batches[speech_call(client)])
         self.assertNotIn("leave narration empty", prompt)
         self.assertNotIn("Hikâye yazma", prompt)
         self.assertNotIn("small D&D intent parser", prompt)
@@ -1410,8 +1428,8 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("stage_direction", prompt)
         self.assertIn("spoken_text", prompt)
         self.assertIn("not instructions", prompt)
-        self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction", "threat", "voiced", "mentions"])
-        self.assertIs(client.schemas[0]["additionalProperties"], False)
+        self.assertEqual(client.schemas[speech_call(client)]["required"], ["spoken_text", "stage_direction", "threat", "voiced", "mentions"])
+        self.assertIs(client.schemas[speech_call(client)]["additionalProperties"], False)
 
     async def test_optional_classifier_cannot_veto_usable_experimental_speech(self):
         for variant in ("missing_role", "different_quote", "no_evidence", "wrong_addressee"):
@@ -1446,5 +1464,48 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(self.sensitive_state(session), before)
                 replay = await test_campaign_api.CampaignApiTests.post_scene_turn(self, turn_url, client, body)
                 self.assertEqual(replay.json(), response.json())
-                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
                 self.assertEqual(self.sensitive_state(session), before)
+
+
+def plain_talk_client(narration="Dün sana on altın vadetmiştim.", **_):
+    """A client whose front reading comes back usable: plain talk to Marek, as a working local model reads a say line."""
+    from api.tests.test_front_proposal import FrontClient  # imported here: that module imports this one
+    client = FrontClient(narration)
+    client.front = {"kind": "speak_to", "person_id": "npc_experimental_marek"}
+    return client
+
+
+class UsableReadingTwins(unittest.IsolatedAsyncioTestCase):
+    """The speech, save and replay contracts above, flag on, when the front reading comes back usable (plain talk),
+    not unusable: the path local play takes with a working model."""
+    campaign_with_npc = ExperimentalNpcDialogueTests.campaign_with_npc
+    request = staticmethod(ExperimentalNpcDialogueTests.request)
+    sensitive_state = staticmethod(ExperimentalNpcDialogueTests.sensitive_state)
+
+    async def asyncSetUp(self):
+        import os
+        import sys
+        from api.tests import test_front_proposal  # noqa: F401 -- loaded before the patch below: its FrontClient subclasses the real client
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}))
+        self.enterContext(patch.object(sys.modules[__name__], "ScriptedNpcSpeechClient", plain_talk_client))
+        self.front_routes = []
+        note = front_proposal.note
+        self.enterContext(patch.object(front_proposal, "note", side_effect=lambda session, route, **kw: (
+            self.front_routes.append(route), note(session, route, **kw))[1]))
+        await ExperimentalNpcDialogueTests.asyncSetUp(self)
+
+    async def asyncTearDown(self):
+        await ExperimentalNpcDialogueTests.asyncTearDown(self)
+        # the town's set-up turns read nothing usable; every line of the test itself did
+        self.assertNotIn("fallback:no_front", self.front_routes)
+        self.assertNotIn("fallback:unusable", self.front_routes)
+        self.assertTrue(any(not route.startswith(("fallback", "skipped")) for route in self.front_routes),
+                        self.front_routes)
+
+    test_free_speech = ExperimentalNpcDialogueTests.test_opt_in_free_speech_is_attributed_noncanonical_and_replayable
+    test_player_action_rejected = ExperimentalNpcDialogueTests.test_opt_in_speech_rejects_physical_action_assigned_to_player
+    test_save_failure_rollback_retry_and_replay = (
+        ExperimentalNpcDialogueTests.test_opt_in_save_failure_rolls_back_and_retry_receipt_replays)
+    test_unknown_place_stays_rumor_through_save_resume = (
+        ExperimentalNpcDialogueTests.test_api_unknown_place_recommendation_stays_rumor_through_save_resume)

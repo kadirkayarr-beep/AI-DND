@@ -2,6 +2,8 @@
 import unittest
 from unittest.mock import patch
 
+import front_proposal
+from api.tests.test_ai_freedom_resolution_boundary import _reading_only as reading_only
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc
 
 
@@ -11,7 +13,8 @@ class CompoundNpcDialogueRegression(unittest.TestCase):
         place_npc(session, "npc_001", "Mira")
         place_npc(session, "npc_002", "Evan")
         message = "Ben Astrid. Senin adın ne, ne iş yaparsın?"
-        with patch("game.ollama.chat", side_effect=AssertionError("Deterministic")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             turn = session.run_player_turn(message, target_id="npc_001", interaction_mode="say")
         self.assertIn("Astrid", turn["narration"])
         self.assertIn("Mira", turn["narration"])
@@ -19,7 +22,9 @@ class CompoundNpcDialogueRegression(unittest.TestCase):
         self.assertNotIn("Dükkâncı", turn["narration"])
         self.assertNotIn("shopkeeper", turn["narration"])
         self.assertEqual(turn["action_result"]["npc_id"], "npc_001")
-        self.assertEqual(turn["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
+        self.assertEqual(turn["_engine_event_evidence"]["telemetry"]["total_model_calls"], reading)
         first, second = session.world_state["npcs"][-2:]
         self.assertTrue(first.get("name_known_to_player"))
         self.assertFalse(second.get("name_known_to_player", False))

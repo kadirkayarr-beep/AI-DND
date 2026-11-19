@@ -17304,6 +17304,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
         if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
             session._front_reply = {"intent": "unknown", "classifier_unusable": True}
+            session._front_reply_called = False  # G10: held, but no provider was asked for it
         return None
     hint = interaction_adventure.hint(player_input, True)
     addressed = None
@@ -17320,6 +17321,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             allow_scene_detail_proposals=_scene_detail_proposals_allowed(player_input, world, interaction_mode))
     held = {key: value for key, value in reply.items() if key != "front"}
     session._front_reply = held
+    session._front_reply_called = True  # G10: this reply is the turn's one classifier call, however often it is reused
     if "front" not in reply:
         answered = len(reply) > 1  # a dead provider leaves only the bare unknown intent
         label = ("fallback:unusable" if reply.get("classifier_unusable")
@@ -17879,6 +17881,7 @@ def front_read_ahead(player_input, target_id=None, interaction_mode=None):
     if (not front_proposal.enabled() or session.character.get("current_hp", 0) <= 0 or ensure_death_state()["dead"]
             or getattr(session, "_attack_asked", False) or getattr(session, "_heavy_asked", None)
             or not isinstance(player_input, str)
+            or combat_lifecycle.surrender_yes(session, player_input)  # G9: the engine's own question, Python's yes
             or _is_end_conversation_request(player_input)):
         return None
     interaction_mode = _normalize_interaction_mode(interaction_mode)
@@ -19345,6 +19348,17 @@ def _run_player_turn_internal(
     # turn budget and is reused instead of asking the same question twice.
     scene_preparse_model_calls = 0
     preparsed_scene_intent = None
+    # G10: with the front reading on, a reply held before this point was the turn's classifier call (when a provider
+    # was asked for it). A step below that reuses the held reply spends no call, so telemetry tells exactly that
+    # reading, once, whether or not a step reused it, plus the dialogue reply asked below (never answered by a held reply).
+    held_reading = getattr(_session(), "_front_reply", None) is not None
+    reading_calls = int(held_reading and getattr(_session(), "_front_reply_called", False))
+    speech_intent_calls = 0
+
+    def told_intent_calls():
+        if not held_reading:
+            return intent_model_calls
+        return reading_calls + speech_intent_calls
     world_state = _session().world_state
     entry_death_state = ensure_death_state()
     entry_combat = ensure_combat_state()
@@ -19600,9 +19614,9 @@ def _run_player_turn_internal(
             result["_engine_event_evidence"].pop("_procedural_ids_before", None)
             if "telemetry" not in result["_engine_event_evidence"]:
                 result["_engine_event_evidence"]["telemetry"] = {
-                    "intent_model_calls": intent_model_calls,
+                    "intent_model_calls": told_intent_calls(),
                     "narration_model_calls": narration_model_calls,
-                    "total_model_calls": intent_model_calls + narration_model_calls,
+                    "total_model_calls": told_intent_calls() + narration_model_calls,
                     "intent_source": intent_source,
                     "narration_source": narration_source,
                     "fallback_reason": safety_reason_code,
@@ -19647,9 +19661,9 @@ def _run_player_turn_internal(
                 narration_src = "deterministic_fallback"
 
             result["_engine_event_evidence"]["telemetry"] = {
-                "intent_model_calls": intent_model_calls,
+                "intent_model_calls": told_intent_calls(),
                 "narration_model_calls": 0,
-                "total_model_calls": intent_model_calls,
+                "total_model_calls": told_intent_calls(),
                 "intent_source": intent_source,
                 "narration_source": narration_src,
                 "fallback_reason": safety_reason_code,
@@ -19670,7 +19684,7 @@ def _run_player_turn_internal(
             target_id=target_id,
             lore_context=lore_context,
             intent_source=intent_source,
-            intent_model_calls=intent_model_calls,
+            intent_model_calls=told_intent_calls(),
             messages=messages,
             allow_new_npcs=allow_new_npcs,
             allow_new_features=allow_new_features,
@@ -21266,6 +21280,7 @@ def _run_player_turn_internal(
         # mode must reach the same first-person speech path as "say".
         experimental_npc_dialogue = experimental_dialogue_session
         intent_model_calls = scene_preparse_model_calls + 1
+        speech_intent_calls = 1  # G10: a dialogue reply is always asked, held reading or not
         intent_source = "interaction_proposal"
         # Python settles the name first, so the prompt and the label agree.
         name_stance = (
@@ -21399,6 +21414,7 @@ def _run_player_turn_internal(
             # remains an intent call; this response is an additional narration
             # call, not a replacement for the first one.
             intent_model_calls = scene_preparse_model_calls
+            speech_intent_calls = 0
             intent_source = (
                 "model" if scene_preparse_model_calls else "deterministic_dialogue"
             )

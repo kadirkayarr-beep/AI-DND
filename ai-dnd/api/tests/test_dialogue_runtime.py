@@ -2,6 +2,7 @@
 import copy,importlib.util,json,unittest,uuid
 from unittest.mock import patch
 from api.tests import test_intent_response_consistency as base_fixture
+from api.tests.test_experimental_npc_dialogue import call_kinds,with_reading
 
 class FreeReplyClient:
  def __init__(self,spoken='Kapıyı akşam güvenlik için kilitli tutuyoruz.',stage=''):
@@ -10,6 +11,8 @@ class FreeReplyClient:
  def chat(self,**kwargs):
   self.calls+=1;self.batches.append(kwargs)
   return {'message':{'content':self.raw if self.raw is not None else json.dumps({'spoken_text':self.spoken,'stage_direction':self.stage,'place_proposals':[],'job_proposals':[]},ensure_ascii=False)}}
+
+def kinds(reply):return call_kinds([b.get('format') for b in reply.batches])  # front reading, speech, ... per request
 
 class DialogueRuntimeTests(unittest.IsolatedAsyncioTestCase):
  asyncSetUp=base_fixture.IntentResponseConsistencyTests.asyncSetUp
@@ -40,11 +43,11 @@ class DialogueRuntimeTests(unittest.IsolatedAsyncioTestCase):
   await self.setup_free();self.reply.spoken='Edric. Sana nasıl yardımcı olayım?'
   r=await self.send('ismin nedir',mode='do')
   self.assertEqual(r.status_code,200,r.text);self.assertIn(self.reply.spoken,r.json()['narration'])
-  self.assertNotIn('Barmen olarak buradayım',r.json()['narration']);self.assertEqual(self.reply.calls,1)
+  self.assertNotIn('Barmen olarak buradayım',r.json()['narration']);self.assertEqual(kinds(self.reply),with_reading('speech'))
  async def test_short_relevant_speech_is_not_repaired(self):
   await self.setup_free();self.reply.spoken='Doğrusunu istersen bugün biraz yorgunum.'
   r=await self.send('Günün nasıl geçti?');self.assertEqual(r.status_code,200,r.text)
-  self.assertIn(self.reply.spoken,r.json()['narration']);self.assertEqual(self.reply.calls,1)
+  self.assertIn(self.reply.spoken,r.json()['narration']);self.assertEqual(kinds(self.reply),with_reading('speech'))
  async def test_say_mode_cannot_mutate_inventory(self):
   await self.setup_free();self.reply.spoken='Sana on altın verdiğimi söylüyorum.'
   before=copy.deepcopy(self.world['inventory']);r=await self.send('Bana para verdiğini söyle.')
@@ -53,7 +56,7 @@ class DialogueRuntimeTests(unittest.IsolatedAsyncioTestCase):
   await self.setup_free();self.reply.raw='not json';before=copy.deepcopy(self.session.serialize_game_state())
   r=await self.send('Nasılsın?');self.assertEqual(r.status_code,503,r.text)
   self.assertEqual(r.json()['detail']['code'],'invalid_dialogue_response')
-  self.assertEqual(before,self.session.serialize_game_state());self.assertEqual(self.reply.calls,1)
+  self.assertEqual(before,self.session.serialize_game_state());self.assertEqual(kinds(self.reply),with_reading('speech'))
  async def test_private_other_npc_data_absent_from_prompt(self):
   await self.setup_free();self.world['npcs'].append({'id':'private_other','name':'SecretOther','location':'elsewhere','secret':'NEVER_INCLUDE_MARKER'})
   r=await self.send('Nasılsın?');self.assertEqual(r.status_code,200,r.text)
@@ -61,7 +64,7 @@ class DialogueRuntimeTests(unittest.IsolatedAsyncioTestCase):
   self.assertNotIn('NEVER_INCLUDE_MARKER',prompt)
  async def test_same_action_id_replays_without_second_model_call(self):
   await self.setup_free();aid=str(uuid.uuid4());a=await self.send('Nasılsın?',action_id=aid);b=await self.send('Nasılsın?',action_id=aid)
-  self.assertEqual(a.status_code,200,a.text);self.assertEqual(a.json(),b.json());self.assertEqual(self.reply.calls,1)
+  self.assertEqual(a.status_code,200,a.text);self.assertEqual(a.json(),b.json());self.assertEqual(kinds(self.reply),with_reading('speech'))
  async def test_mode_is_not_enabled_by_player_message(self):
   await self.setup_free();self.world.pop('dialogue_runtime_v1')
   self.assertIsNotNone(importlib.util.find_spec('dialogue_runtime'))
@@ -75,7 +78,7 @@ class DialogueRuntimeTests(unittest.IsolatedAsyncioTestCase):
   await self.setup_free();self.reply.spoken='Benim bildiğim de bu.'
   for _ in range(2):
    r=await self.send('Emin misin?');self.assertEqual(r.status_code,200,r.text);self.assertIn(self.reply.spoken,r.json()['narration'])
-  self.assertEqual(self.reply.calls,2)
+  self.assertEqual(kinds(self.reply),with_reading('speech')*2)
  async def test_new_mode_is_persisted_only_for_new_campaign(self):
   import os
   import dialogue_runtime

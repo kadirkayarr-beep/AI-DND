@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 import economic_actions
+import front_proposal
 import interaction_adventure
 from api import serializers
 from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, ScriptedModel, apply_setup
@@ -31,6 +32,11 @@ def _talk_to(npc_id, reference="Marek", quote=""):
     return {"intent": "talk", "action": "talk",
             "target": {"type": "npc", "reference": reference, "npc_id": npc_id, "evidence_quote": quote},
             "completion": "complete"}
+
+
+def _reading():
+    """The kind of the turn's one reading call: the front reading with the flag on (AI_DND_FRONT_PROPOSAL), else the classifier."""
+    return "front" if front_proposal.enabled() else "intent"
 
 
 class _Counted(ScriptedModel):
@@ -143,7 +149,7 @@ class SpokenPlan(JourneyCase):
         self.assertFalse((self.world().get("flags") or {}).get("inn_room"))
         self.assertNotIn("Sen bilirsin", turn["narration"])
         self.assertIsNone(self.plan())
-        self.assertEqual(self.calls, ["intent", "speech"])               # the reading and the person's answer
+        self.assertEqual(self.calls, [_reading(), "speech"])             # the reading and the person's answer
 
     async def test_a_reading_naming_nobody_while_talking_goes_to_the_one_talked_to(self):
         await self.talk_to_marek()
@@ -160,7 +166,7 @@ class SpokenPlan(JourneyCase):
         self.assertIsNotNone(self.plan())
         self.assertEqual(len(self.plan()["steps"]), 2)
         self.assertIsNone(self.card())
-        self.assertEqual(self.calls, ["intent"])
+        self.assertEqual(self.calls, [_reading()])
         self.assertIsNone(self.last_speech_input)                        # nothing was said to Marek
 
     async def test_the_knock_chain_keeps_its_owner(self):
@@ -179,7 +185,8 @@ class SpokenPlan(JourneyCase):
     async def test_a_chain_of_acts_with_no_one_talked_to_is_a_plan_as_before(self):
         await self.say(PLAN_LINE, intent={"intent": "explore"})
         self.assertIsNotNone(self.plan())
-        self.assertNotIn("intent", self.calls)                           # no reading was asked for, as before
+        # no classifier call, as before (only the plan's narration); with the flag on the front reading comes first
+        self.assertEqual(self.calls, (["front"] if front_proposal.enabled() else []) + ["narration"])
 
     async def test_a_talk_reading_at_someone_absent_keeps_todays_path(self):
         await self.say(ROOM_LINE, intent=_talk_to("nobody", reference="Kimse"))

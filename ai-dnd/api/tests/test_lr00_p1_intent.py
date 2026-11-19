@@ -31,12 +31,14 @@ class ProbeShapedClient:
         self.operation = "none"
         self.narration = "Bir an durup çevrene kulak veriyorsun."
         self.calls = 0
+        self.schemas = []
 
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
 
     def chat(self, *args, **kwargs):
         self.calls += 1
+        self.schemas.append(kwargs.get("format"))
         schema = kwargs.get("format", {}) or {}
         properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
         if "intent" not in properties:
@@ -169,6 +171,7 @@ class Lr00P1IntentTests(unittest.IsolatedAsyncioTestCase):
         }
         self.client.operation = "information"
         hp = self.session.character.get("current_hp")
+        sent = len(self.client.schemas)
         response, receipt = await self.turn(message, mode="do")
         self.assertEqual(response.status_code, 200, response.text)
         narration = response.json()["narration"]
@@ -177,7 +180,10 @@ class Lr00P1IntentTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual((receipt or {}).get("status"), "proposal_rejected", receipt)
         self.assertFalse(self.session.world_state.get("combat", {}).get("active"))
         self.assertEqual(self.session.character.get("current_hp"), hp)
-        self.assertEqual(self.client.calls, 0)
+        # Python reads the note: no model call but, with AI_DND_FRONT_PROPOSAL on, the front reading of the set-up
+        # line and of this line (each answered without `front`, so the old chain still owns the line).
+        self.assertEqual(harness.call_kinds(self.client.schemas[:sent]), harness.with_reading())
+        self.assertEqual(harness.call_kinds(self.client.schemas[sent:]), harness.with_reading())
 
     async def test_unaddressed_physical_action_is_not_vetoed_by_optional_conversation(self):
         cases = (

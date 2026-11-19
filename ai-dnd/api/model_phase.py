@@ -5,6 +5,7 @@ from contextvars import ContextVar
 _PHASE = ContextVar("resolved_model_phase", default="unresolved")
 _CLASSIFIER = ContextVar("classifier_model_call", default=False)
 _FRONT = ContextVar("front_model_call", default=False)
+_INITIATIVE = ContextVar("initiative_model_call", default=False)
 _CAUSES = ContextVar("unusable_call_causes", default=None)
 MAX_CAUSES = 10
 
@@ -51,6 +52,29 @@ def front_call():
 
 def in_front_call():
     return _FRONT.get()
+
+
+@contextmanager
+def initiative_call():
+    """An NPC's optional initiative: it may use the call a front reading took from the turn's budget."""
+    token = _INITIATIVE.set(True)
+    try:
+        yield
+    finally:
+        _INITIATIVE.reset(token)
+
+
+def in_initiative_call():
+    return _INITIATIVE.get()
+
+
+class ModelCall(str):
+    """One counted call's provider name, marked with whether it was the front reading or an initiative."""
+    def __new__(cls, provider):
+        value = super().__new__(cls, provider)
+        value.front = _FRONT.get()
+        value.initiative = _INITIATIVE.get()
+        return value
 
 
 def only_resolved_narration_failures(failures):

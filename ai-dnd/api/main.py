@@ -70,11 +70,11 @@ from api.lore_authority import (
 )
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
-    MAX_MODEL_CALLS_PER_TURN,
     MODEL_NAME,
     OllamaUnavailableError,
     RequiredModelUnavailableError,
     canonical_world_metadata_context,
+    turn_call_cap,
 )
 from api.lore_authority.campaign_state import CANONICAL_LOCATION_TYPES
 from api.narrative_director import (
@@ -1769,7 +1769,7 @@ def create_app(
                 )
                 raise refuse_model_failure("ollama_unavailable") from None
 
-            if len(model_calls) > MAX_MODEL_CALLS_PER_TURN:
+            if len(model_calls) > turn_call_cap(model_calls):
                 restore_turn_snapshot()
                 _logger.error("Engine exceeded the per-turn model-call limit.")
                 raise refuse_before_commit(500, "engine_error", "The game turn exceeded its model-call limit.") from None
