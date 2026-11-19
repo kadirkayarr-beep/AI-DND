@@ -7,8 +7,22 @@ API, because the check play lost its death there, with no text at all.
 import unittest
 from unittest.mock import patch
 
+import front_proposal
 import local_places
+from api.tests.journeys.runner import call_kind
 from api.tests.test_three_plays import BARBARIAN, FIGHTER, PlayClient, ThreePlaysTests
+
+
+def watched(client):
+    """The kinds of the model calls the client answers from now on (front, intent, speech, narration)."""
+    kinds, answer = [], client.chat
+    client.chat = lambda *args, **kwargs: (kinds.append(call_kind(kwargs.get("format"))), answer(*args, **kwargs))[1]
+    return kinds
+
+
+def read_only():
+    """A corpse search is Python's; flag on, the line is read once first (owner rule G1) and nothing else is asked."""
+    return ["front"] if front_proposal.enabled() else []
 
 
 class TheDeadStayDeadTests(ThreePlaysTests):
@@ -39,8 +53,9 @@ class TheDeadStayDeadTests(ThreePlaysTests):
     async def test_an_unnamed_corpse_beside_you_is_found_and_searched(self):
         body = await self.corpse_here()
         client = PlayClient(narration="Odada ne bir ceset ne de başka biri bulunuyor.")
+        kinds = watched(client)
         out = await self.say("cesedini arıyorum, üstünde ne varsa alıyorum", client)
-        self.assertEqual(client.calls, 0)
+        self.assertEqual(kinds, read_only())
         self.assertTrue(body["searched"])
         self.assertIn("Kalila", out["narration"])
         self.assertNotIn("ne bir ceset", out["narration"])
@@ -51,8 +66,9 @@ class TheDeadStayDeadTests(ThreePlaysTests):
             with self.subTest(line=line):
                 body = await self.corpse_here()
                 client = PlayClient(narration="Odada ceset yok.")
+                kinds = watched(client)
                 await self.say(line, client)
-                self.assertEqual(client.calls, 0)
+                self.assertEqual(kinds, read_only())
                 self.assertTrue(body["searched"])
 
     async def test_an_emptied_corpse_says_so_and_is_still_there(self):
@@ -60,8 +76,9 @@ class TheDeadStayDeadTests(ThreePlaysTests):
         await self.say("cesedi arıyorum", PlayClient())
         before = self.world["currency"]["player"]
         client = PlayClient(narration="Odada ceset yok.")
+        kinds = watched(client)
         out = await self.say("cesedi bir daha arıyorum", client)
-        self.assertEqual(client.calls, 0)
+        self.assertEqual(kinds, read_only())
         self.assertIn("Kalila", out["narration"])
         self.assertEqual(self.world["currency"]["player"], before)
 
@@ -71,8 +88,9 @@ class TheDeadStayDeadTests(ThreePlaysTests):
         place = local_places.create_local_place(self.world, city, "workshop", name="Quenna Atölyesi")
         body["location"] = place["id"]
         client = PlayClient(narration="Böyle bir ceset yok.")
+        kinds = watched(client)
         out = await self.say("kalilanın cesedini arıyorum", client)
-        self.assertEqual(client.calls, 0)
+        self.assertEqual(kinds, read_only())
         self.assertIn("Quenna Atölyesi", out["narration"])
         self.assertFalse(body.get("searched"))
 

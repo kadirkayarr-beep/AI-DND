@@ -9,6 +9,7 @@ from contextlib import closing
 from functools import wraps
 import gc
 import json
+import os
 from pathlib import Path
 import sqlite3
 import sys
@@ -27,6 +28,7 @@ AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
+import front_proposal
 import game
 import grounded_action
 import campaign_time
@@ -121,14 +123,32 @@ class PublicDetailSpeechClient:
     def __init__(self, line):
         self.line = line
         self.calls = 0
+        self.kinds = []  # every call, by kind (flag on, a free line's front reading comes first)
 
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
 
     def chat(self, *args, **kwargs):
         self.calls += 1
+        self.kinds.append(call_kind(kwargs.get("format")))
         return {"message": {"content": json.dumps(
             {"spoken_text": self.line, "stage_direction": ""}, ensure_ascii=False)}}
+
+
+def call_kind(schema):
+    """A model call's kind by its requested schema (the order of journeys.runner.call_kind, which imports this file):
+    the front reading's schema also carries the classifier's fields, so ``front`` is looked at before ``intent``."""
+    properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+    for key, kind in (("arrival", "arrival"), ("front", "front"), ("intent", "intent"), ("spoken_text", "speech"),
+                      ("steps", "steps"), ("narration", "narration")):
+        if key in properties:
+            return kind
+    return None
+
+
+def read_first(*kinds):
+    """What one line spends, by kind: flag on, the front reading is asked first (owner rule G1, 2026-11-19)."""
+    return (["front"] if front_proposal.enabled() else []) + list(kinds)
 
 
 class FakeOllamaClient:
@@ -213,9 +233,11 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
         self.intent_schemas = []
         self.conversation_replies = []
         self.chat_calls = 0
+        self.kinds = []  # every call, by kind (flag on, the front reading is "front")
 
     def chat(self, *args, **kwargs):
         self.chat_calls += 1
+        self.kinds.append(call_kind(kwargs.get("format")))
         messages = copy.deepcopy(kwargs.get("messages", []))
         schema = kwargs.get("format", {})
         properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
@@ -392,12 +414,14 @@ class ControlledSceneDetailOllamaClient(FakeOllamaClient):
         self.narration = narration or "Girişte taş bir kartal kabartması göze çarpıyor."
         self.explore_type = explore_type
         self.calls = 0
+        self.kinds = []  # every call, by kind (flag on, the front reading is "front")
         self.last_intent_schema_has_proposals = False
         self.last_intent_schema = None
         self.last_intent_proposals = None
 
     def chat(self, *args, **kwargs):
         self.calls += 1
+        self.kinds.append(call_kind(kwargs.get("format")))
         properties = kwargs.get("format", {}).get("properties", {})
         if "intent" in properties:
             self.last_intent_schema = copy.deepcopy(kwargs.get("format"))
@@ -598,6 +622,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             return await self.http.post(url, json=body)
 
     async def test_unpunctuated_locked_followup_reaches_same_npc_door_context(self):
+        # This test's subject is the Python owner answer and its locked-door focus; flag on, a plain-talk reading
+        # makes that answer the fallback and the person answers by speech (BM Task 3), so the subject is flag off.
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "0"}))
         city_id, session_id, session, turn_url, tavern_id, door = (
             await create_city_with_locked_tavern(self)
         )
@@ -1448,7 +1475,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             session.world_state["interaction_adventure_v1"]["conversation_focus"],
             dict,
         )
-        batches_before_lore_question = len(client.message_batches)
+        kinds_before_lore_question = len(client.kinds)
         world_threads.ensure(session.world_state)  # the town's lazy seed is not what is under test
         world_before_lore_question = {
             "locations": copy.deepcopy(session.world_state["locations"]),
@@ -1485,8 +1512,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         # An addressed NPC is attributed speech, so the admission gate does not
         # answer for it: one speech packet, and the check is what it may change.
         self.assertEqual(
-            len(client.message_batches), batches_before_lore_question + 1,
-            "A resolved NPC answers through one speech packet.",
+            client.kinds[kinds_before_lore_question:], read_first("speech"),
+            "A resolved NPC answers through one speech packet (flag on, after the line's reading).",
         )
         self.assertEqual(
             world_before_lore_question,
@@ -1598,7 +1625,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 getattr(session, "lore_authority_context", None)
             ),
         }
-        batches_before = len(client.message_batches)
+        kinds_before = len(client.kinds)
         client.conversation_replies = [{
             "narration": "Marek, “Limanda bir söylenti dolaşıyor: Neverwinter'ı gizlice bir ejderha yönetiyormuş, ama ben görmedim,” der.",
         }]
@@ -1611,8 +1638,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         narration = response.json()["narration"]
         self.assertEqual(
-            len(client.message_batches), batches_before + 1,
-            "The addressed NPC answers through one speech packet.",
+            client.kinds[kinds_before:], read_first("speech"),
+            "The addressed NPC answers through one speech packet (flag on, after the line's reading).",
         )
         self.assertIn("söylenti", narration.casefold(), narration)
         self.assertIn("ejderha", narration.casefold(), narration)
@@ -1756,9 +1783,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(direct.status_code, 200, direct.text)
         self.assertIn(purpose, direct.json()["narration"])
         self.assertEqual(
-            len(client.intent_schemas),
-            1,
-            "A free personal question must use exactly one existing intent call.",
+            client.kinds,
+            read_first("intent"),
+            "A free personal question must use exactly one existing intent call (flag on, after the failed reading).",
         )
         self.assertIn(
             "conversation",
@@ -1791,7 +1818,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         _, door_context = last_scene()
         self.assertIn(purpose, door_context)
 
-        batches_before_lore = len(client.message_batches)
+        kinds_before_lore = len(client.kinds)
         lore = await post(
             "Marek, burada Neverwinter neden gizlice bir ejderha tarafından yönetiliyor?"
         )
@@ -1813,7 +1840,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             lore.json()["narration"],
         )
         self.assertNotIn("ejderha", lore.json()["narration"].casefold())
-        self.assertLessEqual(len(client.message_batches), batches_before_lore + 1)  # the person answers in their voice
+        self.assertEqual(client.kinds[kinds_before_lore:], read_first("speech"))  # the person answers in their voice
 
         other_actor = await post(
             "Marek, kayıp yük kayıtlarını Sera neden yaktı?"
@@ -1910,10 +1937,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 [(fact.get("field"), fact.get("value"))
                  for fact in context["shareable_profile_facts"]],
             )
-        self.assertEqual(len(client.intent_schemas), 0)
+        self.assertEqual(client.kinds, read_first("speech") * 2)  # no classifier call; flag on, each line is read first
         self.assertEqual(client.conversation_replies, [])
 
     async def test_free_npc_profile_statement_uses_shared_resolution_without_forced_target(self):
+        # This test's subject is the classifier's conversation envelope, which only the flag-off path asks;
+        # flag on, a free line's front reading picks the route instead (the speech path is not this test's subject).
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "0"}))
         city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
         purpose = "Arşivde kayıp yük kayıtlarını bulmaya geldim."
         marek = {
@@ -2222,10 +2252,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         ):
             with self.subTest(message=message):
                 client.conversation_replies = [override]
-                calls_before = client.chat_calls
+                kinds_before = len(client.kinds)
                 response = await ask(message)
                 self.assertEqual(response.status_code, 200, response.text)
-                self.assertEqual(client.chat_calls, calls_before + 1)
+                self.assertEqual(client.kinds[kinds_before:], read_first("intent"))
                 self.assertNotIn(purpose, response.json()["narration"])
                 self.assertEqual(
                     session.world_state["interaction_adventure_v1"][
@@ -2244,10 +2274,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 "candidate_evidence_ids": [],
             }
         }]
-        calls_before = client.chat_calls
+        kinds_before = len(client.kinds)
         unknown = await ask("Peki ya kervan?")
         self.assertEqual(unknown.status_code, 200, unknown.text)
-        self.assertEqual(client.chat_calls, calls_before + 1)
+        self.assertEqual(client.kinds[kinds_before:], read_first("intent"))
         self.assertNotIn(purpose, unknown.json()["narration"])
         self.assertIsNone(
             session.world_state["interaction_adventure_v1"]["conversation_focus"]
@@ -2303,7 +2333,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             for meaning, field, _ in proposals
         ]
         for meaning, field, message in proposals:
-            calls_before = client.chat_calls
+            kinds_before = len(client.kinds)
             response = await self.post_scene_turn(
                 turn_url,
                 client,
@@ -2315,7 +2345,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 },
             )
             self.assertEqual(response.status_code, 200, response.text)
-            self.assertEqual(client.chat_calls, calls_before + 1)
+            self.assertEqual(client.kinds[kinds_before:], read_first("intent"))
             self.assertIn(marek["personal_profile"][field], response.json()["narration"])
             self.assertEqual(
                 session.world_state["interaction_adventure_v1"][
@@ -2601,7 +2631,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         for index, (raw_message, incomplete) in enumerate(malformed_replies):
             with self.subTest(raw_shape=index):
                 client.conversation_replies = [{"conversation": incomplete}]
-                calls_before = client.chat_calls
+                kinds_before = len(client.kinds)
                 response = await self.post_scene_turn(
                     turn_url,
                     client,
@@ -2613,7 +2643,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     },
                 )
                 self.assertEqual(response.status_code, 200, response.text)
-                self.assertEqual(client.chat_calls, calls_before + 1)
+                self.assertEqual(client.kinds[kinds_before:], read_first("intent"))
                 self.assertNotIn(
                     marek["personal_profile"]["reason_for_being_here"],
                     response.json()["narration"],
@@ -2731,18 +2761,20 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     }
 
                 before = snapshot()
-                calls_before = client.chat_calls
                 first = await self.post_scene_turn(turn_url, client, body)
-                calls_after_first = client.chat_calls
+                calls_after_first = list(client.kinds)
                 after_first = snapshot()
                 replay = await self.post_scene_turn(turn_url, client, body)
-                calls_after_replay = client.chat_calls
+                calls_after_replay = list(client.kinds)
                 after_replay = snapshot()
 
                 self.assertEqual(first.status_code, 200, first.text)
                 self.assertEqual(replay.status_code, 200, replay.text)
                 with self.subTest(path=path, check="one model call then replay"):
-                    self.assertEqual(calls_after_first, calls_before + 1)
+                    # Flag on, the said line is read first; the reading carries the invalid proposal and the person answers.
+                    # Flag off, only the conditional line asks the classifier; the others are answered by speech.
+                    self.assertEqual(calls_after_first, ["front", "speech"] if front_proposal.enabled()
+                                     else ["intent"] if path == "conditional_hint" else ["speech"])
                     self.assertEqual(calls_after_replay, calls_after_first)
                     self.assertEqual(replay.json(), first.json())
                 with self.subTest(path=path, check="no interaction or memory effects"):
@@ -2821,7 +2853,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(self.store, "save_campaign", side_effect=fail_once):
             failed = await self.post_scene_turn(turn_url, client, body)
         self.assertEqual(failed.status_code, 503, failed.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(client.kinds, read_first("intent"))
         self.assertEqual(session.serialize_game_state(), before_state)
         self.assertEqual(session.rng.getstate(), before_rng)
         self.assertEqual(record.narrative_memory, before_memory)
@@ -2838,12 +2870,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         retry = await self.post_scene_turn(turn_url, client, body)
         self.assertEqual(retry.status_code, 200, retry.text)
-        self.assertEqual(client.chat_calls, 2)
+        self.assertEqual(client.kinds, read_first("intent") * 2)  # the retry is read and asked again
         self.assertIn("Kayıp yük kayıtlarını bulmaya geldim.", retry.json()["narration"])
         replay = await self.post_scene_turn(turn_url, client, body)
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), retry.json())
-        self.assertEqual(client.chat_calls, 2)
+        self.assertEqual(client.kinds, read_first("intent") * 2)  # the replay reads nothing and asks nothing
 
     async def test_death_mode_selection_persists_and_a_request_without_one_dies_for_real(self):
         unnamed = await self.http.post("/api/game/campaigns", json={})
@@ -5447,9 +5479,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(targeted.status_code, 200, targeted.text)
         self.assertIn("Taş Kartal Kabartması", targeted.json()["narration"])
         self.assertEqual(
-            model.calls,
-            calls_before_targeted_inspection,
-            "A saved detail should resolve through the existing deterministic inspection path.",
+            model.kinds[calls_before_targeted_inspection:],
+            read_first(),
+            "A saved detail should resolve through the existing deterministic inspection path"
+            " (flag on, after the line's reading).",
         )
 
     async def test_parent_detail_with_different_wording_targets_existing_sit_mechanic(self):
@@ -5478,7 +5511,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             },
         )
         self.assertEqual(created.status_code, 200, created.text)
-        self.assertEqual(model.calls, 2)
+        # The line is read once (flag on by the front reading, flag off by the classifier), then told.
+        self.assertEqual(model.kinds, ["front" if front_proposal.enabled() else "intent", "narration"])
         feature = next(
             item for item in session.world_state["features"]
             if item.get("name") == "Taş Bank"
@@ -5497,7 +5531,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         position = session.world_state["scene_state"]["player_position"]
         self.assertEqual(position["kind"], "seated")
         self.assertEqual(position["target_id"], feature["id"])
-        self.assertEqual(model.calls, calls_before_sit)
+        self.assertEqual(model.kinds[calls_before_sit:], read_first())  # sitting is Python's; flag on, read first
 
     async def test_parent_detail_stays_bound_to_explicit_venue_with_sibling_venue(self):
         city_id, _, session, turn_url, venue_a_id, door_a = (
@@ -7818,33 +7852,41 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             session.load_game(invalid_path)
                         self.assertEqual(session._capture_runtime_snapshot(), before_runtime)
                         real_plan = session.plan_living_world_turn
+                        real_reading = session.front_read_ahead
 
-                        @wraps(real_plan)
-                        def capture_rejected_plan(*args, **kwargs):
-                            # Speculative setup can change state before the
-                            # real positive-HP death gate rejects planning.
-                            session.world_state["flags"]["speculative_setup"] = True
-                            session.world_state["npcs"][0]["memory"].append("uncommitted")
-                            session.character["current_hp"] = 9
-                            session.character["uncommitted_detail"] = {"nested": [1]}
-                            session.messages.append({"role": "user", "content": "uncommitted"})
-                            session.recent_dm_narrations.append("uncommitted")
-                            session.rng.random()
-                            session.world_metadata = {}
-                            record.journal.clear()
-                            record.narrative_memory.clear()
-                            record.lore_authority = type(record.lore_authority).legacy_unbound()
-                            session.lore_authority_context = {"uncommitted": True}
-                            self.assertNotEqual(session._capture_runtime_snapshot(), before_runtime)
-                            try:
-                                return real_plan(*args, **kwargs)
-                            except ValueError as error:
-                                rejections.append(str(error))
-                                raise
+                        def rejecting(real_gate):
+                            # Flag on, the front reading runs before the planner and meets the death check first
+                            # (G7): whichever gate runs first must refuse, with the same message and a full rollback.
+                            @wraps(real_gate)
+                            def capture_rejected_plan(*args, **kwargs):
+                                # Speculative setup can change state before the
+                                # real positive-HP death gate rejects planning.
+                                session.world_state["flags"]["speculative_setup"] = True
+                                session.world_state["npcs"][0]["memory"].append("uncommitted")
+                                session.character["current_hp"] = 9
+                                session.character["uncommitted_detail"] = {"nested": [1]}
+                                session.messages.append({"role": "user", "content": "uncommitted"})
+                                session.recent_dm_narrations.append("uncommitted")
+                                session.rng.random()
+                                session.world_metadata = {}
+                                record.journal.clear()
+                                record.narrative_memory.clear()
+                                record.lore_authority = type(record.lore_authority).legacy_unbound()
+                                session.lore_authority_context = {"uncommitted": True}
+                                self.assertNotEqual(session._capture_runtime_snapshot(), before_runtime)
+                                try:
+                                    return real_gate(*args, **kwargs)
+                                except ValueError as error:
+                                    rejections.append(str(error))
+                                    raise
+                            return capture_rejected_plan
 
                         with (
                             patch.object(
-                                session, "plan_living_world_turn", new=capture_rejected_plan
+                                session, "plan_living_world_turn", new=rejecting(real_plan)
+                            ),
+                            patch.object(
+                                session, "front_read_ahead", new=rejecting(real_reading)
                             ),
                             patch.object(
                                 session, "run_player_turn",
@@ -14178,9 +14220,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         narrations = []
         reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
+        # Every model call still fails offline; its kind is kept so each line's calls are counted exactly.
+        offline, offline_kinds = FakeOllamaClient(), []
+        offline_chat = offline.chat
+        offline.chat = lambda *args, **kwargs: (
+            offline_kinds.append(call_kind(kwargs.get("format"))), offline_chat(*args, **kwargs))[1]
         reopened_app = create_app(
             session_manager=reopened_manager,
-            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+            ollama_adapter=AuthenticatedOllamaAdapter(offline),
             authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
@@ -14221,6 +14268,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             reopened_store.get_turn_action(campaign_id, body["action_id"])
                         )
                         before = reopened_store.get_campaign(campaign_id)
+                        offline_before = len(offline_kinds)
+                        # A line to a chosen person is not read; flag on, a free line is read first (owner rule G1).
+                        reading = read_first() if "target_id" not in body else []
                         speech_client = None
                         if profile_field == "personal_detail":
                             # "Peki sen, ..." is two clauses: the NPC speaks its public
@@ -14236,7 +14286,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 f"/api/game/sessions/{session_id}/turn", json=body
                             )
                         if speech_client is not None:
-                            self.assertEqual(speech_client.calls, 1)
+                            self.assertEqual(speech_client.kinds, reading + ["speech"])
+                        self.assertEqual(offline_kinds[offline_before:], [] if speech_client else reading)
                         self.assertEqual(response.status_code, 200, response.text)
                         turn = response.json()
                         self.assertEqual(turn["action_id"], body["action_id"])

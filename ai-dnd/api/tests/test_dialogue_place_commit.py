@@ -3,6 +3,8 @@ from unittest.mock import patch
 import npc_statements,grounded_action
 from api.tests import test_dialogue_runtime as runtime_fixture
 from api.persistence.campaign_models import CampaignStorageError
+from api.tests.journeys.runner import call_kind
+from api.tests.test_intent_response_consistency import read_first
 
 class DialoguePlaceTests(unittest.IsolatedAsyncioTestCase):
  asyncSetUp=runtime_fixture.DialogueRuntimeTests.asyncSetUp
@@ -25,7 +27,8 @@ class DialoguePlaceTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(len(self.matches()),1)
  async def test_action_replay_creates_once(self):
   await self.setup_place();aid=str(uuid.uuid4());a=await self.send('Buralarda bir han var mı?',action_id=aid);b=await self.send('Buralarda bir han var mı?',action_id=aid)
-  self.assertEqual(a.status_code,200,a.text);self.assertEqual(a.json(),b.json());self.assertEqual(len(self.matches()),1);self.assertEqual(self.reply.calls,1)
+  self.assertEqual(a.status_code,200,a.text);self.assertEqual(a.json(),b.json());self.assertEqual(len(self.matches()),1)
+  self.assertEqual([call_kind(b.get('format')) for b in self.reply.batches],read_first('speech'))  # flag on the reading, then the speech; the replay asks nothing
  async def test_failed_autosave_rolls_back_place_and_dialogue(self):
   await self.setup_place();before=copy.deepcopy(self.session.serialize_game_state())
   with patch.object(self.manager,'autosave_turn',side_effect=CampaignStorageError('synthetic write failure')):r=await self.send('Buralarda bir han var mı?')

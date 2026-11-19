@@ -8,6 +8,8 @@ import living_world
 from api.tests.test_stage10a_gameplay_repairs import city_session as _city_session, DISCLOSURE
 from api.tests import test_explicit_shop_creation as shop_tests
 from api.persistence.campaign_models import CampaignStorageError
+from api.tests.journeys.runner import call_kind
+from api.tests.test_intent_response_consistency import read_first
 import uuid
 
 def city_session():
@@ -15,6 +17,11 @@ def city_session():
     s=_city_session()
     s.world_state.setdefault('scheduled_events', [])
     return s
+
+def kinds(chat):
+    """Each call the patched chat got, by kind. Flag on, a free line is read once first (owner rule G1, 2026-11-19:
+    a line Python owns now spends exactly this one call); the search itself still asks nothing."""
+    return [call_kind(call.kwargs.get('format')) for call in chat.call_args_list]
 
 FIND='Bu bölgede yerel bir tüccar bul.'
 CREATE='Bu kampanya için burada yerel bir dükkân ve tüccar oluştur.'
@@ -35,7 +42,7 @@ class CreationAuthorityTests(unittest.TestCase):
         s=city_session();before=stable(s)
         with patch('game.ollama.chat',side_effect=AssertionError('provider forbidden')) as model:
             result=s.run_player_turn(FIND)
-        self.assertEqual(model.call_count,0)
+        self.assertEqual(kinds(model),read_first())
         self.assertEqual(stable(s),before)
         self.assertEqual(result['action_result']['status'],'unavailable')
 
@@ -74,7 +81,7 @@ class CreationAuthorityTests(unittest.TestCase):
         with patch('game.ollama.chat',side_effect=AssertionError('no inference')) as model:
             s.run_player_turn(observation)
         # The first look may be told once; the scene comes from Python, so a failed call changes nothing.
-        self.assertEqual(model.call_count,1)
+        self.assertEqual(kinds(model),read_first('narration'))
         self.assertGreaterEqual(len(s.world_state['npcs']),2)
         self.assertTrue(s.world_state['scene_state']['scenes']['fr:city:neverwinter']['materialized'])
         self.assertTrue(s.world_state['scene_state']['ambient_event_history'])
@@ -104,7 +111,7 @@ class CreationAuthorityTests(unittest.TestCase):
         before_shop=copy.deepcopy(s.world_state['shops'])
         with patch('game.ollama.chat',side_effect=AssertionError('disclosure needs no model')) as model:
             disclosure=s.run_player_turn(DISCLOSURE,target_id=npc['id'],interaction_mode='say')
-        self.assertEqual(model.call_count,0)
+        self.assertEqual(kinds(model),read_first())
         self.assertEqual(s.world_state['shops'],before_shop)
         self.assertIn('Arven',json.dumps(npc,ensure_ascii=False))
         self.assertNotEqual(disclosure['action_result'].get('status'),'invalid_target')
@@ -114,7 +121,7 @@ class CreationAuthorityTests(unittest.TestCase):
         s=city_session();shop_creation.resolve_explicit_request(s);before=stable(s)
         with patch('game.ollama.chat',side_effect=AssertionError('no inference')) as model:
             r=s.run_player_turn(FIND)
-        self.assertEqual(model.call_count,0);self.assertEqual(stable(s),before)
+        self.assertEqual(kinds(model),read_first());self.assertEqual(stable(s),before)
         self.assertEqual(r['action_result']['status'],'found')
 
     def test_passive_reference_does_not_promote_but_explicit_approach_does(self):
@@ -184,7 +191,7 @@ class SearchTransactionTests(shop_tests.ShopTransactionTests):
         body={'message':FIND,'action_id':str(uuid.uuid4())}
         response=await self.http.post(self.url,json=body)
         self.assertEqual(response.status_code,200,response.text)
-        self.assertEqual(self.model.chat.call_count,0)
+        self.assertEqual(kinds(self.model.chat),read_first())
         self.assertEqual(stable(session),before)
         self.assertEqual(self.record.journal,extra[0])
         self.assertEqual(self.record.lore_authority,extra[2])
@@ -193,7 +200,7 @@ class SearchTransactionTests(shop_tests.ShopTransactionTests):
         persisted=self.store.get_campaign(self.created['campaign_id'])
         self.assertEqual(persisted.payload['engine_save']['world_state']['quests'],before['quests'])
         replay=await self.http.post(self.url,json=body)
-        self.assertEqual(replay.json(),response.json());self.assertEqual(self.model.chat.call_count,0)
+        self.assertEqual(replay.json(),response.json());self.assertEqual(kinds(self.model.chat),read_first())  # the replay reads nothing
         self.assertEqual(self.store.get_campaign(self.created['campaign_id']).payload,persisted.payload)
         from api.session_manager import SessionManager
         reopened=SessionManager(campaign_store=self.store)
@@ -212,23 +219,23 @@ class SearchTransactionTests(shop_tests.ShopTransactionTests):
         self.assertEqual((session.serialize_game_state(),session.rng.getstate(),self.record.journal,self.record.narrative_memory,self.record.lore_authority),before)
         self.assertEqual(self.store.get_campaign(self.created['campaign_id']).payload,saved.payload)
         self.assertIsNone(self.store.get_turn_action(self.created['campaign_id'],body['action_id']))
-        self.assertEqual(self.model.chat.call_count,0)
+        self.assertEqual(kinds(self.model.chat),read_first())
         retry=await self.http.post(self.url,json=body)
         self.assertEqual(retry.status_code,200);self.assertEqual(session.world_state['shops'],[])
-        self.assertEqual(session.world_state['quests'],[]);self.assertEqual(self.model.chat.call_count,0)
+        self.assertEqual(session.world_state['quests'],[]);self.assertEqual(kinds(self.model.chat),read_first()*2)  # the retry is read again
 
     async def test_exact_N04_N05_N06_chain_over_real_api(self):
         r=await self.http.post(self.url,json={'message':FIND,'action_id':str(uuid.uuid4())})
-        self.assertEqual(r.status_code,200);self.assertEqual(self.model.chat.call_count,0)
+        self.assertEqual(r.status_code,200);self.assertEqual(kinds(self.model.chat),read_first())
         r=await self.http.post(self.url,json={'message':CREATE,'action_id':str(uuid.uuid4())})
         self.assertEqual(r.status_code,200)
         w=self.record.game_session.world_state
         self.assertEqual(len(w['shops']),1)
         shop=w['shops'][0];npc=next(n for n in w['npcs'] if n['id']==shop['shopkeeper_id'])
         self.assertEqual(npc['shop_id'],shop['id'])
-        calls=self.model.chat.call_count
+        calls=len(self.model.chat.call_args_list)
         r=await self.http.post(self.url,json={'message':DISCLOSURE,'interaction_mode':'say','target_id':npc['id'],'action_id':str(uuid.uuid4())})
-        self.assertEqual(r.status_code,200);self.assertEqual(self.model.chat.call_count,calls)
+        self.assertEqual(r.status_code,200);self.assertEqual(kinds(self.model.chat)[calls:],read_first())
         self.assertIn('Arven',json.dumps(npc,ensure_ascii=False))
         self.assertFalse(any(q.get('creation_evidence')=='found:'+npc['id'] for q in w['quests']))
 

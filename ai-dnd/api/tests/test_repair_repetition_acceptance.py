@@ -4,6 +4,7 @@ import unittest
 import game
 from api.tests import test_campaign_api as api
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.test_intent_response_consistency import kinds, read_first
 from unittest.mock import patch
 
 
@@ -82,7 +83,7 @@ class RepeatedAnswerApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status_code, 200, response.text)
             self.assertIn(answer, response.json()['narration'])
             self.assertNotIn('Elara', response.json()['narration'])
-        self.assertEqual(client.chat_calls, 2)
+        self.assertEqual(kinds(client), read_first('speech') * 2)  # flag on, each line is read first
         pairs = session.world_state['npc_speech_log'][npc['id']]
         self.assertEqual(len(pairs), 2)
         self.assertEqual([p['npc'] for p in pairs], [answer, answer])
@@ -93,5 +94,5 @@ class RepeatedAnswerApiTests(unittest.IsolatedAsyncioTestCase):
             replay = await api.CampaignApiTests.post_scene_turn(self, url, client, body)
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), response.json())
-        self.assertEqual(client.chat_calls, 2)
+        self.assertEqual(kinds(client), read_first('speech') * 2)  # the replay reads nothing and asks nothing
         self.assertEqual(before, session.serialize_game_state())
