@@ -4,6 +4,7 @@
     54
   ],
   "setup": {
+    "campaign_seed": 12800,
     "inventory": [
       "Greatsword",
       "Bira"

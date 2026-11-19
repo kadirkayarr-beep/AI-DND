@@ -3,6 +3,7 @@
   "title": "Başlangıç kesesi (Fighter, paket C, Asker arka planı B: 50 + paketteki 10 altın): yaratma yanıtı keseyi 6000 bakır gösterir (wallet.total_cp, yazılı altını sayar); oyun da 6000 ile başlar, '10 Altın' envanterde metin olarak kalmaz; ilk para işleminden (4 bakır hediye) sonra kese 5996, yani yaratmada gösterilen kese ile oynanan kese aynı",
   "source_items": [34],
   "setup": {
+    "campaign_seed": 11400,
     "character": {
       "mode": "custom",
       "starting_level": 1,

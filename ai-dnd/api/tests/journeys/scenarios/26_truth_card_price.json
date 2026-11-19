@@ -2,7 +2,7 @@
   "id": "26_truth_card_price",
   "title": "Motorun ödeme ve fiyat bilgisi konuşmaya ve anlatıcıya ayrı doğruluk kartlarıyla gider",
   "source_items": [36, 38],
-  "setup": {"npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
+  "setup": {"campaign_seed": 12600, "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
             "currency": {"player": 100, "barman": 0}, "inventory": [], "seed": 7},
   "steps": [
     {"command": "/item shop_buy barman bira 1 0 4", "expect": {"kese": 96}},

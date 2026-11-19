@@ -3,6 +3,7 @@
   "title": "Sessiz hediye yok (35, D29): satıcı olmayan Osman'a ne için olduğu söylenmeden uzatılan 5 bakır kart açmaz, para kesede kalır; ön okuma 'deal: gift' derse aynı satır 5 bakırlık Hediye kartı açar; açık teklif yokken barmene bırakılan 3 bakır 'deal: tip' ile Hediye değil Bahşiş kartı açar. Kart onaylanmadan kese değişmez",
   "source_items": [35],
   "setup": {
+    "campaign_seed": 12700,
     "npcs": [
       {"id": "osman", "name": "Osman", "role": "Kervancı", "current_hp": 10},
       {"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}

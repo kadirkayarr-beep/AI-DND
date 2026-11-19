@@ -7,6 +7,8 @@ import json
 import unittest
 
 import front_proposal
+import grounded_action
+import local_places
 import world_threads
 from api.tests import test_front_proposal as front_tests
 from api.tests.town_seed import fixed_town
@@ -55,8 +57,12 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
     line = front_tests.FrontTable.line
     status = front_tests.FrontTable.status
     offer = front_tests.FrontTable.offer
-    begin = front_tests.FrontTable.begin
     routes = front_tests.FrontTable.routes
+
+    async def begin(self, *, seed=TOWN_SEED, **kwargs):
+        # A new campaign's town comes from its id: each campaign of a test takes the next seed from ``seed``.
+        with fixed_town(self, seed):
+            await front_tests.FrontTable.begin(self, **kwargs)
 
     def usage(self):
         path = self.route_file.with_name(f"{self.route_file.stem}.usage{self.route_file.suffix}")
@@ -136,6 +142,28 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
             with self.subTest(line=line):
                 await self.no_walk(line)
 
+    async def robs_a_townsman_on_the_way_out(self, seed):
+        # D-377: in these towns Zivanel keeps a place in town, so the old chain walks there (a walk to a named person).
+        # The fallback must not take the line for a walk out of town.
+        line = "Şehrin dışına gidiyorum ve Zivanel'i soyuyorum."
+        await self.begin(seed=seed)
+        step = grounded_action.plan(self.session, line)["steps"][0]
+        self.assertEqual((step.get("target") or {}).get("kind"), "place")  # this town has a Zivanel: the case pinned
+        self.client.fails = ConnectionError("gone")
+        await self.line(line)
+        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
+        record = self.world["locations"][self.world["location"]]
+        self.assertFalse(local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors"))
+
+    async def test_a_walk_out_that_robs_a_townsman_is_no_walk_out_in_town_12(self):
+        await self.robs_a_townsman_on_the_way_out(12)
+
+    async def test_a_walk_out_that_robs_a_townsman_is_no_walk_out_in_town_27(self):
+        await self.robs_a_townsman_on_the_way_out(27)
+
+    async def test_a_walk_out_that_robs_a_townsman_is_no_walk_out_in_town_32(self):
+        await self.robs_a_townsman_on_the_way_out(32)
+
     async def test_a_yes_naming_another_offer_s_owner_is_not_taken_for_the_one_spoken_to(self):
         await self.begin()
         import copy
@@ -170,19 +198,17 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
 
     async def test_a_plain_walk_out_of_town_still_walks_when_the_reading_failed(self):
-        with fixed_town(self, TOWN_SEED):
-            await self.begin()
-            before = self.world["location"]
-            self.client.front = {"kind": "go_to", "place_id": front_proposal.WAY_OUT}
-            await self.line("şehrin dışına gidiyorum")
-            after_ok = self.world["location"]
-            name_ok = self.world["locations"][after_ok].get("place_kind")
-        with fixed_town(self, TOWN_SEED):
-            await self.begin()
-            self.client.fails = ConnectionError("gone")
-            await self.line("şehrin dışına gidiyorum")
-            after_failed = self.world["location"]
-            name_failed = self.world["locations"][after_failed].get("place_kind")
+        await self.begin()
+        before = self.world["location"]
+        self.client.front = {"kind": "go_to", "place_id": front_proposal.WAY_OUT}
+        await self.line("şehrin dışına gidiyorum")
+        after_ok = self.world["location"]
+        name_ok = self.world["locations"][after_ok].get("place_kind")
+        await self.begin()
+        self.client.fails = ConnectionError("gone")
+        await self.line("şehrin dışına gidiyorum")
+        after_failed = self.world["location"]
+        name_failed = self.world["locations"][after_failed].get("place_kind")
         self.assertNotEqual(after_ok, before)
         self.assertNotEqual(after_failed, before)
         self.assertEqual(name_failed, name_ok)

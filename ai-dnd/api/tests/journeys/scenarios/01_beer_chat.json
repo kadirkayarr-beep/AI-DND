@@ -3,6 +3,7 @@
   "title": "Sohbetle bira: 'bir bira alayım' ve 'bir bira alabilir miyim' tezgâh teklifini açar, tezgâh alışverişi 4 bakır öder",
   "source_items": [35],
   "setup": {
+    "campaign_seed": 10100,
     "npcs": [{"id": "barman", "name": "Marek", "role": "Barmen", "current_hp": 10}],
     "currency": {"player": 100, "barman": 0},
     "inventory": [],

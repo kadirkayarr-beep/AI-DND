@@ -3,6 +3,7 @@
   "title": "Tüketim (Fighter, paket C; envanterde paketin ağır tatar yayı yerine 'Uzun Yay & 20 Ok': motorun silah listesi 'Ağır Tatar Yayı'nı tanımıyor, bu ayrı bir bulgudur): 'tabak yemeğimi yiyorum' bir Tabak yemek, 'biramı içiyorum' bir Bira düşer (eşyalar ayrı kayıt, adetle sayılır); uzun yayla atış ok sayacını (world.ammunition, eşyalardan ayrı) paketteki '20 Ok' kaleminden tohumlar ve bir azaltır: 20 - 1 = 19",
   "source_items": [54, 56],
   "setup": {
+    "campaign_seed": 10400,
     "character": {
       "mode": "custom",
       "starting_level": 1,

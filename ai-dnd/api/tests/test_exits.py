@@ -22,7 +22,6 @@ from api.tests.engine_sources import engine_source_files
 from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, describe_problems
 from api.tests.journeys.schema import _load_step, load_scenario
 from api.tests.test_house_door import stub_feature, stub_npc
-from api.tests.town_seed import fixed_town
 from incidents import sublocations
 
 CITY = "fr:city:neverwinter"
@@ -38,8 +37,8 @@ class ExitsTests(JourneyCase):
         scenario = load_scenario(SCENARIO_DIR / f"{name}.json")
         steps = (scenario.steps[:1] if fight else ()) + tuple(
             _load_step(raw, f"{name}, ek adım", False) for raw in extra)
-        with fixed_town(self, TOWN_SEED):
-            results = await self.run_scenario(dataclasses.replace(scenario, steps=steps))
+        setup = {**scenario.setup, "campaign_seed": TOWN_SEED}
+        results = await self.run_scenario(dataclasses.replace(scenario, setup=setup, steps=steps))
         self.assertEqual(describe_problems(results), [])
         session = self.manager.get(self.last_session_id).game_session
         if fight:
@@ -75,6 +74,12 @@ class ExitsTests(JourneyCase):
     def flee(self, session, roll=SUCCESS):
         with patch.object(session, "perform_skill_check", create=True, return_value=dict(roll)):
             return combat_lifecycle.flee(session)
+
+    async def test_each_scene_plays_the_next_pinned_town(self):
+        # The pin wins over each scenario's own seed: the first campaign of a test is TOWN_SEED, each after the next.
+        worlds = (await self.inn_world(), await self.city_world(), await self.inn_world())
+        self.assertEqual([world["campaign_id"][-12:] for world in worlds],
+                         [f"{TOWN_SEED + offset:012d}" for offset in range(3)])
 
     async def test_a_building_keeps_todays_way_out(self):
         world = await self.inn_world()

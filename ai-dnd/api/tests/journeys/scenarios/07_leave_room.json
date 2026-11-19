@@ -3,6 +3,7 @@
   "title": "Odadan çıkış: handa oda tutulup odaya çıkıldıktan sonra 'dışarı çıkıyorum' hanın üst mekânına (Neverwinter sokağı) çıkarır, başka mekâna girmez (motor yolu; sahne atlaması gerçek zincir işi)",
   "source_items": [42],
   "setup": {
+    "campaign_seed": 10700,
     "character": {
       "mode": "custom", "starting_level": 3, "level_choices": {"2": {}, "3": {"subclass_id": "champion"}},
       "name": "Carius", "race": "Human", "species": "Human", "class": "Fighter",
