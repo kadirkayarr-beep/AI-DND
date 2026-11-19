@@ -66,7 +66,7 @@ class ShopCreationTests(unittest.TestCase):
             "lore_claims": [],
         })}}) as model:
             result = session.run_player_turn(REQUEST)
-        self.assertEqual(model.call_count, 1)
+        self.assertEqual([call_kind(call.kwargs.get("format")) for call in model.call_args_list], one_line_calls())
         self.assertEqual(result["action_result"]["status"], "created")
         self.assertEqual(len(session.world_state["shops"]), 1)
         self.assertEqual(len(session.world_state["npcs"]), 1)

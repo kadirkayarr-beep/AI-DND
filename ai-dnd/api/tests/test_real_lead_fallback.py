@@ -4,13 +4,23 @@ import json
 import unittest
 from unittest.mock import patch
 
+import front_proposal
 import npc_statements
 import npc_told
 import town_knowledge
 import world_threads
 from api.tests import test_town_knowledge as cases
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.journeys.runner import call_kind
 from api.tests.town_seed import fixed_town
+
+
+def said_calls(client, since=0):
+    """The calls of a Say line, by kind: flag on, the front reading comes before the speech call."""
+    return [call_kind(schema) for schema in client.schemas[since:]]
+
+
+SAY = ["front", "speech"] if front_proposal.enabled() else ["speech"]
 
 
 class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
@@ -53,7 +63,7 @@ class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
                 self.client.narration = ""
                 calls = self.client.chat_calls
                 text = await self.say("Burada nerede iş bulabilirim?")
-                self.assertEqual(self.client.chat_calls, calls + 1)
+                self.assertEqual(said_calls(self.client, calls), SAY)
                 self.assertIn(expected, text, str(self.session.last_narration_safety))
                 self.assertEqual(npc_statements.last_said_place(world)["location_id"], target["place_id"])
                 self.assertEqual(self.finances(world), before)
@@ -73,7 +83,7 @@ class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
         self.assertIn(expected, text)
         self.assertNotIn("sandık", text.casefold())
         self.assertNotIn("yüz altın", text.casefold())
-        self.assertEqual(bad.chat_calls, 1)
+        self.assertEqual(said_calls(bad), SAY)
         self.assertEqual(self.finances(world), before)
         self.assertEqual(npc_statements.last_said_place(world)["location_id"], target["place_id"])
 

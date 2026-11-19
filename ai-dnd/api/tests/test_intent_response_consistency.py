@@ -9,6 +9,7 @@ import copy
 import json
 import uuid
 from unittest.mock import patch
+import front_proposal
 import game
 import grounded_action
 import local_dialogue
@@ -16,15 +17,33 @@ import living_world
 import resolved_presentation
 import world_threads
 from api.tests import test_campaign_api
+from api.tests.journeys.runner import call_kind
 from api.tests.town_seed import fixed_town
 
 # A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
 TOWN_SEED = 100
 
 
+def read_first(*kinds):
+    """What one line spends, by kind: flag on, the front reading is asked first (owner rule G1, 2026-11-19: a line
+    Python owns now spends exactly this one call)."""
+    return (["front"] if front_proposal.enabled() else []) + list(kinds)
+
+
+def kinds(client):
+    """Each call a ScriptedNpcSpeechClient answered, by kind."""
+    return [call_kind(schema) for schema in client.schemas]
+
+
+def speech_batch(client):
+    """The messages of the line's speech call; flag on, the reading's messages come first."""
+    return client.message_batches[kinds(client).index("speech")]
+
+
 class NoNarrationClient(test_campaign_api.FakeOllamaClient):
     def __init__(self):
         self.calls = 0
+        self.kinds = []  # every counted call, by kind (the front reading is "front", never "intent")
         self.allow_narration = False
         self.intent_calls = 0
         self.arrival_calls = 0
@@ -36,7 +55,10 @@ class NoNarrationClient(test_campaign_api.FakeOllamaClient):
             self.arrival_calls += 1
             raise RuntimeError("arrival narration is not scripted here")
         self.calls += 1
-        if "intent" in (kwargs.get("format", {}).get("properties") or {}):
+        self.kinds.append(call_kind(kwargs.get("format")))
+        # Flag on, the front reading gets no usable answer here (it fails, or gets narration text once narration is
+        # allowed), so the old chain answers the line as it does flag off.
+        if self.kinds[-1] == "intent":
             self.intent_calls += 1
         elif self.allow_narration:
             return {"message": {"content": json.dumps({"narration": "Çevrene bakıyorsun.", "world_updates": {}, "lore_claims": []}, ensure_ascii=False)}}
@@ -68,6 +90,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         """The opening look may be told by the narrator; the zero-call checks are about the next move."""
         await self.turn("Çevreme bakıyorum.")
         self.client.calls = 0
+        self.client.kinds = []
 
     async def turn(self, message, **fields):
         here, arrivals = self.world.get("location"), self.client.arrival_calls
@@ -99,7 +122,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.world["location"], place["id"])
         self.assertTrue(door["open"])
         self.assertIn(place["name"], result["narration"])
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 2)  # flag on, each line Python owns is read once (G1); nothing else is asked
         self.assertEqual(self.client.arrival_calls, arrivals + 1)
 
     def known_shop(self, *, locked=False):
@@ -140,7 +163,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         contents = await self.turn('İçeride neler var?', interaction_mode='do')
         self.assertIn('Ahşap raf', contents['narration'])
         self.assertIsNone(contents.get('skill_check_result'))
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 2)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_known_named_shop_arrival_does_not_open_a_locked_door(self):
         city, place, door = self.known_shop(locked=True)
@@ -153,7 +176,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(door['open'])
         self.assertIn('kilitli', entered['narration'])
         self.assertEqual(self.world['inventory'], inventory)
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 2)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_known_local_route_requires_a_visible_unique_owned_door(self):
         city, place, door = self.known_shop()
@@ -205,7 +228,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         npc.update(name="Kes", name_known_to_player=True, location=place["id"])
         self.assertTrue(self.session._has_explicit_attack_verb("Onu kes."))
         self.assertTrue(self.session._has_explicit_attack_verb("Onu kesiyorum."))
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 1)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_registered_building_name_precedes_tavern_keyword_fallback(self):
         import grounded_action
@@ -227,7 +250,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(set(self.world["locations"]), ids)
                 self.assertIn(name, result["narration"])
                 self.assertTrue(door["open"])
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 3)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_registered_locked_building_cannot_be_replaced_by_an_open_inn(self):
         import grounded_action
@@ -246,7 +269,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(door["open"])
         self.assertEqual(set(self.world["locations"]), ids)
         self.assertIn("kilitli", result["narration"])
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 1)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_named_enter_opens_unlocked_door(self):
         door, place = await self.arrive()
@@ -256,7 +279,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
                                      "narration": result["narration"]}, ensure_ascii=False))
         self.assertTrue(door["open"])
         self.assertNotIn("kilitli", result["narration"])
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 2)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_locked_enter_preserves_location_and_lock(self):
         door, place = await self.arrive()
@@ -267,7 +290,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(door["locked"])
         self.assertFalse(door["open"])
         self.assertIn("kilitli", result["narration"])
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 2)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_grounded_arrival_reference_survives_save_resume(self):
         door, place = await self.arrive()
@@ -302,7 +325,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             replay = await http.post(url, json=payload)
             self.assertEqual(replay.status_code, 200, replay.text)
             self.assertEqual(entered.json(), replay.json())
-            self.assertEqual(self.client.calls, 0)
+            self.assertEqual(self.client.kinds, read_first() * 2)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_visible_contents_are_observation_not_a_dice_gate(self):
         door, place = await self.arrive()
@@ -311,11 +334,13 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         before_rng = self.session.rng.getstate()
         for message in ("dükkanda neler var diye bakıyorum", "İçeride neler var?", "Burada ne var?"):
             with self.subTest(message=message):
+                start = len(self.client.kinds)
                 result = await self.turn(message)
                 self.assertEqual(self.world["location"], place["id"])
                 self.assertTrue(result["narration"].strip())
                 self.assertEqual(self.session.rng.getstate(), before_rng)
                 self.assertEqual(self.client.intent_calls, 0)
+                self.assertEqual(self.client.kinds[start:], read_first())  # flag on, the line is read once (G1)
 
     async def test_visible_contents_describes_current_room_without_model(self):
         door, place = await self.arrive()
@@ -333,7 +358,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Ahşap raf", result["narration"])
         self.assertNotIn("Gizli bölme", result["narration"])
         self.assertNotIn("Gizli bir kasa", result["narration"])
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 3)  # flag on, each line Python owns is read once (G1); nothing else is asked
         self.assertEqual(self.session.rng.getstate(), before_rng)
         self.assertEqual(self.world["location"], place["id"])
         self.assertTrue(door["open"])
@@ -362,6 +387,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
         await self.turn("Çevreme bakıyorum.")
         self.client.calls = 0
+        self.client.kinds = []
         npc = self.world["npcs"][0]
         npc.update(name="Lysa", name_known_to_player=False)
         await self.turn("İsmin nedir?", target_id=npc["id"])
@@ -373,8 +399,8 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(mode=mode), patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}), patch.object(self.app.state.ollama_adapter, "_client", client):
                 result = await self.turn(question, **({} if mode is None else {"interaction_mode": mode}))
                 self.assertIn(answer, result["narration"])
-                self.assertEqual(client.chat_calls, 1)
-                self.assertIn("spoken_text", client.schemas[0]["properties"])
+                self.assertEqual(kinds(client), read_first("speech"))
+                self.assertIn("spoken_text", client.schemas[kinds(client).index("speech")]["properties"])
                 self.assertEqual(self.world["flags"]["active_npc_id"], npc["id"])
                 self.assertEqual(before, (self.session.character, self.world["inventory"], self.world["location"]))
 
@@ -419,7 +445,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         payload = {"narration": "Hlin Hanı çevresine göz gezdiriyorsun. Yakındaki bir kapı sertçe kapanır; ardından içeriden anlaşılmayan birkaç söz duyulur. Etrafında sessizlik hakimken, içerdeki gürültü artar ve biraz daha netleşir: Gecenin geçmesi gereken zamanı ver. Dışarıda hâlâ gün batmadan önceydi, ama içerideki havada bir gerilim hissediliyor.", "world_updates": {}, "lore_claims": []}
         with patch.object(client, "chat", return_value={"message": {"content": json.dumps(payload, ensure_ascii=False)}}) as chat, patch.object(self.app.state.ollama_adapter, "_client", client):
             result = await self.turn("Etrafıma bakıyorum.")
-        self.assertEqual(chat.call_count, 1)
+        self.assertEqual([call_kind(call.kwargs.get("format")) for call in chat.call_args_list], read_first("narration"))
         self.assertIn("Hlin Hanı", result["narration"])
         self.assertNotIn("hiçbir söz sağlam", result["narration"])
         self.assertNotIn("Gecenin geçmesi", result["narration"])
@@ -460,7 +486,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
                 result = await self.turn(npc["name"] + ", bu şehirde yaşamayı seviyor musun?", interaction_mode=mode, target_id=npc["id"])
                 self.assertIn(reply, result["narration"])
                 self.assertGreater(client.chat_calls, 0)
-                prompt = next(item["content"] for item in reversed(client.message_batches[0]) if item.get("role") == "user")
+                prompt = next(item["content"] for item in reversed(speech_batch(client)) if item.get("role") == "user")
                 marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
                 context, _ = json.JSONDecoder().raw_decode(prompt.split(marker, 1)[1])
                 self.assertEqual(context["scene"]["location"]["id"], location)
@@ -482,7 +508,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         })
         with patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}), patch.object(self.app.state.ollama_adapter, "_client", client):
             result = await self.turn(first["name"] + ", bu şehirde yaşamayı seviyor musun?", interaction_mode="do")
-        prompt = next(item["content"] for item in reversed(client.message_batches[0]) if item.get("role") == "user")
+        prompt = next(item["content"] for item in reversed(speech_batch(client)) if item.get("role") == "user")
         marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
         context, _ = json.JSONDecoder().raw_decode(prompt.split(marker, 1)[1])
         self.assertEqual(context["npc_id"], first["id"])
@@ -525,7 +551,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             })
             with self.subTest(question=question), patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}), patch.object(self.app.state.ollama_adapter, "_client", client):
                 result = await self.turn(npc["name"] + ", " + question, interaction_mode=mode, target_id=npc["id"])
-                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(kinds(client), read_first("speech") if mode == "say" else ["speech"])  # a Do line to a chosen person is not read (front skip "skipped:typed")
                 self.assertIn(reply, result["narration"])
                 after = (self.world["location"], sorted(self.world["locations"]),
                          json.dumps(self.world["inventory"], sort_keys=True), self.session.character["current_hp"])
@@ -545,14 +571,14 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         })
         with patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}), patch.object(self.app.state.ollama_adapter, "_client", client):
             result = await self.turn(npc["name"] + ", vergi hakkında ne düşünüyorsun?", interaction_mode="say", target_id=npc["id"])
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(kinds(client), read_first("speech"))
         self.assertNotIn(unsafe, result["narration"])
         self.assertEqual(json.dumps(self.world["inventory"], sort_keys=True), before)
         # The narrator path is still authoritative, not attributed NPC speech.
         with patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}):
             result = await self.turn("Vergi hakkında ne biliyoruz?", interaction_mode="ask_dm", target_id=npc["id"])
         self.assertFalse(result["narration"].startswith(npc["name"] + ":"))
-        self.assertEqual(self.client.calls, 0)
+        self.assertEqual(self.client.kinds, read_first() * 1)  # flag on, each line Python owns is read once (G1); nothing else is asked
 
     async def test_negated_identity_request_does_not_disclose_name(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
@@ -578,10 +604,12 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             for message in ("Adını öğrenebilir miyim?", "Lütfen, adınızı söyler misiniz?"):
                 with self.subTest(mode=mode, message=message), patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}):
                     npc["name_known_to_player"] = False
+                    start = len(self.client.kinds)
                     result = await self.turn(message, interaction_mode=mode, target_id=npc["id"])
                     self.assertIn("Ben " + npc["name"], result["narration"])
                     self.assertTrue(living_world.npc_name_known_to_player(npc))
-                    self.assertEqual(self.client.calls, 0)
+                    # Flag on, a Say line is read once (G1); a Do line to a chosen person is not read ("skipped:typed").
+                    self.assertEqual(self.client.kinds[start:], read_first() if mode == "say" else [])
 
     async def test_identity_is_consistent_in_do_and_say(self):
         await self.first_look()
@@ -590,12 +618,14 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             for speech in ("0", "1"):
                 with self.subTest(mode=mode, speech=speech), patch.dict("os.environ", {"AI_DND_NPC_SPEECH": speech}):
                     npc["name_known_to_player"] = False
+                    start = len(self.client.kinds)
                     result = await self.turn("Selamlar, ismin nedir?", interaction_mode=mode, target_id=npc["id"])
                     self.assertIn("Ben " + npc["name"], result["narration"])
                     self.assertTrue(living_world.npc_name_known_to_player(npc))
                     confirmation = await self.turn(npc["name"] + " mi?", interaction_mode=mode, target_id=npc["id"])
                     self.assertIn("Ben " + npc["name"], confirmation["narration"])
-                    self.assertEqual(self.client.calls, 0)
+                    # Flag on, each Say line is read once (G1); a Do line to a chosen person is not read ("skipped:typed").
+                    self.assertEqual(self.client.kinds[start:], (read_first() if mode == "say" else []) * 2)
 
 
     async def test_attributed_words_do_not_create_narrated_people(self):
@@ -614,7 +644,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(spoken=spoken), patch.dict('os.environ', {'AI_DND_NPC_SPEECH': '1'}), patch.object(self.app.state.ollama_adapter, '_client', client):
                 result = await self.turn('Lysa, Brom adlı birini tanıyor musun?', interaction_mode='say', target_id=npc['id'])
                 self.assertIn(spoken, result['narration'])
-                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(kinds(client), read_first("speech"))
                 self.assertEqual([(n['id'], n['name'], n.get('location')) for n in self.world['npcs']], identities)
                 self.assertEqual(self.world['inventory'], inventory)
 
@@ -672,7 +702,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(spoken=spoken), patch.dict('os.environ', {'AI_DND_NPC_SPEECH': '1'}), patch.object(self.app.state.ollama_adapter, '_client', client):
                 result = await self.turn('Biraz konuşabilir miyiz?', interaction_mode='say', target_id=npc['id'])
             self.assertIn(spoken, result['narration'])
-            self.assertEqual(client.chat_calls, 1)
+            self.assertEqual(kinds(client), read_first("speech"))
             self.assertEqual(self.world['location'], location)
             self.assertEqual(self.world['inventory'], inventory)
 
@@ -686,7 +716,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(spoken=spoken), patch.dict('os.environ', {'AI_DND_NPC_SPEECH': '1'}), patch.object(self.app.state.ollama_adapter, '_client', client):
                 result = await self.turn('Beni tanıyor musun?', interaction_mode='say', target_id=npc['id'])
             self.assertIn(spoken, result['narration'])
-            self.assertEqual(client.chat_calls, 1)
+            self.assertEqual(kinds(client), read_first("speech"))
 
     async def test_collective_possibility_condition_and_denial_do_not_move_player(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
@@ -703,7 +733,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(form=form), patch.dict('os.environ', {'AI_DND_NPC_SPEECH': '1'}), patch.object(self.app.state.ollama_adapter, '_client', client):
                 result = await self.turn('Biraz konuşabilir miyiz?', interaction_mode='say', target_id=npc['id'])
             self.assertIn(spoken, result['narration'])
-            self.assertEqual(client.chat_calls, 1)
+            self.assertEqual(kinds(client), read_first("speech"))
             self.assertEqual(self.world['location'], location)
             self.assertEqual(self.world['inventory'], inventory)
             self.assertEqual(self.session.character['current_hp'], hp)
@@ -735,7 +765,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
             result = await self.turn('Biraz konuşabilir miyiz?', interaction_mode='say', target_id=npc['id'])
         self.assertIn('Elbette, seni dinliyorum.', result['narration'])
         self.assertNotIn('oturabiliriz', result['narration'])
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(kinds(client), read_first("speech"))
 
     async def test_sitting_word_in_a_refusal_does_not_authorize_player_motion(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
@@ -745,7 +775,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         client = ScriptedNpcSpeechClient('Birlikte oturduk.')
         with patch.dict('os.environ', {'AI_DND_NPC_SPEECH': '1'}), patch.object(self.app.state.ollama_adapter, '_client', client):
             result = await self.turn('Oturmak istemiyorum. Biraz konuşabilir miyiz?', interaction_mode='say', target_id=npc['id'])
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(kinds(client), read_first("speech"))
         self.assertNotIn('Birlikte oturduk.', result['narration'])
         self.assertEqual(self.session.last_narration_safety['reason_code'], 'INVENTED_PLAYER_ACTION')
 
@@ -796,7 +826,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(result['narration'], 'Lysa gülümsüyor.')
         self.assertIn('Adım Lysa.', result['narration'])
         self.assertEqual(self.session.last_narration_safety['handling'], 'repaired')
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(kinds(client), read_first("speech"))
 
     async def test_compound_query_keeps_valid_speech_when_only_stage_is_repaired(self):
         from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
@@ -810,7 +840,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('Günüm iyi geçiyor.', result['narration'])
         self.assertNotIn('oturuyorsun', result['narration'])
         self.assertEqual(self.session.last_narration_safety['handling'], 'repaired')
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(kinds(client), read_first("speech"))
 
 
 class IntentLanguageBoundaryTests(unittest.TestCase):

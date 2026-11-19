@@ -78,16 +78,28 @@ class NeverwinterShopHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_empty_shop_question_and_explicit_refusal_are_python_owned(self):
         from functools import wraps
         import copy
+        import json
         import httpx
+        import front_proposal
         from api.main import create_app
         from api.ollama_adapter import AuthenticatedOllamaAdapter
         from api.persistence.campaign_store import CampaignStore
         from api.session_manager import SessionManager
         from api.tests.live_neverwinter_canon_smoke import START_SELECTION
+        from api.tests.journeys.runner import call_kind
+
+        def read_only(*args, **kwargs):
+            # Flag on, each line is read first (owner rule G1); the model cannot tell what it is, Python answers it.
+            if call_kind(kwargs.get("format")) != "front":
+                raise AssertionError("Deterministic shop turns must not call Qwen")
+            front = {"kind": "unclear", "person_id": "none", "place_id": "none", "offer_id": "none",
+                     "thing_id": "none", "answer": "none", "inside": False, "timing": "now"}
+            return {"message": {"content": json.dumps({"intent": "narrative", "action": "narrative", "target": {
+                "type": "none", "reference": ""}, "completion": "unclear", "confidence": 0.9, "front": front})}}
 
         model = Mock()
         model.list.return_value = {"models": [{"model": "qwen3:8b"}]}
-        model.chat.side_effect = AssertionError("Deterministic shop turns must not call Qwen")
+        model.chat.side_effect = read_only
         adapter = AuthenticatedOllamaAdapter(model)
         with tempfile.TemporaryDirectory(prefix="ai-dnd-shop-http-") as temp:
             manager = SessionManager(campaign_store=CampaignStore(Path(temp) / "campaigns.sqlite3", bound_principal=TEST_PLAYER))
@@ -124,7 +136,9 @@ class NeverwinterShopHttpTests(unittest.IsolatedAsyncioTestCase):
                                     self.assertTrue(_narration_reports_no_shop(body["narration"]))
                                 else:
                                     self.assertIn("aramadan yoluna devam", body["narration"])
-                    model.chat.assert_not_called()
+                    # Two lines, each read once flag on; nothing else is asked.
+                    self.assertEqual([call_kind(call.kwargs.get("format")) for call in model.chat.call_args_list],
+                                     ["front", "front"] if front_proposal.enabled() else [])
 
 
 if __name__ == "__main__":

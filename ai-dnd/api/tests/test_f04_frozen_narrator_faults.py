@@ -11,10 +11,26 @@ from uuid import uuid4
 
 os.environ['AI_DND_DISABLE_DEFAULT_APP'] = '1'
 import httpx
+import front_proposal
 import game
+from api.tests.journeys.runner import call_kind
 from api.tests.test_f04_frozen_faults import (
     Fixture, ScriptedProvider, evidence, narration, no_network, plain,
 )
+
+
+def reading(**front):
+    """Flag on, the line's front reading is the provider's first answer (G5); flag off no reading is asked."""
+    if not front_proposal.enabled():
+        return []
+    front = {'person_id': 'none', 'place_id': 'none', 'offer_id': 'none', 'thing_id': 'none', 'answer': 'none',
+             'inside': False, 'timing': 'now', **front}
+    return [{'intent': 'narrative', 'action': 'narrative', 'target': {'type': 'none', 'reference': ''},
+             'completion': 'unclear', 'confidence': 0.9, 'front': front}]
+
+
+def kinds(provider):
+    return [call_kind(call['kwargs'].get('format')) for call in provider.calls]
 
 
 class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
@@ -169,7 +185,9 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_D04_location_contradiction_cannot_relocate_player(self):
         bad = 'Eski Han konumuna ulaştın.'
-        provider = ScriptedProvider([narration(bad)])
+        # The forest is a timed route, not on the reading's place list, so the model cannot name it (see Park, FA3).
+        read = reading(kind='unclear')
+        provider = ScriptedProvider(read + [narration(bad)])
         fixture = Fixture(self.folder/'campaign.sqlite3', provider)
         with no_network() as network, fixture.adapter.engine_binding():
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=fixture.build_app()),
@@ -185,7 +203,7 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
                 evidence(self.output, 'response.json', {'status': response.status_code, 'body': response.json()})
                 evidence(self.output, 'native-engine.json', fixture.engine_results)
                 self.assertEqual(response.status_code, 200, response.text)
-                self.assertEqual(len(provider.calls), 0, 'Timed travel renders its own result')
+                self.assertEqual(kinds(provider), ['front'] * len(read), 'Timed travel renders its own result')
                 native = fixture.engine_results[-1]
                 action = native['action_result']
                 self.assertEqual(action['action'], 'travel')
@@ -208,7 +226,7 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
                 evidence(self.output, 'provider-entry.json', during)
                 evidence(self.output, 'provider.json', provider.calls)
                 evidence(self.output, 'rejected-result.json', rejected)
-                self.assertEqual(len(provider.calls), 1)
+                self.assertEqual(kinds(provider), ['front'] * len(read) + ['narration'])
                 self.assertEqual(after['engine_save']['world_state']['location'], 'forest')
                 self.assertEqual(after['engine_save']['world_state'], during[0]['engine_save']['world_state'])
                 self.assertEqual(after['rng'], committed['rng'])
@@ -304,7 +322,8 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
             output = self.output/'shop'
             output.mkdir()
             bad = 'Bu dükkânda 100 kılıç ve 50 iksir var. Envanterine yeni kılıç eklendi.'
-            provider = ScriptedProvider([narration(bad, {
+            read = reading(kind='unclear')
+            provider = ScriptedProvider(read + [narration(bad, {
                 'create_shops': [{'name': 'Uydurma Stok Dükkanı', 'stock': {'sword': 100}}],
             })])
             fixture = Fixture(self.folder/'shop.sqlite3', provider)
@@ -327,10 +346,10 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
                     evidence(output, 'engine-results.json', fixture.engine_results)
                     evidence(output, 'response.json', {'status': response.status_code, 'body': response.json()})
                     self.assertEqual(response.status_code, 200, response.text)
-                    self.assertEqual(len(provider.calls), 1)
+                    self.assertEqual(kinds(provider), ['front'] * len(read) + ['narration'])
                     result = fixture.engine_results[-1]
                     self.assertEqual(result['action_result']['status'], 'created')
-                    resolved_world = during[0]['engine_save']['world_state']
+                    resolved_world = during[len(read)]['engine_save']['world_state']  # what the narrator was handed
                     final_world = after['engine_save']['world_state']
                     self.assertEqual(len(resolved_world['shops']), 1)
                     self.assertEqual(final_world['shops'], resolved_world['shops'])

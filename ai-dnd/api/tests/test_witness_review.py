@@ -5,8 +5,10 @@ import unittest
 import uuid
 
 import economic_actions as ea
+import front_proposal
 import witness_recall
 from api.tests import test_campaign_api as fixtures
+from api.tests.journeys.runner import call_kind
 from api.tests.test_economic_action_http import EconomicHttpFixture
 from api.tests.test_lasting_consequences import WitnessRecallClient
 
@@ -15,13 +17,20 @@ FAMILY = "Babamın ne iş yaptığını hatırlıyor musun?"
 DEED = "Quenna Atölyesi içinde ateş yaktı"
 
 
+def say_calls():
+    """What one Say line spends, by kind: its one speech call, after the front reading when the flag is on."""
+    return ["front", "speech"] if front_proposal.enabled() else ["speech"]
+
+
 class ReviewClient(WitnessRecallClient):
     def __init__(self, question, *, answer="none", part="unclear"):
         super().__init__(question)
         self.answer, self.part = answer, part
         self.spoken = "Paranı istemem." if answer == "declines" else "Baban değirmenciydi."
+        self.kinds = []
 
     def chat(self, *args, **kwargs):
+        self.kinds.append(call_kind(kwargs.get("format")))
         result = super().chat(*args, **kwargs)
         if "spoken_text" in (kwargs.get("format") or {}).get("properties", {}):
             packet = json.loads(result["message"]["content"])
@@ -52,7 +61,7 @@ class WitnessReviewSetup(EconomicHttpFixture):
         response = await fixtures.CampaignApiTests.post_scene_turn(self, self.turn_url, client, body)
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(len(client.offered), 1, "the malicious/valid selector really received a live source")
-        self.assertEqual(client.calls, 1, "one speech request per turn")
+        self.assertEqual(client.kinds, say_calls(), "one speech request per turn")
         return response.json(), body
 
     async def decline_then_confirm(self, proposal, part, *, question=RECALL, expected_status=None):
