@@ -4,8 +4,10 @@ import unittest
 from unittest.mock import patch
 
 import combat_lifecycle
+import front_proposal
 import game
 import quest_catalog
+from api.tests.test_ai_freedom_resolution_boundary import _reading_only as reading_only
 from local_dialogue import (
     explicit_player_name_disclosure,
     quest_availability_question,
@@ -218,7 +220,8 @@ class LocalTavernEntryTests(unittest.TestCase):
         template = copy.deepcopy(session.world_state["locations"]["tavern"])
         forest = copy.deepcopy(session.world_state["locations"]["forest"])
         castle = copy.deepcopy(session.world_state["locations"]["castle"])
-        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             entered = session.run_player_turn("tavernaya gidiyorum")
             after_entry = session.world_state["location"]
             again = session.run_player_turn("tavernaya gidiyorum")
@@ -263,7 +266,9 @@ class LocalTavernEntryTests(unittest.TestCase):
         self.assertEqual(session.world_state["locations"]["tavern"], template)
         self.assertEqual(session.world_state["locations"]["forest"], forest)
         self.assertEqual(session.world_state["locations"]["castle"], castle)
-        self.assertEqual(entered["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * 4 * reading, 4 * reading))
+        self.assertEqual(entered["_engine_event_evidence"]["telemetry"]["total_model_calls"], reading)
 
     def test_unbound_forest_template_is_not_a_local_destination(self):
         session = city_session()
@@ -324,13 +329,16 @@ class QuestAvailabilityTests(unittest.TestCase):
     def test_empty_catalog_answers_without_a_model_or_a_quest(self):
         session = city_session()
         before = copy.deepcopy(session.world_state["quests"])
-        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             result = session.run_player_turn(QUEST_QUESTION)
         self.assertEqual(result["action_result"]["status"], "answered_from_campaign_state")
         self.assertIn("etkin bir görev yok", result["narration"].casefold())
         self.assertNotIn("duydum", result["narration"].casefold())
         self.assertEqual(session.world_state["quests"], before)
-        self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
+        self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], reading)
         self.assertTrue(session._unsupported_available_quest_claim(
             "Meyhanede bazı görevlerin olduğunu duydum, ama onlarla ilgili detaylar yok."
         ))

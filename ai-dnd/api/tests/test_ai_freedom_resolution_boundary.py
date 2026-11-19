@@ -207,10 +207,8 @@ class ClaimAndBudgetBoundaryTests(unittest.TestCase):
         action = result["action_result"]
         self.assertEqual(kinds, expected)
         self.assertEqual(model.call_count, len(expected))
-        # KNOWN WRONG with the flag on: one call ran, telemetry tells 0. Debt D-400 (FB2 park P1): a reading no
-        # later step reused is not counted. This pins the current value so the P1 fix turns it red; P1 then
-        # asserts total_model_calls == len(expected). Task G may not call the flag-on gate truthful while D-400 is open.
-        self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        # Telemetry tells every call that ran, the reading too, though no later step reused it (FB2 P1).
+        self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], len(expected))
         self.assertEqual(action.get("status"), "unverified")
         self.assertFalse(action.get("success"))
         self.assertEqual(action.get("state_changes"), [])
@@ -312,6 +310,18 @@ class HeldReadingIsToldOnceTests(unittest.TestCase):
             result = self.session.run_player_turn(
                 "Omzunda halat taşıyan kişiye selam veriyorum. Sana söz veriyorum.", interaction_mode="do")
         self.assertEqual(result["action_result"].get("status"), "recorded", result["action_result"])
+        self.assertEqual(kinds, ["front"])
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual((telemetry["intent_model_calls"], telemetry["narration_model_calls"],
+                          telemetry["total_model_calls"]), (1, 0, 1), telemetry)
+
+    def test_a_reading_no_step_reuses_is_still_told(self):
+        # P1: Python answers the claim, so no step reuses the reading. It still ran, so it is told once.
+        self.session.world_state["npcs"].append(dict(self.person, id="npc_tamsin_told", name="Tamsin",
+                                                     location="forest", memory=[], knowledge=[]))
+        kinds = []
+        with patch("game.ollama.chat", side_effect=_reading_only(kinds)):
+            result = self.session.run_player_turn("Tamsin bana gümüş pusuladan bahsetmişti.")
         self.assertEqual(kinds, ["front"])
         telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertEqual((telemetry["intent_model_calls"], telemetry["narration_model_calls"],

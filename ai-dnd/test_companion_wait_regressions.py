@@ -4,11 +4,13 @@ import unittest
 from unittest.mock import patch
 
 import campaign_time
+import front_proposal
 import game
 import grounded_action as grounded
 import interaction_adventure
 import timed_gameplay
 import test_open_shop_search as open_shop_fixture
+from api.tests.test_ai_freedom_resolution_boundary import _reading_only as reading_only
 
 
 class CompanionWaitTests(unittest.TestCase):
@@ -86,11 +88,15 @@ class CompanionWaitTests(unittest.TestCase):
     def test_full_turn_unknown_opening_wait_is_truthful_and_zero_call(self):
         self.inn_scene(); campaign_time.initialize(self.world)
         before = copy.deepcopy((self.world['campaign_time'], self.world['doors']))
-        result = self.session.run_player_turn('han açılana kadar bekle')
+        kinds = []
+        with patch('game.ollama.chat', side_effect=reading_only(kinds)) as model:
+            result = self.session.run_player_turn('han açılana kadar bekle')
         self.assertEqual(result['action_result']['status'], 'clarification')
         self.assertIn('açılacağı', result['narration'])
         self.assertEqual((self.world['campaign_time'], self.world['doors']), before)
-        self.assertEqual(result.get('model_calls', result.get('_engine_event_evidence', {}).get('telemetry', {}).get('total_model_calls')), 0)
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (['front'] * reading, reading))
+        self.assertEqual(result.get('model_calls', result.get('_engine_event_evidence', {}).get('telemetry', {}).get('total_model_calls')), reading)
 
     def test_explicit_duration_still_advances_without_opening_door(self):
         self.inn_scene(); campaign_time.initialize(self.world)

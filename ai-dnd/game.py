@@ -19308,8 +19308,8 @@ def _run_player_turn_internal(
     scene_preparse_model_calls = 0
     preparsed_scene_intent = None
     # G10: with the front reading on, a reply held before this point was the turn's classifier call (when a provider
-    # was asked for it). A step below that reuses the held reply spends no call, so telemetry never tells more intent
-    # calls than that reading and the dialogue reply asked below (never answered by a held reply).
+    # was asked for it). A step below that reuses the held reply spends no call, so telemetry tells exactly that
+    # reading, once, whether or not a step reused it, plus the dialogue reply asked below (never answered by a held reply).
     held_reading = getattr(_session(), "_front_reply", None) is not None
     reading_calls = int(held_reading and getattr(_session(), "_front_reply_called", False))
     speech_intent_calls = 0
@@ -19317,7 +19317,7 @@ def _run_player_turn_internal(
     def told_intent_calls():
         if not held_reading:
             return intent_model_calls
-        return min(intent_model_calls, reading_calls + speech_intent_calls)
+        return reading_calls + speech_intent_calls
     world_state = _session().world_state
     entry_death_state = ensure_death_state()
     entry_combat = ensure_combat_state()
