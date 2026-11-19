@@ -15,6 +15,7 @@ from unittest.mock import patch
 import uuid
 
 import httpx
+import ollama
 
 import front_proposal
 import game
@@ -429,6 +430,7 @@ class TheReadingsOutageRule(unittest.IsolatedAsyncioTestCase):
         ("read_timeout", httpx.ReadTimeout("timed out mid-reading")),
         ("dropped", httpx.RemoteProtocolError("peer closed connection without sending complete message body")),
         ("connection", ConnectionError("gone")),
+        ("server_error", ollama.ResponseError("model runner has unexpectedly stopped", 500)),
     )
 
     async def begin(self):
@@ -487,15 +489,19 @@ class TheReadingsOutageRule(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_reading_that_raised_without_losing_the_provider_is_no_outage(self):
         # Ruling (FA1): only a reply that never came back (no connection, a timeout, a connection dropped mid-reply)
-        # is an outage; any other error out of the call stays a failed reading and the old chain answers.
-        await self.begin()
-        history = self.saved()[0]
-        self.client.fails = RuntimeError("not a lost provider")
-        out = await self.line(self.LINE)
-        self.assertTrue(out["narration"].strip())
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
-        self.assertEqual(self.client.kinds, ["front", "narration"])
-        self.assertEqual(self.saved()[0], history + 1)
+        # is an outage, and so is a provider 5xx (fix round 1); any other error out of the call, a 4xx included,
+        # stays a failed reading and the old chain answers.
+        for name, error in (("runtime", RuntimeError("not a lost provider")),
+                            ("client_error", ollama.ResponseError("bad request", 400))):
+            with self.subTest(error=name):
+                await self.begin()
+                history = self.saved()[0]
+                self.client.fails = error
+                out = await self.line(self.LINE)
+                self.assertTrue(out["narration"].strip())
+                self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
+                self.assertEqual(self.client.kinds, ["front", "narration"])
+                self.assertEqual(self.saved()[0], history + 1)
 
     async def test_retrying_a_coin_line_after_an_outage_reads_once_and_pays_once(self):
         await self.begin()

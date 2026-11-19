@@ -342,6 +342,14 @@ def model_calls_left() -> int | None:
     return None if calls is None else max(0, MAX_MODEL_CALLS_PER_TURN - len(calls))
 
 
+def _provider_outage(error: Exception) -> bool:
+    """No reading came back: no connection, a timeout, a dropped reply, or the provider's own 5xx (runner crashed,
+    out of memory, busy). A 4xx or any other exception is a failed reading, not an outage."""
+    if isinstance(error, (OSError, httpx.TransportError)):
+        return True
+    return isinstance(error, ollama.ResponseError) and getattr(error, "status_code", 0) >= 500
+
+
 class AuthenticatedOllamaAdapter:
     """Binds one authenticated Ollama client without changing game.py."""
 
@@ -611,9 +619,9 @@ class AuthenticatedOllamaAdapter:
             note_usage(self.model_name, failed=True)
             model_phase.note_cause("local", type(error).__name__)
             failures = _MODEL_FAILURES.get()
-            if in_front_call() and isinstance(error, (OSError, httpx.TransportError)):
+            if in_front_call() and _provider_outage(error):
                 # Owner rule G6 ("Tekrar dene", 2026-11-19): the reading never came back (no connection, a timeout,
-                # a connection dropped mid-reply), so the turn answers 503, rolls back and spends no line.
+                # a dropped reply, a provider 5xx), so the turn answers 503, rolls back and spends no line.
                 _logger.warning("Front reading lost to a provider outage; turn refused (error_type=%s)",
                                 type(error).__name__)
                 if failures is not None:
