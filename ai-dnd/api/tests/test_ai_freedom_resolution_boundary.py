@@ -14,10 +14,12 @@ All scenes are controlled fiction; the model is a local mock.
 
 import copy
 import json
+import os
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
+import front_proposal
 import game
 import npc_statements
 from api.ollama_adapter import AuthenticatedOllamaAdapter
@@ -35,6 +37,18 @@ def _intent_packet(**overrides):
     }
     packet.update(overrides)
     return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+
+def _reading_only(kinds):
+    """A model that answers only the front reading (unclear, as for a line naming nobody listed); any other call fails."""
+    def chat(**kwargs):
+        if "front" not in kwargs["format"]["properties"]:
+            raise AssertionError("no model call besides the reading")
+        kinds.append("front")
+        body = json.loads(_intent_packet()["message"]["content"])
+        body["front"] = {"kind": "unclear"}
+        return {"message": {"content": json.dumps(body, ensure_ascii=False)}}
+    return chat
 
 
 class EngineResolutionBoundaryTests(unittest.TestCase):
@@ -185,10 +199,15 @@ class ClaimAndBudgetBoundaryTests(unittest.TestCase):
         tamsin = self._person(id="npc_tamsin_claim", name="Tamsin", role="kayıkçı",
                               location="forest")
         before = copy.deepcopy(self.session.world_state)
-        with patch("game.ollama.chat", side_effect=AssertionError("no model call")) as model:
+        # Python owns the answer. With the front reading on (owner, 2026-11-19), the line's one call is that reading.
+        kinds = []
+        expected = ["front"] if front_proposal.enabled() else []
+        with patch("game.ollama.chat", side_effect=_reading_only(kinds)) as model:
             result = self.session.run_player_turn("Tamsin bana gümüş pusuladan bahsetmişti.")
         action = result["action_result"]
-        self.assertEqual(model.call_count, 0)
+        self.assertEqual(kinds, expected)
+        self.assertEqual(model.call_count, len(expected))
+        # Telemetry does not yet tell a reading no later step reused (FB2 park: the reading's call is not counted).
         self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
         self.assertEqual(action.get("status"), "unverified")
         self.assertFalse(action.get("success"))
@@ -261,6 +280,42 @@ class ClaimAndBudgetBoundaryTests(unittest.TestCase):
         self.assertEqual(telemetry["total_model_calls"], model.call_count, telemetry)
 
 
+class HeldReadingIsToldOnceTests(unittest.TestCase):
+    """G10, flag on: the turn's front reading is its one classifier call. A step that reuses the held reading spends
+    no call, so the turn's telemetry tells that call once, never again per reuse."""
+
+    def setUp(self):
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}))
+        EngineResolutionBoundaryTests.setUp(self)
+
+    def test_a_reading_two_steps_reuse_is_one_intent_call(self):
+        other = dict(self.person, id="npc_kord_told_once", name="Kord", role="hamal",
+                     appearance="Omzunda halat taşıyan iri biri")
+        self.session.world_state["npcs"].append(other)
+        kinds = []
+
+        def fake_chat(**kwargs):
+            properties = kwargs["format"]["properties"]
+            kinds.append("front" if "front" in properties else "other")
+            body = json.loads(_intent_packet(
+                intent="dialogue", action="dialogue",
+                target={"type": "npc", "reference": "halatlı kişi",
+                        "npc_id": other["id"], "evidence_quote": "halat taşıyan kişiye"},
+            )["message"]["content"])
+            if "interaction" in properties:
+                body["interaction"] = {"operation": "promise", "quote": "Sana söz veriyorum.", "privacy": "addressed"}
+            return {"message": {"content": json.dumps(body, ensure_ascii=False)}}
+
+        with patch("game.ollama.chat", side_effect=fake_chat):
+            result = self.session.run_player_turn(
+                "Omzunda halat taşıyan kişiye selam veriyorum. Sana söz veriyorum.", interaction_mode="do")
+        self.assertEqual(result["action_result"].get("status"), "recorded", result["action_result"])
+        self.assertEqual(kinds, ["front"])
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual((telemetry["intent_model_calls"], telemetry["narration_model_calls"],
+                          telemetry["total_model_calls"]), (1, 0, 1), telemetry)
+
+
 def _scene_person(city_id):
     return {
         "id": "npc_ilvara_http_boundary", "name": "Ilvara", "role": "kâtip",
@@ -310,7 +365,11 @@ class HttpResolutionBoundaryTests(unittest.IsolatedAsyncioTestCase):
         })
         self.assertEqual(response.status_code, 200, response.text[:300])
         # The owner rejected the stock 'cannot verify' line: the one spoken to answers, once, and states no fact.
-        self.assertEqual(len(client.message_batches), batches_before + 1)
+        # With the front reading on, the line is read first (the turn's other call), and only that.
+        prompts = {"You are a small D&D intent parser": "reading", "You voice the selected D&D NPC": "speech"}
+        kinds = [next((kind for prefix, kind in prompts.items() if batch[0]["content"].startswith(prefix)), "other")
+                 for batch in client.message_batches[batches_before:]]
+        self.assertEqual(kinds, (["reading"] if front_proposal.enabled() else []) + ["speech"])
         self.assertNotIn("ejderha", response.json()["narration"].casefold())
 
 
