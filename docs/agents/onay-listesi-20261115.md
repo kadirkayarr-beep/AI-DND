@@ -257,7 +257,7 @@ Düzeltme turu 1 (inceleme bulguları): (1) `was_voiced` artık yalnız bir işi
 | `test_engine_parts_pilot.WrapperFilter.test_the_wrapper_filter_reads_an_explicit_part_list` | beklenen `_PART_MODULES` değerine `"game_parts.text_rules_b"` eklendi | eşit sıkılık (tam değer eşitliği korunuyor) |
 | `test_engine_parts_pilot.PilotRollD20.test_both_import_orders_work_in_a_fresh_interpreter` | Taze yorumlayıcıda iki içe aktarma sırasında da artık üçüncü bir satır basılıp beklenir: `_split_sentences_keep_speech.__module__ == "game_parts.text_rules_b"` (önceki iki satır ve dönüş kodu 0 iddiası aynı). Yuvada atlanır (alt süreç); ilk gerçek koşusu PR 5 CI. Görev 16 Adım 6 aynı üç değeri `start_local.ps1` yorumlayıcısıyla iki sırada da elle bastı | eşit sıkılık (iddia eklendi) |
 
-## 19. Sabit kasaba işi (dal `task/tohum-a`, onay bekliyor)
+## 19. Sabit kasaba işi (dal `task/tohum-a`, onaylandı: Kadir 2026-11-19, "Gerekenleri yap önerilerinle", öneriyle)
 
 Tohumlama: tek kasaba yerine sabit kasaba. "gevşetme olabilir" = test artık her koşuda rastgele bir kasaba yerine hep aynı kasabada koşuyor; kanıt olarak 40 kasaba sondaları tutuldu (geçici testler, commit edilmedi). Borç satırları: D-373, D-374, D-375, D-377 kapandı; yeni satırlar D-381..D-392.
 
