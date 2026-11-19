@@ -22,15 +22,27 @@ def say_calls():
     return ["front", "speech"] if front_proposal.enabled() else ["speech"]
 
 
+def speak_to_reading(person="barman"):
+    """Flag on, a Say line is read first as local play's model reads it: words said to the person spoken to."""
+    front = {"kind": "speak_to", "person_id": person, "place_id": "none", "offer_id": "none",
+             "thing_id": "none", "answer": "none", "inside": False, "timing": "now"}
+    return {"message": {"content": json.dumps({"intent": "dialogue", "action": "dialogue", "target": {
+        "type": "none", "reference": ""}, "completion": "unclear", "confidence": 0.9, "front": front})}}
+
+
 class ReviewClient(WitnessRecallClient):
-    def __init__(self, question, *, answer="none", part="unclear"):
+    def __init__(self, question, *, answer="none", part="unclear", read=True):
         super().__init__(question)
-        self.answer, self.part = answer, part
+        self.answer, self.part, self.read = answer, part, read
         self.spoken = "Paranı istemem." if answer == "declines" else "Baban değirmenciydi."
         self.kinds = []
 
     def chat(self, *args, **kwargs):
         self.kinds.append(call_kind(kwargs.get("format")))
+        if self.read and "front" in (kwargs.get("format") or {}).get("properties", {}):
+            self.calls += 1
+            return speak_to_reading()
+        # read=False: the reply has no front (route fallback:no_front), the failed-reading path.
         result = super().chat(*args, **kwargs)
         if "spoken_text" in (kwargs.get("format") or {}).get("properties", {}):
             packet = json.loads(result["message"]["content"])
@@ -54,22 +66,24 @@ class WitnessReviewSetup(EconomicHttpFixture):
         return copy.deepcopy({"currency": self.world["currency"], "inventory": self.world.get("inventory"),
                               "ledger": flags.get("economic_ledger"), "room": flags.get("inn_room")})
 
-    async def recall(self, question, *, answer="none", part="unclear", action=None):
-        client = ReviewClient(question, answer=answer, part=part)
+    async def recall(self, question, *, answer="none", part="unclear", action=None, read=True):
+        client = ReviewClient(question, answer=answer, part=part, read=read)
         body = {"message": question, "action_id": action or str(uuid.uuid4()),
                 "interaction_mode": "say", "target_id": "barman"}
         response = await fixtures.CampaignApiTests.post_scene_turn(self, self.turn_url, client, body)
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(len(client.offered), 1, "the malicious/valid selector really received a live source")
         self.assertEqual(client.kinds, say_calls(), "one speech request per turn")
+        if front_proposal.enabled():  # local play's path is a used reading; read=False is the failed-reading path
+            self.assertEqual(self.record.game_session._front_route, "typed:no_economic" if read else "fallback:no_front")
         return response.json(), body
 
-    async def decline_then_confirm(self, proposal, part, *, question=RECALL, expected_status=None):
+    async def decline_then_confirm(self, proposal, part, *, question=RECALL, expected_status=None, read=True):
         # Assault is a witnessed engine deed without the separate grave-deed vendor refusal.
         await self.ready_witness(kind="assault", text="Birinin üzerine yürüdü")
         card = await self.card(**proposal)
         before = self.financial_state()
-        reply, _ = await self.recall(question, answer="declines", part=part)
+        reply, _ = await self.recall(question, answer="declines", part=part, read=read)
         if expected_status is not None:
             self.assertEqual(reply["turn_outcome"]["status"], expected_status)
         after_reply = self.financial_state()
@@ -92,6 +106,11 @@ class WitnessReviewHttp(WitnessReviewSetup):
 
     async def test_witness_gift_no_cancels_the_old_card_and_prevents_actual_debit(self):
         await self.decline_then_confirm({"purpose": "gift", "recipient_id": "barman", "amount_cp": 5}, "gift")
+
+    async def test_witness_gift_no_after_a_failed_reading_still_cancels_the_card_and_prevents_debit(self):
+        # Flag on, the reading has no front (fallback:no_front, owner rule G11); flag off it is the test above.
+        await self.decline_then_confirm({"purpose": "gift", "recipient_id": "barman", "amount_cp": 5}, "gift",
+            read=False)
 
     async def test_an_explicit_witness_source_answer_keeps_the_same_coin_decline_veto(self):
         await self.decline_then_confirm({"purpose": "gift", "recipient_id": "barman", "amount_cp": 5}, "gift",
