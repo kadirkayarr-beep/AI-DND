@@ -134,6 +134,7 @@ class CompanionWaitTests(unittest.TestCase):
             self.assertEqual(self.world['campaign_time'], before)
 
 from api.tests import test_dialogue_runtime as dialogue_fixture
+from api.tests.test_experimental_npc_dialogue import with_reading
 
 
 class FreeDialogueWaitApiTests(unittest.IsolatedAsyncioTestCase):
@@ -150,23 +151,24 @@ class FreeDialogueWaitApiTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(text=text):
                 before = self.world['campaign_time']['elapsed_seconds']
                 expected = seconds if seconds is not None else campaign_time.until_morning(self.world)
-                action = str(uuid.uuid4())
+                action = str(uuid.uuid4()); seen = len(self.reply.batches)
                 first = await self.send(text, mode='do', action_id=action)
                 self.assertEqual(first.status_code, 200, first.text)
                 self.assertEqual(self.world['campaign_time']['elapsed_seconds'], before + expected)
-                self.assertEqual(self.reply.calls, 0)
+                self.assertEqual(dialogue_fixture.kinds(self.reply)[seen:], with_reading())  # flag on: the reading only
                 replay = await self.send(text, mode='do', action_id=action)
                 self.assertEqual(replay.json(), first.json())
                 self.assertEqual(self.world['campaign_time']['elapsed_seconds'], before + expected)
+                self.assertEqual(dialogue_fixture.kinds(self.reply)[seen:], with_reading())  # the replay asks nothing
 
     async def test_bare_wait_passes_a_short_while_instead_of_talking_to_npc(self):
         await self.setup_free(); campaign_time.initialize(self.world)
         for text in ('bekle', 'bekliyorum'):
-            before = self.world['campaign_time']['elapsed_seconds']
+            before = self.world['campaign_time']['elapsed_seconds']; seen = len(self.reply.batches)
             r = await self.send(text, mode='do')
             self.assertEqual(r.status_code, 200, r.text)
             self.assertGreater(self.world['campaign_time']['elapsed_seconds'], before)
-            self.assertEqual(self.reply.calls, 0)
+            self.assertEqual(dialogue_fixture.kinds(self.reply)[seen:], with_reading())  # flag on: the reading only
 
     async def test_a_wait_for_something_with_no_clock_says_so(self):
         await self.setup_free(); campaign_time.initialize(self.world)
@@ -175,17 +177,17 @@ class FreeDialogueWaitApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(r.status_code, 200, r.text)
         self.assertIn('dakika', r.json()['narration'])
         self.assertEqual(self.world['campaign_time'], before)
-        self.assertEqual(self.reply.calls, 0)
+        self.assertEqual(dialogue_fixture.kinds(self.reply), with_reading())  # flag on: the reading only
 
     async def test_report_and_unpunctuated_question_remain_npc_dialogue(self):
         await self.setup_free(); campaign_time.initialize(self.world)
         for text in ('Damaia dedi ki 2 saat bekle', 'Neden 2 saat bekle'):
             with self.subTest(text=text):
                 before = self.world['campaign_time']['elapsed_seconds']
-                calls = self.reply.calls
+                seen = len(self.reply.batches)
                 r = await self.send(text, mode='do')
                 self.assertEqual(r.status_code, 200, r.text)
-                self.assertEqual(self.reply.calls, calls + 1)
+                self.assertEqual(dialogue_fixture.kinds(self.reply)[seen:], with_reading('speech'))
                 self.assertEqual(self.world['campaign_time']['elapsed_seconds'], before + 60)
 
     async def test_say_wait_remains_speech_not_elapsed_wait(self):
@@ -193,7 +195,7 @@ class FreeDialogueWaitApiTests(unittest.IsolatedAsyncioTestCase):
         before = self.world['campaign_time']['elapsed_seconds']
         r = await self.send('2 saat bekle', mode='say')
         self.assertEqual(r.status_code, 200, r.text)
-        self.assertEqual(self.reply.calls, 1)
+        self.assertEqual(dialogue_fixture.kinds(self.reply), with_reading('speech'))
         self.assertEqual(self.world['campaign_time']['elapsed_seconds'], before + 60)
 
     async def test_wait_failed_save_rolls_back_and_retry_then_resume_retains_time(self):
@@ -216,7 +218,7 @@ class FreeDialogueWaitApiTests(unittest.IsolatedAsyncioTestCase):
         _, record, _, _, _ = restarted.resume_campaign(self.campaign_id)
         self.assertEqual(record.game_session.world_state['campaign_time'], self.world['campaign_time'])
         self.assertIsNotNone(restarted.get_turn_action(record, action))
-        self.assertEqual(self.reply.calls, 0)
+        self.assertEqual(dialogue_fixture.kinds(self.reply), with_reading() * 2)  # the failed try and the retry each read once
 
 
 if __name__ == '__main__':

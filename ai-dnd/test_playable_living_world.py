@@ -1875,9 +1875,10 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(result["status"], "observed")
         self.assertEqual(result["target_id"], ref["id"])
         self.assertEqual(result["direct_response"], description)
-        with patch("game.ollama.chat") as chat:
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)):  # any call besides the reading fails
             played = self.session.run_player_turn("Ziyaretçi ne yapıyor?")
-        chat.assert_not_called()
+        self.assertEqual(kinds, ["front"] * int(front_proposal.enabled()))  # flag on: the reading only
         self.assertEqual(played["narration"], description)
         self.assertEqual(
             played["_engine_event_evidence"]["telemetry"]["narration_model_calls"],

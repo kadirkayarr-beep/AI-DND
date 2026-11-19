@@ -131,7 +131,9 @@ class NeverwinterShopHttpTests(unittest.IsolatedAsyncioTestCase):
                                 self.assertEqual(body["state"]["shops"], [])
                                 self.assertEqual(body["state"]["npcs"], [])
                                 self.assertEqual(results[-1]["action_result"]["status"], status)
-                                self.assertEqual(results[-1]["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+                                # Flag on the line's one model call is the front reading, and telemetry tells it (D-400).
+                                self.assertEqual(results[-1]["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+                                                 int(front_proposal.enabled()))
                                 if status == "answered_from_campaign_state":
                                     self.assertTrue(_narration_reports_no_shop(body["narration"]))
                                 else:
