@@ -991,6 +991,12 @@
   "session_bound": true,
   "signature": "(action_result)"
  },
+ "_coin_without_a_reading": {
+  "kind": "function",
+  "module": "game",
+  "session_bound": true,
+  "signature": "(player_input, target_id, listed)"
+ },
  "_combat_defaults": {
   "kind": "function",
   "module": "game",
