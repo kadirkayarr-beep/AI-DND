@@ -14,9 +14,22 @@ import unittest
 from unittest.mock import patch
 
 import combat_lifecycle
+import front_proposal
 import game
 import monster_combat
 from combat_lifecycle import CombatRequestError
+
+
+def _front_reading_only(readings, message):
+    """With AI_DND_FRONT_PROPOSAL on, every read line spends the front reading first (owner rule G1: exactly that one
+    call). It answers unclear and without `front`, so the old chain still owns the line; any other call fails."""
+    def parse(player_input, *args, **kwargs):
+        if kwargs.get("front_list") is None:
+            raise AssertionError(message)
+        readings.append(player_input)
+        return {"intent": "narrative", "action": "", "target": {"type": "none", "reference": ""},
+                "completion": "unclear", "confidence": 1.0}
+    return parse
 
 
 class CombatV2Turns(unittest.TestCase):
@@ -104,12 +117,15 @@ class CombatV2Turns(unittest.TestCase):
 
     def test_explicit_named_attack_bypasses_model_intent(self):
         self.npc["name"] = "Orin"
+        readings = []
         with (
-            patch.object(game, "parse_player_intent", side_effect=AssertionError("Attack must bypass model intent")),
+            patch.object(game, "parse_player_intent",
+                         side_effect=_front_reading_only(readings, "Attack must bypass model intent")),
             patch.object(game, "ask_dungeon_master", side_effect=AssertionError("Attack must not use narrator model")),
             self.rolls((20, 15), (20, 5), (20, 1), (20, 1)),
         ):
             result = self.session.run_player_turn("orine saldırıyorum", [])["action_result"]
+        self.assertEqual(readings, ["orine saldırıyorum"] * int(front_proposal.enabled()))  # the reading only
         self.assertEqual(result["action"], "attack")
         self.assertTrue(result["combat_started"])
         self.assertEqual(result["target_id"], self.npc["id"])
@@ -357,7 +373,9 @@ class CombatV2Turns(unittest.TestCase):
         self.assertFalse(self.world["combat"]["active"])
         self.assertEqual(self.session.rng.getstate(), rng_before)
         self.assert_only_variety_memory_changed(before)
-        game.parse_player_intent.assert_not_called()
+        reading = int(front_proposal.enabled())  # flag on: the line is read once (it carries the front list)
+        self.assertEqual(["front_list" in call.kwargs for call in game.parse_player_intent.call_args_list],
+                         [True] * reading)
 
     def test_an_opening_strike_on_a_person_with_no_recorded_distance_lands_within_a_step(self):
         # The owner approved this rule: a person in the scene is within 5 ft, and the strike is real, not a 400.
