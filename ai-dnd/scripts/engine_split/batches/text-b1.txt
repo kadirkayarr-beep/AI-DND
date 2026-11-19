@@ -13,7 +13,6 @@ _NARRATED_NAME_PATTERNS
 _unseen_registered_names
 _SPEAKING_NAME_PATTERNS
 _unseen_speakers
-_empty_lore_authority_context
 _lore_claims_are_supported
 _lore_guard_text
 _lore_fact_records

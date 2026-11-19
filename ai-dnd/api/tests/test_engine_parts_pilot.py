@@ -1,5 +1,10 @@
 """The bound-session wrapper filter reads an explicit list of part modules (game.py split, T2.1)."""
 import ast
+import dataclasses
+import hashlib
+import json
+import os
+import re
 import subprocess
 import sys
 import unittest
@@ -8,16 +13,62 @@ from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "scripts"))
 
 import game  # noqa: E402
-from api.tests.engine_sources import engine_source_files  # noqa: E402
+from api.auth import FixedAuthenticator  # noqa: E402
+from api.main import create_app  # noqa: E402
+from api.session_manager import SessionManager  # noqa: E402
+from api.tests.auth_fixture import TEST_PLAYER  # noqa: E402
+from api.tests.engine_sources import batch_names, engine_source_files  # noqa: E402
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound  # noqa: E402
 from api.tests.town_seed import fixed_town  # noqa: E402
+from engine_split import routing_audit  # noqa: E402
+
+TABLES = tuple(batch_names("tables"))
+SCHEMAS = tuple(batch_names("schemas"))
+TEXT_A1 = tuple(batch_names("text-a1"))
+TEXT_A2 = tuple(batch_names("text-a2"))
+TEXT_B1 = tuple(batch_names("text-b1"))
+TEXT_B2 = tuple(batch_names("text-b2"))
+
+
+def _canonical(value):
+    """A form of a table value that is the same in every process (repr of a set of str is not: hash seed order).
+
+    set/frozenset -> sorted list, dict -> same order (str keys only), tuple/list -> list, compiled regex ->
+    [pattern, flags without the UNICODE bit re adds to every str pattern], frozen dataclass instance (EffectSpec)
+    -> [class name, [[field, value] ...] in declaration order]; any other type raises TypeError naming it.
+    """
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (set, frozenset)):
+        return sorted(_canonical(item) for item in value)
+    if isinstance(value, dict):
+        if not all(isinstance(key, str) for key in value):
+            raise TypeError(f"_canonical: dict key of type {sorted({type(k).__name__ for k in value})}")
+        return {key: _canonical(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_canonical(item) for item in value]
+    if isinstance(value, re.Pattern):
+        return [value.pattern, value.flags & ~re.UNICODE.value]
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return [type(value).__qualname__,
+                [[field.name, _canonical(getattr(value, field.name))] for field in dataclasses.fields(value)]]
+    raise TypeError(f"_canonical: no digest form for type {type(value).__name__}")
+
+
+def value_digest(names) -> str:
+    """sha256 of the canonical values of game.<name> for names, in name order (Tasks 9-14 pin one per batch)."""
+    pairs = [[name, _canonical(getattr(game, name))] for name in sorted(names)]
+    return hashlib.sha256(json.dumps(pairs, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.text_rules_a"))  # Task 18 (pilot a), Task 19 (pilot b)
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.text_rules_a",
+                                              "game_parts.text_rules_b"))  # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -57,11 +108,13 @@ class PilotRollD20(unittest.TestCase):
 
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
-        show = "print(game.roll_d20.__module__); print(game._inside_speech.__module__)"
+        show = ("print(game.roll_d20.__module__); print(game._inside_speech.__module__); "
+                "print(game._split_sentences_keep_speech.__module__)")
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
             self.assertEqual((done.returncode, done.stdout.split()),
-                             (0, ["game_parts.character_rules", "game_parts.text_rules_a"]), done.stderr)
+                             (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b"]),
+                             done.stderr)
 
 
 class PilotSpeechSpan(unittest.TestCase):
@@ -85,11 +138,248 @@ class PilotSpeechSpan(unittest.TestCase):
         self.assertEqual(game._inside_speech.__module__, "game_parts.text_rules_a")
 
     def test_the_reader_left_in_game_py_still_works(self):
-        # _split_sentences_keep_speech stays in game.py and reads _SPEECH_SPAN_RE; expected value captured on 5da99a42
-        self.assertEqual(game._split_sentences_keep_speech.__module__, "game")
+        # _split_sentences_keep_speech reads _SPEECH_SPAN_RE through game (it moved to text_rules_b in Plan 2 Task 13;
+        # the id is kept so TM2 does not count it LOST); expected value captured on 5da99a42
         text = "Kapı açıldı. “Dur! Kim var? Çık dışarı.” dedi muhafız. Sonra sustu."
         self.assertEqual(game._split_sentences_keep_speech(text),
                          ["Kapı açıldı.", "“Dur! Kim var? Çık dışarı.” dedi muhafız.", "Sonra sustu."])
+
+    def test_the_speech_reader_lives_in_text_rules_b(self):
+        self.assertEqual(game._split_sentences_keep_speech.__module__, "game_parts.text_rules_b")
+
+
+class TablesPart(unittest.TestCase):
+    """T3.1: the twenty data tables live in game_parts/tables.py; game.py re-exports them unchanged."""
+
+    def test_the_digest_form_sorts_sets(self):
+        self.assertEqual(_canonical({"b", "a", "c"}), ["a", "b", "c"])
+        self.assertEqual(_canonical(frozenset({"y", "x"})), ["x", "y"])
+        self.assertEqual(_canonical(re.compile("a", re.I)), ["a", re.I.value])
+        self.assertEqual(_canonical(game.INNER_RADIANCE_SPEC),
+                         ["EffectSpec", [["effect_id", "inner_radiance"], ["range_ft", 10],
+                                         ["source_ref", "PHB 2024 p.185 (PDF) Aasimar: Inner Radiance"],
+                                         ["excludes_allies", False]]])
+        with self.assertRaisesRegex(TypeError, "object"):
+            _canonical(object())
+
+    def test_the_tables_live_in_the_part(self):
+        self.assertEqual(set(TABLES) - set(routing_audit.re_exports(ROOT).get("tables", [])), set())
+
+    def test_the_table_values_did_not_change(self):
+        # captured on 714b3b0f before the move (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave this same hex)
+        self.assertEqual(value_digest(TABLES), "3fe2c4fd649ce85ff068164b70be9699701d63c784534753646e94a190f709eb")
+
+    def test_a_patched_class_table_reaches_the_api_reader(self):
+        # GET /api/character-options (api/main.py character_creation_options) reads game.CLASSES at call time
+        app = create_app(session_manager=SessionManager(), ollama_adapter=None,
+                         authenticator=FixedAuthenticator(TEST_PLAYER))
+        reader = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/api/character-options")
+        with patch("game.CLASSES", ["Wizard"]):
+            self.assertEqual(reader()["classes"], ["Wizard"])
+
+
+class SchemasPart(unittest.TestCase):
+    """T3.2: the schema and prompt constants live in game_parts/schemas.py; game.py re-exports them unchanged."""
+
+    def test_the_schemas_live_in_the_part(self):
+        self.assertEqual(set(SCHEMAS) - set(routing_audit.re_exports(ROOT).get("schemas", [])), set())
+
+    def test_the_schema_values_did_not_change(self):
+        # captured on 7240d31c before the move, batch without the held _EXPERIMENTAL_NPC_SPEECH_SCHEMA and
+        # _EXPERIMENTAL_NPC_SPEECH_OPTIONS (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave this same hex)
+        self.assertEqual(value_digest(SCHEMAS), "bcd588f6fa318cc64ed3b88ab1dc7786e8bb5b364ca37bdbd7150288ceaea97f")
+
+    def test_the_system_prompt_is_one_object_for_module_and_sessions(self):
+        self.assertIs(game.messages[0]["content"], game.system_prompt)
+        with fixed_town(self, 20261121):
+            s = game.create_session(seed=7)
+            self.assertEqual(s.messages[0]["content"], game.system_prompt)  # GameSession.__init__ seeds self.messages
+
+
+class TextA1Part(unittest.TestCase):
+    """T3.3 batch text-a1: text helpers and regexes live in game_parts/text_rules_a.py; game.py re-exports them."""
+
+    def test_text_a1_lives_in_the_part(self):
+        self.assertEqual(set(TEXT_A1) - set(routing_audit.re_exports(ROOT)["text_rules_a"]), set())
+
+    def test_text_a1_helpers_answer_as_before(self):
+        # inputs from each helper's existing tests (test_ai_pipeline_port, test_lr00_p1_intent, test_dilim3d_small,
+        # test_narration_proposal_marker) or, for _drop_repeated_sentences, strings its split regex matches;
+        # expected values captured on 26f93dfd before the move (slot Python 3.13)
+        cases = (
+            (game.clean_dm_response,
+             ("<think>plan</think>```json\nKapı gıcırdayarak açılır.\nDC 12 zar sonucu 9\n1. Kaç\n- Saklan\n"
+              "Hangisini seçersin?\nİçerisi karanlık.```",),
+             "Kapı gıcırdayarak açılır.\nİçerisi karanlık."),
+            (game.clean_dm_response,
+             ("Odun dumanı hafifçe havaya karışır.\n\n\nAlçak konuşmalar uğultu oluşturur.\nNe yaparsın?",),
+             "Odun dumanı hafifçe havaya karışır.\nAlçak konuşmalar uğultu oluşturur."),
+            (game._affirmative_door_verb, ("kapiyi kirmaya calisiyorum", r"kapiyi\s+", ("kir",)), True),
+            (game._affirmative_door_verb, ("kapiyi kirmayacagim", r"kapiyi\s+", ("kir",)), False),
+            (game._reads_english, ("A chest on the bench",), True),
+            (game._reads_english, ("Tezgâhta the sandık",), False),
+            (game._strip_proposal_markers, ("[[n1]]Marek, [[l2]]arşiv, [[f12]]kapı [[s1]]dükkân [not] [[x1]]",),
+             "Marek, arşiv, kapı dükkân [not] [[x1]]"),
+            (game._strip_proposal_markers, (None,), None),
+            (game._drop_repeated_sentences,
+             ("Kapı açıldı. Rüzgâr esti. Bir köpek havladı.", ["Rüzgâr esti. Sessizlik."]),
+             "Kapı açıldı. Bir köpek havladı."),
+            (game._drop_repeated_sentences, ("Kapı açıldı. Rüzgâr esti.", ["Kapı açıldı. Rüzgâr esti."]),
+             "Kapı açıldı. Rüzgâr esti."),
+        )
+        for helper, args, expected in cases:
+            with self.subTest(helper=helper.__name__, args=args):
+                self.assertEqual(helper(*args), expected)
+
+    def test_a_moved_text_helper_still_takes_a_session(self):  # spec §6: session binding survives the move
+        # real claim: the moved helper is still wrapped as an engine function (it accepts session= and is marked
+        # _session_bound); a pure helper answers the same either way, so the binding proof stays with PilotRollD20
+        with fixed_town(self, 20261122):
+            s = game.create_session(seed=9)
+            self.assertEqual(game._strip_proposal_markers("a", session=s), game._strip_proposal_markers("a"))
+        self.assertTrue(game._strip_proposal_markers._session_bound)
+
+    def test_a_patch_on_a_moved_helper_reaches_its_caller_in_game_py(self):
+        # test_talk_front patches game._topic_place_name; its caller _run_player_turn_internal stays in game.py
+        # and reads the module global at call time (flag off: no front reading, the name line answers)
+        self.enterContext(patch.dict(os.environ))
+        os.environ.pop("AI_DND_FRONT_PROPOSAL", None)
+        with fixed_town(self, 20261123):
+            s = game.create_session(seed=9)
+            with patch.object(game, "_topic_place_name", return_value="X") as named:
+                result = game.run_player_turn("Peki oranın adı ne?", session=s)
+        named.assert_called_once()
+        self.assertEqual(result["narration"], "Adı X.")
+
+
+class TextA2Part(unittest.TestCase):
+    """T3.4 batch text-a2: more text helpers and regexes live in game_parts/text_rules_a.py; game.py re-exports them."""
+
+    def test_text_a2_lives_in_the_part(self):
+        self.assertEqual(set(TEXT_A2) - set(routing_audit.re_exports(ROOT)["text_rules_a"]), set())
+
+    def test_text_a2_helpers_answer_as_before(self):
+        # inputs carry Turkish letters, curly quotes, emoji and an unclosed JSON object;
+        # expected values captured on 19a181d8 before the move (slot Python 3.13)
+        cases = (
+            (game._fold_keep_punctuation, ("İstanbul’un KAPISI`nda Dükkâncı",), "istanbulun kapisinda dukkanci"),
+            (game._fold_keep_punctuation, ("Şükrü'nün ÇIRAĞI, hâlâ orada!",), "sukrunun ciragi, hala orada!"),
+            (game._extract_json_object,
+             ('<think>plan</think>```json\n{"say": "“Selam,” dedi {köşede}", "list": [1, {"a": "çiğ"}',),
+             {"say": "“Selam,” dedi {köşede}", "list": [1, {"a": "çiğ"}]}),
+            (game._extract_json_object, ('Önce söz: {"a": "x\\"y", "b": [2, 3]} sonra artık }',),
+             {"a": 'x"y', "b": [2, 3]}),
+            (game._strip_pictographs, ("Selam 👋🏽 dostum ❤️ nasılsın?",), "Selam  dostum  nasılsın?"),
+            (game._strip_pictographs, ("“Çarşı açık” ✨ dedi‍ ☕",), "“Çarşı açık”  dedi "),
+            (game._normalize_turkish_typos, ("Dükkâncı’ya GİT, şimdi!",), "dukkanci ya git simdi"),
+            (game._normalize_turkish_typos, ("  Kâtip'in   ÇIRAĞI?  “Işık” ",), "katip in ciragi isik"),
+            (game._without_real_world_faith, ("Aleyküm selam. İnşallah yarın gelirim.",),
+             "Selam. Tanrılar izin verirse yarın gelirim."),
+            (game._without_real_world_faith, ("“Maşallah,” dedi. Allah’a emanet ol, elhamdülillah!",),
+             "“Vay be,” dedi. Tymora yar olsun, tanrılara şükür!"),
+        )
+        for helper, args, expected in cases:
+            with self.subTest(helper=helper.__name__, args=args):
+                self.assertEqual(helper(*args), expected)
+
+
+class TextB1Part(unittest.TestCase):
+    """T3.5 batch text-b1: lore and narration text helpers live in game_parts/text_rules_b.py; game.py re-exports them."""
+
+    def test_text_b1_lives_in_the_part(self):
+        self.assertEqual(set(TEXT_B1) - set(routing_audit.re_exports(ROOT).get("text_rules_b", [])), set())
+
+    def test_text_b1_helpers_answer_as_before(self):
+        # inputs carry Turkish letters and curly quotes; expected values captured on 86bdd45a before the move
+        # (slot Python 3.13)
+        cases = (
+            (game._split_sentences_keep_speech,
+             ("Muhafız bağırdı: “Dur! Kim var orada? Çık dışarı.” Sonra İlkay güldü. Şükrü sustu…",),
+             ["Muhafız bağırdı: “Dur! Kim var orada? Çık dışarı.” Sonra İlkay güldü.", "Şükrü sustu…"]),
+            (game._split_sentences_keep_speech,
+             ("Kâtip: “Defter kapandı. Yarın gel!” dedi! Çarşı boşaldı?  Işıklar söndü.",),
+             ["Kâtip: “Defter kapandı. Yarın gel!” dedi!", "Çarşı boşaldı?", "Işıklar söndü."]),
+            (game._unseen_speakers,
+             ("Marek yaklaşır ve tezgâha eğilir. Şükrü: “Hoş geldin, yolcu.”",
+              {"marek": "Marek Özpil", "şükrü": "Şükrü"}),
+             [(0, 5), (34, 39)]),
+            (game._unseen_speakers,
+             ("Özpil, “Marek yaklaşır sanma.” der. Özpil Marek yaklaşır.", {"marek": "Özpil Marek"}), [(36, 47)]),
+            (game._lore_guard_text, ("Kral’ın Şövalyesi IŞIK Çarşısı'nda, 1492 DR’de “öldü”.",),
+             "kral sovalyesi isik carsisi 1492 dr oldu"),
+            (game._lore_guard_text, ("  Özgür Ağa'nın gölgesi, Çiğdem’s Inn!  ",), "ozgur aga golgesi cigdem inn"),
+            (game._is_generic_speaker_label, ("Yakındaki kişi",), True),
+            (game._is_generic_speaker_label, ("  bir yaşlı kadın ",), True),
+            (game._is_generic_speaker_label, ("Kapıdaki uzun boylu biri",), True),
+            (game._is_generic_speaker_label, ("Marek Özpil",), False),
+            (game._is_generic_speaker_label, ("Bir “muhafız”",), False),
+        )
+        for helper, args, expected in cases:
+            with self.subTest(helper=helper.__name__, args=args):
+                self.assertEqual(helper(*args), expected)
+        salvage = (
+            ({"interaction": {"operation": "none", "conversation": {"meaning": "other", "topic": "hava"}},
+              "narration": "Özpil: “Hoş geldin.”"},
+             True, {"interaction": {"operation": "none", "conversation": None}, "narration": "Özpil: “Hoş geldin.”"}),
+            ({"interaction": {"operation": None, "conversation": {"meaning": "identity"}},
+              "narration": "“Ben kimim?” diye sorar."},
+             False, {"interaction": {"operation": None, "conversation": {"meaning": "identity"}},
+                     "narration": "“Ben kimim?” diye sorar."}),
+            ({"interaction": {"operation": "trade", "conversation": None}, "narration": "“Şu kılıcı al.”"},
+             False, {"interaction": {"operation": "trade", "conversation": None}, "narration": "“Şu kılıcı al.”"}),
+            ({"interaction": {"operation": "none", "conversation": None}, "narration": "   "},
+             False, {"interaction": {"operation": "none", "conversation": None}, "narration": "   "}),
+            ("düz metin", False, "düz metin"),
+        )
+        for raw, expected, after in salvage:
+            with self.subTest(helper="_salvage_plain_speech", raw=after):
+                self.assertIs(game._salvage_plain_speech(raw), expected)
+                self.assertEqual(raw, after)
+
+
+class TextB2Part(unittest.TestCase):
+    """T3.6 batch text-b2: narration and combat-text helpers live in game_parts/text_rules_b.py; game.py re-exports them."""
+
+    def test_text_b2_lives_in_the_part(self):
+        self.assertEqual(set(TEXT_B2) - set(routing_audit.re_exports(ROOT)["text_rules_b"]), set())
+
+    def test_text_b2_helpers_answer_as_before(self):
+        # inputs carry Turkish letters and curly quotes; expected values captured on 1c1c820b before the move
+        # (slot Python 3.13)
+        cases = (
+            (game._trim_dangling_quote, ("…alırız.’ Fırın kokusu çarşıyı sarar.",), "Fırın kokusu çarşıyı sarar."),
+            (game._trim_dangling_quote, ("Kâtip: “Defter kapandı.” Işıklar söner.",),
+             "Kâtip: “Defter kapandı.” Işıklar söner."),
+            (game._trim_dangling_quote, ("Gidelim artık.”",), ""),
+            (game._trim_dangling_quote, ("Hiç tırnak yok, Şükrü güler.",), "Hiç tırnak yok, Şükrü güler."),
+            (game._turkish_genitive_form, ("Şükrü",), "Şükrü'nün"),
+            (game._turkish_genitive_form, ("İlkay",), "İlkay'ın"),
+            (game._turkish_genitive_form, ("Özpil",), "Özpil'in"),
+            (game._turkish_genitive_form, ("Kâtip",), "Kâtip'in"),
+            (game._turkish_genitive_form, ("  Marek ",), "Marek'in"),
+            (game._turkish_genitive_form, ("Kale",), "Kale'nin"),
+            (game._turkish_genitive_form, ("Brr",), "Brr"),
+            (game._turkish_genitive_form, ("",), ""),
+            (game._turkish_genitive_form, (None,), ""),
+            (game._word_root, ("takımını",), "takımı"),
+            (game._word_root, ("emanetini",), "emaneti"),
+            (game._word_root, ("çarşı",), "çarşı"),
+            (game._word_root, ("kılıçlarımızı",), "kılıçlarımı"),
+            (game._word_root, ("ışıklı",), "ışıkl"),
+            (game._singular_narrator,
+             ("Siz kapıya yaklaşırken etrafınızda fısıltılar yükselir; gözleriniz kararır.",),
+             "Sen kapıya yaklaşırken etrafında fısıltılar yükselir; gözlerin kararır."),
+            (game._singular_narrator,
+             ("Muhafız size bakar: “Siz kimsiniz?” Sonra adımlarınızı izler, gidiyorsunuz, durdunuz.",),
+             "Muhafız sana bakar: “Siz kimsiniz?” Sonra adımlarını izler, gidiyorsun, durdun."),
+            (game._singular_narrator, (42,), 42),
+            (game._attack_verb_tokens, ("muhafiza saldiriyorum ve vuruyorum",), ["saldiriyorum", "vuruyorum"]),
+            (game._attack_verb_tokens, ("kesinlikle kestirme yoldan bicakla gidiyorum",), []),
+            (game._attack_verb_tokens, ("kestrin keskin saldirgan vurmadim dovdum",), ["vurmadim", "dovdum"]),
+        )
+        for helper, args, expected in cases:
+            with self.subTest(helper=helper.__name__, args=args):
+                self.assertEqual(helper(*args), expected)
 
 
 if __name__ == "__main__":

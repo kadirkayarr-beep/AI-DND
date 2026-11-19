@@ -88,23 +88,9 @@ class ResolvedTurn:
     quest_world_before: Optional[Dict[str, Any]] = None
 
 
-def ollama_response_content(response):
-    """Read message content from both dict and typed Ollama SDK responses."""
-    if isinstance(response, dict):
-        message = response.get("message", {})
-    else:
-        message = getattr(response, "message", None)
-
-    if isinstance(message, dict):
-        return str(message.get("content", ""))
-    return str(getattr(message, "content", ""))
+from game_parts.text_rules_a import ollama_response_content, ollama_reply_was_cut, _ASKS_SOMETHING, _just_served, _THIRD_PERSON_REPORT, _SECOND_PERSON_SAID, _SAID_IT_AGAIN, _ENDS_IN_SPEECH, is_ordinary_environment_look, npc_ambiguity_response, _NEGATED_VERB_SUFFIX, _affirmative_door_verb, _SKILL_CHECK_WORD, _SKILL_ENDING, _ABILITY_WORD, _OPEN_SCARE, _COVER_WORD, _COVER, _OWN_THING_HIDDEN, _READING_CHECKS, _COMMON_SENTENCE_OPENERS, _QUESTION_CUE_RE, clean_dm_response, _hand_names_something, _ARMED_ROLE, _STRONG_ROLE, _PERSON_FIGHT, _clean_world_text, _scene_texts_for_referents, _ENGLISH_STOP_WORDS, _reads_english, _SAVE_ABILITY_TR, _unarmed_save_text, _FALL_LINE, _REWOUND_LINE, _PROPOSAL_MARKER_RE, _INTERNAL_MARK_RE, _strip_proposal_markers, _normalize_interaction_mode, _GUARD_ROLE, _GUARD_WORD, _GENERIC_PERSON, _is_guard, _serves_at_a_counter, _topic_place_name, _LOCATED_PERSON, _IN_REACH_WORDS, _COUNTER_WORDS, _COUNTER_ROLE, _drop_repeated_sentences
 
 
-def ollama_reply_was_cut(response):
-    """True when the model stopped at its token cap instead of finishing."""
-    if isinstance(response, dict):
-        return response.get("done_reason") == "length"
-    return getattr(response, "done_reason", None) == "length"
 
 
 # ---------------------------------------------------------
@@ -129,215 +115,31 @@ def roll_stat():
 # IRKLAR
 # ---------------------------------------------------------
 
-RACES = [
-    "Aasimar",
-    "Human",
-    "Elf",
-    "Dwarf",
-    "Halfling",
-    "Gnome",
-    "Half-Elf",
-    "Half-Orc",
-    "Tiefling",
-    "Dragonborn",
-    "Goliath",
-    "Orc",
-]
+from game_parts.tables import RACES, RACE_FEATURES, CLASSES, CLASS_FEATURES, CLASS_HIT_DICE, SKILLS, CLASS_SKILL_OPTIONS, DIFFICULTY_DC, RANDOM_NAMES, GIANT_ANCESTRY_IDS, CELESTIAL_REVELATION_FORMS, INNER_RADIANCE_SPEC, NECROTIC_SHROUD_SPEC, SPECIES_WITH_TRAIT_STATE, _ABILITY_NAMES, _ORIGIN_TEXT_KEYS, _ORIGIN_LIST_KEYS, _ORIGIN_SCORE_KEYS, DEATH_MODES, CHECK_FEATURES
 
 
 # ---------------------------------------------------------
 # IRK ÖZELLİKLERİ
 # ---------------------------------------------------------
 
-RACE_FEATURES = {
-
-    "Human": [
-        "Resourceful",
-        "Skillful",
-        "Versatile",
-    ],
-
-    "Elf": [
-        "Darkvision",
-        "Elven Lineage",
-        "Fey Ancestry",
-        "Keen Senses",
-        "Trance",
-    ],
-
-    "Dwarf": [
-        "Darkvision",
-        "Dwarven Resilience",
-        "Dwarven Toughness",
-        "Stonecunning",
-    ],
-
-    "Halfling": [
-        "Brave",
-        "Halfling Nimbleness",
-        "Lucky",
-        "Naturally Stealthy",
-    ],
-
-    "Gnome": [
-        "Darkvision",
-        "Gnomish Cunning",
-        "Gnomish Lineage",
-    ],
-
-    "Half-Elf": [
-        "Darkvision",
-        "Fey Ancestry",
-        "Skill Versatility",
-    ],
-
-    "Half-Orc": [
-        "Darkvision",
-        "Menacing",
-        "Relentless Endurance",
-        "Savage Attacks",
-    ],
-
-    "Tiefling": [
-        "Darkvision",
-        "Fiendish Legacy",
-        "Otherworldly Presence",
-    ],
-
-    "Dragonborn": [
-        "Breath Weapon",
-        "Darkvision",
-        "Draconic Ancestry",
-        "Draconic Flight",
-    ],
-
-    "Aasimar": [
-        "Celestial Resistance",
-        "Celestial Revelation",
-        "Darkvision",
-        "Healing Hands",
-        "Light Bearer",
-    ],
-
-    "Goliath": [
-        "Giant Ancestry",
-        "Large Form",
-        "Powerful Build",
-    ],
-
-    "Orc": [
-        "Adrenaline Rush",
-        "Darkvision",
-        "Relentless Endurance",
-    ],
-}
 
 
 # ---------------------------------------------------------
 # SINIFLAR
 # ---------------------------------------------------------
 
-CLASSES = [
-    "Barbarian",
-    "Bard",
-    "Cleric",
-    "Druid",
-    "Fighter",
-    "Monk",
-    "Paladin",
-    "Ranger",
-    "Rogue",
-    "Sorcerer",
-    "Warlock",
-    "Wizard"
-]
 
 
 # ---------------------------------------------------------
 # SINIF ÖZELLİKLERİ
 # ---------------------------------------------------------
 
-CLASS_FEATURES = {
-
-    "Barbarian": [
-        "Rage"
-    ],
-
-    "Bard": [
-        "Bardic Inspiration"
-    ],
-
-    "Cleric": [
-        "Spellcasting",
-        "Divine Domain"
-    ],
-
-    "Druid": [
-        "Spellcasting",
-        "Wild Shape"
-    ],
-
-    "Fighter": [
-        "Fighting Style",
-        "Second Wind"
-    ],
-
-    "Monk": [
-        "Martial Arts",
-        "Unarmored Defense"
-    ],
-
-    "Paladin": [
-        "Divine Sense",
-        "Lay on Hands"
-    ],
-
-    "Ranger": [
-        "Favored Enemy",
-        "Natural Explorer"
-    ],
-
-    "Rogue": [
-        "Sneak Attack",
-        "Thieves' Cant"
-    ],
-
-    "Sorcerer": [
-        "Spellcasting",
-        "Sorcerous Origin"
-    ],
-
-    "Warlock": [
-        "Pact Magic",
-        "Otherworldly Patron"
-    ],
-
-    "Wizard": [
-        "Spellcasting",
-        "Arcane Recovery"
-    ]
-}
 
 
 # ---------------------------------------------------------
 # HIT DICE
 # ---------------------------------------------------------
 
-CLASS_HIT_DICE = {
-
-    "Barbarian": 12,
-    "Bard": 8,
-    "Cleric": 8,
-    "Druid": 8,
-    "Fighter": 10,
-    "Monk": 8,
-    "Paladin": 10,
-    "Ranger": 10,
-    "Rogue": 8,
-    "Sorcerer": 6,
-    "Warlock": 8,
-    "Wizard": 6
-}
 
 
 # ---------------------------------------------------------
@@ -348,177 +150,18 @@ CLASS_HIT_DICE = {
 # SKILLER
 # ---------------------------------------------------------
 
-SKILLS = {
-
-    "Acrobatics": "dexterity",
-    "Animal Handling": "wisdom",
-    "Arcana": "intelligence",
-    "Athletics": "strength",
-    "Deception": "charisma",
-    "History": "intelligence",
-    "Insight": "wisdom",
-    "Intimidation": "charisma",
-    "Investigation": "intelligence",
-    "Medicine": "wisdom",
-    "Nature": "intelligence",
-    "Perception": "wisdom",
-    "Performance": "charisma",
-    "Persuasion": "charisma",
-    "Religion": "intelligence",
-    "Sleight of Hand": "dexterity",
-    "Stealth": "dexterity",
-    "Survival": "wisdom"
-}
 
 
 # ---------------------------------------------------------
 # SINIF SKILL SEÇENEKLERİ
 # ---------------------------------------------------------
 
-CLASS_SKILL_OPTIONS = {
-
-    "Barbarian": [
-        "Animal Handling",
-        "Athletics",
-        "Intimidation",
-        "Nature",
-        "Perception",
-        "Survival"
-    ],
-
-    "Bard": [
-        "Acrobatics",
-        "Animal Handling",
-        "Arcana",
-        "Deception",
-        "History",
-        "Insight",
-        "Intimidation",
-        "Investigation",
-        "Medicine",
-        "Nature",
-        "Perception",
-        "Performance",
-        "Persuasion",
-        "Sleight of Hand",
-        "Stealth"
-    ],
-
-    "Cleric": [
-        "History",
-        "Insight",
-        "Medicine",
-        "Persuasion",
-        "Religion"
-    ],
-
-    "Druid": [
-        "Arcana",
-        "Animal Handling",
-        "Insight",
-        "Medicine",
-        "Nature",
-        "Perception",
-        "Religion",
-        "Survival"
-    ],
-
-    "Fighter": [
-        "Acrobatics",
-        "Animal Handling",
-        "Athletics",
-        "History",
-        "Insight",
-        "Intimidation",
-        "Perception",
-        "Survival"
-    ],
-
-    "Monk": [
-        "Acrobatics",
-        "Athletics",
-        "History",
-        "Insight",
-        "Religion",
-        "Stealth"
-    ],
-
-    "Paladin": [
-        "Athletics",
-        "Insight",
-        "Intimidation",
-        "Medicine",
-        "Persuasion",
-        "Religion"
-    ],
-
-    "Ranger": [
-        "Animal Handling",
-        "Athletics",
-        "Insight",
-        "Investigation",
-        "Nature",
-        "Perception",
-        "Stealth",
-        "Survival"
-    ],
-
-    "Rogue": [
-        "Acrobatics",
-        "Athletics",
-        "Deception",
-        "Insight",
-        "Intimidation",
-        "Investigation",
-        "Perception",
-        "Persuasion",
-        "Sleight of Hand",
-        "Stealth"
-    ],
-
-    "Sorcerer": [
-        "Arcana",
-        "Deception",
-        "Insight",
-        "Intimidation",
-        "Persuasion",
-        "Religion"
-    ],
-
-    "Warlock": [
-        "Arcana",
-        "Deception",
-        "History",
-        "Intimidation",
-        "Investigation",
-        "Nature",
-        "Religion"
-    ],
-
-    "Wizard": [
-        "Arcana",
-        "History",
-        "Insight",
-        "Investigation",
-        "Medicine",
-        "Nature",
-        "Religion"
-    ]
-}
 
 
 # ---------------------------------------------------------
 # ZORLUKLAR
 # ---------------------------------------------------------
 
-DIFFICULTY_DC = {
-
-    "easy": 10,
-    "medium": 15,
-    "hard": 20,
-    "very_hard": 25,
-    "extreme": 30
-}
 
 
 # ---------------------------------------------------------
@@ -556,12 +199,6 @@ def choose_option(title, options):
 # RANDOM KARAKTER İSİMLERİ
 # ---------------------------------------------------------
 
-RANDOM_NAMES = [
-    "Aldric", "Kael", "Thorne", "Riven", "Darius",
-    "Elias", "Garrick", "Rowan", "Cedric", "Aric",
-    "Mira", "Lyra", "Elara", "Seraphine", "Nyra",
-    "Freya", "Astrid", "Kara", "Selene", "Rhea"
-]
 
 
 def create_random_character():
@@ -960,15 +597,8 @@ def _people_speak_for_themselves(world_state):
             and bool(living_world._campaign_seed(world_state)))  # only reads: a question must not build a town
 
 
-_ASKS_SOMETHING = re.compile(
-    r"\b(?:mi|mu|misin|musun|misiniz|musunuz|ne|kim|neden|niye|nasil|nerede|nereden|nerden|sence|sizce)\b"
-)
 
 
-def _just_served(world):
-    """"Duydun mu birşey", right after the beer: nobody needs a name for the one who poured it."""
-    flags = world.get("flags", {})
-    return type(flags.get("served_turn")) is int and 0 <= flags.get("turn_index", 0) - flags["served_turn"] <= 2
 
 
 def _asked_of_the_one_at_hand(player_input, npc):
@@ -1122,13 +752,6 @@ def _claimed_completed_outcome(player_input):
     return bool(re.search(r"\b(?:oldum|aldim|kazandim|kabul ettim|tamamladim)\b", text))
 
 
-_THIRD_PERSON_REPORT = re.compile(
-    r"\b(?:dedi|soyledi|anlatti|bahsetti|konustu|tavsiye etti|onerdi|demis|soylemis|anlatmis|bahsetmis)\b"
-)
-_SECOND_PERSON_SAID = re.compile(
-    r"\b(?:dedin|soyledin|anlattin|bahsettin|konustun|demistin|soylemistin|anlatmistin"
-    r"|bahsetmistin|hatirl\w*)\b"
-)
 
 
 def _report_of_someone_else(player_input, npc_target):
@@ -1144,9 +767,6 @@ def _report_of_someone_else(player_input, npc_target):
     return not named
 
 
-# "Tariq nerde dedim sana": the player repeating their own words, which claims nothing about anyone else's.
-_SAID_IT_AGAIN = re.compile(r"\b(?:dedim|diyorum)\b(?:\s+(?:sana|size|ya|be|yahu))*")
-_ENDS_IN_SPEECH = re.compile(r"\b(?:dedim|diyorum|soyle|soylesene|soyledim)\b(?:\s+(?:sana|size|ya|be|yahu))*[.! ]*$")
 
 
 def is_npc_historical_claim(player_input):
@@ -1185,60 +805,14 @@ def _reported_npc_claim_followed_by_player_inspection(player_input):
     return bool(match and _is_object_inspection(match.group("action")))
 
 
-def is_ordinary_environment_look(player_input):
-    if not isinstance(player_input, str):
-        return False
-    text = player_input.casefold().strip()
-    if living_world.classify_scene_action(player_input) == "look":
-        return not any(
-            phrase in text for phrase in ("dikkatlice", "gözlem", "fark etmeye", "bir şey", "araştır")
-        )
-    simple_view = bool(re.search(
-        r"\b(?:etraf[ıi]m[ae]?\s*bak\w*|çevrem[ae]?\s*bak\w*|etrafa\s*bak\w*|çevreye\s*bak\w*|"
-        r"etraf[ıi]?m?da\s+ne(?:ler)?\s+var|çevre(?:m|de)?\s+ne(?:ler)?\s+var|"
-        r"etrafta\s+ne(?:ler)?\s+görüyorum|çevrede\s+ne(?:ler)?\s+görüyorum|"
-        r"etrafta\s+ne(?:ler)?\s+var|çevrede\s+ne(?:ler)?\s+var)\b",
-        text,
-    ))
-    return simple_view and not any(
-        phrase in text for phrase in ("dikkatlice", "gözlem", "fark etmeye", "bir şey", "araştır")
-    )
 
 
-def npc_ambiguity_response(resolution):
-    """An attack on nobody in particular: the one address the game must not pick."""
-    people = living_world.public_scene_people(resolution.get("npcs", []))
-    return f"Yakında {people} var; hangisine yöneliyorsun?"
 
 
-_NEGATED_VERB_SUFFIX = re.compile(r"^(?:ma|me|mi|mu|mı|mü|mam|mem|may|mey|miyor|muyor|mayacag|meyeceg)")
 
 
-def _affirmative_door_verb(normalized_text, prefix, stems):
-    """True when a door verb appears in an affirmative (not negated) form.
-
-    "kapıyı kırıyorum" yes; "kapıyı kırmayacağım", "zorlamıyorum" and the
-    passive "zorlanmış" (was it forced?) no.
-    """
-    for stem in stems:
-        for match in re.finditer(rf"\b{prefix}{stem}(\w*)", normalized_text):
-            rest = match.group(1)
-            if stem == "zorla" and rest.startswith("n"):
-                continue  # zorlanmış / zorlandı: passive, describes the lock
-            trying = re.match(r"(?:maya|meye)\s+calis", rest + normalized_text[match.end():match.end() + 8])
-            if trying:
-                return True  # "kırmaya çalışıyorum" is an attempt
-            if _NEGATED_VERB_SUFFIX.match(rest):
-                continue
-            return True
-    return False
 
 
-_SKILL_CHECK_WORD = r"(?:check|roll|zar\w*|yoklama\w*|kontrol\w*)"
-# a real case ending after a Turkish skill word ("Tarihi", "Atletizmi"); "gösterişli" is no "Gösteri"
-_SKILL_ENDING = r"(?:(?:ler|lar)?(?:y?[iuea]|n?in|n?un|d[ae]n?|t[ae]n?|l[ae]|s[iu]|n[ie]|n[ae]|nd[ae]n?))?"
-_ABILITY_WORD = (r"(?:strength|dexterity|constitution|intelligence|wisdom|charisma|"
-                 r"guc|ceviklik|dayaniklilik|zeka|bilgelik|karizma)")
 
 
 def named_skill(player_input):
@@ -1269,11 +843,6 @@ def named_skill(player_input):
     return skill if side_by_side or in_brackets else None
 
 
-_OPEN_SCARE = re.compile(
-    r"^(?!.*\b(?:diyorum|soyluyorum|fisildiyorum|diye|ozur|sanirim|yarin|sonra|eger|degil|ama|seni|sizi|keske|belki|sanki|diyelim|farz|varsay\w*|bicakla\w*|ruya\w*|hayal\w*|ati|kus\w*|kopek\w*|hayvan\w*)\b)"
-    r".*\b(?:korkutmaya\s+calisiyorum|korkutmak\s+icin\s+(?:\w+\s+){0,2}?zar\w*\s+atiyorum|"
-    r"gozdagi\s+vermeye\s+calisiyorum|tehdit\s+etmeye\s+calisiyorum)$"
-)
 
 
 def open_scare_try(player_input) -> bool:
@@ -1294,20 +863,6 @@ _SOMEONE_ELSES_PURSE = re.compile(
     r"\b(?:kesesi\w*|cebi(?:ni|nde|nden|n)?|cuzdani(?:ni|nda|ndan|n)?|cantasi\w*|parasi\w*)\b")
 
 
-# Dice guide 4.4/H01: a hide needs cover or obscurement. The engine knows the dark (night), a place with walls and a
-# door, and what cover the player names; anything else in the open by day is no hide (D-094, D-171).
-_COVER_WORD = (
-    r"(?:golge\w*|karanlig\w*|karanlik\w*|kalabalig\w*|kalabalik\w*|arkasina|arkasinda|ardina|ardinda|altina|"
-    r"altinda|calilar\w*|calilig\w*|calilik\w*|caliya|calinin|agac\w*|fici\w*|sandig\w*|sandik\w*|perde\w*|sis\w*|kose\w*|kuytu\w*|siper\w*|"
-    r"cuval\w*|kayanin|kayalar\w*|duvarin\s+dibine)")
-# D-225: a cover word the line denies is no cover: "hiçbir gölge", "gölgesiz", "siper ya da gölge olmayan", "ağaç
-# bile yok", "siper değil".
-_COVER = re.compile(
-    rf"(?<!\bhicbir )\b{_COVER_WORD}\b(?<!s[iu]z)"
-    rf"(?!(?:\s+(?:ya|da|de|ve|veya|ile|bile|falan|filan|hic|{_COVER_WORD}))*\s+"
-    r"(?:olmayan\w*|olmadig\w*|olmadan|bulunmayan\w*|bulunmadig\w*|yok(?:tu|tur|ken|mus)?\b(?!\s+ol)|degil\w*)\b)")
-# One's own thing hidden on oneself ("hançerimi kolumun içine gizliyorum") is Sleight of Hand, not a hide (D-176).
-_OWN_THING_HIDDEN = re.compile(r"\b(?!kendim)\w{2,}m[iu]\s+(?:\w+\s+){0,4}?(?:gizl|sakl)\w*")
 
 
 def _stealth_skill(player_input):
@@ -1342,7 +897,6 @@ def deterministic_check_for_action(player_input):
     return found
 
 
-_READING_CHECKS = frozenset({"Intimidation", "Deception", "Persuasion", "Insight"})
 
 
 def _word_check_for_action(player_input):
@@ -1484,17 +1038,7 @@ def known_character_answer(player_input):
     return "; ".join(facts) + "."
 
 
-# Ordinary Turkish sentence openers; capitalized at a sentence start they are
-# not person names even when a descriptor word follows ("Belki muhafıza sor").
-_COMMON_SENTENCE_OPENERS = frozenset({
-    "belki", "evet", "hayır", "tabii", "tabi", "elbette", "şimdi", "sonra", "peki",
-    "ama", "çünkü", "eğer", "yoksa", "bence", "açıkçası", "doğrusu", "galiba",
-    "herhalde", "mutlaka", "kesinlikle", "ayrıca", "üstelik", "yine", "şöyle",
-})
 
-_QUESTION_CUE_RE = re.compile(
-    r"\?|\b(?:ne|neler|nere\w*|kim\w*|kac\w*|hangi\w*|nasil|neden|niye|nicin|m[iu](?:y?d[iu](?:m|n|k|n[iu]z|lar|ler)?|y?m[iu]s(?:[iu]m|s[iu]n(?:[iu]z)?|[iu]z|lar|ler)?|y[iu]m|s[iu]n(?:[iu]z)?|y[iu]z|d[iu]r)?)\b"
-)
 
 
 def _model_query_type_is_plausible(player_input):
@@ -1842,52 +1386,6 @@ def analyze_player_action(
 # ---------------------------------------------------------
 
 
-def clean_dm_response(text, *, spoken=False):
-
-    text = re.sub(
-        r"<think>.*?</think>",
-        "",
-        text,
-        flags=re.DOTALL
-    ).strip()
-
-    text = text.replace("```json", "").replace("```", "").strip()
-
-    # Mekanik/meta satırlarını temizle.
-    text = re.sub(
-        r"(?im)^.*(?:DC|D20|zar sonucu|zar atışı|modifier|toplam bonus|skill check).*$",
-        "",
-        text
-    )
-
-    # Seçenek listelerini temizle.
-    text = re.sub(
-        r"(?im)^\s*(?:[-*]|\d+[.)])\s+.*$",
-        "",
-        text
-    )
-
-    # Oyuncuya soru/karar yükleyen ifadeleri temizle. Bir NPC bunu sorabilir.
-    if not spoken:
-        text = re.sub(
-            r"(?im)^.*(?:hangisini seçersin|ne yaparsın|ne yapmak istersin)\??.*$",
-            "",
-            text
-        )
-
-    lines = [
-        line.strip()
-        for line in text.splitlines()
-        if line.strip()
-    ]
-
-    cleaned = []
-
-    for line in lines:
-        if line not in cleaned:
-            cleaned.append(line)
-
-    return "\n".join(cleaned).strip()
 
 
 recent_dm_narrations = []
@@ -1970,21 +1468,11 @@ SAVE_FORMAT_VERSION = 4
 _SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5, 6)
 
 
-GIANT_ANCESTRY_IDS = ("cloud", "fire", "frost", "hill", "stone", "storm")
-CELESTIAL_REVELATION_FORMS = (
-    "heavenly_wings",
-    "inner_radiance",
-    "necrotic_shroud",
-)
 # K01: PHB 2024 (D&D 5e - Players Handbook 2024.pdf, PDF page 185, Aasimar > Celestial Revelation > Necrotic Shroud):
 # "Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw ... or have the Frightened condition".
 # K02: "each creature within 10 feet of you takes Radiant damage" (same page, Inner Radiance); allies are not excluded.
 # K04: the recorded order of simultaneous due items (technical decision record, see event_order.py).
 RULE_ORDER = event_order.DEFAULT_RULE_ORDER
-INNER_RADIANCE_SPEC = effect_targeting.EffectSpec("inner_radiance", 10, "PHB 2024 p.185 (PDF) Aasimar: Inner Radiance")
-NECROTIC_SHROUD_SPEC = effect_targeting.EffectSpec(
-    "necrotic_shroud", 10, "PHB 2024 p.185 (PDF) Aasimar: Necrotic Shroud", excludes_allies=True)
-SPECIES_WITH_TRAIT_STATE = frozenset({"Aasimar", "Goliath", "Orc", "Half-Orc"})
 
 
 def _new_species_trait_state(species, proficiency_bonus):
@@ -2114,10 +1602,6 @@ def initialize_species_trait_state(giant_ancestry=None):
     return copy.deepcopy(character["species_trait_state"])
 
 
-_ABILITY_NAMES = ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")
-_ORIGIN_TEXT_KEYS = ("background", "alignment", "ability_score_method", "background_equipment_option", "species_bonus_feat")
-_ORIGIN_LIST_KEYS = ("languages", "origin_feats")
-_ORIGIN_SCORE_KEYS = ("background_ability_bonuses", "base_ability_scores")
 
 
 def _origin_choices_valid(choices):
@@ -2902,15 +2386,6 @@ def _known_happenings(state):
     return {**state, world_happenings.KEY: [row for row in rows if row not in unknown]}, unknown
 
 
-def _hand_names_something(inventory, held):
-    """Whether a hand's value is sound: an item id or old name in the bag, or a catalog weapon (the new world's own
-    default hand is "longsword" whatever the bag holds)."""
-    from weapon_catalog import lookup
-    if lookup(held) is not None:
-        return True
-    return any(item == held if isinstance(item, str)
-               else isinstance(item, dict) and held in (item.get("item_id"), item.get("name"))
-               for item in inventory)
 
 
 def _repair_dilim2_fields(world: dict) -> list[str]:
@@ -3270,7 +2745,6 @@ def _normalize_ground_items():
         world_state["ground_items"] = []
 
 
-DEATH_MODES = ("NORMAL", "PERMADEATH", "IRONMAN")
 
 
 def _death_state_defaults():
@@ -3974,14 +3448,6 @@ def ensure_combat_state():
     return combat
 
 
-_ARMED_ROLE = re.compile(r"\b(?:muhafiz|nobetci|cavus|asker|haydut|eskiya)")
-_STRONG_ROLE = re.compile(r"\b(?:demirci|liman iscisi|seyis|arabaci|mezarci|barmen|usta|kahya)")
-# (armor class, hit points, attack bonus, die, damage type) for a person with no stat block.
-_PERSON_FIGHT = {
-    "armed": (15, 16, 3, 6, "slashing"),
-    "strong": (11, 12, 3, 6, "bludgeoning"),
-    "plain": (10, 8, 2, 6, "bludgeoning"),
-}
 
 
 def person_fight_kind(npc):
@@ -4048,13 +3514,6 @@ def generate_npc_id():
     return f"npc_{number:03d}"
 
 
-def _clean_world_text(value, limit=240):
-    if not isinstance(value, str):
-        return None
-    cleaned = " ".join(value.replace("\x00", "").split()).strip()
-    if not cleaned or len(cleaned) > limit:
-        return None
-    return cleaned
 
 
 def _clean_world_text_list(value, item_limit=180, max_items=8):
@@ -4068,19 +3527,6 @@ def _clean_world_text_list(value, item_limit=180, max_items=8):
     return result
 
 
-def _scene_texts_for_referents(world_state):
-    """Descriptive scene text whose lowercase words are evidence of common nouns (W05)."""
-    texts = []
-    # NPC descriptions can be model-authored; only the engine's own feature/location text counts as evidence
-    for collection in ("features",):
-        for item in world_state.get(collection, []) if isinstance(world_state, dict) else []:
-            if isinstance(item, dict) and isinstance(item.get("description"), str):
-                texts.append(item["description"])
-    locations = world_state.get("locations", {}) if isinstance(world_state, dict) else {}
-    for location in locations.values() if isinstance(locations, dict) else []:
-        if isinstance(location, dict) and isinstance(location.get("description"), str):
-            texts.append(location["description"])
-    return texts
 
 
 def _has_unregistered_person_name(value, extra_names=()):
@@ -4214,15 +3660,8 @@ def create_npc_from_ai(proposal, request_key=None, *, allow_other_location=False
     return npc
 
 
-_ENGLISH_STOP_WORDS = frozenset(("the", "a", "an", "and", "of", "on", "with", "is", "are"))
 
 
-def _reads_english(text):
-    """No Turkish letter and at least two English function words: the text is English, not Turkish."""
-    if not isinstance(text, str) or re.search(r"[çğıöşüÇĞİÖŞÜ]", text):
-        return False
-    words = re.findall(r"[a-z]+", text.casefold())
-    return sum(1 for word in words if word in _ENGLISH_STOP_WORDS) >= 2
 
 
 def create_local_feature(proposal):
@@ -6065,34 +5504,10 @@ def _combat_narration(result):
     return text
 
 
-_SAVE_ABILITY_TR = {"strength": "Güç", "dexterity": "Çeviklik"}
 
 
-def _unarmed_save_text(target, result, save):
-    """A Shove or a Grapple is the target's saving throw, told with its roll and DC; it deals no damage."""
-    shove = result["unarmed_option"] == "shove"
-    ability = _SAVE_ABILITY_TR.get(save.get("ability"), save.get("ability"))
-    told = (f"{ability} kurtarma zarı kendiliğinden başarısız, DC {save.get('dc')}" if save.get("automatic_failure")
-            else f"{ability} kurtarma zarı {save.get('total')}, DC {save.get('dc')}")
-    move = "itişine" if shove else "kavrayışına"
-    if result.get("outcome") == "miss":
-        return f"{target} {move} direnir ({told})."
-    effects = result.get("additional_effects") or []
-    if not shove:
-        effect = "kavranır (Grappled)"
-    elif any(isinstance(e, dict) and e.get("kind") == "shove_prone" for e in effects):
-        effect = "yere düşer (Prone)"
-    elif any(isinstance(e, dict) and e.get("kind") == "push" and e.get("applied") for e in effects):
-        effect = "5 feet geri itilir"
-    else:  # the push rule did not apply (target too large, or no known position to push to): no invented reason
-        effect = "itme uygulanamadı, yerinde kalır"
-    return f"{target} {move} karşı koyamaz ({told}); {effect}."
 
 
-_FALL_LINE = ("Dizlerin boşalıyor, yere yığılıyorsun; sesler uzaklaşıyor. Bilincini kaybedersin. "
-              "Şimdi ölümle arandaki tek şey zar: bir şey yaz ya da zarını at.")
-_REWOUND_LINE = ("Karanlık seni yutuyor, ama bu kampanyanın eski kuralı seni bırakmıyor: "
-                 "gözlerini çatışmadan önceki anda açıyorsun.")
 
 
 def _enemy_exchange_text(enemies, named=None):
@@ -6409,14 +5824,8 @@ def _bind_world_update_mentions(raw_updates, location_updates, validated_updates
     return accepted, list(dict.fromkeys(rejected_names))
 
 
-_PROPOSAL_MARKER_RE = re.compile(r"\[\[([nlfs][1-9]\d?)\]\] ?")
-_INTERNAL_MARK_RE = re.compile(
-    r"\[\[\s*([^\[\]]{0,60}?)\s*\]\](['’]\w+)?|\b(npc_[a-z0-9_]+)\b|\[([^\[\]]{1,40})\]"
-)
 
 
-def _strip_proposal_markers(narration):
-    return _PROPOSAL_MARKER_RE.sub("", narration) if isinstance(narration, str) else narration
 
 
 def _repair_internal_marks(narration):
@@ -6545,10 +5954,6 @@ def merge_world_updates(updates):
     return created
 
 
-def _normalize_interaction_mode(value):
-    if value in {"say", "do", "ask_dm"}:
-        return value
-    return None
 
 
 def _conversation_npcs():
@@ -6584,21 +5989,10 @@ def _without_place_names(text, world_state):
     return text
 
 
-_GUARD_ROLE = re.compile(r"muhafiz|guard|nobet|bekci|asker|devriye")
-_GUARD_WORD = re.compile(r"\b(?:muhafiz|nobetci|bekci|asker|devriye|guard)\w*")
-_GENERIC_PERSON = re.compile(
-    r"\b(?:biri|birine|birini|birisi|birisine|birisini|birilerine)\b"
-    r"|^(?:(?:su|o|bu|bir|yakin\w*|yan\w*|karsi\w*|oradaki|suradaki|buradaki)\s+)*"
-    r"(?:adam|kadin|kisi|insan)\w*\s+(?:dogru\s+)?(?:yaklas|sokul|yanas|yonel)"
-)
 
 
-def _is_guard(npc):
-    return bool(_GUARD_ROLE.search(living_world.normalize_text(npc.get("role", ""))))
 
 
-def _serves_at_a_counter(npc):
-    return bool(_COUNTER_ROLE.search(living_world.normalize_text(npc.get("role", ""))))
 
 
 def _words_fit_person(npc, text):
@@ -6632,45 +6026,10 @@ def most_plausible_addressee(people, player_input=""):
     return min(pool, key=lambda npc: (_is_guard(npc), distance(npc)))
 
 
-def _topic_place_name(world):
-    """The name of the place just talked about or found, if the talk is still on it."""
-    import grounded_action
-    import npc_statements
-    said = npc_statements.last_said_place(world)
-    if said:
-        return said.get("name")
-    place = world.get("locations", {}).get(grounded_action.last_target_id(world))
-    return place.get("name") if isinstance(place, dict) else None
 
 
-_LOCATED_PERSON = re.compile(
-    r"\b([^\W\d_]{3,}?)['’]?(?:daki|deki|taki|teki)\s+"
-    r"(?:adam|kad[ıi]n|ki[sş]i|gen[cç]|ya[sş]l[ıi]|[cç]ocuk|ihtiyar|o[gğ]lan|k[ıi]z)",
-    re.IGNORECASE,
-)
-_IN_REACH_WORDS = (
-    "yakin", "yan", "karsi", "sag", "sol", "on", "arka", "bura", "ora", "sura", "ileri",
-    "ote", "kose", "kapi", "sokak", "cadde", "meydan", "kalabalik", "uzak", "dis", "ic",
-)
-_COUNTER_WORDS = ("tezgah", "bar", "banko")
-_COUNTER_ROLE = re.compile(r"barmen|bartender|hanci|meyhaneci|tuccar|dukkan|satici|merchant|shopkeeper|garson")
 
 
-def _drop_repeated_sentences(narration, earlier):
-    """A paragraph copied from the last turn is not told twice; new sentences stay."""
-    if not isinstance(narration, str):
-        return narration
-    seen = {
-        sentence.strip().casefold() for text in earlier if isinstance(text, str)
-        for sentence in re.split(r"(?<=[.!?…])\s+", text)
-    }
-    kept = [
-        sentence for sentence in re.split(r"(?<=[.!?…])\s+", narration)
-        if sentence.strip().casefold() not in seen
-    ]
-    if not kept or len(kept) == len(re.split(r"(?<=[.!?…])\s+", narration)):
-        return narration
-    return " ".join(kept)
 
 
 def _drop_absent_counter_sentences(narration):
@@ -6732,12 +6091,7 @@ def _absent_person_text(place_word):
     return f"{word} başında öyle birini göremiyorsun.{present}"
 
 
-def _is_plain_person_reference(words_before, target):
-    """"Kapıdaki adama" or "şu kadına" points at someone here; "kapüşonlu adama" describes one."""
-    if not re.match(r"(?:adam|kad[ıi]n|ki[sş]i)\w*$", target):
-        return False
-    previous = living_world.normalize_text(words_before).rsplit(" ", 1)[-1]
-    return previous in {"", "o", "su", "bu"} or previous.endswith(("daki", "deki", "taki", "teki"))
+from game_parts.text_rules_a import _is_plain_person_reference, _ADDRESSEE_OPERATIONS, _OFFER_OPERATIONS, _OFFER_MARKER, _fold_keep_punctuation, _ADDRESS_VERB, _SPEAKING_VERB, _CONTINUATION_TERMS, _OBJECT_INSPECTION, _claim_keywords, _format_npc_memory, _CLAIM_DENIAL_LINES, _SPEECH_REPEAT_LINES, _lines_already_said, speech_repeat_line, _NARRATOR_PROFILE_FIELDS, _narrator_visible_profile, _bodies_here_context, _untrusted_player_block, _extract_json_object, _NPC_SPEECH_LOG_KEY, _NPC_SPEECH_KEEP, _MENTIONS_PROMPT_RULE, _VOICED_PROMPT_RULE, _rumour_lane_on, _voiced_keys, _CLAIM_REJECTION_RE, _CLAIM_ACCEPTANCE_RE, _SPEECH_CUT_RE, _SPEECH_META_RE, _strip_pictographs, _REAL_WORLD_FAITH, _without_real_world_faith, _is_explicit_name_led_gesture_line, _clean_npc_stage_direction, _compose_experimental_npc_speech, _without_label_variant, _npc_speech_rejects_claim, _CLAIM_PLAIN_DENIAL_RE, _npc_speech_grants_claim, _spoken_name_answer, _SPEECH_ANSWER_RULES, _job_news_line, _turns_to_someone_else, _elsewhere_line, _overheard_work, _ASKS_WHO_YOU_ARE, _accept_named_job, _REFUSED_MOVE_RULE, _bag_note, _dm_prompt_note, _claim_denial_quotes, _has_private_profile_value, _FOLLOWUP_WORDS, _is_short_followup, _experimental_speech_recap, _normalize_turkish_typos, _mechanical_outcome, _GENERIC_NO_CHANGE_RESPONSE, _GENERIC_NO_CHANGE_RESPONSES, _INTERNAL_PLAYER_FACING_RE, _is_internal_player_facing_text, _narration_scene_type
 
 
 def _settle_address(resolution, player_input):
@@ -6880,21 +6234,8 @@ def resolve_npc_reference(
     return {"status": "none", "npc": None}
 
 
-# Social operations need someone to address. Without an addressee (and without
-# the player's own words asking for one) the model's guess cannot hijack a
-# physical action such as reading a book or following someone.
-_ADDRESSEE_OPERATIONS = frozenset({
-    "request", "negotiate", "refuse", "agree", "conditional", "threat", "promise",
-    "information", "switch_side", "betray", "generate",
-})
 
 
-_OFFER_OPERATIONS = frozenset({"promise", "conditional", "negotiate", "request", "threat"})
-_OFFER_MARKER = re.compile(
-    r"\b(?:soz ver\w*|yemin\w*|karsilig\w*|anlas\w*|pazarlik\w*|teklif\w*|takas\w*"
-    r"|odul\w*|ucret\w*|altin\w*|para\w*|borc\w*|yoksa|aksi halde|pisman\w*"
-    r"|ver(?:ir|eb)\w*|ister misin|istiyorum|\w+(?:irsen|irsem|arsan|arsam|ersen|ersem|ursan|ursam|ursen|ursem))\b"
-)
 
 
 def _interaction_proposal_applies(raw_intent, npc_target, player_input):
@@ -7003,15 +6344,8 @@ def _grounded_item_request_proposal(raw_intent, npc_target, player_input):
     )
 
 
-def _fold_keep_punctuation(text):
-    folded = str(text).replace("İ", "i").replace("I", "ı").casefold().translate(str.maketrans({
-        "ı": "i", "ş": "s", "ç": "c", "ğ": "g", "ö": "o", "ü": "u",
-        "â": "a", "î": "i", "û": "u",
-    }))
-    return re.sub(r"[’'`]", "", folded)
 
 
-_ADDRESS_VERB = r"(?:sor|don|soyl|diyor|de\b|seslen|konus|anlat|fisild|bagir|cagir|rica|yalvar|danis)"
 
 
 def _explicit_addressee(player_input, candidates):
@@ -7060,10 +6394,6 @@ def _explicit_addressee(player_input, candidates):
     return None
 
 
-_SPEAKING_VERB = re.compile(
-    r"\b(?:bagir\w*|seslen\w*|soyle\w*|soyli\w*|diyorum|dedim|anlat\w*|"
-    r"fisild\w*|rica\w*|yalvar\w*|uyar\w*|guvence\w*|merak etme|endise etme|korkma)\b"
-)
 
 
 def _is_spoken_to(player_input, npc):
@@ -7078,12 +6408,6 @@ def _is_spoken_to(player_input, npc):
     return bool(_SPEAKING_VERB.search(_normalize_turkish_typos(player_input)))
 
 
-_CONTINUATION_TERMS = frozenset({
-    "e", "ee", "ya", "peki", "sonra", "yani", "neden", "niye", "nicin", "nasil",
-    "ne", "zaman", "zamandan", "beri", "nereden", "nereye", "nerede", "kim", "kimden",
-    "kime", "hangi", "hangisi", "kac", "gercekten", "oyle", "mi", "mu", "devam", "et",
-    "anlat", "baska", "hem", "de", "da", "bu", "su", "o", "onu", "bunu", "ki", "acaba",
-})
 
 
 def _is_short_conversation_continuation(player_input):
@@ -7092,10 +6416,6 @@ def _is_short_conversation_continuation(player_input):
     return 0 < len(words) <= 4 and all(word in _CONTINUATION_TERMS for word in words)
 
 
-_OBJECT_INSPECTION = re.compile(
-    r"\b(?:bak|incele|yokla|dokun|kokla|tara|elle|kurcala)\w*"
-    r"(?:yorum|iyorum|uyorum|cam|cegim|cagim|ayim|eyim)\b"
-)
 
 
 def _is_object_inspection(player_input):
@@ -7258,41 +6578,6 @@ def _remember_accepted_profile_focus(player_input, npc_target, action_id, field=
     )
 
 
-def _claim_keywords(text):
-    text = text.casefold().translate(str.maketrans({"ı": "i", "ğ": "g", "ü": "u", "ş": "s", "ö": "o", "ç": "c"}))
-    tokens = re.findall(r"[a-z]{4,}", text)
-    ignored = {
-        "daha", "once", "gecen", "sefer", "keresinde", "hatirliyor", "musun", "bana",
-        "sana", "bunu", "bunun", "orada", "burada", "soyledin", "soylemistin", "demistin",
-        "anlatmistin", "bahsetmistin", "demistin", "ettin", "ettigini", "oldugunu", "varligini", "zaman", "zamandir",
-        "gibi", "acaba", "gercekten", "hatirlamiyorum", "hatirlamiyorumdur", "duymadim",
-        "soylemisti", "anlatmisti", "bahsetmisti", "demisti", "soyledi", "anlatti", "bahsetti", "dedi",
-        "soylemis", "anlatmis", "bahsetmis", "konustu", "konusmustu",
-    }
-    suffixes = (
-        "larindan", "lerinden", "larinda", "lerinde", "larinin", "lerinin", "larina", "lerine",
-        "indan", "inden", "inda", "inde", "inin", "unun", "unun", "sini", "sini", "ini", "unu",
-        "lari", "leri", "lar", "ler", "dan", "den", "nin", "nun", "yla", "yle", "dir", "tir",
-        "siniz", "sunuz", "iyorum", "iyorum", "iyorsun", "iyorum", "misin", "musun", "tigin", "digini",
-        "tigi", "digi", "tigini", "digini", "iyorum", "iyorum", "iyor", "uyor", "um", "im", "in",
-    )
-    result = set()
-    for token in tokens:
-        if token in ignored:
-            continue
-        stem = token
-        for _ in range(2):
-            suffix = next((part for part in suffixes if len(stem) - len(part) >= 4 and stem.endswith(part)), None)
-            if not suffix:
-                break
-            stem = stem[:-len(suffix)]
-        if len(stem) >= 4 and stem not in ignored:
-            result.add(stem)
-    if re.search(r"\b(?:ne zamandir|kac yildir|ne kadar suredir|kac yil|ne kadar zaman)\b", text):
-        result.add("__duration__")
-    if re.search(r"\b(?:yil\w*|sene\w*|ay\w*|gun\w*|uzun suredir|bir suredir)\b", text):
-        result.add("__duration__")
-    return result
 
 
 def npc_memory_supports_claim(npc, player_input):
@@ -7379,45 +6664,10 @@ def npc_memory_supporting_entry(npc, player_input):
     return None
 
 
-def _format_npc_memory(memory_entries):
-    """Format NPC memory for LLM context - clearly separates player_said and npc_said."""
-    if not memory_entries:
-        return []
-    formatted = []
-    for entry in memory_entries:
-        if isinstance(entry, dict):
-            speaker = entry.get("speaker", "unknown")
-            text = entry.get("text", "")
-            if text:
-                formatted.append(f"[{speaker}] {text}")
-        elif isinstance(entry, str):
-            # Legacy format
-            formatted.append(f"[legacy] {entry}")
-    return formatted
 
 
-_CLAIM_DENIAL_LINES = (
-    "{n} bir an sana bakıp kaşlarını çatıyor. “Öyle bir şey konuştuğumuzu "
-    "anımsamıyorum. Beni başka biriyle karıştırmış olmalısın.”",
-    "{n} başını iki yana sallıyor. “Hayır, öyle bir sözüm yok. Kimden duyduysan "
-    "iyi düşün, yanılıyorsun.”",
-    "{n} omuz silkiyor. “Yanlış kapıyı çalıyorsun, dostum. Ben böyle bir şey "
-    "söylemedim.”",
-    "{n} sesini alçaltıyor. “Söz verdiysem hatırlardım; sözümü tutmayan biri "
-    "olarak anılmak istemem. Ama bu benim ağzımdan çıkmadı.”",
-)
 
 
-_SPEECH_REPEAT_LINES = (
-    "{n} bir an duraksıyor. “Bunu az önce söylemiştim sanırım. Başka bir şey "
-    "sormak ister misin?”",
-    "{n} başını sallıyor. “Aynı şeyi tekrarlamak istemem; asıl neyi merak "
-    "ediyorsun, söyle bakalım.”",
-    "{n} hafifçe gülümsüyor. “Bu konuda söyleyeceklerim bu kadar. Başka bir "
-    "şeyden konuşalım mı?”",
-    "{n} omuz silkiyor. “Aynı cevabı ikinci kez dinlemek sana ne katar ki? "
-    "Sor bakalım, başka ne var?”",
-)
 
 
 # Sentences written for the narrator or the engine, never for a person's mouth. Each one is marked where it is
@@ -7459,9 +6709,6 @@ def _only_stock(text):
     return re.search(r"\w", re.sub(r"Sen: “[^”]*”", " ", rest)) is None
 
 
-def _lines_already_said(npc, world_state):
-    log = (world_state.get("npc_speech_log") or {}).get(npc.get("id"), [])
-    return [entry["npc"] for entry in log if isinstance(entry, dict) and isinstance(entry.get("npc"), str)]
 
 
 def _without_lines_already_said(spoken, npc, world_state, player_input):
@@ -7477,19 +6724,6 @@ def _without_lines_already_said(spoken, npc, world_state, player_input):
     return _drop_repeated_sentences(spoken, _lines_already_said(npc, world_state))
 
 
-def speech_repeat_line(npc, player_input="", salt=0):
-    """In-character line when the model repeated what the NPC already said.
-
-    The model is never retried; this deterministic line keeps the scene moving
-    without mentioning records or verification. `salt` varies the pick when
-    the same turn text repeats again.
-    """
-    name = living_world.public_npc_name(npc) if npc else "Bu kişi"
-    seed = f"{npc.get('id', '') if isinstance(npc, dict) else ''}|{player_input}|{salt}"
-    index = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(
-        _SPEECH_REPEAT_LINES
-    )
-    return _SPEECH_REPEAT_LINES[index].format(n=name)
 
 
 def historical_claim_denial(npc, player_input=""):
@@ -7507,15 +6741,8 @@ def historical_claim_denial(npc, player_input=""):
     return interaction_adventure.immersive_unknown(npc, player_input)
 
 
-# What anyone can see of a person right now. Goals, past and details stay out
-# until the person says them, which the speech path carries on its own.
-_NARRATOR_PROFILE_FIELDS = ("current_activity", "mood")
 
 
-def _narrator_visible_profile(profile):
-    if not isinstance(profile, dict):
-        return {}
-    return {key: profile[key] for key in _NARRATOR_PROFILE_FIELDS if isinstance(profile.get(key), str)}
 
 
 def _narrator_shop_record(shop):
@@ -7543,11 +6770,6 @@ def _narrator_fact_view(packet, action_result):
     return {key: value for key, value in packet.items() if key != "door_locked"}
 
 
-def _bodies_here_context(world_state):
-    """Nobody narrates an empty room over a body the world says is lying in it."""
-    import fallen
-    bodies = fallen.here(world_state)
-    return {"bodies_here": [living_world.public_npc_name(npc) for npc in bodies[:4]]} if bodies else {}
 
 
 def build_world_context(npc_target=None):
@@ -8107,44 +7329,7 @@ def commit_location_change(location_id, turn_index=None):
     return previous_location != location_id
 
 
-INTENT_TYPES = {
-    "narrative", "travel", "dialogue", "observe", "perception", "investigation",
-    "stealth", "attack", "combat", "inventory", "interact", "door", "search",
-    "rest", "use_item", "unknown", "query", "explore", "persuasion", "deception",
-    "acrobatics", "survival",
-}
-SKILL_INTENT_TO_SKILL = {
-    "persuasion": "Persuasion",
-    "deception": "Deception",
-    "acrobatics": "Acrobatics",
-    "survival": "Survival",
-}
-INTENT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "intent": {"type": "string", "enum": sorted(INTENT_TYPES)},
-        "action": {"type": "string", "maxLength": 60},
-        "weapon_word": {"type": "string", "maxLength": 40},
-        "target": {
-            "type": "object",
-            "properties": {
-                "type": {"type": "string", "enum": ["location", "npc", "item", "feature", "none"]},
-                "reference": {"type": "string", "maxLength": 160},
-                "npc_id": {"type": "string", "maxLength": 128},
-                "evidence_quote": {"type": "string", "maxLength": 100},
-            },
-            "required": ["type", "reference"],
-            "additionalProperties": False,
-        },
-        "completion": {"type": "string", "enum": ["intended", "completed", "unclear"]},
-        "confidence": {"type": "number"},
-        "query_type": {"type": "string", "enum": ["self", "location", "presence", "npc_identity"]},
-        "explore_type": {"type": "string", "enum": ["observe", "inspect", "search"]},
-    },
-    "required": ["intent", "action", "target", "completion", "confidence"],
-    "additionalProperties": False,
-}
-SCENE_DETAIL_KIND_ALLOWLIST = frozenset({"detail", "seat"})
+from game_parts.schemas import INTENT_TYPES, SKILL_INTENT_TO_SKILL, INTENT_SCHEMA, SCENE_DETAIL_KIND_ALLOWLIST, NPC_SCHEMA, LOCATION_SCHEMA, WORLD_UPDATE_SCHEMA, DM_RESPONSE_SCHEMA, NARRATOR_VOICE, system_prompt
 
 
 # SECURITY: LLM01/LLM07 (Prompt Injection, prompt-construction layer; System Prompt Leakage)
@@ -8157,14 +7342,6 @@ SCENE_DETAIL_KIND_ALLOWLIST = frozenset({"detail", "seat"})
 # own matching closing tag; look-alike tags inside it stay inert text.
 
 
-def _untrusted_player_block(prefix, text):
-    """Show player text verbatim in a block whose boundary the text cannot forge."""
-    raw = str(text)
-    boundary = hashlib.sha256(raw.encode("utf-8", "surrogatepass")).hexdigest()[:16]
-    return (
-        f'<UNTRUSTED_USER_INPUT id="{boundary}">\n{prefix}{raw}\n'
-        f'</UNTRUSTED_USER_INPUT id="{boundary}">'
-    )
 
 
 def _intent_scene_npc_candidates():
@@ -8302,46 +7479,6 @@ def _local_person_request_key(player_input):
     return hashlib.sha256(scope.encode("utf-8")).hexdigest()
 
 
-def _extract_json_object(raw):
-    """Parse one JSON object, closing only unmatched containers outside strings."""
-    if not isinstance(raw, str):
-        return None
-    cleaned = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL)
-    cleaned = cleaned.replace("```json", "").replace("```", "").strip()
-    start = cleaned.find("{")
-    if start < 0:
-        return None
-    stack = []
-    in_string = False
-    escaped = False
-    for index in range(start, len(cleaned)):
-        char = cleaned[index]
-        if in_string:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == '"':
-                in_string = False
-        elif char == '"':
-            in_string = True
-        elif char in "{[":
-            stack.append("}" if char == "{" else "]")
-        elif char in "}]" and stack and stack[-1] == char:
-            stack.pop()
-            if not stack:
-                try:
-                    value = json.loads(cleaned[start:index + 1])
-                    return value if isinstance(value, dict) else None
-                except (json.JSONDecodeError, TypeError, ValueError):
-                    return None
-    if stack and not in_string:
-        try:
-            value = json.loads(cleaned[start:] + "".join(reversed(stack)))
-            return value if isinstance(value, dict) else None
-        except (json.JSONDecodeError, TypeError, ValueError):
-            return None
-    return None
 
 
 # Lean schema for NPC speech: separate speech and stage direction fields, and one
@@ -8411,8 +7548,6 @@ _EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
     # and a cut reply is thrown away for a stock line. Still a ceiling against a runaway loop.
     "num_predict": 480,
 }
-_NPC_SPEECH_LOG_KEY = "npc_speech_log"
-_NPC_SPEECH_KEEP = 4
 
 
 def _speech_debug_trail(record):
@@ -8465,23 +7600,10 @@ def _experimental_recent_exchanges(npc_id):
     return result[-_NPC_SPEECH_KEEP:]
 
 
-_MENTIONS_PROMPT_RULE = (
-    "mentions: Konuşmada adını verdiğin bir yer ya da iz varsa onu yaz (kind place ya da trail, name tam ad, "
-    "konuşmada geçtiği gibi); yer için türü listeden seç. Para, ödül, görev ya da eşya yazma. "
-    "Adını verdiğin yer ya da iz yoksa kind none, name boş."
-)
 
 
-_VOICED_PROMPT_RULE = (
-    "\nvoiced: Kentte duyduğun ve bildiğin şeyler listesinden konuşmanda gerçekten aktardıklarının anahtarlarını "
-    "(k1, k2, ...) yaz, en çok üç; hiçbirini aktarmadıysan [\"none\"]. Bir şeyi aktardıysan onun kendi sözcüklerini "
-    "kullan: oyuncunun günlüğüne konuşmanda gerçekten geçen yazılır."
-)
 
 
-def _rumour_lane_on() -> bool:
-    import heard_rumours
-    return heard_rumours.lane_enabled()
 
 
 def _speech_answer_rules() -> str:
@@ -8493,10 +7615,6 @@ def _speech_answer_rules() -> str:
             .replace("yeni kişi, yer veya olgu uydurmadan", "yeni kişi ya da olgu uydurmadan"))
 
 
-def _voiced_keys(raw_intent):
-    """The keys the model said it passed on; None (not given or not a list) leaves the reply's own words to decide."""
-    value = raw_intent.get("voiced") if isinstance(raw_intent, dict) else None
-    return [key for key in value if isinstance(key, str)] if isinstance(value, list) else None
 
 
 def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: bool = False, voiced=None):
@@ -8531,59 +7649,14 @@ def _remember_experimental_npc_speech(npc_id, player_text, npc_text, remember: b
                                     offer_talk=_offer_talk_with(npc))
 
 
-_CLAIM_REJECTION_RE = re.compile(
-    r"\b(?:hatirlamiyorum|hatirlamam|animsamiyorum|soylemedim|vermedim|"
-    r"yanlis|yanilgi|karistir\w*|sanmiyorum|hayir|bilmiyorum|anlamadim|"
-    r"olmadi|olmaz|degil|hic)\b"
-)
-_CLAIM_ACCEPTANCE_RE = re.compile(
-    r"\b(?:buyur\w*|iste|veriyorum|verecegim|verelim|tamam|elbette|tabii|"
-    r"evet|dogru|soyledim|hatirliyorum|al|alin|"
-    # Live 18 Oct: "Hayır, unutmadım", "seninle söz verdiklerim var".
-    r"unutmadim|unutmam|unutmadik|hatirladim|hatirlarim|verecektim|vericektim|"
-    r"tutacagim|tutarim|soz\s+verdi\w*|soz\s+vermis\w*|sozum\s+var|"
-    r"soz\s+verdiklerim\w*|odeme\w*|odeyecegim|oderim)\b"
-)
 
 
-_SPEECH_CUT_RE = re.compile(r"[{}<>\[\]\\]|</?think|\bthe player message\b", re.IGNORECASE)
-_SPEECH_META_RE = re.compile(
-    r"\b(?:json|narration field|player message|context are data|instructions?|"
-    r"the npc|returned is|as requested|this output|adheres)\b",
-    re.IGNORECASE,
-)
 
 
-def _strip_pictographs(text):
-    """Drop emoji and other symbol characters a small model sprays when it derails."""
-    kept = []
-    for char in text:
-        category = unicodedata.category(char)
-        if category in ("So", "Sk", "Cs", "Co", "Cn") or char in "\u200d\ufe0f\u20e3":
-            continue
-        kept.append(char)
-    return "".join(kept)
 
 
-# D-100: a Faerûn person never greets or swears by a real-world faith; these fixed phrases get this world's words.
-_REAL_WORLD_FAITH = (
-    (re.compile(r"\b(?:[Vv]e\s+)?[Aa]leyk[uü]m\s*(?:es)?\s*[Ss]elam\b"), "selam"),
-    (re.compile(r"\b[Ss]elam(?:[uü]n|[ıi]n)\s*[Aa]leyk[uü]m\b"), "selam"),
-    (re.compile(r"(?<!\w)[iİI]n[sş]allah\b"), "tanrılar izin verirse"),
-    (re.compile(r"\b[Mm]a[sş]allah\b"), "vay be"),
-    (re.compile(r"\b[Ee]lhamd[uü]lillah\b"), "tanrılara şükür"),
-    (re.compile(r"\bAllah['’]?a\s+emanet(?:\s+ol(?:un)?)?\b"), "Tymora yar olsun"),
-)
 
 
-def _without_real_world_faith(text):
-    """D-100: the fixed real-world faith phrases swapped for this world's, capitalised where a sentence starts."""
-    for pattern, words in _REAL_WORLD_FAITH:
-        def put(match, words=words, text=text):
-            before = text[:match.start()].rstrip()
-            return words[0].upper() + words[1:] if not before or before[-1] in ".!?…“\"" else words
-        text = pattern.sub(put, text)
-    return text
 
 
 def _clean_npc_speech(raw):
@@ -8617,41 +7690,10 @@ def _clean_npc_speech(raw):
     return text if len(re.sub(r"[^\w]", "", text)) >= 3 else ""
 
 
-def _is_explicit_name_led_gesture_line(spoken_text, npc):
-    """Reject only the reviewed standalone physical gesture mislabeled as speech."""
-    if not isinstance(spoken_text, str) or not isinstance(npc, dict):
-        return False
-    name = npc.get("name")
-    if not isinstance(name, str) or not name.strip():
-        return False
-    text = spoken_text.strip()
-    for opening, closing in (("“", "”"), ("‘", "’"), ('"', '"'), ("'", "'")):
-        if text.startswith(opening) and text.endswith(closing) and len(text) > 2:
-            text = text[1:-1].strip()
-            break
-    return re.fullmatch(
-        re.escape(name.strip()) + r"\s+kaşlarını\s+kaldırıyor[.!?…]*",
-        text,
-        re.IGNORECASE,
-    ) is not None
 
 
-def _clean_npc_stage_direction(raw):
-    """Bound an optional untrusted stage direction without treating it as speech."""
-    if not isinstance(raw, str) or len(raw) > 600:
-        return ""
-    return re.sub(r"\s+", " ", raw).strip()
 
 
-def _compose_experimental_npc_speech(payload):
-    """Join model fields only for whole-narration safety checks."""
-    if not isinstance(payload, dict):
-        return ""
-    return " ".join(
-        value.strip()
-        for key in ("stage_direction", "spoken_text")
-        if isinstance((value := payload.get(key)), str) and value.strip()
-    )
 
 
 def _render_experimental_npc_speech(payload, npc):
@@ -8668,41 +7710,12 @@ def _render_experimental_npc_speech(payload, npc):
     return f"{name}: “{spoken}”"
 
 
-def _without_label_variant(stage, name):
-    """An unnamed person's stage often opens with the label again in other words ('Bir muhafız' / 'Muhafız ...').
-
-    Only the label's own words are compared: the stage's leading words that repeat them go, and one stand-in
-    word for the label's last word ('Mavi kuşaklı kişi,') goes with them when a comma closes it.
-    """
-    core = [w for w in living_world.normalize_text(name).split() if w != "bir"]
-    words = stage.split()
-    kept = 0
-    while kept < len(words) and kept < len(core) and living_world.normalize_text(words[kept]) == core[kept]:
-        kept += 1
-    if kept == 0:
-        return stage
-    if kept < len(core) and kept < len(words) and words[kept].endswith(","):
-        kept += 1
-    return " ".join(words[kept:]).lstrip(",:; ")
 
 
-def _npc_speech_rejects_claim(text):
-    """True when the NPC's line clearly refuses an unverified past-promise claim."""
-    folded = local_dialogue.normalize_text(text)
-    if _CLAIM_ACCEPTANCE_RE.search(folded):
-        return False
-    return bool(_CLAIM_REJECTION_RE.search(folded))
 
 
-_CLAIM_PLAIN_DENIAL_RE = re.compile(
-    r"\b(?:hatirlamiyorum|hatirlamam|animsamiyorum|soylemedim|sozum\s+yok|karistir\w*)\b"
-)
 
 
-def _npc_speech_grants_claim(text):
-    """True when the line goes along with an unrecorded claim; asking back is a person's own answer."""
-    folded = local_dialogue.normalize_text(text)
-    return bool(_CLAIM_ACCEPTANCE_RE.search(folded)) and not _CLAIM_PLAIN_DENIAL_RE.search(folded)
 
 
 def _npc_speech_is_claim_refusal(text, npc=None):
@@ -8736,35 +7749,8 @@ def _npc_name_stance(world, npc, player_input):
     return "reveal"
 
 
-def _spoken_name_answer(spoken_text, npc):
-    """The engine decided to give the name, so the shown reply carries it."""
-    name = str(npc.get("name") or "").strip()
-    import npc_speech_boundary
-    if npc_speech_boundary.says_own_name(spoken_text, name):
-        return spoken_text
-    kept = [
-        sentence for sentence in re.split(r"(?<=[.!?…])\s+", str(spoken_text).strip())
-        if sentence and not re.search(r"\b(?:adım\w*|ismim\w*)", sentence, re.IGNORECASE)
-    ]
-    return " ".join([f"Adım {name}.", *kept])
 
 
-_SPEECH_ANSWER_RULES = (
-    "Önce oyuncunun sorusunu cevapla; sorulan şey senin işin değilse kendi işini anlatma. "
-    "Biliyorsan söyle. Bilmiyorsan çıplak bir “bilmiyorum” ile bitirme: kendi sesinle, aşağıda duyduğun bir "
-    "söylentiyi ya da yeri aktar veya bunu kimin ya da nerenin bilebileceğini söyle (aşağıdaki adlar ya da hancı, "
-    "muhafız, pazar gibi; yeni ad uydurmadan); gizem, kaçamak veya fısıltı ekleme. Reddetmek için kişiliğinden ya da durumdan gelen bir nedenin olsun. "
-    "Sıradan ifadeleri konuşmanın bağlamıyla anla; konu belliyse yeniden sordurma. "
-    "Pazarlık ve yaratıcı denemelere alan aç, başarıyı garanti etme; yeni kilit, şart veya ücret "
-    "uydurma. Oyuncuya karar, rıza, söz, duygu veya hareket yazma. Doğal konuş: önemli anda ağırbaşlı, "
-    "uygun yerde hafif ve duruma özgü esprili; her cümleyi şakaya çevirme. Kısa cevap yeterlidir; ama kenti, "
-    "bir yeri ya da olan biteni anlatman istenirse iki ile dört cümleyle, bildiğin yerlerden ve duyduklarından somut "
-    "ayrıntı ver. Aynı kalıbı ve kapanış sorusunu alışkanlık yapma. Cevabın yanına bir insani dokunuş ekleyebilirsin: "
-    "küçük bir yakınma, bir tepki, işine dair kısa bir söz; yeni kişi, yer veya olgu uydurmadan. "
-    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz. "
-    "Aleykümselam, Selamünaleyküm, inşallah, maşallah, Allah'a emanet denmez; yerine “Selam”, “Tymora yar olsun”, "
-    "“Tanrılar korusun” gibi sözler söylenir.\n"
-)
 
 
 def _town_note(world, npc):
@@ -8787,15 +7773,6 @@ def _has_spoken_to_player(npc):
     return bool(npc_statements.view(_session().world_state)["statements"].get(npc.get("id")))
 
 
-def _job_news_line(world, place_id):
-    """Coming back to a place you had a job at, how it ended is simply there to see ("" when nothing)."""
-    import town_knowledge
-    import world_threads
-    try:
-        return world_threads.arrival_line(world, place_id) or ""
-    except Exception:
-        town_knowledge.log_failure()
-        return ""
 
 
 def _has_session():
@@ -9010,11 +7987,6 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
         return None
 
 
-def _turns_to_someone_else(player_input):
-    """'Yandaki kişiye dönüyorum', 'başka birine soruyorum': not whoever was being talked to."""
-    words = living_world.normalize_text(player_input).split()
-    return any(word in {"baska", "diger", "yandaki", "obur", "oteki"} for word in words) and any(
-        word.startswith(("kisi", "biri", "adam", "kadin")) for word in words)
 
 
 def _town_in_play(world):
@@ -9022,19 +7994,6 @@ def _town_in_play(world):
     return world_threads.ensure(world) is not None
 
 
-def _elsewhere_line(world, name):
-    """Someone the town talks about is real, just not here."""
-    import grounded_action
-    import town_knowledge
-    try:
-        place = town_knowledge.place_of_person(world, name)
-        if place is None:
-            return None
-        grounded_action.note_last(world, place["id"])
-        return f"{name} burada değil; {place['name']} tarafında bulursun."
-    except Exception:
-        town_knowledge.log_failure()
-        return None
 
 
 def _named_elsewhere_line(world, player_input):
@@ -9055,32 +8014,8 @@ def _named_elsewhere_line(world, player_input):
     return _elsewhere_line(world, name)
 
 
-def _overheard_work(world):
-    """Nobody here to ask: what a stranger picks up in the street, tied to a real place."""
-    import grounded_action
-    import local_places
-    import town_knowledge
-    import world_threads
-    try:
-        world_threads.ensure(world)
-        settlement = local_places.settlement_of(world, world.get("location"))
-        threads = world_threads.active(world, settlement) if settlement else []
-        if not threads:
-            return None
-        turn = int(world.get("flags", {}).get("turn_index", 0) or 0)
-        fresh = [t for t in threads if t.get("heard_turn") is None]
-        thread = (fresh or threads)[turn % len(fresh or threads)]
-        world_threads.mark_heard(thread, turn)
-        world_threads.note_heard_names(world, thread["public_line"])
-        grounded_action.note_last(world, thread["place_id"])
-        npc_statements.overheard_place(world, thread["place_id"], world["locations"][thread["place_id"]].get("name", ""))
-        return f"Sana doğrudan iş öneren yok ama sokakta bir laf dönüyor: {thread['public_line']}"
-    except Exception:
-        town_knowledge.log_failure()
-        return None
 
 
-_ASKS_WHO_YOU_ARE = re.compile(r"\b(?:adin|adiniz|isim|ismin|isminiz|kimsin|kimsiniz)\b")
 
 
 def _town_fallback(world, npc, player_input):
@@ -9119,15 +8054,6 @@ def _job_fallback(world):
         return None
 
 
-def _accept_named_job(session, world, npc, thread):
-    """The same writers a yes read from the lists goes through."""
-    from adventure import dialogue_jobs
-    import world_threads
-    if thread.get("type") == "errand":
-        dialogue_jobs.accept_thread_job(session, thread, npc)
-    else:
-        # A reply is settled after the turn was counted; a yes read from the lists before it.
-        world_threads.apply_decision(world, thread, "accepted", int(world.get("flags", {}).get("turn_index", 0) or 0) - 1)
 
 
 def _coin_persuasion(action_result):
@@ -9203,33 +8129,14 @@ def _with_only_backed_money(speech, settled):
     return bool(speech["spoken_text"].strip())
 
 
-# Right under the narrator's truth card, in one place (Dilim 2, Task 15; rc3): an instruction, not an output filter.
-_REFUSED_MOVE_RULE = "MOTOR GERÇEĞİ 'olmadı' diyen bir hamleyi olmuş gibi anlatma; denemeyi ve neden olmadığını anlat."
 
 
-def _bag_note(names):
-    listed = ", ".join(names) if names else "hiçbir şey"
-    return f"Oyuncunun üstünde gerçekten olanlar: {listed}. Başka bir şey onun elinde değildir."
 
 
-def _dm_prompt_note(character, bag_names):
-    """Turkish spell and item names for the narrator (ids and mechanics stay English)."""
-    note = tr_names.narrator_note([*(character.get("cantrips") or []), *(character.get("spells") or [])], bag_names)
-    return note + "\n" if note else ""
 
 
-def _claim_denial_quotes():
-    return tuple(line.split("“", 1)[-1].rstrip("”") for line in _CLAIM_DENIAL_LINES)
 
 
-def _has_private_profile_value(npc, text) -> bool:
-    profile = npc.get("personal_profile")
-    if not isinstance(profile, dict) or not isinstance(text, str):
-        return False
-    return any(value.casefold() in text.casefold()
-               for field, value in profile.items()
-               if field not in interaction_adventure.SHAREABLE_PROFILE_FIELDS
-               and isinstance(value, str) and value.strip())
 
 
 def _experimental_speech_note(world, npc, name_stance, player_input):
@@ -9434,23 +8341,8 @@ def _experimental_npc_dialogue_context(
     }
 
 
-_FOLLOWUP_WORDS = frozenset({
-    "ismi", "adi",
-    "neden", "niye", "nicin", "nasil", "yani", "peki", "onu", "bunu", "sunu",
-    "hangisi", "demek",
-})
 
 
-def _is_short_followup(player_input):
-    """True for a short reply-referring turn: "Neden?", "Neden onu?", "Nasıl yani?".
-
-    Deliberately conservative (at most three words, one of a closed set): a real
-    new question keeps all of its context, only a bare follow-up is narrowed.
-    """
-    if not isinstance(player_input, str) or not player_input.strip():
-        return False
-    words = local_dialogue.normalize_text(player_input).split()
-    return 0 < len(words) <= 3 and any(word in _FOLLOWUP_WORDS for word in words)
 
 
 def _experimental_speech_final_line(player_input, interaction_context):
@@ -9470,30 +8362,6 @@ def _experimental_speech_final_line(player_input, interaction_context):
     return line
 
 
-def _experimental_speech_recap(interaction_context):
-    """Plain-words recap of the last exchange, read just before the new message.
-
-    Small models weight the end of the prompt most; the JSON alone let the
-    model ignore a short follow-up such as 'Neden?'. This is attributed speech,
-    not fact, and carries nothing the JSON context does not already hold.
-    """
-    last = (
-        interaction_context.get("last_exchange")
-        if isinstance(interaction_context, dict) else None
-    )
-    if not isinstance(last, dict):
-        return ""
-    player_line = str(last.get("player", "")).strip()[:240]
-    npc_line = str(last.get("npc_reply", "")).strip()[:400]
-    if not player_line or not npc_line:
-        return ""
-    return (
-        "Previous exchange (what was actually said, attributed speech, not fact):\n"
-        f"Player: {player_line}\n"
-        f"You (the NPC): {npc_line}\n"
-        "A short follow-up refers to this exchange: answer it directly, in "
-        "character, without repeating your previous words.\n"
-    )
 
 
 def _local_place_recommendation_options(npc_target, world_state, place_kind=None):
@@ -10231,17 +9099,6 @@ def _travel_completion(player_input, model_completion="unclear"):
     return "completed" if _has_travel_language(text) else "unclear"
 
 
-def _normalize_turkish_typos(text):
-    """Accent-fold for matching only; retain the original wording for Qwen."""
-    text = str(text).replace("İ", "i").replace("I", "ı").casefold().translate(str.maketrans({
-        "ı": "i", "ş": "s", "ç": "c", "ğ": "g", "ö": "o", "ü": "u",
-        # Circumflex vowels (dükkâncı, kâtip, hâlâ) fold too: typed with or
-        # without the hat they must match the same word.
-        "â": "a", "î": "i", "û": "u",
-    }))
-    text = re.sub(r"[’'`]+", " ", text)
-    text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
-    return " ".join(text.split())
 
 
 def normalize_intent(raw_intent, player_input):
@@ -10592,20 +9449,6 @@ def _current_npc_name():
     return None
 
 
-def _mechanical_outcome(player_input):
-    match = re.search(r"(?im)^Result:\s*(.+?)\s*$", player_input)
-    if not match:
-        return None
-    result = match.group(1).strip().upper()
-    if "KRİTİK BAŞARISIZLIK" in result:
-        return "critical_failure"
-    if "KRİTİK BAŞARI" in result:
-        return "critical_success"
-    if result == "BAŞARISIZ":
-        return "failure"
-    if result == "BAŞARILI":
-        return "success"
-    return None
 
 
 def _stands_by_their_words(npc, player_input):
@@ -10718,17 +9561,6 @@ def _fallback_narration(player_input, npc_target=None):
     return _generic_no_change_response()
 
 
-_GENERIC_NO_CHANGE_RESPONSE = (
-    "Çevrede şimdilik belirgin bir değişiklik olmuyor."
-)
-# Every variant is marked as a scene line where it is returned.
-_GENERIC_NO_CHANGE_RESPONSES = (
-    _GENERIC_NO_CHANGE_RESPONSE,
-    "Çevrede şimdilik belirgin bir değişiklik olmuyor; herkes kendi işine "
-    "bakıyor, söz sende.",
-    "Çevrede şimdilik belirgin bir değişiklik olmuyor; gözün bir şey "
-    "yakalamıyor, sıra sende.",
-)
 
 
 def _quiet_place_line():
@@ -10753,19 +9585,8 @@ def _generic_no_change_response():
         _variation_index(("no_change",), len(_GENERIC_NO_CHANGE_RESPONSES))
     ])
 
-_INTERNAL_PLAYER_FACING_RE = re.compile(
-    r"\bpython\b|\bworld[_ ]state\b|\bunverified_lore_claim\b|"
-    r"dünya\s+durumu\s+değişmedi|belirttiğin\s+eylem\s+dışında\s+sahnede\s+"
-    r"yeni\s+bir\s+değişiklik\s+olmaz|no\s+state\s+change|"
-    r"no\s+new\s+changes",
-    re.IGNORECASE,
-)
 
 
-def _is_internal_player_facing_text(value):
-    return isinstance(value, str) and bool(
-        _INTERNAL_PLAYER_FACING_RE.search(value)
-    )
 
 
 def _natural_unresolved_action_response(player_input, action_result=None):
@@ -10779,83 +9600,11 @@ def _natural_unresolved_action_response(player_input, action_result=None):
     return _stock("Sahnedeki hareketlilik sürüyor; ne yapmak istediğini biraz daha belirgin anlatabilirsin.")
 
 
-def _narration_scene_type(action_result):
-    action_result = action_result or {}
-    action = action_result.get("action")
-    if action == "attack":
-        return "combat"
-    if action == "travel":
-        return "travel"
-    if action in {"query", "inventory", "status"}:
-        return "direct_query"
-    if action == "skill_check":
-        return "skill_check"
-    if action == "dialogue" or action_result.get("npc_id"):
-        return "conversation"
-    return "exploration"
 
 
-_NARRATION_PERSISTENT_OBJECT_HEADS = (
-    "sandik", "hazine", "anahtar", "silah", "kilic", "kalkan",
-    "zirh", "iksir", "kitap", "muhur", "tilsim", "kasa",
-)
-_NARRATION_PERSISTENT_OBJECT_STATE = (
-    "acik", "acildi", "acilmis", "kapali", "kilitli", "kirik", "durur",
-    "duruyor", "bulunur", "bulunuyor", "vardir", "var", "yatar", "uzanir",
-    "asili",
-)
+from game_parts.text_rules_b import _NARRATION_PERSISTENT_OBJECT_HEADS, _NARRATION_PERSISTENT_OBJECT_STATE, _registered_persistent_object_names, _HELD_SKIP, _PLAYER_MENTAL_STATE_PREFIXES, _PLAYER_MENTAL_STATE_CONTEXT_RE, _PLAYER_MENTAL_STATE_COPULA_RE, _PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE, _PLAYER_MENTAL_STATE_AFFECT_RE, _PLAYER_FEELING_RE, _is_figurative_key_transfer, _NARRATED_NAME_PATTERNS, _unseen_registered_names, _SPEAKING_NAME_PATTERNS, _unseen_speakers, _lore_claims_are_supported, _lore_guard_text, _lore_fact_records, _LORE_ENTITY_TITLE_RE, _LORE_PROPER_NAME_RE, _LORE_ENTITY_FOLLOWING_CUE_RE, _LORE_SENTENCE_START_WORDS, _GENERIC_SPEAKER_LABEL_RE, _is_generic_speaker_label, _LORE_UNSUPPORTED_DETAIL_PATTERNS, _LORE_RULER_TITLE_RE, _LORE_ENTITY_RELATION_RE, _LORE_ROUTE_DISTANCE_QUERY_RE, _UNVERIFIED_LORE_RESPONSE, _UNVERIFIED_DISTANCE_RESPONSE, _UNVERIFIED_RULER_RESPONSE, _INDOOR_DETAIL, _ASKS_DISTANCE, _salvage_plain_speech, _TERMINATOR_MASK, _split_sentences_keep_speech, _spoken_lore_fact_ids, _has_active_local_npc_focus_for_place_request
 
 
-def _registered_persistent_object_names(world_state, include_carried=False):
-    """Collect canonical persistent objects that may be described in-scene."""
-    location = world_state.get("location")
-    scene_names = set()
-    carried_names = set()
-
-    def add_name(target, value):
-        value = equipment_economy.label(value)
-        if isinstance(value, str) and value.strip():
-            target.add(value.strip())
-
-    ground_by_location = world_state.get("ground_items_by_location", {})
-    if isinstance(ground_by_location, dict):
-        values = ground_by_location.get(location, [])
-        if isinstance(values, list):
-            for value in values:
-                add_name(scene_names, value)
-    legacy_ground = world_state.get("ground_items", [])
-    if isinstance(legacy_ground, list):
-        for value in legacy_ground:
-            add_name(scene_names, value)
-
-    for container in world_state.get("containers", []):
-        if not isinstance(container, dict):
-            continue
-        if container.get("location") not in (None, location):
-            continue
-        add_name(scene_names, container.get("name"))
-        contents = container.get("contents", [])
-        if isinstance(contents, list):
-            for value in contents:
-                add_name(scene_names, value)
-
-    for feature in world_state.get("features", []):
-        if not isinstance(feature, dict) or feature.get("location") != location:
-            continue
-        add_name(scene_names, feature.get("name"))
-        add_name(scene_names, feature.get("description"))
-
-    import exploration
-    for door in exploration.visible_doors(world_state):
-        if not isinstance(door, dict) or door.get("location") != location:
-            continue
-        add_name(scene_names, door.get("name"))
-
-    for value in world_state.get("inventory", []):
-        add_name(carried_names, value)
-    if include_carried:
-        scene_names.update(carried_names)
-    return scene_names
 
 
 def _unregistered_persistent_object_claim(world_state, narration):
@@ -10915,10 +9664,6 @@ def _unregistered_persistent_object_claim(world_state, narration):
     return claim.group(0)
 
 
-_HELD_SKIP = frozenset({
-    "el", "goz", "yuz", "bas", "omuz", "kol", "parmak", "sac", "agiz",
-    "kucuk", "buyuk", "eski", "yeni", "pasli", "tozlu", "tuttugu", "tutan",
-})
 
 
 def _unregistered_held_object(world_state, narration):
@@ -11032,44 +9777,8 @@ def _unsupported_npc_history_or_relationship_claim(
     return None
 
 
-_PLAYER_MENTAL_STATE_PREFIXES = (
-    "anla", "kavra", "dusun", "inan", "guven", "hatirla", "unut",
-    "kork", "urk", "endiselen", "kaygilan", "sevin", "uzul", "utan",
-    "hoslan", "ist", "arzu", "niyet", "plan", "tercih", "sec",
-)
-_PLAYER_MENTAL_STATE_CONTEXT_RE = re.compile(
-    r"\b(?:idrak|karar|kabul|redd|tercih|arzu|niyet|plan|"
-    r"memnun|mutlu|mutsuz|hosnut|uzgun|korkmus|kork|endiseli|kaygili|heyecan|"
-    r"keyif|gurur|rahatsiz|hosuna)\b"
-)
-_PLAYER_MENTAL_STATE_COPULA_RE = re.compile(
-    r"\b(?:mutlu|mutsuz|memnun|hoşnut|üzgün|endişeli|kaygılı|"
-    r"korkmuş|heyecanlı|kararsız|niyetli|kararlı|istekli)"
-    r"(?:sın|sin|sun|sün)\b"
-)
-_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE = re.compile(
-    r"\b(?:oyuncu|karakter(?:in)?|kahraman(?:ın)?)\b[^.!?;]{0,48}\b"
-    r"(?:anla|kavra|düşün|inan|güven|hatırla|unut|kork|ürk|"
-    r"endişelen|kaygılan|sevin|üzül|utan|hoşlan|iste|arzu\s+et|"
-    r"niyetlen|planla|tercih\s+et|seç|fark\s+et|idrak\s+et|"
-    r"mutlu\s+ol|mutsuz\s+ol|memnun\s+ol|hoşnut\s+ol|üzgün\s+ol|"
-    r"karar\s+ver|kabul\s+et|reddet)"
-    r"\w*(?:d[ıiuü]|t[ıiuü]|yor|m[ıiuü]ş|acak|ecek|r)\b"
-)
-_PLAYER_MENTAL_STATE_AFFECT_RE = re.compile(
-    r"\bseni\b[^.!?;]{0,28}\b(?:korkut|mutlu\s+et|mutsuz\s+et|"
-    r"memnun\s+et|rahatsız\s+et|endişelendir)\w*\b"
-)
 
 
-_PLAYER_FEELING_RE = re.compile(
-    r"\b(?:(?:gerginlik|tedirginlik|huzursuzluk|korku|endişe|kaygı|heyecan|rahatsızlık|öfke|"
-    r"utanç|sevinç|merak|şüphe|gurur|rahatlama|ürperti|pişmanlık)\w*(?:\s+\w+){0,2}|"
-    r"\w+[dt][ıiuü]ğ[ıiuü]n[ıiuü]|gibi|"
-    r"(?:gergin|tedirgin|huzursuz|rahatsız|endişeli|güvende|rahat))\s+"
-    r"(?:hissed\w*|hisset\w*|duyuyorsun|duydun)\b",
-    re.IGNORECASE,
-)
 
 
 def _unverified_player_mental_state_trigger(player_action_text, second_person_verb):
@@ -11152,9 +9861,6 @@ def _is_explicitly_negated_transfer(match, text):
     return True
 
 
-def _is_figurative_key_transfer(text, match_start):
-    prefix = str(text or "")[:match_start].casefold().rstrip(" \t\r\n:;,“”\"'")
-    return bool(re.search(r"(?:kalbimin|yüreğimin|yuregimin)$", prefix))
 
 
 def _experimental_private_npc_disclosure(
@@ -11230,64 +9936,15 @@ def _experimental_private_npc_disclosure(
     return False
 
 
-# A capitalised word in a person's place: acting, standing, described, or the speaker before a quote.
-_NARRATED_NAME_PATTERNS = (
-    r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})(?:,)?\s+(?=(?:içeri|dışarı|düşünür|korkar|yaklaşır|girer|konuşur|yanıt verir|şöyle der|"
-    r"sana|senden|yakınında|yanında|ortaya çıkar|belirir|vardır|durur|gözleri|başını|adlı|isimli|adında|isminde|"
-    r"barmen|gezgin|tüccar|muhafız|komutan|sakin|yaşlı|genç|sessiz|eski|yorgun|orta yaşlı|"
-    r"uzun boylu|kısa saçlı|solgun|iri yapılı|kır saçlı|kararlı)\b)",
-    r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}),\s*[\"“]",
-)
 
 
-def _unseen_registered_names(world_state):
-    """Saved people and the people places have named who are not in this scene: each name word -> full name.
-
-    A word shared with someone standing here is theirs and left out.
-    """
-    here = world_state.get("location")
-    present, names = set(), {}
-    for npc in world_state.get("npcs", []):
-        name = str(npc.get("name") or "").strip() if isinstance(npc, dict) else ""
-        if name and npc.get("location") == here:
-            present.update(name.casefold().split())
-        elif name:
-            names.setdefault(name, None)
-    for place in world_state.get("locations", {}).values():
-        name = str(place.get("resident_name") or "").strip() if isinstance(place, dict) else ""
-        if name:
-            names.setdefault(name, None)
-    return {word: name for name in names for word in name.casefold().split() if word not in present}
 
 
-# The speaking shape among them: arriving, acting in the scene, or the speaker before a quote (a mention, such as
-# "X sana ... gönderecekti" or "X adlı tüccar", is not one).
-_SPEAKING_NAME_PATTERNS = (
-    r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})(?:,)?\s+(?=(?:içeri|yaklaşır|girer|konuşur|yanıt verir|şöyle der|"
-    r"ortaya çıkar|belirir|durur)\b)",
-    r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})\s*[,:]\s*[\"“]",
-)
 
 
 from game_parts.text_rules_a import _inside_speech, _SPEECH_SPAN_RE
 
 
-def _unseen_speakers(text, unseen):
-    """(start, end) of each unseen registered name in the speaking shape outside speech, the whole name when said."""
-    found = set()
-    for pattern in _SPEAKING_NAME_PATTERNS:
-        for match in re.finditer(pattern, text):
-            full = unseen.get(match.group(1).casefold())
-            if not full or _inside_speech(text, match.start(1)):
-                continue
-            start, end = match.span(1)
-            low = max(0, start - len(full))
-            for said in re.finditer(re.escape(full), text[low:end + len(full)], re.IGNORECASE):
-                if low + said.start() <= start < low + said.end():
-                    start, end = low + said.start(), low + said.end()
-                    break
-            found.add((start, end))
-    return sorted(found)
 
 
 def _unseen_self_introductions(text, unseen):
@@ -12458,96 +11115,6 @@ def should_generate_features(player_input, location_changed=False, interaction_m
     return bool(location_changed and not location_features())
 
 
-NPC_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "proposal_key": {"type": "string"},
-        "name": {"type": "string"}, "role": {"type": "string"},
-        "location": {"type": "string"}, "personality": {"type": "string"},
-        "appearance": {"type": "string"}, "relationship": {"type": "string"},
-        "knowledge": {"type": "array", "items": {"type": "string"}},
-        "memory": {"type": "array", "items": {"type": "string"}},
-        "backstory": {"type": "string"},
-    },
-    "required": ["proposal_key", "name", "role", "location"],
-    "additionalProperties": False,
-}
-LOCATION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "proposal_key": {"type": "string"},
-        "name": {"type": "string"},
-        "type": {"type": "string"},
-        "description": {"type": "string"},
-        "aliases": {"type": "array", "items": {"type": "string"}},
-    },
-    "required": ["proposal_key", "name", "type", "description", "aliases"],
-    "additionalProperties": False,
-}
-WORLD_UPDATE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "create_locations": {"type": "array", "items": LOCATION_SCHEMA},
-        "create_npcs": {"type": "array", "items": NPC_SCHEMA},
-        "update_npcs": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"}, "personality": {"type": "string"},
-                    "appearance": {"type": "string"}, "relationship": {"type": "string"},
-                    "knowledge": {"type": "array", "items": {"type": "string"}},
-                    "memory": {"type": "array", "items": {"type": "string"}},
-                    "backstory": {"type": "string"},
-                },
-                "required": ["id"],
-                "additionalProperties": False,
-            },
-        },
-        "create_features": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "proposal_key": {"type": "string"},
-                    "location": {"type": "string"}, "parent_id": {"type": "string"},
-                    "name": {"type": "string"},
-                    "description": {"type": "string"},
-                    "kind": {"type": "string"},
-                    "aliases": {"type": "array", "items": {"type": "string"}},
-                },
-                "required": ["proposal_key", "location", "name"],
-                "additionalProperties": False,
-            },
-        },
-        "create_shops": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "proposal_key": {"type": "string"},
-                    "name": {"type": "string"},
-                    "description": {"type": "string"},
-                    "shopkeeper": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string"},
-                            "personality": {"type": "string"},
-                            "appearance": {"type": "string"},
-                        },
-                        "required": ["name"],
-                        "additionalProperties": False,
-                    },
-                },
-                "required": ["proposal_key", "name", "shopkeeper"],
-                "additionalProperties": False,
-            },
-        },
-        "events": {"type": "array", "items": {"type": "string"}},
-    },
-    "required": ["create_locations", "create_npcs", "update_npcs", "create_features", "events"],
-    "additionalProperties": False,
-}
 def _empty_lore_authority_context():
     return {
         "authority_boundary": {
@@ -12590,70 +11157,10 @@ def _prepare_lore_authority_context(lore_context):
     return context
 
 
-def _lore_claims_are_supported(lore_claims, lore_context):
-    if not isinstance(lore_claims, list) or len(lore_claims) > 24:
-        return False
-    sections = lore_context.get("sections", {})
-    supported_ids = set()
-    for section_name in (
-        "official_forgotten_realms_lore",
-        "campaign_canon",
-        "player_known_lore",
-        "npc_known_lore",
-    ):
-        for item in sections.get(section_name, []):
-            if not isinstance(item, dict):
-                continue
-            fact_id = item.get("fact_id") or item.get("override_id")
-            if isinstance(fact_id, str):
-                supported_ids.add(fact_id)
-    seen = set()
-    for fact_id in lore_claims:
-        if (
-            not isinstance(fact_id, str)
-            or not fact_id
-            or len(fact_id) > 128
-            or fact_id not in supported_ids
-            or fact_id in seen
-        ):
-            return False
-        seen.add(fact_id)
-    from api.lore_authority.claim_authorization import freeze_claims_authorized
-
-    return freeze_claims_authorized(list(seen), lore_context)
 
 
-def _lore_guard_text(value):
-    text = str(value or "").casefold().translate(
-        str.maketrans({
-            "ı": "i", "ğ": "g", "ü": "u", "ş": "s", "ö": "o", "ç": "c",
-        })
-    )
-    text = re.sub(r"['’](?:s|[a-z]{1,5})\b", " ", text)
-    return " ".join(re.findall(r"[a-z0-9]+", text))
 
 
-def _lore_fact_records(lore_context, lore_claims):
-    if not isinstance(lore_context, dict) or not isinstance(lore_claims, list):
-        return []
-    sections = lore_context.get("sections", {})
-    if not isinstance(sections, dict):
-        return []
-    records = []
-    for section_name in (
-        "official_forgotten_realms_lore",
-        "campaign_canon",
-        "player_known_lore",
-        "npc_known_lore",
-    ):
-        items = sections.get(section_name, [])
-        for item in items if isinstance(items, list) else []:
-            if (
-                isinstance(item, dict)
-                and (item.get("fact_id") or item.get("override_id")) in lore_claims
-            ):
-                records.append(item)
-    return records
 
 
 def _lore_entity_names(lore_context, world_state):
@@ -12712,40 +11219,6 @@ def _lore_entity_names(lore_context, world_state):
     return names_by_id, known_phrases, known_tokens
 
 
-_LORE_ENTITY_TITLE_RE = re.compile(
-    r"\b(?:king|queen|monarch|emperor|empress|deity|god|goddess|"
-    r"city|town|village|river|mountain|region|kingdom|ruler|"
-    r"kral|kraliçe|hükümdar|imparator|tanrı|tanrıça|şehir|kasaba|"
-    r"nehir|dağ|bölge|krallık)\s+(?:of\s+)?"
-    r"([A-ZÇĞİÖŞÜ][A-Za-z0-9ÇĞİÖŞÜçğıöşü'’\-]*"
-    r"(?:\s+[A-ZÇĞİÖŞÜ][A-Za-z0-9ÇĞİÖŞÜçğıöşü'’\-]*){0,2})"
-)
-_LORE_PROPER_NAME_RE = re.compile(
-    r"\b[A-ZÇĞİÖŞÜ][A-Za-z0-9ÇĞİÖŞÜçğıöşü'’\-]*"
-    r"(?:\s+[A-ZÇĞİÖŞÜ][A-Za-z0-9ÇĞİÖŞÜçğıöşü'’\-]*){0,2}\b"
-)
-_LORE_ENTITY_FOLLOWING_CUE_RE = re.compile(
-    r"\b(?:is|was|became|rules?|ruled|lives?|located|founded|"
-    r"known as|called|named|merchant|trader|shopkeeper|innkeeper|"
-    r"deity|god|goddess|city|town|kingdom|ruler|"
-    r"adlı|isimli|denilen|olarak bilinen|şehri|kasabası|nehri|"
-    r"yaşar|yönetir|hükmeder|tanrısı|tanrıçası)\b",
-    re.IGNORECASE,
-)
-_LORE_SENTENCE_START_WORDS = {
-    "how", "why", "what", "who", "whom", "where", "when", "which", "whose",
-    "does", "do", "did", "is", "are", "was", "were", "has", "have", "had",
-    "can", "could", "should", "would", "will", "may", "might", "tell",
-    "a", "an", "and", "as", "at", "before", "but", "during", "for",
-    "from", "here", "however", "in", "it", "near", "next", "one", "on",
-    "recent", "several", "some", "the", "then", "there", "this", "today",
-    "when", "while", "with", "after", "bir", "bu", "bölgede", "birkaç",
-    "gece", "gün", "halk", "insanlar", "ışık", "karanlık", "kentin",
-    "loş", "market", "ortam", "ortalık", "pazar", "rüzgar", "rüzgâr",
-    "sabah", "sessizlik", "sokak", "sonra", "şehir", "şehrin", "taverna",
-    "uzakta", "yağmur", "yakınlarda", "yerel", "akşam", "büyük", "sıcak",
-    "ben", "benim", "adım", "ismim",
-}
 
 
 def _is_registered_lore_name(candidate, known_phrases, known_tokens):
@@ -12770,15 +11243,8 @@ def _is_registered_lore_name(candidate, known_phrases, known_tokens):
     )
 
 
-_GENERIC_SPEAKER_LABEL_RE = re.compile(
-    r"(?:yakındaki kişi|bir [a-zçğıöşü]+(?: [a-zçğıöşü]+)?|(?:[a-zçğıöşü]+ ){1,3}biri)",
-    re.IGNORECASE,
-)
 
 
-def _is_generic_speaker_label(label):
-    """A player-facing descriptor ("Yakındaki kişi", "Bir muhafız") names no entity."""
-    return bool(_GENERIC_SPEAKER_LABEL_RE.fullmatch(str(label).strip()))
 
 
 def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
@@ -12841,172 +11307,6 @@ def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
     return False
 
 
-_LORE_UNSUPPORTED_DETAIL_PATTERNS = (
-    (
-        re.compile(
-            r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|"
-            r"eleven|twelve|bir|iki|üç|uc|dört|dort|beş|bes|altı|alti|"
-            r"yedi|sekiz|dokuz|on)\s*(?:miles?|mi|kilometers?|kilometres?|"
-            r"km|meters?|metres?|yards?|leagues?|mil|kilometre|metre)\b"
-            r"|\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|"
-            r"eleven|twelve|bir|iki|üç|uc|dört|dort|beş|bes|altı|alti|"
-            r"yedi|sekiz|dokuz|on)\s*(?:hours?|days?|saat|gün|gun)\s*"
-            r"(?:away|from\b|journey|travel|by road|uzak\w*|mesafe\w*|"
-            r"yol\w*|kuzey\w*|güney\w*|guney\w*|doğu\w*|dogu\w*|"
-            r"batı\w*|bati\w*)"
-            r"|\b(?:few|several|short)\s+(?:miles?|days?|hours?|"
-            r"gün|gun|saat)\s+(?:away|from\b|journey|travel|by road|"
-            r"uzak\w*|mesafe\w*|yol\w*)",
-            re.IGNORECASE,
-        ),
-        "distance",
-    ),
-    (
-        re.compile(
-            r"\b(?:council|elected|election|tax(?:es)?|laws?|senate|"
-            r"legislature|govern(?:ance|ed|s|ment)?|policy|policies|"
-            r"administration|government|hükümet|yönetim|yönetir|"
-            r"seçim|vergi|kanun|yasa|meclis|konsey|liderlik|politika)\b",
-            re.IGNORECASE,
-        ),
-        "governance",
-    ),
-    (
-        re.compile(
-            r"\b(?:silver|metalworking|smithing|blacksmith|jewel(?:ry)?|"
-            r"weapon.?smith|armou?rer|shipbuilding|pottery|weaving|"
-            r"glassblow\w*|gümüş|gumus|demircilik|demirci|kuyum\w*|"
-            r"silah ustası|zırh|zirh|seramik|dokuma|cam işçiliği|"
-            r"cam isçiligi)\b",
-            re.IGNORECASE,
-        ),
-        "craft_specialization",
-    ),
-    (
-        re.compile(
-            r"\b(?:fall of|rise of|collapse of|conquered|founded|"
-            r"destroyed by|histor(?:y|ical)|history|recent calamities|"
-            r"recent disasters|recent catastrophes|after the eruption|"
-            r"tarih|yıkılışı|yikilisi|kuruluşu|kurulusu|fethedil|"
-            r"çöküş|cokus|felaket)\b",
-            re.IGNORECASE,
-        ),
-        "history",
-    ),
-    (
-        re.compile(
-            r"\b(?:because of|due to|thanks to|caused by|resulted from|"
-            r"as a result|attributed to|led(?: by| to)?|responsible for|"
-            r"directed(?: by)?|managed(?: by)?|oversaw|"
-            r"under (?:the )?leadership of|efforts? of|helped rebuild|"
-            r"sayesinde|nedeniyle|sebebiyle|yol açtı|yol acti|"
-            r"katkı sağladı|katki sagladi)\b",
-            re.IGNORECASE,
-        ),
-        "causal_attribution",
-    ),
-    (
-        re.compile(
-            r"\b(?:junction|intersection|confluence|crosses|connects? to|"
-            r"meets|joins|road to|route to|leads? to|north of|south of|"
-            r"east of|west of|direct route|kavşak|kavsak|birleşir|"
-            r"birlesir|bağlanır|baglanir|yol ayrımı|yol ayrimi|"
-            r"kuzeyinde|güneyinde|guneyinde|doğusunda|dogusunda|"
-            r"batısında|batisinda)\b",
-            re.IGNORECASE,
-        ),
-        "geographic_relation",
-    ),
-    (
-        re.compile(
-            r"\b(?:tirelessly|bustling|crowded|flourishing|prosperous|"
-            r"recent calamities|recent disasters|son felaketler|"
-            r"yoğun biçimde|yogun bicimde|canla başla|canla basla)\b",
-            re.IGNORECASE,
-        ),
-        "unsupported_setting_state",
-    ),
-    (
-        re.compile(
-            r"\b(?:most important|largest|important city|major city|"
-            r"en önemli şehir\w*|en onemli sehir\w*|en büyük şehir\w*|"
-            r"en buyuk sehir\w*|kuzeyin merkezi|center of the north)\b",
-            re.IGNORECASE,
-        ),
-        "unsupported_city_prominence",
-    ),
-    (
-        re.compile(
-            r"\b(?:neighborhood\w*|district\w*|ward\w*|quarter\w*|"
-            r"mahalle\w*|semt\w*|destroy\w*|devastat\w*|demolish\w*|"
-            r"damag\w*|ruin\w*|yıkım\w*|yikim\w*|yıkıl\w*|yikil\w*|"
-            r"tahrip\w*|yok ol\w*)\b",
-            re.IGNORECASE,
-        ),
-        "unsupported_urban_damage_detail",
-    ),
-    (
-        re.compile(
-            r"\b(?:newly built buildings?|new buildings?|modern technolog\w*|"
-            r"old architecture|older architecture|new construction|"
-            r"yeni yapılan binalar?|yeni yapilan binalar?|"
-            r"modern teknoloj\w*|eski mimari\w*|"
-            r"eski taşlar?|eski taslar?|ahşap ve demir|"
-            r"ahsap ve demir|wood and iron)\b",
-            re.IGNORECASE,
-        ),
-        "unsupported_built_environment_detail",
-    ),
-    (
-        re.compile(
-            r"\b(?:econom\w*|economy|population|citizens?|"
-            r"ekonomi\w*|ekonomisi\w*|ekonomisini\w*|halkını zorla\w*|"
-            r"halkini zorla\w*|people.{0,30}(?:struggle|suffer)|"
-            r"(?:struggle|suffer).{0,30}people)\b",
-            re.IGNORECASE,
-        ),
-        "unsupported_social_or_economic_state",
-    ),
-)
-_LORE_RULER_TITLE_RE = re.compile(
-    r"\b(?:king|queen|monarch|emperor|empress|kingdom|kral|kraliçe|"
-    r"hükümdar|imparator|imparatoriçe)\b",
-    re.IGNORECASE,
-)
-_LORE_ENTITY_RELATION_RE = re.compile(
-    r"\b(?:because of|due to|thanks to|caused by|resulted from|"
-    r"as a result|attributed to|led(?: by| to)?|responsible for|"
-    r"directed(?: by)?|managed(?: by)?|oversaw|"
-    r"under (?:the )?leadership of|efforts? of|helped rebuild|"
-    r"junction|intersection|confluence|"
-    r"crosses|connects? to|meets|joins|road to|route to|leads? to|"
-    r"kavşak|kavsak|birleşir|birlesir|bağlanır|baglanir|"
-    r"sayesinde|nedeniyle|sebebiyle|katkı sağladı|katki sagladi)\b",
-    re.IGNORECASE,
-)
-_LORE_ROUTE_DISTANCE_QUERY_RE = re.compile(
-    r"\b(?:road|route|path|way|distance|miles?|kilometers?|kilometres?|"
-    r"how far|how many\s+(?:miles?|kilometers?|kilometres?|meters?|metres?)|"
-    r"far from|on the road|"
-    r"yol|rota|guzergah|mesafe\w*|uzaklik\w*|kac mil|kac kilometre|"
-    r"ne kadar uzak|arasi)\b",
-    re.IGNORECASE,
-)
-# Unverified lore is answered inside the fiction. With a present NPC the person
-# says, in their own voice, that they do not know; without one the narrator
-# describes how unsettled the talk around the player is. Nothing here names
-# records, data, memory or verification, and nothing here asserts a fact.
-_UNVERIFIED_LORE_RESPONSE = (
-    "Bu konudaki söylentiler belirsiz; kulağına çalınan her ağız başka konuşuyor."
-)
-_UNVERIFIED_DISTANCE_RESPONSE = (
-    "Yolun uzunluğu hakkında duyduklarının hiçbiri birbirini tutmuyor; kimi bir "
-    "günlük yürüyüş diyor, kimi iki. Kesin bir ölçü henüz elinde değil."
-)
-_UNVERIFIED_RULER_RESPONSE = (
-    "Bu yerin yöneticisinin kim olduğu hakkında herkes başka bir şey fısıldıyor; "
-    "hangisinin doğru olduğunu henüz seçemiyorsun."
-)
 
 
 def _rejected_lore_narration(player_input, npc_target=None):
@@ -13020,9 +11320,6 @@ def _rejected_lore_narration(player_input, npc_target=None):
     return _generic_no_change_response()
 
 
-_INDOOR_DETAIL = re.compile(
-    r"\b(?:(tezgah|banko|salon|mutfak|somine)\w*|(masa|oda|raf)(?:n?in|ya|da|dan|si\w*|lar\w*|a|ta|tan)?)\b"
-)
 
 
 def _stage_within_the_street(stage, world_state):
@@ -13063,7 +11360,6 @@ def _shown_stage_direction(stage, world_state):
     return _stage_within_the_street(stage.strip(), world_state)
 
 
-_ASKS_DISTANCE = re.compile(r"\b(?:mesafe|uzaklik|kac mil|kac kilometre|ne kadar uzak)\b")
 
 
 def _unverified_lore_response(player_input, npc_target=None):
@@ -13207,45 +11503,10 @@ def _narration_has_unsupported_lore_claim(
     return False
 
 
-def _salvage_plain_speech(raw_intent):
-    """Keep a usable reply when only its helper conversation proposal is bad.
-
-    Safe only for plain speech: with a real operation (promise, trade, item
-    request...) a malformed packet must still be vetoed, so nothing is kept.
-    The rejected proposal is cleared and grants no authority.
-    """
-    if not isinstance(raw_intent, dict):
-        return False
-    interaction = raw_intent.get("interaction")
-    narration = raw_intent.get("narration")
-    if not isinstance(interaction, dict):
-        return False
-    if interaction.get("operation") not in (None, "none"):
-        return False
-    if not isinstance(narration, str) or not narration.strip():
-        return False
-    proposal = interaction.get("conversation")
-    # A factual reading (personal purpose, cause, identity, lore...) needs
-    # evidence; without it the answer must stay the in-character "I don't know".
-    if isinstance(proposal, dict) and proposal.get("meaning") not in (None, "other"):
-        return False
-    interaction["conversation"] = None
-    return True
 
 
-_TERMINATOR_MASK = {".": "\u0001", "!": "\u0002", "?": "\u0003"}
 
 
-def _split_sentences_keep_speech(text):
-    """Split on sentence ends, but never inside a quoted utterance."""
-    masked = _SPEECH_SPAN_RE.sub(
-        lambda span: "".join(_TERMINATOR_MASK.get(c, c) for c in span.group(0)), text
-    )
-    unmask = {mask: char for char, mask in _TERMINATOR_MASK.items()}
-    return [
-        "".join(unmask.get(c, c) for c in part)
-        for part in re.split(r"(?<=[.!?。！？])\s+", masked)
-    ]
 
 
 def _repair_unsupported_lore_narration(narration, lore_claims, lore_context, world_state):
@@ -13278,77 +11539,8 @@ def _scene_has_registered_craft_role(term, world_state):
     return False
 
 
-def _spoken_lore_fact_ids(lore_context, response, selected_ids):
-    """Keep only packet facts whose object is actually present in the answer."""
-    if not isinstance(response, str) or not isinstance(lore_context, dict):
-        return []
-    sections = lore_context.get("sections", {})
-    if not isinstance(sections, dict):
-        return []
-    names = {
-        entity["entity_id"]: entity["canonical_name"]
-        for entity in sections.get("verified_entities", [])
-        if isinstance(entity, dict)
-        and isinstance(entity.get("entity_id"), str)
-        and isinstance(entity.get("canonical_name"), str)
-    }
-    text = response.casefold()
-    spoken = []
-    for section_name in (
-        "official_forgotten_realms_lore",
-        "campaign_canon",
-        "player_known_lore",
-    ):
-        items = sections.get(section_name, [])
-        if not isinstance(items, list):
-            continue
-        for fact in items:
-            if not isinstance(fact, dict):
-                continue
-            fact_id = fact.get("fact_id")
-            if not isinstance(fact_id, str) or fact_id not in selected_ids or fact_id in spoken:
-                continue
-            value = fact.get("object_id_or_value")
-            token = names.get(value) if isinstance(value, str) else None
-            if not isinstance(token, str):
-                token = value if isinstance(value, str) and ":" not in value else ""
-            token = token.replace("_", " ").strip()
-            notes = fact.get("notes")
-            note_text = notes.strip() if isinstance(notes, str) else ""
-            if (len(token) >= 4 and token.casefold() in text) or (
-                len(note_text) >= 20 and note_text.casefold() in text
-            ):
-                spoken.append(fact_id)
-    return spoken
 
 
-def _has_active_local_npc_focus_for_place_request(world_state, *, target_id=None):
-    if not isinstance(world_state, dict):
-        return False
-    flags = world_state.get("flags", {})
-    if not isinstance(flags, dict):
-        flags = {}
-    try:
-        focus_is_active = int(flags.get("active_npc_until_turn", -1)) >= (
-            int(flags.get("turn_index", 0)) + 1
-        )
-    except (TypeError, ValueError):
-        focus_is_active = False
-    candidate_ids = [target_id] if isinstance(target_id, str) and target_id else []
-    if focus_is_active:
-        candidate_ids.extend(
-            value
-            for value in (flags.get("active_npc_id"), flags.get("last_npc_id"))
-            if isinstance(value, str) and value
-        )
-    return bool(candidate_ids) and any(
-        isinstance(npc, dict)
-        and npc.get("id") in candidate_ids
-        and npc.get("location") == world_state.get("location")
-        and npc.get("status") == "active"
-        and npc.get("combat_status") not in {"unconscious", "dead"}
-        for npc in world_state.get("npcs", [])
-    )
 
 
 def _supported_lore_question_response(player_input, lore_context, world_state):
@@ -14030,62 +12222,8 @@ def _player_question_has_unverified_lore_claim(
     return False
 
 
-DM_RESPONSE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "world_updates": WORLD_UPDATE_SCHEMA,
-        "narration": {"type": "string"},
-        "lore_claims": {"type": "array", "items": {"type": "string"}},
-        # Optional (K3): the player's own words as a separate segment, and the
-        # canonical ids of the visible features the narration refers to.
-        "player_line": {
-            "type": "object",
-            "properties": {"text": {"type": "string", "maxLength": 300}},
-            "required": ["text"],
-            "additionalProperties": False,
-        },
-        "feature_refs": {"type": "array", "items": {"type": "string"}, "maxItems": 8},
-        # Optional: what the narration says changed hands. Python commits it or the sentence goes.
-        "item_claims": {
-            "type": "array",
-            "maxItems": 2,
-            "items": {
-                "type": "object",
-                "properties": {"item": {"type": "string", "maxLength": 48},
-                               "to": {"type": "string", "enum": ["player", "person"]}},
-                "required": ["item", "to"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    "required": ["narration", "world_updates", "lore_claims"],
-    "additionalProperties": False,
-}
 
-def _validated_player_line(raw_line, player_input):
-    """Return the player's own line to show, or None. The model never writes it.
-
-    A quote the player supplied beats any model rewrite. Otherwise the model may
-    only point at words the player actually typed: the line must be a bounded,
-    single-line, quote-free substring of the player's own input (whitespace and
-    case normalized). Anything else the model invents is dropped.
-    """
-    if not isinstance(raw_line, dict):
-        return None
-    import npc_speech_boundary
-    supplied = npc_speech_boundary.player_supplied_quote(player_input)
-    if supplied:
-        return supplied
-    text = raw_line.get("text")
-    if not isinstance(text, str) or "\n" in text or "\r" in text:
-        return None
-    text = text.strip()
-    if not text or len(text) > 300 or any(mark in text for mark in "“”«»\""):
-        return None
-    squash = lambda value: " ".join(str(value).split()).casefold()
-    if squash(text) not in squash(player_input or ""):
-        return None
-    return text
+from game_parts.text_rules_b import _validated_player_line, _WINDOW_WORDS, _LOCK_WORDS, _TRACK_WORDS, _resolved_skill_result_narration, _TELLS_FAILURE, _UNMOVED, _QUOTE_CLOSER_RE, _QUOTE_OPENER_RE, _trim_dangling_quote, _dialogue_repair_has_attributed_answer, _skill_result_category, _print_skill_result, _ATTACK_VERB_PATTERN, _ATTACK_BLOW_PHRASE, _CHARGING_IN, _ATTACK_LOOKALIKE_TOKEN, _ATTACK_INSTRUMENT_TOKENS, _INANIMATE_HIT_OBJECT, _CREATURE_REFERENCE, _attack_verb_tokens, _immediate_check_refusal, _turkish_genitive_form, _asks_what_is_going_on, _is_bare_greeting, _is_scene_referent_activity_observation, _public_scene_person_text, _LOOK_OPENINGS, _CONVERSATION_OPENINGS, _OWN_ACTS, _WALKED_UP, _said_after_approach, _SAY_VERBS, _SAY_ENGLISH, _HAIL_FILLERS, _line_addresses, _PLANNER_STAYS_OUT, _NO_BLOW_NOW, _BLOW_WORDS, _word_root, _NOT_A_LOCAL_PLACE, _NARRATOR_PRONOUNS, _NARRATOR_PLURAL, _singular_narrator
 
 
 def _feature_refs_are_visible(refs):
@@ -14726,9 +12864,6 @@ def ask_dungeon_master(
     )
 
 
-_WINDOW_WORDS = re.compile(r"\b(?:pencere\w*|kepenk\w*|panjur\w*|cam(?:dan|a|i)?)\b")
-_LOCK_WORDS = re.compile(r"\b(?:kilit\w*|kilid\w*|surgu\w*|mandal\w*|kapi kolu\w*)\b")
-_TRACK_WORDS = re.compile(r"\b(?:iz|izler\w*|izleri\w*|ayak izi\w*|ayak izler\w*)\b")
 
 
 def _ensure_venue_window(door):
@@ -14933,42 +13068,10 @@ def _inspection_findings(player_input, outcome, *, rolled=True):
     return _found_on_a_pass(text) if proposed else None
 
 
-def _resolved_skill_result_narration(result):
-    """Describe only the already resolved Python check, with no added consequences."""
-    if not isinstance(result, dict) or result.get("action") != "skill_check" or result.get("status") != "resolved":
-        return None
-    outcome = result.get("outcome")
-    if outcome not in ("success", "failure"):
-        return None
-    if result.get("skill") == "Stealth":
-        if outcome == "success":
-            return "Gizlenme girişimin tutar."
-        return "Gizlenme girişimin tutmaz; gizli sayılmazsın."
-    if result.get("skill") in {"Perception", "Investigation", "Survival"}:
-        # A look is described by what it saw (_fallback_narration), not as a
-        # bare "check succeeded/failed" line.
-        return None
-    prefix = {
-        "Perception": "Dikkatini topladığın kontrol",
-        "Investigation": "İnceleme girişimin",
-        "Athletics": "Fiziksel çaban",
-        "Acrobatics": "Akrobatik girişimin",
-        "Persuasion": "İkna girişimin",
-        "Deception": "Kandırma girişimin",
-        "Survival": "İz sürme girişimin",
-        "Sleight of Hand": "El becerisi girişimin",
-    }.get(result.get("skill"), "Yetenek kontrolün")
-    return f"{prefix} {'başarılı' if outcome == 'success' else 'başarısız'} olur."
 
 
-_TELLS_FAILURE = re.compile(r"\w+m[iu]yor\w*|\w+(?:ama|eme)(?:z|di|yacak)\w*|\bbasarisiz|\bsonuc vermedi|\byok\b|\bdegil\b")
 
 
-# D-226: what tells a scared person unmoved ("geri adım atmıyor", "sözlerin ona işlemiyor", "korkmuyorum").
-_UNMOVED = re.compile(
-    r"\b(?:geri\s+adim\s+atm(?:iyor|az|adi)|cekilm(?:iyor|ez|edi)|"
-    r"islem(?:iyor|ez|edi)|etkilen?m(?:iyor|ez|edi)|umursam(?:iyor|az|adi)|"
-    r"aldirm(?:iyor|az|adi)|korkm(?:uyor|az|adi)|yol\s+verm(?:iyor|ez|edi)|istifini\s+bozm(?:uyor|az|adi))\w*")
 
 
 def _states_the_failed_check(narration, result, player_input):
@@ -15079,24 +13182,8 @@ def _record_narration_safety(decision, handling):
         )
 
 
-_QUOTE_CLOSER_RE = re.compile(r"""(?<=[.!?…,])['"”’](?=\s|$)""")
-_QUOTE_OPENER_RE = re.compile(r"""(?:(?<=^)|(?<=[\s:(]))['"“‘](?=\S)""")
 
 
-def _trim_dangling_quote(text):
-    """Drop a leading fragment that ends in a closing quote nobody opened.
-
-    Removing the sentence that carried the opening quote leaves "...alırız.' Fırın
-    kokusu..."; keep only what follows. Untouched when balanced; empty when nothing follows
-    (a line nobody opened is no line, and the caller falls back).
-    """
-    closer = _QUOTE_CLOSER_RE.search(text)
-    if closer is None:
-        return text
-    opener = _QUOTE_OPENER_RE.search(text)
-    if opener is not None and opener.start() < closer.start():
-        return text
-    return text[closer.end():].strip()
 
 
 def _remove_trigger_sentence(narration, decision, action_result=None):
@@ -15135,56 +13222,6 @@ def _remove_trigger_sentence(narration, decision, action_result=None):
     return repaired if removed else None
 
 
-def _dialogue_repair_has_attributed_answer(narration, npc_target, action_result):
-    """Require a bound dialogue turn and actual speech content after repair."""
-    if isinstance(narration, dict):
-        from npc_speech_boundary import bound_fields
-        return bound_fields(narration, npc_target, action_result) is not None
-    if (
-        not isinstance(narration, str)
-        or not narration.strip()
-        or not isinstance(npc_target, dict)
-        or not isinstance(npc_target.get("id"), str)
-        or not isinstance(action_result, dict)
-        or action_result.get("action") != "dialogue"
-    ):
-        return False
-    target_id = npc_target["id"]
-    result_npc_id = action_result.get("npc_id")
-    experimental_speech = (
-        action_result.get("status") == "experimental_attributed_speech"
-    )
-    if result_npc_id is not None and result_npc_id != target_id:
-        return False
-    if experimental_speech and result_npc_id != target_id:
-        return False
-
-    quoted_answers = (
-        r"“([^”\n]{3,})”",
-        r'"([^"\n]{3,})"',
-        r"‘([^’\n]{3,})’",
-        r"'([^'\n]{3,})'",
-    )
-    has_quoted_answer = any(
-        len(re.sub(r"[^\wçğıöşü]", "", match.group(1))) >= 3
-        for pattern in quoted_answers
-        for match in re.finditer(pattern, narration)
-    )
-    if has_quoted_answer:
-        return True
-
-    if not experimental_speech:
-        return False
-    # Experimental speech is deliberately unquoted until the API adds its
-    # speaker wrapper. Require a first-person predicate so a lone stage
-    # direction cannot qualify as the NPC's retained answer.
-    first_person_predicate = re.search(
-        r"\b[\wçğıöşü]+(?:ıyorum|iyorum|uyorum|üyorum|yordum|[dt][ıiuü]m|"
-        r"[ıiuü]r[ıiuü]m|(?:y)?(?:acağım|eceğim)|(?:sa|se)m)\b",
-        narration,
-        re.IGNORECASE,
-    )
-    return first_person_predicate is not None
 
 
 def _repair_attributed_speech(payload, decision):
@@ -15894,71 +13931,7 @@ def initialize_game(creation_choice=None, input_fn=input, print_fn=print):
 # AI DUNGEON MASTER
 # ---------------------------------------------------------
 
-NARRATOR_VOICE = (
-    "Oyuncuya tekil sen de. Anlatımın tamamı şimdiki zaman: fiiller -iyor, -iyorsun ile biter "
-    "(Kapıyı itiyorsun; menteşe gıcırdıyor). -dı, -mıştı, -yordu yazma; yalnız bu turdan önce "
-    "olan biten için kullanılır. Anlatıya oyuncu kelimesini yazma, ağzından konuşma; adına söz, his, "
-    "karar, eylem uydurma. Atmosfer girişlerini tekrarlama. NPC hitabı serbesttir. "
-    "Faerûn'dasın: selam, dua ve yemin bu dünyanın tanrıları ve gelenekleriyle söylenir; gerçek dünyanın dinlerine ait sözler kullanılmaz."
-)
 
-system_prompt = """
-Sen Dungeons & Dragons oyununda yaratıcı Dungeon Master ve anlatıcısısın.
-Python gerçek oyun motorudur; world state içindeki kayıtlar kalıcı olgulardır.
-
-Python tek başına yönetir: karakter verisi, HP, hasar, inventory, eşya transferi,
-konum, kapılar, zarlar, modifiers, proficiency, DC ve mekanik sonuçlar. Bunları
-world_updates içinde asla değiştirmeye çalışma.
-
-Oyuncunun yapmadığı bir hareketi, sözü, düşünceyi veya kararı oyuncu karakterine
-ekleme. NPC'ler doğal biçimde konuşabilir, tepki verebilir ve kendi kayıtlı
-kişiliklerine uygun davranabilir. Oyuncunun iddialarını doğrulanmış dünya gerçeği
-sayma. NPC belleği yalnızca önceki turlarda gerçekten verilmiş NPC yanıtlarını içerir.
-Oyuncunun bugünkü iddiası, önceki bir konuşmanın kanıtı değildir.
-
-Kayıtlı NPC'lerin ID, ad, rol, kişilik, görünüş, geçmiş ve ilişkilerini tutarlı
-kullan. Yeni NPC yalnızca izin verildiğinde ve sahneye anlamlı katkı sağlıyorsa
-öner; kişi yığını oluşturma. Yeni NPC'yi narration'da kullanacaksan aynı yanıttaki
-create_npcs içinde öner. Python kabul etmezse o kişiyi anlatımda kullanma.
-
-Yeni kalıcı çevre ayrıntıları yalnızca izin verildiğinde create_features içinde öner.
-Geçici atmosfer (rüzgâr, ışık, koku, ses, yağmur) world state'e kaydedilmeden
-anlatılabilir. Kalıcı özellikleri yeniden kullan; aynı şeyi tekrar oluşturma. Eşya,
-içecek ve yemek menüsü envantere dönüşmez. NPC belleğini Python yönetir.
-
-NPC'nin bilmediği aile, geçmiş, sır veya dünya bilgilerini kesin gerçek diye
-uydurma. Küçük ve sahneye uygun ayrıntılar yaratıcı olabilir; önemli kalıcı lore
-world_updates içinde kaydedilmelidir. VERIFIED NPC MEMORY bölümündeki ilgili kayıt
-yoksa oyuncunun 'bunu daha önce söylemiştin' iddiasını doğrulama; doğal biçimde
-hatırlamadığını belirt. Konuşma önceki turlardan kopyalanmaz; gerekli bellek context'te.
-NPC'ye kendi işi veya geçmişi hakkında sıradan bir soru sorulursa kısa ve tutarlı bir
-kişisel yanıt verebilir; bu yanıt gerçekten söylenmiş kabul edilip Python belleğine alınır.
-
-Her turda sadece mevcut eylem/mesaja yanıt ver. Yanıt uzunluğunu eylemin ve sahnenin önemine göre ayarla:
-doğrudan sorulara özlü yanıt ver; küçük eylemlerde gerektiğinde 1–2 kısa paragraf, olağan hikâye
-eylemlerinde genellikle 2–5 paragraf yaz. Önemli keşif, duygusal NPC konuşması, önemli açığa çıkış
-ve savaş sonrası sahnelerde gerekirse daha uzun anlat; sıradan turları uzatma.
-Savaş anlatımını mekanik olarak öz, anlatı olarak canlı tut; yapılandırılmış sayısal sonuçları tekrarlama.
-Geçici duyusal/atmosferik ayrıntı ve isimsiz arka plan etkinliği anlatılabilir; bunlar kalıcı dünya
-gerçeği değildir ve önemli NPC, görev, eşya veya mekanik sonuç yaratmaz.
-Sıradan sahne eşyaları, NPC jestleri ve ifadeleri de geçici doku olabilir; yalnızca önemli veya kalıcıysa world_updates öner.
-Oyuncunun duyduğu, gördüğü veya kokladığı şeyleri anlatabilirsin; onun adına karar, inanç, söz, hareket, saldırı ya da eşya transferi uydurma.
-Oyuncuyu yönetmeden dünyayı karşılık verir halde tut. Oyuncuya yeni karar, rıza, söz, duygu, tepki veya ek hareket yazma;
-iç durum yerine görünen, duyulan, koklanan şeyi anlat; "hissediyorsun" diyerek oyuncunun yerine sezgi yazma. Oyuncunun denediği şeyi anlat, denemeyi yok sayma ve "bir şey olmuyor" deme:
-motorun bir kuralı olmasa bile makul bir sonuç ya da doğal bir başarısızlıkla sürdür, başarıyı garanti etme. Bu anlatım para, eşya,
-konum, kilit veya kalıcı kişi değiştirmez; bekletmek için yeni kilit, şart, ücret veya zar üretme. Yalnız oyuncunun şu an bulunduğu
-yeri anlat; CURRENT LOCAL SCENE STATE içinde olmayan tezgâh, oda veya mekânı sahneye koyma. Yalnız açığa çıkarılmış bilgiyi kullan.
-Doğal bir macera anlatımı kullan: önemli anlarda destansı, uygun yerde hafif ve duruma özgü esprili. Her cümleyi şakaya, her küçük
-işi destana çevirme. NPC'lerin farklı seslerini koru. Mizah bedeli, tehlikeyi veya ölümü önemsizleştirmesin; kuralları, bilgiyi ve
-oyuncunun iradesini değiştirmesin. Şimdi değişene odaklan; aynı özetleri, kalıpları ve tur sonu sorusunu alışkanlık haline getirme.
-Zar, kontrol veya "yetenek kontrolü" sözünü anlatıya yazma; sonucu olay olarak anlat.
-Narrative Director bağlamını doğal kullan, anıları döküm halinde sıralama. Tekrarlanan NPC/lokasyon
-girişlerini, jestleri, metaforları, paragraf açılışlarını, savaş ifadelerini ve hava açılışlarını
-çeşitlendir; geçici betimlemeleri kalıcı kanon gibi sunma.
-Mekanik sonucu açıkça başarılı/başarısız anlat. Soru, seçenek listesi veya yeni
-oyuncu eylemi üretme. Yanıtı tam olarak istenen JSON şemasında döndür; başka
-anahtar, Markdown veya metin ekleme.
-""" + NARRATOR_VOICE + "\n"
 
 
 messages = [
@@ -16024,28 +13997,8 @@ def _changed_state_fields(before):
     return [fields[key] for key in fields if before.get(key) != after.get(key)]
 
 
-def _skill_result_category(result):
-    return {
-        "BAŞARILI": "success",
-        "BAŞARISIZ": "failure",
-    }.get(result, "failure")
 
 
-def _print_skill_result(result, difficulty):
-    print()
-    print("=" * 35)
-    print("D&D SKILL CHECK")
-    print("=" * 35)
-    print("Skill:", result["skill"])
-    print("Difficulty:", difficulty)
-    print("DC:", result["dc"])
-    print("D20:", result["dice"])
-    print("Ability Modifier:", f"+{result['modifier']}" if result["modifier"] >= 0 else result["modifier"])
-    print("Proficiency:", f"+{result['proficiency_bonus']}")
-    print("Total Bonus:", f"+{result['total_bonus']}" if result["total_bonus"] >= 0 else result["total_bonus"])
-    print("Total:", result["total"])
-    print("Result:", result["result"])
-    print("=" * 35)
 
 
 def _commit_travel_action(action_result):
@@ -16095,49 +14048,8 @@ def _commit_travel_action(action_result):
     return True
 
 
-_ATTACK_VERB_PATTERN = r"(?:saldir|vur|dov|kes|sapl|bicakl|yumrukl|oldur|bayilt)"
-# A blow said as noun + verb, the usual Turkish way: "yumruk atıyorum", "tekme savuruyorum".
-_ATTACK_BLOW_PHRASE = re.compile(
-    r"\b(?:yumruk|tekme|tokat|kafa|dirsek)\w*\s+(?:\w+\s+)?(?:at|savur|indir|gecir|patlat)"
-    r"(?:iyorum|ip|tim|acagim|ar|iyoruz|tik)\b"
-)
-# Folded words that share an attack stem but are not attacks: kesinlikle,
-# keşif/keşfetmek, kestirme (shortcut), vurgulamak, and the instrumental nouns
-# "bıçakla"/"yumrukla" ("with a knife/fist") that only name the means.
-_CHARGING_IN = re.compile(r"\b\w+(?:la|le|yla|yle)\s+(?:\w+\s+)?(?:giriyorum|daliyorum|atiliyorum)\b")
-_ATTACK_LOOKALIKE_TOKEN = re.compile(
-    r"^(?:kesin|kesif|kesfe|kesfi|kestirme|vurgu|vurdumduymaz)"
-)
-_ATTACK_INSTRUMENT_TOKENS = frozenset({"bicakla", "yumrukla", "bicaklar", "bicaklarla"})
-# Things one knocks on, rings, cuts or taps. Hitting one of these is knocking,
-# ringing or cutting - never a combat decision - unless a creature is named.
-_INANIMATE_HIT_OBJECT = re.compile(
-    r"\b(?:kapi(?!ci)|pencere|kepenk|panjur|masa|tezgah|duvar|zil|can(?:i|a|in)?\b"
-    r"|sandi[kg]|kutu|ip(?:i|in|e|ini|ine|ten|ler\w*)?\b|halat|urgan|zincir|cuval|fici|varil|sepet"
-    r"|kilit|cam(?:a|i)?\b|tahta|agac|odun|kaya"
-    r"|kitap|ekmek|sopa|direk|kazik|kumas|bez|dal(?:i|a)?\b|davul|gong|tokmak)\w*"
-)
-_CREATURE_REFERENCE = re.compile(
-    r"\b(?:ona|onu|ondan|onunla|kendisine|adam\w*|kadin\w*|cocug\w*|muhafiz\w*"
-    r"|nobetci\w*|asker\w*|haydut\w*|eskiya\w*|goblin\w*|ork\w*|kurt\w*|yaratig\w*"
-    r"|canavar\w*|dusman\w*|rakib\w*|hirsiz\w*|haydud\w*)\b"
-)
 
 
-def _attack_verb_tokens(text):
-    import grounded_action
-    verbs = []
-    for token in text.split():
-        match = re.match(_ATTACK_VERB_PATTERN, token)
-        if not match or _ATTACK_LOOKALIKE_TOKEN.match(token) or token in _ATTACK_INSTRUMENT_TOKENS:
-            continue
-        tail = token[match.end():]
-        # Reuse the action owner's morphology instead of treating every word
-        # beginning with an attack stem as an attack (Kestrin, keskin, saldırgan).
-        if (not tail or grounded_action._VERB_TAIL.fullmatch(tail)
-                or grounded_action._NEGATIVE_TAIL.match(tail)):
-            verbs.append(token)
-    return verbs
 
 
 def _names_present_creature(text):
@@ -16212,14 +14124,8 @@ def _is_explicitly_negated_attack(player_input):
     return refused.search(text) is not None and not _has_explicit_attack_verb(refused.sub(" ", text))
 
 
-CHECK_FEATURES = ('primal_knowledge', 'tactical_mind')
 
 
-def _immediate_check_refusal(check_feature, message):
-    """The route refusal in the chosen feature's own name; `{feature}` in a message is that name."""
-    code, name = (('tactical_mind_immediate_check_only', 'Tactical Mind') if check_feature == 'tactical_mind'
-                  else ('primal_knowledge_immediate_check_only', 'Primal Knowledge'))
-    return combat_lifecycle.CombatRequestError(code, message.format(feature=name), 400)
 
 
 def primal_knowledge_check_admission(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None, check_feature='primal_knowledge'):
@@ -17157,30 +15063,6 @@ def _ensure_local_tavern(parent_location_id, *, open_for_entry=False):
     return record
 
 
-def _turkish_genitive_form(name):
-    value = str(name or "").strip()
-    if not value:
-        return ""
-    vowels = "aıeiouöü"
-    last_vowel = next(
-        (character for character in reversed(value.casefold()) if character in vowels),
-        None,
-    )
-    if last_vowel is None:
-        return value
-    suffix = {
-        "a": "ın",
-        "ı": "ın",
-        "o": "un",
-        "u": "un",
-        "e": "in",
-        "i": "in",
-        "ö": "ün",
-        "ü": "ün",
-    }[last_vowel]
-    if value[-1].casefold() in vowels:
-        suffix = "n" + suffix
-    return f"{value}'{suffix}"
 
 
 def _ensure_local_merchant(location_id, *, create=True):
@@ -17326,12 +15208,6 @@ def resolve_scene_seating(action_input):
     }
 
 
-def _asks_what_is_going_on(player_input):
-    text = living_world.normalize_text(player_input)
-    return bool(
-        re.search(r"\b(?:bugun|burada|buralarda|su an)\b", text)
-        and re.search(r"\b(?:ne oluyor|neler oluyor|ne var|neler var)\b", text)
-    )
 
 
 def _direct_npc_smalltalk_response(player_input, npc_target):
@@ -17453,53 +15329,8 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
     return None
 
 
-def _is_bare_greeting(player_input, npc_target):
-    """'Merhaba Marek' yes; 'selam verip burada bir sorun var mı diye soruyorum' no."""
-    if "?" in str(player_input):
-        return False
-    text = living_world.normalize_text(player_input)
-    words = text.split()
-    name_words = set(living_world.normalize_text(
-        npc_target.get("name", "") if isinstance(npc_target, dict) else ""
-    ).split())
-    rest = [
-        word for word in words
-        if word not in name_words and not re.match(
-            r"(?:selam|merhaba|iyi|gunler|gunaydin|aksamlar|veriyorum|ver|basimla|"
-            r"bas|sallay\w*|el|elimi|ona|onunla|kendisiyle|kisa|bir|biraz|yanina|gidip|"
-            r"yaklasip|dostum|hey)", word)
-    ]
-    return len(rest) <= 2 and not re.search(
-        r"\b(?:sor\w*|anlat\w*|soyle\w*|ogren\w*|nasil|neden|nerede|kim|ne)\b", text
-    )
 
 
-def _is_scene_referent_activity_observation(player_input):
-    if not isinstance(player_input, str):
-        return False
-    text = living_world.normalize_text(player_input)
-    activity_question = bool(
-        re.search(
-            r"\b(?:ne|neler)\s+yap\w*\b|\bneyle\s+ugras\w*\b",
-            text,
-        )
-    )
-    return bool(
-        (
-            activity_question
-            or (
-                re.search(r"\b(?:dikkat\w*|gozlemle\w*|izle\w*)\b", text)
-                and re.search(
-                    r"\b(?:etkinli\w*|davran\w*|hareket\w*|yaptig\w*)\b",
-                    text,
-                )
-            )
-        )
-        and not re.search(
-            r"\b(?:sor\w*|konus\w*|selam\w*|yaklas\w*)\b",
-            text,
-        )
-    )
 
 
 def _scene_names(location_id):
@@ -17509,12 +15340,6 @@ def _scene_names(location_id):
     ]
 
 
-def _public_scene_person_text(npc):
-    label = living_world.public_npc_name(npc)
-    role = living_world.public_npc_role(npc)
-    if living_world.npc_name_known_to_player(npc) and role and role.casefold() != label.casefold():
-        return f"{label} ({role})"
-    return label
 
 
 def _scene_presence_text(location_id):
@@ -17565,12 +15390,6 @@ def _scene_presence_text(location_id):
     return "Şu an yakınında konuşabileceğin biri görünmüyor; çevredeki hareketliliği izleyebilirsin."
 
 
-_LOOK_OPENINGS = (
-    "{name} çevresine göz gezdiriyorsun.",
-    "Bakışların {name} çevresinde bir kez daha dolaşıyor.",
-    "Bir an durup {name} çevresindeki hareketi izliyorsun.",
-    "{name} çevresini yeniden, bu sefer daha dikkatle süzüyorsun.",
-)
 
 
 def _variation_index(key, size):
@@ -17594,12 +15413,6 @@ def _look_opening(location_name):
     return openings[_variation_index(("look", location_name), len(openings))]
 
 
-_CONVERSATION_OPENINGS = (
-    "{name} sana dönüyor. “Seni dinliyorum,” der.",
-    "{name} işini bir an bırakıp sana bakıyor. “Buyur, ne vardı?” diye sorar.",
-    "{name} başını kaldırıyor. “Evet, söyle bakalım,” der.",
-    "{name} hafifçe gülümsüyor. “Yine sen! Dinliyorum,” der.",
-)
 
 
 def _conversation_opening_line(name):
@@ -19044,8 +16857,6 @@ def _run_player_turn_keyed(
     return result
 
 
-# Front readings that are the player's own doing, with no one spoken to: a second part after one is read on its own.
-_OWN_ACTS = frozenset({"consume", "wield", "sit", "bag", "look", "wait"})
 
 
 def _a_walk(read, action_result):
@@ -19382,14 +17193,8 @@ def player_cannot_act_turn():
     }
 
 
-_WALKED_UP = re.compile(r"(?i)\b(?:yaklaş\w*|yanaş\w*|yanına\s+gid\w*|yanına\s+git\w*|sokul\w*)[.,;:!]?\s+")
 
 
-def _said_after_approach(player_input):
-    """"...adama yaklaşıyorum. selam, ne yazıyorsun?": what comes after the walk is said to them."""
-    match = _WALKED_UP.search(player_input) if isinstance(player_input, str) else None
-    rest = player_input[match.end():].strip() if match else ""
-    return rest if len(rest.split()) >= 2 else None
 
 
 def _reads_as_address(player_input):
@@ -19397,38 +17202,8 @@ def _reads_as_address(player_input):
     return "?" in player_input or is_npc_dialogue_input(player_input) or "," in player_input[:40]
 
 
-_SAY_VERBS = re.compile(r"^(?:soyl|sor|anlat|ver|diyorum|dedim|ilet|seslen|danis|rica|teklif|uzat|goster|tesekkur)")
-_SAY_ENGLISH = r"\b(?:tell|ask|give|hand|pay|show|thank|say to|speak to|talk to|offer)\s+(?:the\s+)?"
-_HAIL_FILLERS = {"ey", "hey", "pardon", "selam", "merhaba", "sayin", "affedersiniz", "bakin", "bak"}
 
 
-def _line_addresses(player_input, npc):
-    """Whether the line is said TO this person: their name or role at the head with a comma after it ("Orhan, kapı
-    nerede?"), or their name in the dative with a say verb ("Orhan'a soruyorum"). A mention is no address
-    ("Orhan'ı tanıyor musun?", "Orhan nerede?", "Muhafız sana ne dedi?")."""
-    if not isinstance(player_input, str) or not isinstance(npc, dict):
-        return False
-    ascii_line = unicodedata.normalize("NFKD", player_input.casefold().replace("İ", "i").replace("ı", "i"))
-    tokens = re.findall(r"[^\W_]+|,", ascii_line.encode("ascii", "ignore").decode())  # words and commas, folded
-    words = {w for w in living_world.normalize_text(f"{living_world.public_npc_name(npc)} {npc.get('role') or ''}").split()
-             if len(w) >= 3}
-    if not words:
-        return False
-    head = tokens[:6]
-    first = next((i for i, t in enumerate(head) if t in words), None)
-    if first is not None and all(t in _HAIL_FILLERS for t in head[:first]):
-        j = first
-        while j < len(tokens) and (tokens[j] in words or (j > first and len(tokens[j]) <= 3 and tokens[j] != ",")):
-            j += 1
-        if j < len(tokens) and tokens[j] == ",":
-            return True
-    for i, token in enumerate(tokens):
-        dative = (token in words and i + 1 < len(tokens) and tokens[i + 1] in {"a", "e", "ya", "ye"}) or any(
-            token in {w + "a", w + "e", w + "ya", w + "ye"} for w in words)
-        if dative and any(_SAY_VERBS.match(t) for t in tokens):
-            return True
-    folded_text = " ".join(tokens)
-    return any(re.search(_SAY_ENGLISH + re.escape(w) + r"\b", folded_text) for w in words)
 
 
 def _addressed_in(player_input, *, or_the_talk=True):
@@ -19708,9 +17483,6 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     return route
 
 
-# What the line is, once read, leaves the scene planner nothing to do: it only ever walks, sits or looks.
-_PLANNER_STAYS_OUT = {"speak_to", "talk_around", "go_to", "offer_answer", "hand_over", "work", "take", "bag", "strike",
-                      "blow_asked", "heavy_asked", "which_move", "wait", "consume", "wield"}  # D-109: asked moves nothing
 
 
 def _defer_spoken_coin_offer(route):
@@ -19940,7 +17712,6 @@ def _hand_over_coin(route, listed, front=None, *, owner_routed=False):
         session._coin_paid = held_out  # read by that offer as its tender, and never turned into a gift
         return
     session._coin_paid = held_out  # the decided card's tender or amount; never "now theirs" before it is confirmed
-_NO_BLOW_NOW = re.compile(r"\b(?!yarim\b)\w+(?:m[iu]yorum|m[iu]yom|mayacag\w*|meyeceg\w*|[aeiu]r[iu]m)\b")
 
 
 def _blow_stands(player_input):
@@ -19955,12 +17726,6 @@ def _blow_stands(player_input):
                 or _NO_BLOW_NOW.search(text) or any(grounded_action._CONDITION_WORD.match(t) for t in text.split()))
 
 
-# Hands, things swung and things thrown: what a blow is made of, whatever else the sentence says.
-_BLOW_WORDS = re.compile(
-    r"\b(?:yumru[kg]|tekme|tokat|samar|dirsek)\w*"
-    r"|\b(?:cak|gecir|firlat|savur|indir|patlat|yapistir|sall)(?:[iuae]|ip|up)\w*"
-    r"|\b(?:surat|kafa|yuz)\w*\s+(?:\w+\s+)?at(?:iyorum|ip)\b"
-)
 
 
 def _blow_in_the_words(player_input, target_id):
@@ -20214,9 +17979,6 @@ def _front_wield(route, player_input):
     refusals.note(session, "nothing_to_draw", have=have)
 
 
-def _word_root(word):
-    """A word cut to a root that still meets its endings ('takımı' 'takımını', 'emanet' 'emanetini'); short words whole."""
-    return word if len(word) <= 5 else word[:max(5, len(word) - 2)]
 
 
 def _coin_not_parcel(session, world, person, item_id, player_input):
@@ -21002,10 +18764,6 @@ def _current_procedural_entity_ids():
     return ids
 
 
-_NOT_A_LOCAL_PLACE = {
-    "city", "town", "village", "settlement", "region", "wilderness", "dungeon",
-    "şehir", "kasaba", "köy", "orman",
-}
 
 
 def _may_propose_local_place(resolved_turn, player_input):
@@ -21070,36 +18828,8 @@ def _settle_local_place(action_result):
             place["scene_kind"] = "building"
 
 
-_NARRATOR_PRONOUNS = {
-    "siz": "sen", "size": "sana", "sizi": "seni", "sizin": "senin",
-    "sizden": "senden", "sizinle": "seninle", "sizde": "sende",
-}
-_NARRATOR_PLURAL = (
-    (re.compile(r"\b(?:siz|size|sizi|sizin|sizden|sizinle|sizde)\b", re.IGNORECASE),
-     lambda match: (
-         _NARRATOR_PRONOUNS[match.group(0).lower()].capitalize()
-         if match.group(0)[0].isupper()
-         else _NARRATOR_PRONOUNS[match.group(0).lower()]
-     )),
-    (re.compile(
-        r"\b(etraf|çevre|üzer|yakın|ön|arka|yan|karşı|iç|ayak|ayaklar|el|eller|göz|gözler|omuz|"
-        r"omuzlar|sırt|baş|yüz|ses|bakış|bakışlar|şarkı|teklif|söz|hareket|gösteri|adım|adımlar)"
-        r"([ıiuü]?n)[ıiuü]z(\w*)", re.IGNORECASE),
-     r"\1\2\3"),
-    (re.compile(r"\b(\w+[ıiuü]yor)sunuz\b"), r"\1sun"),
-    (re.compile(r"\b(\w{2,}[dt][ıiuü]n)[ıiuü]z\b"), r"\1"),
-)
 
 
-def _singular_narrator(text):
-    """The narrator's own words say sen; anything inside a quote belongs to the speaker."""
-    if not isinstance(text, str):
-        return text
-    parts = re.split(r"(“[^”]*”|«[^»]*»|\"[^\"]*\")", text)
-    for index in range(0, len(parts), 2):
-        for pattern, replacement in _NARRATOR_PLURAL:
-            parts[index] = pattern.sub(replacement, parts[index])
-    return "".join(parts)
 
 
 def _keep_town_portrait(action_result, narration):
@@ -24331,7 +22061,7 @@ def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_P
 
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
-_PART_MODULES = ("game_parts.character_rules", "game_parts.text_rules_a")
+_PART_MODULES = ("game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b")
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
                           if isinstance(value, types.FunctionType)
                           and (value.__module__ == __name__ or value.__module__ in _PART_MODULES))
