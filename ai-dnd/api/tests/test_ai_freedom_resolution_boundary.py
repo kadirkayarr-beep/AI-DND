@@ -207,7 +207,9 @@ class ClaimAndBudgetBoundaryTests(unittest.TestCase):
         action = result["action_result"]
         self.assertEqual(kinds, expected)
         self.assertEqual(model.call_count, len(expected))
-        # Telemetry does not yet tell a reading no later step reused (FB2 park: the reading's call is not counted).
+        # KNOWN WRONG with the flag on: one call ran, telemetry tells 0. Debt D-400 (FB2 park P1): a reading no
+        # later step reused is not counted. This pins the current value so the P1 fix turns it red; P1 then
+        # asserts total_model_calls == len(expected). Task G may not call the flag-on gate truthful while D-400 is open.
         self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
         self.assertEqual(action.get("status"), "unverified")
         self.assertFalse(action.get("success"))
