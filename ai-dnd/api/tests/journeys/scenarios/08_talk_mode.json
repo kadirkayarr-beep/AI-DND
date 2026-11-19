@@ -32,7 +32,8 @@
       "say": "Marek'e selam veriyorum",
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
-                            "completion": "complete"}},
+                            "completion": "complete"},
+                 "front": {"kind": "speak_to", "person_id": "barman"}},
       "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
     },
     {
@@ -40,7 +41,8 @@
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": ""},
                             "completion": "complete"},
-                 "speech": {"asks_for": "room"}},
+                 "speech": {"asks_for": "room"},
+                 "front": {"kind": "speak_to", "person_id": "barman", "deal": "room"}},
       "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false}
     },
     {
@@ -49,12 +51,14 @@
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": ""},
                             "completion": "complete"},
-                 "speech": {"asks_for": "room"}},
+                 "speech": {"asks_for": "room"},
+                 "front": {"kind": "speak_to", "person_id": "barman", "deal": "room"}},
       "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false}
     },
     {
       "say": "bi oda tutayım usta",
       "independent": true,
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "deal": "room"}},
       "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false}
     },
     {
@@ -67,7 +71,8 @@
       "independent": true,
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
-                            "completion": "complete"}},
+                            "completion": "complete"},
+                 "front": {"kind": "speak_to", "person_id": "barman"}},
       "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
     },
     {
@@ -80,7 +85,8 @@
       "independent": true,
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
-                            "completion": "complete"}},
+                            "completion": "complete"},
+                 "front": {"kind": "speak_to", "person_id": "barman"}},
       "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
     },
     {
@@ -93,7 +99,8 @@
       "independent": true,
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "satıcı", "npc_id": null, "evidence_quote": "satıcı"},
-                            "completion": "complete"}},
+                            "completion": "complete"},
+                 "front": {"kind": "speak_to", "person_id": "none", "person_word": "satıcı"}},
       "expect": {"kip": {"active": false, "interlocutor": null}, "anlaticiya_giden": "görünmüyor"}
     },
     {
@@ -101,7 +108,8 @@
       "independent": true,
       "script": {"intent": {"intent": "talk", "action": "talk",
                             "target": {"type": "npc", "reference": "Marek", "npc_id": "barman", "evidence_quote": "Marek"},
-                            "completion": "complete"}},
+                            "completion": "complete"},
+                 "front": {"kind": "speak_to", "person_id": "barman"}},
       "expect": {"kip": {"active": true, "interlocutor": {"id": "barman", "name": "Marek", "role": "Barmen"}}}
     },
     {

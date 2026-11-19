@@ -72,7 +72,8 @@ def walk_back_to_sleep():
     data["id"] = "07b_walk_back_to_sleep"
     data["setup"]["current_hp"] = 5
     data["steps"] = [
-        {"say": "bi oda tutayım usta", "expect": {"kart": {"max_total_cp": 50}, "kese": 100}},
+        {"say": "bi oda tutayım usta", "script": {"front": {"kind": "speak_to", "person_id": "barman", "deal": "room"}},
+         "expect": {"kart": {"max_total_cp": 50}, "kese": 100}},
         {"economic_action": {"kind": "confirm"}, "expect": {"oda": True, "kese": 50, "kart": None}},
         {"say": "dışarı çıkıyorum", "expect": {"konum": "fr:city:neverwinter", "oda": True}},
         {"say": "hana gidip odamda sabaha kadar uyuyorum",

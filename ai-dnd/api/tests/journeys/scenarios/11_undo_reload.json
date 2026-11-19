@@ -48,6 +48,7 @@
     },
     {
       "say": "bi oda tutayım usta",
+      "script": {"front": {"kind": "speak_to", "person_id": "barman", "deal": "room"}},
       "expect": {"kart": {"max_total_cp": 50, "counterparty_label": "Marek"}, "kese": 100, "oda": false}
     },
     {
