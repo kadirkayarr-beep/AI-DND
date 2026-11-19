@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import game
 from api.tests.speech_double import routed_chat, speech_packet
+from api.tests.test_f04_n08_npc_memory import call_kinds, with_reading
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc
 
 RECORDED_LIVE_FOLLOWUP = (
@@ -35,7 +36,10 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
         self.npc["relationship"] = "neutral"
 
     def turn(self, user_message, narration):
-        """One NPC-addressed turn: the default route asks for a single speech packet."""
+        """One NPC-addressed turn: the default route asks for a single speech packet.
+
+        With AI_DND_FRONT_PROPOSAL on, the front reading (schema with `front`; this double calls it `intent`)
+        comes first. The double has no reading handler, so the reading fails and the old chain answers."""
         kinds = []
         chat = routed_chat({"speech": speech_packet(narration)}, kinds)
         before = copy.deepcopy({
@@ -46,11 +50,11 @@ class F04GreetingAndAgencyTests(unittest.TestCase):
         })
         with patch("game.ollama.chat", side_effect=chat) as provider:
             result = self.session.run_player_turn(user_message, interaction_mode="say")
-        self.assertEqual(kinds, ["speech"])
-        self.assertEqual(provider.call_count, 1)
+        self.assertEqual(call_kinds(provider), with_reading("speech"))
+        self.assertEqual(kinds, ["intent" if kind == "front" else kind for kind in with_reading("speech")])
         telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], len(with_reading("speech")))
         self.assertEqual(
             {key: self.session.world_state.get(key) for key in before}, before
         )

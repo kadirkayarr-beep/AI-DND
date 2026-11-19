@@ -10,8 +10,18 @@ from api.tests import test_campaign_api as api
 from api.tests import test_intent_response_consistency as existing
 from api.tests.auth_fixture import TEST_PLAYER
 from api.persistence.campaign_models import CampaignStorageError
+from api.tests.journeys.runner import call_kind
 
 TEXT = 'Ahşap raf üzerinde sıradan boş kavanozlar var.'
+
+
+def kinds(requests):
+    return [call_kind(request.get('format')) for request in requests]
+
+
+def narration_request(requests):
+    """The look line's narration request; flag on, the front reading's request comes first."""
+    return requests[kinds(requests).index('narration')]
 
 class ReceiptContractTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = existing.IntentResponseConsistencyTests.asyncSetUp
@@ -38,7 +48,8 @@ class ReceiptContractTests(unittest.IsolatedAsyncioTestCase):
         entered = await self.turn("Orin Dükkânı'na gidiyorum.", interaction_mode='do')
         self.assertEqual(self.world['location'], place['id'])
         self.assertTrue(next(d for d in self.world['doors'] if d['id'] == door['id'])['open'])
-        self.assertEqual(self.client.calls, 0)
+        # Python walks in; flag on, the line is read once first (owner rule G1) and nothing else is asked.
+        self.assertEqual(self.client.kinds, existing.read_first())
         self.assertEqual(self.client.arrival_calls, arrivals + 1)  # the arrival scene's call (fails here: Python text)
         return place, door, feature, hidden, entered
 
@@ -74,11 +85,11 @@ class ReceiptContractTests(unittest.IsolatedAsyncioTestCase):
         before = copy.deepcopy((self.session.character, self.world['inventory'], self.world['location'], self.world['doors']))
         body, response, contexts, requests, receipts = await self.observe()
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(requests), 1)
+        self.assertEqual(kinds(requests), existing.read_first('narration'))
         self.assertEqual(len(receipts), 1)
         self.assertTrue(contexts)
         self.assertEqual(receipts[0]['lore_context'], contexts[-1])
-        self.assertIn(TEXT, str(requests[0]['messages']))
+        self.assertIn(TEXT, str(narration_request(requests)['messages']))
         self.assertIn('Ahşap raf', receipts[0]['action_result'].get('direct_response', ''))
         self.assertIn('Ahşap raf', response.json()['narration'])
         self.assertNotIn('Gizli kasa', response.json()['narration'])
@@ -125,7 +136,8 @@ class ReceiptContractTests(unittest.IsolatedAsyncioTestCase):
         await self.enter()
         _, response, _, requests, receipts = await self.observe()
         self.assertEqual(response.status_code, 200, response.text)
-        content = requests[0]['messages'][-1]['content']
+        self.assertEqual(kinds(requests), existing.read_first('narration'))
+        content = narration_request(requests)['messages'][-1]['content']
         for start, end in (
             ('KOMPAKT WORLD CONTEXT (salt okunur):\n', '\n\nVERIFIED LORE AUTHORITY'),
             ('CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n', '\n\nRECENT NARRATION')):

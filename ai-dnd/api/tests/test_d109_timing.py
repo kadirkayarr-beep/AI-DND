@@ -215,11 +215,11 @@ class ACrimeOrAThreatIsAskedFirst(FrontTable):
     async def test_a_theft_with_no_reading_is_still_asked_first(self):
         """Review: a dead model (or the reading switched off) used to let the old words steal with no question."""
         await self.table()
-        self.client.fails = ConnectionError("gone")
+        self.client.unusable = ("tamam, anladım", "stop")  # a lost provider is a 503 now (G6); no usable reading here
         line = "kesesini fark ettirmeden calmak icin zar atiyorum"
         await self.line(line)
         self.assertEqual(self.session._heavy_asked["deed"], "steal")
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:unusable")
         self.assertFalse(self.world["flags"].get("deeds"))
         self.assertNotIn("theft", [row.get("owner") for row in self.routes()])
         await self.line("evet")

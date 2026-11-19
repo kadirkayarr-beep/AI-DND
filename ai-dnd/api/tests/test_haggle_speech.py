@@ -4,17 +4,30 @@ import json
 from unittest.mock import patch
 from uuid import uuid4
 
+import front_proposal
 import game
+from api.tests.journeys.runner import call_kind
 from api.tests.test_economic_action_http import EconomicHttpFixture, ROOM
 from api.tests import test_campaign_api
 
 LINE = "Bu oda için bütçeme biraz yaklaşır mısın?"
 
 
+def say_calls():
+    """What one Say line spends: its one speech call, after the front reading when the flag is on."""
+    return ["front", "speech"] if front_proposal.enabled() else ["speech"]
+
+
 class PriceSpeechClient:
-    def __init__(self, text, propose=True, corrupt=None):
-        self.text, self.propose, self.corrupt = text, propose, corrupt
+    def __init__(self, text, propose=True, corrupt=None, person="barman"):
+        self.text, self.propose, self.corrupt, self.person = text, propose, corrupt, person
         self.calls = []
+
+    def kinds(self):
+        return [call_kind(call["format"]) for call in self.calls]
+
+    def speech_call(self):
+        return next(call for call in self.calls if call_kind(call["format"]) == "speech")
 
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
@@ -22,6 +35,12 @@ class PriceSpeechClient:
     def chat(self, *args, **kwargs):
         self.calls.append(copy.deepcopy(kwargs))
         props = kwargs["format"]["properties"]
+        if "front" in props:
+            # Flag on, the line is read first, as local play's model reads it: words said to the person spoken to.
+            front = {"kind": "speak_to", "person_id": self.person, "place_id": "none", "offer_id": "none",
+                     "thing_id": "none", "answer": "none", "inside": False, "timing": "now"}
+            return {"message": {"content": json.dumps({"intent": "dialogue", "action": "dialogue", "target": {
+                "type": "none", "reference": ""}, "completion": "unclear", "confidence": 0.9, "front": front})}}
         assert "spoken_text" in props, "Say must not add a classifier or narrator call"
         packet = {"spoken_text": "Teklifini dinliyorum; hesabı beraber gözden geçirebiliriz.",
                   "stage_direction": "", "threat": "none"}
@@ -43,8 +62,8 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         self.save()
 
     async def say(self, text=LINE, propose=True, corrupt=None, body=None):
-        client = PriceSpeechClient(text, propose, corrupt)
         body = body or {"message": text, "interaction_mode": "say", "target_id": "barman", "action_id": str(uuid4())}
+        client = PriceSpeechClient(text, propose, corrupt, person=body["target_id"])
         with patch.object(game, "perform_skill_check", wraps=game.perform_skill_check) as checks:
             response = await test_campaign_api.CampaignApiTests.post_scene_turn(self, self.turn_url, client, body)
         return response, client, checks, body
@@ -58,7 +77,7 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         await self.ready()
         response, client, checks, body = await self.say()
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(client.kinds(), say_calls())
         self.assertEqual(checks.call_count, 1)
         self.assertEqual(checks.call_args.args[0], "Persuasion")
         self.assertEqual(self.open_total(), 45)
@@ -74,7 +93,7 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         await self.ready()
         response, client, checks, _ = await self.say("Köprüden geçmek güvenli mi?", propose=False)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(client.kinds(), say_calls())
         self.assertEqual(checks.call_count, 0)
         self.assertEqual(self.open_total(), 50)
         self.assertEqual(self.purse(), 100)
@@ -84,7 +103,7 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         await self.ready()
         response, client, checks, _ = await self.say(corrupt={"evidence_quote": "başka turdan söz"})
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(client.kinds(), say_calls())
         self.assertEqual(checks.call_count, 0)
         self.assertEqual(self.open_total(), 50)
         self.assertIn("Teklifini", response.json()["narration"])
@@ -93,7 +112,7 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         await self.ready(modifier=-20)
         response, client, checks, _ = await self.say()
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(client.kinds(), say_calls())
         self.assertEqual(checks.call_count, 1)
         self.assertEqual(self.open_total(), 50)
         self.assertEqual(self.purse(), 100)
@@ -105,7 +124,8 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         body = {"message": LINE, "interaction_mode": "do", "target_id": "barman", "action_id": str(uuid4())}
         response, client, checks, _ = await self.say(body=body)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(client.calls), 1)
+        # A Do line to a chosen person is not read first (front skip "skipped:typed"), flag on or off.
+        self.assertEqual(client.kinds(), ["speech"])
         self.assertEqual(checks.call_count, 1)
         self.assertEqual(self.open_total(), 45)
         self.assertEqual(self.purse(), 100)
@@ -115,8 +135,8 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         body = {"message": LINE, "interaction_mode": "say", "target_id": "farmer", "action_id": str(uuid4())}
         response, client, checks, _ = await self.say(body=body)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(client.calls), 1)
-        self.assertNotIn("price_negotiation", client.calls[0]["format"]["properties"])
+        self.assertEqual(client.kinds(), say_calls())
+        self.assertNotIn("price_negotiation", client.speech_call()["format"]["properties"])
         self.assertEqual(checks.call_count, 0)
         self.assertEqual(self.open_total(), 50)
 
@@ -124,7 +144,7 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         await self.ready()
         response, client, checks, _ = await self.say(corrupt={"amount_cp": 1})
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(client.kinds(), say_calls())
         self.assertEqual(checks.call_count, 0)
         self.assertEqual(self.open_total(), 50)
         self.assertEqual(self.purse(), 100)
@@ -181,7 +201,7 @@ class NaturalPriceSpeech(EconomicHttpFixture):
         with patch.object(game, "perform_skill_check", side_effect=traced):
             response, client, checks, _ = await self.say(text)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(client.kinds(), say_calls())
         self.assertEqual(checks.call_count, 1)
         self.assertEqual(len(traces), 1)
         before, after, resolved = traces[0]

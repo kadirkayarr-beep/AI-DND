@@ -235,8 +235,8 @@ class TheRunnerSortsEveryStep(JourneyCase):
                          ("anlaticiya_giden: anlatıcıya giden metinde bulunamadı: bu cümle anlatıcıya hiç gitmedi",))
         self.assertNotIn("narration", model.clients[0].kinds)
         self.assertIsNone(self.last_observations[0]["anlaticiya_giden"])
-        self.assertIn("narration", model.clients[1].kinds)
-        self.assertIn("intent", model.clients[1].kinds)
+        # The step's other call (the classifier, or the front reading with the flag on) is not what the narrator saw.
+        self.assertEqual(model.clients[1].kinds, ["front" if front_proposal.enabled() else "intent", "narration"])
         told = self.last_observations[1]["anlaticiya_giden"]
         self.assertIn(listening, told)
         self.assertIn("Gözlerimi kapatıp", self.last_observations[2]["anlaticiya_giden"])

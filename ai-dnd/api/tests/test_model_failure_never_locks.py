@@ -11,10 +11,13 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import uuid
 
 import httpx
+import ollama
 
+import front_proposal
 import game
 import interaction_adventure
 from api.auth import FixedAuthenticator
@@ -23,7 +26,10 @@ from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
+from api.tests import test_carius_fifth_play as carius
+from api.tests import test_front_proposal as front_tests
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.journeys.runner import call_kind
 from api.tests.town_seed import fixed_town
 
 START = {"campaign_start": {
@@ -149,6 +155,14 @@ class ClassifierCallIsSmall(PlayFixture):
     async def test_a_real_turn_sends_a_closed_list_and_a_low_token_cap(self):
         await self.turn(self.body(CLASSIFIER_TURN))
         call = next(entry for entry in self.model.calls if kind_of(entry.get("format")) == "classifier")
+        if front_proposal.enabled():
+            # Flag on, the front reading is the turn's one classifier call: no conversation list to loop on (no
+            # $defs), and the reading's own cap (D-240: 700); the old classifier is not asked again.
+            self.assertEqual(call_kind(call["format"]), "front")
+            self.assertNotIn("$defs", call["format"])
+            self.assertEqual(call["options"]["num_predict"], 700)
+            self.assertEqual(self.model.kinds, ["classifier", "narration"])
+            return
         field = call["format"]["$defs"]["ConversationProposal"]["properties"]["candidate_evidence_ids"]
         self.assertEqual(field["maxItems"], 0)
         self.assertLessEqual(call["options"]["num_predict"], 400, "a normal reply is under 150 tokens")
@@ -376,6 +390,153 @@ class ClassifierSchemaHasNoRoomToLoop(unittest.TestCase):
             "candidate_evidence_ids": ["npc-profile:npc_procedural_0123456789:v1:reason_for_being_here"],
         })
         self.assertEqual(len(proposal.candidate_evidence_ids), 1)
+
+
+class ReadingClient(front_tests.FrontClient):
+    """The front client, keeping every call's kind; `reply` (text, done_reason) is the reading's raw answer."""
+
+    def __init__(self):
+        super().__init__()
+        self.kinds = []
+        self.reply = None
+
+    def chat(self, *args, **kwargs):
+        kind = call_kind(kwargs.get("format")) or "other"
+        self.kinds.append(kind)
+        if kind == "front" and self.reply is not None and self.fails is None:
+            self.chat_calls += 1
+            return {"message": {"content": self.reply[0]}, "done_reason": self.reply[1]}
+        return super().chat(*args, **kwargs)
+
+
+class TheReadingsOutageRule(unittest.IsolatedAsyncioTestCase):
+    """Owner rule G6 ("Tekrar dene", 2026-11-19), flag on: a provider outage during the front reading answers 503,
+    rolls back and spends no line; a reading that comes back but is unusable still goes on through the old chain."""
+
+    asyncSetUp = front_tests.FrontTable.asyncSetUp
+    asyncTearDown = front_tests.FrontTable.asyncTearDown
+    campaign_with_npc = front_tests.FrontTable.campaign_with_npc
+    open_job = front_tests.FrontTable.open_job
+    routes = front_tests.FrontTable.routes
+    line = front_tests.FrontTable.line
+    purse = carius.OneCoinOneTruth.purse
+    coin_card = carius.OneCoinOneTruth.coin_card
+    coin_operations = carius.OneCoinOneTruth.coin_operations
+    confirm = carius.OneCoinOneTruth.confirm
+    LABELS = carius.OneCoinOneTruth.LABELS
+    LINE = "etrafa şöyle bir göz atayım"
+    OUTAGES = (
+        ("timeout", TimeoutError("slow")),
+        ("read_timeout", httpx.ReadTimeout("timed out mid-reading")),
+        ("dropped", httpx.RemoteProtocolError("peer closed connection without sending complete message body")),
+        ("connection", ConnectionError("gone")),
+        ("server_error", ollama.ResponseError("model runner has unexpectedly stopped", 500)),
+    )
+
+    async def begin(self):
+        await front_tests.FrontTable.begin(self)
+        self.client = ReadingClient()
+        self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
+
+    def saved(self):
+        stored = self.store.get_campaign(self.manager.get(self.session_id).campaign_id)
+        return len(stored.history), stored.payload["engine_save"]
+
+    def everything(self):
+        return self.saved(), self.session.serialize_game_state(), self.session.rng.getstate()
+
+    async def post(self, body):
+        return await self.http.post(self.turn_url, json=body)
+
+    async def test_an_outage_in_the_reading_refuses_the_line_and_saves_nothing(self):
+        for name, outage in self.OUTAGES:
+            with self.subTest(outage=name):
+                await self.begin()
+                before = self.everything()
+                self.client.fails = outage
+                body = {"message": self.LINE, "action_id": str(uuid.uuid4())}
+                failed = await self.post(body)
+                self.assertEqual(failed.status_code, 503, failed.text)
+                self.assertEqual(failed.json()["detail"]["code"], "ollama_unavailable")
+                self.assertIs(failed.json()["detail"]["not_applied"], True)
+                self.assertEqual(self.client.kinds, ["front"], "the reading only: nothing ran after it")
+                self.assertEqual(self.everything(), before)
+                again = await self.post(body)
+                self.assertEqual((again.status_code, again.json()), (503, failed.json()), "the closed id runs nothing")
+                self.assertEqual(self.client.kinds, ["front"])
+                self.assertEqual(self.everything(), before)
+                # Tekrar dene: the provider is back and the same line, on a new id, plays once.
+                self.client.fails = None
+                self.client.kinds.clear()
+                await self.line(self.LINE)
+                self.assertEqual(self.client.kinds.count("front"), 1)
+                self.assertEqual(self.saved()[0], before[0][0] + 1)
+
+    async def test_a_partial_or_bad_reading_goes_on_through_the_old_chain(self):
+        for name, reply in (("cut", ('{"intent": "narrative", "front": {"kind": "spe', "length")),
+                            ("not_json", ("tamam, anladım", "stop")),
+                            ("empty", ("", "stop"))):
+            with self.subTest(reply=name):
+                await self.begin()
+                history = self.saved()[0]
+                self.client.reply = reply
+                out = await self.line(self.LINE)
+                self.assertTrue(out["narration"].strip())
+                self.assertEqual(self.routes()[-1]["route"], "fallback:unusable")
+                # the old chain uses the held reading: no second classifier call
+                self.assertEqual(self.client.kinds, ["front", "narration"])
+                self.assertEqual(self.saved()[0], history + 1)
+
+    async def test_a_reading_that_raised_without_losing_the_provider_is_no_outage(self):
+        # Ruling (FA1): only a reply that never came back (no connection, a timeout, a connection dropped mid-reply)
+        # is an outage, and so is a provider 5xx (fix round 1); any other error out of the call, a 4xx included,
+        # stays a failed reading and the old chain answers.
+        for name, error in (("runtime", RuntimeError("not a lost provider")),
+                            ("client_error", ollama.ResponseError("bad request", 400))):
+            with self.subTest(error=name):
+                await self.begin()
+                history = self.saved()[0]
+                self.client.fails = error
+                out = await self.line(self.LINE)
+                self.assertTrue(out["narration"].strip())
+                self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
+                self.assertEqual(self.client.kinds, ["front", "narration"])
+                self.assertEqual(self.saved()[0], history + 1)
+
+    async def test_retrying_a_coin_line_after_an_outage_reads_once_and_pays_once(self):
+        await self.begin()
+        self.npc["role"] = "Barmen"
+        self.world.setdefault("currency", {})["player"] = 2435
+        line = "al şu gümüşü, üstü kalsın"
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"], "coin_cp": 10, "deal": "tip"}
+        self.client.fails = ConnectionError("gone")
+        lost = {"message": line, "action_id": str(uuid.uuid4())}
+        failed = await self.post(lost)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(self.purse(), 2435)
+        self.assertEqual(self.world["flags"].get("economic_offers", {}), {})
+        self.assertEqual(self.coin_operations("tip"), [])
+        self.client.fails = None
+        self.client.kinds.clear()
+        body = {"message": line, "action_id": str(uuid.uuid4())}
+        self.client.narration = "Sağ ol."
+        retried = await self.post(body)
+        self.assertEqual(retried.status_code, 200, retried.text)
+        self.assertEqual(self.client.kinds.count("front"), 1, self.client.kinds)
+        card = self.coin_card(retried.json(), "tip", 10)
+        paid = await self.confirm(card)
+        self.assertEqual((paid["economic_resolution"]["status"], paid["economic_resolution"]["net_debit_cp"]),
+                         ("applied", 10))
+        self.assertEqual(self.purse(), 2425)
+        self.assertEqual(len(self.coin_operations("tip")), 1)
+        calls = list(self.client.kinds)
+        replay = await self.post(body)
+        self.assertEqual(replay.json(), retried.json(), "the receipt answers, nothing runs again")
+        closed = await self.post(lost)
+        self.assertEqual((closed.status_code, closed.json()), (503, failed.json()))
+        self.assertEqual(self.client.kinds, calls, "a replayed id spends no reading")
+        self.assertEqual(self.purse(), 2425)
+        self.assertEqual(len(self.coin_operations("tip")), 1)
 
 
 class IdentitySuggestionFailure(unittest.IsolatedAsyncioTestCase):

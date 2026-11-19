@@ -15,9 +15,22 @@ import sys
 import unittest
 from unittest.mock import patch
 
+import front_proposal
 import game
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 from api.tests.town_seed import fixed_town
+
+
+def _front_reading_only(readings, message):
+    """With AI_DND_FRONT_PROPOSAL on, every read line spends the front reading first (owner rule G1: exactly that one
+    call). It answers unclear and without `front`, so the old chain still owns the line; any other call fails."""
+    def parse(player_input, *args, **kwargs):
+        if kwargs.get("front_list") is None:
+            raise AssertionError(message)
+        readings.append(player_input)
+        return {"intent": "narrative", "action": "", "target": {"type": "none", "reference": ""},
+                "completion": "unclear", "confidence": 1.0}
+    return parse
 
 
 class SessionTests(unittest.TestCase):
@@ -333,16 +346,18 @@ class SessionTests(unittest.TestCase):
 
     def test_unregistered_lore_question_returns_explicit_unverified_without_model_answer(self):
         before = copy.deepcopy(self.a.world_state)
+        readings = []
         with patch.object(
             game,
             "parse_player_intent",
-            side_effect=AssertionError("Unsupported lore questions must be caught before intent parsing."),
+            side_effect=_front_reading_only(readings, "Unsupported lore questions must be caught before intent parsing."),
         ), patch.object(
             game,
             "ask_dungeon_master",
             side_effect=AssertionError("Unsupported lore question must fail closed."),
         ):
             result = self.a.run_player_turn("Does King Vharion rule Neverwinter?")
+        self.assertEqual(readings, ["Does King Vharion rule Neverwinter?"] * int(front_proposal.enabled()))
 
         # Unverified lore is answered inside the fiction, without naming records
         # or verification, and without inventing a ruler.

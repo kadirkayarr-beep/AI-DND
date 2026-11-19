@@ -27,6 +27,9 @@
     "_coin_persuasion": [
       "money"
     ],
+    "_coin_without_a_reading": [
+      "money"
+    ],
     "_current_procedural_entity_ids": [
       "money"
     ],

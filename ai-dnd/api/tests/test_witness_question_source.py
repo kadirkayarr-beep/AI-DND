@@ -1,5 +1,7 @@
 """Open I2 regressions; a live source ID is not proof that it answers this question."""
-from api.tests.test_witness_review import WitnessReviewSetup, FAMILY, DEED
+import front_proposal
+from api.tests.journeys.runner import call_kind
+from api.tests.test_witness_review import WitnessReviewSetup, FAMILY, DEED, say_calls, speak_to_reading
 
 
 class WitnessQuestionSources(WitnessReviewSetup):
@@ -114,6 +116,9 @@ class WitnessQuestionSources(WitnessReviewSetup):
         class ProfileWitnessClient(PlayClient):
             def chat(inner, *args, **kwargs):
                 inner.calls += 1
+                inner.kinds.append(call_kind(kwargs.get("format")))
+                if "front" in (kwargs.get("format") or {}).get("properties", {}):
+                    return speak_to_reading()
                 return {"message": {"content": json.dumps({"intent": "dialogue", "action": "dialogue",
                     "target": {"type": "none", "reference": ""}, "completion": "unclear", "confidence": 1.0,
                     "interaction": interaction, "spoken_text": "Yanlış cevap.", "stage_direction": "",
@@ -123,11 +128,14 @@ class WitnessQuestionSources(WitnessReviewSetup):
                         "source_quote": source["text"], "evidence_quote": question}}, ensure_ascii=False)}}
 
         client = ProfileWitnessClient()
+        client.kinds = []
         body = {"message": question, "action_id": str(uuid.uuid4()),
                 "interaction_mode": "say", "target_id": "barman"}
         response = await fixtures.CampaignApiTests.post_scene_turn(self, self.turn_url, client, body)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.calls, 1, "profile answer exercises the same speech path")
+        self.assertEqual(client.kinds, say_calls(), "profile answer exercises the same speech path")
+        if front_proposal.enabled():
+            self.assertEqual(self.record.game_session._front_route, "typed:no_economic")
         self.assertEqual(response.json()["turn_outcome"]["status"], "answered_personal_question")
         self.assertIn("Kuzey kıyısında büyüdüm.", response.json()["narration"])
         self.assertNotIn(source["text"], response.json()["narration"])

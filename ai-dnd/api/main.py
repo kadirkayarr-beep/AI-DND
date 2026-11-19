@@ -70,11 +70,11 @@ from api.lore_authority import (
 )
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
-    MAX_MODEL_CALLS_PER_TURN,
     MODEL_NAME,
     OllamaUnavailableError,
     RequiredModelUnavailableError,
     canonical_world_metadata_context,
+    turn_call_cap,
 )
 from api.lore_authority.campaign_state import CANONICAL_LOCATION_TYPES
 from api.narrative_director import (
@@ -1580,12 +1580,18 @@ def create_app(
                     and request.check_feature is None
                 ):
                     # The reading stands before the planner and counts against this turn's cap.
-                    with active_adapter.capture_model_calls() as calls_before_turn:
+                    with active_adapter.capture_model_calls() as calls_before_turn, \
+                            active_adapter.capture_model_failures() as reading_failures:
                         session.front_read_ahead(
                             narrative_player_message,
                             target_id=effective_target_id,
                             interaction_mode=effective_mode,
                         )
+                    if reading_failures:
+                        # Owner rule G6 ("Tekrar dene"): a provider outage during the reading spends no line.
+                        restore_turn_snapshot()
+                        _logger.warning("Front reading failed (error_type=%s)", reading_failures[0])
+                        raise refuse_model_failure("ollama_unavailable") from None
                 # Exact resource-only conversion has no scene/reference authority.
                 # Its display label or a retained UI target must not focus an NPC,
                 # materialize a place, or alter an existing conversation first.
@@ -1763,7 +1769,7 @@ def create_app(
                 )
                 raise refuse_model_failure("ollama_unavailable") from None
 
-            if len(model_calls) > MAX_MODEL_CALLS_PER_TURN:
+            if len(model_calls) > turn_call_cap(model_calls):
                 restore_turn_snapshot()
                 _logger.error("Engine exceeded the per-turn model-call limit.")
                 raise refuse_before_commit(500, "engine_error", "The game turn exceeded its model-call limit.") from None

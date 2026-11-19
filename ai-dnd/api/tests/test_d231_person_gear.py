@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 
 import equipment_economy
+import front_proposal
+from api.tests.journeys.runner import call_kind
 from api.tests.test_species_traits import make_session
 from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 from weapon_catalog import lookup
@@ -133,8 +135,11 @@ class ABodyGivesItsGear(ThreePlaysTests):
     async def test_a_body_search_takes_its_purse_and_its_gear(self):
         body = await self.armed_corpse()
         client = PlayClient(narration="Odada ceset yok.")
+        kinds, answer = [], client.chat
+        client.chat = lambda *args, **kwargs: (kinds.append(call_kind(kwargs.get("format"))), answer(*args, **kwargs))[1]
         out = await self.say("cesedini arıyorum; kesesindeki parayı ve üzerindeki eşyaları alıyorum", client)
-        self.assertEqual(client.calls, 0)
+        # The search is Python's; flag on, the line is read once first (owner rule G1) and nothing else is asked.
+        self.assertEqual(kinds, ["front"] if front_proposal.enabled() else [])
         self.assertEqual(body["inventory"], [])
         self.assertIn("item_900001", [item.get("item_id") for item in self.world["inventory"] if isinstance(item, dict)])
         self.assertEqual(self.world["currency"]["player"], 12)

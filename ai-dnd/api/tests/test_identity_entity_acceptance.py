@@ -8,6 +8,7 @@ import living_world
 from api.tests import test_job6_compound_trace as trace
 from api.tests import test_campaign_api as api
 from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
+from api.tests.test_intent_response_consistency import kinds, read_first
 from api.tests.auth_fixture import TEST_PLAYER
 
 class IdentityBoundaryTests(unittest.TestCase):
@@ -238,7 +239,7 @@ class NamesakeApiTests(trace.CompoundCollisionTrace):
         self.assertEqual(response.status_code,200,response.text)
         self.assertIn(client.narration,response.json()['narration'])
         self.assertEqual(response.json()['narration'],f'Lysa: “{client.narration}”')
-        self.assertEqual(client.chat_calls,1)
+        self.assertEqual(kinds(client),read_first('speech'))  # flag on, the line is read first (owner rule G1)
         self.assertEqual(before,(self.session.character,self.world['inventory'],self.world['location'],self.world['doors'],self.world['npcs'][1]))
         self.assertEqual(self.world['flags']['active_npc_id'],npc['id'])
         pairs=copy.deepcopy(self.world['npc_speech_log'])
@@ -265,4 +266,4 @@ class NamesakeApiTests(trace.CompoundCollisionTrace):
                 engine.assert_not_called()
             self.assertEqual(fresh.serialize_game_state(),state)
             self.assertEqual(fresh.rng.getstate(),rng)
-            self.assertEqual(client.chat_calls,1)
+            self.assertEqual(kinds(client),read_first('speech'))  # the replay and the conflict ask nothing

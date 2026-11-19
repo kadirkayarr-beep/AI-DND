@@ -37,9 +37,9 @@ class EverydayWaitsForTheReading(FrontScene):
         with fixed_town(self, 2731):
             await self.begin()
         self.npc["name_known_to_player"] = True
-        self.client.fails = ConnectionError("gone")
+        self.client.unusable = ("tamam, anladım", "stop")  # a lost provider is a 503 now (G6); no usable reading here
         out = await self.line(f"{self.npc['name']}'in peşinden gidiyorum")
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:unusable")
         self.assertTrue(_followed(out["narration"]), out["narration"])
 
     async def test_everyday_after_an_unclear_reading(self):

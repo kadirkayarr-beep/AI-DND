@@ -51,6 +51,10 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(self.world['flags'].get('active_npc_id'))
 
     def door(self): return next(d for d in self.world['doors'] if d['id']==self.door_id)
+    def asked_since(self, start):
+        # The model calls after the first `start`, by kind. Flag on, a free line is read once first (owner rule G1);
+        # a line sent to a chosen door is not read. The door itself is Python's: no other call.
+        return self.client.kinds[start:]
     def protected(self):
         # The town's lazy seed adds its own places on a first talk; that is Python's, not the turn's doing.
         places={key:value for key,value in self.world['locations'].items()
@@ -69,14 +73,14 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(self.world['flags'].get('active_npc_id'),self.npc['id'])
                     else:
                         self.assertFalse(self.world['flags'].get('active_npc_id'))
-                    before=self.protected(); calls=self.client.calls
+                    before=self.protected(); calls=len(self.client.kinds)
                     out,receipt,_=await self.post(text,**({'target_id':self.door_id} if explicit else {}))
                     self.assertEqual(receipt['target_id'],self.door_id)
                     self.assertEqual(receipt['reason'],'tools_required')
                     self.assertEqual(receipt['status'],'blocked')
                     self.assertIn('Elinde maymuncuk',out['narration'])
                     self.assertEqual(before,self.protected())
-                    self.assertEqual(calls,self.client.calls)
+                    self.assertEqual(self.asked_since(calls),[] if explicit else fixture.read_first())
 
     async def test_active_npc_does_not_capture_explicit_door_instrument(self):
         await self.missing_tools(True)
@@ -86,7 +90,7 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
 
     async def tools(self,seed,success):
         await self.scene(tools=True,seed=seed)
-        before=self.session.rng.getstate(); inventory=copy.deepcopy(self.world['inventory']); calls=self.client.calls
+        before=self.session.rng.getstate(); inventory=copy.deepcopy(self.world['inventory']); calls=len(self.client.kinds)
         out,receipt,body=await self.post('Orryn Hanı Kapısının kilidini maymuncukla açmayı deniyorum')
         self.assertEqual(receipt['target_id'],self.door_id)
         self.assertEqual(receipt['skill'],'Sleight of Hand')
@@ -95,21 +99,21 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.door()['locked'],not success)
         self.assertFalse(self.door()['broken'])
         self.assertEqual(inventory,self.world['inventory'])
-        self.assertEqual(calls,self.client.calls)
+        self.assertEqual(self.asked_since(calls),fixture.read_first())
         saved=copy.deepcopy(self.session.serialize_game_state())
         with patch.object(game,'run_player_turn',side_effect=AssertionError('replay consumed engine')):
             replay=await self.http.post(f'/api/game/sessions/{self.session_id}/turn',json=body)
         self.assertEqual(replay.status_code,200,replay.text)
         self.assertEqual(out,replay.json())
         self.assertEqual(saved,self.session.serialize_game_state())
-        self.assertEqual(calls,self.client.calls)
+        self.assertEqual(self.asked_since(calls),fixture.read_first())  # the replay reads nothing
 
     async def test_tools_success_uses_rng_and_replay_once(self): await self.tools(5,True)
     async def test_tools_failure_uses_rng_and_replay_once(self): await self.tools(2,False)
 
     async def test_unlocked_entry_and_normal_open_keep_destination(self):
         await self.scene(locked=False)
-        calls=self.client.calls; arrivals=self.client.arrival_calls
+        calls=len(self.client.kinds); arrivals=self.client.arrival_calls
         _,receipt,_=await self.post('Orryn Hanı Kapısını açıyorum.')
         self.assertEqual(receipt['target_id'],self.door_id)
         self.assertTrue(self.door()['open'])
@@ -117,19 +121,19 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
         out,receipt,_=await self.post('İçeri giriyorum.')
         self.assertEqual(self.world['location'],self.place['id'])
         self.assertIn('Orryn',out['narration'])
-        self.assertEqual(calls,self.client.calls)
+        self.assertEqual(self.asked_since(calls),fixture.read_first()*2)
         self.assertEqual(arrivals+1,self.client.arrival_calls)  # walking in asks for the arrival scene once (fails here)
 
     async def test_locked_entry_stays_locked_without_model(self):
         await self.scene()
-        before=self.protected();calls=self.client.calls
+        before=self.protected();calls=len(self.client.kinds)
         out,receipt,_=await self.post('İçeri giriyorum.')
         self.assertEqual(self.world['location'],self.city)
         self.assertTrue(self.door()['locked'])
         self.assertFalse(self.door()['open'])
         self.assertIn('kilitli',out['narration'])
         self.assertEqual(before,self.protected())
-        self.assertEqual(calls,self.client.calls)
+        self.assertEqual(self.asked_since(calls),fixture.read_first())
 
     async def test_explicit_force_uses_canonical_door_and_python_check(self):
         self.assertEqual(grounded_action._verb_of('zorluyorum')[0], 'force')
@@ -139,7 +143,7 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(grounded_action._verb_of(noun))
         await self.scene(seed=5)
         other_before=copy.deepcopy(next(d for d in self.world['doors'] if d['id']=='venue-door:'+self.other['id']))
-        before=self.session.rng.getstate(); calls=self.client.calls
+        before=self.session.rng.getstate(); calls=len(self.client.kinds)
         out,receipt,_=await self.post('Orryn Hanı Kapısını zorluyorum.')
         self.assertEqual(receipt['target_id'],self.door_id)
         self.assertNotEqual(before,self.session.rng.getstate())
@@ -148,7 +152,7 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.door()['open'])
         self.assertFalse(self.door()['locked'])
         self.assertEqual(other_before,next(d for d in self.world['doors'] if d['id']=='venue-door:'+self.other['id']))
-        self.assertEqual(calls,self.client.calls)
+        self.assertEqual(self.asked_since(calls),fixture.read_first())
 
     async def test_speech_askdm_quote_negation_and_foreign_object_do_not_open(self):
         await self.scene(tools=True)
@@ -191,24 +195,24 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
 
     async def test_want_to_force_is_python_attempt_not_automatic_success(self):
         await self.scene(seed=2)
-        rng=self.session.rng.getstate(); door=copy.deepcopy(self.door()); calls=self.client.calls
+        rng=self.session.rng.getstate(); door=copy.deepcopy(self.door()); calls=len(self.client.kinds)
         _,receipt,_=await self.post('Orryn Hanı Kapısını zorlamak istiyorum')
         self.assertEqual(receipt['target_id'],self.door_id)
         self.assertEqual(receipt['skill'],'Athletics')
         self.assertNotEqual(rng,self.session.rng.getstate())
         self.assertFalse(receipt['success'])
         self.assertEqual(door,self.door())
-        self.assertEqual(calls,self.client.calls)
+        self.assertEqual(self.asked_since(calls),fixture.read_first())
 
     async def test_normal_open_locked_door_is_blocked_without_cost(self):
         await self.scene()
-        before=self.protected(); calls=self.client.calls
+        before=self.protected(); calls=len(self.client.kinds)
         _,receipt,_=await self.post('Orryn Hanı Kapısını açıyorum')
         self.assertEqual(receipt['target_id'],self.door_id)
         self.assertEqual(receipt['status'],'blocked')
         self.assertEqual(receipt['reason'],'door_locked')
         self.assertEqual(before,self.protected())
-        self.assertEqual(calls,self.client.calls)
+        self.assertEqual(self.asked_since(calls),fixture.read_first())
 
     async def test_open_with_no_visible_door_does_not_create_or_open_one(self):
         await self.post('Çevreme bakıyorum.')
@@ -262,7 +266,7 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
 
     async def test_tools_required_receipt_replay_has_no_second_consumption(self):
         await self.scene()
-        before=self.protected(); calls=self.client.calls
+        before=self.protected(); calls=len(self.client.kinds)
         out,receipt,body=await self.post('Kilidi maymuncukla açmayı deniyorum')
         self.assertEqual(receipt['reason'],'tools_required')
         self.assertEqual(receipt['status'],'blocked')
@@ -273,4 +277,4 @@ class DoorToolAcceptance(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(replay.status_code,200,replay.text)
         self.assertEqual(out,replay.json())
         self.assertEqual(saved,self.session.serialize_game_state())
-        self.assertEqual(calls,self.client.calls)
+        self.assertEqual(self.asked_since(calls),fixture.read_first())  # the line's reading only; the replay reads nothing

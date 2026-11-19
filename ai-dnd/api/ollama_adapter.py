@@ -12,13 +12,14 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Iterator
 
+import httpx
 import ollama
 
 import game
 from api import model_chain
 from api.usage_ledger import UsageLedger
 from api import model_phase
-from api.model_phase import ModelFailure, in_classifier_call, in_front_call
+from api.model_phase import ModelCall, ModelFailure, in_classifier_call, in_front_call, in_initiative_call
 from api.local_model_config import (
     DEFAULT_LOCAL_MODEL,
     LOCAL_FALLBACK_MODELS,
@@ -335,10 +336,25 @@ def usage_summary() -> dict[str, Any]:
     return summary
 
 
+def turn_call_cap(calls: list[str]) -> int:
+    """The turn's call budget. An NPC's optional initiative may also use the one call a front reading took."""
+    initiative = in_initiative_call() or any(getattr(call, "initiative", False) for call in calls)
+    front = any(getattr(call, "front", False) for call in calls)
+    return MAX_MODEL_CALLS_PER_TURN + (1 if initiative and front else 0)
+
+
 def model_calls_left() -> int | None:
     """Calls this turn may still make, or None outside a counted turn."""
     calls = _MODEL_CALLS.get()
     return None if calls is None else max(0, MAX_MODEL_CALLS_PER_TURN - len(calls))
+
+
+def _provider_outage(error: Exception) -> bool:
+    """No reading came back: no connection, a timeout, a dropped reply, or the provider's own 5xx (runner crashed,
+    out of memory, busy). A 4xx or any other exception is a failed reading, not an outage."""
+    if isinstance(error, (OSError, httpx.TransportError)):
+        return True
+    return isinstance(error, ollama.ResponseError) and getattr(error, "status_code", 0) >= 500
 
 
 class AuthenticatedOllamaAdapter:
@@ -571,9 +587,9 @@ class AuthenticatedOllamaAdapter:
 
         calls = _MODEL_CALLS.get()
         if calls is not None:
-            if len(calls) >= MAX_MODEL_CALLS_PER_TURN:
+            if len(calls) >= turn_call_cap(calls):
                 raise RuntimeError("Model call budget exhausted.")
-            calls.append(self.model_name)
+            calls.append(ModelCall(self.model_name))
         _logger.info("Ollama chat request started (model=%s)", self.model_name)
         try:
             prepared = _attach_world_metadata(kwargs)
@@ -603,14 +619,21 @@ class AuthenticatedOllamaAdapter:
             if provider is None and local_seconds:
                 self._note_local_call(response, local_seconds[0])
             if provider is not None and calls is not None:
-                calls[-1] = provider
+                calls[-1] = ModelCall(provider)
             note_usage(provider or self.model_name, response)
             return response
         except Exception as error:
             note_usage(self.model_name, failed=True)
             model_phase.note_cause("local", type(error).__name__)
             failures = _MODEL_FAILURES.get()
-            if in_front_call() or (self._chain is not None and in_classifier_call()):
+            if in_front_call() and _provider_outage(error):
+                # Owner rule G6 ("Tekrar dene", 2026-11-19): the reading never came back (no connection, a timeout,
+                # a dropped reply, a provider 5xx), so the turn answers 503, rolls back and spends no line.
+                _logger.warning("Front reading lost to a provider outage; turn refused (error_type=%s)",
+                                type(error).__name__)
+                if failures is not None:
+                    failures.append(ModelFailure(type(error).__name__))
+            elif in_front_call() or (self._chain is not None and in_classifier_call()):
                 # The owner's rule: the chain never fails a turn. The engine carries on with unknown intent.
                 _logger.warning("Classifier unavailable; turn goes on (error_type=%s)", type(error).__name__)
             elif failures is not None:

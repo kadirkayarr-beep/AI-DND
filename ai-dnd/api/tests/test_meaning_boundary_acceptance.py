@@ -9,6 +9,7 @@ import game
 import interaction_adventure as ia
 from api.tests import test_campaign_api as api
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.test_intent_response_consistency import kinds, read_first
 
 
 class MeaningBoundaryTests(unittest.IsolatedAsyncioTestCase):
@@ -30,8 +31,11 @@ class MeaningBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 body = speech.ExperimentalNpcDialogueTests.request(npc, message=self.question)
                 response = await api.CampaignApiTests.post_scene_turn(self, url, client, body)
                 self.assertEqual(response.status_code, 200, response.text)
-                self.assertEqual(client.schemas[0]["required"], ["spoken_text", "stage_direction", "threat", "voiced", "mentions"])
-                self.assertNotIn("narration", client.schemas[0]["properties"])
+                # Flag on, the front reading is request 0; the speech schema is checked on the speech request.
+                self.assertEqual(kinds(client), read_first("speech"))
+                schema = client.schemas[kinds(client).index("speech")]
+                self.assertEqual(schema["required"], ["spoken_text", "stage_direction", "threat", "voiced", "mentions"])
+                self.assertNotIn("narration", schema["properties"])
                 self.assertIn(self.reply, response.json()["narration"])
                 self.assertTrue(response.json()["narration"].startswith(npc["name"]))
                 pairs = copy.deepcopy(session.world_state["npc_speech_log"][npc["id"]])
@@ -39,7 +43,7 @@ class MeaningBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(pairs[0]["npc"], self.reply)
                 replay = await api.CampaignApiTests.post_scene_turn(self, url, client, body)
                 self.assertEqual(replay.json(), response.json())
-                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(kinds(client), read_first("speech"))  # the replay reads nothing and asks nothing
                 self.assertEqual(session.world_state["npc_speech_log"][npc["id"]], pairs)
 
     def envelope(self, npc, meaning):
@@ -89,7 +93,7 @@ class MeaningBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 final = response.json()["narration"]
                 replay = await api.CampaignApiTests.post_scene_turn(self, url, client, body)
                 self.assertEqual(replay.json(), response.json())
-                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(kinds(client), read_first("speech"))
                 self.assertEqual(session.character, character)
                 self.assertEqual(session.rng.getstate(), rng)
                 self.assertEqual(session.world_state["inventory"], world["inventory"])

@@ -18,6 +18,8 @@ import scheduled_events
 import grounded_action
 from api.serializers import serialize_session_state, serialize_combat_result
 from api.campaign_journal import empty_campaign_journal, update_campaign_journal
+import front_proposal
+from api.tests.test_ai_freedom_resolution_boundary import _reading_only as reading_only
 
 
 class PlayableLivingWorldTests(unittest.TestCase):
@@ -700,13 +702,16 @@ class PlayableLivingWorldTests(unittest.TestCase):
         })
         before_locations = copy.deepcopy(self.world["locations"])
 
-        with patch("game.ollama.chat", side_effect=AssertionError("Local NPC venue answer must be deterministic")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             result = self.session.run_player_turn(
                 "buralarda bir taverna varmı diye muhafıza soruyorum"
             )
 
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
         self.assertEqual(
-            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], reading
         )
         self.assertEqual(result["action_result"]["action"], "dialogue")
         self.assertEqual(result["action_result"]["npc_id"], npc["id"])
@@ -997,7 +1002,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
         living_world.ensure_scene_record(self.world, self.root_location, 0)["materialized"] = True
         before_hp = npc["current_hp"]
 
-        with patch("game.ollama.chat", side_effect=AssertionError("Explicit attack must not need a model")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             result = self.session.run_player_turn("Cael'e sald\u0131r\u0131yorum")
 
         action = result["action_result"]
@@ -1008,8 +1014,10 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(npc["current_hp"], before_hp)
         self.assertFalse(self.world["combat"]["active"])
         self.assertNotIn("Cael", result["narration"])
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
         self.assertEqual(
-            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], reading
         )
 
     def test_explicit_conversation_start_is_stable_and_model_free(self):
@@ -1022,16 +1030,19 @@ class PlayableLivingWorldTests(unittest.TestCase):
         scene["materialized"] = True
         npc["name_known_to_player"] = True
 
-        with patch("game.ollama.chat", side_effect=AssertionError("Conversation start must not need a model")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             first = self.session.run_player_turn("Marek ile konuşmak istiyorum.")
             second = self.session.run_player_turn("Marek ile konuşmak istiyorum.")
 
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * 2 * reading, 2 * reading))
         for result in (first, second):
             self.assertEqual(result["action_result"]["action"], "dialogue")
             self.assertEqual(result["action_result"]["status"], "conversation_started")
             self.assertEqual(result["action_result"]["npc_id"], npc["id"])
             self.assertEqual(
-                result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+                result["_engine_event_evidence"]["telemetry"]["total_model_calls"], reading
             )
         # The first opening is the plain line; a repeat varies instead of echoing it.
         self.assertIn("Seni dinliyorum", first["narration"])
@@ -1052,7 +1063,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
         scene = living_world.ensure_scene_record(self.world, "tavern", 0)
         scene["materialized"] = True
 
-        with patch("game.ollama.chat", side_effect=AssertionError("Bounded local scene answer must not need a model")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             result = self.session.run_player_turn(
                 "buralarde yeniyim nasıl bir yer burası diye barmene soruyorum"
             )
@@ -1062,8 +1074,10 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertIn("Burası Taverna", result["narration"])
         self.assertNotIn("kendi gözlerimle görmedim", result["narration"])
         self.assertNotIn("doğrulanmış", result["narration"])
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
         self.assertEqual(
-            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], reading
         )
 
     def test_approach_bartender_phrase_routes_to_existing_scene_action(self):
@@ -1097,8 +1111,9 @@ class PlayableLivingWorldTests(unittest.TestCase):
             "Barmen ile konu\u015fmaya i\u00e7in yak\u0131n\u0131na gidiyorum"
         )
 
+        kinds = []
         with (
-            patch("game.ollama.chat", side_effect=AssertionError("Explicit attack must not need a model")),
+            patch("game.ollama.chat", side_effect=reading_only(kinds)) as model,
             patch("game.roll_initiative_player", return_value=20),
             patch("game.roll_initiative_npc", return_value=1),
             patch("game.roll_attack", return_value=10),
@@ -1109,8 +1124,10 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(result["action_result"]["action"], "attack")
         self.assertEqual(result["action_result"]["target_id"], npc["id"])
         self.assertTrue(result["action_result"]["combat_started"])
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
         self.assertEqual(
-            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], reading
         )
         self.assertNotIn("do\u011frulanm\u0131\u015f", result["narration"])
         self.assertNotIn("kabul etmedi", result["narration"])
@@ -1194,7 +1211,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
         door["locked"] = False
         door["open"] = True
 
-        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             entered = self.session.run_player_turn(phrase)
 
         action = entered["action_result"]
@@ -1203,9 +1221,11 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(action["status"], "completed")
         self.assertEqual(action["target_id"], tavern_id)
         self.assertEqual(self.world["location"], tavern_id)
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
         self.assertEqual(
             entered["_engine_event_evidence"]["telemetry"]["total_model_calls"],
-            0,
+            reading,
         )
 
     def test_exact_venue_door_break_is_not_a_tavern_search(self):
@@ -1295,7 +1315,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
             key: door.get(key) for key in ("open", "locked", "broken")
         }
         location_ids = set(self.world["locations"])
-        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             looked = self.session.run_player_turn(sentence)
         action = looked["action_result"]
         self.assertEqual(action["action"], "inspect")
@@ -1314,9 +1335,11 @@ class PlayableLivingWorldTests(unittest.TestCase):
             before_door,
         )
         self.assertEqual(self.world["inventory"], before_inventory)
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
         self.assertEqual(
             looked["_engine_event_evidence"]["telemetry"]["total_model_calls"],
-            0,
+            reading,
         )
 
         self.world["features"].append({
@@ -1543,14 +1566,17 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertIn(destination, self.world["locations"])
         self.assertNotEqual(self.world["location"], destination)
 
-        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             result = self.session.run_player_turn("Kaleye gidiyorum.")
 
         action = result["action_result"]
         self.assertEqual(action["action"], "travel")
+        reading = int(front_proposal.enabled())  # the front reading is the line's one model call
+        self.assertEqual((kinds, model.call_count), (["front"] * reading, reading))
         self.assertEqual(
             result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
-            0,
+            reading,
         )
 
     def test_travel_uses_last_named_location_as_destination(self):
@@ -1849,9 +1875,10 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(result["status"], "observed")
         self.assertEqual(result["target_id"], ref["id"])
         self.assertEqual(result["direct_response"], description)
-        with patch("game.ollama.chat") as chat:
+        kinds = []
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)):  # any call besides the reading fails
             played = self.session.run_player_turn("Ziyaretçi ne yapıyor?")
-        chat.assert_not_called()
+        self.assertEqual(kinds, ["front"] * int(front_proposal.enabled()))  # flag on: the reading only
         self.assertEqual(played["narration"], description)
         self.assertEqual(
             played["_engine_event_evidence"]["telemetry"]["narration_model_calls"],

@@ -8,6 +8,7 @@ import game
 import interaction_adventure
 from api.character_creation import configure_character
 from api.tests import test_equipment_economy_http as contracts
+from api.tests.test_experimental_npc_dialogue import with_reading
 
 
 class NativeEquipmentTests(unittest.TestCase):
@@ -277,6 +278,7 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
         ):
             response = await self.post(campaign, command)
         self.last_proposal_parse_calls = parser.call_count
+        self.last_proposal_parse_call_kwargs = [call.kwargs for call in parser.call_args_list]
         self.last_proposal_parse_kwargs = parser.call_args.kwargs if parser.call_args else {}
         self.last_interaction_result = resolver_results[-1] if resolver_results else None
         return response, resolver.call_count
@@ -499,7 +501,10 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
             proposal,
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(self.last_proposal_parse_calls, 1)
+        # The parser is asked once, for the NPC's speech; with AI_DND_FRONT_PROPOSAL on, the front reading comes first.
+        self.assertEqual(["front" if kwargs.get("front_list") is not None
+                          else "speech" if kwargs.get("experimental_npc_dialogue") else "classifier"
+                          for kwargs in self.last_proposal_parse_call_kwargs], with_reading("speech"))
         self.assertEqual(resolve_calls, 0)
         # The default route answers a question as attributed NPC speech and needs no
         # conversation proposal; what must hold is that no equipment moves.

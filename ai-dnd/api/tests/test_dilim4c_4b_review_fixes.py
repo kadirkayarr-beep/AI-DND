@@ -10,6 +10,8 @@ unreadable saved state. Engine tests on the 4C.0 fixture (fixed session seed); H
 from __future__ import annotations
 
 import copy
+import json
+import os
 import re
 import unittest
 from pathlib import Path
@@ -81,6 +83,43 @@ def three_foes():
 
 def blows(*targets):
     return {"steps": [{"kind": "attack", "target_id": t} for t in targets]}
+
+
+class SurrenderYesIsNotReadAhead(unittest.TestCase):
+    """G9, flag on: a yes to the engine's own surrendered-foe question is Python's to read (D-036), so the front
+    reading is not run ahead of it; the asked blow lands. Any other line is still read as before."""
+
+    def setUp(self):
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}))
+        self.s, self.n, self.other = caster_fight()
+        self.s.run_player_turn("Hamle.", combat_action=magic("Magic Missile", self.n["id"]))
+        self.assertIsNotNone(self.s._surrender_strike_asked)
+
+    def test_a_yes_spends_no_reading_and_the_asked_spell_lands(self):
+        s, n, other = self.s, self.n, self.other
+        with patch("game.ollama.chat", side_effect=AssertionError("the answer called the model")) as chat:
+            self.assertIsNone(s.front_read_ahead("evet", target_id=other["id"]))
+            with patch.object(s.rng, "randint", return_value=4):
+                result = s.run_player_turn("evet", target_id=other["id"])
+        chat.assert_not_called()
+        self.assertEqual(result["action_result"]["status"], "resolved")
+        self.assertEqual(result["action_result"]["spell"], "Magic Missile")
+        self.assertEqual(result["action_result"]["target_id"], n["id"])
+        self.assertLess(n["current_hp"], 10)
+        self.assertEqual(other["current_hp"], 8)
+        self.assertEqual(s.world_state["spellcasting_v1"]["slots"], {"1": 1})
+        self.assertIsNone(s._surrender_strike_asked)
+
+    def test_a_line_that_is_no_yes_is_still_read_ahead(self):
+        kinds = []
+
+        def reading(**kwargs):
+            kinds.append("front" if "front" in kwargs["format"]["properties"] else "other")
+            return {"message": {"content": json.dumps({"intent": "unknown", "front": {"kind": "unclear"}})}}
+
+        with patch("game.ollama.chat", side_effect=reading):
+            self.s.front_read_ahead("Etrafıma bakıyorum.")
+        self.assertEqual(kinds, ["front"])
 
 
 class QuestionIsBoundPerTarget(unittest.TestCase):

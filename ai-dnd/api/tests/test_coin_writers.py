@@ -19,6 +19,7 @@ import bold_acts
 import economic_actions as ea
 import game
 from api.core_resolution import resolution_action_scope
+from api.tests.coin_seam import planted, read_as
 from money_owner import CoinDecision
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -136,19 +137,20 @@ class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
 
     def test_an_order_with_coin_put_down_moves_nothing(self):
         self.s._coin_paid = (100, self.w["npcs"][0], self.w["location"])
-        result = self.s.run_player_turn("al şu bi altını, bi bira ver usta")
+        with read_as({"kind": "speak_to", "economic_intent": "purchase", "person_id": "barman", "coin_cp": 100}):
+            result = self.s.run_player_turn("al şu bi altını, bi bira ver usta")
         self.assertEqual(result["action_result"]["action"], "shop_offer", result["narration"])
         self.assertEqual(self.w["flags"]["counter_offer_v1"]["tender_cp"], 100)
         self.moved_by()
 
     def gift_held_out(self, amount):
-        """Coin held out to the guest with the money owner's gift decision, as the reading leaves them."""
-        self.s._coin_decision = CoinDecision("gift", "guest", amount, 0, None, "model", self.w["location"])
-        self.s._coin_paid = (amount, self.w["npcs"][1], self.w["location"])
+        """Coin held out to the guest with the money owner's gift decision, as the reading leaves them (one turn)."""
+        return planted(self.s, _coin_decision=CoinDecision("gift", "guest", amount, 0, None, "model", self.w["location"]),
+                       _coin_paid=(amount, self.w["npcs"][1], self.w["location"]))
 
     def test_a_coin_handed_with_no_order_is_a_gift(self):
-        self.gift_held_out(5)
-        self.s.run_player_turn("/item list")
+        with self.gift_held_out(5):
+            self.s.run_player_turn("/item list")
         self.moved_by()  # the turn only opens the card
         [card] = self.prepared()
         self.assertEqual(self.confirm(card, "a-gift-confirm").status, "applied")
@@ -196,10 +198,10 @@ class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
         self.moved_by("economic_actions.py:apply_resolution")
 
     def test_unconfirmed_false_proposal_changes_no_relationship_or_clock(self):
-        self.gift_held_out(5)
         before = (dict(self.w["currency"]), copy.deepcopy(self.w.get("relationships")),
                   copy.deepcopy(self.w.get("campaign_time")))
-        self.s.run_player_turn("/item list")
+        with self.gift_held_out(5):
+            self.s.run_player_turn("/item list")
         [card] = self.prepared()
         self.assertTrue(ea.cancel_offer(self.w, offer_id=card["offer_id"]))
         self.assertEqual((dict(self.w["currency"]), self.w.get("relationships"), self.w.get("campaign_time")), before)

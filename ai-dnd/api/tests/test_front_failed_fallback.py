@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import unittest
+import uuid
 
 import front_proposal
 import grounded_action
@@ -59,6 +60,11 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
     offer = front_tests.FrontTable.offer
     routes = front_tests.FrontTable.routes
 
+    def lose_the_reading(self):
+        """The reading comes back but is no JSON: the old chain answers (G6); a lost provider would refuse the line."""
+        self.client = CutClient("not_json")
+        self.enterContext(front_tests.patch.object(self.app.state.ollama_adapter, "_client", self.client))
+
     async def begin(self, *, seed=TOWN_SEED, **kwargs):
         # A new campaign's town comes from its id: each campaign of a test takes the next seed from ``seed``.
         with fixed_town(self, seed):
@@ -68,13 +74,20 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
         path = self.route_file.with_name(f"{self.route_file.stem}.usage{self.route_file.suffix}")
         return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
-    async def test_a_dead_provider_still_takes_a_plain_yes_to_an_open_offer(self):
+    async def test_a_dead_provider_asks_to_try_again_and_takes_the_yes_on_the_retry(self):
+        # Owner rule G6 ("Tekrar dene", 2026-11-19): a lost provider refuses the line and the offer stays open.
         await self.begin()
         self.offer()
         self.client.fails = ConnectionError("gone")
+        failed = await self.http.post(self.turn_url, json={"message": "tamam, yaparım", "action_id": str(uuid.uuid4())})
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertIs(failed.json()["detail"]["not_applied"], True)
+        self.assertEqual(self.status(), "offered")
+        self.client.fails = None  # the provider is back: the same line, on a new id, is read and taken once
+        self.client.front = {"kind": "offer_answer", "offer_id": self.thread["thread_id"], "answer": "accept"}
         await self.line("tamam, yaparım")
         self.assertEqual(self.status(), "accepted")
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed:offer_answer")
+        self.assertEqual(self.routes()[-1]["route"], "front:offer_answer")
 
     async def test_a_cut_reading_still_takes_a_plain_yes_to_an_open_offer(self):
         await self.begin()
@@ -90,20 +103,20 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
             with self.subTest(line=line):
                 await self.begin()
                 self.offer()
-                self.client.fails = ConnectionError("gone")
+                self.lose_the_reading()
                 await self.line(line)
                 self.assertEqual(self.status(), "accepted")
 
     async def test_a_yes_with_no_open_offer_accepts_nothing(self):
         await self.begin()
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line("tamam, yaparım")
         self.assertEqual(self.status(), "open")
 
     async def test_a_no_to_an_open_offer_is_not_a_yes(self):
         await self.begin()
         self.offer()
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line("hayır, yapmıyorum")
         self.assertNotEqual(self.status(), "accepted")
 
@@ -112,7 +125,7 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
     async def no_yes(self, line):
         await self.begin()
         self.offer()
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line(line)
         # the old chain may still decide such a line by its own readers; the fallback must not claim it
         self.assertNotIn(":offer_answer", self.routes()[-1]["route"], line)
@@ -132,7 +145,7 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
     async def no_walk(self, line):
         await self.begin()
         here = self.world["location"]
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line(line)
         self.assertEqual(self.world["location"], here, line)
 
@@ -149,9 +162,9 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
         await self.begin(seed=seed)
         step = grounded_action.plan(self.session, line)["steps"][0]
         self.assertEqual((step.get("target") or {}).get("kind"), "place")  # this town has a Zivanel: the case pinned
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line(line)
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:unusable")
         record = self.world["locations"][self.world["location"]]
         self.assertFalse(local_places.PLACE_KINDS.get(record.get("place_kind"), {}).get("outdoors"))
 
@@ -176,7 +189,7 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
         second.update(thread_id="thread_900", place_id="place_borvan", status="open", item_noun="mühür")
         state["threads"].append(second)
         world_threads.mark_offered(self.world, second, other, "On bakır, bir gün.", 0)
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line("Borvan'ın teklifini kabul ediyorum ve eşyayı alıyorum.")
         self.assertNotEqual(self.status(), "accepted")
         self.assertEqual(world_threads.by_id(self.world, "thread_900")["status"], "offered")
@@ -193,9 +206,9 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
     async def test_the_label_follows_the_gate_when_it_overruled_the_yes(self):
         await self.begin()
         self.offer()
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line("Kabul ediyorum, parayı ver.")
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:unusable")
 
     async def test_a_plain_walk_out_of_town_still_walks_when_the_reading_failed(self):
         await self.begin()
@@ -205,20 +218,20 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
         after_ok = self.world["location"]
         name_ok = self.world["locations"][after_ok].get("place_kind")
         await self.begin()
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line("şehrin dışına gidiyorum")
         after_failed = self.world["location"]
         name_failed = self.world["locations"][after_failed].get("place_kind")
         self.assertNotEqual(after_ok, before)
         self.assertNotEqual(after_failed, before)
         self.assertEqual(name_failed, name_ok)
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed:go_to")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:unusable:go_to")
 
     async def test_the_log_names_the_check_that_failed(self):
         await self.begin()
-        self.client.fails = ConnectionError("gone")
+        self.client.fails = RuntimeError("no outage")  # an outage refuses the line (G6); any other error goes on
         await self.line("etrafa şöyle bir göz atayım")
-        self.assertIn("front:local:ConnectionError", self.usage()[-1]["causes"])
+        self.assertIn("front:local:RuntimeError", self.usage()[-1]["causes"])
 
     async def test_the_log_names_a_cut_reading(self):
         await self.begin()
@@ -240,14 +253,14 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_reading_that_names_no_open_offer_and_no_walk_keeps_its_old_label(self):
         await self.begin()
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line("etrafa şöyle bir göz atayım")
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:unusable")
 
     async def test_a_walk_back_into_town_is_no_walk_out_when_the_reading_failed(self):
         await self.begin()
         here = self.world["location"]
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         for line in ("şehrin dışına gitmiyorum", "şehrin dışına gidiyor muyum?", "şehrin dışına gitsem mi"):
             await self.line(line)
             self.assertEqual(self.world["location"], here, line)
@@ -259,7 +272,7 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
             with self.subTest(line=line):
                 await self.begin()
                 self.offer()
-                self.client.fails = ConnectionError("gone")
+                self.lose_the_reading()
                 await self.line(line)
                 self.assertNotEqual(self.status(), "accepted")
 
@@ -272,7 +285,7 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_log_row_holds_no_player_words(self):
         await self.begin()
-        self.client.fails = ConnectionError("gone")
+        self.lose_the_reading()
         await self.line("etrafa şöyle bir göz atayım")
         self.assertNotIn("göz atayım", json.dumps(self.usage()[-1], ensure_ascii=False))
 

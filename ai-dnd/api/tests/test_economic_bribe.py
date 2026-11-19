@@ -8,6 +8,7 @@ the next ordinary turn. Coin handed to someone else during an arrest is no bribe
 from __future__ import annotations
 
 import copy
+import os
 import unittest
 import uuid
 from unittest.mock import patch
@@ -19,6 +20,9 @@ import game
 import money_owner
 import world_reactions
 from api.serializers import serialize_session_state
+from api.tests import test_front_proposal as front_tests
+from api.tests.coin_seam import planted
+from api.tests.journeys.runner import call_kind
 from api.tests.test_economic_action_http import EconomicHttpFixture
 
 
@@ -63,8 +67,8 @@ class Arrest(unittest.TestCase):
         return [data for data in self.offers().values() if data["status"] == "prepared"]
 
     def held_out(self, amount, line="/item list"):
-        self.s._bribe_held_out = amount
-        return self.s.run_player_turn(line)
+        with planted(self.s, _bribe_held_out=amount):
+            return self.s.run_player_turn(line)
 
     def fighting(self):
         return bool(self.w.get("combat", {}).get("active"))
@@ -233,12 +237,116 @@ class TheBribeCard(Arrest):
         self.assertIsNone(self.s._coin_paid)
 
 
+class AFailedReadingStillDecidesTheCoin(Arrest):
+    """Owner rule G11 ("Eski kural karar versin", Kadir 2026-11-19): with the flag on, a reading that failed leaves the
+    coin the line's own words hold out to the money owner's structural rule (no deal), which decides it and writes its
+    note; coin never vanishes silently. A reading that came back decides the coin once, from the model, and the
+    structural rule never adds a second decision. The setUp's model raises AssertionError: a failed reading, not an
+    outage (G6), so the line plays on through the old chain."""
+
+    def setUp(self):
+        super().setUp()
+        flag = patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"})
+        flag.start()
+        self.addCleanup(flag.stop)
+
+    def deciding(self):
+        """Every decision the money owner makes this turn, by its source."""
+        made = []
+        real = money_owner.decide
+        return made, patch.object(money_owner, "decide",
+                                  side_effect=lambda *a, **k: (made.append(real(*a, **k)), made[-1])[1])
+
+    def test_a_failed_reading_still_gives_coin_to_the_innkeeper_the_structural_decision_and_its_note(self):
+        self.held()
+        made, spy = self.deciding()
+        pressed, pressing = self.counting("_press")
+        with spy, pressing:
+            result = self.s.run_player_turn("hancıya 5 bakır verip oda tutuyorum")
+        self.assertEqual(self.s._front_route, "fallback:failed")
+        self.assertEqual([(d.kind, d.npc_id, d.amount_cp, d.source) for d in made],
+                         [("unclear", "barman", 5, "structural")])
+        self.assertIs(money_owner.current(self.s), made[0])
+        self.assertIn(("barman", money_owner.unclear_note(5)), self.s._turn_notes)
+        self.assertEqual(bribe_cards(self.w), [])
+        self.assertEqual(self.prepared(), [], result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500)
+        self.assertEqual(len(pressed), 1)
+        self.assertNotIn("bribe_card_opened", self.deed()["hold"])
+
+    def test_an_unusable_reading_is_a_failed_reading_for_the_coin(self):
+        self.held()
+        client = front_tests.FrontClient()
+        client.unusable = ("{\"intent\": ", "length")
+        made, spy = self.deciding()
+        with spy, patch("game.ollama.chat", side_effect=client.chat):
+            result = self.s.run_player_turn("hancıya 5 bakır verip oda tutuyorum")
+        self.assertEqual(self.s._front_route, "fallback:unusable")
+        self.assertEqual([(d.kind, d.npc_id, d.amount_cp, d.source) for d in made],
+                         [("unclear", "barman", 5, "structural")])
+        self.assertIn(("barman", money_owner.unclear_note(5)), self.s._turn_notes)
+        self.assertEqual(self.prepared(), [], result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500)
+
+    def test_a_failed_reading_puts_coin_held_out_to_nobody_to_the_arresting_guard(self):
+        self.held()
+        made, spy = self.deciding()
+        with spy:
+            result = self.s.run_player_turn("100 bakır uzatıyorum")
+        self.assertEqual(self.s._front_route, "fallback:failed")
+        self.assertEqual([(d.kind, d.npc_id, d.amount_cp, d.source) for d in made],
+                         [("bribe", "guard", 100, "structural")])
+        [card] = bribe_cards(self.w)
+        self.assertEqual((card["status"], card["proposal"]["recipient_id"], card["proposal"]["amount_cp"]),
+                         ("prepared", "guard", 100), result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500)  # the card moves nothing until it is confirmed
+
+    def test_a_failed_reading_with_coin_for_nobody_found_keeps_it_in_hand_and_asks_who(self):
+        # No arrest: the structural decision names nobody, so it is not kept; the coin waits in hand with no decision
+        # (read as with no reading: a room or an order the words ask for would take it) and who it is for is asked.
+        made, spy = self.deciding()
+        seen = []
+        real = money_owner.open_card_after_reply
+        with spy, patch.object(money_owner, "open_card_after_reply", side_effect=lambda s, r, *a, **k: (
+                seen.append((money_owner.current(s), s._coin_paid)), real(s, r, *a, **k))[1]):
+            result = self.s.run_player_turn("100 bakır uzatıyorum")
+        self.assertEqual(self.s._front_route, "fallback:failed")
+        self.assertEqual([(d.kind, d.npc_id, d.amount_cp, d.source) for d in made],
+                         [("unclear", None, 100, "structural")])
+        self.assertEqual(seen, [(None, (100, None, self.here))])
+        self.assertIn(ea._CLARIFY["npc_unknown"], result["narration"])
+        self.assertEqual((self.offers(), self.w["currency"]["player"]), ({}, 500))
+
+    def read_back(self, front):
+        """One coin line under arrest whose reading came back with this front; the decisions the turn made."""
+        self.held()
+        client = front_tests.FrontClient()
+        client.front = front
+        kinds = []
+        made, spy = self.deciding()
+        with spy, patch("game.ollama.chat", side_effect=lambda *a, **k: (
+                kinds.append(call_kind(k.get("format")) or "other"), client.chat(*a, **k))[1]):
+            self.s.run_player_turn("hancıya 5 bakır verip oda tutuyorum")
+        self.assertEqual(kinds, ["front", "speech"])  # one reading, then the innkeeper's answer
+        self.assertTrue(self.s._front_route.startswith("front:"), self.s._front_route)
+        self.assertEqual(self.w["currency"]["player"], 500)
+        return [(d.kind, d.npc_id, d.amount_cp, d.source) for d in made]
+
+    # Review Focus 3: the structural rule runs only when the reading failed.
+    def test_a_reading_that_came_back_makes_the_only_coin_decision(self):
+        self.assertEqual(self.read_back({"kind": "speak_to", "person_id": "barman", "coin_cp": 5, "deal": "room"}),
+                         [("unclear", "barman", 5, "model")])
+
+    def test_a_reading_that_came_back_seeing_no_coin_gets_no_structural_decision(self):
+        self.assertEqual(self.read_back({"kind": "speak_to", "person_id": "barman", "coin_cp": 0, "deal": "none"}),
+                         [])
+
+
 class BribeConfirmations(EconomicHttpFixture):
     async def open_bribe(self, amount=100):
         self.hold_by_guard()
         session = self.record.game_session
-        session._bribe_held_out = amount
-        with patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        with planted(session, _bribe_held_out=amount),                 patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
             session.run_player_turn("/item list")
         self.save()
         [card] = bribe_cards(self.world)

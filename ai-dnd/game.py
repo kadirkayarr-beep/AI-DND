@@ -17304,6 +17304,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
         if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
             session._front_reply = {"intent": "unknown", "classifier_unusable": True}
+            session._front_reply_called = False  # G10: held, but no provider was asked for it
         return None
     hint = interaction_adventure.hint(player_input, True)
     addressed = None
@@ -17320,6 +17321,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             allow_scene_detail_proposals=_scene_detail_proposals_allowed(player_input, world, interaction_mode))
     held = {key: value for key, value in reply.items() if key != "front"}
     session._front_reply = held
+    session._front_reply_called = True  # G10: this reply is the turn's one classifier call, however often it is reused
     if "front" not in reply:
         answered = len(reply) > 1  # a dead provider leaves only the bare unknown intent
         label = ("fallback:unusable" if reply.get("classifier_unusable")
@@ -17331,6 +17333,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             recovered["recovered_from"] = label  # the gate may still overrule: the label then goes back
             return recovered
         front_proposal.note(session, label, reached=answered)
+        _coin_without_a_reading(player_input, target_id, listed)
         return None
     raw_front = reply.get("front")
     session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
@@ -17421,7 +17424,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if route is None:
         front_proposal.note(session, "fallback:invalid", reached=True)
         if (isinstance(raw_front, dict) and raw_front.get("kind") == "go_to"
-                and interaction_mode not in {"say", "ask_dm"}):
+                and interaction_mode not in {"say", "ask_dm"}
+                and not timed_gameplay.names_a_route(world, player_input)):  # a timed road is walked by its owner
             return {"kind": "walk_failed"}  # E5: a walk to nowhere listed is a failed walk, never a person to follow
         return None
     import grounded_action
@@ -17714,6 +17718,45 @@ def _hand_over_coin(route, listed, front=None, *, owner_routed=False):
     session._coin_paid = held_out  # the decided card's tender or amount; never "now theirs" before it is confirmed
 
 
+def _coin_without_a_reading(player_input, target_id, listed):
+    """Owner rule G11 ("Eski kural karar versin", 2026-11-19): the reading gave no front, but coin the line's own words
+    hold out now still gets the money owner's structural decision (no deal) and, after the reply, its note or card; it
+    never vanishes silently. The figure is the words' own (none named, no coin). It is for the person chosen, else
+    the one the line names, else whoever serves here when the line names one who serves ('hancıya'), else the one the
+    talk is with; nobody found is the structural rule's own case (`_hand_over_coin`: the arresting guard weighs it).
+    An unclear decision that names nobody is not kept: the coin stays in hand with no decision and is read as it is
+    with no reading (`bold_acts.held_out_coin`): the room or the counter the words ask for takes it as tender or
+    tells it back, else who it is for is asked (`money_owner.open_card_after_reply`). Nor a room decision when the
+    words ask for no bed (a beer, a tip), nor an unclear one when they ask for a bed outside an arrest (D-402)."""
+    import bold_acts
+    import front_proposal
+    import money_owner
+    import shop_trade
+    import world_reactions
+    session = _session()
+    amount = front_proposal.coin_in(None, player_input, moves=True)  # `moves`: the words' figure stands with no reading
+    if not amount:
+        return
+    session._front_coin = amount
+    if target_id is not None:
+        person = next((npc for npc in active_npcs() if npc.get("id") == target_id), None)
+    else:
+        person = _addressed_in(player_input, or_the_talk=False)
+        if person is None and shop_trade.SERVER.search(
+                living_world.normalize_text(living_world._text_outside_quotes(player_input))):
+            person = bold_acts._server_here(session)
+        person = person or _active_interlocutor()
+    _hand_over_coin({"kind": "speak_to", "id": person["id"]} if person is not None else {"kind": "attempt"}, listed)
+    decided = money_owner.current(session)
+    folded = bold_acts.fold(session, player_input)
+    bed = bool(bold_acts._ROOM.search(folded) and bold_acts._wants_the_bed(folded))
+    if decided is not None and ((decided.kind == "room" and not bed) or (decided.kind == "unclear" and (
+            decided.npc_id is None or (bed and world_reactions.arrester(session.world_state) is None)))):
+        # No room asked for (a beer ordered, a tip): the structural room is a guess the words do not make. A bed asked
+        # for outside an arrest is the room card's, as with the flag off (D-402). The coin stays in hand, undecided
+        session._coin_decision = None
+
+
 def _blow_stands(player_input):
     """The reading may name a blow; the words still decide that one is landing now, outside any quote."""
     import bold_acts
@@ -17838,6 +17881,7 @@ def front_read_ahead(player_input, target_id=None, interaction_mode=None):
     if (not front_proposal.enabled() or session.character.get("current_hp", 0) <= 0 or ensure_death_state()["dead"]
             or getattr(session, "_attack_asked", False) or getattr(session, "_heavy_asked", None)
             or not isinstance(player_input, str)
+            or combat_lifecycle.surrender_yes(session, player_input)  # G9: the engine's own question, Python's yes
             or _is_end_conversation_request(player_input)):
         return None
     interaction_mode = _normalize_interaction_mode(interaction_mode)
@@ -19304,6 +19348,17 @@ def _run_player_turn_internal(
     # turn budget and is reused instead of asking the same question twice.
     scene_preparse_model_calls = 0
     preparsed_scene_intent = None
+    # G10: with the front reading on, a reply held before this point was the turn's classifier call (when a provider
+    # was asked for it). A step below that reuses the held reply spends no call, so telemetry tells exactly that
+    # reading, once, whether or not a step reused it, plus the dialogue reply asked below (never answered by a held reply).
+    held_reading = getattr(_session(), "_front_reply", None) is not None
+    reading_calls = int(held_reading and getattr(_session(), "_front_reply_called", False))
+    speech_intent_calls = 0
+
+    def told_intent_calls():
+        if not held_reading:
+            return intent_model_calls
+        return reading_calls + speech_intent_calls
     world_state = _session().world_state
     entry_death_state = ensure_death_state()
     entry_combat = ensure_combat_state()
@@ -19559,9 +19614,9 @@ def _run_player_turn_internal(
             result["_engine_event_evidence"].pop("_procedural_ids_before", None)
             if "telemetry" not in result["_engine_event_evidence"]:
                 result["_engine_event_evidence"]["telemetry"] = {
-                    "intent_model_calls": intent_model_calls,
+                    "intent_model_calls": told_intent_calls(),
                     "narration_model_calls": narration_model_calls,
-                    "total_model_calls": intent_model_calls + narration_model_calls,
+                    "total_model_calls": told_intent_calls() + narration_model_calls,
                     "intent_source": intent_source,
                     "narration_source": narration_source,
                     "fallback_reason": safety_reason_code,
@@ -19606,9 +19661,9 @@ def _run_player_turn_internal(
                 narration_src = "deterministic_fallback"
 
             result["_engine_event_evidence"]["telemetry"] = {
-                "intent_model_calls": intent_model_calls,
+                "intent_model_calls": told_intent_calls(),
                 "narration_model_calls": 0,
-                "total_model_calls": intent_model_calls,
+                "total_model_calls": told_intent_calls(),
                 "intent_source": intent_source,
                 "narration_source": narration_src,
                 "fallback_reason": safety_reason_code,
@@ -19629,7 +19684,7 @@ def _run_player_turn_internal(
             target_id=target_id,
             lore_context=lore_context,
             intent_source=intent_source,
-            intent_model_calls=intent_model_calls,
+            intent_model_calls=told_intent_calls(),
             messages=messages,
             allow_new_npcs=allow_new_npcs,
             allow_new_features=allow_new_features,
@@ -21225,6 +21280,7 @@ def _run_player_turn_internal(
         # mode must reach the same first-person speech path as "say".
         experimental_npc_dialogue = experimental_dialogue_session
         intent_model_calls = scene_preparse_model_calls + 1
+        speech_intent_calls = 1  # G10: a dialogue reply is always asked, held reading or not
         intent_source = "interaction_proposal"
         # Python settles the name first, so the prompt and the label agree.
         name_stance = (
@@ -21358,6 +21414,7 @@ def _run_player_turn_internal(
             # remains an intent call; this response is an additional narration
             # call, not a replacement for the first one.
             intent_model_calls = scene_preparse_model_calls
+            speech_intent_calls = 0
             intent_source = (
                 "model" if scene_preparse_model_calls else "deterministic_dialogue"
             )

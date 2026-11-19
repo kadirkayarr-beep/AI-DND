@@ -23,6 +23,7 @@ AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
+import front_proposal
 import game
 from api.auth import FixedAuthenticator
 from api.main import create_app
@@ -31,6 +32,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.serializers import serialize_session_state
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
+from api.tests.journeys.runner import call_kind
 
 
 class FakeOllamaClient:
@@ -566,10 +568,10 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.fake_client.list_calls, 1)
 
     async def test_completed_narration_call_is_not_retried(self):
-        calls: list[int] = []
+        calls: list[str] = []
 
-        def complete_once(*_args, **_kwargs):
-            calls.append(1)
+        def complete_once(*_args, **kwargs):
+            calls.append(call_kind(kwargs.get("format")) or "call")
             return {"message": {"content": "ok"}, "prompt_eval_count": 3, "eval_count": 1}
 
         self.fake_client.chat = complete_once
@@ -586,7 +588,8 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
             json={"action_id": str(uuid4()), "message": "İçeriye bakıyorum."},
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(calls, [1])
+        # Flag on, the front reading comes first; its unusable "ok" leaves the old chain, which spends no second reading.
+        self.assertEqual(calls, ["front", "call"] if front_proposal.enabled() else ["call"])
         self.assertEqual(response.json()["narration"], "Han sessiz.")
 
     async def test_preflight_is_not_counted_as_generation(self):

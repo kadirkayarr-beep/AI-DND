@@ -1489,9 +1489,16 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
         with self.assertLogs("ai_dnd.api", "INFO") as logs:
             response = await self.turn(narrate)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertIn("Turn providers (answered=gemini)", "\n".join(logs.output))
+        import front_proposal
+        # Flag on, the front reading comes first. The fake cloud answers every call with this narration packet, which
+        # the chain's schema check refuses for the reading, so the local model answers it; the narration is Gemini's.
+        answered = "gemma4-fast,gemini" if front_proposal.enabled() else "gemini"
+        self.assertIn(f"Turn providers (answered={answered})", "\n".join(logs.output))
 
     async def test_a_failed_classifier_on_the_chain_path_still_gives_the_player_a_turn(self):
+        # Ruling (FA1): the subject is the old classifier on the chain, the flag-off path; flag on, the front reading
+        # comes first and its outage is a 503 (next test).
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "0"}))
         self.adapter._chain = chain_for(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
         self.adapter._client.chat = lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ReadTimeout("slow"))
 
@@ -1501,6 +1508,21 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
 
         response = await self.turn(narrate)
         self.assertEqual(response.status_code, 200, response.text)
+
+    async def test_a_front_reading_lost_on_the_chain_path_asks_to_try_again(self):
+        # Owner rule G6 ("Tekrar dene", 2026-11-19): every provider of the chain failed the reading, so the line is
+        # refused with a 503 and the engine never runs.
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}))
+        self.adapter._chain = chain_for(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
+        self.adapter._client.chat = lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ReadTimeout("slow"))
+
+        def narrate(message):
+            raise AssertionError("a refused line runs no engine turn")
+
+        response = await self.turn(narrate)
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "ollama_unavailable")
+        self.assertIs(response.json()["detail"]["not_applied"], True)
 
     async def test_no_provider_line_with_no_chain(self):
         narrate = lambda message: {"action_result": {"action": "wait", "status": "resolved"}, "narration": "Bekliyorsun."}

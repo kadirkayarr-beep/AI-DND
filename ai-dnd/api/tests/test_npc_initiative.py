@@ -26,7 +26,8 @@ class InitiativeHttpTests(unittest.IsolatedAsyncioTestCase):
   await self.setup_free();self.npc['dialogue_observation']={'id':'injury:test','kind':'visible_injury','visible':True,'location_id':self.world['location'],'turn_index':0}
   self.reply.spoken='Kolun yaralanmış, iyi misin?';aid=str(uuid.uuid4())
   r=await self.send('Çevreyi gözlemliyorum.',mode='do',action_id=aid);self.assertEqual(r.status_code,200,r.text)
-  self.assertIn(self.reply.spoken,r.json()['narration']);self.assertEqual(self.npc.get('dialogue_initiative_handled'),'injury:test');self.assertLessEqual(self.reply.calls,2)
+  self.assertIn(self.reply.spoken,r.json()['narration']);self.assertEqual(self.npc.get('dialogue_initiative_handled'),'injury:test')
+  self.assertEqual(call_kinds(self.reply.batches),(['front'] if front_proposal.enabled() else [])+['narration','initiative'])  # the reading's call is not the initiative's
   calls=self.reply.calls;again=await self.send('Çevreyi gözlemliyorum.',mode='do',action_id=aid);self.assertEqual(r.json(),again.json());self.assertEqual(self.reply.calls,calls)
   self.reply.calls=0;r2=await self.send('Çevreyi gözlemliyorum.',mode='do');self.assertEqual(r2.status_code,200,r2.text);self.assertNotIn(self.reply.spoken,r2.json()['narration'])
  async def test_failed_optional_initiative_does_not_invent_a_reply(self):
@@ -40,7 +41,9 @@ class InitiativeHttpTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(self.npc.get('dialogue_observation',{}).get('id'),'injury:e1');self.assertNotIn('dialogue_observation',self.world['npcs'][-1])
  async def test_optional_timeout_keeps_resolved_exploration(self):
   await self.setup_free();self.npc['dialogue_observation']={'id':'injury:test','kind':'visible_injury','visible':True,'location_id':self.world['location'],'turn_index':0}
-  with patch.object(self.reply,'chat',side_effect=TimeoutError('synthetic timeout')):
+  real=self.reply.chat  # flag on, the front reading answers: its own outage would be a 503 (G6), not this test's subject
+  times_out=lambda *a,**k:real(*a,**k) if 'front' in ((k.get('format') or {}).get('properties') or {}) else (_ for _ in ()).throw(TimeoutError('synthetic timeout'))
+  with patch.object(self.reply,'chat',side_effect=times_out):
    r=await self.send('Çevreyi gözlemliyorum.',mode='do')
   self.assertEqual(r.status_code,200,r.text);self.assertNotIn('dialogue_initiative_handled',self.npc)
  async def test_optional_initiative_does_not_expose_deception_motive(self):
@@ -48,3 +51,42 @@ class InitiativeHttpTests(unittest.IsolatedAsyncioTestCase):
   self.reply.calls=0;self.reply.batches=[]
   r=await self.send('Çevreyi gözlemliyorum.',mode='do');self.assertEqual(r.status_code,200,r.text)
   context=json.loads(self.reply.batches[-1]['messages'][-1]['content']);self.assertIsNone(context['deception']);self.assertEqual(self.npc['dialogue_deception']['remaining_uses'],1)
+
+import os
+import front_proposal
+from api import model_phase,ollama_adapter
+def call_kinds(batches):
+ # Which call each request was, from its system prompt: the front reading, the narration, the NPC's initiative.
+ kinds={'You are a small D&D intent parser':'front','\nSen Dungeons & Dragons':'narration','Seçilen NPC olarak':'initiative'}
+ return [next((k for p,k in kinds.items() if b['messages'][0]['content'].startswith(p)),'other') for b in batches]
+class InitiativeFlagOnTests(unittest.IsolatedAsyncioTestCase):
+ asyncSetUp=base.DialogueRuntimeTests.asyncSetUp
+ asyncTearDown=base.DialogueRuntimeTests.asyncTearDown
+ setup_free=base.DialogueRuntimeTests.setup_free
+ send=base.DialogueRuntimeTests.send
+ async def test_reading_does_not_take_the_witness_initiative_room(self):
+  self.enterContext(patch.dict(os.environ,{'AI_DND_FRONT_PROPOSAL':'1'}))
+  await self.setup_free();self.npc['dialogue_observation']={'id':'injury:test','kind':'visible_injury','visible':True,'location_id':self.world['location'],'turn_index':0}
+  self.reply.spoken='Kolun yaralanmış, iyi misin?';aid=str(uuid.uuid4())
+  r=await self.send('Çevreyi gözlemliyorum.',mode='do',action_id=aid);self.assertEqual(r.status_code,200,r.text)
+  self.assertIn(self.reply.spoken,r.json()['narration']);self.assertEqual(self.npc.get('dialogue_initiative_handled'),'injury:test')
+  self.assertEqual(call_kinds(self.reply.batches),['front','narration','initiative'])
+  again=await self.send('Çevreyi gözlemliyorum.',mode='do',action_id=aid);self.assertEqual(r.json(),again.json());self.assertEqual(self.reply.calls,3)
+class InitiativeBudgetTests(unittest.TestCase):
+ def ask(self,adapter):
+  return adapter.chat(model=ollama_adapter.MODEL_NAME,messages=[{'role':'user','content':'x'}])
+ def test_initiative_may_use_only_the_room_a_front_reading_took(self):
+  adapter=ollama_adapter.AuthenticatedOllamaAdapter(base.FreeReplyClient())
+  with adapter.capture_model_calls() as calls:
+   with model_phase.front_call():self.ask(adapter)
+   self.ask(adapter)
+   with self.assertRaisesRegex(RuntimeError,'budget'):self.ask(adapter)  # the turn's own calls still stop at the cap
+   with model_phase.initiative_call():self.ask(adapter)
+   self.assertEqual(len(calls),3);self.assertEqual(ollama_adapter.turn_call_cap(calls),3)
+   with model_phase.initiative_call(),self.assertRaisesRegex(RuntimeError,'budget'):self.ask(adapter)  # one reading frees one call
+ def test_without_a_reading_initiative_keeps_the_plain_cap(self):
+  adapter=ollama_adapter.AuthenticatedOllamaAdapter(base.FreeReplyClient())
+  with adapter.capture_model_calls() as calls:
+   self.ask(adapter);self.ask(adapter)
+   with model_phase.initiative_call(),self.assertRaisesRegex(RuntimeError,'budget'):self.ask(adapter)
+   self.assertEqual(len(calls),2);self.assertEqual(ollama_adapter.turn_call_cap(calls),ollama_adapter.MAX_MODEL_CALLS_PER_TURN)

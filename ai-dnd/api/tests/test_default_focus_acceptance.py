@@ -40,8 +40,8 @@ class DefaultFocusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     client = speech.ScriptedNpcSpeechClient(reply)
                     first = await self.post(url, client, question, **fields)
                     self.assertIn(reply, first['narration'])
-                    self.assertEqual(client.chat_calls, 1)
-                    self.assertEqual(client.schemas[0]['required'], ['spoken_text', 'stage_direction', 'threat', 'voiced', 'mentions'])
+                    self.assertEqual(speech.call_kinds(client.schemas), speech.with_reading('speech'))
+                    self.assertEqual(client.schemas[speech.speech_call(client)]['required'], ['spoken_text', 'stage_direction', 'threat', 'voiced', 'mentions'])
                     self.assertTrue(first['narration'].startswith(npc['name']))
                     pairs = session.world_state['npc_speech_log'][npc['id']]
                     self.assertEqual(sum(p['player'] == question for p in pairs), 1)
@@ -56,8 +56,8 @@ class DefaultFocusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                         second = await self.post(url, follow, 'Peki neden?', **fields)
                     self.assertIn(follow.narration, second['narration'])
                     self.assertTrue(second['narration'].startswith(npc['name']))
-                    self.assertEqual(follow.chat_calls, 1)
-                    self.assertEqual(follow.schemas[0]['required'], ['spoken_text', 'stage_direction', 'threat', 'voiced', 'mentions'])
+                    self.assertEqual(speech.call_kinds(follow.schemas), speech.with_reading('speech'))
+                    self.assertEqual(follow.schemas[speech.speech_call(follow)]['required'], ['spoken_text', 'stage_direction', 'threat', 'voiced', 'mentions'])
                     self.assertEqual(contexts[-1]['last_exchange'], dict(player=question, npc_reply=reply))
                     self.assertEqual(sum(p['player'] == 'Peki neden?' for p in session.world_state['npc_speech_log'][npc['id']]), 1)
                     self.assertEqual(before, (session.character, session.world_state['inventory'], npc['personal_profile'], session.world_state['location'], session.world_state['doors'], session.rng.getstate()))
@@ -95,9 +95,10 @@ class DefaultFocusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(session.world_state['location'], venue_id)
                     canonical_door = next(d for d in session.world_state['doors'] if d['id'] == door_id)
                     self.assertTrue(canonical_door['open'])
-                    # Dilim 3b: walking in asks for the arrival scene once and nothing else (the Python text stands)
-                    self.assertEqual(client.chat_calls, 1)
-                    self.assertIn('arrival', client.schemas[-1]['properties'])
+                    # Dilim 3b: walking in asks for the arrival scene once and nothing else (the Python text stands);
+                    # with AI_DND_FRONT_PROPOSAL on, each of the three do-lines (drop, walk, enter) is read first
+                    self.assertEqual(speech.call_kinds(client.schemas),
+                                     speech.with_reading() + speech.with_reading('arrival') + speech.with_reading())
                     self.assertFalse(session.world_state['flags'].get('active_npc_id'))
 
 

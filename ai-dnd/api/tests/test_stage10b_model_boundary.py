@@ -7,7 +7,8 @@ from unittest.mock import patch
 import game
 from api.model_phase import ModelFailure, only_resolved_narration_failures, resolved_narration_scope
 from api.persistence.campaign_models import CampaignStorageError
-from api.tests.test_explicit_shop_creation import ShopTransactionTests, REQUEST
+from api.tests.journeys.runner import call_kind
+from api.tests.test_explicit_shop_creation import ShopTransactionTests, REQUEST, call_kinds, one_line_calls
 from api.tests.town_seed import fixed_town
 
 TOWN_SEED = 4301  # a new campaign's town (its posted work too) comes from its id; pinned so every run meets the same town
@@ -19,7 +20,12 @@ class ModelBoundaryTests(ShopTransactionTests):
             await super().asyncSetUp()
 
     async def test_resolved_transport_failure_persists_and_replays_without_retry(self):
-        self.model.chat.side_effect = RuntimeError("private-sentinel")
+        def narration_fails(*_args, **kwargs):
+            if call_kind(kwargs.get("format")) == "front":
+                return {"message": {"content": "{}"}}  # flag on: the reading comes back; only the narration fails
+            raise RuntimeError("private-sentinel")
+
+        self.model.chat.side_effect = narration_fails
         await self.test_creation_replay_duplicate_resume_and_session_isolation()
         receipt = self.store.get_campaign(self.created["campaign_id"])
         self.assertEqual(len(receipt.payload["engine_save"]["world_state"]["shops"]), 1)
@@ -31,7 +37,8 @@ class ModelBoundaryTests(ShopTransactionTests):
         console.close()
 
     async def test_before_resolution_failure_restores_state_rng_and_has_no_receipt(self):
-        self.model.chat.side_effect = RuntimeError("private-sentinel")
+        # A lost provider (G6): flag on it is the front reading's outage, flag off the classifier's.
+        self.model.chat.side_effect = ConnectionError("private-sentinel")
         session = self.record.game_session
         before = copy.deepcopy(session.serialize_game_state())
         rng = session.rng.getstate()
@@ -58,7 +65,7 @@ class ModelBoundaryTests(ShopTransactionTests):
         self.assertEqual(reply.json()["narration"], "Burada küçük bir yerel dükkân var; başında bir dükkâncı duruyor. "
                                                     "Köşedeki ilan panosuna yeni kâğıtlar çivilenmiş.")
         self.assertEqual(len(self.record.game_session.world_state["shops"]), 1)
-        self.assertEqual(self.model.chat.call_count, 1)
+        self.assertEqual(call_kinds(self.model), one_line_calls())
 
     def test_unknown_and_mixed_phases_fail_closed_and_scope_resets(self):
         unknown = ModelFailure("RuntimeError")

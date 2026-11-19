@@ -1,7 +1,8 @@
 """Roadmap step 5: the model reads a free line first, Python checks the listed ids and routes it.
 
 Real app, real adapter, real engine; only the Ollama client is scripted. The front reading is the turn's one
-classifier call, so a turn never spends a third call on it. Anything wrong with it leaves the old chain in charge.
+classifier call, so a turn never spends a third call on it. A reply that is wrong leaves the old chain in charge; a
+lost provider refuses the line (owner rule G6, "Tekrar dene").
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ class FrontClient(speech.ScriptedNpcSpeechClient):
         self.intent = "narrative"
         self.target = {"type": "none", "reference": ""}
         self.fails = None
+        self.unusable = None  # (text, done_reason): the reading comes back, but as no usable answer
         self.drop_front = False
 
     def chat(self, *args, **kwargs):
@@ -44,6 +46,8 @@ class FrontClient(speech.ScriptedNpcSpeechClient):
         self.message_batches.append(kwargs.get("messages", []))
         if self.fails is not None:
             raise self.fails
+        if self.unusable is not None:
+            return {"message": {"content": self.unusable[0]}, "done_reason": self.unusable[1]}
         filled = {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none", "answer": "none",
                   "inside": False, "timing": "now", **self.front}
         packet = {"intent": self.intent, "action": "narrative", "target": self.target,
@@ -113,13 +117,22 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(reply["narration"].strip())
         self.assertEqual(self.routes()[-1]["route"], "fallback:invalid")
 
-    async def test_a_failed_call_never_fails_the_turn_on_the_local_model_alone(self):
+    async def test_an_outage_in_the_reading_asks_to_try_again_and_the_next_line_plays(self):
+        # Owner rule G6 ("Tekrar dene", 2026-11-19): a lost provider refuses the line (503, not applied), never locks
+        # the campaign, and the same line plays once the provider is back.
         await self.begin()
+        rows = len(self.routes()) if self.route_file.exists() else 0
         self.client.fails = ConnectionError("gone")
+        failed = await self.http.post(self.turn_url, json={"message": "etrafa şöyle bir göz atayım",
+                                                           "action_id": str(uuid.uuid4())})
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(failed.json()["detail"]["code"], "ollama_unavailable")
+        self.assertIs(failed.json()["detail"]["not_applied"], True)
+        self.client.fails = None
         reply = await self.line("etrafa şöyle bir göz atayım")
         self.assertTrue(reply["narration"].strip())
-        self.assertEqual(self.routes()[-1]["route"], "fallback:failed")
-        self.assertIs(self.routes()[-1]["reached_model"], False)
+        self.assertEqual(len(self.routes()), rows + 1, "the refused line wrote no route row")
+        self.assertIs(self.routes()[-1]["reached_model"], True)
 
     async def test_the_front_reading_is_the_classifier_call_and_the_cap_holds(self):
         await self.begin()

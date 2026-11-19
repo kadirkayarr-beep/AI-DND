@@ -70,9 +70,10 @@ class Records(FrontTable):
 
     async def test_a_call_that_failed_is_counted_as_failed(self):
         await self.counted()
-        self.client.fails = ConnectionError("gone")
+        # A lost provider refuses the line and writes no row (G6); a call that fails any other way is counted.
+        self.client.fails = RuntimeError("no outage")
         await self.line("etrafa soyle bi goz atayim")
-        self.assertGreaterEqual(self.rows()[-1]["failed"], 1)
+        self.assertEqual(self.rows()[-1]["failed"], 1)
 
     async def test_two_turns_are_two_records_and_do_not_add_up(self):
         await self.counted()

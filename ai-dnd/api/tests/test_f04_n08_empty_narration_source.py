@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 import game
 from api.tests.speech_double import reply, routed_chat, speech_packet
+from api.tests.test_f04_n08_npc_memory import call_kinds, with_reading
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc
 
 class EmptyNarrationSourceRegression(unittest.TestCase):
@@ -31,11 +32,12 @@ class EmptyNarrationSourceRegression(unittest.TestCase):
         chat = routed_chat({"intent": reply(payload), "speech": speech_packet(narration)})
         with patch("game.ollama.chat", side_effect=chat) as provider:
             result = session.run_player_turn(message, interaction_mode="say")
-        self.assertEqual(provider.call_count, 1)
+        # With AI_DND_FRONT_PROPOSAL on, the front reading (answered by the intent handler, no `front`) comes first.
+        self.assertEqual(call_kinds(provider), with_reading("speech"))
         self.assertTrue(result["narration"].strip())
         telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], len(with_reading("speech")))
         return result, telemetry
 
     def test_empty_model_narration_is_not_accepted_as_qwen(self):

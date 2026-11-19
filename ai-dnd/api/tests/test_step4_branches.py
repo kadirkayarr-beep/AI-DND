@@ -62,10 +62,12 @@ class Branches(unittest.IsolatedAsyncioTestCase):
         if mode:
             body["interaction_mode"] = mode
             body["target_id"] = self.owner["id"]
-        before = self.client.chat_calls
+        before = len(self.client.schemas)
         response = await self.http.post(self.turn_url, json=body)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertLessEqual(self.client.chat_calls - before, 1, message)
+        # At most one call of the line's own, its speech; with the flag on the front reading comes first (G1).
+        kinds = speech.call_kinds(self.client.schemas[before:])
+        self.assertIn(kinds, (speech.with_reading(), speech.with_reading("speech")), message)
         self.world = self.session.world_state
         return response.json()
 

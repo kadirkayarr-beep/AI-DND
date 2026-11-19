@@ -5,6 +5,7 @@ model, so it proves what Python decides on its own.
 """
 
 import game
+from api.tests.test_experimental_npc_dialogue import call_kinds, with_reading
 from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 
 
@@ -14,9 +15,11 @@ class WitnessRecallClient(PlayClient):
         super().__init__(spoken="Baban değirmenciydi.")  # must never gain authority from a deed
         self.quote, self.source, self.scope = quote, source, scope
         self.offered = []
+        self.schemas = []
 
     def chat(self, *args, **kwargs):
         import json
+        self.schemas.append(kwargs.get("format"))
         answer = super().chat(*args, **kwargs)
         props = (kwargs.get("format") or {}).get("properties", {})
         if "spoken_text" in props:
@@ -604,9 +607,8 @@ class GuardsAndMemoryInRealPlay(OneTownScene):
         await self.say("selam kalila", PlayClient(spoken="Yine mi sen?"))
         line = "ben dün burada ne yaptım hatırlıyor musun"
         client = WitnessRecallClient(line)
-        calls_before = client.calls
         out = await self.say(line, client)
-        self.assertEqual(client.calls - calls_before, 1)
+        self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
         self.assertEqual(len(client.offered), 1)
         self.assertNotIn("Quenna Atölyesi içinde ateş yaktı", out["narration"])
         self.assertNotIn("Baban değirmenciydi", out["narration"])

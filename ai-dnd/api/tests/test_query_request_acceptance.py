@@ -96,8 +96,8 @@ class QueryRequestAcceptanceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code,200,response.text)
         self.assertTrue(response.json()['narration'].startswith(npc['name']))
         self.assertIn(client.narration,response.json()['narration'])
-        self.assertEqual(client.chat_calls,1)
-        self.assertEqual(client.schemas[0]['required'],['spoken_text','stage_direction','threat','voiced','mentions'])
+        self.assertEqual(speech.call_kinds(client.schemas),speech.with_reading('speech'))
+        self.assertEqual(client.schemas[speech.speech_call(client)]['required'],['spoken_text','stage_direction','threat','voiced','mentions'])
 
     async def test_new_native_venue_query_does_not_disclose_hidden_place(self):
         _,_,session,url,_=await self.campaign_with_npc(experimental=False)

@@ -10,10 +10,23 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import front_proposal
 import game
 import spell_scope
 import spells
 from api.tests.test_spell_scope import caster
+
+
+def _front_reading_only(readings, message):
+    """With AI_DND_FRONT_PROPOSAL on, every read line spends the front reading first (owner rule G1: exactly that one
+    call). It answers unclear and without `front`, so the old chain still owns the line; any other call fails."""
+    def parse(player_input, *args, **kwargs):
+        if kwargs.get("front_list") is None:
+            raise AssertionError(message)
+        readings.append(player_input)
+        return {"intent": "narrative", "action": "", "target": {"type": "none", "reference": ""},
+                "completion": "unclear", "confidence": 1.0}
+    return parse
 
 
 def _character(session, class_name, *, cantrips=(), known=(), slots=2, level=1,
@@ -208,10 +221,12 @@ class SpellCastTests(unittest.TestCase):
     def test_model_cannot_relabel_a_cast_or_author_damage(self):
         session, enemy = caster(cls="Wizard")
         before_hp = enemy["current_hp"]
-        with patch.object(game, "parse_player_intent", side_effect=AssertionError("model")), patch(
+        readings = []
+        with patch.object(game, "parse_player_intent", side_effect=_front_reading_only(readings, "model")), patch(
             "game.roll_d20", return_value=12
         ), patch.object(session.rng, "randint", return_value=4):
             result = session.run_player_turn("I cast Fire Bolt", target_id=enemy["id"])
+        self.assertEqual(readings, ["I cast Fire Bolt"] * int(front_proposal.enabled()))  # the reading only
         spell_result = result["action_result"]["economy_steps"][0]["result"]
         self.assertEqual(spell_result["spell_id"], "Fire Bolt")
         self.assertEqual(spell_result["damage"], 4)

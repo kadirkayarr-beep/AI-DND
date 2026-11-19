@@ -4,11 +4,14 @@ from unittest.mock import patch
 import game,local_dialogue
 import test_narrative_rebalance as nr
 from api.tests import test_route_focus_regressions as route
+from api.tests.journeys.runner import call_kind
+from api.tests.test_intent_response_consistency import read_first
 
 KING='Neverwinter is ruled by King Vharion.'
 class Client:
  def __init__(self,spoken,stage=''):self.spoken=spoken;self.stage=stage;self.calls=[]
  def list(self):return {'models':[{'model':'qwen3:8b'}]}
+ def kinds(self):return [call_kind(k.get('format')) for k in self.calls]
  def chat(self,*a,**k):
   self.calls.append(copy.deepcopy(k))
   return {'message':{'content':json.dumps({'spoken_text':self.spoken,'stage_direction':self.stage},ensure_ascii=False)}}
@@ -19,7 +22,7 @@ class StageContractTests(unittest.TestCase):
  def turn(self,spoken,stage):
   client=Client(spoken,stage);before=copy.deepcopy(self.session.world_state['npcs']);inventory=copy.deepcopy(self.session.world_state['inventory']);rng=self.session.rng.getstate()
   with patch('game.ollama.chat',side_effect=client.chat):r=self.session.run_player_turn('Hancı, buralarda neler dönüyor?')
-  self.assertEqual(self.session.world_state['npcs'],before);self.assertEqual(self.session.world_state['inventory'],inventory);self.assertEqual(self.session.rng.getstate(),rng);self.assertEqual(len(client.calls),1)
+  self.assertEqual(self.session.world_state['npcs'],before);self.assertEqual(self.session.world_state['inventory'],inventory);self.assertEqual(self.session.rng.getstate(),rng);self.assertEqual(client.kinds(),read_first('speech'))
   return r
  def test_spoken_rumor_retained_stage_removed_and_history_single(self):
   r=self.turn(KING,KING);self.assertIn('“'+KING+'”',r['narration']);self.assertNotIn('('+KING.rstrip('.')+')',r['narration'])
@@ -51,7 +54,8 @@ class PublicDetailHttpTests(unittest.IsolatedAsyncioTestCase):
   before=copy.deepcopy(self.session.world_state['npcs']);rng=self.session.rng.getstate();inventory=copy.deepcopy(self.session.world_state['inventory'])
   with patch.object(self.app.state.ollama_adapter,'_client',self.client), self.app.state.ollama_adapter.engine_binding():
    r=await self.http.post(self.url,json=body)
-  self.assertEqual(len(self.client.calls),1, 'Each turn must use its own configured fake provider')
+  # A line to a chosen person is not read; flag on, a free line is read first (owner rule G1).
+  self.assertEqual(self.client.kinds(),['speech'] if target else read_first('speech'), 'Each turn must use its own configured fake provider')
   self.assertEqual(r.status_code,200,r.text);self.assertEqual(self.session.rng.getstate(),rng);self.assertEqual(self.session.world_state['inventory'],inventory)
   for n,old in zip(self.session.world_state['npcs'],before):
    for key in ('id','name','personal_profile','location'):self.assertEqual(n.get(key),old.get(key))
@@ -60,7 +64,7 @@ class PublicDetailHttpTests(unittest.IsolatedAsyncioTestCase):
   await self.setup_person();detail=self.npc['personal_profile']['personal_detail'];self.assertEqual(detail,'Yol boyunca çantamın kayışı yine gevşedi.')
   native=local_dialogue.personal_answer(self.npc,'Peki sen, kendinden biraz bahset.');self.assertIn(detail,native[0])
   r,b=await self.send('Peki sen, kendinden biraz bahset.',detail)
-  self.assertIn(detail,json.dumps(self.client.calls,ensure_ascii=False));self.assertIn(detail,r.json()['narration']);self.assertEqual(len(self.client.calls),1);await self.replay_cold(b,r)
+  self.assertIn(detail,json.dumps(self.client.calls,ensure_ascii=False));self.assertIn(detail,r.json()['narration']);self.assertEqual(self.client.kinds(),read_first('speech'));await self.replay_cold(b,r)
  async def test_other_npc_detail_private_and_hidden_stay_rejected(self):
   for mode in ('other','private','hidden'):
    with self.subTest(mode=mode):
