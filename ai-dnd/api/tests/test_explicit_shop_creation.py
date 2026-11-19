@@ -9,6 +9,7 @@ import uuid
 from unittest.mock import Mock, patch
 
 import httpx
+import front_proposal
 import game
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
@@ -16,6 +17,7 @@ from api.persistence.campaign_models import CampaignStorageError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.live_neverwinter_canon_smoke import START_SELECTION
+from api.tests.journeys.runner import call_kind
 
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
@@ -33,6 +35,16 @@ def with_till(before, shopkeeper_id):
     after = copy.deepcopy(before)
     after["currency"] = {**(after["currency"] or {}), shopkeeper_id: 1000}
     return after
+
+
+def call_kinds(model):
+    """Each model call the mock answered, by kind (front, intent, narration ...)."""
+    return [call_kind(call.kwargs.get("format")) for call in model.chat.call_args_list]
+
+
+def one_line_calls():
+    """What one shop-creation line spends: its narration, after the front reading when the flag is on."""
+    return ["front", "narration"] if front_proposal.enabled() else ["narration"]
 
 
 class ShopCreationTests(unittest.TestCase):
@@ -118,12 +130,15 @@ class ShopTransactionTests(unittest.IsolatedAsyncioTestCase):
         body = {"message": REQUEST, "action_id": str(uuid.uuid4())}
         created = await self.http.post(self.url, json=body)
         self.assertEqual(created.status_code, 200, created.text)
-        self.assertEqual(self.model.chat.call_count, 1)
+        self.assertEqual(call_kinds(self.model), one_line_calls())
         replay = await self.http.post(self.url, json=body)
         self.assertEqual(replay.json(), created.json())
-        self.assertEqual(self.model.chat.call_count, 1)
+        self.assertEqual(call_kinds(self.model), one_line_calls())
         duplicate = await self.http.post(self.url, json={"message": REQUEST, "action_id": str(uuid.uuid4())})
         self.assertEqual(duplicate.status_code, 200, duplicate.text)
+        # The duplicate line (a new id) is Python's to refuse; flag on it is still read once first, and nothing is narrated.
+        both_lines = one_line_calls() + (["front"] if front_proposal.enabled() else [])
+        self.assertEqual(call_kinds(self.model), both_lines)
         world = self.record.game_session.world_state
         self.assertEqual(len(world["shops"]), 1)
         self.assertEqual(len(world["npcs"]), 1)
@@ -143,7 +158,7 @@ class ShopTransactionTests(unittest.IsolatedAsyncioTestCase):
         expected = created.json()
         expected["session_id"] = resumed_id
         self.assertEqual(replay_after_restart.json(), expected)
-        self.assertEqual(self.model.chat.call_count, 1)
+        self.assertEqual(call_kinds(self.model), both_lines)
         self.assertEqual(world["shops"][0]["shopkeeper_id"], world["npcs"][0]["id"])
         self.assertEqual(world["npcs"][0]["shop_id"], world["shops"][0]["id"])
 

@@ -41,7 +41,7 @@ def in_classifier_call():
 
 @contextmanager
 def front_call():
-    """The front reading is optional: a failure leaves the old chain, on any provider."""
+    """The front reading: an unusable reply leaves the old chain, on any provider; an outage refuses the turn (G6)."""
     token = _FRONT.set(True)
     try:
         yield

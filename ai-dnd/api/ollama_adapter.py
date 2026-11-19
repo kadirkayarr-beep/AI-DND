@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Iterator
 
+import httpx
 import ollama
 
 import game
@@ -610,7 +611,14 @@ class AuthenticatedOllamaAdapter:
             note_usage(self.model_name, failed=True)
             model_phase.note_cause("local", type(error).__name__)
             failures = _MODEL_FAILURES.get()
-            if in_front_call() or (self._chain is not None and in_classifier_call()):
+            if in_front_call() and isinstance(error, (OSError, httpx.TransportError)):
+                # Owner rule G6 ("Tekrar dene", 2026-11-19): the reading never came back (no connection, a timeout,
+                # a connection dropped mid-reply), so the turn answers 503, rolls back and spends no line.
+                _logger.warning("Front reading lost to a provider outage; turn refused (error_type=%s)",
+                                type(error).__name__)
+                if failures is not None:
+                    failures.append(ModelFailure(type(error).__name__))
+            elif in_front_call() or (self._chain is not None and in_classifier_call()):
                 # The owner's rule: the chain never fails a turn. The engine carries on with unknown intent.
                 _logger.warning("Classifier unavailable; turn goes on (error_type=%s)", type(error).__name__)
             elif failures is not None:

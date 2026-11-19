@@ -40,7 +40,9 @@ class InitiativeHttpTests(unittest.IsolatedAsyncioTestCase):
   self.assertEqual(self.npc.get('dialogue_observation',{}).get('id'),'injury:e1');self.assertNotIn('dialogue_observation',self.world['npcs'][-1])
  async def test_optional_timeout_keeps_resolved_exploration(self):
   await self.setup_free();self.npc['dialogue_observation']={'id':'injury:test','kind':'visible_injury','visible':True,'location_id':self.world['location'],'turn_index':0}
-  with patch.object(self.reply,'chat',side_effect=TimeoutError('synthetic timeout')):
+  real=self.reply.chat  # flag on, the front reading answers: its own outage would be a 503 (G6), not this test's subject
+  times_out=lambda *a,**k:real(*a,**k) if 'front' in ((k.get('format') or {}).get('properties') or {}) else (_ for _ in ()).throw(TimeoutError('synthetic timeout'))
+  with patch.object(self.reply,'chat',side_effect=times_out):
    r=await self.send('Çevreyi gözlemliyorum.',mode='do')
   self.assertEqual(r.status_code,200,r.text);self.assertNotIn('dialogue_initiative_handled',self.npc)
  async def test_optional_initiative_does_not_expose_deception_motive(self):
