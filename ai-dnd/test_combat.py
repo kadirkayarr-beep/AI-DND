@@ -12,6 +12,7 @@ sys.path.insert(0, str(PROJECT_DIR))
 
 from offline_test_support import offline_model
 from combat_lifecycle import CombatRequestError
+import front_proposal
 import game
 session = game.create_session()
 
@@ -275,7 +276,9 @@ def run_tests():
             == {k: v for k, v in before[0].items() if k != variety})
     assert not world_state["combat"]["active"]
     assert messages == [{"role": "system", "content": "test"}]
-    assert model.chat.call_count == calls_before
+    # With AI_DND_FRONT_PROPOSAL on, the line spends its front reading first (owner rule G1): that one call only.
+    assert [("front" in (call.kwargs.get("format") or {}).get("properties", {}))
+            for call in model.chat.call_args_list[calls_before:]] == ([True] if front_proposal.enabled() else [])
     print("  Nonlocal target rejected without state, RNG or model work -> PASS")
 
     # Explicit geometry/participation are prerequisites, never test-driven

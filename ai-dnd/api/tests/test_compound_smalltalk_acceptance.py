@@ -53,8 +53,8 @@ class CompoundSmalltalkAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     body["interaction_mode"] = mode
                 result = await self.post(url, client, body)
                 self.assertIn(reply, result["narration"])
-                self.assertEqual(client.chat_calls, 1)
-                self.assertIn("spoken_text", client.schemas[0]["properties"])
+                self.assertEqual(speech.call_kinds(client.schemas), speech.with_reading("speech"))
+                self.assertIn("spoken_text", client.schemas[speech.speech_call(client)]["properties"])
                 self.assertEqual(session.world_state["flags"]["active_npc_id"], npc["id"])
 
     async def test_preference_then_why_uses_same_pair_without_profile_promotion(self):
@@ -72,7 +72,7 @@ class CompoundSmalltalkAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     body["interaction_mode"] = mode
                 first = await self.post(url, client, body)
                 self.assertIn(reply, first["narration"])
-                self.assertEqual(client.chat_calls, 1)
+                self.assertEqual(speech.call_kinds(client.schemas), speech.with_reading("speech"))
                 pair = copy.deepcopy(session.world_state["npc_speech_log"][npc["id"]][-1])
                 contexts = []
                 original = game._experimental_npc_dialogue_context
@@ -84,7 +84,7 @@ class CompoundSmalltalkAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                 with patch.object(game, "_experimental_npc_dialogue_context", side_effect=capture):
                     second = await self.post(url, follow, {**body, "action_id": str(uuid4()), "message": "Peki neden?"})
                 self.assertIn(follow.narration, second["narration"])
-                self.assertEqual(follow.chat_calls, 1)
+                self.assertEqual(speech.call_kinds(follow.schemas), speech.with_reading("speech"))
                 self.assertEqual(contexts[-1]["last_exchange"], {"player": question, "npc_reply": pair["npc"]})
                 self.assertEqual(profile, npc["personal_profile"])
                 self.assertEqual(character, session.character)

@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import game
 from api.tests.speech_double import reply, routed_chat, speech_packet
+from api.tests.test_f04_n08_npc_memory import call_kinds, with_reading
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc
 
 
@@ -50,10 +51,10 @@ class N08UnverifiedProseRegression(unittest.TestCase):
         chat = routed_chat({"intent": reply(payload), "speech": speech_packet(LIVE_STYLE_ECHO)})
         with patch("game.ollama.chat", side_effect=chat) as provider:
             result = session.run_player_turn(CLAIM, interaction_mode="say")
-        self.assertEqual(provider.call_count, 1)
+        self.assertEqual(call_kinds(provider), with_reading("speech"))
         telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], len(with_reading("speech")))
         self.assertEqual(telemetry["narration_source"], "deterministic_fallback", telemetry)
         self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
         self.assertEqual(telemetry["fallback_reason"], "UNVERIFIED_PLAYER_CLAIM_ECHO")
@@ -102,7 +103,7 @@ class N08UnverifiedProseRegression(unittest.TestCase):
         chat = routed_chat({"intent": reply(payload), "speech": speech_packet(invented)})
         with patch("game.ollama.chat", side_effect=chat) as provider:
             result = session.run_player_turn(CLAIM, interaction_mode="say")
-        self.assertEqual(provider.call_count, 1)
+        self.assertEqual(call_kinds(provider), with_reading("speech"))
         telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
         self.assertEqual(telemetry["narration_validation_result"], "python_fallback")

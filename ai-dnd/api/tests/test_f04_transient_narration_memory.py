@@ -29,6 +29,7 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.test_f04_n08_npc_memory import request_kinds, with_reading
 
 
 UNSUPPORTED_NARRATION = (
@@ -119,7 +120,7 @@ class TransientNarrationMemoryAcceptanceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         payload = response.json()
         self.assertNotEqual(payload["narration"], UNSUPPORTED_NARRATION)
-        self.assertEqual(len(fake_client.chat_calls), 1)
+        self.assertEqual(request_kinds(kwargs for _, kwargs in fake_client.chat_calls), with_reading("narration"))
         self.assertEqual(fake_client.list_calls, 1)
         self.assertEqual(session.last_narration_safety["reason_code"],
                          "CANONICAL_RELATIONSHIP_CONTRADICTION")
@@ -187,12 +188,19 @@ class TransientNarrationMemoryAcceptanceTests(unittest.IsolatedAsyncioTestCase):
         class SequencedFakeOllamaClient:
             def __init__(self):
                 self.chat_calls = []
+                self.readings = []
                 self.responses = [UNSUPPORTED_NARRATION, safe_next_narration]
 
             def list(self):
                 return {"models": [{"model": "qwen3:8b"}]}
 
             def chat(self, *args, **kwargs):
+                if "front" in ((kwargs.get("format") or {}).get("properties") or {}):
+                    # With AI_DND_FRONT_PROPOSAL on, each line's front reading comes first. It is answered apart,
+                    # without `front` (so the old chain answers), and takes none of the scripted narrations.
+                    self.readings.append(kwargs)
+                    return SimpleNamespace(message=SimpleNamespace(content=json.dumps(
+                        {"valid_response": True, "narration": "", "lore_claims": [], "world_updates": {}})))
                 self.chat_calls.append(
                     json.loads(json.dumps({"args": args, "kwargs": kwargs}, ensure_ascii=False))
                 )
@@ -305,7 +313,8 @@ class TransientNarrationMemoryAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                         session.world_state["flags"]["turn_index"],
                         initial_turn_index + 1,
                     )
-                    self.assertEqual(len(fake_client.chat_calls), 1)
+                    self.assertEqual(request_kinds(c["kwargs"] for c in fake_client.chat_calls), ["narration"])
+                    self.assertEqual(request_kinds(fake_client.readings), with_reading())
                     self.assertNotEqual(first_payload["narration"], UNSUPPORTED_NARRATION)
                     first_safety = session.last_narration_safety
                     self.assertEqual(
@@ -363,6 +372,7 @@ class TransientNarrationMemoryAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                         authenticator=FixedAuthenticator(TEST_PLAYER),
                     )
                     self.assertEqual(len(fake_client.chat_calls), 1)
+                    self.assertEqual(request_kinds(fake_client.readings), with_reading())
                     self.assertIn(PLAYER_MESSAGE, serialized(resumed_record.narrative_memory))
                     assert_claim_absent(
                         self,
@@ -389,7 +399,8 @@ class TransientNarrationMemoryAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(
                         second_response.status_code, 200, second_response.text
                     )
-                    self.assertEqual(len(fake_client.chat_calls), 2)
+                    self.assertEqual(request_kinds(c["kwargs"] for c in fake_client.chat_calls), ["narration"] * 2)
+                    self.assertEqual(request_kinds(fake_client.readings), with_reading() * 2)
                     self.assertNotEqual(
                         second_response.json()["narration"],
                         UNSUPPORTED_NARRATION,

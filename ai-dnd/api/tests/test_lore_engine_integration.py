@@ -6,6 +6,7 @@ from itertools import product
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import front_proposal
 import game
 import campaign_time
 from api.auth import bind_principal, reset_principal
@@ -1235,6 +1236,17 @@ class LoreEngineIntegrationTests(unittest.TestCase):
             campaign_state=CampaignLoreState.legacy_unbound(),
         )
 
+        readings = []
+        reading = 1 if front_proposal.enabled() else 0  # the front reading's one call per line
+
+        def front_reading_only(player_input, *args, **kwargs):
+            # With AI_DND_FRONT_PROPOSAL on, every line spends the front reading first (owner rule G1: exactly that
+            # one call). It answers without `front`, so the old chain still owns the line; any other call fails.
+            if kwargs.get("front_list") is None:
+                raise AssertionError("Supported lore answers must not call the model.")
+            readings.append(player_input)
+            return {"intent": "query", "action": "query", "target": {"type": "none", "reference": ""}}
+
         with (
             patch.object(
                 game,
@@ -1246,9 +1258,7 @@ class LoreEngineIntegrationTests(unittest.TestCase):
             patch.object(
                 game,
                 "parse_player_intent",
-                side_effect=AssertionError(
-                    "Supported lore answers must not call the model."
-                ),
+                side_effect=front_reading_only,
             ) as intent_model,
         ):
             result = session.run_player_turn(question, scene_plan={})
@@ -1272,7 +1282,7 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(
             result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
-            0,
+            reading,
         )
         self.assertEqual(
             targeted_result["action_result"]["status"],
@@ -1284,7 +1294,7 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(
             targeted_result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
-            0,
+            0,  # a line with a chosen person (target_id) is typed: the front step skips the reading
         )
         self.assertNotIn("npc_id", targeted_result["action_result"])
         self.assertEqual(
@@ -1297,7 +1307,7 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(
             unsupported_result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
-            0,
+            reading,
         )
         self.assertEqual(result["action_result"]["state_changes"], [])
         self.assertEqual(targeted_result["action_result"]["state_changes"], [])
@@ -1308,7 +1318,8 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(session.world_state, expected_world_state)
         narration_model.assert_not_called()
-        intent_model.assert_not_called()
+        self.assertEqual(readings, [question, "Does King Vharion rule Neverwinter?"] if reading else [])
+        self.assertEqual(intent_model.call_count, len(readings))
 
 
 class Turn29RulershipQueryDeterministicTests(unittest.TestCase):

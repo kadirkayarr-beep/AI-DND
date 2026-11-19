@@ -8,6 +8,7 @@ import unittest
 import uuid
 
 import everyday_actions
+import front_proposal
 import game
 import grounded_action
 import living_world
@@ -19,8 +20,8 @@ class NarratingClient:
     """Answers each schema the way the local model does."""
 
     def __init__(self, narration="Sesin salonda yankılanıyor, birkaç baş dönüyor.",
-                 spoken="Tabii, hemen koyuyorum.", steps=None):
-        self.narration, self.spoken, self.steps = narration, spoken, steps or []
+                 spoken="Tabii, hemen koyuyorum.", steps=None, front=None):
+        self.narration, self.spoken, self.steps, self.front = narration, spoken, steps or [], front
         self.kinds, self.batches = [], []
 
     def list(self):
@@ -30,7 +31,14 @@ class NarratingClient:
         schema = kwargs.get("format") or {}
         properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
         self.batches.append(copy.deepcopy(kwargs.get("messages", [])))
-        if "steps" in properties:
+        if "front" in properties and self.front is not None:
+            # A usable front reading (AI_DND_FRONT_PROPOSAL on), as a working model answers it.
+            self.kinds.append("front")
+            body = {"intent": "dialogue", "action": "dialogue", "target": {"type": "none", "reference": ""},
+                    "completion": "unclear", "confidence": 0.9,
+                    "front": {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none",
+                              "answer": "none", "inside": False, "timing": "now", **self.front}}
+        elif "steps" in properties:
             self.kinds.append("grounded")
             body = {"steps": self.steps}
         elif "spoken_text" in properties:
@@ -135,9 +143,16 @@ class FreeAttemptTests(unittest.IsolatedAsyncioTestCase):
         world["location"] = tavern
         steps = [{"verb": "go", "target_id": self.npc["id"], "negated": False,
                   "conditional": False, "new_thing": ""}] * 2
-        client = NarratingClient(spoken="Hemen koyuyorum.", steps=steps)
+        # Flag off, the grounding call binds the order to the barman; with AI_DND_FRONT_PROPOSAL on, the front
+        # reading does (a working model's plain-talk reading names the person), then the person speaks.
+        client = NarratingClient(spoken="Hemen koyuyorum.", steps=steps,
+                                 front={"kind": "speak_to", "person_id": self.npc["id"]})
         data = await self.play(client, "İçeri girip tezgâha geçiyorum, bir bira istiyorum.")
-        self.assertIn("speech", client.kinds, data["narration"])
+        self.assertEqual(client.kinds, speech.with_reading("speech") if front_proposal.enabled() else
+                         ["grounded", "speech"], data["narration"])
+        if front_proposal.enabled():  # the scripted reading was used, not dropped to the old chain
+            self.assertFalse(str(getattr(self.session, "_front_route", "")).startswith(("fallback", "skipped")),
+                             getattr(self.session, "_front_route", None))
         self.assertIn("Hemen koyuyorum.", data["narration"])
 
     async def test_an_npc_may_ask_what_the_player_would_do(self):

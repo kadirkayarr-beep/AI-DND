@@ -69,7 +69,7 @@ class LiveContextTests(unittest.IsolatedAsyncioTestCase):
    self.assertEqual(row['action_id'],aid);self.assertEqual(row['speaker_id'],self.npc['id'])
    self.assertEqual(row['context']['player_message'],'Günün nasıl?')
    self.assertEqual(json.loads(row['raw_response'])['spoken_text'],self.reply.spoken)
-   self.assertEqual(self.reply.calls,1)
+   self.assertEqual(fixture.kinds(self.reply),fixture.with_reading('speech'))
  async def test_recipient_pool_does_not_claim_offer_capacity(self):
   from adventure import dialogue_jobs,director
   await self.setup_free();city=self.world['location'];pid='recipient_shop'
@@ -118,11 +118,11 @@ class LiveContextTests(unittest.IsolatedAsyncioTestCase):
   await self.setup_free()
   with patch.dict(os.environ,{'AI_DND_SPEECH_DEBUG':'off'}),patch.object(game,'open',create=True) as opened:
    r=await self.send('Merhaba.')
-  self.assertEqual(r.status_code,200,r.text);opened.assert_not_called();self.assertEqual(self.reply.calls,1)
+  self.assertEqual(r.status_code,200,r.text);opened.assert_not_called();self.assertEqual(fixture.kinds(self.reply),fixture.with_reading('speech'))
  async def test_unwritable_trace_does_not_break_turn(self):
   import os,game
   from unittest.mock import patch
   await self.setup_free()
   with patch.dict(os.environ,{'AI_DND_SPEECH_DEBUG':'synthetic-denied-trace.jsonl'}),patch.object(game,'open',create=True,side_effect=PermissionError('synthetic denied trace')) as opened:
    r=await self.send('Merhaba.')
-  self.assertEqual(r.status_code,200,r.text);self.assertTrue(opened.called);self.assertEqual(self.reply.calls,1)
+  self.assertEqual(r.status_code,200,r.text);self.assertTrue(opened.called);self.assertEqual(fixture.kinds(self.reply),fixture.with_reading('speech'))
