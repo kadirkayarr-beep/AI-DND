@@ -7,6 +7,7 @@ import game
 import living_world
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc
 from api.tests.test_explicit_shop_creation import REQUEST
+from api.tests.test_experimental_npc_dialogue import call_kinds, with_reading
 
 
 def finalize(session, *args, **kwargs):
@@ -74,7 +75,8 @@ class NarrationIntentTests(unittest.TestCase):
                   "world_updates": {}, "lore_claims": []}
         with patch("game.ollama.chat", return_value={"message": {"content": json.dumps(packet)}}) as model:
             reply = session.run_player_turn(REQUEST)
-        self.assertEqual(model.call_count, 1)
+        # one narration call, no retry; with the flag on the front reading comes first
+        self.assertEqual(call_kinds([call.kwargs.get("format") for call in model.call_args_list]), with_reading("narration"))
         self.assertEqual(reply["narration"], reply["action_result"]["direct_response"])
         self.assertEqual(len(session.world_state["shops"]), 1)
         self.assertEqual(session.world_state["inventory"], inventory_before)

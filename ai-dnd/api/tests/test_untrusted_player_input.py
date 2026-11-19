@@ -125,6 +125,7 @@ class FaithfulDialogueClient:
         self.narration = narration
         self.chat_calls = 0
         self.message_batches = []
+        self.schemas = []
         self.shown = []
 
     def list(self):
@@ -135,6 +136,7 @@ class FaithfulDialogueClient:
         schema = copy.deepcopy(kwargs.get("format", {}))
         messages = copy.deepcopy(kwargs.get("messages", []))
         self.message_batches.append(messages)
+        self.schemas.append(schema)
         properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
         if "spoken_text" in properties:
             # Default NPC route: one structured speech call whose prompt carries the
@@ -240,9 +242,10 @@ class UntrustedPlayerInputHttpTests(unittest.IsolatedAsyncioTestCase):
                     "visible_narration": narration,
                 })
                 self.assertEqual(response.status_code, 200, response.text)
-                self.assertEqual(client.chat_calls, 1)
-                # The provider was given the original text, unedited.
-                self.assertEqual(client.shown, [text])
+                kinds = npc_fixtures.call_kinds(client.schemas)
+                self.assertEqual(kinds, npc_fixtures.with_reading("speech"))
+                # The provider was given the original text, unedited, in every request (the reading's too).
+                self.assertEqual(client.shown, [text] * len(kinds))
                 # The player sees the NPC's meaningful answer, not a generic fallback.
                 self.assertIn(SPOKEN, narration)
 
@@ -252,7 +255,8 @@ class UntrustedPlayerInputHttpTests(unittest.IsolatedAsyncioTestCase):
                 response, client, seen = await self.turn_with_spy(text)
                 self.assertEqual(response.status_code, 200, response.text)
                 prompt = next(
-                    m["content"] for m in reversed(client.message_batches[0]) if m["role"] == "user"
+                    m["content"] for m in reversed(client.message_batches[npc_fixtures.speech_call(client)])
+                    if m["role"] == "user"
                 )
                 # Same extraction the pre-existing fixtures use.
                 self.assertEqual(prompt.split(CLASSIFIER_PREFIX, 1)[-1].splitlines()[0], text)
@@ -282,12 +286,13 @@ class UntrustedPlayerInputHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_request_contract_budget_and_authority_are_unchanged(self):
         response, client, _ = await self.turn_with_spy(ALL_CASES["lf"])
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)  # call budget
-        roles = [message["role"] for message in client.message_batches[0]]
-        self.assertEqual(roles, ["system", "user"])  # player text never becomes a system message
-        system = client.message_batches[0][0]["content"]
-        for text in ALL_CASES.values():
-            self.assertNotIn(text, system)
+        self.assertEqual(npc_fixtures.call_kinds(client.schemas), npc_fixtures.with_reading("speech"))  # call budget
+        for batch in client.message_batches:  # the reading's request too
+            roles = [message["role"] for message in batch]
+            self.assertEqual(roles, ["system", "user"])  # player text never becomes a system message
+            system = batch[0]["content"]
+            for text in ALL_CASES.values():
+                self.assertNotIn(text, system)
 
 
     async def test_real_client_tripwire_is_effective_and_untouched_by_turns(self):
@@ -301,7 +306,7 @@ class UntrustedPlayerInputHttpTests(unittest.IsolatedAsyncioTestCase):
         # ... and a full turn through the injected fake must not trigger it.
         response, client, _ = await self.turn_with_spy(ALL_CASES["lf"])
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(client.chat_calls, 1)
+        self.assertEqual(npc_fixtures.call_kinds(client.schemas), npc_fixtures.with_reading("speech"))
         self.assertEqual(self.real_client_constructions, 0)
         self.assertNotIn("OLLAMA_HOST", os.environ)
         self.assertNotIn("OLLAMA_PROXY_TOKEN", os.environ)

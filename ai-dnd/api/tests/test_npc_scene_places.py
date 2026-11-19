@@ -24,7 +24,7 @@ class Projection(unittest.TestCase):
   a=living_world.visible_scene_facts(w)['nearby_places'];self.assertEqual(len(a),6);self.assertTrue(all(len(x['name'])<=80 for x in a));w['locations']=dict(reversed(list(w['locations'].items())));self.assertEqual(a,living_world.visible_scene_facts(w)['nearby_places'])
 
 from api.tests import test_intent_response_consistency as fixture
-from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
+from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient, call_kinds, speech_call, with_reading
 
 class NpcScenePlaceHttpTests(unittest.IsolatedAsyncioTestCase):
  async def asyncSetUp(self):await fixture.IntentResponseConsistencyTests.asyncSetUp(self)
@@ -43,7 +43,8 @@ class NpcScenePlaceHttpTests(unittest.IsolatedAsyncioTestCase):
     with patch.dict('os.environ',{'AI_DND_NPC_SPEECH':'1'}),patch.object(self.app.state.ollama_adapter,'_client',client):
      await self.turn(message,target_id=npc['id'],interaction_mode='say')
     prompts='\n'.join(x.get('content','')for batch in client.message_batches for x in batch)
-    self.assertEqual(client.chat_calls,1);self.assertIn('Alaca Hanı',prompts);self.assertNotIn('GizliMenekşe',prompts)
+    spoken='\n'.join(x.get('content','')for x in client.message_batches[speech_call(client)])  # the person's own prompt
+    self.assertEqual(call_kinds(client.schemas),with_reading('speech'));self.assertIn('Alaca Hanı',spoken);self.assertNotIn('GizliMenekşe',prompts)
     self.assertEqual(before,(self.world['location'],self.world['locations'],self.world['inventory']))
 
 if __name__ == '__main__':unittest.main()

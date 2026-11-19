@@ -1489,7 +1489,11 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
         with self.assertLogs("ai_dnd.api", "INFO") as logs:
             response = await self.turn(narrate)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertIn("Turn providers (answered=gemini)", "\n".join(logs.output))
+        import front_proposal
+        # Flag on, the front reading comes first. The fake cloud answers every call with this narration packet, which
+        # the chain's schema check refuses for the reading, so the local model answers it; the narration is Gemini's.
+        answered = "gemma4-fast,gemini" if front_proposal.enabled() else "gemini"
+        self.assertIn(f"Turn providers (answered={answered})", "\n".join(logs.output))
 
     async def test_a_failed_classifier_on_the_chain_path_still_gives_the_player_a_turn(self):
         self.adapter._chain = chain_for(FakeCloud(gemini=httpx.Response(500), haiku=httpx.Response(500)))
