@@ -19,6 +19,7 @@ import game
 import world_reactions
 from api.core_resolution import resolution_action_scope
 from api.tests import test_last_play_blockers as blockers
+from api.tests.coin_seam import planted, read_as
 from api.tests.test_three_plays import PlayClient
 
 HOUR = 3600
@@ -144,7 +145,20 @@ class TheCardIsTheRoom(Counter):
         self.assertEqual(self.money(), paid)
 
 
+def room_read(coin_cp):
+    """The reading of a room asked of the barman with coin held out (D0: a purpose, no deal), flag on."""
+    return {"kind": "speak_to", "economic_intent": "room", "person_id": "barman", "coin_cp": coin_cp}
+
+
+def order_read(coin_cp):
+    """The reading of an order put to the barman with coin put down (D0: a purpose, no deal), flag on."""
+    return {"kind": "speak_to", "economic_intent": "purchase", "person_id": "barman", "coin_cp": coin_cp}
+
+
 class CoinWithTheLine(Counter):
+    """Coin held out with a room asked for or an order: flag off the planted coin in hand stands in for the reading;
+    flag on the reading's own purpose route puts it in hand (G11 decides a coin line whose reading failed)."""
+
     def test_chat_room_with_handed_gold_is_tender(self):
         self.s._coin_paid = (100, self.npc("barman"), self.here)
         result = self.turn("hancıya 1 altın verip oda tutuyorum")
@@ -159,7 +173,8 @@ class CoinWithTheLine(Counter):
     def test_chat_room_with_coin_above_purse_is_ignored_with_note(self):
         self.w["currency"]["player"] = 60
         self.s._coin_paid = (100, self.npc("barman"), self.here)
-        result = self.turn("hancıya 1 altın verip oda tutuyorum")
+        with read_as(room_read(100)):
+            result = self.turn("hancıya 1 altın verip oda tutuyorum")
         [card] = self.prepared()
         self.assertEqual(len(self.offers()), 1)
         self.assertEqual((card["proposal"]["purpose"], card["proposal"]["tender_cp"]), ("room", None))
@@ -169,7 +184,8 @@ class CoinWithTheLine(Counter):
     def test_chat_room_with_coin_below_price_keeps_room_card(self):
         self.s._coin_paid = (10, self.npc("barman"), self.here)
         before = self.money()
-        result = self.turn("hancıya 1 gümüş verip oda tutuyorum")
+        with read_as(room_read(10)):
+            result = self.turn("hancıya 1 gümüş verip oda tutuyorum")
         [card] = self.prepared()
         self.assertEqual((card["proposal"]["purpose"], card["proposal"]["tender_cp"]), ("room", None))
         self.assertFalse([data for data in self.offers().values() if data["proposal"]["purpose"] == "gift"])
@@ -180,7 +196,8 @@ class CoinWithTheLine(Counter):
     def test_chat_purchase_with_handed_gold_is_tender(self):
         self.s._coin_paid = (100, self.npc("barman"), self.here)
         before = self.money()
-        result = self.turn("al şu bi altını, bi bira ver usta")
+        with read_as(order_read(100)):
+            result = self.turn("al şu bi altını, bi bira ver usta")
         self.assertEqual(result["action_result"]["action"], "shop_offer", result["narration"])
         self.assertEqual(result["action_result"]["coin_seen_by"], "purchase")
         self.assertEqual(self.w["flags"]["counter_offer_v1"]["tender_cp"], 100)
@@ -197,7 +214,8 @@ class CoinWithTheLine(Counter):
 
     def test_chat_purchase_with_coin_below_price_has_no_tender(self):
         self.s._coin_paid = (2, self.npc("barman"), self.here)
-        result = self.turn("al şu iki bakırı, bi bira ver usta")
+        with read_as(order_read(2)):
+            result = self.turn("al şu iki bakırı, bi bira ver usta")
         self.assertEqual(result["action_result"]["coin_seen_by"], "purchase")
         self.assertNotIn("tender_cp", self.w["flags"]["counter_offer_v1"])
         self.assertIn(bold_acts.COIN_NOT_TENDERED, result["narration"])
@@ -327,8 +345,8 @@ class Walks(unittest.IsolatedAsyncioTestCase):
     async def test_coin_taker_from_before_walk_opens_no_gift_card(self):
         await self.inn(inside=False)
         tess = self.add_person("Tess", "Çiftçi")
-        self.session._coin_paid = (5, tess, self.city)
-        out = await self.say("neyse hana gidiyorum")
+        with planted(self.session, _coin_paid=(5, tess, self.city)):
+            out = await self.say("neyse hana gidiyorum")
         self.assertEqual(self.world["location"], self.place["id"], out["narration"])
         self.assertEqual(self.offers(), {})
         self.assertIn(game.COIN_LEFT_BEHIND, out["narration"])

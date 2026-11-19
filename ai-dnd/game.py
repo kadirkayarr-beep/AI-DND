@@ -17331,6 +17331,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
             recovered["recovered_from"] = label  # the gate may still overrule: the label then goes back
             return recovered
         front_proposal.note(session, label, reached=answered)
+        _coin_without_a_reading(player_input, target_id, listed)
         return None
     raw_front = reply.get("front")
     session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
@@ -17712,6 +17713,38 @@ def _hand_over_coin(route, listed, front=None, *, owner_routed=False):
         session._coin_paid = held_out  # read by that offer as its tender, and never turned into a gift
         return
     session._coin_paid = held_out  # the decided card's tender or amount; never "now theirs" before it is confirmed
+
+
+def _coin_without_a_reading(player_input, target_id, listed):
+    """Owner rule G11 ("Eski kural karar versin", 2026-11-19): the reading gave no front, but coin the line's own words
+    hold out now still gets the money owner's structural decision (no deal) and, after the reply, its note or card; it
+    never vanishes silently. The figure is the words' own (none named, no coin). It is for the person chosen, else
+    the one the line names, else whoever serves here when the line names one who serves ('hancıya'), else the one the
+    talk is with; nobody found is the structural rule's own case (`_hand_over_coin`: the arresting guard weighs it).
+    An unclear decision that names nobody is not kept: the coin stays in hand with no decision and is read as it is
+    with no reading (`bold_acts.held_out_coin`): the room or the counter the words ask for takes it as tender or
+    tells it back, else who it is for is asked (`money_owner.open_card_after_reply`)."""
+    import bold_acts
+    import front_proposal
+    import money_owner
+    import shop_trade
+    session = _session()
+    amount = front_proposal.coin_in(None, player_input, moves=True)  # `moves`: the words' figure stands with no reading
+    if not amount:
+        return
+    session._front_coin = amount
+    if target_id is not None:
+        person = next((npc for npc in active_npcs() if npc.get("id") == target_id), None)
+    else:
+        person = _addressed_in(player_input, or_the_talk=False)
+        if person is None and shop_trade.SERVER.search(
+                living_world.normalize_text(living_world._text_outside_quotes(player_input))):
+            person = bold_acts._server_here(session)
+        person = person or _active_interlocutor()
+    _hand_over_coin({"kind": "speak_to", "id": person["id"]} if person is not None else {"kind": "attempt"}, listed)
+    decided = money_owner.current(session)
+    if decided is not None and decided.kind == "unclear" and decided.npc_id is None:
+        session._coin_decision = None
 
 
 def _blow_stands(player_input):

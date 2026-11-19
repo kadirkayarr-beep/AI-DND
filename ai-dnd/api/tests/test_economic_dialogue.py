@@ -24,6 +24,7 @@ import world_reactions
 import world_threads
 from api.core_resolution import resolution_action_scope
 from api.tests import test_thread_hiring as hiring
+from api.tests.coin_seam import planted
 from api.tests.test_economic_action_http import EconomicHttpFixture
 from money_owner import CoinDecision
 
@@ -77,14 +78,19 @@ class Talk(unittest.TestCase):
 
 class HandedCoin(Talk):
     def hold_out(self, amount, npc_id, kind="gift"):
-        """What the reading leaves for coin held out in a line: the money owner's decision and the coin in hand."""
-        self.s._coin_decision = CoinDecision(kind, npc_id, amount, 0, None, "model", self.here)
-        self.s._coin_paid = (amount, self.npc(npc_id) if npc_id else None, self.here)
+        """What the reading leaves for coin held out in a line: the money owner's decision and the coin in hand.
+
+        Set now; the returned context plants them again for one turn (`coin_seam.planted`)."""
+        fields = {"_coin_decision": CoinDecision(kind, npc_id, amount, 0, None, "model", self.here),
+                  "_coin_paid": (amount, self.npc(npc_id) if npc_id else None, self.here)}
+        for name, value in fields.items():
+            setattr(self.s, name, value)
+        return planted(self.s, **fields)
 
     def test_refused_gift_does_not_debit(self):
-        self.hold_out(5, "guest")
+        held = self.hold_out(5, "guest")
         before = self.money()
-        with patch.object(world_reactions, "refuses", side_effect=lambda world, npc: npc.get("id") == "guest"):
+        with held, patch.object(world_reactions, "refuses", side_effect=lambda world, npc: npc.get("id") == "guest"):
             result = self.s.run_player_turn("/item list")
         self.assertEqual(self.money(), before)
         self.assertEqual(self.prepared(), [])
@@ -105,9 +111,10 @@ class HandedCoin(Talk):
         self.assertEqual(card["proposal"]["source_action_id"], "turn-tip")
 
     def test_handed_coin_without_order_opens_gift_card_no_debit(self):
-        self.hold_out(5, "guest")
+        held = self.hold_out(5, "guest")
         before = self.money()
-        result = self.s.run_player_turn("/item list")
+        with held:
+            result = self.s.run_player_turn("/item list")
         self.assertEqual(self.money(), before)
         [card] = self.prepared()
         self.assertEqual((card["proposal"]["purpose"], card["lines"][0]["recipient_id"], card["lines"][0]["total_cp"]),

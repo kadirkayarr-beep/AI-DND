@@ -26,6 +26,7 @@ import shop_trade
 import world_threads
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.coin_seam import planted
 from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
 from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 
@@ -326,8 +327,7 @@ class CoinLedgerPlay(ThreePlaysTests):
         # 22. Under arrest, 30 copper held out to the guard opens a bribe card (an engine turn, no model).
         self.w["flags"]["deeds"][-1]["hold"] = {"guard": "npc_hale", "place": self.place["id"],
                                                 "turn": self.w["flags"].get("turn_index", 0), "arrest": True}
-        self.session._bribe_held_out = 30
-        with patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        with planted(self.session, _bribe_held_out=30),                 patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
             self.session.run_player_turn("/item list")
         self.save()
         [bribe] = [data for data in self.offers().values() if data["status"] == "prepared"
