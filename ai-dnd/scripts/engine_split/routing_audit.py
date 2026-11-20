@@ -56,6 +56,14 @@ class _Use:
     function: str       # dotted def/class chain, "<module>" at the top
 
 
+def _walrus_nodes(node):
+    """Every := in node, but not in a lambda body: that one binds in the lambda (PEP 572)."""
+    if isinstance(node, ast.NamedExpr):
+        yield node
+    for child in ([node.args] if isinstance(node, ast.Lambda) else ast.iter_child_nodes(node)):
+        yield from _walrus_nodes(child)
+
+
 class _Walker:
     """Walks one module and records, with the scope symtable gives each name, the facts the rules read."""
 
@@ -202,7 +210,7 @@ class _Walker:
             rest += [gen.target] + ([gen.iter] if index else []) + gen.ifs
         child = self._child(COMPREHENSIONS[type(node)], node.lineno)
         if child is not None:
-            for named in (n for part in rest + inner for n in ast.walk(part) if isinstance(n, ast.NamedExpr)):
+            for named in (n for part in rest + inner for n in _walrus_nodes(part)):
                 self._bind(named.target.id, named.lineno, "walrus")  # PEP 572: the target binds in the scope that holds the comprehension
             self._scoped_keep(child, set(), rest + inner)
             return

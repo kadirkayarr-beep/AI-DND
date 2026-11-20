@@ -294,6 +294,10 @@ class RoutingAuditTests(unittest.TestCase):
         src = 'import game\n\nFIRST = min((p for m in ".!?" if (p := "a.b".find(m)) >= 0), default=0)\n'
         self.assertEqual(self.run_audit(self.tree(src)), [])
 
+    def test_a_walrus_inside_a_lambda_inside_a_generator_binds_the_lambda_not_the_part(self):
+        src = 'import game\n\nL = list((lambda: (y := 1)) for _ in "a")\nZ = y\n'
+        self.assertIn("R5 game_parts/p.py:4: y is not bound in this part, its imports or builtins", self.run_audit(self.tree(src)))
+
 
 if __name__ == "__main__":
     unittest.main()
