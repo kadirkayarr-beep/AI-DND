@@ -240,6 +240,14 @@ class MoveCheckTests(unittest.TestCase):
         self.build(base=base, game=game, part="import game\n\ndef m():\n    return 0\n")
         self.assertEqual(check_move(self.base, self.new, {"m": "dice.py"}, NO_LOCK, "normal")["changed"], [])
 
+    def test_an_exact_two_name_move_with_repeated_kept_lines_is_no_change(self):  # D-376 fix round 2: move() output
+        base = ("x = 1\ny = 2\ny = 2\nx = 1\ny = 2\nx = 1\ndef f6():\n    return 0\nx = 1\ndef f7():\n    return 0\n"
+                "x = 1\nx = 1\n")
+        self.build(base=base, game=base, part="import game\n")
+        move(self.new / "game.py", self.new / "game_parts" / "dice.py", ["f6", "f7"], set())
+        moved = {"f6": "dice.py", "f7": "dice.py"}
+        self.assertEqual(check_move(self.base, self.new, moved, NO_LOCK, "normal")["changed"], [])
+
     def test_an_old_batch_checked_against_an_older_root_says_wrong_root(self):  # D-376: base has a and b; batch moved a; b moved later
         base = "K = 1\n_PART_MODULES = ()\n\ndef a():\n    return 1\n\ndef b():\n    return 2\n"
         self.build(base=base, game="K = 1\n_PART_MODULES = ('game_parts.dice',)\n\nfrom game_parts.dice import a, b\n",

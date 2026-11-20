@@ -181,29 +181,41 @@ def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], exemp
     base_lines, new_lines = _text(base_game).splitlines(), _text(new_game).splitlines()
     found = []
     deleted = deleted_out if deleted_out is not None else set()
-    # D-376: each moved block's exact span becomes one sentinel that equals no line, so the diff is anchored on the
-    # spans and cannot pair kept lines across a span; a sentinel's deletion or replacement is never a finding
-    rest, kept = [], []
-    for i in range(len(base_lines)):
-        span = next(((s, e) for s, e in spans if s <= i + 1 <= e), None)
-        if span is None:
-            rest.append(base_lines[i])
-            kept.append(i)
-        elif i + 1 == span[0]:
-            rest.append(object())
-            kept.append(None)
-    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, rest, new_lines, autojunk=False).get_opcodes():
+    # D-376: base minus the moved spans must equal new minus this batch's re-export lines, line for line. Both lists
+    # are compared from each end, and only the differing middle goes to SequenceMatcher: an exact move has no middle,
+    # and kept lines can never pair across a span (the spans and the re-export lines are not in either list)
+    kept = [i for i in range(len(base_lines)) if not any(s <= i + 1 <= e for s, e in spans)]
+    reexport, other = set(), set()
+    try:
+        source = _text(new_game)
+        for stmt in ast.parse(source).body:
+            lines = set(range(stmt.lineno, stmt.end_lineno + 1))
+            if isinstance(stmt, ast.ImportFrom) and not _import_group_problem([ast.get_source_segment(source, stmt)], moved):
+                reexport |= lines
+            else:
+                other |= lines
+    except SyntaxError:  # reported below
+        pass
+    shown = [j for j in range(len(new_lines)) if j + 1 not in reexport - other]
+    rest, now = [base_lines[i] for i in kept], [new_lines[j] for j in shown]
+    head = 0
+    while head < min(len(rest), len(now)) and rest[head] == now[head]:
+        head += 1
+    tail = 0
+    while tail < min(len(rest), len(now)) - head and rest[-1 - tail] == now[-1 - tail]:
+        tail += 1
+    middle = difflib.SequenceMatcher(None, rest[head:len(rest) - tail], now[head:len(now) - tail], autojunk=False)
+    for tag, i1, i2, j1, j2 in middle.get_opcodes():
         if tag == "equal":
             continue
-        for k in range(i1, i2):  # a deleted line must be blank (a moved block is one sentinel in `rest`)
-            i = kept[k]
-            if i is not None and base_lines[i].strip():
+        for i in kept[head + i1:head + i2]:  # a deleted line must be blank
+            if base_lines[i].strip():
                 deleted.add(i + 1)
                 if (i + 1) in exempt_base:
                     used.add(("game.py:base", i + 1))
                 else:
                     found.append(f"game.py: base line {i + 1} deleted outside the moved blocks: {base_lines[i].strip()[:60]}")
-        every = [(j + 1, new_lines[j]) for j in range(j1, j2) if new_lines[j].strip()]
+        every = [(j + 1, new_lines[j]) for j in shown[head + j1:head + j2] if new_lines[j].strip()]
         group = [(number, line) for number, line in every if number not in exempt_new]
         if len(group) < len(every) and _import_group_problem([line for _, line in every], moved):
             # D-360: the exemptions count as used only when they alone made the group pass
