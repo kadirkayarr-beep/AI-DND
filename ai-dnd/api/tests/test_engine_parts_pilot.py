@@ -68,9 +68,10 @@ def value_digest(names) -> str:
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
         self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
-                                              "game_parts.lore", "game_parts.narration", "game_parts.places",
+                                              "game_parts.lore", "game_parts.narration",
+                                              "game_parts.narration_safety", "game_parts.places",
                                               "game_parts.text_rules_a", "game_parts.text_rules_b"))
-        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11 and 12
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12 and 13
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -801,6 +802,45 @@ class NarrationPart(unittest.TestCase):
                     s.run_player_turn("Rüzgar esiyor.")
                 self.assertTrue(generate.called)
                 self.assertEqual([call.kwargs.get("allow_new_npcs") for call in narrator.call_args_list], [value])
+
+
+NSAFETY_1 = tuple(batch_names("nsafety-1"))
+
+
+class NarrationSafetyPart(unittest.TestCase):
+    """T4.7 batches nsafety-1, nsafety-2: narration safety checks live in game_parts/narration_safety.py."""
+
+    def test_nsafety_1_lives_in_the_part(self):
+        self.assertEqual(set(NSAFETY_1) - set(routing_audit.re_exports(ROOT).get("narration_safety", ())), set())
+
+    def test_nsafety_helpers_answer_as_before(self):
+        # inputs from test_narrator_voice and test_ai_pipeline_semantics; values captured on d0d42842 before the move
+        text = "Masaya tırmanıyorsun. Liora'nın elindeki bez yavaşça duruyor. Omuzları hafifçe gerginleşiyor."
+        removals = (
+            ({"reason_code": "UNREGISTERED_PERSISTENT_OBJECT",
+              "trigger_span": "bez yavasca duruyor omuzlari hafifce gerginlesi"}, None,
+             "Masaya tırmanıyorsun. Omuzları hafifçe gerginleşiyor."),
+            ({"reason_code": "UNREGISTERED_PERSISTENT_OBJECT", "trigger_span": "hic gecmeyen bir ifade burada"},
+             None, None),
+            ({"reason_code": "UNRELATED_GREETING_REPLY", "trigger_span": "Masaya"}, None, None),
+            ({"reason_code": "UNREGISTERED_PERSISTENT_OBJECT", "trigger_span": "Masaya"}, {"action": "attack"}, None),
+            ({"reason_code": "INVENTED_PLAYER_ACTION", "trigger_span": "Masaya tırmanıyorsun"}, {"action": "attack"},
+             "Liora'nın elindeki bez yavaşça duruyor. Omuzları hafifçe gerginleşiyor."),
+            ({"reason_code": "UNREGISTERED_PERSISTENT_OBJECT", "trigger_span": ""}, None, None),
+        )
+        for decision, action_result, expected in removals:
+            with self.subTest(decision=decision, action_result=action_result):
+                self.assertEqual(game._remove_trigger_sentence(text, decision, action_result), expected)
+        with fixed_town(self, 20261212):
+            s = game.create_session(seed=11)
+            assertions = (
+                ("haydut görüyorum", True), ("karşımda ejderha var", True), ("barmenin adı Gromm", True),
+                ("burada on asker var", True), ("Ben aslında kralım.", True), ("Kapı açık.", True),
+                ("Etrafa bakıyorum.", False), ("Barmene merhaba diyorum.", False),
+            )
+            for phrase, expected in assertions:
+                with self.subTest(phrase=phrase):
+                    self.assertIs(game.is_player_world_assertion(phrase, session=s), expected)
 
 
 if __name__ == "__main__":

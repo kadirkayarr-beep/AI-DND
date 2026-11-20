@@ -849,7 +849,7 @@
  },
  "_authorized_item_transfer_matches": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(text, action_result)"
  },
@@ -1263,7 +1263,7 @@
  },
  "_experimental_private_npc_disclosure": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(text, world_state, *, npc_target=None, speech_fields=None)"
  },
@@ -1659,7 +1659,7 @@
  },
  "_is_explicitly_negated_transfer": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(match, text)"
  },
@@ -2061,7 +2061,7 @@
  },
  "_narration_is_unsafe": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(narration, player_input, npc_target=None, action_result=None)"
  },
@@ -2349,7 +2349,7 @@
  },
  "_record_narration_safety": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(decision, handling)"
  },
@@ -2403,7 +2403,7 @@
  },
  "_remove_trigger_sentence": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(narration, decision, action_result=None)"
  },
@@ -2463,7 +2463,7 @@
  },
  "_resolve_campaign_npc_reference": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(player_input, world_state=None)"
  },
@@ -2931,13 +2931,13 @@
  },
  "_unregistered_held_object": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(world_state, narration)"
  },
  "_unregistered_persistent_object_claim": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(world_state, narration)"
  },
@@ -2949,7 +2949,7 @@
  },
  "_unseen_self_introductions": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(text, unseen)"
  },
@@ -2967,13 +2967,13 @@
  },
  "_unsupported_available_quest_claim": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(narration)"
  },
  "_unsupported_npc_history_or_relationship_claim": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(narration, npc_target=None, player_input='', *, spoken_start=None, own_words=False)"
  },
@@ -2997,7 +2997,7 @@
  },
  "_unverified_player_mental_state_trigger": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(player_action_text, second_person_verb)"
  },
@@ -3549,7 +3549,7 @@
  },
  "is_player_world_assertion": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(player_input)"
  },
