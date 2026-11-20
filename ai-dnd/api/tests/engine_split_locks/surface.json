@@ -897,7 +897,7 @@
  },
  "_bound_on_a_named_word": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(word, line)"
  },
@@ -1065,7 +1065,7 @@
  },
  "_current_npc_name": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "()"
  },
@@ -1161,7 +1161,7 @@
  },
  "_drop_absent_counter_sentences": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration)"
  },
@@ -1227,7 +1227,7 @@
  },
  "_ensure_venue_window": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(door)"
  },
@@ -1347,13 +1347,13 @@
  },
  "_feature_refs_are_visible": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(refs)"
  },
  "_filter_unaccepted_proposal_mentions": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration, accepted_keys, rejected_names)"
  },
@@ -1401,7 +1401,7 @@
  },
  "_found_on_a_pass": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(line='')"
  },
@@ -1461,7 +1461,7 @@
  },
  "_generic_no_change_response": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "()"
  },
@@ -1593,7 +1593,7 @@
  },
  "_inspection_findings": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, outcome, *, rolled=True)"
  },
@@ -2043,13 +2043,13 @@
  },
  "_narration_contradicts_supported_name_memory": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(npc, player_input, narration)"
  },
  "_narration_fact_packet": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(action_result)"
  },
@@ -2079,7 +2079,7 @@
  },
  "_narrator_fact_view": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(packet, action_result)"
  },
@@ -2097,7 +2097,7 @@
  },
  "_natural_unresolved_action_response": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, action_result=None)"
  },
@@ -2319,7 +2319,7 @@
  },
  "_quiet_place_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "()"
  },
@@ -2379,7 +2379,7 @@
  },
  "_rejected_lore_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, npc_target=None)"
  },
@@ -2421,7 +2421,7 @@
  },
  "_repair_attributed_speech": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(payload, decision)"
  },
@@ -2439,7 +2439,7 @@
  },
  "_repair_internal_marks": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration)"
  },
@@ -2955,7 +2955,7 @@
  },
  "_unseen_speaker_repaired": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration, world_state, npc_target)"
  },
@@ -3318,7 +3318,7 @@
  },
  "create_location_from_proposal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(proposal)"
  },
@@ -3935,13 +3935,13 @@
  },
  "should_generate_features": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, location_changed=False, interaction_mode=None)"
  },
  "should_generate_npcs": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, location_changed=False)"
  },

@@ -68,9 +68,9 @@ def value_digest(names) -> str:
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
         self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
-                                              "game_parts.lore", "game_parts.places", "game_parts.text_rules_a",
-                                              "game_parts.text_rules_b"))
-        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10 and 11
+                                              "game_parts.lore", "game_parts.narration", "game_parts.places",
+                                              "game_parts.text_rules_a", "game_parts.text_rules_b"))
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11 and 12
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -719,6 +719,88 @@ class LorePart(unittest.TestCase):
             "official_forgotten_realms_lore": [], "campaign_canon": [], "player_known_lore": [],
             "npc_known_lore": [], "procedural_local_content": [], "unknown_or_unloaded": [],
         })
+
+
+NARRATION = tuple(batch_names("narration"))
+
+
+class NarrationPart(unittest.TestCase):
+    """T4.6 batch narration: fallback, inspection and repair helpers live in game_parts/narration.py."""
+
+    def test_narration_lives_in_the_part(self):
+        self.assertEqual(set(NARRATION) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
+
+    def test_narration_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # both names read game._session() (measured on 8cc9a805): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261208):
+            s = game.create_session(seed=11)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            tracks_failed = {"target_kind": "tracks", "target_id": None, "target_name": "izler", "found": False,
+                             "text": "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun."}
+            cases = (
+                ("_generic_no_change_response", (), {}, "Çevrede şimdilik belirgin bir değişiklik olmuyor."),
+                ("_inspection_findings", ("izlere bakıyorum", "failure"), {}, tracks_failed),
+                ("_inspection_findings", ("etrafa bakıyorum", "failure"), {}, None),
+            )
+            for name, args, kwargs, expected in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name, args=args), patch.object(game, "_session", side_effect=record):
+                    self.assertEqual(getattr(game, name)(*args, session=s, **kwargs), expected)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_narration_helpers_answer_as_before(self):
+        # one open street with one person (Mira); expected values captured on 8cc9a805 before the move
+        with fixed_town(self, 20261211):
+            s = game.create_session(seed=11)
+            s.world_state["locations"]["t12_street"] = {"id": "t12_street", "name": "Pazar Sokağı", "type": "city",
+                                                         "description": ""}
+            s.world_state["location"] = "t12_street"
+            s.world_state["npcs"].append({"id": "npc_t12_mira", "name": "Mira", "role": "Kent sakini",
+                                          "location": "t12_street", "name_known_to_player": True,
+                                          "role_known_to_player": True})
+            repairs = (
+                ("[[npc_t12_mira]] “Hoş geldin,” diyor.", "Mira “Hoş geldin,” diyor."),
+                ("npc_t12_mira’nın gözleri parlıyor.", "Mira’nın gözleri parlıyor."),
+                ("“Merhaba,” diyor Mira.", "“Merhaba,” diyor Mira."),
+                ("Biri [[x9]] diye fısıldıyor.", "Biri diye fısıldıyor."),
+            )
+            for text, expected in repairs:
+                with self.subTest(repair=text):
+                    self.assertEqual(game._repair_internal_marks(text, session=s), expected)
+            drops = (
+                ("Mira tezgâhın arkasında duruyor. “Buyur,” diyor.", "“Buyur,” diyor."),
+                ("“Hoş geldin,” diyor Mira. Rüzgâr esiyor.", "“Hoş geldin,” diyor Mira. Rüzgâr esiyor."),
+                (None, None),
+            )
+            for text, expected in drops:
+                with self.subTest(drop=text):
+                    self.assertEqual(game._drop_absent_counter_sentences(text, session=s), expected)
+
+    def test_a_patched_should_generate_npcs_reaches_its_staying_caller(self):
+        # the census site (test_sessions) patches it around a turn; _run_player_turn_internal stays in game.py and
+        # hands its answer to the narrator as allow_new_npcs (unpatched it is False for this input; measured 8cc9a805)
+        for value in (True, False):
+            with self.subTest(value=value), fixed_town(self, 20261209):
+                s = game.create_session(seed=11)
+                s.world_state["location"] = "tavern"
+                s.world_state["locations"]["tavern"] = {"name": "Taverna"}
+                with patch.object(game, "parse_player_intent", return_value={"intent": "unknown"}), \
+                        patch.object(game, "should_generate_npcs", return_value=value) as generate, \
+                        patch.object(game, "ask_dungeon_master", return_value={
+                            "narration": "Lamba alevi titriyor.", "world_updates": {}, "lore_claims": [],
+                            "valid_response": True}) as narrator:
+                    s.run_player_turn("Rüzgar esiyor.")
+                self.assertTrue(generate.called)
+                self.assertEqual([call.kwargs.get("allow_new_npcs") for call in narrator.call_args_list], [value])
 
 
 if __name__ == "__main__":
