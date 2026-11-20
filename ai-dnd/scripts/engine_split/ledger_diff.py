@@ -8,12 +8,17 @@ A base is two equal runs (`--base`, `--base2`); what they disagree on is noise a
   SUBNOISE: tests whose red-subtest lists differ between the two bases (printed, never counts, exit code unchanged).
   SUBGONE: tests with the same non-empty red-subtest list in both bases that are not `ok` in `--new` and lost one of
            those red subtests there (crashed before or inside their subtest loop; exit 1, like LOST).
-Refusals (exit 2): a run without its ledger, its proof or any outcome record; shards on different trees; two bases on
+  SUBCRASH: tests with red subtests in either base that fail or error whole in `--new` with no red-subtest record
+           (crashed before their subtest loop; unlike SUBGONE it also sees a SUBNOISE test; exit 1).
+Outcomes: an id run again inside another TestCase run (depth > 0) keeps the worst of its depth-0 records; an id with
+no depth-0 record keeps the worst of all its records.
+MIXED TREE (exit 1): the shards of one `--collect` run do not share one tree.
+Refusals (exit 2): a run without its ledger, its proof or any outcome record; two bases on
 different trees or with different tests (a dead shard in one base would turn every test after the cut into noise).
 Blind spots (N3 is their only guard): tests that patch without calling, plain `game.X = ...` assignments, kind "other".
 Usage (from ai-dnd/):
     python scripts/engine_split/ledger_diff.py --collect "<runs glob>" --out <file.json>
-    python scripts/engine_split/ledger_diff.py --diff --base A.json --base2 B.json --new C.json   # exit 1 on DROPS/LOST/SUBLOST/SUBGONE
+    python scripts/engine_split/ledger_diff.py --diff --base A.json --base2 B.json --new C.json   # exit 1 on DROPS/LOST/SUBLOST/SUBGONE/SUBCRASH
 """
 from __future__ import annotations
 
@@ -44,11 +49,14 @@ def _hits(records: list[dict]) -> dict[str, bool | None]:
 
 
 def _outcomes(records: list[dict]) -> dict[str, str]:
-    outcomes = {}
+    outcomes, outer = {}, {}            # outer: depth-0 records only (a run not inside another TestCase run)
     for r in records:
-        if "outcome" in r and outcomes.get(r["test"], "ok") == "ok":   # a test seen twice keeps its worst
-            outcomes[r["test"]] = r["outcome"]
-    return outcomes
+        if "outcome" not in r:
+            continue
+        for kept in (outcomes, outer) if r.get("depth", 0) == 0 else (outcomes,):
+            if kept.get(r["test"], "ok") == "ok":                    # a test seen twice keeps its worst
+                kept[r["test"]] = r["outcome"]
+    return {**outcomes, **outer}        # D-372: inner re-runs of an id never override its outermost outcome
 
 
 def _subtests(records: list[dict]) -> dict[str, list[str]]:
@@ -91,6 +99,12 @@ def subgone(base: dict[str, list[str]], base2: dict[str, list[str]], new_outcome
                   and not set(reds) <= set(new.get(t, [])))
 
 
+def subcrash(base: dict[str, list[str]], base2: dict[str, list[str]], new_outcomes: dict[str, str],
+             new: dict[str, list[str]]) -> list[str]:
+    return sorted(t for t in set(base) | set(base2) if (base.get(t) or base2.get(t))
+                  and new_outcomes.get(t) in ("fail", "error") and not new.get(t))
+
+
 def _collect(pattern: str, out: Path) -> int:
     runs = [Path(d) for d in sorted(glob.glob(pattern))]
     missing = [d for d in runs if not (d / "engine-probe").is_dir()]
@@ -107,9 +121,9 @@ def _collect(pattern: str, out: Path) -> int:
         return 2
     proofs = [json.loads((d / "proof.json").read_text(encoding="utf-8")) for d in runs]
     trees = {p["source_identity"]["total_digest_sha256"] for p in proofs}
-    if len(trees) != 1:         # shards of one run share one synced tree
-        print("TREES_DIFFER", *sorted(trees), sep="\n")
-        return 2
+    if len(trees) != 1:         # shards of one run share one synced tree (D-361 item 2)
+        print("MIXED TREE", *sorted(trees), sep="\n")
+        return 1
     records = _records([d / "engine-probe" for d in runs])
     data = {"hits": _hits(records), "outcomes": _outcomes(records), "subtests": _subtests(records),
             "seconds": max(p["seconds"] for p in proofs), "tree": trees.pop()}
@@ -136,6 +150,7 @@ def _diff(base_path: Path, base2_path: Path, new_path: Path) -> int:
     sub = sublost(base["subtests"], base2["subtests"], new["subtests"])
     sub_noise = noise(base["subtests"], base2["subtests"])
     gone = subgone(base["subtests"], base2["subtests"], new["outcomes"], new["subtests"])
+    crash = subcrash(base["subtests"], base2["subtests"], new["outcomes"], new["subtests"])
     print(f"NOISE {len(hit_noise | outcome_noise)}")
     print(f"SUBNOISE {len(sub_noise)}", *(f"  {k}" for k in sub_noise[:20]), sep="\n")
     if len(sub_noise) > 20:
@@ -144,7 +159,8 @@ def _diff(base_path: Path, base2_path: Path, new_path: Path) -> int:
     print(f"LOST {len(lost)}", *(f"  {k}" for k in lost), sep="\n")
     print(f"SUBLOST {len(sub)}", *(f"  {k}" for k in sub), sep="\n")
     print(f"SUBGONE {len(gone)}", *(f"  {k}" for k in gone), sep="\n")
-    return 1 if dropped or lost or sub or gone else 0
+    print(f"SUBCRASH {len(crash)}", *(f"  {k}" for k in crash), sep="\n")
+    return 1 if dropped or lost or sub or gone or crash else 0
 
 
 def main(argv=None) -> int:

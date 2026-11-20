@@ -109,7 +109,8 @@ def main(argv=None) -> int:
         old = json.loads(Path(args.old).read_text(encoding="utf-8"))
         new = json.loads(Path(args.new).read_text(encoding="utf-8"))
         violations = diff_rule(old, new, _names(args.moved), _names(args.added))
-        print("\n".join(violations))
+        if violations:
+            print("\n".join(violations))
         return 1 if violations else 0
     ap.error("use --write or --diff")
 

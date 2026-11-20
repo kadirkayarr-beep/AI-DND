@@ -286,5 +286,24 @@ class RoutingAuditTests(unittest.TestCase):
         self.assertEqual([m for m in lock if m.split(".")[0] in sys.stdlib_module_names or m.split(".")[0] in {"game", "game_parts"}], [])
 
 
+    def test_a_walrus_inside_a_generator_binds_the_enclosing_function(self):
+        src = 'import game\n\n\ndef f(text):\n    return min((p for m in ".!?" if (p := text.find(m)) >= 0), default=0)\n'
+        self.assertEqual(self.run_audit(self.tree(src)), [])
+
+    def test_a_module_level_walrus_inside_a_generator_binds_the_part(self):
+        src = 'import game\n\nFIRST = min((p for m in ".!?" if (p := "a.b".find(m)) >= 0), default=0)\n'
+        self.assertEqual(self.run_audit(self.tree(src)), [])
+
+    def test_a_walrus_inside_a_lambda_inside_a_generator_binds_the_lambda_not_the_part(self):
+        src = 'import game\n\nL = list((lambda: (y := 1)) for _ in "a")\nZ = y\n'
+        self.assertIn("R5 game_parts/p.py:4: y is not bound in this part, its imports or builtins", self.run_audit(self.tree(src)))
+
+    def test_another_modules_attribute_named_like_a_patched_builtin_is_not_r11(self):
+        """talk_mode.open is talk_mode's own function, not the builtin open tests patch as game.open (Task 5 rehearsal)."""
+        src = "import game\nimport talk_mode\ndef f(w):\n    return talk_mode.open(w, 'n', turn=0)\n"
+        self.assertEqual(TARGETS["open"], "absent")
+        self.assertEqual(self.run_all(self.tree(src, game=reexporting("f"))), [])
+
+
 if __name__ == "__main__":
     unittest.main()

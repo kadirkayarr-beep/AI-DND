@@ -56,6 +56,14 @@ class _Use:
     function: str       # dotted def/class chain, "<module>" at the top
 
 
+def _walrus_nodes(node):
+    """Every := in node, but not in a lambda body: that one binds in the lambda (PEP 572)."""
+    if isinstance(node, ast.NamedExpr):
+        yield node
+    for child in ([node.args] if isinstance(node, ast.Lambda) else ast.iter_child_nodes(node)):
+        yield from _walrus_nodes(child)
+
+
 class _Walker:
     """Walks one module and records, with the scope symtable gives each name, the facts the rules read."""
 
@@ -202,6 +210,8 @@ class _Walker:
             rest += [gen.target] + ([gen.iter] if index else []) + gen.ifs
         child = self._child(COMPREHENSIONS[type(node)], node.lineno)
         if child is not None:
+            for named in (n for part in rest + inner for n in _walrus_nodes(part)):
+                self._bind(named.target.id, named.lineno, "walrus")  # PEP 572: the target binds in the scope that holds the comprehension
             self._scoped_keep(child, set(), rest + inner)
             return
         if isinstance(node, ast.GeneratorExp):  # never inlined: a missing table means the walk lost its place
@@ -667,10 +677,12 @@ def _part_findings(path: Path, rel: str, ctx: dict) -> list[str]:
     out += [f"R10 {rel}:{use.line}: writes game.{attr}; a part never rebinds an engine name"
             for use, attr, is_load in w.game_attrs if not is_load]
 
-    # R11: a patched name of kind import/absent reached through an imported module (or builtins/io), not through game
+    # R11: a patched name of kind import/absent reached through an imported module (or builtins/io), not through game;
+    # a patched builtin (absent, e.g. open) is reached only through builtins/io, not through another module's own attribute
     via_import = {b.name for b in w.binds if b.kind in {"import", "reexport"}} | {"builtins", "io"}
     out += [f"R11 {rel}:{line}: {name}.{attr} reaches patched name {attr} past game; a patch on game.{attr} cannot reach it"
-            for name, attr, line in w.name_attrs if attr in ctx["module_targets"] and name in via_import]
+            for name, attr, line in w.name_attrs if attr in ctx["module_targets"] and name in via_import
+            and (attr not in ctx["builtin_targets"] or name in {"builtins", "io"})]
 
     # R12: game itself as a value (getattr(game, ...), an alias, an argument) unless an allowlist row names it
     for u in w.bare_game:
@@ -714,6 +726,7 @@ def audit(root: Path, surface_targets: dict[str, str], allowed_imports: set[str]
     ctx = {"targets": set(surface_targets), "allowed": set(allowed_imports), "character_names": set(character_names),
            "game_bound": game_bound, "reexports": reexports, "allow": allow, "allow_used": set(),
            "module_targets": {name for name, kind in surface_targets.items() if kind in {"import", "absent"}},
+           "builtin_targets": {name for name, kind in surface_targets.items() if kind == "absent" and hasattr(builtins, name)},
            "game_defined": game_defined, "imported": imported, "part_binds": {}}
     for path in part_files(root):
         rel = path.relative_to(root).as_posix()

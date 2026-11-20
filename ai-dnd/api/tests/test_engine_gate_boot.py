@@ -17,7 +17,11 @@ def _engine_import(node):
     if isinstance(node, ast.Import):
         names = [alias.name for alias in node.names]
     elif isinstance(node, ast.ImportFrom):
-        names = [node.module or ""]
+        names = [node.module] if node.module else [alias.name for alias in node.names]     # `from . import game`
+    elif (isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.Constant)
+          and isinstance(node.args[0].value, str)
+          and (getattr(node.func, "attr", None) == "import_module" or getattr(node.func, "id", None) == "__import__")):
+        names = [node.args[0].value]       # importlib.import_module("game"), __import__("game") (D-359)
     else:
         return None
     return next((n for n in names if n.split(".")[0] in ("game", "game_parts")), None)
@@ -77,6 +81,15 @@ class GateBoot(unittest.TestCase):
         tree = ast.parse(GATE_BOOT_FILE.read_text(encoding="utf-8"))
         found = [(node.lineno, name) for node in ast.walk(tree) if (name := _engine_import(node))]
         self.assertEqual(found, [])
+
+    def test_relative_and_dynamic_engine_imports_are_seen(self):  # D-359
+        for source, expected in (("from . import game\n", ["game"]),
+                                 ('importlib.import_module("game")\n', ["game"]),
+                                 ('__import__("game_parts.tables")\n', ["game_parts.tables"]),
+                                 ('importlib.import_module("json")\nfrom . import town_seed\n', [])):
+            with self.subTest(source=source):
+                found = [name for node in ast.walk(ast.parse(source)) if (name := _engine_import(node))]
+                self.assertEqual(found, expected)
 
 
 if __name__ == "__main__":

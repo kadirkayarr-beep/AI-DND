@@ -1,0 +1,5 @@
+validate_intent
+_names_present_creature
+_has_explicit_attack_verb
+_is_explicitly_negated_attack
+primal_knowledge_check_admission

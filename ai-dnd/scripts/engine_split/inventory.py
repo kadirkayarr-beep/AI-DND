@@ -39,7 +39,7 @@ def _target_names(node: ast.AST) -> list[str]:
     return []
 
 
-def _bound(node: ast.stmt) -> tuple[str, list[str]]:
+def bound_names(node: ast.stmt) -> tuple[str, list[str]]:
     """Kind and bound names of one top-level statement (kind 'other' when it binds no plain name)."""
     if isinstance(node, FUNCTION_NODES):
         return "function", [node.name]
@@ -77,7 +77,7 @@ def top_level_index(path: Path) -> list[dict]:
         start = def_line
         while start - 1 > previous_end and text[start - 2].lstrip().startswith("#"):
             start -= 1
-        kind, names = _bound(node)
+        kind, names = bound_names(node)
         for name in names:
             out.append({"name": name, "kind": kind, "start": start, "def_line": def_line,
                         "end": node.end_lineno, "lines": node.end_lineno - node.lineno + 1})
@@ -112,7 +112,7 @@ def constant_clusters(path: Path) -> list[list[str]]:
     order: list[str] = []
     edges: list[tuple[str, str]] = []
     for node in tree.body:
-        kind, names = _bound(node)
+        kind, names = bound_names(node)
         if kind != "assign":
             continue
         order += [n for n in names if n not in order]
@@ -200,10 +200,11 @@ def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
             for a in stmt.names:
                 if isinstance(stmt, ast.Import):  # `import a.b` binds `a`: the whole module counts
                     units.append({"binds": {a.asname or a.name.split(".")[0]}, "run": False, "direct": False,
-                                  "reads": set(), "refs": [(a.name, None, _attrs_read(a.asname) if a.asname
-                                                            else None)]})
+                                  "import": True, "reads": set(), "refs": [(a.name, None, _attrs_read(a.asname)
+                                                                            if a.asname else None)]})
                 else:
                     units.append({"binds": {a.asname or a.name} - {"*"}, "run": a.name == "*", "reads": set(),
+                                  "import": True,
                                   "direct": stmt.module == "game" and a.name in names,
                                   "refs": [(stmt.module, None if a.name == "*" else a.name,
                                             None if a.name == "*" else _attrs_read(a.asname or a.name))]})
@@ -216,7 +217,7 @@ def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
                 refs += [(node.module, None if a.name == "*" else a.name,
                           None if a.name == "*" else _attrs_read(a.asname or a.name)) for a in node.names]
         is_def = isinstance(stmt, (*FUNCTION_NODES, ast.ClassDef))
-        units.append({"binds": {stmt.name} if is_def else set(_bound(stmt)[1]), "run": not is_def, "refs": refs,
+        units.append({"binds": {stmt.name} if is_def else set(bound_names(stmt)[1]), "run": not is_def, "refs": refs,
                       "direct": any(_touches(node, aliases, names) for node in ast.walk(stmt)),
                       "reads": {n.id for n in ast.walk(stmt) if isinstance(n, ast.Name)}})
         if isinstance(stmt, ast.ClassDef):  # a class body (not its methods) runs on import
@@ -252,10 +253,17 @@ def touching_tests(root: Path, names: set[str]) -> list[str]:
             return whole in modules and (any_touch(whole) if attrs is None else touch_by(whole, attrs))
         return mod in modules and touch_by(mod, {name})
 
+    def runs_touch(mod, name):  # importing the module runs a statement of it that touches (D-366)
+        whole = f"{mod}.{name}" if name is not None and f"{mod}.{name}" in modules else mod
+        return whole in modules and any(u["run"] and u["direct"] for u in modules[whole])
+
     changed = True
     while changed:  # "direct" grows into "touches" until nothing changes
         changed = False
         for units in modules.values():
+            for u in units:  # an import of a module that touches while it runs is itself a run statement
+                if u.get("import") and not u["run"] and any(runs_touch(r[0], r[1]) for r in u["refs"]):
+                    u["run"] = u["direct"] = changed = True
             touching_binds = {b for u in units if u["direct"] for b in u["binds"]}
             for u in units:
                 if not u["direct"] and (u["reads"] & touching_binds or any(ref_touches(*r) for r in u["refs"])):

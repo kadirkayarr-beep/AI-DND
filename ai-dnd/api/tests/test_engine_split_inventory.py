@@ -1,6 +1,7 @@
 """Tests for the game.py split inventory tool (scripts/engine_split/inventory.py)."""
 from __future__ import annotations
 
+import ast
 import sys
 import tempfile
 import unittest
@@ -132,6 +133,28 @@ class InventoryTests(unittest.TestCase):
                           "api.tests.test_mod_bare", "api.tests.test_seed_bad",
                           "api.tests.test_sub", "api.tests.test_transitive", "api.tests.test_uses_helper",
                           "test_root_helper"])
+
+    def test_bound_names_is_public(self):  # D-364: the surface test reaches it, so it has a public name
+        self.assertEqual(inventory.bound_names(ast.parse("def f():\n    pass\n").body[0]), ("function", ["f"]))
+        self.assertEqual(inventory.bound_names(ast.parse("A, B = 1, 2\n").body[0]), ("assign", ["A", "B"]))
+        self.assertFalse(hasattr(inventory, "_bound"))
+
+    def test_touching_tests_follows_one_import_step(self):  # D-366
+        files = {
+            "api/tests/a.py": "import game\nTABLE = game.X\n",
+            "api/tests/test_b.py": "from api.tests import a\n",
+            # b imports a at import time and defines a name that does not read game; importing b runs a
+            "api/tests/b.py": "import api.tests.a\ndef f():\n    return 1\n",
+            "api/tests/test_c.py": "from api.tests.b import f\n",
+            "api/tests/quiet.py": "import game\ndef g():\n    return game.X\n",
+            "api/tests/b2.py": "import api.tests.quiet\ndef h():\n    return 1\n",
+            "api/tests/test_d.py": "from api.tests.b2 import h\n",
+        }
+        for rel, src in files.items():
+            (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.tmp / rel).write_text(src, encoding="utf-8")
+        # quiet reads game only inside a function: importing it (and b2) touches nothing
+        self.assertEqual(inventory.touching_tests(self.tmp, {"X"}), ["api.tests.test_b", "api.tests.test_c"])
 
     def test_verify_claims_marks_a_changed_named_set_false_and_a_changed_count_shifted(self):
         game = (

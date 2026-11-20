@@ -1,0 +1,4 @@
+ensure_campaign_clock
+_living_world_prompt_context
+_observe_anchored_structure
+resolve_scene_seating

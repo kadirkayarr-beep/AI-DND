@@ -1,0 +1,11 @@
+_is_player_name_inquiry_to_npc
+_is_historical_player_name_query
+_hero_first_name
+_explicit_player_name_disclosure
+_known_player_name
+_historical_player_name_from_npc_memory
+_historical_player_name_from_claims
+_direct_npc_smalltalk_response
+_conversation_opening_line
+_stock_hearer
+_said_to_someone_here

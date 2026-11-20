@@ -95,15 +95,18 @@ def _block(path: Path, entry: dict) -> str:
     return "\n".join(_text(path).splitlines()[entry["start"] - 1:entry["end"]]) + "\n"
 
 
-def _manual_lines(manual: list[str], part_names: list[str]) -> tuple[dict[str, set[int]], list[tuple[str, str, int]]]:
+def _manual_lines(manual: list[str], part_names: list[str],
+                  other_parts: list[str] = ()) -> tuple[dict[str, set[int]], list[tuple[str, str, int]]]:
     """Exempt line numbers by key: "game.py:base", "game.py:new" and "game_parts/<part>" for each part in this check,
     and one (entry, key, line number) per entry.
 
     game.py entries name their side (`game.py:base:N:reason` or `game.py:new:N:reason`), so an entry exempts only
     the base line or only the new line with that number. Part entries are `game_parts/<part>:N:reason`.
+    A part that is not in this check but differs from the base (D-360) is named the same way and exempts that finding.
     Any other entry, and an entry without a reason, raises ValueError.
     """
-    lines = {"game.py:base": set(), "game.py:new": set(), **{f"game_parts/{p}": set() for p in part_names}}
+    lines = {"game.py:base": set(), "game.py:new": set(),
+             **{f"game_parts/{p}": set() for p in [*part_names, *other_parts]}}
     refs = []
     for item in manual:
         name, _, rest = item.partition(":")
@@ -169,35 +172,59 @@ def _import_group_problem(lines: list[str], moved: dict[str, str]) -> str | None
 
 
 def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], exempt_base: set[int],
-                      exempt_new: set[int], moved: dict[str, str], used: set[tuple[str, int]]) -> list[str]:
-    """Findings for game.py; adds to `used` each ("game.py:base"|"game.py:new", line) exemption that hid a finding."""
+                      exempt_new: set[int], moved: dict[str, str], used: set[tuple[str, int]],
+                      deleted_out: set[int] | None = None) -> list[str]:
+    """Findings for game.py; adds to `used` each ("game.py:base"|"game.py:new", line) exemption that hid a finding.
+
+    The deleted non-blank lines outside the moved blocks are put back in `deleted_out` (base line numbers) when given.
+    """
     base_lines, new_lines = _text(base_game).splitlines(), _text(new_game).splitlines()
-    found, deleted = [], set()
-    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, base_lines, new_lines, autojunk=False).get_opcodes():
+    found = []
+    deleted = deleted_out if deleted_out is not None else set()
+    # D-376: base minus the moved spans must equal new minus this batch's re-export lines, line for line. Both lists
+    # are compared from each end, and only the differing middle goes to SequenceMatcher: an exact move has no middle,
+    # and kept lines can never pair across a span (the spans and the re-export lines are not in either list)
+    kept = [i for i in range(len(base_lines)) if not any(s <= i + 1 <= e for s, e in spans)]
+    reexport, other = set(), set()
+    try:
+        source = _text(new_game)
+        for stmt in ast.parse(source).body:
+            lines = set(range(stmt.lineno, stmt.end_lineno + 1))
+            if isinstance(stmt, ast.ImportFrom) and not _import_group_problem([ast.get_source_segment(source, stmt)], moved):
+                reexport |= lines
+            else:
+                other |= lines
+    except SyntaxError:  # reported below
+        pass
+    shown = [j for j in range(len(new_lines)) if j + 1 not in reexport - other]
+    rest, now = [base_lines[i] for i in kept], [new_lines[j] for j in shown]
+    head = 0
+    while head < min(len(rest), len(now)) and rest[head] == now[head]:
+        head += 1
+    tail = 0
+    while tail < min(len(rest), len(now)) - head and rest[-1 - tail] == now[-1 - tail]:
+        tail += 1
+    middle = difflib.SequenceMatcher(None, rest[head:len(rest) - tail], now[head:len(now) - tail], autojunk=False)
+    for tag, i1, i2, j1, j2 in middle.get_opcodes():
         if tag == "equal":
             continue
-        deleted.update(range(i1 + 1, i2 + 1))
-        for i in range(i1, i2):  # a deleted line must be blank or sit inside a moved block
-            if base_lines[i].strip() and not any(s <= i + 1 <= e for s, e in spans):
+        for i in kept[head + i1:head + i2]:  # a deleted line must be blank
+            if base_lines[i].strip():
+                deleted.add(i + 1)
                 if (i + 1) in exempt_base:
                     used.add(("game.py:base", i + 1))
                 else:
                     found.append(f"game.py: base line {i + 1} deleted outside the moved blocks: {base_lines[i].strip()[:60]}")
-        every = [(j + 1, new_lines[j]) for j in range(j1, j2) if new_lines[j].strip()]
+        every = [(j + 1, new_lines[j]) for j in shown[head + j1:head + j2] if new_lines[j].strip()]
         group = [(number, line) for number, line in every if number not in exempt_new]
         if len(group) < len(every) and _import_group_problem([line for _, line in every], moved):
-            used.update(("game.py:new", number) for number, _ in every if number in exempt_new)
+            # D-360: the exemptions count as used only when they alone made the group pass
+            if not group or not _import_group_problem([line for _, line in group], moved):
+                used.update(("game.py:new", number) for number, _ in every if number in exempt_new)
         if group:  # inserted or replaced lines must parse as import statements of moved names only
             problem = _import_group_problem([line for _, line in group], moved)
             if problem:
                 found.append(f"game.py:{group[0][0]}: {problem}: {group[0][1].strip()[:60]}")
-    for start, end in spans:  # every non-blank line of a moved block must be deleted
-        for number in range(start, end + 1):
-            if base_lines[number - 1].strip() and number not in deleted:
-                if number in exempt_base:
-                    used.add(("game.py:base", number))
-                    continue
-                found.append(f"game.py: base line {number} of a moved block is still in game.py: {base_lines[number - 1].strip()[:60]}")
     try:
         for entry in top_level_index(new_game):
             if entry["name"] in moved and entry["kind"] != "import":
@@ -248,10 +275,43 @@ def _part_findings(base_part: Path, part: Path, part_name: str, spans: list[tupl
     return found
 
 
+def _wrong_root(base_game: Path, new_game: Path, moved: dict[str, str], deleted: set[int]) -> str | None:
+    """D-376: the message when every base line deleted outside the moved blocks sits in a whole top-level block of a
+    name the new game.py re-exports from a part but this batch did not move (a later batch moved it); else None."""
+    reexported = set()
+    try:
+        body = ast.parse(_text(new_game)).body
+    except SyntaxError:  # reported by _game_py_findings
+        return None
+    for stmt in body:
+        if isinstance(stmt, ast.ImportFrom) and stmt.level == 0 and (stmt.module or "").startswith("game_parts."):
+            reexported.update(alias.name for alias in stmt.names)
+    index = top_level_index(base_game)
+    later = [e for e in index if e["name"] in reexported - set(moved) and e["kind"] != "import"]
+    covered = {n for e in later for n in range(e["start"], e["end"] + 1)}
+    registry = {n for e in index if e["name"] == "_PART_MODULES" for n in range(e["start"], e["end"] + 1)}
+    deleted = deleted - registry  # a later batch also registers its part in _PART_MODULES
+    if not deleted or not deleted <= covered:
+        return None
+    names = {e["name"] for e in later if any(e["start"] <= n <= e["end"] for n in deleted)}
+    return (f"WRONG ROOT? {len(deleted)} base lines belong to {len(names)} names moved by later batches; "
+            f"use the parent of this batch's move commit")
+
+
+def _other_parts_differing(base_root: Path, new_root: Path, part_names: list[str]) -> list[str]:
+    """D-360: part files outside this check whose bytes differ from the base (a file on one side only differs)."""
+    names = {f.name for root in (base_root, new_root) for f in _part_files(root)} - set(part_names)
+    def raw(root: Path, name: str):
+        path = root / "game_parts" / name
+        return _text(path) if path.exists() else None  # universal newlines: LF and CRLF copies compare equal
+    return sorted(n for n in names if raw(base_root, n) != raw(new_root, n))
+
+
 def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive: dict, tier: str,
                manual: list[str] = []) -> dict:
     base_root, new_root = Path(base_root), Path(new_root)
-    exempt, refs = _manual_lines(manual, list(moved.values()))  # ValueError on an entry outside this check
+    differing = _other_parts_differing(base_root, new_root, list(moved.values()))
+    exempt, refs = _manual_lines(manual, list(moved.values()), differing)  # ValueError on an entry outside this check
     for root in (base_root, new_root):  # ValueError naming the first file that is not UTF-8
         for path in [root / "game.py", *_part_files(root)]:
             if path.exists():
@@ -270,8 +330,15 @@ def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive
         for entry in _entries(base_root / "game.py", name):  # statements that bind several names move whole
             base_spans += [(e["start"], e["end"]) for e in top_level_index(base_root / "game.py")
                            if (e["start"], e["end"]) == (entry["start"], entry["end"])]
+    deleted_out: set[int] = set()
     changed += _game_py_findings(base_root / "game.py", new_root / "game.py", base_spans, exempt["game.py:base"],
-                                 exempt["game.py:new"], moved, used)
+                                 exempt["game.py:new"], moved, used, deleted_out)
+    wrong_root = _wrong_root(base_root / "game.py", new_root / "game.py", moved, deleted_out)
+    for name in differing:  # D-360: a hand edit in a part this batch does not move
+        if exempt[f"game_parts/{name}"]:
+            used.update((f"game_parts/{name}", number) for number in exempt[f"game_parts/{name}"])
+        else:
+            changed.append(f"CHANGED other part {name} differs from base")
     for part_name, spans in spans_by_part.items():
         changed += _part_findings(base_root / "game_parts" / part_name, new_root / "game_parts" / part_name,
                                   part_name, spans, exempt[f"game_parts/{part_name}"], used)
@@ -283,7 +350,8 @@ def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive
         comments_base = comments_now = 0
     if comments_base != comments_now:
         changed.append(f"comment count differs: base {comments_base}, now {comments_now}")
-    return {"changed": changed, "comments_base": comments_base, "comments_now": comments_now, "manual": list(manual)}
+    return {"changed": changed, "comments_base": comments_base, "comments_now": comments_now, "manual": list(manual),
+            "wrong_root": wrong_root}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -318,6 +386,9 @@ def main(argv: list[str] | None = None) -> int:
         result = check_move(args.base_root, args.root, moved, lock, args.tier, args.manual)
     except ValueError as exc:
         print(f"ERROR {exc}", file=sys.stderr)
+        return 2
+    if result["wrong_root"]:  # no CHANGED list: the findings of a wrong root only mislead
+        print(result["wrong_root"])
         return 2
     for line in result["changed"]:
         print(f"  {line}")
