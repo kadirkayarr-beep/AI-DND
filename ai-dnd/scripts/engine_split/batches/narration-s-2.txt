@@ -1,0 +1,6 @@
+ask_dungeon_master
+_finding_says_too_much
+_states_the_failed_check
+_fallback_for_action_result
+_narrated_money_can_lie
+finalize_narration

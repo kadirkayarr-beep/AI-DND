@@ -1,0 +1,10 @@
+generate_npc_id
+create_npc_from_ai
+clean_location_description
+commit_location_change
+_ensure_location_entities
+_commit_travel_action
+_ensure_local_merchant
+_scene_presence_text
+_promote_scene_referent
+_adventure_travel_reply

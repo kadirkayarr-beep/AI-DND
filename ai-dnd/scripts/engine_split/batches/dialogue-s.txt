@@ -1,0 +1,8 @@
+_npc_answers_to
+_offer_talk_with
+_job_fallback
+_coin_persuasion
+_show_coin_roll
+_settle_spoken_commitment
+_with_only_backed_money
+_experimental_speech_note

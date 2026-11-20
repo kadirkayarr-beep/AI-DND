@@ -1,0 +1,16 @@
+_SOMEONE_ELSES_PURSE
+_SHOP_ECONOMY_PATTERN
+_SHOP_TRANSACTION_REQUEST_PATTERN
+_SHOP_ENTITY_QUERY_PATTERN
+_SHOP_CREATION_ACTION_PATTERN
+_is_shopkeeper_role
+_runs_a_shop
+_campaign_has_shopkeeper
+_explicit_campaign_shop_request
+_shop_economy_request
+_explicit_campaign_shop_negative_request
+_shop_presence_question
+generate_shop_id
+validate_shop_proposal
+create_shop_from_proposal
+COIN_LEFT_BEHIND

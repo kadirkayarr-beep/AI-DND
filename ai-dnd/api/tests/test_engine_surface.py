@@ -4,13 +4,16 @@ from __future__ import annotations
 import ast
 import contextlib
 import copy
+import functools
 import inspect
 import io
 import json
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -33,6 +36,14 @@ T4_BATCHES = {"cr": "character_rules", "places-1": "places", "places-2": "places
               "intent-2": "intent", "schemas-options": "schemas", "dialogue-1": "dialogue",
               "dialogue-2": "dialogue", "lore": "lore", "narration": "narration", "nsafety-1": "narration_safety",
               "nsafety-2": "narration_safety", "lwt": "living_world_turn", "newgame": "new_game"}
+# Plan 4 batch file -> the part it moves into, in move order (Tasks 7-15); sensitive names allowed (spec T5)
+T5_BATCHES = {"combat-1": "combat_flow", "combat-2": "combat_flow", "combat-3": "combat_flow", "coin": "coin",
+              "save-1": "savefile", "save-2": "savefile", "schemas-schema": "schemas", "cr-s": "character_rules",
+              "lore-s": "lore", "places-s": "places", "intent-s": "intent", "dialogue-s": "dialogue",
+              "narration-s-1": "narration", "narration-s-2": "narration", "lwt-s": "living_world_turn"}
+# api.narrative_director's adapter: wrapped engine name -> the closure variable holding the engine's own object (D-349)
+ADAPTER_ORIGINALS = {"build_world_context": "original_build", "ask_dungeon_master": "original_ask",
+                     "finalize_narration": "original_finalize"}
 
 
 class SurfaceTests(unittest.TestCase):
@@ -89,19 +100,74 @@ class SurfaceTests(unittest.TestCase):
         for part, names in re_exports.items():
             module = parts["game_parts." + part]
             for name in names:
-                own, seen = vars(module)[name], getattr(game, name)
-                if inspect.isfunction(own):
-                    self.assertIs(seen.__wrapped__, own, name)
-                    self.assertTrue(seen._session_bound, name)
-                    self.assertIn(module.__name__, game._PART_MODULES, name)
-                else:
-                    self.assertIs(seen, own, name)
+                self._assert_part_object(module, name, getattr(game, name))
+
+    def _assert_part_object(self, module, name, seen):
+        own = vars(module)[name]
+        if inspect.isfunction(own):
+            if getattr(game, "_narrative_context_adapter_installed", False) and name in ADAPTER_ORIGINALS:
+                # D-349: api.main wraps three engine names; the wrapper's captured original gets the same checks
+                seen = inspect.getclosurevars(seen).nonlocals[ADAPTER_ORIGINALS[name]]
+            self.assertIs(seen.__wrapped__, own, name)
+            self.assertTrue(seen._session_bound, name)
+            self.assertIn(module.__name__, game._PART_MODULES, name)
+        else:
+            self.assertIs(seen, own, name)
+
+    def _adapted_engine(self, implementations):
+        # three bound fakes made the way game._bind_session_engine makes them, under the real narrative adapter
+        from api.narrative_director import install_narrative_context_adapter
+        engine = types.ModuleType("adapted_engine")
+        for name, implementation in implementations.items():
+            @functools.wraps(implementation)
+            def bound(*args, __implementation=implementation, session=None, **kwargs):
+                return __implementation(*args, **kwargs)
+
+            bound._session_bound = True
+            setattr(engine, name, bound)
+        install_narrative_context_adapter(engine)
+        self.assertTrue(engine._narrative_context_adapter_installed)
+        return engine
+
+    @staticmethod
+    def _narration_part():
+        # the narration part's name, taken from game._PART_MODULES; a stand-in module, never imported (R2)
+        part = types.ModuleType(next(name for name in game._PART_MODULES if name.endswith(".narration")))
+        for name in ADAPTER_ORIGINALS:
+            def own(*args, **kwargs):
+                return None
+
+            own.__name__ = own.__qualname__ = name
+            setattr(part, name, own)
+        return part
+
+    def test_the_identity_check_sees_through_the_narrative_adapter(self):
+        # D-349: the adapter's wrapper has no __wrapped__; the original it captured passes the same check
+        part = self._narration_part()
+        engine = self._adapted_engine(vars(part))
+        with mock.patch.object(game, "_narrative_context_adapter_installed", True, create=True):
+            for name in ADAPTER_ORIGINALS:
+                with self.subTest(name=name):
+                    seen = getattr(engine, name)
+                    self.assertFalse(hasattr(seen, "__wrapped__"))  # the adapter closure itself
+                    self._assert_part_object(part, name, seen)
+
+    def test_the_identity_check_still_fails_a_wrong_original(self):
+        # guard: an adapter around another function than the part's own is still refused
+        part = self._narration_part()
+        other = {name: (lambda *args, **kwargs: None) for name in ADAPTER_ORIGINALS}
+        engine = self._adapted_engine(other)
+        with mock.patch.object(game, "_narrative_context_adapter_installed", True, create=True):
+            for name in ADAPTER_ORIGINALS:
+                with self.subTest(name=name):
+                    with self.assertRaises(AssertionError):
+                        self._assert_part_object(part, name, getattr(engine, name))
 
     def test_t3_batches_are_movable(self):
         # Plan 2 T3 batches (Tasks 9-14) against game.py before each move; a moved batch is checked by its re-exports
         self._batches_are_movable(T3_BATCHES)
 
-    def _batches_are_movable(self, batches):  # one set of rules for the T3 and the T4 test (Plan 3 Task 4, D-364)
+    def _batches_are_movable(self, batches, sensitive_allowed=False):  # one set of rules for T3, T4 and T5 (D-364)
         game_py = ROOT / "game.py"
         index = top_level_index(game_py)
         entries: dict[str, list[dict]] = {}
@@ -132,7 +198,8 @@ class SurfaceTests(unittest.TestCase):
             for name in names:
                 with self.subTest(batch=batch, name=name):
                     self.assertNotIn(name, NEVER_MOVED)
-                    self.assertNotIn(name, sensitive)
+                    if not sensitive_allowed:  # T5 moves sensitive names (strong review, move_check --tier strong)
+                        self.assertNotIn(name, sensitive)
                     self.assertNotIn(name, seen)
                     seen[name] = batch
                     if name not in moved:
@@ -173,6 +240,10 @@ class SurfaceTests(unittest.TestCase):
     def test_t4_batches_are_movable(self):
         # Plan 3 T4 batches (Tasks 7-15), same rules as the T3 test
         self._batches_are_movable(T4_BATCHES)
+
+    def test_t5_batches_are_movable(self):
+        # Plan 4 T5 batches (Tasks 7-15), same rules as the T3 and T4 tests; sensitive names allowed (spec T5)
+        self._batches_are_movable(T5_BATCHES, sensitive_allowed=True)
 
     def test_a_missing_name_is_reported(self):
         live = dict(self.golden)
