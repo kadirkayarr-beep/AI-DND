@@ -805,6 +805,7 @@ class NarrationPart(unittest.TestCase):
 
 
 NSAFETY_1 = tuple(batch_names("nsafety-1"))
+NSAFETY_2 = tuple(batch_names("nsafety-2"))
 
 
 class NarrationSafetyPart(unittest.TestCase):
@@ -841,6 +842,33 @@ class NarrationSafetyPart(unittest.TestCase):
             for phrase, expected in assertions:
                 with self.subTest(phrase=phrase):
                     self.assertIs(game.is_player_world_assertion(phrase, session=s), expected)
+
+    def test_nsafety_2_lives_in_the_part(self):
+        self.assertEqual(set(NSAFETY_2) - set(routing_audit.re_exports(ROOT).get("narration_safety", ())), set())
+
+    def test_the_safety_decision_answers_as_before(self):
+        # safe and unsafe inputs from test_f04_greeting_agency_quality; the repaired one follows its invented-feeling
+        # case (one sentence removed by _remove_trigger_sentence). Decisions captured on 612ce004 before the move.
+        def decision(unsafe, reason_code, trigger_span):
+            return {"unsafe": unsafe, "reason_code": reason_code, "trigger_span": trigger_span,
+                    "scene_type": "exploration"}
+
+        with fixed_town(self, 20261213):
+            s = game.create_session(seed=11)
+            world = json.dumps(s.world_state, sort_keys=True, default=str)
+            safe = game._narration_safety_decision("içeri girersin.", "içeri giriyorum.", action_result={}, session=s)
+            self.assertEqual(safe, decision(False, None, None))
+            inspect = "Han girişindeki taş işçiliğini dikkatlice inceliyorum."
+            unsafe = game._narration_safety_decision("Sonra hana girersin.", inspect, action_result={}, session=s)
+            self.assertEqual(unsafe, decision(True, "INVENTED_PLAYER_ACTION", "girersin"))
+            text = "Oymalar yıpranmış. Korkmuş hissedersin."
+            first = game._narration_safety_decision(text, inspect, action_result={}, session=s)
+            self.assertEqual(first, decision(True, "INVENTED_PLAYER_MENTAL_STATE", "hissedersin"))
+            repaired = game._remove_trigger_sentence(text, first, {}, session=s)
+            self.assertEqual(repaired, "Oymalar yıpranmış.")
+            self.assertEqual(game._narration_safety_decision(repaired, inspect, action_result={}, session=s),
+                             decision(False, None, None))
+            self.assertEqual(json.dumps(s.world_state, sort_keys=True, default=str), world)
 
 
 if __name__ == "__main__":

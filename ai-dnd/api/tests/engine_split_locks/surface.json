@@ -2067,7 +2067,7 @@
  },
  "_narration_safety_decision": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration_safety",
   "session_bound": true,
   "signature": "(narration, player_input, npc_target=None, action_result=None, *, attributed_speech=None)"
  },
