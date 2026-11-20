@@ -466,9 +466,13 @@ class PlacesPart(unittest.TestCase):
         with fixed_town(self, 20261202):
             s = game.create_session(seed=11)
             s.world_state["location"] = "forest"
+            # a place only the given session has: an answer the default session cannot give (Task 16 Fault 8)
+            s.world_state["locations"]["t16_kuyu"] = {"id": "t16_kuyu", "name": "Kuyu Başı", "type": "city",
+                                                      "description": ""}
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             cases = (
                 ("resolve_location_reference", ("ormanı",), "forest"),
+                ("resolve_location_reference", ("t16_kuyu",), "t16_kuyu"),
                 ("update_inventory_from_player", ("kılıcı yere bırakıyorum",), None),
                 ("_walked_there", ({"kind": "go_to"}, {"action": "travel", "status": "already_here", "target_id": "forest"},
                                    None), True),
