@@ -194,7 +194,15 @@ class SchemasPart(unittest.TestCase):
         self.assertIs(game.messages[0]["content"], game.system_prompt)
         with fixed_town(self, 20261121):
             s = game.create_session(seed=7)
-            self.assertEqual(s.messages[0]["content"], game.system_prompt)  # GameSession.__init__ seeds self.messages
+            self.assertIs(s.messages[0]["content"], game.system_prompt)  # GameSession.__init__ seeds it (D-380)
+
+    def test_the_npc_speech_options_live_in_schemas(self):
+        self.assertIn("_EXPERIMENTAL_NPC_SPEECH_OPTIONS", routing_audit.re_exports(ROOT).get("schemas", ()))
+
+    def test_the_npc_speech_options_did_not_change(self):
+        # captured on f5cbace6 before the move (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave this same hex)
+        self.assertEqual(value_digest(("_EXPERIMENTAL_NPC_SPEECH_OPTIONS",)),
+                         "6b73f273148a6af846bf9cfbeab27fcb438259f54666d1eaf1e810388a7a7b49")
 
 
 class TextA1Part(unittest.TestCase):

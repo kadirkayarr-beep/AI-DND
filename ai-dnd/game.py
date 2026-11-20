@@ -5790,21 +5790,7 @@ _EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
     "required": ["spoken_text", "stage_direction", "threat"],
     "additionalProperties": False,
 }
-_EXPERIMENTAL_NPC_SPEECH_OPTIONS = {
-    "temperature": 0.7,
-    "top_p": 0.8,
-    "top_k": 20,
-    # 18 Oct live sample: 1.15 made qwen3:8b avoid the closing quote/brace it had
-    # already seen in the prompt, so it wrote past the end of the JSON string
-    # (emoji, "</think>", prompt sentences) until the token budget ran out. A mild
-    # penalty over a short window still discourages echoing the last reply, and
-    # a speech of one to three sentences never needs more than ~220 tokens, plus the optional proposal.
-    "repeat_penalty": 1.05,
-    "repeat_last_n": 64,
-    # D-238: 240 cut 4 of 26 real Haiku replies mid-JSON (spoken text, gesture, threat and fields together),
-    # and a cut reply is thrown away for a stock line. Still a ceiling against a runaway loop.
-    "num_predict": 480,
-}
+from game_parts.schemas import _EXPERIMENTAL_NPC_SPEECH_OPTIONS
 
 
 def _speech_debug_trail(record):
