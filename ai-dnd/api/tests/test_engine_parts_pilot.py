@@ -542,9 +542,12 @@ class IntentPart(unittest.TestCase):
         real = game._session
         with fixed_town(self, 20261204):
             s = game.create_session(seed=11)
+            # a hero name only the given session has (D-447): the default session's hero would make the claim True
+            s.character["name"] = "Torvald Kaya"
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             cases = (
                 ("is_npc_historical_claim", ("Bu adam dün beni soydu.",), False),
+                ("is_npc_historical_claim", ("Adımı söyledim, Torvald.",), False),
                 ("known_character_answer", ("Benim adım ne?",), f"Adın {s.character['name']}."),
             )
             for name, args, expected in cases:
@@ -627,6 +630,10 @@ class DialoguePart(unittest.TestCase):
             bela = {"id": "npc_t10_bela", "name": "Bela", "role": "hancı", "location": s.world_state["location"],
                     "name_known_to_player": True, "role_known_to_player": True}
             s.world_state["npcs"].append(bela)
+            # an inn only the given session has (D-447): the default session knows no inn here
+            s.world_state["locations"]["t17_han"] = {"id": "t17_han", "name": "Kuyu Hanı", "type": "tavern",
+                                                     "parent_location_id": s.world_state["location"],
+                                                     "description": ""}
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             cases = (
                 ("resolve_npc_reference", ("Bela, merhaba",), {"status": "found", "npc": "npc_t10_bela"}),
@@ -635,6 +642,8 @@ class DialoguePart(unittest.TestCase):
                 ("record_npc_interaction", (bela, "Hoş geldin yolcu.", "Merhaba, nasılsın?", bela), None),
                 ("_direct_npc_smalltalk_response", ("Nasılsın?", bela),
                  "Bela, “Fena değil, teşekkür ederim. Sorduğun için sağ ol,” diye karşılık verir."),
+                ("_direct_npc_smalltalk_response", ("Yakınlarda bir han var mı?", bela),
+                 "Bela, “Yakınlarda Kuyu Hanı var,” diye yanıt verir."),
             )
             for name, args, expected in cases:
                 seen = []
@@ -747,13 +756,23 @@ class NarrationPart(unittest.TestCase):
         real = game._session
         with fixed_town(self, 20261208):
             s = game.create_session(seed=11)
+            # inputs only the given session has (D-447): its no-change line already stepped once this turn (the
+            # default session would give the first line) and a well where it stands (the default session has none)
+            s._variation_state = {("no_change",): (s.world_state.get("flags", {}).get("turn_index", 0), 1)}
+            s.world_state.setdefault("features", []).append({"id": "t17_kuyu", "name": "Kuyu",
+                                                             "location": s.world_state["location"],
+                                                             "description": "Taş bilezikli eski bir kuyu."})
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             tracks_failed = {"target_kind": "tracks", "target_id": None, "target_name": "izler", "found": False,
                              "text": "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun."}
+            well_failed = {"target_kind": "feature", "target_id": "t17_kuyu", "target_name": "Kuyu", "found": False,
+                           "text": "Kuyu üzerinde bu bakışla yeni bir ayrıntı seçemiyorsun."}
             cases = (
-                ("_generic_no_change_response", (), {}, "Çevrede şimdilik belirgin bir değişiklik olmuyor."),
+                ("_generic_no_change_response", (), {},
+                 "Çevrede şimdilik belirgin bir değişiklik olmuyor; herkes kendi işine bakıyor, söz sende."),
                 ("_inspection_findings", ("izlere bakıyorum", "failure"), {}, tracks_failed),
                 ("_inspection_findings", ("etrafa bakıyorum", "failure"), {}, None),
+                ("_inspection_findings", ("kuyuya bakıyorum", "failure"), {}, well_failed),
             )
             for name, args, kwargs, expected in cases:
                 seen = []

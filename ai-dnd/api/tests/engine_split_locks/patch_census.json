@@ -48,6 +48,7 @@
     "test_shops.py::test_shop_economy_requests_do_not_change_items_or_currency"
   ],
   "targets": {
+    "<dynamic>": "dynamic",
     "CLASSES": "data",
     "GameSession": "class",
     "RACES": "data",

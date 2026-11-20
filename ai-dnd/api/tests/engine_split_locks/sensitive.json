@@ -255,6 +255,9 @@
     "plan_living_world_turn": [
       "money"
     ],
+    "run": [
+      "save"
+    ],
     "save_game": [
       "file_write",
       "save"

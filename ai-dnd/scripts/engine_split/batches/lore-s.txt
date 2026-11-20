@@ -1,0 +1,1 @@
+_lore_entity_names

@@ -15341,16 +15341,13 @@ def create_session(seed=None):
 
 if __name__ != "__main__":
     class _GameModule(types.ModuleType):
-        def __getattribute__(self, name):
-            if name in _CHARACTER_GLOBALS:
-                return _DEFAULT_SESSION.character[_CHARACTER_GLOBALS[name]]
-            return super().__getattribute__(name)
+        pass
 
-        def __setattr__(self, name, value):
-            if name in _CHARACTER_GLOBALS:
-                _DEFAULT_SESSION.character[_CHARACTER_GLOBALS[name]] = value
-                return
-            super().__setattr__(name, value)
+    for _alias_name, _alias_key in _CHARACTER_GLOBALS.items():
+        setattr(_GameModule, _alias_name, property(
+            lambda module, key=_alias_key: _DEFAULT_SESSION.character[key],
+            lambda module, value, key=_alias_key: _DEFAULT_SESSION.character.__setitem__(key, value)))
+    del _alias_name, _alias_key
 
     # Imported modules retain live character aliases. Plain exec dictionaries
     # must use create_session() and explicit session-owned state instead.

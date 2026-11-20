@@ -1,0 +1,7 @@
+_public_combatant_label
+_combat_narration
+_enemy_exchange_text
+_death_closing
+_death_save_line
+_down_outside_combat_turn
+_death_resolution_from_actions

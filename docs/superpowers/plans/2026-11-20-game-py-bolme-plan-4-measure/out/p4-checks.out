@@ -1,0 +1,61 @@
+in_function_import 125
+reads_never_moved 85
+reads_later_or_held 86
+census_target 41
+    ['_apply_attack_damage_to_player', 'function']
+    ['_apply_player_damage', 'function']
+    ['_bind_world_update_mentions', 'function']
+    ['_fallback_narration', 'function']
+    ['_finalize_player_death', 'function']
+    ['_finish_species_player_turn', 'function']
+    ['_job_fallback', 'function']
+    ['_mark_combat_action_used', 'function']
+    ['_player_state_for_save', 'function']
+    ['_promote_scene_referent', 'function']
+    ['_repair_dilim2_fields', 'function']
+    ['_resolve_enemy_turns_until_player', 'function']
+    ['_resolve_player_death_turn', 'function']
+    ['_restore_combat_death_checkpoint', 'function']
+    ['_species_bonus_action', 'function']
+    ['_sync_combat_participant_records', 'function']
+    ['_validate_save_payload', 'function']
+    ['advance_campaign_time', 'function']
+    ['advance_combat_turn', 'function']
+    ['apply_npc_damage', 'function']
+    ['ask_dungeon_master', 'function']
+    ['build_world_context', 'function']
+    ['commit_location_change', 'function']
+    ['create_shop_from_proposal', 'function']
+    ['execute_intent', 'function']
+    ['finalize_narration', 'function']
+    ['heal_player', 'function']
+    ['load_game', 'function']
+    ['normalize_intent', 'function']
+    ['parse_player_intent', 'function']
+    ['perform_skill_check', 'function']
+    ['person_fight_kind', 'function']
+    ['plan_living_world_turn', 'function']
+    ['require_player_can_act', 'function']
+    ['resolve_attack', 'function']
+    ['resolve_enemy_attack', 'function']
+    ['resolve_species_trait_action', 'function']
+    ['set_player_max_hp', 'function']
+    ['stabilize_player', 'function']
+    ['start_combat', 'function']
+census_import_targets_used 12
+non_constant_default 3
+    ['_combat_end_if_decided', ['()']]
+    ['_combat_record_for_actor', ['()']]
+    ['_death_save_line', ['()']]
+identity_name 2
+    ['_repair_dilim1_fields', '__name__']
+    ['_repair_dilim2_fields', '__name__']
+calls_adapter_names 1
+    ['ask_dungeon_master', ['build_world_context', 'finalize_narration']]
+not_called_tests_count 1
+    46
+patched_sites_t4 41
+patched_sites_t4_sens 0
+touching_counts {'character_rules': 13, 'coin': 294, 'combat_flow': 320, 'dialogue': 10, 'intent': 326, 'living_world_turn': 14, 'lore': 0, 'narration': 335, 'places': 12, 'savefile': 34, 'schemas': 3}
+source_readers_mention 1
+    end_combat

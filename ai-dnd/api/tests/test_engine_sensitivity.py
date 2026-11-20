@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from api.tests.engine_sources import engine_source_files  # noqa: E402
 from engine_split.sensitivity import classify, is_sensitive, main  # noqa: E402
 
 LOCK = Path(__file__).parent / "engine_split_locks" / "sensitive.json"
@@ -41,6 +42,15 @@ class SensitivityTests(unittest.TestCase):
             self.assertTrue(name in lock["functions"] or name in removed, name)
         for row in lock["removed"]:
             self.assertTrue(row["name"] and row["reason"] and row["reviewer"], row)
+
+    def test_every_flagged_function_in_every_engine_file_is_in_the_lock_or_removed(self):
+        # D-355: game.py and every game_parts/*.py; a moved sensitive name stays visible to N8
+        lock = json.loads(LOCK.read_text(encoding="utf-8"))
+        removed = {row["name"] for row in lock["removed"]}
+        for path in engine_source_files(ROOT):
+            for name in classify(path):
+                with self.subTest(file=path.name, name=name):
+                    self.assertTrue(name in lock["functions"] or name in removed, f"{path.name}: {name}")
 
     def test_reasons_by_content_not_by_name(self):
         src = ("def tidy(world):\n    world['currency'] -= 1\n"

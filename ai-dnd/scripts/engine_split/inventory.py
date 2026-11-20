@@ -163,14 +163,42 @@ def closed_helpers(path: Path) -> list[str]:
 _GAME_STRING = re.compile(r"(?<![\w.])game\.(\w+)")
 
 
-def _touches(node: ast.AST, aliases: set[str], names: set[str]) -> bool:
+def _last_identifier(node: ast.AST) -> str | None:
+    """`a` for `a`, `b` for `a.b`; a call counts by what it calls (`game._session()` -> `_session`)."""
+    while isinstance(node, ast.Call):
+        node = node.func
+    return node.id if isinstance(node, ast.Name) else node.attr if isinstance(node, ast.Attribute) else None
+
+
+def _created_sessions(tree: ast.Module) -> set[str]:
+    """Last identifiers of what the module binds from a call ending in create_session or GameSession (D-446):
+    `s = game.create_session()` gives `s`, `self.a = GameSession()` gives `a`."""
+    created = set()
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and isinstance(n.value, ast.Call):
+            if (_last_identifier(n.value) or "").endswith(("create_session", "GameSession")):
+                created.update(_last_identifier(t) for t in (n.targets if isinstance(n, ast.Assign) else [n.target])
+                               if isinstance(t, (ast.Name, ast.Attribute)))
+    return created
+
+
+def _is_session(node: ast.AST, sessions: set[str]) -> bool:
+    """A receiver that holds a session (D-446: GameSession binds every engine function): its last identifier
+    contains "session" (any case) or the module bound it from create_session()/GameSession(). Conservative."""
+    last = _last_identifier(node)
+    return last is not None and ("session" in last.lower() or last in sessions)
+
+
+def _touches(node: ast.AST, aliases: set[str], names: set[str], sessions: set[str]) -> bool:
     if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in aliases:
+        return node.attr in names
+    if isinstance(node, ast.Attribute) and _is_session(node.value, sessions):  # session.<name>
         return node.attr in names
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return any(m in names for m in _GAME_STRING.findall(node.value))
     if isinstance(node, ast.Call) and len(node.args) > 1:  # patch.object(game, "<name>"), getattr(game, "<name>")
-        first, second = node.args[0], node.args[1]
-        return (isinstance(first, ast.Name) and first.id in aliases
+        first, second = node.args[0], node.args[1]  # and the same on a session
+        return (((isinstance(first, ast.Name) and first.id in aliases) or _is_session(first, sessions))
                 and isinstance(second, ast.Constant) and second.value in names)
     if isinstance(node, ast.ImportFrom) and node.module == "game":
         return any(a.name in names for a in node.names)
@@ -194,6 +222,7 @@ def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
     import ("run"), whether it touches a name itself, the bare names it reads and the (module, name, attrs) it
     imports (name None = the module named; attrs = what is read on a module imported whole, None = all of it)."""
     _attrs_read = _attr_reads(tree)
+    sessions = _created_sessions(tree)
     units = []
     for stmt in tree.body:
         if isinstance(stmt, (ast.Import, ast.ImportFrom)) and not getattr(stmt, "level", 0):
@@ -218,18 +247,19 @@ def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
                           None if a.name == "*" else _attrs_read(a.asname or a.name)) for a in node.names]
         is_def = isinstance(stmt, (*FUNCTION_NODES, ast.ClassDef))
         units.append({"binds": {stmt.name} if is_def else set(bound_names(stmt)[1]), "run": not is_def, "refs": refs,
-                      "direct": any(_touches(node, aliases, names) for node in ast.walk(stmt)),
+                      "direct": any(_touches(node, aliases, names, sessions) for node in ast.walk(stmt)),
                       "reads": {n.id for n in ast.walk(stmt) if isinstance(n, ast.Name)}})
         if isinstance(stmt, ast.ClassDef):  # a class body (not its methods) runs on import
             body = [s for s in stmt.body if not isinstance(s, FUNCTION_NODES)]
             units.append({"binds": set(), "run": True, "refs": [], "reads": set(),
-                          "direct": any(_touches(n, aliases, names) for s in body for n in ast.walk(s))})
+                          "direct": any(_touches(n, aliases, names, sessions) for s in body for n in ast.walk(s))})
     return units
 
 
 def touching_tests(root: Path, names: set[str]) -> list[str]:
     """Dotted test modules (root/test_*.py, root/api/tests/test_*.py) that read game.<name> (also through an
-    `import game as x` alias, `patch.object(game, "<name>")` or `from game import <name>`) or hold "game.<name>",
+    `import game as x` alias, `patch.object(game, "<name>")` or `from game import <name>`), read it on a session
+    (`session.<name>`, `getattr(session, "<name>")`, see _is_session; D-446) or hold "game.<name>",
     directly or through a name they import (transitively) from a module under api/tests that does
     (e.g. rule_oracles reads game.SKILLS). Name level: importing an untouched helper of a touching module does
     not count, unless that module touches while it is imported."""

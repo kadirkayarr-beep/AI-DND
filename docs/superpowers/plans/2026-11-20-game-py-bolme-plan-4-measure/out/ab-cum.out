@@ -1,0 +1,13 @@
+GATE_RC=1
+warmold TURN_MS median=22.16
+warmnew TURN_MS median=21.16
+old1 TURN_MS median=23.62
+new1 TURN_MS median=21.86
+new2 TURN_MS median=25.75
+old2 TURN_MS median=21.24
+old3 TURN_MS median=20.96
+new3 TURN_MS median=22.89
+new4 TURN_MS median=21.94
+old4 TURN_MS median=21.75
+old5 TURN_MS median=23.07
+new5 TURN_MS median=23.42

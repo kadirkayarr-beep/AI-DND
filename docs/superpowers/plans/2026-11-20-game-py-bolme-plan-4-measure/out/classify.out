@@ -1,0 +1,4 @@
+FILES 16 FLAGGED 89 LOCKED 88 REMOVED 0
+NOT_IN_LOCK game_parts/terminal.py: run ['save']
+FLAGGED_IN_PARTS ['run']
+DIFF not_in_lock=1 locked_not_flagged=0
