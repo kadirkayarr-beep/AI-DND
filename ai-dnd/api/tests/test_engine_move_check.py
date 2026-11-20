@@ -234,6 +234,12 @@ class MoveCheckTests(unittest.TestCase):
         self.build(base=base, game=game, part=part)
         self.assertEqual(check_move(self.base, self.new, {"MOVED": "dice.py"}, NO_LOCK, "normal")["changed"], [])
 
+    def test_repeated_kept_lines_on_both_sides_of_a_moved_block_are_no_change(self):  # D-376 fix round 1: span anchors
+        base = "x = 1\ny = 2\ndef m():\n    return 0\nx = 1\ny = 2\nx = 1\n"
+        game = "x = 1\ny = 2\nfrom game_parts.dice import m\nx = 1\ny = 2\nx = 1\n"
+        self.build(base=base, game=game, part="import game\n\ndef m():\n    return 0\n")
+        self.assertEqual(check_move(self.base, self.new, {"m": "dice.py"}, NO_LOCK, "normal")["changed"], [])
+
     def test_an_old_batch_checked_against_an_older_root_says_wrong_root(self):  # D-376: base has a and b; batch moved a; b moved later
         base = "K = 1\n_PART_MODULES = ()\n\ndef a():\n    return 1\n\ndef b():\n    return 2\n"
         self.build(base=base, game="K = 1\n_PART_MODULES = ('game_parts.dice',)\n\nfrom game_parts.dice import a, b\n",

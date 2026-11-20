@@ -181,15 +181,23 @@ def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], exemp
     base_lines, new_lines = _text(base_game).splitlines(), _text(new_game).splitlines()
     found = []
     deleted = deleted_out if deleted_out is not None else set()
-    # D-376: the moved blocks' exact spans leave the base first, so the diff sees only the lines that must stay
-    kept = [i for i in range(len(base_lines)) if not any(s <= i + 1 <= e for s, e in spans)]
-    rest = [base_lines[i] for i in kept]
+    # D-376: each moved block's exact span becomes one sentinel that equals no line, so the diff is anchored on the
+    # spans and cannot pair kept lines across a span; a sentinel's deletion or replacement is never a finding
+    rest, kept = [], []
+    for i in range(len(base_lines)):
+        span = next(((s, e) for s, e in spans if s <= i + 1 <= e), None)
+        if span is None:
+            rest.append(base_lines[i])
+            kept.append(i)
+        elif i + 1 == span[0]:
+            rest.append(object())
+            kept.append(None)
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, rest, new_lines, autojunk=False).get_opcodes():
         if tag == "equal":
             continue
-        for k in range(i1, i2):  # a deleted line must be blank (a moved block's lines are not in `rest`)
+        for k in range(i1, i2):  # a deleted line must be blank (a moved block is one sentinel in `rest`)
             i = kept[k]
-            if base_lines[i].strip():
+            if i is not None and base_lines[i].strip():
                 deleted.add(i + 1)
                 if (i + 1) in exempt_base:
                     used.add(("game.py:base", i + 1))
