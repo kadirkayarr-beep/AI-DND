@@ -1,6 +1,6 @@
 {
   "files": {
-    "game.py": 14436,
+    "game.py": 13442,
     "game_parts/narration_safety.py": 1505
   },
   "part_max": 2500,
@@ -18,8 +18,8 @@
     "game.py::load_game": 186,
     "game.py::parse_player_intent": 420,
     "game.py::plan_living_world_turn": 725,
-    "game.py::resolve_species_trait_action": 361,
     "game.py::validate_world_updates": 155,
+    "game_parts/combat_flow.py::resolve_species_trait_action": 361,
     "game_parts/lore.py::_player_question_has_unverified_lore_claim": 196,
     "game_parts/lore.py::_supported_lore_question_response": 479,
     "game_parts/narration_safety.py::_narration_safety_decision": 1054,

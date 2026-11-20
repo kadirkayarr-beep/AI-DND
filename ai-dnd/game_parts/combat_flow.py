@@ -5,6 +5,12 @@ import copy
 import effect_targeting
 import talk_mode
 import weapon_attack
+from api.core_resolution import (
+    resolve_death_save,
+)
+import campaign_time
+import initiative
+import scheduled_events
 
 
 def long_rest_gap_seconds(world):
@@ -961,3 +967,1022 @@ def _finish_species_player_turn():
     state["movement_budget_ft"] = 0
     state["movement_effect"] = None
     return effects
+
+def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None,
+                                 draconic_ancestry=None, shape=None, target_id=None):
+    game.require_player_can_act()
+    if action in {"short_rest", "long_rest"}:
+        import barbarian_rage
+        barbarian_rage.prepare_restore(game._session())
+        import character_progression
+        character_progression.prepare_rest(game._session())
+        if action == "long_rest":
+            import sorcery_points
+            sorcery_points.prepare_restore(game._session())
+        game.ensure_campaign_clock()
+        if "campaign_time" not in game._session().world_state:
+            raise ValueError("Dinlenmeden önce başlangıç sahnesi belirlenmeli.")
+        minimum = 3600 if action == "short_rest" else 8 * 3600
+        if elapsed_seconds is not None and (
+            type(elapsed_seconds) is not int or not minimum <= elapsed_seconds <= campaign_time.DAY * 365
+        ):
+            raise ValueError("Dinlenme süresi geçersiz.")
+        if game.ensure_combat_state()["active"]:
+            raise ValueError("Çatışma sırasında dinlenemezsin.")
+        if action == "long_rest":
+            if game.long_rest_gap_seconds(game._session().world_state):
+                raise ValueError("Yeni uzun dinlenmeye başlamadan önce son tamamlanmadan 16 oyun saati geçmeli.")
+        rest_time = game.advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
+        if rest_time.get("condition_death"):
+            # D-145: the one result shape every rest answers with, so the panel's contract keeps the death too.
+            return {"action": action, "message": "Dinlenme, mevcut ölüm politikasınca kesildi.",
+                    "effects": {"time_result": rest_time, "rest_completed": False}}
+        if rest_time.get("interrupted"):
+            interrupted_effects = {"time_result": rest_time, "rest_completed": False}
+            if action == "long_rest" and rest_time.get("elapsed_seconds", 0) >= 3600:
+                # PHB 2024 Long Rest (PDF 370): rested at least 1 hour before the interruption -> the benefits of a Short Rest.
+                # Only the Hit Point Dice window is given here; species Short Rest features are not (HANDOFF).
+                import hit_dice
+                interrupted_effects["short_rest_hit_dice"] = True  # only the Hit Dice part of the Short Rest benefits
+                interrupted_effects["hit_dice"] = hit_dice.open_window(game._session())
+                # Rage has its own source-backed Short Rest recovery. An
+                # interrupted Long Rest after an hour grants one, not all uses.
+                import barbarian_rage
+                barbarian_rage.restore(game._session(), "short_rest")
+                character_progression.rest_recovery(game._session(), "short_rest")
+            return {
+                "action": action, "message": "Dinlenme tamamlanmadı; önce karşılaşma için karar vermelisin.",
+                "effects": interrupted_effects,
+            }
+    character = game._session().character
+    species = character.get("species", character.get("race"))
+    state = game._species_trait_state()
+    combat = game.ensure_combat_state()
+    effects = {}
+
+    def require_species(expected):
+        if species not in expected:
+            raise ValueError("Bu tür yeteneği karakterin için kullanılamaz.")
+
+    def require_action_turn():
+        if combat["active"]:
+            action_economy.validate_actor(game._session())
+
+    if action == "choose_giant_ancestry":
+        require_species({"Goliath"})
+        if combat["active"]:
+            raise ValueError("Dev Atası çatışma sırasında seçilemez.")
+        if ancestry not in game.GIANT_ANCESTRY_IDS:
+            raise ValueError("Geçerli bir Dev Atası seç.")
+        if character.get("giant_ancestry") is not None:
+            raise ValueError("Dev Atası zaten seçilmiş; kampanya içinde değiştirilemez.")
+        character["giant_ancestry"] = ancestry
+        state["giant_ancestry_uses_remaining"] = character.get("proficiency_bonus", 2)
+        message = "Dev Atası seçimi kaydedildi."
+        effects = {"giant_ancestry": ancestry}
+
+    elif action == "healing_hands":
+        require_species({"Aasimar"})
+        require_action_turn()
+        if combat["active"]:
+            action_economy.action_slot(game._session(), "player", "feature")
+        if state["healing_hands_uses_remaining"] <= 0:
+            raise ValueError("Şifa Veren Eller uzun dinlenmeye kadar kullanıldı.")
+        if character["current_hp"] >= character["max_hp"]:
+            raise ValueError("Can puanın zaten en yüksek düzeyde.")
+        rolls = [
+            game._session().rng.randint(1, 4)
+            for _ in range(character.get("proficiency_bonus", 2))
+        ]
+        healing = min(sum(rolls), character["max_hp"] - character["current_hp"])
+        game.heal_player(healing)
+        state["healing_hands_uses_remaining"] -= 1
+        effects = {"dice": rolls, "healing": healing, "heal_source": "species", "current_hp": character["current_hp"]}
+        message = f"Şifa Veren Eller {healing} can puanı yeniledi."
+        if combat["active"]:
+            game._mark_combat_action_used("player", "feature")
+            effects["turn_end"] = [] if action_economy.holding(game._session()) else game._finish_species_player_turn()
+            if not action_economy.holding(game._session()) and not game._combat_end_if_decided():
+                advanced, _, _ = game.advance_combat_turn()
+                if advanced:
+                    effects["enemy_actions"] = game._resolve_enemy_turns_until_player()
+
+    elif action == "celestial_revelation":
+        require_species({"Aasimar"})
+        require_action_turn()
+        if character.get("level", 1) < 3:
+            raise ValueError("Göksel Tecelli 3. seviyede açılır.")
+        if form not in game.CELESTIAL_REVELATION_FORMS:
+            raise ValueError("Geçerli bir Göksel Tecelli biçimi seç.")
+        if state["celestial_revelation_uses_remaining"] <= 0:
+            raise ValueError("Göksel Tecelli uzun dinlenmeye kadar kullanıldı.")
+        if state["active_celestial_form"] is not None:
+            raise ValueError("Başka bir Göksel Tecelli biçimi zaten etkin.")
+        game._species_bonus_action()
+        state["celestial_revelation_uses_remaining"] -= 1
+        state["active_celestial_form"] = form
+        state["celestial_revelation_turns_remaining"] = 10
+        game.effect_lifecycle.start_effect(state, "celestial_revelation")
+        if form == "heavenly_wings":
+            state["movement_effect"] = {
+                "kind": "flight",
+                "speed_ft": character.get("speed_ft", 30),
+            }
+        elif form == "necrotic_shroud":
+            save_dc = 8 + character.get("proficiency_bonus", 2) + character.get("charisma_mod", 0)
+            saves = []
+            reachable = effect_targeting.eligible_effect_targets(game._session(), "player", game.NECROTIC_SHROUD_SPEC)
+            for npc in game._session().world_state.get("npcs", []):
+                if not isinstance(npc, dict) or npc.get("id") not in reachable:
+                    continue
+                save_bonus = npc.get("charisma_save_bonus", npc.get("charisma_modifier", 0))
+                if type(save_bonus) is not int:
+                    save_bonus = 0
+                resolution = game.resolve_saving_throw(
+                    roll_fn=game.roll_d20,
+                    ability="charisma",
+                    dc=save_dc,
+                    ability_modifier=save_bonus,
+                )
+                save_roll = resolution["selected_roll"]
+                frightened = resolution["outcome"] == "FAILURE"
+                if frightened:
+                    npc["frightened_until_player_turn"] = state["player_turn_counter"] + 2
+                saves.append(
+                    {
+                        "target_id": npc.get("id"),
+                        "save_roll": save_roll,
+                        "save_bonus": save_bonus,
+                        "save_dc": save_dc,
+                        "frightened": frightened,
+                        "resolution": resolution,
+                    }
+                )
+            effects["saves"] = saves
+        effects.update({"form": form, "duration_turns": 10})
+        message = "Göksel Tecelli etkinleştirildi."
+
+    elif action == "large_form":
+        require_species({"Goliath"})
+        require_action_turn()
+        if character.get("level", 1) < 5:
+            raise ValueError("Büyük Biçim 5. seviyede açılır.")
+        if state["large_form_uses_remaining"] <= 0:
+            raise ValueError("Büyük Biçim uzun dinlenmeye kadar kullanıldı.")
+        if state["large_form_turns_remaining"] > 0:
+            raise ValueError("Büyük Biçim zaten etkin.")
+        game._species_bonus_action()
+        state["large_form_uses_remaining"] -= 1
+        state["large_form_turns_remaining"] = 100
+        game.effect_lifecycle.start_effect(state, "large_form")
+        if combat["active"]:
+            resources = action_economy.ensure(game._session())["player"]
+            resources["movement_available"] = max(
+                resources["movement_used"], action_economy.movement_limit(game._session(), "player"))
+        state["movement_effect"] = {
+            "kind": "large_form",
+            "size": "Large",
+            "speed_bonus_ft": 10,
+        }
+        effects = {
+            "size": "Large",
+            "speed_ft": character.get("speed_ft", 35) + 10,
+            "strength_checks_advantage": True,
+            "duration_turns": 100,
+            "duration_minutes": 10,
+        }
+        message = "Büyük Biçim etkinleştirildi."
+
+    elif action == "adrenaline_rush":
+        require_species({"Orc"})
+        require_action_turn()
+        if state["adrenaline_rush_uses_remaining"] <= 0:
+            raise ValueError("Adrenalin Patlaması için kullanım kalmadı.")
+        game._species_bonus_action()
+        state["adrenaline_rush_uses_remaining"] -= 1
+        granted_hp = character.get("proficiency_bonus", 2)
+        game.grant_temporary_hit_points(granted_hp)
+        speed = character.get("speed_ft", 30) + (
+            10 if state["large_form_turns_remaining"] > 0 else 0
+        )
+        state["movement_budget_ft"] = speed * 2
+        state["movement_effect"] = {"kind": "dash", "distance_ft": speed * 2}
+        if combat["active"]:
+            resources = action_economy.ensure(game._session())["player"]
+            resources["dash_count"] = resources.get("dash_count", 0) + 1
+            resources["movement_available"] = max(
+                resources["movement_used"], action_economy.movement_limit(game._session(), "player"))
+        effects = {
+            "temporary_hit_points": state["temporary_hit_points"],
+            "dash_distance_ft": speed * 2,
+        }
+        message = "Adrenalin Patlaması kullanıldı; Dash hareketi ve geçici can kazanıldı."
+
+    elif action == "cloud_jaunt":
+        require_species({"Goliath"})
+        require_action_turn()
+        if character.get("giant_ancestry") != "cloud":
+            raise ValueError("Bulut Devi kökeni seçili değil.")
+        if state["giant_ancestry_uses_remaining"] <= 0:
+            raise ValueError("Dev Atası kullanımı kalmadı.")
+        game._species_bonus_action()
+        state["giant_ancestry_uses_remaining"] -= 1
+        state["movement_effect"] = {"kind": "teleport", "distance_ft": 30}
+        import bounded_encounter
+        bounded_encounter.unlocated_move(game._session(), "player")
+        effects = {
+            "teleport_distance_ft": 30,
+            "ancestry_uses_remaining": state["giant_ancestry_uses_remaining"],
+        }
+        message = "Bulut Devi Işınlanmasıyla 30 fitlik ışınlanma kullanıldı."
+
+    elif action == "arm_giant_ancestry":
+        require_species({"Goliath"})
+        if armed is not None and type(armed) is not bool:
+            raise ValueError("Dev Atası hazır durumu geçersiz.")
+        if character.get("giant_ancestry") not in {"fire", "frost", "hill", "stone", "storm"}:
+            raise ValueError("Bu Dev Atası saldırı veya hasar tepkisiyle etkinleştirilmiyor.")
+        if state["giant_ancestry_uses_remaining"] <= 0:
+            raise ValueError("Dev Atası kullanımı kalmadı.")
+        state["giant_ancestry_armed"] = (
+            not state["giant_ancestry_armed"] if armed is None else armed
+        )
+        message = (
+            "Dev Atası etkisi sonraki uygun durumda kullanılacak."
+            if state["giant_ancestry_armed"]
+            else "Dev Atası etkisi hazır beklemeden çıkarıldı."
+        )
+        effects = {
+            "armed": state["giant_ancestry_armed"],
+            "ancestry": character["giant_ancestry"],
+            "uses_remaining": state["giant_ancestry_uses_remaining"],
+        }
+
+    elif action == "choose_draconic_ancestry":
+        import dragonborn_breath
+        message, effects = dragonborn_breath.choose_ancestry(game._session(), draconic_ancestry)
+
+    elif action == "breath_weapon":
+        import dragonborn_breath
+        message, effects = dragonborn_breath.breathe(game._session(), shape, target_id)
+
+    elif action == "short_rest":
+        if combat["active"]:
+            raise ValueError("Çatışma sırasında dinlenemezsin.")
+        if elapsed_seconds is not None and (type(elapsed_seconds) is not int or elapsed_seconds < 3600):
+            raise ValueError("Kısa dinlenme en az bir saat sürer.")
+        refreshed = 0
+        if species == "Orc":
+            maximum = character.get("proficiency_bonus", 2)
+            refreshed = max(0, maximum - state["adrenaline_rush_uses_remaining"])
+            state["adrenaline_rush_uses_remaining"] = maximum
+        state["movement_budget_ft"] = 0
+        state["movement_effect"] = None
+        effects = {"adrenaline_rush_uses_refreshed": refreshed}
+        import hit_dice
+        effects["hit_dice"] = hit_dice.open_window(game._session())  # K07: the player spends dice one request at a time
+        import barbarian_rage
+        barbarian_rage.restore(game._session(), "short_rest")
+        character_progression.rest_recovery(game._session(), "short_rest")
+        message = (
+            "Kısa dinlenme tamamlandı; Adrenalin Patlaması kullanımları yenilendi."
+            if species == "Orc"
+            else "Kısa dinlenme tamamlandı; bu türün kısa dinlenmeyle yenilenen yeteneği yok."
+        )
+
+    elif action == "long_rest":
+        if combat["active"]:
+            raise ValueError("Çatışma sırasında dinlenemezsin.")
+        if elapsed_seconds is not None and (type(elapsed_seconds) is not int or elapsed_seconds < 8 * 3600):
+            raise ValueError("Uzun dinlenme en az sekiz saat sürer.")
+        old_state = state
+        if (not game._session().world_state.get("supplies_policy", {}).get("enabled", False)
+                or not game._session().world_state.get("supplies_accounting", {}).get("missing")):
+            character["exhaustion"] = max(0, weapon_attack.exhaustion(character) - 1)
+        refreshed = {
+            "healing_hands": max(0, (1 if species == "Aasimar" else 0) - old_state["healing_hands_uses_remaining"]),
+            "celestial_revelation": max(0, (1 if species == "Aasimar" else 0) - old_state["celestial_revelation_uses_remaining"]),
+            "giant_ancestry": max(0, (character.get("proficiency_bonus", 2) if species == "Goliath" else 0) - old_state["giant_ancestry_uses_remaining"]),
+            "large_form": max(0, (1 if species == "Goliath" else 0) - old_state["large_form_uses_remaining"]),
+            "adrenaline_rush": max(0, (character.get("proficiency_bonus", 2) if species == "Orc" else 0) - old_state["adrenaline_rush_uses_remaining"]),
+            "relentless_endurance": not old_state["relentless_endurance_available"] and species in {"Orc", "Half-Orc"},
+        }
+        long_rest_healing = game.heal_player(character["max_hp"] - character["current_hp"])
+        import hit_dice
+        hit_dice.restore_all(character)  # PHB 2024 Long Rest: ALL spent Hit Point Dice return
+        import dragonborn_breath
+        dragonborn_breath.long_rest(character)  # Breath Weapon: every use returns (D-233)
+        game._session().world_state["player_combat_status"] = "active"
+        character["species_trait_state"] = game._new_persisted_species_trait_state(
+            species, character.get("proficiency_bonus", 2)
+        )
+        character.pop("temporary_hit_points", None)
+        for npc in game._session().world_state.get("npcs", []):
+            if isinstance(npc, dict):
+                npc.pop("frightened_until_player_turn", None)
+                npc.pop("speed_penalty_ft", None)
+                npc.pop("speed_penalty_turns_remaining", None)
+                npc.pop("prone", None)
+        state = character["species_trait_state"]
+        effects = {"refreshed": refreshed, "current_hp": character["current_hp"],
+                   "healing": long_rest_healing, "heal_source": "rest"}
+        import spell_scope
+        spell_scope.restore_slots(game._session())
+        import spell_preparation
+        spell_preparation.open_window(game._session(), "long_rest")  # 4C.2: Wizard/Cleric choose again after a finished Long Rest
+        import sorcery_points
+        sorcery_points.restore(game._session())
+        import barbarian_rage
+        barbarian_rage.restore(game._session(), "long_rest")
+        character_progression.rest_recovery(game._session(), "long_rest")
+        game._session().world_state["last_long_rest_completed_at"] = game._session().world_state["campaign_time"]["elapsed_seconds"]
+        message = "Gözlerini kapatıyorsun; uyandığında yorgunluğun gitmiş, gücün yerine gelmiş."
+
+    elif action == "spend_hit_die":
+        import hit_dice
+        if combat["active"]:
+            raise ValueError("Çatışma sırasında Hit Point Dice harcanamaz.")
+        effects = hit_dice.spend(game._session(), game.heal_player)
+        message = f"Bir Hit Point Die harcandı; {effects['healing']} can puanı yenilendi."
+
+    elif action == "second_wind":
+        import fighter_features
+        effects = fighter_features.second_wind_outside_combat(game._session())
+        message = f"Second Wind kullanıldı; {effects['healing']} can puanı yenilendi."
+
+    elif action == "lay_on_hands":
+        import paladin_features
+        effects = paladin_features.lay_on_hands_outside_combat(game._session(), healing_amount, remove_poisoned)
+        message = f"Lay On Hands kullanıldı; {effects['healing']} can puanı yenilendi, havuzda {effects['pool_remaining']} kaldı."
+
+    elif action == "divine_sense":
+        import paladin_features
+        effects = paladin_features.divine_sense_outside_combat(game._session())
+        message = f"Divine Sense açıldı; kalan Channel Divinity: {effects['uses_remaining']}."
+
+    else:
+        raise ValueError("Bilinmeyen tür yeteneği.")
+
+    if action in {"short_rest", "long_rest"}:
+        game.ensure_campaign_clock()
+        if "campaign_time" not in game._session().world_state:
+            raise ValueError("Dinlenmeden önce başlangıç sahnesi belirlenmeli.")
+        effects["time_result"] = rest_time
+    return {"action": action, "message": message, "effects": effects}
+
+def resolve_attack(player_input, weapon_name, weapon_data, target_npc, *,
+                   attack_choice=None, origin="action"):
+    """Compatibility caller; catalog/inventory, never caller stats, are authority."""
+    game.ensure_combat_state()
+    return weapon_attack.resolve(
+        game._session(), "player", target_npc["id"], weapon_name,
+        attack_choice, origin=origin,
+    )
+
+def register_attack_hook(event, callback):
+    return weapon_attack.register_hook(game._session(), event, callback)
+
+def _combat_participant_can_act(combat, participant_id):
+    record = next(
+        (item for item in combat.get("participant_records", [])
+         if item.get("id") == participant_id),
+        None,
+    )
+    if participant_id == "player":
+        death = game.ensure_death_state()
+        if (
+            record
+            and record.get("status") == "unconscious"
+            and record.get("current_hp") == 0
+            and not death["dead"]
+        ):
+            # Keep an unconscious player's initiative slot so the scheduler
+            # can resolve death saves or stop cleanly after they stabilize.
+            return True
+    elif record and record.get("current_hp") == 0 and record.get("status") in ("active", "unconscious"):
+        # Preserve its boundary without inventing NPC death mechanics.
+        return True
+    return bool(
+        record
+        and record.get("status") == "active"
+        and type(record.get("current_hp")) is int
+        and record["current_hp"] > 0
+    )
+
+def _mark_combat_action_used(participant_id, action_type="attack"):
+    combat = game.ensure_combat_state()
+    if participant_id not in combat["participants"]:
+        raise ValueError("Combat action actor is not a participant.")
+    if not combat["active"] or participant_id != combat["current_actor_id"]:
+        raise combat_lifecycle.CombatRequestError("out_of_turn", "Actor is not the current combat participant.")
+    if action_economy.can_act(game._session(), participant_id):
+        action_economy.consume_action(game._session(), participant_id, action_type)
+    else:
+        action_economy.ensure(game._session())[participant_id]["base_action_spent"] = True
+    if participant_id not in combat["actions_used"]:
+        combat["actions_used"].append(participant_id)
+    game._sync_combat_participant_records(combat)
+    game._validate_combat_v3_payload(combat)
+
+def _resolve_player_death_turn(*, noncombat_key=None):
+    """Resolve one automatic DC 10 death save on the player's scheduled turn."""
+    combat = game.ensure_combat_state()
+    death = game.ensure_death_state()
+    if (
+        (noncombat_key is None and (not combat["active"] or combat["current_actor_id"] != "player"))
+        or death["stable"]
+        or death["dead"]
+        or game._session().character.get("current_hp", 0) > 0
+        or game._session().world_state.get("player_combat_status") != "unconscious"
+    ):
+        return None
+    if noncombat_key is None and not combat.get("combat_id"):
+        combat["combat_id"] = str(game.uuid4())
+    turn_key = noncombat_key or f"{combat['combat_id']}:{combat['round']}"
+    if (
+        death.get("last_death_save_turn_key") == turn_key
+        and isinstance(death.get("last_death_save_result"), dict)
+    ):
+        return copy.deepcopy(death["last_death_save_result"])
+
+    resolution = resolve_death_save(roll_fn=game.roll_d20)
+    roll = resolution["selected_roll"]
+    outcome = "success" if roll >= 10 else "failure"
+    if roll == 1:
+        death["failures"] = min(3, death["failures"] + 2)
+        outcome = "natural_1"
+    elif roll == 20:
+        game.heal_player(1)
+        death["prone"] = True
+        outcome = "revived"
+    elif roll >= 10:
+        death["successes"] += 1
+        if death["successes"] >= 3:
+            game.stabilize_player()
+            outcome = "stable"
+    else:
+        death["failures"] = min(3, death["failures"] + 1)
+
+    dead = death["failures"] >= 3
+    death_save = {
+        "roll": roll,
+        "outcome": "dead" if dead else outcome,
+        "successes": death["successes"],
+        "failures": death["failures"],
+        "stable": death["stable"],
+        "dead": dead,
+        "prone": death["prone"],
+        "action_id": resolution.get("action_id"),
+        "resolution_id": resolution.get("resolution_id"),
+    }
+    death["last_death_save_turn_key"] = turn_key
+    death["last_death_save_result"] = copy.deepcopy(death_save)
+    if dead:
+        death["dead"] = True
+        death["stable"] = False
+        game._session().character["current_hp"] = 0
+        game._session().world_state["player_combat_status"] = "dead"
+        death_save["death_resolution"] = game._finalize_player_death(
+            "failed_death_saves"
+        )
+        death_save["outcome"] = (
+            "rolled_back"
+            if death_save["death_resolution"]["rolled_back"]
+            else "dead"
+        )
+    else:
+        death["dead"] = False
+        if combat["active"]:
+            game._sync_combat_participant_records(combat)
+            game._validate_combat_v3_payload(combat)
+        game._combat_end_if_decided()
+    current_death_state = game.ensure_death_state()
+    current_death_state["last_death_save_turn_key"] = turn_key
+    current_death_state["last_death_save_result"] = copy.deepcopy(death_save)
+    return death_save
+
+def _spares_the_fallen(actor_id):
+    import monster_combat
+    npc = next((n for n in game._session().world_state.get("npcs", [])
+                if isinstance(n, dict) and n.get("id") == actor_id), None)
+    return isinstance(npc, dict) and monster_combat.spares_the_fallen(npc)
+
+def _combat_end_if_decided(excluded_participant_ids=()):
+    combat = game.ensure_combat_state()
+    world_state = game._session().world_state
+    if not combat["active"]:
+        return None
+    death = game.ensure_death_state()
+    if death["dead"] or world_state.get("player_combat_status") == "dead":
+        return game.end_combat("player_dead")
+    # Retaining a death boundary is not the same as being able to fight.
+    # Preserve the existing lifecycle's no-active-opponents end decision.
+    active_enemies = [
+        r for r in combat["participant_records"]
+        if r["id"] != "player" and r["id"] not in excluded_participant_ids
+        and r["status"] == "active" and r["current_hp"] > 0
+    ]
+    has_active_enemy = bool(active_enemies)
+    if death["stable"] and all(game._spares_the_fallen(r["id"]) for r in active_enemies):
+        return game.end_combat("player_stable")
+    if not has_active_enemy and (
+        game._session().character.get("current_hp", 0) <= 0
+        or world_state.get("player_combat_status") == "unconscious"
+    ):
+        combat["status"] = "death_resolution"
+        return None
+    if not has_active_enemy:
+        relocated = any(r.get("status") == "inactive" for r in combat["participant_records"])
+        reason = "opponents_relocated" if relocated else "participants_left" if excluded_participant_ids else "target_defeated"
+        return game.end_combat(reason)
+    combat["status"] = "active"
+    return None
+
+def _resolve_enemy_turns_until_player():
+    """Run NPC turns until the player's slot; a dying player rolls that turn's save themselves."""
+    actions = []
+    actions.extend(game._session().world_state.pop("monster_interrupt_results", []))
+    combat = game.ensure_combat_state()
+    limit = max(64, len(combat["initiative_order"]) * 64)
+    steps = 0
+    while combat["active"]:
+        steps += 1
+        if steps > limit:
+            raise RuntimeError("Combat scheduler failed to return control to player.")
+        actor_id = combat["current_actor_id"]
+        if actor_id == "player":
+            death = game.ensure_death_state()
+            if death["dead"]:
+                game.end_combat("player_dead")
+                break
+            if game._session().character.get("current_hp", 0) > 0:
+                break
+            if death["stable"]:
+                game._combat_end_if_decided()
+            break
+
+        if not game._combat_participant_can_act(combat, actor_id):
+            advanced, _, _ = game.advance_combat_turn()
+            if not advanced:
+                break
+            combat = game.ensure_combat_state()
+            ended = game._combat_end_if_decided()
+            if ended:
+                break
+            continue
+        npc = next(
+            (item for item in game._session().world_state.get("npcs", [])
+             if isinstance(item, dict) and item.get("id") == actor_id),
+            None,
+        )
+        if npc is None:
+            raise ValueError("Current combat actor is missing from canonical state.")
+        # Historical zero-HP unconscious NPCs remain unconscious. They cannot act,
+        # but no longer hold the cursor hostage or acquire player death saves.
+        if not action_economy.can_act(game._session(), actor_id):
+            game._mark_combat_action_used(actor_id)
+            advanced, _, _ = game.advance_combat_turn()
+            if not advanced:
+                break
+            continue
+        import monster_combat
+        monster_turn = monster_combat.run_turn(game._session(), actor_id)
+        actions.extend(monster_turn["outcomes"])
+        combat = game.ensure_combat_state()
+        if not combat["active"]:
+            break
+        if not action_economy.ensure(game._session())[actor_id]["base_action_spent"]:
+            game._mark_combat_action_used(actor_id)
+        if any(action.get("action") == "enemy_attack" for action in monster_turn["outcomes"]):
+            action_economy.publish_event(game._session(), "actor_attacks", actor_id)
+        actions.extend(game._session().world_state.pop("monster_interrupt_results", []))
+        if action_economy.pending_reaction(game._session()):
+            break
+        ended = game._combat_end_if_decided()
+        if ended:
+            break
+        advanced, _, _ = game.advance_combat_turn()
+        actions.extend(game._session().world_state.pop("monster_interrupt_results", []))
+        if not advanced:
+            break
+        combat = game.ensure_combat_state()
+    return actions
+
+def find_weapon_in_inventory(weapon_name):
+    """Find a specific weapon in inventory by name/aliases."""
+    world_state = game._session().world_state
+    from weapon_catalog import lookup
+    requested = lookup(weapon_name)
+    if not requested:
+        owned = [item for item in world_state.get("inventory", []) if isinstance(item, dict)
+                 and item.get("item_id") == weapon_name]
+        if len(owned) == 1:
+            requested = lookup(owned[0].get("weapon_id", owned[0].get("name")))
+    if requested:
+        for item in world_state.get("inventory", []):
+            identity = item.get("weapon_id", item.get("name")) if isinstance(item, dict) else item
+            found = lookup(identity)
+            if found and found["weapon_id"] == requested["weapon_id"]:
+                return ("Kılıç" if requested["weapon_id"] == "longsword" else requested["name"]), requested
+    return None, None
+
+def start_combat(player_target_npc):
+    with initiative.atomic(game._session()), initiative.starting(game._session()):
+        return game._start_combat_with_initiative(player_target_npc)
+
+def _start_combat_with_initiative(player_target_npc):
+    """Initialize a canonical initiative scheduler for the target and local hostiles."""
+    game.require_player_can_act()
+    world_state = game._session().world_state
+    existing_combat = game.ensure_combat_state()
+    if existing_combat["active"]:
+        raise ValueError("A combat encounter is already active.")
+    target = game.resolve_combat_target("", player_target_npc)
+    if not target:
+        raise ValueError("Combat target is not a canonical local NPC.")
+    target_id = target["id"]
+
+    enemies = []
+    for npc in world_state.get("npcs", []):
+        if not isinstance(npc, dict) or npc.get("location") != world_state.get("location"):
+            continue
+        if npc.get("id") != target_id and not (
+            npc.get("hostile") is True
+            or npc.get("combat_role") in ("enemy", "hostile")
+        ):
+            continue
+        game.ensure_npc_enemy_stats(npc)
+        if npc.get("combat_status") == "active" and npc.get("current_hp", 0) > 0:
+            enemies.append(npc)
+    if not any(npc.get("id") == target_id for npc in enemies):
+        raise ValueError("Combat target is not able to fight.")
+
+    participant_npc_ids = [npc.get("id") for npc in enemies]
+    if (
+        any(
+            not isinstance(participant_id, str)
+            or not participant_id
+            or participant_id == "player"
+            for participant_id in participant_npc_ids
+        )
+        or len(set(participant_npc_ids)) != len(participant_npc_ids)
+    ):
+        raise ValueError("Combat participants require unique stable IDs.")
+
+    import barbarian_rage
+    barbarian_rage.settle(game._session(), combat_active=False)
+    game._capture_combat_death_checkpoint()
+    participant_ids = ["player", *[npc["id"] for npc in enemies]]
+    combat = world_state["combat"]
+    combat.clear()
+    combat.update({
+        "schema_version": 3,
+        "active": True,
+        "status": "active",
+        "combat_id": str(game.uuid4()),
+        "round": 1,
+        "initiative_order": list(participant_ids),
+        "current_turn_index": 0,
+        "current_actor_id": "player",
+        "participants": participant_ids,
+        "participant_records": [],
+        "actions_used": [],
+        "target_id": target_id,
+        "end_reason": None,
+    })
+    import spell_preparation
+    spell_preparation.close_window(game._session())  # 4C.2: a fight ends the preparation window for good
+    game._clear_active_interlocutor("combat")
+    for npc in enemies:
+        # People in one room see the one who just hit them; no scenario has to say so.
+        facts = world_state.setdefault("monster_perception", {}).setdefault(npc["id"], {})
+        facts.setdefault("player", {"visible": True, "source": "same_scene"})
+        npc.setdefault("distance_ft", 5)
+    combat["participant_records"] = [
+        game._combat_record_for_actor(
+            participant_id,
+            initiative=None,
+            actions_used=combat["actions_used"],
+        )
+        for participant_id in participant_ids
+    ]
+    metadata = initiative.initialize(game._session(), participant_ids)
+    effects = metadata.pop("effects_to_apply")
+    combat.update(metadata)
+    for record in combat["participant_records"]:
+        record["initiative"] = combat["initiative_results"][record["id"]]["final_total"]
+    initiative.apply_effects(game._session(), combat, effects)
+    initiative.after_order(game._session(), combat, participant_ids)
+    initiative_order = combat["initiative_order"]
+    combat["current_actor_id"] = initiative_order[0]
+    initiatives = {r["id"]: r["initiative"] for r in combat["participant_records"]}
+    action_economy.ensure(game._session())
+    action_economy.begin_turn(game._session(), combat["current_actor_id"])
+    game._sync_combat_participant_records(combat)
+    game._validate_combat_v3_payload(combat)
+
+    # Preserve legacy summary keys while the API/UI adopt the scheduler projection.
+    npc_initiative = initiatives.get(target_id, 0)
+    player_init = initiatives["player"]
+    return {
+        "combat_started": True,
+        "combat_id": combat["combat_id"],
+        "round": 1,
+        "initiative_order": initiative_order,
+        "player_initiative": player_init,
+        "npc_initiative": npc_initiative,
+        "current_actor_id": combat["current_actor_id"],
+        "turn_owner": combat["current_actor_id"],
+        "target_id": target_id,
+    }
+
+def resolve_enemy_attack(target_npc):
+    """Resolve one canonical local enemy attack, retaining exact HP values."""
+    world_state = game._session().world_state
+    combat = game.ensure_combat_state()
+    if combat.get("combat_id") and not combat["active"]:
+        raise combat_lifecycle.CombatRequestError("combat_closed", "Combat is closed.")
+    canonical = game.resolve_combat_target("", target_npc)
+    if (
+        not canonical
+        or canonical == "ambiguous"
+        or (combat["active"] and canonical["id"] not in combat["participants"])
+    ):
+        if combat["active"]:
+            raise combat_lifecycle.CombatRequestError("invalid_combat_target", "Enemy is not a participant.", 400)
+        return {"action": "enemy_attack", "status": "resolved", "success": False,
+                "outcome": "invalid_target", "damage": 0}
+    target_npc = game.ensure_npc_enemy_stats(canonical)
+    if combat["active"]:
+        action_economy.attack_permission(game._session(), target_npc["id"])
+    if target_npc["combat_status"] != "active" or target_npc["current_hp"] <= 0:
+        if combat["active"]:
+            raise combat_lifecycle.CombatRequestError("invalid_combat_target", "Enemy cannot act.", 400)
+        return {"action": "enemy_attack", "status": "resolved", "success": False,
+                "outcome": "invalid_target", "damage": 0}
+    death = game.ensure_death_state()
+    if death["dead"] or world_state["player_combat_status"] == "dead":
+        return {"action": "enemy_attack", "status": "resolved", "success": False,
+                "outcome": "player_dead", "damage": 0}
+    if target_npc.get("weapon_id"):
+        return weapon_attack.resolve(game._session(), target_npc["id"], "player", target_npc["weapon_id"])
+    profile = {
+        "weapon_id": "stat_block_attack", "name": "Stat-block attack",
+        "kind": "melee", "category": None, "properties": [], "mastery": None,
+        "damage_die": target_npc["damage_die"], "damage_dice": target_npc["damage_dice"],
+        "damage_modifier": target_npc["damage_modifier"], "attack_bonus": target_npc["attack_bonus"],
+        "damage_type": target_npc.get("attack_damage_type", target_npc.get("damage_type")),
+        "magic_attack_bonus": 0, "magic_damage_bonus": 0,
+    }
+    return weapon_attack.resolve(game._session(), target_npc["id"], "player", profile=profile)
+
+def _reduce_attack_damage_to_player(damage):
+    """Existing Stone reaction; flat reduction precedes typed mitigation."""
+    combat = game.ensure_combat_state()
+    trait_state = game._species_trait_state()
+    species_effects = []
+    if damage > 0:
+        if (
+            game._session().character.get("species") == "Goliath"
+            and game._session().character.get("giant_ancestry") == "stone"
+            and trait_state.get("giant_ancestry_armed")
+            and trait_state.get("giant_ancestry_uses_remaining", 0) > 0
+            and damage > 0
+            and (not combat["active"] or (
+                action_economy.can_act(game._session(), "player")
+                and not action_economy.ensure(game._session())["player"]["reaction_spent"]
+            ))
+        ):
+            reduction = max(
+                0,
+                game._session().rng.randint(1, 12)
+                + game._session().character.get("constitution_mod", 0),
+            )
+            damage = max(0, damage - reduction)
+            if combat["active"]:
+                action_economy.ensure(game._session())["player"]["reaction_spent"] = True
+            trait_state["giant_ancestry_uses_remaining"] -= 1
+            trait_state["giant_ancestry_armed"] = False
+            species_effects.append(
+                {
+                    "trait": "stone_giant_ancestry",
+                    "damage_reduced": reduction,
+                    "damage_remaining": damage,
+                }
+            )
+    return damage, species_effects
+
+def _storm_thunder_reaction(attacker_npc, damage_taken, distance_ft):
+    """Storm's Thunder (PHB 2024 PDF 191): damage taken from a creature within 60 ft; Reaction, 1d8 Thunder to it (D-132)."""
+    combat = game.ensure_combat_state()
+    trait_state = game._species_trait_state()
+    if not (
+        damage_taken > 0
+        and game._session().character.get("species") == "Goliath"
+        and game._session().character.get("giant_ancestry") == "storm"
+        and trait_state.get("giant_ancestry_armed")
+        and trait_state.get("giant_ancestry_uses_remaining", 0) > 0
+        and distance_ft <= 60
+        and game._session().character.get("current_hp", 0) > 0
+        and (not combat["active"] or (
+            action_economy.can_act(game._session(), "player")
+            and not action_economy.ensure(game._session())["player"]["reaction_spent"]
+        ))
+    ):
+        return []
+    if combat["active"]:
+        action_economy.ensure(game._session())["player"]["reaction_spent"] = True
+    trait_state["giant_ancestry_uses_remaining"] -= 1
+    trait_state["giant_ancestry_armed"] = False
+    roll = game._session().rng.randint(1, 8)
+    mitigation = weapon_attack.mitigate(game._session(), attacker_npc["id"], "thunder", roll)
+    after = game.apply_npc_damage(attacker_npc, mitigation["final_damage"])
+    return [
+        {
+            "trait": "storm_giant_ancestry",
+            "target_id": attacker_npc["id"],
+            "damage": mitigation["final_damage"],
+            "damage_type": "thunder",
+            "damage_die": 8,
+            "raw_rolls": [roll],
+            "mitigation": mitigation,
+            "target_hp_after": after,
+        }
+    ]
+
+def _apply_attack_damage_to_player(damage, critical, hit):
+    """Existing temporary HP/species survival and Death owner handoff."""
+    world_state = game._session().world_state
+    death = game.ensure_death_state()
+    trait_state = game._species_trait_state()
+    player_hp_before = game._session().character["current_hp"]
+    species_effects = []
+    temporary_hp_before = trait_state.get("temporary_hit_points", 0)
+    temporary_hp_absorbed = min(temporary_hp_before, damage)
+    game._set_temporary_hit_points(
+        temporary_hp_before - temporary_hp_absorbed,
+        state=trait_state,
+    )
+    hp_damage = damage - temporary_hp_absorbed
+    player_hp_after = max(0, player_hp_before - hp_damage)
+    endurance_used = False
+    killed_outright = hp_damage >= (
+        player_hp_before + game._session().character["max_hp"]
+    )
+    if (
+        player_hp_before > 0
+        and
+        player_hp_after == 0
+        and not killed_outright
+        and hp_damage > 0
+        and game._session().character.get("species") in {"Orc", "Half-Orc"}
+        and trait_state.get("relentless_endurance_available")
+    ):
+        player_hp_after = 1
+        trait_state["relentless_endurance_available"] = False
+        endurance_used = True
+        species_effects.append(
+            {"trait": "relentless_endurance", "current_hp": 1}
+        )
+    death_resolution = None
+    if endurance_used:
+        game._session().character["current_hp"] = player_hp_after
+        world_state["player_combat_status"] = "active"
+        death["stable"] = False
+    elif hit:
+        damage_result = game._apply_player_damage(
+            hp_damage,
+            critical=critical,
+            took_damage=damage > 0,
+            resolved_damage=damage,
+        )
+        player_hp_after = game._session().character["current_hp"]
+        death_resolution = damage_result.get("death_resolution")
+        player_status_after = world_state["player_combat_status"]
+    else:
+        player_status_after = world_state["player_combat_status"]
+    if endurance_used:
+        player_status_after = "active"
+    concentration_check = None
+    if endurance_used or hit:
+        import spell_concentration
+        concentration_check = spell_concentration.after_damage(game._session(), damage)  # one save per damage instance (4C.4b)
+    return {"damage": damage, "target_hp_before": player_hp_before,
+            "target_hp_after": player_hp_after, "target_status": player_status_after,
+            "hp_damage": hp_damage,
+            "temporary_hp_before": temporary_hp_before,
+            "temporary_hp_absorbed": temporary_hp_absorbed,
+            "temporary_hp_after": trait_state["temporary_hit_points"],
+            "species_effects": species_effects,
+            "death_resolution": death_resolution,
+            **({"concentration_check": concentration_check} if concentration_check is not None else {})}
+
+def end_combat(reason="combat_ended"):
+    """Clear the encounter idempotently; HP and incapacitation are unchanged."""
+    combat = game.ensure_combat_state()
+    if not combat["active"]:
+        return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
+    game._session()._surrender_strike_asked = None  # a question about a surrendered foe ends with its fight
+    if reason in ("target_defeated", "parley_accepted", "opponents_relocated", "player_stable", "participants_left"):
+        import xp
+        game._session()._forfeit_unrecordable_xp(  # a refused award never keeps the fight going (B1, D-013)
+            xp.award_defeated_combat, combat, game._session().world_state, game._session().character,
+            person_kind=game.person_fight_kind,
+        )
+    import barbarian_rage
+    barbarian_rage.settle(game._session(), combat_active=True)
+    import rogue_features
+    rogue_features.combat_ended(game._session())
+    import spell_concentration
+    spell_concentration.end(game._session(), "combat_ended")  # a first-cut spell belongs to its fight (4C.4b)
+    identity = combat["combat_id"]
+    combat.clear()
+    combat.update(game._combat_defaults(end_reason=reason))
+    combat["combat_id"] = identity
+    if "attack_effects" in game._session().world_state:
+        import monk_features
+        for entry in game._session().world_state["attack_effects"]:
+            monk_features.effect_ended(game._session(), entry)
+        game._session().world_state["attack_effects"] = []
+    scheduled_events.combat_finished(game._session().world_state)
+    game.ensure_death_state()["combat_checkpoint"] = None
+    return {"combat_ended": True, "reason": reason, "combat_id": identity}
+
+def _begin_combat_actor_turn(participant_id):
+    combat = game._session().world_state["combat"]
+    combat["current_turn_index"] = combat["initiative_order"].index(participant_id)
+    combat["current_actor_id"] = participant_id
+    action_economy.begin_turn(game._session(), participant_id)
+    import spell_concentration
+    spell_concentration.settle(game._session())  # Incapacitated or its minute is over (4C.4b)
+    import monster_combat
+    monster_combat.begin_turn(game._session(), participant_id)
+    game._sync_combat_participant_records(combat)
+    game._validate_combat_v3_payload(combat)
+
+def join_combat_participants(actor_ids):
+    return initiative.join(game._session(), actor_ids)
+
+def remove_combat_participant(actor_id):
+    return initiative.leave(game._session(), actor_id)
+
+def register_initiative_hook(event, callback):
+    return initiative.register_hook(game._session(), event, callback)
+
+def advance_combat_turn():
+    """Advance initiative to the next living actor and roll over completed rounds."""
+    combat = game.ensure_combat_state()
+    if combat["active"]:
+        if combat["current_actor_id"] == "player":
+            import barbarian_rage
+            barbarian_rage.end_player_turn(game._session(), combat["combat_id"],
+                combat.get("turn_resources", {}).get("player", {}).get("attack_turn_counter", 0))
+        weapon_attack.boundary(game._session(), combat["current_actor_id"], "end")
+        action_economy.monster_event(game._session(), "after_turn", combat["current_actor_id"])
+    order = combat["initiative_order"]
+    if not combat["active"] or not order:
+        return False, None, False
+    if game._combat_end_if_decided():
+        return False, None, False
+    start_index = combat["current_turn_index"]
+    round_changed = False
+    for step in range(1, len(order) * 2 + 1):
+        index = (start_index + step) % len(order)
+        if index == 0:
+            combat["round"] += 1
+            action_economy.begin_round(game._session())
+            round_changed = True
+            game.ensure_campaign_clock()
+            if "campaign_time" in game._session().world_state:
+                game.advance_campaign_time(
+                    6, "combat_round",
+                    source=f"combat:{combat.get('combat_id')}:{combat['round'] - 1}",
+                )
+                game._sync_combat_participant_records(combat)
+                if game._combat_end_if_decided():
+                    return False, None, round_changed
+        participant_id = order[index]
+        if participant_id in combat["actions_used"]:
+            continue
+        if not game._combat_participant_can_act(combat, participant_id):
+            continue
+        game._begin_combat_actor_turn(participant_id)
+        return True, participant_id, round_changed
+    return False, None, round_changed
+
+def _combat_snapshot():
+    """Detached snapshot of committed encounter and player combat state."""
+    world_state = game._session().world_state
+    combat = game.ensure_combat_state()
+    snapshot = dict(combat)
+    snapshot.update(
+        player_current_hp=game._session().character["current_hp"],
+        player_max_hp=game._session().character["max_hp"],
+        player_combat_status=world_state["player_combat_status"]
+    )
+    return copy.deepcopy(snapshot)
+
+def _finish_combat_result(result, before):
+    result["combat"] = game._combat_snapshot()
+    result["state_changes"] = game._changed_state_fields(before)
+    return result

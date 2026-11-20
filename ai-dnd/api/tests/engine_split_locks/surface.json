@@ -783,7 +783,7 @@
  },
  "_apply_attack_damage_to_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(damage, critical, hit)"
  },
@@ -861,7 +861,7 @@
  },
  "_begin_combat_actor_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(participant_id)"
  },
@@ -1005,7 +1005,7 @@
  },
  "_combat_end_if_decided": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(excluded_participant_ids=<tuple>)"
  },
@@ -1017,7 +1017,7 @@
  },
  "_combat_participant_can_act": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(combat, participant_id)"
  },
@@ -1029,7 +1029,7 @@
  },
  "_combat_snapshot": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -1377,7 +1377,7 @@
  },
  "_finish_combat_result": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(result, before)"
  },
@@ -1953,7 +1953,7 @@
  },
  "_mark_combat_action_used": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(participant_id, action_type='attack')"
  },
@@ -2361,7 +2361,7 @@
  },
  "_reduce_attack_damage_to_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(damage)"
  },
@@ -2469,7 +2469,7 @@
  },
  "_resolve_enemy_turns_until_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -2481,7 +2481,7 @@
  },
  "_resolve_player_death_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(*, noncombat_key=None)"
  },
@@ -2697,7 +2697,7 @@
  },
  "_spares_the_fallen": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(actor_id)"
  },
@@ -2769,7 +2769,7 @@
  },
  "_start_combat_with_initiative": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_target_npc)"
  },
@@ -2805,7 +2805,7 @@
  },
  "_storm_thunder_reaction": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(attacker_npc, damage_taken, distance_ft)"
  },
@@ -3180,7 +3180,7 @@
  },
  "advance_combat_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -3366,7 +3366,7 @@
  },
  "end_combat": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(reason='combat_ended')"
  },
@@ -3438,7 +3438,7 @@
  },
  "find_weapon_in_inventory": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(weapon_name)"
  },
@@ -3555,7 +3555,7 @@
  },
  "join_combat_participants": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(actor_ids)"
  },
@@ -3764,19 +3764,19 @@
  },
  "register_attack_hook": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(event, callback)"
  },
  "register_initiative_hook": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(event, callback)"
  },
  "remove_combat_participant": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(actor_id)"
  },
@@ -3794,7 +3794,7 @@
  },
  "resolve_attack": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_input, weapon_name, weapon_data, target_npc, *, attack_choice=None, origin='action')"
  },
@@ -3818,7 +3818,7 @@
  },
  "resolve_enemy_attack": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(target_npc)"
  },
@@ -3860,7 +3860,7 @@
  },
  "resolve_species_trait_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None, draconic_ancestry=None, shape=None, target_id=None)"
  },
@@ -3959,7 +3959,7 @@
  },
  "start_combat": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_target_npc)"
  },

@@ -962,6 +962,7 @@ class NewGamePart(unittest.TestCase):
 
 
 COMBAT_1 = tuple(batch_names("combat-1"))
+COMBAT_2 = tuple(batch_names("combat-2"))
 
 
 def _session_snapshot(session):
@@ -973,6 +974,9 @@ class CombatFlowPart(unittest.TestCase):
 
     def test_combat_1_lives_in_the_part(self):
         self.assertEqual(set(COMBAT_1) - set(routing_audit.re_exports(ROOT).get("combat_flow", ())), set())
+
+    def test_combat_2_lives_in_the_part(self):
+        self.assertEqual(set(COMBAT_2) - set(routing_audit.re_exports(ROOT).get("combat_flow", ())), set())
 
     def test_the_player_cannot_act_error_is_one_class(self):
         # the staying handler in game.py's _front_work re-raises PlayerCannotAct and swallows any other error (returns
@@ -1049,6 +1053,66 @@ class CombatFlowPart(unittest.TestCase):
             self.assertEqual(answers["_restore_combat_death_checkpoint"]["cause"], "t7_cause")
             self.assertEqual(s.character["current_hp"], 32)  # the checkpoint was taken on s after the damage
             self.assertEqual(_session_snapshot(game._session()), default_before)
+
+        # combat-2 (measured on the combat-2 base): attack, species, death-turn and scheduler helpers on a second
+        # session whose Aasimar hero and enemies exist only there (D-447)
+        from api.tests.test_death_system import start_test_combat
+        from api.tests.test_species_traits import attack_fixture, make_session
+        s2 = make_session("Aasimar", level=3)
+        shrouded = {"id": "t7_golge", "name": "Gölge Avcısı", "combat_status": "active", "current_hp": 10,
+                    "max_hp": 10, "armor_class": 10, "attack_bonus": 0, "damage_die": 8, "damage_dice": 1,
+                    "damage_modifier": 0, "charisma_save_bonus": 0}
+        attack_fixture(s2, shrouded)
+        default_before = _session_snapshot(game._session())
+
+        def on_s2(name, *args, **kwargs):
+            seen = []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                answer = getattr(game, name)(*args, session=s2, **kwargs)
+                self.assertTrue(seen)
+                self.assertTrue(all(value is s2 for value in seen))
+            return answer
+
+        with patch.object(game, "roll_d20", return_value=1):
+            shroud = on_s2("resolve_species_trait_action", "celestial_revelation", form="necrotic_shroud")
+        self.assertEqual([save["target_id"] for save in shroud["effects"]["saves"]], ["t7_golge"])
+        with patch.object(game, "roll_d20", side_effect=[13, 18]), patch.object(game, "roll_damage", return_value=1):
+            attack = on_s2("resolve_enemy_attack", shrouded)
+        self.assertEqual(attack["attack_rolls"], [13, 18])
+        start_test_combat(s2)
+        enemy_id = "death-save-enemy"
+        on_s2("_begin_combat_actor_turn", enemy_id)
+        self.assertEqual(s2.world_state["combat"]["current_actor_id"], enemy_id)
+        with patch.object(game, "resolve_enemy_attack", return_value={"action": "enemy_attack", "outcome": "miss"}):
+            turns = on_s2("_resolve_enemy_turns_until_player")
+        self.assertTrue(turns)
+        self.assertEqual(s2.world_state["combat"]["current_actor_id"], "player")
+        s2.character["current_hp"] = 0
+        s2.world_state["player_combat_status"] = "unconscious"
+        with patch.object(game, "roll_d20", return_value=9):
+            death_turn = on_s2("_resolve_player_death_turn")
+        self.assertEqual((death_turn["roll"], death_turn["outcome"]), (9, "failure"))
+        self.assertEqual(_session_snapshot(game._session()), default_before)
+
+    def test_a_patched_resolve_saving_throw_reaches_the_moved_species_action(self):
+        # census import target: the moved resolve_species_trait_action reads game.resolve_saving_throw
+        from api.tests.test_species_traits import attack_fixture, make_session
+        s = make_session("Aasimar", level=3)
+        attack_fixture(s, {"id": "t7_kurt", "name": "Kurt", "combat_status": "active", "current_hp": 10, "max_hp": 10,
+                           "armor_class": 10, "charisma_save_bonus": 0})
+        planted = {"selected_roll": 4, "outcome": "FAILURE", "t7_planted": True}
+        with patch.object(game, "resolve_saving_throw", return_value=planted) as saved:
+            result = game.resolve_species_trait_action("celestial_revelation", form="necrotic_shroud", session=s)
+        saved.assert_called_once()
+        self.assertIs(saved.call_args.kwargs["roll_fn"], game.roll_d20)
+        self.assertIs(result["effects"]["saves"][0]["resolution"], planted)
+        self.assertTrue(result["effects"]["saves"][0]["frightened"])
 
     def test_combat_death_checkpoint_round_trips_from_the_part(self):  # Review Focus 2
         with fixed_town(self, 20261313):
