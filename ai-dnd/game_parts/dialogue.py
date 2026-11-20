@@ -1060,3 +1060,246 @@ def _experimental_npc_dialogue_context(
         **{key: value for key, value in talk_front.speech_extras(world, npc).items()
            if not (followup and key == "kendi_sozlerin")},
     }
+
+def _is_player_name_inquiry_to_npc(player_input):
+    if not isinstance(player_input, str):
+        return False
+    text = game._normalize_turkish_typos(player_input)
+    if bool(re.search(r"\b(?:adim|adimi|ismim|ismimi)\b", text)) and (
+        game.is_npc_historical_claim(player_input)
+        or bool(re.search(r"\b(?:neydi|biliyor\s+musun|hatirla\w*|soyle\w*|hitap\s+et\w*)\b", text))
+    ):
+        return True
+    if bool(re.search(r"\b(?:adimla|ismimle)\s+hitap\s+et\w*\b", text)):
+        return True
+    return False
+
+def _is_historical_player_name_query(player_input):
+    normalized_input = game._normalize_turkish_typos(str(player_input).casefold())
+    return (
+        (game.is_npc_historical_claim(player_input) and bool(re.search(r"\b(?:adimi|ismimi)\b", normalized_input)))
+        or game._is_player_name_inquiry_to_npc(player_input)
+    )
+
+def _hero_first_name():
+    return str((game._session().character or {}).get("name") or "").strip().split(" ")[0]
+
+def _explicit_player_name_disclosure(text):
+    hero = game._hero_first_name()
+    folded = game._normalize_turkish_typos(text) if isinstance(text, str) else ""
+    own = game._normalize_turkish_typos(hero)
+    if own and re.search(rf"\bben\s+{re.escape(own)}\b|\badimi\b.*\b{re.escape(own)}\b", folded):
+        return hero  # "selam, ben carius. iş var mı": said in passing is still said
+    name = (
+        local_dialogue.explicit_player_name_disclosure(text)
+        or local_dialogue.implied_self_introduction(text, hero)
+    )
+    return local_dialogue.player_name_spelling(name, hero) if name else None
+
+def _known_player_name(npc):
+    """The latest name the player gave this person, if any."""
+    for entry in reversed((npc or {}).get("memory", [])):
+        if isinstance(entry, dict) and entry.get("speaker") == "player":
+            name = game._explicit_player_name_disclosure(entry.get("text"))
+            if name:
+                return name
+    return None
+
+def _historical_player_name_from_npc_memory(npc, player_input):
+    """Read the latest explicit player-name disclosure in canonical NPC memory."""
+    if not isinstance(npc, dict) or not npc.get("id"):
+        return None
+    if not game._is_historical_player_name_query(player_input):
+        return None
+
+    for entry in reversed(npc.get("memory", [])):
+        if not isinstance(entry, dict) or entry.get("speaker") != "player":
+            continue
+        name = game._explicit_player_name_disclosure(entry.get("text"))
+        if name:
+            return name
+    return None
+
+def _historical_player_name_from_claims(
+    npc, player_input, supported_player_claims
+):
+    """Read an explicitly stated player name bound to the same NPC ID."""
+    if not isinstance(npc, dict) or not npc.get("id"):
+        return None
+    if not game._is_historical_player_name_query(player_input):
+        return None
+    if not isinstance(supported_player_claims, (list, tuple)):
+        return None
+
+    for claim in supported_player_claims:
+        if not isinstance(claim, dict) or claim.get("npc_id") != npc.get("id"):
+            continue
+        text = claim.get("text")
+        if not isinstance(text, str) or not text.strip():
+            continue
+        name = game._explicit_player_name_disclosure(text)
+        if name:
+            return name
+    return None
+
+def _direct_npc_smalltalk_response(player_input, npc_target):
+    if (
+        not isinstance(player_input, str)
+        or not isinstance(npc_target, dict)
+        or not isinstance(npc_target.get("id"), str)
+        or not game.is_npc_dialogue_input(player_input)
+        or game.is_npc_historical_claim(player_input)
+    ):
+        return None
+
+
+    text = living_world.normalize_text(player_input)
+    name = living_world.public_npc_name(npc_target)
+
+    if living_world.is_tavern_search(player_input):
+        world_state = game._session().world_state
+        root_location = world_state.get("location")
+        while game._engine_location_parent(root_location):
+            root_location = game._engine_location_parent(root_location)
+        tavern = next(
+            (
+                location
+                for location in world_state.get("locations", {}).values()
+                if isinstance(location, dict)
+                and location.get("parent_location_id") == root_location
+                and (
+                    location.get("scene_kind") == "tavern"
+                    or location.get("type") in {"tavern", "inn", "meyhane", "han"}
+                )
+            ),
+            None,
+        ) or game._ensure_local_tavern(root_location)
+        if tavern:
+            door = next(
+                (
+                    item for item in world_state.get("doors", [])
+                    if isinstance(item, dict)
+                    and item.get("id") == f"venue-door:{tavern.get('id')}"
+                ),
+                None,
+            )
+            if isinstance(door, dict) and door.get("locked") is True:
+                return (
+                    f'{name}, “{tavern.get("name", "Han")} şu saatte kapalı, kapısı kilitli; '
+                    'orada dinlenemezsin,” diye yanıt verir.'
+                )
+            return (
+                f'{name}, “Yakınlarda {tavern.get("name", "bir han")} var,” '
+                'diye yanıt verir.'
+            )
+        return (
+            f'{name}, “Yakınlarda bildiğim belirli bir han yok,” '
+            'diye yanıt verir.'
+        )
+
+    if game._is_conversation_start_input(player_input):
+        return game._conversation_opening_line(name)
+
+    if game._is_local_place_question(player_input):
+        location_name = game.location_display_name()
+        role = (living_world.public_npc_role(npc_target) or "biri").casefold()
+        return (
+            f'{name}, “Burası {location_name}. Ben de burada {role} olarak '
+            'bulunuyorum,” diye yanıt verir.'
+        )
+
+    if game._asks_what_is_going_on(player_input):
+        if game._town_in_play(game._session().world_state):
+            return None  # this person answers from what they know, in their own voice
+        return (
+            f'{name}, “Şimdilik göze çarpan özel bir şey yok; '
+            'ben kendi işimle ilgileniyorum,” diye yanıt verir.'
+        )
+
+    personal_question = local_dialogue.personal_question_kind(player_input)
+    if (
+        not game._npc_speech_enabled()
+        and game._explicit_addressee(player_input, [npc_target]) is None
+        and personal_question in {
+            "occupation",
+            "current_activity",
+            "recent_activity",
+            "day",
+            "origin",
+            "personal_context",
+        }
+    ):
+        personal = local_dialogue.personal_answer(npc_target, player_input)
+        if personal:
+            return personal[0]
+
+    asks_about_day = bool(
+        re.search(r"\b(?:gunun|bugunun|keyfin|halin)\b", text)
+        and re.search(r"\b(?:nasil|gidiyor|geciyor)\b", text)
+    ) or bool(re.search(r"\b(?:nasilsin|keyfin nasil)\b", text))
+    if asks_about_day:
+        return (
+            f'{name}, “Fena değil, teşekkür ederim. '
+            'Sorduğun için sağ ol,” diye karşılık verir.'
+        )
+
+    asks_about_conditions = bool(
+        re.search(r"\b(?:yol\w*|guvenli\w*|emniyet\w*)\b", text)
+        and re.search(r"\b(?:bugun|su an|nasil|durum|guvenli)\b", text)
+    )
+    if asks_about_conditions:
+        return (
+            f'{name}, “Yolların ne durumda olduğunu bilemem; kesin bir şey '
+            'söylersem seni yanıltırım,” diye yanıt verir.'
+        )
+
+    if re.search(
+        r"\b(?:selam\w*|merhaba|iyi gunler|gunaydin|iyi aksamlar)\b",
+        text,
+    ) and game._is_bare_greeting(player_input, npc_target):
+        return f'{name}, “Merhaba,” diye karşılık verir.'
+    return None
+
+def _conversation_opening_line(name):
+    """The first opening is the plain line; later ones with the same person vary."""
+    openings = [line.format(name=name) for line in game._CONVERSATION_OPENINGS]
+    return openings[game._variation_index(("opening", name), len(openings))]
+
+def _stock_hearer(result, player_input, target_id):
+    """Whoever a scene or system line would be answering, or None when the line was said to nobody here."""
+    import npc_speech_boundary
+    session = game._session()
+    text = result.get("narration")
+    action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
+    read = getattr(session, "_front_read", None) or {}
+    here = {npc.get("id"): npc for npc in game._conversation_npcs()}
+    if action_result.get("npc_id") in here and ("“" in text or '"' in text):
+        return here[action_result["npc_id"]]  # it already came out of a mouth
+    if target_id in here:
+        return here[target_id]
+    if read.get("kind") in {"speak_to", "heavy_asked"}:  # D-109: an asked threat is for the one threatened
+        return here.get(read["id"])
+    if not (read.get("kind") == "talk_around" or npc_speech_boundary.player_supplied_quote(player_input)
+            or (not read and game._reads_as_address(player_input))):
+        return None
+    active = game._active_interlocutor()
+    if isinstance(active, dict) and active.get("id") in here:
+        return here[active["id"]]
+    return next(iter(here.values())) if len(here) == 1 else None
+
+def _said_to_someone_here(session, reading) -> dict | None:
+    """The person a line of several clauses is said to, or None when it stays the player's own plan.
+
+    The model proposes, Python checks: the reading's intent is `talk` and it names a living person here
+    (`talk_mode.people_here`), or names nobody while talk mode is open with a living person here.
+    """
+    if not isinstance(reading, dict) or reading.get("intent") != "talk":
+        return None
+    world = session.world_state
+    target = reading.get("target") if isinstance(reading.get("target"), dict) else {}
+    named = target.get("npc_id")
+    if isinstance(named, str) and named.strip() and named != "none":
+        return next((npc for npc in talk_mode.people_here(world)
+                     if isinstance(npc, dict) and npc.get("id") == named
+                     and npc.get("combat_status") not in {"dead", "unconscious"}), None)
+    return talk_mode.current(world)

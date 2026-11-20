@@ -1053,7 +1053,7 @@
  },
  "_conversation_opening_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(name)"
  },
@@ -1125,7 +1125,7 @@
  },
  "_direct_npc_smalltalk_response": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input, npc_target)"
  },
@@ -1311,7 +1311,7 @@
  },
  "_explicit_player_name_disclosure": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -1557,7 +1557,7 @@
  },
  "_hero_first_name": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "()"
  },
@@ -1569,13 +1569,13 @@
  },
  "_historical_player_name_from_claims": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, player_input, supported_player_claims)"
  },
  "_historical_player_name_from_npc_memory": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, player_input)"
  },
@@ -1683,7 +1683,7 @@
  },
  "_is_historical_player_name_query": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1719,7 +1719,7 @@
  },
  "_is_player_name_inquiry_to_npc": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1815,7 +1815,7 @@
  },
  "_known_player_name": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -2547,7 +2547,7 @@
  },
  "_said_to_someone_here": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(session, reading) -> dict | None"
  },
@@ -2793,7 +2793,7 @@
  },
  "_stock_hearer": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(result, player_input, target_id)"
  },

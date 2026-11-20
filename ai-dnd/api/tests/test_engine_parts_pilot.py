@@ -597,13 +597,17 @@ class DialoguePart(unittest.TestCase):
     def test_dialogue_1_lives_in_the_part(self):
         self.assertEqual(set(DIALOGUE_1) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
 
+    def test_dialogue_2_lives_in_the_part(self):
+        self.assertEqual(set(DIALOGUE_2) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
+
     def test_the_stock_said_deque_is_one_object(self):
         # a call with no session (_session() gives None) uses the module deque; the re-export keeps one object
         with patch.object(game, "_session", return_value=None):
             self.assertIs(game._stock_said.__wrapped__(), game._STOCK_SAID)
 
     def test_dialogue_session_helpers_use_the_given_session(self):  # Review Focus 4
-        # every name reads game._session() (measured on cc1e9321): record what it returns during the session= call
+        # every name reads game._session() (measured on cc1e9321; _direct_npc_smalltalk_response on 7ed9615a): record
+        # what it returns during the session= call
         real = game._session
         with fixed_town(self, 20261207):
             s = game.create_session(seed=11)
@@ -616,6 +620,8 @@ class DialoguePart(unittest.TestCase):
                 ("_npc_speech_is_claim_refusal", ("Hayır, öyle bir şey hatırlamıyorum.", bela), True),
                 ("_npc_speech_is_claim_refusal", ("Evet, söz vermiştim.", bela), False),
                 ("record_npc_interaction", (bela, "Hoş geldin yolcu.", "Merhaba, nasılsın?", bela), None),
+                ("_direct_npc_smalltalk_response", ("Nasılsın?", bela),
+                 "Bela, “Fena değil, teşekkür ederim. Sorduğun için sağ ol,” diye karşılık verir."),
             )
             for name, args, expected in cases:
                 seen = []
