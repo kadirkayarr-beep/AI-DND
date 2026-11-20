@@ -67,8 +67,11 @@ def value_digest(names) -> str:
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.text_rules_a",
-                                              "game_parts.text_rules_b"))  # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
+                                              "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
+                                              "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
+                                              "game_parts.text_rules_a", "game_parts.text_rules_b"))
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -108,12 +111,19 @@ class PilotRollD20(unittest.TestCase):
 
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
-        show = ("print(game.roll_d20.__module__); print(game._inside_speech.__module__); "
-                "print(game._split_sentences_keep_speech.__module__)")
+        # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
+        # living_world_turn, new_game)
+        names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
+                 "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
+                 "_narration_safety_decision", "ensure_campaign_clock", "initialize_game")
+        show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
             self.assertEqual((done.returncode, done.stdout.split()),
-                             (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b"]),
+                             (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b",
+                                  "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
+                                  "game_parts.narration", "game_parts.narration_safety",
+                                  "game_parts.living_world_turn", "game_parts.new_game"]),
                              done.stderr)
 
 
@@ -193,7 +203,15 @@ class SchemasPart(unittest.TestCase):
         self.assertIs(game.messages[0]["content"], game.system_prompt)
         with fixed_town(self, 20261121):
             s = game.create_session(seed=7)
-            self.assertEqual(s.messages[0]["content"], game.system_prompt)  # GameSession.__init__ seeds self.messages
+            self.assertIs(s.messages[0]["content"], game.system_prompt)  # GameSession.__init__ seeds it (D-380)
+
+    def test_the_npc_speech_options_live_in_schemas(self):
+        self.assertIn("_EXPERIMENTAL_NPC_SPEECH_OPTIONS", routing_audit.re_exports(ROOT).get("schemas", ()))
+
+    def test_the_npc_speech_options_did_not_change(self):
+        # captured on f5cbace6 before the move (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave this same hex)
+        self.assertEqual(value_digest(("_EXPERIMENTAL_NPC_SPEECH_OPTIONS",)),
+                         "6b73f273148a6af846bf9cfbeab27fcb438259f54666d1eaf1e810388a7a7b49")
 
 
 class TextA1Part(unittest.TestCase):
@@ -380,6 +398,546 @@ class TextB2Part(unittest.TestCase):
         for helper, args, expected in cases:
             with self.subTest(helper=helper.__name__, args=args):
                 self.assertEqual(helper(*args), expected)
+
+
+CR = tuple(batch_names("cr"))
+
+
+class CharacterRulesPart(unittest.TestCase):
+    """T4.1 batch cr: character, skill and dice helpers live in game_parts/character_rules.py; game.py re-exports them."""
+
+    def test_cr_lives_in_the_part(self):
+        self.assertEqual(set(CR) - set(routing_audit.re_exports(ROOT)["character_rules"]), set())
+
+    def test_a_patched_roll_d20_reaches_a_moved_roll_attack(self):
+        # the new path after the move: part roll_attack -> game.roll_d20 (R9)
+        with patch.object(game, "roll_d20", return_value=20) as rolled:
+            self.assertEqual(game.roll_attack(), 20)
+        rolled.assert_called_once_with()
+
+    def test_character_rules_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # both names read game._session() (measured on 0b159e30): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261201):
+            s = game.create_session(seed=11)
+            s.character["species"] = "Goliath"
+            s.character["proficiency_bonus"] = 2
+            default_character = dict(game._session().character)
+            for name, args in (("roll_stat", ()), ("initialize_species_trait_state", ("hill",))):
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    getattr(game, name)(*args, session=s)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(s.character["giant_ancestry"], "hill")
+            self.assertEqual(dict(game._session().character), default_character)
+
+    def test_cr_helpers_answer_as_before(self):
+        # one fixed character (Barbarian, DEX 14, CON 16, WIS 12); expected values captured on 0b159e30 before the move
+        self.assertEqual([game.get_modifier(stat) for stat in (8, 10, 15, 20)], [-1, 0, 2, 5])
+        dex, con, wis = game.get_modifier(14), game.get_modifier(16), game.get_modifier(12)
+        self.assertEqual((dex, con, wis), (2, 3, 1))
+        self.assertEqual(game.calculate_hp("Barbarian", con), 15)
+        self.assertEqual(game.calculate_ac("Barbarian", dex, con, wis), 15)
+
+
+PLACES_1 = tuple(batch_names("places-1"))
+PLACES_2 = tuple(batch_names("places-2"))
+
+
+class PlacesPart(unittest.TestCase):
+    """T4.2 batches places-1 and places-2: door, feature, location and scene helpers live in game_parts/places.py."""
+
+    def test_places_1_lives_in_the_part(self):
+        self.assertEqual(set(PLACES_1) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
+
+    def test_places_2_lives_in_the_part(self):
+        self.assertEqual(set(PLACES_2) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
+
+    def test_places_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # every name reads game._session() (measured on 33ab2efd): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261202):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "forest"
+            # a place only the given session has: an answer the default session cannot give (Task 16 Fault 8)
+            s.world_state["locations"]["t16_kuyu"] = {"id": "t16_kuyu", "name": "Kuyu Başı", "type": "city",
+                                                      "description": ""}
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            cases = (
+                ("resolve_location_reference", ("ormanı",), "forest"),
+                ("resolve_location_reference", ("t16_kuyu",), "t16_kuyu"),
+                ("update_inventory_from_player", ("kılıcı yere bırakıyorum",), None),
+                ("_walked_there", ({"kind": "go_to"}, {"action": "travel", "status": "already_here", "target_id": "forest"},
+                                   None), True),
+            )
+            for name, args, expected in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    answer = getattr(game, name)(*args, session=s)
+                    if expected is not None:
+                        self.assertEqual(answer, expected)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_places_helpers_answer_as_before(self):
+        # a new session's three places (tavern, forest, castle); expected values captured on 33ab2efd before the move
+        with fixed_town(self, 20261203):
+            s = game.create_session(seed=11)
+            self.assertEqual(game.normalize_location_id("tavern", session=s), "tavern")
+            self.assertEqual(game.normalize_location_id("ormanı", session=s), "forest")
+            self.assertEqual(game.location_display_name("tavern", session=s), "Taverna")
+            self.assertEqual(game.location_display_name("Kuzey Kapısı", session=s), "Kuzey Kapısı")
+        self.assertTrue(game._reference_token_matches("han", "hanlar"))
+        self.assertTrue(game._reference_token_matches("kapı", "kapıdan"))
+        self.assertFalse(game._reference_token_matches("han", "kapı"))
+
+
+INTENT_1 = tuple(batch_names("intent-1"))
+INTENT_2 = tuple(batch_names("intent-2"))
+
+
+class IntentPart(unittest.TestCase):
+    """T4.3 batches intent-1 and intent-2: intent reading and validation helpers live in game_parts/intent.py."""
+
+    def test_intent_1_lives_in_the_part(self):
+        self.assertEqual(set(INTENT_1) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
+
+    def test_intent_2_lives_in_the_part(self):
+        self.assertEqual(set(INTENT_2) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
+
+    def test_a_rebound_validate_intent_reaches_a_moved_caller(self):  # Review Focus 5
+        # analyze_player_action (moved in intent-1) reads game.parse_player_intent, game.normalize_intent and
+        # game.validate_intent, three of the four names trace_ai_pipeline.py rebinds; no session, model or campaign
+        seen = []
+
+        def validate(intent, player_input):
+            seen.append((intent, player_input))
+            return {"intent": "perception", "skill": "Perception", "difficulty": "hard"}
+
+        with patch.object(game, "parse_player_intent", return_value={"raw": 1}) as parse, \
+             patch.object(game, "normalize_intent", return_value={"norm": 1}) as norm, \
+             patch.object(game, "validate_intent", side_effect=validate):
+            out = game.analyze_player_action("Etrafa bakıyorum.", "Fighter", [])
+        parse.assert_called_once_with("Etrafa bakıyorum.")
+        norm.assert_called_once_with({"raw": 1}, "Etrafa bakıyorum.")
+        self.assertEqual(seen, [({"norm": 1}, "Etrafa bakıyorum.")])
+        self.assertEqual(out, {"action_type": "check", "skill": "Perception", "difficulty": "hard"})
+
+    def test_intent_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # both names read game._session() (measured on d9bbb857): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261204):
+            s = game.create_session(seed=11)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            cases = (
+                ("is_npc_historical_claim", ("Bu adam dün beni soydu.",), False),
+                ("known_character_answer", ("Benim adım ne?",), f"Adın {s.character['name']}."),
+            )
+            for name, args, expected in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    self.assertEqual(getattr(game, name)(*args, session=s), expected)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_intent_helpers_answer_as_before(self):
+        # expected values captured on d9bbb857 before the move; a new session's places are tavern, forest, castle
+        self.assertTrue(game.is_dialogue_or_emotion("Merhaba, nasılsın?"))
+        self.assertFalse(game.is_dialogue_or_emotion("Kılıcımı çekiyorum."))
+        self.assertTrue(game._reads_as_question("Burası neresi?"))
+        self.assertFalse(game._reads_as_question("Kapıyı açıyorum."))
+        with fixed_town(self, 20261205):
+            s = game.create_session(seed=11)
+            self.assertTrue(game._normalize_turkish_location("Ormana gidiyorum", "forest", session=s))
+            self.assertFalse(game._normalize_turkish_location("Kaleye yürüyorum", "orman", session=s))
+
+    def test_the_intent_error_is_one_class(self):
+        # the moved _detect_query_type is on the turn path in both flags (measured on d9bbb857); game.active_npcs (an
+        # existing census target) raises game.IntentInfrastructureError only when that moved caller reads it, and the
+        # staying handler in _run_player_turn must catch it as its own class and restore the world
+        real = game.active_npcs
+        planted = game.IntentInfrastructureError("planted")
+        callers = []
+
+        def active_npcs(*args, **kwargs):
+            callers.append(sys._getframe(1).f_code.co_name)
+            if callers[-1] == "_detect_query_type":
+                raise planted
+            return real(*args, **kwargs)
+
+        active_npcs._session_bound = True  # GameSession.__getattr__ hands out only session-bound engine helpers
+        with fixed_town(self, 20261206):
+            s = game.create_session(seed=11)
+            before = json.dumps(s.world_state, sort_keys=True, default=str)
+            with patch.object(game, "active_npcs", new=active_npcs), \
+                 patch.object(game.ollama, "chat", side_effect=RuntimeError("no model in this test")):
+                result = s.run_player_turn("Etrafa bakıyorum.")
+            self.assertEqual(callers[-1], "_detect_query_type")
+            self.assertEqual(result["action_result"]["status"], "infrastructure_failure")
+            self.assertEqual(result["action_result"]["infrastructure_code"], "planted")
+            self.assertEqual(json.dumps(s.world_state, sort_keys=True, default=str), before)
+
+
+
+DIALOGUE_1 = tuple(batch_names("dialogue-1"))
+DIALOGUE_2 = tuple(batch_names("dialogue-2"))
+
+
+class DialoguePart(unittest.TestCase):
+    """T4.4 batches dialogue-1 and dialogue-2: conversation and NPC speech helpers live in game_parts/dialogue.py."""
+
+    def test_dialogue_1_lives_in_the_part(self):
+        self.assertEqual(set(DIALOGUE_1) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
+
+    def test_dialogue_2_lives_in_the_part(self):
+        self.assertEqual(set(DIALOGUE_2) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
+
+    def test_the_stock_said_deque_is_one_object(self):
+        # a call with no session (_session() gives None) uses the module deque; the re-export keeps one object
+        with patch.object(game, "_session", return_value=None):
+            self.assertIs(game._stock_said.__wrapped__(), game._STOCK_SAID)
+
+    def test_dialogue_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # every name reads game._session() (measured on cc1e9321; _direct_npc_smalltalk_response on 7ed9615a): record
+        # what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261207):
+            s = game.create_session(seed=11)
+            bela = {"id": "npc_t10_bela", "name": "Bela", "role": "hancı", "location": s.world_state["location"],
+                    "name_known_to_player": True, "role_known_to_player": True}
+            s.world_state["npcs"].append(bela)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            cases = (
+                ("resolve_npc_reference", ("Bela, merhaba",), {"status": "found", "npc": "npc_t10_bela"}),
+                ("_npc_speech_is_claim_refusal", ("Hayır, öyle bir şey hatırlamıyorum.", bela), True),
+                ("_npc_speech_is_claim_refusal", ("Evet, söz vermiştim.", bela), False),
+                ("record_npc_interaction", (bela, "Hoş geldin yolcu.", "Merhaba, nasılsın?", bela), None),
+                ("_direct_npc_smalltalk_response", ("Nasılsın?", bela),
+                 "Bela, “Fena değil, teşekkür ederim. Sorduğun için sağ ol,” diye karşılık verir."),
+            )
+            for name, args, expected in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name, text=args[0]), patch.object(game, "_session", side_effect=record):
+                    answer = getattr(game, name)(*args, session=s)
+                    if isinstance(answer, dict):
+                        answer = {key: value.get("id") if isinstance(value, dict) else value
+                                  for key, value in answer.items()}
+                    self.assertEqual(answer, expected)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            said = game.npc_statements.view(s.world_state)["statements"].get("npc_t10_bela")
+            self.assertEqual([(entry["player"], entry["text"]) for entry in said],
+                             [("Merhaba, nasılsın?", "Hoş geldin yolcu.")])
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_dialogue_helpers_answer_as_before(self):
+        # expected values captured on cc1e9321 before the move; the NPCs are plain dicts, no session is created
+        self.assertTrue(game._is_end_conversation_request("konuşmayı bitiriyorum"))
+        self.assertTrue(game._is_end_conversation_request("Sohbeti sonlandırıyorum."))
+        self.assertFalse(game._is_end_conversation_request("konuşmaya devam"))
+        guard = {"id": "npc_t10_guard", "name": "Dorn", "role": "muhafız"}
+        traveller = {"id": "npc_t10_plain", "name": "Ilka", "role": "yolcu"}
+        self.assertTrue(game._words_fit_person(guard, "muhafiz"))
+        self.assertTrue(game._words_fit_person(guard, "bekci"))
+        self.assertFalse(game._words_fit_person(guard, "hanci"))
+        self.assertFalse(game._words_fit_person(traveller, "muhafiz"))
+        self.assertEqual(game.historical_claim_denial(guard, "Dün bana söz verdin."),
+                         "Dorn sesini alçaltıyor. “Söz verdiysem hatırlardım; sözümü tutmayan biri olarak anılmak "
+                         "istemem. Ama bu benim ağzımdan çıkmadı.”")
+        self.assertEqual(game.historical_claim_denial(None, "x"),
+                         "Bu kişi omuz silkiyor. “Yanlış kapıyı çalıyorsun, dostum. Ben böyle bir şey söylemedim.”")
+
+
+LORE = tuple(batch_names("lore"))
+
+
+class LorePart(unittest.TestCase):
+    """T4.5 batch lore: lore authority and stage-direction helpers live in game_parts/lore.py."""
+
+    def test_lore_lives_in_the_part(self):
+        self.assertEqual(set(LORE) - set(routing_audit.re_exports(ROOT).get("lore", ())), set())
+
+    def test_lore_helpers_answer_as_before(self):
+        # inputs from test_place_consistency and test_local_place_travel; values captured on 2d8bed3d before the move
+        def street(**extra):
+            return {
+                "location": "city",
+                "locations": {"city": {"id": "city", "name": "Neverwinter", "type": "city", "description": ""}},
+                "features": [], "npcs": [{"id": "n", "name": "Mira", "role": "Kent sakini", "location": "city"}],
+                **extra,
+            }
+
+        inn = street()
+        inn["locations"]["city"]["scene_kind"] = "tavern"
+        stall = street()
+        stall["npcs"][0]["role"] = "Tüccar"
+        cases = (
+            (street(), "Masanın kenarına yaslanıyor. Başını hafifçe sallıyor.", "Başını hafifçe sallıyor."),
+            (street(), "Tezgâhın arkasında duruyor.", ""),
+            (street(), "Omuz silkiyor.", "Omuz silkiyor."),
+            (inn, "Tezgâhın arkasında duruyor.", "Tezgâhın arkasında duruyor."),
+            (stall, "Tezgâhına yaslanıyor.", "Tezgâhına yaslanıyor."),
+        )
+        for world, stage, expected in cases:
+            with self.subTest(stage=stage):
+                self.assertEqual(game._stage_within_the_street(stage, world), expected)
+                self.assertEqual(game._shown_stage_direction(stage, world), expected)
+        self.assertEqual(game._shown_stage_direction("   ", street()), "")
+        self.assertEqual(game._shown_stage_direction(None, street()), "")
+        district = {"location": "d", "locations": {"d": {"name": "Liman Mahallesi", "type": "district"}}}
+        city = {"location": "c", "locations": {"c": {"name": "Neverwinter", "type": "city"}}}
+        self.assertTrue(game._names_the_district_here("mahallenin", district))
+        self.assertTrue(game._names_the_district_here("Semtin", district))
+        self.assertFalse(game._names_the_district_here("sokağın", district))
+        self.assertFalse(game._names_the_district_here("mahallenin", city))
+
+    def test_the_empty_lore_context_is_a_fresh_value_each_call(self):
+        # measured on 2d8bed3d: two calls give equal dicts, never the same object (nor shared section lists)
+        first, second = game._empty_lore_authority_context(), game._empty_lore_authority_context()
+        self.assertEqual(first, second)
+        self.assertIsNot(first, second)
+        self.assertIsNot(first["sections"], second["sections"])
+        self.assertIsNot(first["sections"]["campaign_canon"], second["sections"]["campaign_canon"])
+        self.assertEqual(set(first), {"authority_boundary", "sections"})
+        self.assertTrue(all(first["authority_boundary"].values()))
+        self.assertEqual(first["sections"], {
+            "official_forgotten_realms_lore": [], "campaign_canon": [], "player_known_lore": [],
+            "npc_known_lore": [], "procedural_local_content": [], "unknown_or_unloaded": [],
+        })
+
+
+NARRATION = tuple(batch_names("narration"))
+
+
+class NarrationPart(unittest.TestCase):
+    """T4.6 batch narration: fallback, inspection and repair helpers live in game_parts/narration.py."""
+
+    def test_narration_lives_in_the_part(self):
+        self.assertEqual(set(NARRATION) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
+
+    def test_narration_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # both names read game._session() (measured on 8cc9a805): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261208):
+            s = game.create_session(seed=11)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            tracks_failed = {"target_kind": "tracks", "target_id": None, "target_name": "izler", "found": False,
+                             "text": "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun."}
+            cases = (
+                ("_generic_no_change_response", (), {}, "Çevrede şimdilik belirgin bir değişiklik olmuyor."),
+                ("_inspection_findings", ("izlere bakıyorum", "failure"), {}, tracks_failed),
+                ("_inspection_findings", ("etrafa bakıyorum", "failure"), {}, None),
+            )
+            for name, args, kwargs, expected in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name, args=args), patch.object(game, "_session", side_effect=record):
+                    self.assertEqual(getattr(game, name)(*args, session=s, **kwargs), expected)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_narration_helpers_answer_as_before(self):
+        # one open street with one person (Mira); expected values captured on 8cc9a805 before the move
+        with fixed_town(self, 20261211):
+            s = game.create_session(seed=11)
+            s.world_state["locations"]["t12_street"] = {"id": "t12_street", "name": "Pazar Sokağı", "type": "city",
+                                                         "description": ""}
+            s.world_state["location"] = "t12_street"
+            s.world_state["npcs"].append({"id": "npc_t12_mira", "name": "Mira", "role": "Kent sakini",
+                                          "location": "t12_street", "name_known_to_player": True,
+                                          "role_known_to_player": True})
+            repairs = (
+                ("[[npc_t12_mira]] “Hoş geldin,” diyor.", "Mira “Hoş geldin,” diyor."),
+                ("npc_t12_mira’nın gözleri parlıyor.", "Mira’nın gözleri parlıyor."),
+                ("“Merhaba,” diyor Mira.", "“Merhaba,” diyor Mira."),
+                ("Biri [[x9]] diye fısıldıyor.", "Biri diye fısıldıyor."),
+            )
+            for text, expected in repairs:
+                with self.subTest(repair=text):
+                    self.assertEqual(game._repair_internal_marks(text, session=s), expected)
+            drops = (
+                ("Mira tezgâhın arkasında duruyor. “Buyur,” diyor.", "“Buyur,” diyor."),
+                ("“Hoş geldin,” diyor Mira. Rüzgâr esiyor.", "“Hoş geldin,” diyor Mira. Rüzgâr esiyor."),
+                (None, None),
+            )
+            for text, expected in drops:
+                with self.subTest(drop=text):
+                    self.assertEqual(game._drop_absent_counter_sentences(text, session=s), expected)
+
+    def test_a_patched_should_generate_npcs_reaches_its_staying_caller(self):
+        # the census site (test_sessions) patches it around a turn; _run_player_turn_internal stays in game.py and
+        # hands its answer to the narrator as allow_new_npcs (unpatched it is False for this input; measured 8cc9a805)
+        for value in (True, False):
+            with self.subTest(value=value), fixed_town(self, 20261209):
+                s = game.create_session(seed=11)
+                s.world_state["location"] = "tavern"
+                s.world_state["locations"]["tavern"] = {"name": "Taverna"}
+                with patch.object(game, "parse_player_intent", return_value={"intent": "unknown"}), \
+                        patch.object(game, "should_generate_npcs", return_value=value) as generate, \
+                        patch.object(game, "ask_dungeon_master", return_value={
+                            "narration": "Lamba alevi titriyor.", "world_updates": {}, "lore_claims": [],
+                            "valid_response": True}) as narrator:
+                    s.run_player_turn("Rüzgar esiyor.")
+                self.assertTrue(generate.called)
+                self.assertEqual([call.kwargs.get("allow_new_npcs") for call in narrator.call_args_list], [value])
+
+
+NSAFETY_1 = tuple(batch_names("nsafety-1"))
+NSAFETY_2 = tuple(batch_names("nsafety-2"))
+
+
+class NarrationSafetyPart(unittest.TestCase):
+    """T4.7 batches nsafety-1, nsafety-2: narration safety checks live in game_parts/narration_safety.py."""
+
+    def test_nsafety_1_lives_in_the_part(self):
+        self.assertEqual(set(NSAFETY_1) - set(routing_audit.re_exports(ROOT).get("narration_safety", ())), set())
+
+    def test_nsafety_helpers_answer_as_before(self):
+        # inputs from test_narrator_voice and test_ai_pipeline_semantics; values captured on d0d42842 before the move
+        text = "Masaya tırmanıyorsun. Liora'nın elindeki bez yavaşça duruyor. Omuzları hafifçe gerginleşiyor."
+        removals = (
+            ({"reason_code": "UNREGISTERED_PERSISTENT_OBJECT",
+              "trigger_span": "bez yavasca duruyor omuzlari hafifce gerginlesi"}, None,
+             "Masaya tırmanıyorsun. Omuzları hafifçe gerginleşiyor."),
+            ({"reason_code": "UNREGISTERED_PERSISTENT_OBJECT", "trigger_span": "hic gecmeyen bir ifade burada"},
+             None, None),
+            ({"reason_code": "UNRELATED_GREETING_REPLY", "trigger_span": "Masaya"}, None, None),
+            ({"reason_code": "UNREGISTERED_PERSISTENT_OBJECT", "trigger_span": "Masaya"}, {"action": "attack"}, None),
+            ({"reason_code": "INVENTED_PLAYER_ACTION", "trigger_span": "Masaya tırmanıyorsun"}, {"action": "attack"},
+             "Liora'nın elindeki bez yavaşça duruyor. Omuzları hafifçe gerginleşiyor."),
+            ({"reason_code": "UNREGISTERED_PERSISTENT_OBJECT", "trigger_span": ""}, None, None),
+        )
+        for decision, action_result, expected in removals:
+            with self.subTest(decision=decision, action_result=action_result):
+                self.assertEqual(game._remove_trigger_sentence(text, decision, action_result), expected)
+        with fixed_town(self, 20261212):
+            s = game.create_session(seed=11)
+            assertions = (
+                ("haydut görüyorum", True), ("karşımda ejderha var", True), ("barmenin adı Gromm", True),
+                ("burada on asker var", True), ("Ben aslında kralım.", True), ("Kapı açık.", True),
+                ("Etrafa bakıyorum.", False), ("Barmene merhaba diyorum.", False),
+            )
+            for phrase, expected in assertions:
+                with self.subTest(phrase=phrase):
+                    self.assertIs(game.is_player_world_assertion(phrase, session=s), expected)
+
+    def test_nsafety_2_lives_in_the_part(self):
+        self.assertEqual(set(NSAFETY_2) - set(routing_audit.re_exports(ROOT).get("narration_safety", ())), set())
+
+    def test_the_safety_decision_answers_as_before(self):
+        # safe and unsafe inputs from test_f04_greeting_agency_quality; the repaired one follows its invented-feeling
+        # case (one sentence removed by _remove_trigger_sentence). Decisions captured on 612ce004 before the move.
+        def decision(unsafe, reason_code, trigger_span):
+            return {"unsafe": unsafe, "reason_code": reason_code, "trigger_span": trigger_span,
+                    "scene_type": "exploration"}
+
+        with fixed_town(self, 20261213):
+            s = game.create_session(seed=11)
+            world = json.dumps(s.world_state, sort_keys=True, default=str)
+            safe = game._narration_safety_decision("içeri girersin.", "içeri giriyorum.", action_result={}, session=s)
+            self.assertEqual(safe, decision(False, None, None))
+            inspect = "Han girişindeki taş işçiliğini dikkatlice inceliyorum."
+            unsafe = game._narration_safety_decision("Sonra hana girersin.", inspect, action_result={}, session=s)
+            self.assertEqual(unsafe, decision(True, "INVENTED_PLAYER_ACTION", "girersin"))
+            text = "Oymalar yıpranmış. Korkmuş hissedersin."
+            first = game._narration_safety_decision(text, inspect, action_result={}, session=s)
+            self.assertEqual(first, decision(True, "INVENTED_PLAYER_MENTAL_STATE", "hissedersin"))
+            repaired = game._remove_trigger_sentence(text, first, {}, session=s)
+            self.assertEqual(repaired, "Oymalar yıpranmış.")
+            self.assertEqual(game._narration_safety_decision(repaired, inspect, action_result={}, session=s),
+                             decision(False, None, None))
+            self.assertEqual(json.dumps(s.world_state, sort_keys=True, default=str), world)
+
+
+LWT = tuple(batch_names("lwt"))
+
+
+class LivingWorldTurnPart(unittest.TestCase):
+    """T4.8 batch lwt: the campaign clock and scene seating helpers live in game_parts/living_world_turn.py."""
+
+    def test_lwt_lives_in_the_part(self):
+        self.assertEqual(set(LWT) - set(routing_audit.re_exports(ROOT).get("living_world_turn", ())), set())
+
+    def test_living_world_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # both names read game._session() (measured on 30c48f41): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261214):
+            s = game.create_session(seed=11)
+            s.world_state["locations"]["t14_square"] = {"id": "t14_square", "name": "Çeşme Meydanı", "type": "city",
+                                                         "description": ""}
+            s.world_state["location"] = "t14_square"
+            s.world_state.pop("campaign_time", None)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            for name in ("ensure_campaign_clock", "_living_world_prompt_context"):
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    answer = getattr(game, name)(session=s)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+                    if name == "ensure_campaign_clock":
+                        self.assertIs(answer, s.world_state["campaign_time"])
+                        self.assertEqual(answer["elapsed_seconds"], 0)
+                    else:
+                        context = json.loads(answer)
+                        self.assertEqual(context["location_id"], "t14_square")
+                        self.assertEqual(context["location_name"], "Çeşme Meydanı")
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+
+NEWGAME = tuple(batch_names("newgame"))
+
+
+class NewGamePart(unittest.TestCase):
+    """T4.9 batch newgame: initialize_game lives in game_parts/new_game.py."""
+
+    def test_newgame_lives_in_the_part(self):
+        self.assertEqual(set(NEWGAME) - set(routing_audit.re_exports(ROOT).get("new_game", ())), set())
+
+    def test_the_import_time_game_is_initialized_by_the_moved_function(self):  # Review Focus 3
+        # game.py calls initialize_game at import time, after _bind_session_engine (functools.wraps sets __wrapped__)
+        self.assertEqual(game.initialize_game.__wrapped__.__module__, "game_parts.new_game")
+        character = game._DEFAULT_SESSION.character
+        self.assertTrue(character["name"])
+        self.assertGreater(character["max_hp"], 0)
 
 
 if __name__ == "__main__":
