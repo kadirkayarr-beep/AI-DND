@@ -1,0 +1,694 @@
+{
+ "combat-1": {
+  "module": "combat_flow",
+  "names": [
+   "long_rest_gap_seconds",
+   "_death_state_defaults",
+   "ensure_death_state",
+   "PlayerCannotAct",
+   "require_player_can_act",
+   "stabilize_player",
+   "attempt_player_stabilization",
+   "heal_player",
+   "set_player_max_hp",
+   "apply_npc_damage",
+   "_capture_combat_death_checkpoint",
+   "_restore_combat_death_checkpoint",
+   "_finalize_player_death",
+   "_apply_player_damage",
+   "_combat_defaults",
+   "_combat_record_for_actor",
+   "_migrate_legacy_combat_state",
+   "_sync_combat_participant_records",
+   "ensure_combat_state",
+   "person_fight_kind",
+   "_person_fight",
+   "ensure_npc_enemy_stats",
+   "ensure_npc_combat_stats",
+   "resolve_combat_target",
+   "_set_temporary_hit_points",
+   "grant_temporary_hit_points",
+   "_species_bonus_action",
+   "_species_player_turn_id",
+   "_apply_species_on_hit_effects",
+   "_finish_species_player_turn"
+  ],
+  "lines": 925,
+  "sensitive": [
+   "_capture_combat_death_checkpoint",
+   "_restore_combat_death_checkpoint",
+   "_finalize_player_death",
+   "_migrate_legacy_combat_state",
+   "ensure_combat_state"
+  ],
+  "held_p3": [],
+  "header": [
+   "import action_economy",
+   "import combat_lifecycle",
+   "import copy",
+   "import effect_targeting",
+   "import talk_mode",
+   "import weapon_attack"
+  ],
+  "census_import_prefixed": [
+   "effect_lifecycle",
+   "uuid4"
+  ],
+  "census_targets": [
+   [
+    "require_player_can_act",
+    "function"
+   ],
+   [
+    "stabilize_player",
+    "function"
+   ],
+   [
+    "heal_player",
+    "function"
+   ],
+   [
+    "set_player_max_hp",
+    "function"
+   ],
+   [
+    "apply_npc_damage",
+    "function"
+   ],
+   [
+    "_restore_combat_death_checkpoint",
+    "function"
+   ],
+   [
+    "_finalize_player_death",
+    "function"
+   ],
+   [
+    "_apply_player_damage",
+    "function"
+   ],
+   [
+    "_sync_combat_participant_records",
+    "function"
+   ],
+   [
+    "person_fight_kind",
+    "function"
+   ],
+   [
+    "_species_bonus_action",
+    "function"
+   ],
+   [
+    "_finish_species_player_turn",
+    "function"
+   ]
+  ]
+ },
+ "combat-2": {
+  "module": "combat_flow",
+  "names": [
+   "resolve_species_trait_action",
+   "resolve_attack",
+   "register_attack_hook",
+   "_combat_participant_can_act",
+   "_mark_combat_action_used",
+   "_resolve_player_death_turn",
+   "_spares_the_fallen",
+   "_combat_end_if_decided",
+   "_resolve_enemy_turns_until_player",
+   "find_weapon_in_inventory",
+   "start_combat",
+   "_start_combat_with_initiative",
+   "resolve_enemy_attack",
+   "_reduce_attack_damage_to_player",
+   "_storm_thunder_reaction",
+   "_apply_attack_damage_to_player",
+   "end_combat",
+   "_begin_combat_actor_turn",
+   "join_combat_participants",
+   "remove_combat_participant",
+   "register_initiative_hook",
+   "advance_combat_turn",
+   "_combat_snapshot",
+   "_finish_combat_result"
+  ],
+  "lines": 995,
+  "sensitive": [
+   "_mark_combat_action_used",
+   "_resolve_player_death_turn",
+   "_start_combat_with_initiative",
+   "_begin_combat_actor_turn"
+  ],
+  "held_p3": [],
+  "header": [
+   "from api.core_resolution import (\n    resolution_action_scope,\n    resolve_attack_roll,\n    resolve_death_save,\n    resolve_saving_throw,\n    resolve_skill_check,\n)",
+   "import action_economy",
+   "import campaign_time",
+   "import combat_lifecycle",
+   "import copy",
+   "import effect_targeting",
+   "import initiative",
+   "import scheduled_events",
+   "import weapon_attack"
+  ],
+  "census_import_prefixed": [
+   "effect_lifecycle",
+   "resolve_saving_throw",
+   "uuid4"
+  ],
+  "census_targets": [
+   [
+    "resolve_species_trait_action",
+    "function"
+   ],
+   [
+    "resolve_attack",
+    "function"
+   ],
+   [
+    "_mark_combat_action_used",
+    "function"
+   ],
+   [
+    "_resolve_player_death_turn",
+    "function"
+   ],
+   [
+    "_resolve_enemy_turns_until_player",
+    "function"
+   ],
+   [
+    "start_combat",
+    "function"
+   ],
+   [
+    "resolve_enemy_attack",
+    "function"
+   ],
+   [
+    "_apply_attack_damage_to_player",
+    "function"
+   ],
+   [
+    "advance_combat_turn",
+    "function"
+   ]
+  ]
+ },
+ "combat-3": {
+  "module": "combat_flow",
+  "names": [
+   "_public_combatant_label",
+   "_combat_narration",
+   "_enemy_exchange_text",
+   "_death_closing",
+   "_death_save_line",
+   "_down_outside_combat_turn",
+   "_death_resolution_from_actions"
+  ],
+  "lines": 209,
+  "sensitive": [],
+  "held_p3": [],
+  "header": [
+   "import campaign_time",
+   "import copy",
+   "import living_world",
+   "import re"
+  ],
+  "census_import_prefixed": [
+   "uuid4"
+  ],
+  "census_targets": []
+ },
+ "coin": {
+  "module": "coin",
+  "names": [
+   "_SOMEONE_ELSES_PURSE",
+   "_SHOP_ECONOMY_PATTERN",
+   "_SHOP_TRANSACTION_REQUEST_PATTERN",
+   "_SHOP_ENTITY_QUERY_PATTERN",
+   "_SHOP_CREATION_ACTION_PATTERN",
+   "_is_shopkeeper_role",
+   "_runs_a_shop",
+   "_campaign_has_shopkeeper",
+   "_explicit_campaign_shop_request",
+   "_shop_economy_request",
+   "_explicit_campaign_shop_negative_request",
+   "_shop_presence_question",
+   "generate_shop_id",
+   "validate_shop_proposal",
+   "create_shop_from_proposal",
+   "COIN_LEFT_BEHIND"
+  ],
+  "lines": 218,
+  "sensitive": [
+   "_is_shopkeeper_role",
+   "_runs_a_shop",
+   "_campaign_has_shopkeeper",
+   "_explicit_campaign_shop_request",
+   "_shop_economy_request",
+   "_explicit_campaign_shop_negative_request",
+   "_shop_presence_question",
+   "generate_shop_id",
+   "validate_shop_proposal",
+   "create_shop_from_proposal"
+  ],
+  "held_p3": [],
+  "header": [
+   "import money_owner",
+   "import re"
+  ],
+  "census_import_prefixed": [],
+  "census_targets": [
+   [
+    "create_shop_from_proposal",
+    "function"
+   ]
+  ]
+ },
+ "save-1": {
+  "module": "savefile",
+  "names": [
+   "SAVE_FORMAT_VERSION",
+   "_SUPPORTED_SAVE_VERSIONS",
+   "_validate_species_trait_state",
+   "_origin_choices_valid",
+   "_origin_choices_for_save",
+   "_PERSISTED_PLAYER_CONDITION_FIELDS",
+   "_validate_player_condition_state",
+   "_validate_player_weapon_proficiencies",
+   "_player_state_for_save",
+   "serialize_game_state",
+   "_validate_combat_v3_payload",
+   "_validate_long_rest_history",
+   "_validate_saved_multilevel_slots",
+   "_validate_save_payload",
+   "save_game",
+   "_repair_dilim1_fields",
+   "_known_happenings",
+   "_repair_dilim2_fields"
+  ],
+  "lines": 862,
+  "sensitive": [
+   "_origin_choices_for_save",
+   "_player_state_for_save",
+   "serialize_game_state",
+   "_validate_combat_v3_payload",
+   "_validate_saved_multilevel_slots",
+   "_validate_save_payload",
+   "save_game"
+  ],
+  "held_p3": [],
+  "header": [
+   "from api.dnd_2024_rules import get_expertise_choice_count",
+   "from pathlib import Path",
+   "import action_economy",
+   "import adventure",
+   "import campaign_time",
+   "import copy",
+   "import equipment_economy",
+   "import held_weapon",
+   "import initiative",
+   "import interaction_adventure",
+   "import json",
+   "import living_world",
+   "import local_exploration",
+   "import monster_sense",
+   "import re",
+   "import scheduled_events",
+   "import talk_mode",
+   "import tempfile",
+   "import timed_gameplay",
+   "import weapon_attack"
+  ],
+  "census_import_prefixed": [
+   "effect_lifecycle",
+   "os"
+  ],
+  "census_targets": [
+   [
+    "_player_state_for_save",
+    "function"
+   ],
+   [
+    "_validate_save_payload",
+    "function"
+   ],
+   [
+    "_repair_dilim2_fields",
+    "function"
+   ]
+  ]
+ },
+ "save-2": {
+  "module": "savefile",
+  "names": [
+   "load_game"
+  ],
+  "lines": 186,
+  "sensitive": [
+   "load_game"
+  ],
+  "held_p3": [],
+  "header": [
+   "from pathlib import Path",
+   "import copy",
+   "import equipment_economy",
+   "import json",
+   "import living_world"
+  ],
+  "census_import_prefixed": [],
+  "census_targets": [
+   [
+    "load_game",
+    "function"
+   ]
+  ]
+ },
+ "schemas": {
+  "module": "schemas",
+  "names": [
+   "_EXPERIMENTAL_NPC_SPEECH_SCHEMA"
+  ],
+  "lines": 52,
+  "sensitive": [],
+  "held_p3": [],
+  "header": [],
+  "census_import_prefixed": [],
+  "census_targets": []
+ },
+ "cr-s": {
+  "module": "character_rules",
+  "names": [
+   "perform_skill_check"
+  ],
+  "lines": 22,
+  "sensitive": [
+   "perform_skill_check"
+  ],
+  "held_p3": [],
+  "header": [],
+  "census_import_prefixed": [],
+  "census_targets": [
+   [
+    "perform_skill_check",
+    "function"
+   ]
+  ]
+ },
+ "places-s": {
+  "module": "places",
+  "names": [
+   "generate_npc_id",
+   "create_npc_from_ai",
+   "clean_location_description",
+   "commit_location_change",
+   "_ensure_location_entities",
+   "_commit_travel_action",
+   "_ensure_local_merchant",
+   "_scene_presence_text",
+   "_promote_scene_referent",
+   "_adventure_travel_reply"
+  ],
+  "lines": 342,
+  "sensitive": [
+   "clean_location_description",
+   "_ensure_local_merchant",
+   "_scene_presence_text"
+  ],
+  "held_p3": [
+   "generate_npc_id",
+   "create_npc_from_ai",
+   "commit_location_change",
+   "_ensure_location_entities",
+   "_commit_travel_action",
+   "_promote_scene_referent",
+   "_adventure_travel_reply"
+  ],
+  "header": [
+   "import copy",
+   "import equipment_economy",
+   "import living_world",
+   "import local_dialogue",
+   "import re",
+   "import scheduled_events",
+   "import talk_mode",
+   "import timed_gameplay"
+  ],
+  "census_import_prefixed": [],
+  "census_targets": [
+   [
+    "commit_location_change",
+    "function"
+   ],
+   [
+    "_promote_scene_referent",
+    "function"
+   ]
+  ]
+ },
+ "intent-s": {
+  "module": "intent",
+  "names": [
+   "deterministic_check_for_action",
+   "_handle_query",
+   "parse_player_intent",
+   "normalize_intent",
+   "update_world_state_from_player",
+   "execute_intent"
+  ],
+  "lines": 635,
+  "sensitive": [
+   "deterministic_check_for_action",
+   "parse_player_intent",
+   "normalize_intent",
+   "execute_intent"
+  ],
+  "held_p3": [
+   "_handle_query",
+   "update_world_state_from_player"
+  ],
+  "header": [
+   "import combat_lifecycle",
+   "import copy",
+   "import interaction_adventure",
+   "import json",
+   "import living_world",
+   "import local_dialogue",
+   "import money_owner",
+   "import re"
+  ],
+  "census_import_prefixed": [
+   "ollama"
+  ],
+  "census_targets": [
+   [
+    "parse_player_intent",
+    "function"
+   ],
+   [
+    "normalize_intent",
+    "function"
+   ],
+   [
+    "execute_intent",
+    "function"
+   ]
+  ]
+ },
+ "dialogue-s": {
+  "module": "dialogue",
+  "names": [
+   "_npc_answers_to",
+   "_offer_talk_with",
+   "_job_fallback",
+   "_coin_persuasion",
+   "_show_coin_roll",
+   "_settle_spoken_commitment",
+   "_with_only_backed_money",
+   "_experimental_speech_note"
+  ],
+  "lines": 218,
+  "sensitive": [
+   "_npc_answers_to",
+   "_offer_talk_with",
+   "_job_fallback",
+   "_coin_persuasion",
+   "_show_coin_roll",
+   "_with_only_backed_money",
+   "_experimental_speech_note"
+  ],
+  "held_p3": [
+   "_settle_spoken_commitment"
+  ],
+  "header": [
+   "import living_world",
+   "import local_dialogue",
+   "import money_owner",
+   "import npc_statements",
+   "import talk_front"
+  ],
+  "census_import_prefixed": [],
+  "census_targets": [
+   [
+    "_job_fallback",
+    "function"
+   ]
+  ]
+ },
+ "lore-s": {
+  "module": "lore",
+  "names": [
+   "_lore_entity_names"
+  ],
+  "lines": 54,
+  "sensitive": [
+   "_lore_entity_names"
+  ],
+  "held_p3": [],
+  "header": [],
+  "census_import_prefixed": [],
+  "census_targets": []
+ },
+ "narration-s-1": {
+  "module": "narration",
+  "names": [
+   "validate_world_updates",
+   "_bind_world_update_mentions",
+   "merge_world_updates",
+   "_narrator_shop_record",
+   "build_world_context",
+   "_stands_by_their_words",
+   "_fallback_narration",
+   "_dm_response_schema_for_turn"
+  ],
+  "lines": 585,
+  "sensitive": [
+   "validate_world_updates",
+   "_bind_world_update_mentions",
+   "merge_world_updates",
+   "_narrator_shop_record",
+   "build_world_context",
+   "_dm_response_schema_for_turn"
+  ],
+  "held_p3": [
+   "_stands_by_their_words",
+   "_fallback_narration"
+  ],
+  "header": [
+   "import campaign_time",
+   "import copy",
+   "import equipment_economy",
+   "import incidents.projection as incident_projection",
+   "import interaction_adventure",
+   "import living_world",
+   "import local_dialogue",
+   "import re",
+   "import scheduled_events",
+   "import timed_gameplay"
+  ],
+  "census_import_prefixed": [],
+  "census_targets": [
+   [
+    "validate_world_updates",
+    "function"
+   ],
+   [
+    "_bind_world_update_mentions",
+    "function"
+   ],
+   [
+    "build_world_context",
+    "function"
+   ],
+   [
+    "_fallback_narration",
+    "function"
+   ]
+  ]
+ },
+ "narration-s-2": {
+  "module": "narration",
+  "names": [
+   "ask_dungeon_master",
+   "_finding_says_too_much",
+   "_states_the_failed_check",
+   "_fallback_for_action_result",
+   "_narrated_money_can_lie",
+   "finalize_narration"
+  ],
+  "lines": 954,
+  "sensitive": [
+   "ask_dungeon_master",
+   "_finding_says_too_much",
+   "_narrated_money_can_lie",
+   "finalize_narration"
+  ],
+  "held_p3": [
+   "_states_the_failed_check",
+   "_fallback_for_action_result"
+  ],
+  "header": [
+   "import interaction_adventure",
+   "import json",
+   "import living_world",
+   "import re",
+   "import talk_mode",
+   "import tr_case"
+  ],
+  "census_import_prefixed": [
+   "ollama"
+  ],
+  "census_targets": [
+   [
+    "ask_dungeon_master",
+    "function"
+   ],
+   [
+    "finalize_narration",
+    "function"
+   ]
+  ]
+ },
+ "lwt-s": {
+  "module": "living_world_turn",
+  "names": [
+   "advance_campaign_time",
+   "plan_living_world_turn"
+  ],
+  "lines": 813,
+  "sensitive": [
+   "plan_living_world_turn"
+  ],
+  "held_p3": [
+   "advance_campaign_time"
+  ],
+  "header": [
+   "import adventure.play as adventure_play",
+   "import campaign_time",
+   "import event_order",
+   "import interaction_adventure",
+   "import living_world",
+   "import local_dialogue",
+   "import re",
+   "import scheduled_events",
+   "import talk_front",
+   "import timed_gameplay"
+  ],
+  "census_import_prefixed": [
+   "effect_lifecycle",
+   "uuid4"
+  ],
+  "census_targets": [
+   [
+    "advance_campaign_time",
+    "function"
+   ],
+   [
+    "plan_living_world_turn",
+    "function"
+   ]
+  ]
+ }
+}

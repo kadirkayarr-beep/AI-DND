@@ -1,0 +1,7 @@
+MODULE_CLASS _GameModule HOOK True
+HOOK_CALLS_PER_TURN 3050.7
+HOOK_CALLERS [('game_parts/places.py', 24521), ('game_parts/intent.py', 8041), ('game_parts/dialogue.py', 1634), ('game_parts/narration_safety.py', 1226), ('shop_trade.py', 420), ('game_parts/narration.py', 329), ('bold_acts.py', 162), ('grounded_action.py', 112), ('game_parts/lore.py', 88), ('game_parts/living_world_turn.py', 33), ('game_parts/character_rules.py', 16), ('combat_lifecycle.py', 12)]
+READ_NS hook=134.2 plain=14.0
+EST_HOOK_MS_PER_TURN 0.367
+TURN_MS median=27.56
+PROFILE_SHARE_PCT 1.63 (hook own+module getattribute 20.4 ms of 1253.5 ms profiled)
