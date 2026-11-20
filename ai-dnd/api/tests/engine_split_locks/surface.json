@@ -113,7 +113,7 @@
  },
  "PlayerCannotAct": {
   "kind": "class",
-  "module": "game"
+  "module": "game_parts.combat_flow"
  },
  "RACES": {
   "kind": "data",
@@ -789,13 +789,13 @@
  },
  "_apply_player_damage": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(hp_damage, *, critical=False, took_damage=False, resolved_damage=None)"
  },
  "_apply_species_on_hit_effects": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(target_npc, *, critical=False, deals_damage)"
  },
@@ -909,7 +909,7 @@
  },
  "_capture_combat_death_checkpoint": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -999,7 +999,7 @@
  },
  "_combat_defaults": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(end_reason=None)"
  },
@@ -1023,7 +1023,7 @@
  },
  "_combat_record_for_actor": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(participant_id, initiative=None, actions_used=<tuple>)"
  },
@@ -1095,7 +1095,7 @@
  },
  "_death_state_defaults": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -1365,7 +1365,7 @@
  },
  "_finalize_player_death": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(cause)"
  },
@@ -1383,7 +1383,7 @@
  },
  "_finish_species_player_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -1977,7 +1977,7 @@
  },
  "_migrate_legacy_combat_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(legacy)"
  },
@@ -2253,7 +2253,7 @@
  },
  "_person_fight": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -2493,7 +2493,7 @@
  },
  "_restore_combat_death_checkpoint": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(cause)"
  },
@@ -2631,7 +2631,7 @@
  },
  "_set_temporary_hit_points": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(amount, state=None)"
  },
@@ -2703,13 +2703,13 @@
  },
  "_species_bonus_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "_species_player_turn_id": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -2829,7 +2829,7 @@
  },
  "_sync_combat_participant_records": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(combat)"
  },
@@ -3207,7 +3207,7 @@
  },
  "apply_npc_damage": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc, damage, *, knock_out=False)"
  },
@@ -3225,7 +3225,7 @@
  },
  "attempt_player_stabilization": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(healer_id)"
  },
@@ -3378,25 +3378,25 @@
  },
  "ensure_combat_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "ensure_death_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "ensure_npc_combat_stats": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc)"
  },
  "ensure_npc_enemy_stats": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -3477,7 +3477,7 @@
  },
  "grant_temporary_hit_points": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(amount)"
  },
@@ -3486,7 +3486,7 @@
  },
  "heal_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(amount)"
  },
@@ -3603,7 +3603,7 @@
  },
  "long_rest_gap_seconds": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(world)"
  },
@@ -3715,7 +3715,7 @@
  },
  "person_fight_kind": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -3782,7 +3782,7 @@
  },
  "require_player_can_act": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -3806,7 +3806,7 @@
  },
  "resolve_combat_target": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_input, npc_target=None, target_id=None)"
  },
@@ -3929,7 +3929,7 @@
  },
  "set_player_max_hp": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(maximum)"
  },
@@ -3953,7 +3953,7 @@
  },
  "stabilize_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },

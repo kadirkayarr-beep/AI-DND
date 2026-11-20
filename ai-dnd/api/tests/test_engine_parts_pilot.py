@@ -67,11 +67,13 @@ def value_digest(names) -> str:
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.combat_flow",
+                                              "game_parts.dialogue", "game_parts.intent",
                                               "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
                                               "game_parts.text_rules_a", "game_parts.text_rules_b"))
-        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15,
+        # Plan 4 Task 7
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -112,10 +114,10 @@ class PilotRollD20(unittest.TestCase):
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
         # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
-        # living_world_turn, new_game)
+        # living_world_turn, new_game); Plan 4 Task 7: combat_flow
         names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
                  "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
-                 "_narration_safety_decision", "ensure_campaign_clock", "initialize_game")
+                 "_narration_safety_decision", "ensure_campaign_clock", "initialize_game", "ensure_death_state")
         show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
@@ -123,7 +125,7 @@ class PilotRollD20(unittest.TestCase):
                              (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b",
                                   "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
                                   "game_parts.narration", "game_parts.narration_safety",
-                                  "game_parts.living_world_turn", "game_parts.new_game"]),
+                                  "game_parts.living_world_turn", "game_parts.new_game", "game_parts.combat_flow"]),
                              done.stderr)
 
 
@@ -957,6 +959,116 @@ class NewGamePart(unittest.TestCase):
         character = game._DEFAULT_SESSION.character
         self.assertTrue(character["name"])
         self.assertGreater(character["max_hp"], 0)
+
+
+COMBAT_1 = tuple(batch_names("combat-1"))
+
+
+def _session_snapshot(session):
+    return json.dumps([session.character, session.world_state], sort_keys=True, default=str)
+
+
+class CombatFlowPart(unittest.TestCase):
+    """T5.1 batches combat-1, combat-2 and combat-3: death, damage and combat turns live in game_parts/combat_flow.py."""
+
+    def test_combat_1_lives_in_the_part(self):
+        self.assertEqual(set(COMBAT_1) - set(routing_audit.re_exports(ROOT).get("combat_flow", ())), set())
+
+    def test_the_player_cannot_act_error_is_one_class(self):
+        # the staying handler in game.py's _front_work re-raises PlayerCannotAct and swallows any other error (returns
+        # None): the class require_player_can_act raises must be the class game.py's own handler names
+        import world_threads
+        with fixed_town(self, 20261310):
+            s = game.create_session(seed=11)
+            s.character["current_hp"] = 0
+            s.world_state["player_combat_status"] = "unconscious"
+            person = {"id": "t7_odunci", "name": "Odunculu Remzi"}
+            with patch.object(game, "active_npcs", return_value=[person]), \
+                 patch.object(world_threads, "by_id", return_value={"status": "accepted"}), \
+                 patch.object(world_threads, "says_later", return_value=False):
+                with self.assertRaises(game.PlayerCannotAct) as caught:
+                    game._front_work({"id": "t7_is", "person_id": "t7_odunci"}, "Odun kırıyorum.", session=s)
+        self.assertIs(type(caught.exception), game.PlayerCannotAct)
+        self.assertEqual(str(caught.exception), "Bilinçsiz karakter eylem gerçekleştiremez.")
+        self.assertTrue(issubclass(game.PlayerCannotAct, ValueError))
+
+    def test_a_patched_uuid4_reaches_moved_combat_code(self):
+        fixed = "00000000-0000-4000-8000-000000000007"
+        with fixed_town(self, 20261311):
+            s = game.create_session(seed=11)
+            hp = s.character["current_hp"]
+            with patch.object(game, "uuid4", return_value=fixed) as made:
+                result = game._apply_player_damage(hp, session=s)
+        made.assert_called_once_with()
+        self.assertEqual(result["status"], "unconscious")
+        self.assertEqual(s.world_state["death_state"]["noncombat_episode_id"], fixed)
+
+    def test_combat_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # every name reads game._session() (measured on 36fb0ddd): record what it returns during the session= call;
+        # each input exists only in the given session (D-447)
+        real = game._session
+        with fixed_town(self, 20261312):
+            s = game.create_session(seed=11)
+            s.character["max_hp"] = 40
+            s.character["current_hp"] = 37
+            s.world_state["death_state"] = {"mode": "IRONMAN"}
+            s.world_state.pop("combat", None)
+            s.world_state["player_combat_status"] = "t7_unknown"
+            default_before = _session_snapshot(game._session())
+            cases = (("ensure_death_state", ()), ("ensure_combat_state", ()), ("_apply_player_damage", (5,)),
+                     ("_capture_combat_death_checkpoint", ()), ("_restore_combat_death_checkpoint", ("t7_cause",)))
+            answers = {}
+            for name, args in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                if name == "_capture_combat_death_checkpoint":
+                    s.world_state["death_state"]["mode"] = "NORMAL"  # IRONMAN keeps no checkpoint
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    answers[name] = getattr(game, name)(*args, session=s)
+                    self.assertTrue(seen)
+                    self.assertIs(seen[0], s)
+                    # the restore checks the saved hero on a fresh candidate GameSession of its own; never the default
+                    others = [value for value in seen if value is not s]
+                    self.assertTrue(all(isinstance(value, game.GameSession) and value is not game._DEFAULT_SESSION
+                                        for value in others))
+                    if name != "_restore_combat_death_checkpoint":
+                        self.assertEqual(others, [])
+                    if name == "ensure_death_state":  # the restore below swaps s.world_state's dicts for copies
+                        self.assertIs(answers[name], s.world_state["death_state"])
+                        self.assertEqual(answers[name]["mode"], "IRONMAN")
+                    if name == "ensure_combat_state":
+                        self.assertIs(answers[name], s.world_state["combat"])
+                        self.assertEqual(s.world_state["player_combat_status"], "active")
+            self.assertEqual(answers["_apply_player_damage"]["hp_before"], 37)
+            self.assertEqual(answers["_apply_player_damage"]["hp_after"], 32)
+            self.assertEqual(answers["_restore_combat_death_checkpoint"]["cause"], "t7_cause")
+            self.assertEqual(s.character["current_hp"], 32)  # the checkpoint was taken on s after the damage
+            self.assertEqual(_session_snapshot(game._session()), default_before)
+
+    def test_combat_death_checkpoint_round_trips_from_the_part(self):  # Review Focus 2
+        with fixed_town(self, 20261313):
+            default_before = _session_snapshot(game._DEFAULT_SESSION)
+            s = game.create_session(seed=21)
+            game.ensure_combat_state(session=s)
+            character = json.dumps(s.character, sort_keys=True, default=str)
+            death = dict(s.world_state["death_state"])
+            combat = json.dumps(s.world_state["combat"], sort_keys=True, default=str)
+            game._capture_combat_death_checkpoint(session=s)
+            self.assertIsNotNone(s.world_state["death_state"]["combat_checkpoint"])
+            damage = game._apply_player_damage(s.character["current_hp"], session=s)
+            self.assertEqual((damage["status"], s.character["current_hp"]), ("unconscious", 0))
+            resolution = game._restore_combat_death_checkpoint("t7_round_trip", session=s)
+        self.assertEqual(resolution, {"mode": "NORMAL", "outcome": "rolled_back", "cause": "t7_round_trip",
+                                      "rolled_back": True, "terminal": False})
+        self.assertEqual(json.dumps(s.character, sort_keys=True, default=str), character)
+        self.assertEqual(s.world_state["death_state"], {**death, "last_resolution": resolution})
+        self.assertEqual(json.dumps(s.world_state["combat"], sort_keys=True, default=str), combat)
+        self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
 
 
 if __name__ == "__main__":
