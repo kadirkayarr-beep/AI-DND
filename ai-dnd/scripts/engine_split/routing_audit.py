@@ -202,6 +202,8 @@ class _Walker:
             rest += [gen.target] + ([gen.iter] if index else []) + gen.ifs
         child = self._child(COMPREHENSIONS[type(node)], node.lineno)
         if child is not None:
+            for named in (n for part in rest + inner for n in ast.walk(part) if isinstance(n, ast.NamedExpr)):
+                self._bind(named.target.id, named.lineno, "walrus")  # PEP 572: the target binds in the scope that holds the comprehension
             self._scoped_keep(child, set(), rest + inner)
             return
         if isinstance(node, ast.GeneratorExp):  # never inlined: a missing table means the walk lost its place
