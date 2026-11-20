@@ -67,9 +67,9 @@ def value_digest(names) -> str:
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.intent", "game_parts.places",
-                                              "game_parts.text_rules_a", "game_parts.text_rules_b"))
-        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8 and 9
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
+                                              "game_parts.places", "game_parts.text_rules_a", "game_parts.text_rules_b"))
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9 and 10
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -584,6 +584,76 @@ class IntentPart(unittest.TestCase):
             self.assertEqual(result["action_result"]["status"], "infrastructure_failure")
             self.assertEqual(result["action_result"]["infrastructure_code"], "planted")
             self.assertEqual(json.dumps(s.world_state, sort_keys=True, default=str), before)
+
+
+
+DIALOGUE_1 = tuple(batch_names("dialogue-1"))
+DIALOGUE_2 = tuple(batch_names("dialogue-2"))
+
+
+class DialoguePart(unittest.TestCase):
+    """T4.4 batches dialogue-1 and dialogue-2: conversation and NPC speech helpers live in game_parts/dialogue.py."""
+
+    def test_dialogue_1_lives_in_the_part(self):
+        self.assertEqual(set(DIALOGUE_1) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
+
+    def test_the_stock_said_deque_is_one_object(self):
+        # a call with no session (_session() gives None) uses the module deque; the re-export keeps one object
+        with patch.object(game, "_session", return_value=None):
+            self.assertIs(game._stock_said.__wrapped__(), game._STOCK_SAID)
+
+    def test_dialogue_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # every name reads game._session() (measured on cc1e9321): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261207):
+            s = game.create_session(seed=11)
+            bela = {"id": "npc_t10_bela", "name": "Bela", "role": "hancı", "location": s.world_state["location"],
+                    "name_known_to_player": True, "role_known_to_player": True}
+            s.world_state["npcs"].append(bela)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            cases = (
+                ("resolve_npc_reference", ("Bela, merhaba",), {"status": "found", "npc": "npc_t10_bela"}),
+                ("_npc_speech_is_claim_refusal", ("Hayır, öyle bir şey hatırlamıyorum.", bela), True),
+                ("_npc_speech_is_claim_refusal", ("Evet, söz vermiştim.", bela), False),
+                ("record_npc_interaction", (bela, "Hoş geldin yolcu.", "Merhaba, nasılsın?", bela), None),
+            )
+            for name, args, expected in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name, text=args[0]), patch.object(game, "_session", side_effect=record):
+                    answer = getattr(game, name)(*args, session=s)
+                    if isinstance(answer, dict):
+                        answer = {key: value.get("id") if isinstance(value, dict) else value
+                                  for key, value in answer.items()}
+                    self.assertEqual(answer, expected)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            said = game.npc_statements.view(s.world_state)["statements"].get("npc_t10_bela")
+            self.assertEqual([(entry["player"], entry["text"]) for entry in said],
+                             [("Merhaba, nasılsın?", "Hoş geldin yolcu.")])
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_dialogue_helpers_answer_as_before(self):
+        # expected values captured on cc1e9321 before the move; the NPCs are plain dicts, no session is created
+        self.assertTrue(game._is_end_conversation_request("konuşmayı bitiriyorum"))
+        self.assertTrue(game._is_end_conversation_request("Sohbeti sonlandırıyorum."))
+        self.assertFalse(game._is_end_conversation_request("konuşmaya devam"))
+        guard = {"id": "npc_t10_guard", "name": "Dorn", "role": "muhafız"}
+        traveller = {"id": "npc_t10_plain", "name": "Ilka", "role": "yolcu"}
+        self.assertTrue(game._words_fit_person(guard, "muhafiz"))
+        self.assertTrue(game._words_fit_person(guard, "bekci"))
+        self.assertFalse(game._words_fit_person(guard, "hanci"))
+        self.assertFalse(game._words_fit_person(traveller, "muhafiz"))
+        self.assertEqual(game.historical_claim_denial(guard, "Dün bana söz verdin."),
+                         "Dorn sesini alçaltıyor. “Söz verdiysem hatırlardım; sözümü tutmayan biri olarak anılmak "
+                         "istemem. Ama bu benim ağzımdan çıkmadı.”")
+        self.assertEqual(game.historical_claim_denial(None, "x"),
+                         "Bu kişi omuz silkiyor. “Yanlış kapıyı çalıyorsun, dostum. Ben böyle bir şey söylemedim.”")
 
 
 if __name__ == "__main__":

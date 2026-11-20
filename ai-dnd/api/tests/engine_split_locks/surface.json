@@ -711,13 +711,13 @@
  },
  "_absent_described_person": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input, people)"
  },
  "_absent_person_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(place_word)"
  },
@@ -735,7 +735,7 @@
  },
  "_active_interlocutor": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "()"
  },
@@ -939,13 +939,13 @@
  },
  "_claimed_completed_outcome": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_clean_npc_speech": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(raw)"
  },
@@ -969,7 +969,7 @@
  },
  "_clear_active_interlocutor": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(reason)"
  },
@@ -1047,7 +1047,7 @@
  },
  "_conversation_npcs": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "()"
  },
@@ -1257,7 +1257,7 @@
  },
  "_experimental_npc_dialogue_context": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, *, unverified_claim=False, followup=False, personal_context=True)"
  },
@@ -1269,7 +1269,7 @@
  },
  "_experimental_recent_exchanges": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc_id)"
  },
@@ -1293,7 +1293,7 @@
  },
  "_explicit_addressee": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input, candidates)"
  },
@@ -1479,7 +1479,7 @@
  },
  "_grounded_item_request_proposal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(raw_intent, npc_target, player_input)"
  },
@@ -1527,7 +1527,7 @@
  },
  "_has_spoken_to_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -1611,7 +1611,7 @@
  },
  "_interaction_proposal_applies": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(raw_intent, npc_target, player_input)"
  },
@@ -1635,13 +1635,13 @@
  },
  "_is_door_inspection_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_is_end_conversation_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1707,7 +1707,7 @@
  },
  "_is_object_inspection": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1743,7 +1743,7 @@
  },
  "_is_short_conversation_continuation": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1755,13 +1755,13 @@
  },
  "_is_spoken_to": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input, npc)"
  },
  "_is_stock": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -1773,7 +1773,7 @@
  },
  "_job_gate": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, person, player_input)"
  },
@@ -1785,7 +1785,7 @@
  },
  "_job_talk_with": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -1989,7 +1989,7 @@
  },
  "_named_elsewhere_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, player_input)"
  },
@@ -2115,7 +2115,7 @@
  },
  "_nobody_here": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(word)"
  },
@@ -2151,13 +2151,13 @@
  },
  "_npc_name_stance": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, player_input)"
  },
  "_npc_speech_enabled": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "()"
  },
@@ -2169,7 +2169,7 @@
  },
  "_npc_speech_is_claim_refusal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(text, npc=None)"
  },
@@ -2193,13 +2193,13 @@
  },
  "_offer_terms_shown": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, player_input, shown)"
  },
  "_only_stock": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -2247,7 +2247,7 @@
  },
  "_person_fallback": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, player_input)"
  },
@@ -2259,7 +2259,7 @@
  },
  "_physical_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2385,19 +2385,19 @@
  },
  "_remember_accepted_profile_focus": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input, npc_target, action_id, field=None)"
  },
  "_remember_experimental_npc_speech": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc_id, player_text, npc_text, remember: bool = False, voiced=None)"
  },
  "_remember_owner_locked_tavern_focus": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input, npc_target, action_id)"
  },
@@ -2409,7 +2409,7 @@
  },
  "_render_experimental_npc_speech": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(payload, npc)"
  },
@@ -2637,7 +2637,7 @@
  },
  "_settle_address": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(resolution, player_input)"
  },
@@ -2721,7 +2721,7 @@
  },
  "_speech_answer_rules": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "() -> str"
  },
@@ -2787,7 +2787,7 @@
  },
  "_stock": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -2799,7 +2799,7 @@
  },
  "_stock_said": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "()"
  },
@@ -2865,7 +2865,7 @@
  },
  "_thread_person": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input, target_id)"
  },
@@ -2877,19 +2877,19 @@
  },
  "_town_fallback": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, player_input)"
  },
  "_town_in_play": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world)"
  },
  "_town_note": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc)"
  },
@@ -3117,13 +3117,13 @@
  },
  "_without_lines_already_said": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(spoken, npc, world_state, player_input)"
  },
  "_without_place_names": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(text, world_state)"
  },
@@ -3141,7 +3141,7 @@
  },
  "_word_for_nobody_here": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(word, people)"
  },
@@ -3153,7 +3153,7 @@
  },
  "_words_fit_person": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, text)"
  },
@@ -3495,7 +3495,7 @@
  },
  "historical_claim_denial": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, player_input='')"
  },
@@ -3625,7 +3625,7 @@
  },
  "most_plausible_addressee": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(people, player_input='')"
  },
@@ -3634,7 +3634,7 @@
  },
  "named_by_sight": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, text)"
  },
@@ -3664,13 +3664,13 @@
  },
  "npc_memory_supporting_entry": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, player_input)"
  },
  "npc_memory_supports_claim": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, player_input)"
  },
@@ -3755,7 +3755,7 @@
  },
  "record_npc_interaction": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, npc_reply, player_input, npc_target=None)"
  },
@@ -3830,7 +3830,7 @@
  },
  "resolve_npc_reference": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input, force_dialogue=False, allow_active_fallback=True, *, named_word=None)"
  },
