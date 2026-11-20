@@ -1851,7 +1851,7 @@
  },
  "_living_world_prompt_context": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.living_world_turn",
   "session_bound": true,
   "signature": "(scene_plan=None, npc_target=None, player_input=None)"
  },
@@ -2181,7 +2181,7 @@
  },
  "_observe_anchored_structure": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.living_world_turn",
   "session_bound": true,
   "signature": "(player_input, interaction_mode=None)"
  },
@@ -3372,7 +3372,7 @@
  },
  "ensure_campaign_clock": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.living_world_turn",
   "session_bound": true,
   "signature": "()"
  },
@@ -3848,7 +3848,7 @@
  },
  "resolve_scene_seating": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.living_world_turn",
   "session_bound": true,
   "signature": "(action_input)"
  },

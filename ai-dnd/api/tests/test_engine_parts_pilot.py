@@ -68,10 +68,10 @@ def value_digest(names) -> str:
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
         self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
-                                              "game_parts.lore", "game_parts.narration",
+                                              "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.places",
                                               "game_parts.text_rules_a", "game_parts.text_rules_b"))
-        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12 and 13
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13 and 14
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -869,6 +869,47 @@ class NarrationSafetyPart(unittest.TestCase):
             self.assertEqual(game._narration_safety_decision(repaired, inspect, action_result={}, session=s),
                              decision(False, None, None))
             self.assertEqual(json.dumps(s.world_state, sort_keys=True, default=str), world)
+
+
+LWT = tuple(batch_names("lwt"))
+
+
+class LivingWorldTurnPart(unittest.TestCase):
+    """T4.8 batch lwt: the campaign clock and scene seating helpers live in game_parts/living_world_turn.py."""
+
+    def test_lwt_lives_in_the_part(self):
+        self.assertEqual(set(LWT) - set(routing_audit.re_exports(ROOT).get("living_world_turn", ())), set())
+
+    def test_living_world_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # both names read game._session() (measured on 30c48f41): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261214):
+            s = game.create_session(seed=11)
+            s.world_state["locations"]["t14_square"] = {"id": "t14_square", "name": "Çeşme Meydanı", "type": "city",
+                                                         "description": ""}
+            s.world_state["location"] = "t14_square"
+            s.world_state.pop("campaign_time", None)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            for name in ("ensure_campaign_clock", "_living_world_prompt_context"):
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    answer = getattr(game, name)(session=s)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+                    if name == "ensure_campaign_clock":
+                        self.assertIs(answer, s.world_state["campaign_time"])
+                        self.assertEqual(answer["elapsed_seconds"], 0)
+                    else:
+                        context = json.loads(answer)
+                        self.assertEqual(context["location_id"], "t14_square")
+                        self.assertEqual(context["location_name"], "Çeşme Meydanı")
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
 
 
 if __name__ == "__main__":
