@@ -227,6 +227,51 @@ class MoveCheckTests(unittest.TestCase):
         twin = DICE.replace("random.randint(1, 6)", "random.randint(1, 20)")
         self.assertTrue(self.second_move(lambda t: t.replace("    return random.randint(1, 20)\n", "", 1), twin))
 
+    def test_a_held_block_before_a_moved_block_with_the_same_last_line_is_no_change(self):  # D-376
+        base = 'K = 1\n\nHELD = {\n    "a": 1,\n}\nMOVED = {\n    "a": 1,\n    "b": 2,\n}\n\ndef helper():\n    return 2\n'
+        game = 'K = 1\n\nfrom game_parts.dice import MOVED\nHELD = {\n    "a": 1,\n}\n\ndef helper():\n    return 2\n'
+        part = 'import game\n\nMOVED = {\n    "a": 1,\n    "b": 2,\n}\n'
+        self.build(base=base, game=game, part=part)
+        self.assertEqual(check_move(self.base, self.new, {"MOVED": "dice.py"}, NO_LOCK, "normal")["changed"], [])
+
+    def test_an_old_batch_checked_against_an_older_root_says_wrong_root(self):  # D-376: base has a and b; batch moved a; b moved later
+        base = "K = 1\n_PART_MODULES = ()\n\ndef a():\n    return 1\n\ndef b():\n    return 2\n"
+        self.build(base=base, game="K = 1\n_PART_MODULES = ('game_parts.dice',)\n\nfrom game_parts.dice import a, b\n",
+                   part="import game\n\ndef a():\n    return 1\n\ndef b():\n    return 2\n")
+        code, out, _ = self.main("--moved", "a=dice.py")
+        self.assertEqual(code, 2)
+        self.assertEqual(out, "WRONG ROOT? 2 base lines belong to 1 names moved by later batches; "
+                              "use the parent of this batch's move commit\n")
+
+    def test_a_deleted_line_outside_a_later_moved_name_is_not_wrong_root(self):  # D-376: the warning needs every line covered
+        base = "K = 1\n\ndef a():\n    return 1\n\ndef b():\n    return 2\n"
+        self.build(base=base, game="from game_parts.dice import a, b\n",
+                   part="import game\n\ndef a():\n    return 1\n\ndef b():\n    return 2\n")
+        code, out, _ = self.main("--moved", "a=dice.py")
+        self.assertEqual(code, 1)
+        self.assertNotIn("WRONG ROOT", out)
+
+    def other_part(self, base_text="X = 1\n", new_text="X = 2\n"):
+        for root, text in ((self.base, base_text), (self.new, new_text)):
+            (root / "game_parts").mkdir(parents=True, exist_ok=True)
+            (root / "game_parts" / "other.py").write_text(text, encoding="utf-8")
+
+    def test_a_hand_edit_in_another_part_is_a_finding(self):  # D-360 (1)
+        self.build()
+        self.other_part()
+        self.assertEqual(self.check()["changed"], ["CHANGED other part other.py differs from base"])
+        self.other_part(new_text="X = 1\n")
+        self.assertEqual(self.check()["changed"], [])
+        self.other_part(new_text="X = 2\n")
+        self.assertEqual(self.check(manual=["game_parts/other.py:1:owner edit"])["changed"], [])
+
+    def test_a_stale_exemption_in_a_failing_import_group_is_reported(self):  # D-360 (2)
+        self.build(game=GOOD_GAME.replace("import roll\n", "import roll\nSTRAY = 1\n"))
+        changed = self.check(manual=["game.py:new:3:valid import"])["changed"]
+        self.assertEqual(len(changed), 2, changed)
+        self.assertIn("STRAY", changed[0])
+        self.assertEqual(changed[1], "manual entry exempts nothing: game.py:new:3:valid import")
+
     def main(self, *argv: str) -> tuple[int, str, str]:
         import contextlib
         import io
