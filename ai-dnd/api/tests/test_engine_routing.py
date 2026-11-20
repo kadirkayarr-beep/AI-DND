@@ -298,6 +298,12 @@ class RoutingAuditTests(unittest.TestCase):
         src = 'import game\n\nL = list((lambda: (y := 1)) for _ in "a")\nZ = y\n'
         self.assertIn("R5 game_parts/p.py:4: y is not bound in this part, its imports or builtins", self.run_audit(self.tree(src)))
 
+    def test_another_modules_attribute_named_like_a_patched_builtin_is_not_r11(self):
+        """talk_mode.open is talk_mode's own function, not the builtin open tests patch as game.open (Task 5 rehearsal)."""
+        src = "import game\nimport talk_mode\ndef f(w):\n    return talk_mode.open(w, 'n', turn=0)\n"
+        self.assertEqual(TARGETS["open"], "absent")
+        self.assertEqual(self.run_all(self.tree(src, game=reexporting("f"))), [])
+
 
 if __name__ == "__main__":
     unittest.main()
