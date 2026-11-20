@@ -3507,7 +3507,7 @@
  },
  "initialize_game": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.new_game",
   "session_bound": true,
   "signature": "(creation_choice=None, input_fn=<builtin_function_or_method>, print_fn=<builtin_function_or_method>)"
  },

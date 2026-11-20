@@ -69,9 +69,9 @@ class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
         self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
                                               "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
-                                              "game_parts.narration_safety", "game_parts.places",
+                                              "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
                                               "game_parts.text_rules_a", "game_parts.text_rules_b"))
-        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13 and 14
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -111,12 +111,19 @@ class PilotRollD20(unittest.TestCase):
 
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
-        show = ("print(game.roll_d20.__module__); print(game._inside_speech.__module__); "
-                "print(game._split_sentences_keep_speech.__module__)")
+        # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
+        # living_world_turn, new_game)
+        names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
+                 "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
+                 "_narration_safety_decision", "ensure_campaign_clock", "initialize_game")
+        show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
             self.assertEqual((done.returncode, done.stdout.split()),
-                             (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b"]),
+                             (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b",
+                                  "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
+                                  "game_parts.narration", "game_parts.narration_safety",
+                                  "game_parts.living_world_turn", "game_parts.new_game"]),
                              done.stderr)
 
 
@@ -910,6 +917,23 @@ class LivingWorldTurnPart(unittest.TestCase):
                         self.assertEqual(context["location_id"], "t14_square")
                         self.assertEqual(context["location_name"], "Çeşme Meydanı")
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+
+NEWGAME = tuple(batch_names("newgame"))
+
+
+class NewGamePart(unittest.TestCase):
+    """T4.9 batch newgame: initialize_game lives in game_parts/new_game.py."""
+
+    def test_newgame_lives_in_the_part(self):
+        self.assertEqual(set(NEWGAME) - set(routing_audit.re_exports(ROOT).get("new_game", ())), set())
+
+    def test_the_import_time_game_is_initialized_by_the_moved_function(self):  # Review Focus 3
+        # game.py calls initialize_game at import time, after _bind_session_engine (functools.wraps sets __wrapped__)
+        self.assertEqual(game.initialize_game.__wrapped__.__module__, "game_parts.new_game")
+        character = game._DEFAULT_SESSION.character
+        self.assertTrue(character["name"])
+        self.assertGreater(character["max_hp"], 0)
 
 
 if __name__ == "__main__":
