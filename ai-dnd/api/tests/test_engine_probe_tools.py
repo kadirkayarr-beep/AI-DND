@@ -108,6 +108,26 @@ class LedgerMath(unittest.TestCase):
     def test_a_test_that_failed_in_one_base_is_never_lost(self):
         self.assertEqual(lost_tests({"a": "ok", "b": "ok"}, {"a": "fail", "b": "fail"}, {"b"}), ["a"])
 
+    def test_lost_tests_honours_noise_keys(self):  # D-361 item 1: seen red against a planted lost_tests without noise_keys
+        self.assertEqual(lost_tests({"a": "ok", "b": "ok", "c": "ok"}, {"a": "ok", "b": "skip"}, {"b", "c"}), [])
+        self.assertEqual(lost_tests({"a": "ok", "b": "ok"}, {}, {"b"}), ["a"])
+
+    def test_a_test_missing_in_new_is_not_ok(self):  # D-361 item 5
+        self.assertEqual(lost_tests({"a": "ok"}, {}, set()), ["a"])
+
+    def test_an_outer_ok_wins_over_inner_reruns_of_the_same_id(self):  # D-372: test_contract_parity re-runs its ids
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_lines(Path(tmp) / "ledger-1.jsonl", [
+                {"test": "a", "outcome": "fail", "depth": 1},
+                {"test": "a", "outcome": "ok", "depth": 0},
+                {"test": "a", "outcome": "error", "depth": 1},
+                {"test": "b", "outcome": "ok", "depth": 0},
+                {"test": "b", "outcome": "fail", "depth": 0},
+                {"test": "c", "outcome": "ok", "depth": 1},
+                {"test": "c", "outcome": "fail", "depth": 2},
+            ])
+            self.assertEqual(merge_outcomes(Path(tmp)), {"a": "ok", "b": "fail", "c": "fail"})
+
     def test_a_subtest_failed_in_new_and_in_neither_base_is_sublost(self):  # stage A review finding 1
         self.assertEqual(sublost({"t": ["t (n=1)"]}, {"t": ["t (n=2)"]},
                                  {"t": ["t (n=1)", "t (n=2)", "t (n=3)"], "u": ["u (k=1)"]}), ["t (n=3)", "u (k=1)"])
@@ -151,7 +171,8 @@ class LedgerCli(unittest.TestCase):
                 code = ledger_diff.main(["--diff", "--base", str(paths[0]), "--base2", str(paths[1]), "--new", str(paths[2])])
             self.assertEqual(code, 1)
             self.assertEqual(printed.getvalue().split("\n"), [
-                "NOISE 2", "SUBNOISE 0", "DROPS 1", "  t|roll_d20", "LOST 1", "  t", "SUBLOST 0", "SUBGONE 0", ""])
+                "NOISE 2", "SUBNOISE 0", "DROPS 1", "  t|roll_d20", "LOST 1", "  t", "SUBLOST 0", "SUBGONE 0", "SUBCRASH 0",
+                ""])
 
     def test_the_diff_fails_on_a_new_red_subtest_inside_a_test_that_was_already_red(self):  # review finding 1
         base = {"hits": {}, "outcomes": {"t": "fail"}, "subtests": {"t": ["t (n=1)"]}, "seconds": 1, "tree": "a"}
@@ -159,7 +180,8 @@ class LedgerCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base, new))
         self.assertEqual(code, 1)
-        self.assertEqual(printed, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 1", "  t (n=5)", "SUBGONE 0", ""])
+        self.assertEqual(printed, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 1", "  t (n=5)", "SUBGONE 0",
+                                   "SUBCRASH 0", ""])
 
     def test_subnoise_names_the_tests_whose_red_subtests_differ_between_the_bases_and_keeps_the_exit_code(self):
         # Plan 2 Task 9 Step 0 (re-review Minor 1): 22 tests, each with a different red subtest in each base.
@@ -171,7 +193,7 @@ class LedgerCli(unittest.TestCase):
             code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base2, base))
         self.assertEqual(code, 0)
         self.assertEqual(printed, ["NOISE 0", "SUBNOISE 22", *(f"  {n}" for n in names[:20]), "  ... 2 more",
-                                   "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 0", ""])
+                                   "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 0", "SUBCRASH 0", ""])
 
     def test_a_subtest_of_a_subnoise_test_red_in_new_and_in_neither_base_is_still_sublost(self):
         base = {"hits": {}, "outcomes": {"t": "fail"}, "subtests": {"t": ["t (k=1)"]}, "seconds": 1, "tree": "a"}
@@ -181,7 +203,7 @@ class LedgerCli(unittest.TestCase):
             code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base2, new))
         self.assertEqual(code, 1)
         self.assertEqual(printed, ["NOISE 0", "SUBNOISE 1", "  t", "DROPS 0", "LOST 0", "SUBLOST 1", "  t (k=3)",
-                                   "SUBGONE 0", ""])
+                                   "SUBGONE 0", "SUBCRASH 0", ""])
 
     def subgone_diff(self, new_outcome: str, new_subtests: list[str]) -> tuple[int, list[str]]:
         # The same three red subtests in both bases (D-361 item 3); `new` is the given outcome and red subtest list.
@@ -193,15 +215,29 @@ class LedgerCli(unittest.TestCase):
 
     def test_subgone_fails_on_a_base_red_test_that_now_crashes_before_its_subtest_loop(self):  # D-361 item 3
         self.assertEqual(self.subgone_diff("error", []),
-                         (1, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 1", "  t", ""]))
+                         (1, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 1", "  t",
+                              "SUBCRASH 1", "  t", ""]))
 
     def test_subgone_fails_on_a_base_red_test_that_now_crashes_part_way_through_its_subtests(self):  # D-361 item 3
         self.assertEqual(self.subgone_diff("error", ["t (n=1)"]),
-                         (1, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 1", "  t", ""]))
+                         (1, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 1", "  t",
+                              "SUBCRASH 0", ""]))
 
     def test_subgone_is_silent_when_the_base_red_test_now_passes(self):
         self.assertEqual(self.subgone_diff("ok", []),
-                         (0, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 0", ""]))
+                         (0, ["NOISE 0", "SUBNOISE 0", "DROPS 0", "LOST 0", "SUBLOST 0", "SUBGONE 0", "SUBCRASH 0",
+                              ""]))
+
+    def test_a_test_that_crashes_before_its_subtests_is_subcrash(self):  # D-361 item 4: SUBGONE cannot see a SUBNOISE test
+        base = {"hits": {}, "outcomes": {"t": "fail", "u": "fail", "w": "fail"},
+                "subtests": {"t": ["t (k=1)"], "u": ["u (k=1)"], "w": ["w (k=1)"]}, "seconds": 1, "tree": "a"}
+        base2 = dict(base, subtests={"t": ["t (k=2)"], "u": ["u (k=2)"], "w": ["w (k=2)"]})
+        new = dict(base, outcomes={"t": "error", "u": "fail", "w": "ok"}, subtests={"u": ["u (k=1)"]})
+        with tempfile.TemporaryDirectory() as tmp:
+            code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base2, new))
+        self.assertEqual(code, 1)
+        self.assertEqual(printed, ["NOISE 0", "SUBNOISE 3", "  t", "  u", "  w", "DROPS 0", "LOST 0", "SUBLOST 0",
+                                   "SUBGONE 0", "SUBCRASH 1", "  t", ""])
 
     def test_collect_refuses_a_run_with_no_outcome_record(self):  # review finding 2: an n7-only run, a dead shard
         with tempfile.TemporaryDirectory() as tmp:
@@ -234,8 +270,19 @@ class LedgerCli(unittest.TestCase):
                 _write_lines(run / "engine-probe" / "ledger-7.jsonl", [{"test": f"t{shard}", "outcome": "ok"}])
                 _write_proof(run, digest)
             code, printed = _cli(ledger_diff, "--collect", f"{tmp}/*-x-n4-[0-9]*", "--out", str(Path(tmp) / "c.json"))
-        self.assertEqual(code, 2)
-        self.assertEqual(printed, ["TREES_DIFFER", "abc", "def", ""])
+        self.assertEqual(code, 1)
+        self.assertEqual(printed, ["MIXED TREE", "abc", "def", ""])
+
+    def test_shards_of_one_run_share_one_tree(self):  # D-361 item 2: one shard on another tree is a mixed run
+        with tempfile.TemporaryDirectory() as tmp:
+            for shard, digest in ((0, "abc"), (1, "abc"), (2, "def")):
+                run = Path(tmp) / f"20261118T000000-x-n4-{shard}"
+                _write_lines(run / "engine-probe" / "ledger-7.jsonl", [{"test": f"t{shard}", "outcome": "ok"}])
+                _write_proof(run, digest)
+            out = Path(tmp) / "c.json"
+            code, printed = _cli(ledger_diff, "--collect", f"{tmp}/*-x-n4-[0-9]*", "--out", str(out))
+            self.assertEqual((code, printed), (1, ["MIXED TREE", "abc", "def", ""]))
+            self.assertFalse(out.exists())
 
     def test_the_diff_refuses_two_bases_on_different_trees(self):  # review finding 2
         base = {"hits": {}, "outcomes": {"t": "ok"}, "subtests": {}, "seconds": 1, "tree": "a"}
@@ -279,7 +326,7 @@ class PatchLedger(unittest.TestCase):
         Tiny("test_tiny").run(unittest.TestResult())
         self.assertEqual(_patch_records(self.tmp),
                          [{"test": Tiny("test_tiny").id(), "target": "x", "kind": "mock", "called": False}])
-        self.assertIn({"test": Tiny("test_tiny").id(), "outcome": "error"}, _records(self.tmp))
+        self.assertIn({"test": Tiny("test_tiny").id(), "outcome": "error", "depth": 0}, _records(self.tmp))
 
     def test_a_patch_on_another_object_writes_nothing(self):
         other = types.ModuleType("other")
@@ -293,7 +340,7 @@ class PatchLedger(unittest.TestCase):
         engine_probe.install_ledger(self.tmp)
         Tiny("test_tiny").run(unittest.TestResult())
         self.assertEqual(_patch_records(self.tmp), [])
-        self.assertEqual(_records(self.tmp), [{"test": Tiny("test_tiny").id(), "outcome": "ok"}])
+        self.assertEqual(_records(self.tmp), [{"test": Tiny("test_tiny").id(), "outcome": "ok", "depth": 0}])
 
     def test_an_autospec_patch_is_kind_mock_and_a_plain_function_is_kind_other(self):
         fake = _fake_game()
@@ -373,6 +420,20 @@ class PatchLedger(unittest.TestCase):
         self.assertEqual(_patch_records(self.tmp),
                          [{"test": Outer("test_outer").id(), "target": "x", "kind": "mock", "called": False}])
 
+    def test_the_record_carries_its_depth(self):  # D-372: a TestCase run inside a TestCase is depth 1
+        class Inner(unittest.TestCase):
+            def test_inner(self):
+                pass
+
+        class Outer(unittest.TestCase):
+            def test_outer(self):
+                Inner("test_inner").run(unittest.TestResult())
+
+        engine_probe.install_ledger(self.tmp)
+        Outer("test_outer").run(unittest.TestResult())
+        self.assertEqual(_records(self.tmp), [{"test": Inner("test_inner").id(), "outcome": "ok", "depth": 1},
+                                              {"test": Outer("test_outer").id(), "outcome": "ok", "depth": 0}])
+
     def test_failed_and_errored_subtests_are_named_in_the_outcome_record(self):  # stage A review finding 1
         class Tiny(unittest.TestCase):
             def test_tiny(self):
@@ -385,7 +446,8 @@ class PatchLedger(unittest.TestCase):
         engine_probe.install_ledger(self.tmp)
         Tiny("test_tiny").run(unittest.TestResult())
         tid = Tiny("test_tiny").id()
-        self.assertEqual(_records(self.tmp), [{"test": tid, "outcome": "error", "subtests": [f"{tid} (n=2)", f"{tid} (n=3)"]}])
+        self.assertEqual(_records(self.tmp), [{"test": tid, "outcome": "error", "depth": 0,
+                                               "subtests": [f"{tid} (n=2)", f"{tid} (n=3)"]}])
 
     def test_a_patch_entered_outside_any_test_is_filed_under_its_file(self):  # stage A triage T2
         fake = _fake_game()
