@@ -68,8 +68,9 @@ def value_digest(names) -> str:
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
         self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
-                                              "game_parts.places", "game_parts.text_rules_a", "game_parts.text_rules_b"))
-        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9 and 10
+                                              "game_parts.lore", "game_parts.places", "game_parts.text_rules_a",
+                                              "game_parts.text_rules_b"))
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10 and 11
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -660,6 +661,64 @@ class DialoguePart(unittest.TestCase):
                          "istemem. Ama bu benim ağzımdan çıkmadı.”")
         self.assertEqual(game.historical_claim_denial(None, "x"),
                          "Bu kişi omuz silkiyor. “Yanlış kapıyı çalıyorsun, dostum. Ben böyle bir şey söylemedim.”")
+
+
+LORE = tuple(batch_names("lore"))
+
+
+class LorePart(unittest.TestCase):
+    """T4.5 batch lore: lore authority and stage-direction helpers live in game_parts/lore.py."""
+
+    def test_lore_lives_in_the_part(self):
+        self.assertEqual(set(LORE) - set(routing_audit.re_exports(ROOT).get("lore", ())), set())
+
+    def test_lore_helpers_answer_as_before(self):
+        # inputs from test_place_consistency and test_local_place_travel; values captured on 2d8bed3d before the move
+        def street(**extra):
+            return {
+                "location": "city",
+                "locations": {"city": {"id": "city", "name": "Neverwinter", "type": "city", "description": ""}},
+                "features": [], "npcs": [{"id": "n", "name": "Mira", "role": "Kent sakini", "location": "city"}],
+                **extra,
+            }
+
+        inn = street()
+        inn["locations"]["city"]["scene_kind"] = "tavern"
+        stall = street()
+        stall["npcs"][0]["role"] = "Tüccar"
+        cases = (
+            (street(), "Masanın kenarına yaslanıyor. Başını hafifçe sallıyor.", "Başını hafifçe sallıyor."),
+            (street(), "Tezgâhın arkasında duruyor.", ""),
+            (street(), "Omuz silkiyor.", "Omuz silkiyor."),
+            (inn, "Tezgâhın arkasında duruyor.", "Tezgâhın arkasında duruyor."),
+            (stall, "Tezgâhına yaslanıyor.", "Tezgâhına yaslanıyor."),
+        )
+        for world, stage, expected in cases:
+            with self.subTest(stage=stage):
+                self.assertEqual(game._stage_within_the_street(stage, world), expected)
+                self.assertEqual(game._shown_stage_direction(stage, world), expected)
+        self.assertEqual(game._shown_stage_direction("   ", street()), "")
+        self.assertEqual(game._shown_stage_direction(None, street()), "")
+        district = {"location": "d", "locations": {"d": {"name": "Liman Mahallesi", "type": "district"}}}
+        city = {"location": "c", "locations": {"c": {"name": "Neverwinter", "type": "city"}}}
+        self.assertTrue(game._names_the_district_here("mahallenin", district))
+        self.assertTrue(game._names_the_district_here("Semtin", district))
+        self.assertFalse(game._names_the_district_here("sokağın", district))
+        self.assertFalse(game._names_the_district_here("mahallenin", city))
+
+    def test_the_empty_lore_context_is_a_fresh_value_each_call(self):
+        # measured on 2d8bed3d: two calls give equal dicts, never the same object (nor shared section lists)
+        first, second = game._empty_lore_authority_context(), game._empty_lore_authority_context()
+        self.assertEqual(first, second)
+        self.assertIsNot(first, second)
+        self.assertIsNot(first["sections"], second["sections"])
+        self.assertIsNot(first["sections"]["campaign_canon"], second["sections"]["campaign_canon"])
+        self.assertEqual(set(first), {"authority_boundary", "sections"})
+        self.assertTrue(all(first["authority_boundary"].values()))
+        self.assertEqual(first["sections"], {
+            "official_forgotten_realms_lore": [], "campaign_canon": [], "player_known_lore": [],
+            "npc_known_lore": [], "procedural_local_content": [], "unknown_or_unloaded": [],
+        })
 
 
 if __name__ == "__main__":

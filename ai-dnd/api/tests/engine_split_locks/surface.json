@@ -1191,7 +1191,7 @@
  },
  "_empty_lore_authority_context": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "()"
  },
@@ -1359,7 +1359,7 @@
  },
  "_filter_unsupported_lore_paragraphs": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(narration, lore_claims, lore_context, world_state)"
  },
@@ -1539,7 +1539,7 @@
  },
  "_has_unregistered_narrative_entity": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(sentence, known_phrases, known_tokens)"
  },
@@ -1725,7 +1725,7 @@
  },
  "_is_registered_lore_name": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(candidate, known_phrases, known_tokens)"
  },
@@ -2019,7 +2019,7 @@
  },
  "_names_the_district_here": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(word, world_state)"
  },
@@ -2055,7 +2055,7 @@
  },
  "_narration_has_unsupported_lore_claim": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(narration, lore_claims, lore_context, world_state)"
  },
@@ -2265,7 +2265,7 @@
  },
  "_player_question_has_unverified_lore_claim": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(player_input, lore_context, world_state)"
  },
@@ -2277,7 +2277,7 @@
  },
  "_prepare_lore_authority_context": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(lore_context)"
  },
@@ -2445,7 +2445,7 @@
  },
  "_repair_unsupported_lore_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(narration, lore_claims, lore_context, world_state)"
  },
@@ -2577,7 +2577,7 @@
  },
  "_scene_has_registered_craft_role": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(term, world_state)"
  },
@@ -2673,7 +2673,7 @@
  },
  "_shown_stage_direction": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(stage, world_state)"
  },
@@ -2757,7 +2757,7 @@
  },
  "_stage_within_the_street": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(stage, world_state)"
  },
@@ -2823,7 +2823,7 @@
  },
  "_supported_lore_question_response": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(player_input, lore_context, world_state)"
  },
@@ -2985,7 +2985,7 @@
  },
  "_unverified_lore_response": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(player_input, npc_target=None)"
  },
