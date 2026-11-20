@@ -486,6 +486,7 @@ class PlacesPart(unittest.TestCase):
 
 
 INTENT_1 = tuple(batch_names("intent-1"))
+INTENT_2 = tuple(batch_names("intent-2"))
 
 
 class IntentPart(unittest.TestCase):
@@ -493,6 +494,27 @@ class IntentPart(unittest.TestCase):
 
     def test_intent_1_lives_in_the_part(self):
         self.assertEqual(set(INTENT_1) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
+
+    def test_intent_2_lives_in_the_part(self):
+        self.assertEqual(set(INTENT_2) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
+
+    def test_a_rebound_validate_intent_reaches_a_moved_caller(self):  # Review Focus 5
+        # analyze_player_action (moved in intent-1) reads game.parse_player_intent, game.normalize_intent and
+        # game.validate_intent, three of the four names trace_ai_pipeline.py rebinds; no session, model or campaign
+        seen = []
+
+        def validate(intent, player_input):
+            seen.append((intent, player_input))
+            return {"intent": "perception", "skill": "Perception", "difficulty": "hard"}
+
+        with patch.object(game, "parse_player_intent", return_value={"raw": 1}) as parse, \
+             patch.object(game, "normalize_intent", return_value={"norm": 1}) as norm, \
+             patch.object(game, "validate_intent", side_effect=validate):
+            out = game.analyze_player_action("Etrafa bakıyorum.", "Fighter", [])
+        parse.assert_called_once_with("Etrafa bakıyorum.")
+        norm.assert_called_once_with({"raw": 1}, "Etrafa bakıyorum.")
+        self.assertEqual(seen, [({"norm": 1}, "Etrafa bakıyorum.")])
+        self.assertEqual(out, {"action_type": "check", "skill": "Perception", "difficulty": "hard"})
 
     def test_intent_session_helpers_use_the_given_session(self):  # Review Focus 4
         # both names read game._session() (measured on d9bbb857): record what it returns during the session= call

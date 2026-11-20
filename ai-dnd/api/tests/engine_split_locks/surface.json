@@ -1509,7 +1509,7 @@
  },
  "_has_explicit_attack_verb": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1653,7 +1653,7 @@
  },
  "_is_explicitly_negated_attack": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2013,7 +2013,7 @@
  },
  "_names_present_creature": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -3733,7 +3733,7 @@
  },
  "primal_knowledge_check_admission": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None, check_feature='primal_knowledge')"
  },
@@ -4026,7 +4026,7 @@
  },
  "validate_intent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(intent, player_input)"
  },

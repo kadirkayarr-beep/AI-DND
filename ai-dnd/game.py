@@ -7167,83 +7167,7 @@ def normalize_intent(raw_intent, player_input):
 
 
 
-def validate_intent(intent, player_input):
-    """Reject unsupported/mismatched intent fields before the Python rule engine."""
-    world_state = _session().world_state
-    if not isinstance(intent, dict) or intent.get("intent") not in INTENT_TYPES:
-        return {"intent": "unknown", "action": "", "target": {"type": "none", "reference": ""}, "completion": "unclear", "confidence": 0.0}
-    target = intent.get("target", {})
-    if not isinstance(target, dict):
-        target = {"type": "none", "reference": ""}
-    reference = target.get("reference", "")
-    if not isinstance(reference, str):
-        reference = ""
-    reference = reference.strip()[:80]
-    target_type = target.get("type", "none")
-    if target_type not in {"location", "npc", "item", "feature", "none"}:
-        target_type = "none"
-    valid = dict(intent)
-    valid["target"] = {"type": target_type, "reference": reference}
-    selected_npc = _validated_scene_npc_id(intent, player_input)
-    if selected_npc:
-        valid["target"].update(
-            npc_id=selected_npc["id"],
-            evidence_quote=target["evidence_quote"].strip(),
-        )
-    detected_query = _detect_query_type(player_input)
-    detected_explore = _detect_explore_type(player_input)
-    if detected_query:
-        valid.update(intent="query", query_type=detected_query, completion="unclear")
-        valid.pop("explore_type", None)
-        return valid
-    if detected_explore:
-        valid.update(intent="explore", explore_type=detected_explore, completion="unclear")
-        valid.pop("query_type", None)
-        return valid
-    if valid["intent"] == "query":
-        if (
-            valid.get("query_type") not in {"self", "location", "presence", "npc_identity"}
-            or not _model_query_type_is_plausible(player_input)
-        ):
-            valid.pop("query_type", None)
-            valid["intent"] = "narrative"
-        valid["completion"] = "unclear"
-        return valid
-    if valid["intent"] in {"explore", "observe"}:
-        subtype = valid.get("explore_type", "observe")
-        valid.update(intent="explore", explore_type=subtype if subtype in {"observe", "inspect", "search"} else "observe", completion="unclear")
-        valid.pop("query_type", None)
-        return valid
-    if valid["intent"] == "travel" and not (target_type == "npc" and world_state.get("combat", {}).get("active")):
-        # (in a fight a walk toward a person is combat movement: combat_lifecycle.approach checks who and how far)
-        text = str(player_input).casefold()
-        pending = world_state.get("flags", {}).get("pending_destination")
-        pending_followup = bool(pending and re.search(r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", _normalize_turkish_typos(text)))
-        if not (_has_travel_language(player_input) or pending_followup):
-            valid["intent"] = "dialogue" if is_npc_dialogue_input(player_input) else "narrative"
-        elif not reference and not pending_followup:
-            valid["intent"] = "narrative"
-        elif reference and not pending_followup:
-            mentioned_location = (
-                _travel_destination_reference_in_text(text)
-                or _location_reference_in_text(text)
-            )
-            # More flexible reference matching for Turkish case endings
-            named_in_input = _normalize_turkish_location(text, reference)
-            if mentioned_location:
-                valid["target"] = {"type": "location", "reference": mentioned_location}
-            elif not named_in_input:
-                # Even a known place cannot be selected by the model if the player did not name it.
-                valid["intent"] = "dialogue" if is_npc_dialogue_input(player_input) else "narrative"
-        if pending_followup and not reference:
-            valid["target"] = {"type": "location", "reference": str(pending)}
-        valid["completion"] = _travel_completion(player_input, valid.get("completion", "unclear"))
-    skill_intent = valid.get("intent")
-    if skill_intent in SKILL_INTENT_TO_SKILL and is_npc_dialogue_input(player_input):
-        deterministic = deterministic_check_for_action(player_input)
-        if not deterministic or deterministic.get("skill") != SKILL_INTENT_TO_SKILL[skill_intent]:
-            valid["intent"] = "dialogue"
-    return valid
+from game_parts.intent import validate_intent, _names_present_creature, _has_explicit_attack_verb, _is_explicitly_negated_attack, primal_knowledge_check_admission
 
 
 def _ensure_location_entities(location):
@@ -11888,127 +11812,16 @@ def _commit_travel_action(action_result):
 
 
 
-def _names_present_creature(text):
-    if _CREATURE_REFERENCE.search(text):
-        return True
-    try:
-        npcs = _session().world_state.get("npcs", [])
-    except Exception:  # no bound session: stay conservative
-        return True
-    for npc in npcs if isinstance(npcs, list) else []:
-        if not isinstance(npc, dict):
-            continue
-        for label in (npc.get("name"), npc.get("role"), living_world.public_npc_role(npc)):
-            if isinstance(label, str) and label.strip() and _entity_reference_in_text(label, text):
-                return True
-    return False
-
-
-def _has_explicit_attack_verb(player_input):
-    text = _normalize_turkish_typos(player_input)
-    tokens = text.split()
-    if _ATTACK_BLOW_PHRASE.search(text):
-        return True
-    if _session().world_state.get("combat", {}).get("active") and _CHARGING_IN.search(text):
-        return True  # in a fight, going in with a weapon is a blow
-    attack_positions = [
-        index for index, token in enumerate(tokens)
-        if token in _attack_verb_tokens(token)
-    ]
-    if not attack_positions:
-        return False
-    import grounded_action
-    # A complete named phrase (e.g. Keser Hanı) is not a verb. Do not let
-    # an isolated name equal to an imperative (an NPC named Kes) hide "onu kes".
-    known_targets = combat_lifecycle.registered_name_candidates(_session())
-    attack_positions = [index for index in attack_positions
-                        if not grounded_action._registered_target_name_covers(
-                            tokens, index, known_targets, strict=True)]
-    if not attack_positions:
-        return False
-    # "Kapıya vuruyorum", "zili çalıp vuruyorum", "halatın ucunu kesip": the
-    # struck thing right before the verb is an object and no creature stands
-    # there, so this verb is knocking/cutting, not a fight. One real attack verb
-    # anywhere still counts.
-    for index in attack_positions:
-        window = " ".join(tokens[max(0, index - 4):index])
-        if _INANIMATE_HIT_OBJECT.search(window) and not _names_present_creature(window):
-            continue
-        if (
-            _INANIMATE_HIT_OBJECT.search(text)
-            and not _names_present_creature(text)
-        ):
-            continue
-        return True
-    return False
-
-
-def _is_explicitly_negated_attack(player_input):
-    """Recognize clear Turkish attack negation before any combat state can change."""
-    text = _normalize_turkish_typos(player_input)
-    if not _has_explicit_attack_verb(player_input):
-        return False
-
-    refused = re.compile(
-        rf"\b{_ATTACK_VERB_PATTERN}\w*?"
-        r"(?:miyorum|miyor|muyor|muyorum|madim|medim|"
-        r"mayacag\w*|meyeceg\w*|mayin|meyin|maz\w*|mez\w*|ma|me)\b"
-        rf"|\b{_ATTACK_VERB_PATTERN}\w*\s+"
-        r"(?:istem\w*|dusunm\w*|niyetim\s+yok|arzu\s+etm\w*)\b"
-    )
-    # "Vuruyorum, öldürme": the no is on the killing; a blow still stands beside it.
-    return refused.search(text) is not None and not _has_explicit_attack_verb(refused.sub(" ", text))
 
 
 
 
 
 
-def primal_knowledge_check_admission(player_input, *, interaction_mode='do', combat_action=None, scene_plan=None, target_id=None, check_feature='primal_knowledge'):
-    """Pure opt-in admission, not a new normal-command or PHB restriction.
 
-    Only bounded standalone immediate wording is supported. Other owners retain
-    their priority; timed, mixed, model-only and context-dependent routes refuse.
-    """
-    import barbarian_rage
-    if interaction_mode != 'do' or combat_action is not None or target_id is not None:
-        raise _immediate_check_refusal(check_feature, 'Use {feature} only for an immediate Do check.')
-    world = _session().world_state
-    text = _normalize_turkish_typos(player_input) if type(player_input) is str else ''
-    simple = re.fullmatch(
-        r'(?:takla (?:atiyorum|atacagim|atmaya calisiyorum|atmak istiyorum)|'
-        r'dengede (?:yuruyorum|ilerliyorum|kaliyorum|geciyorum)|'
-        r'(?:ip|halat) uzerinde (?:yuruyorum|ilerliyorum)|'
-        r'akrobatik hareket (?:yapiyorum|ediyorum)|'
-        r'(?:onu korkutmaya|gozdagi vermeye) calisiyorum|tehdit ediyorum|'
-        r'(?:bir sey fark etmeye|tehlikeyi fark etmeye|bir sey duymaya) calisiyorum|'
-        r'ses dinliyorum|(?:etrafi|cevreyi) gozlemliyorum|'
-        r'(?:(?:golgelere|karanliga|kalabaliga) )?(?:gizleniyorum|saklaniyorum)|'  # D-171: a hide may name its cover
-        r'(?:yolumu|yonumu) (?:buluyorum|bulmaya calisiyorum)|'
-        r'yiyecek (?:ariyorum|aramaya calisiyorum)|barinak kurmaya calisiyorum'
-        r')[.! ]*', text,
-    )
-    journey = world.get('journey')
-    movement, wait, task, observation = timed_gameplay.input_route_markers(world, text)
-    timed = ((wait or task or observation) and campaign_time.names_duration(player_input))
-    if (not simple or timed or world.get('active_task')
-            or (journey and journey.get('status') != 'ARRIVED')
-            or any(event.get('decision_status') == 'PENDING' for event in timed_gameplay.pending_events(world))
-            or adventure_play.inside_hideout(world)
-            or (isinstance(scene_plan, dict) and scene_plan.get('direct_result') is not None)):
-        raise _immediate_check_refusal(check_feature, 'This wording or route does not support an immediate {feature} check.')
-    selected = deterministic_check_for_action(player_input)
-    skill = selected.get('skill') if isinstance(selected, dict) and selected.get('action_type') == 'check' else None
-    if skill == 'Stealth' and _stealth_skill(player_input) != 'Stealth':
-        skill = None  # D-171: no cover, no hide to use the feature on
-    if check_feature == 'tactical_mind':
-        import fighter_features
-        fighter_features.require_tactical_mind(_session())
-        if skill not in SKILLS:
-            raise _immediate_check_refusal(check_feature, 'No supported immediate check was selected.')
-    else:
-        barbarian_rage.require_primal_knowledge(_session(), skill, 'primal_knowledge')
-    return selected
+
+
+
 
 
 def execute_intent(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None):
