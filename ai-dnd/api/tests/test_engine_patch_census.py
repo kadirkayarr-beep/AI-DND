@@ -16,7 +16,10 @@ LOCK = Path(__file__).parent / "engine_split_locks" / "patch_census.json"
 SURFACE = Path(__file__).parent / "engine_split_locks" / "surface.json"
 GAME_NAMES = set(json.loads(SURFACE.read_text(encoding="utf-8")))
 # file -> reason: sites whose attribute name is computed and cannot be resolved (target "<dynamic>"). Empty = none allowed.
-DYNAMIC_REASONS: dict[str, str] = {}
+DYNAMIC_REASONS: dict[str, str] = {
+    "api/tests/test_engine_module_alias.py": "setattr(game, name, ...) over every _CHARACTER_GLOBALS alias (Plan 4 Task 1); "
+                                             "the aliases are session-core class properties, never moved",
+}
 
 
 class PatchCensusTests(unittest.TestCase):
