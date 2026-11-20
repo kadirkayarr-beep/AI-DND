@@ -382,5 +382,52 @@ class TextB2Part(unittest.TestCase):
                 self.assertEqual(helper(*args), expected)
 
 
+CR = tuple(batch_names("cr"))
+
+
+class CharacterRulesPart(unittest.TestCase):
+    """T4.1 batch cr: character, skill and dice helpers live in game_parts/character_rules.py; game.py re-exports them."""
+
+    def test_cr_lives_in_the_part(self):
+        self.assertEqual(set(CR) - set(routing_audit.re_exports(ROOT)["character_rules"]), set())
+
+    def test_a_patched_roll_d20_reaches_a_moved_roll_attack(self):
+        # the new path after the move: part roll_attack -> game.roll_d20 (R9)
+        with patch.object(game, "roll_d20", return_value=20) as rolled:
+            self.assertEqual(game.roll_attack(), 20)
+        rolled.assert_called_once_with()
+
+    def test_character_rules_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # both names read game._session() (measured on 0b159e30): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261201):
+            s = game.create_session(seed=11)
+            s.character["species"] = "Goliath"
+            s.character["proficiency_bonus"] = 2
+            default_character = dict(game._session().character)
+            for name, args in (("roll_stat", ()), ("initialize_species_trait_state", ("hill",))):
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    getattr(game, name)(*args, session=s)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(s.character["giant_ancestry"], "hill")
+            self.assertEqual(dict(game._session().character), default_character)
+
+    def test_cr_helpers_answer_as_before(self):
+        # one fixed character (Barbarian, DEX 14, CON 16, WIS 12); expected values captured on 0b159e30 before the move
+        self.assertEqual([game.get_modifier(stat) for stat in (8, 10, 15, 20)], [-1, 0, 2, 5])
+        dex, con, wis = game.get_modifier(14), game.get_modifier(16), game.get_modifier(12)
+        self.assertEqual((dex, con, wis), (2, 3, 1))
+        self.assertEqual(game.calculate_hp("Barbarian", con), 15)
+        self.assertEqual(game.calculate_ac("Barbarian", dex, con, wis), 15)
+
+
 if __name__ == "__main__":
     unittest.main()
