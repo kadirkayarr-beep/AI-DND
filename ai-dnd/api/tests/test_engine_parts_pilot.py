@@ -67,8 +67,8 @@ def value_digest(names) -> str:
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.text_rules_a",
-                                              "game_parts.text_rules_b"))  # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.places", "game_parts.text_rules_a",
+                                              "game_parts.text_rules_b"))  # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Task 8
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -427,6 +427,54 @@ class CharacterRulesPart(unittest.TestCase):
         self.assertEqual((dex, con, wis), (2, 3, 1))
         self.assertEqual(game.calculate_hp("Barbarian", con), 15)
         self.assertEqual(game.calculate_ac("Barbarian", dex, con, wis), 15)
+
+
+PLACES_1 = tuple(batch_names("places-1"))
+
+
+class PlacesPart(unittest.TestCase):
+    """T4.2 batches places-1 and places-2: door, feature, location and scene helpers live in game_parts/places.py."""
+
+    def test_places_1_lives_in_the_part(self):
+        self.assertEqual(set(PLACES_1) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
+
+    def test_places_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # every name reads game._session() (measured on 33ab2efd): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261202):
+            s = game.create_session(seed=11)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            cases = (
+                ("resolve_location_reference", ("ormanı",), "forest"),
+                ("update_inventory_from_player", ("kılıcı yere bırakıyorum",), None),
+            )
+            for name, args, expected in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    answer = getattr(game, name)(*args, session=s)
+                    if expected is not None:
+                        self.assertEqual(answer, expected)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_places_helpers_answer_as_before(self):
+        # a new session's three places (tavern, forest, castle); expected values captured on 33ab2efd before the move
+        with fixed_town(self, 20261203):
+            s = game.create_session(seed=11)
+            self.assertEqual(game.normalize_location_id("tavern", session=s), "tavern")
+            self.assertEqual(game.normalize_location_id("ormanı", session=s), "forest")
+            self.assertEqual(game.location_display_name("tavern", session=s), "Taverna")
+            self.assertEqual(game.location_display_name("Kuzey Kapısı", session=s), "Kuzey Kapısı")
+        self.assertTrue(game._reference_token_matches("han", "hanlar"))
+        self.assertTrue(game._reference_token_matches("kapı", "kapıdan"))
+        self.assertFalse(game._reference_token_matches("han", "kapı"))
 
 
 if __name__ == "__main__":
