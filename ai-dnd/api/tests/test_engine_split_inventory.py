@@ -156,6 +156,52 @@ class InventoryTests(unittest.TestCase):
         # quiet reads game only inside a function: importing it (and b2) touches nothing
         self.assertEqual(inventory.touching_tests(self.tmp, {"X"}), ["api.tests.test_b", "api.tests.test_c"])
 
+    def _touching(self, files, names):
+        for rel, src in files.items():
+            (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.tmp / rel).write_text(src, encoding="utf-8")
+        return inventory.touching_tests(self.tmp, names)
+
+    def test_touching_tests_sees_a_session_attribute_read(self):  # D-446: GameSession binds every engine function
+        files = {
+            "api/tests/test_name.py": "def t(session):\n    return session.X()\n",
+            "api/tests/test_attr.py": "class T:\n    def m(self):\n        return self.session.Y\n",
+            "api/tests/test_case.py": "def t(ActiveSession):\n    return ActiveSession.X\n",
+            "api/tests/test_call.py": "import game\ndef t():\n    return game._session().Y\n",
+            "api/tests/helper_s.py": "def h(other_session):\n    return other_session.X\n",
+            "api/tests/test_helper.py": "from api.tests.helper_s import h\n",
+            "api/tests/test_other_name.py": "def t(session):\n    return session.Z\n",
+            "api/tests/test_no_session.py": "def t(world):\n    return world.X\n",
+        }
+        self.assertEqual(self._touching(files, {"X", "Y"}),
+                         ["api.tests.test_attr", "api.tests.test_call", "api.tests.test_case",
+                          "api.tests.test_helper", "api.tests.test_name"])
+
+    def test_touching_tests_sees_a_getattr_on_a_session(self):  # D-446
+        files = {
+            "api/tests/test_getattr.py": "def t(session):\n    return getattr(session, 'X')\n",
+            "api/tests/test_getattr_default.py": "def t(self):\n    return getattr(self.session, \"Y\", None)\n",
+            "api/tests/test_patch.py": "from unittest import mock\ndef t(session):\n"
+                                       "    return mock.patch.object(session, 'X')\n",
+            "api/tests/test_other_name.py": "def t(session):\n    return getattr(session, 'Z')\n",
+            "api/tests/test_no_session.py": "def t(world):\n    return getattr(world, 'X')\n",
+        }
+        self.assertEqual(self._touching(files, {"X", "Y"}),
+                         ["api.tests.test_getattr", "api.tests.test_getattr_default", "api.tests.test_patch"])
+
+    def test_touching_tests_sees_a_created_session_under_another_name(self):  # D-446
+        files = {
+            "api/tests/test_created.py": "import game\ndef t():\n    s = game.create_session(seed=1)\n    return s.X\n",
+            "api/tests/test_class.py": "from game import GameSession\ndef t():\n    eng = GameSession()\n"
+                                       "    return getattr(eng, 'Y')\n",
+            "api/tests/test_self.py": "import game\nclass T:\n    def setUp(self):\n        self.a = game.create_session()\n"
+                                      "    def t(self):\n        return self.a.X\n",
+            "api/tests/test_made.py": "def t(make):\n    s = make()\n    return s.X\n",
+            "api/tests/test_created_other.py": "import game\ndef t():\n    s = game.create_session()\n    return s.Z\n",
+        }
+        self.assertEqual(self._touching(files, {"X", "Y"}),
+                         ["api.tests.test_class", "api.tests.test_created", "api.tests.test_self"])
+
     def test_verify_claims_marks_a_changed_named_set_false_and_a_changed_count_shifted(self):
         game = (
             "from uuid import uuid4\n"
