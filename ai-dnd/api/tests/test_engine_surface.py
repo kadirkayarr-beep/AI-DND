@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import copy
 import inspect
+import io
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -25,6 +28,11 @@ CENSUS_PATH = Path(__file__).parent / "engine_split_locks" / "patch_census.json"
 # Plan 2 batch file -> the part it moves into, in move order (Tasks 9-14)
 T3_BATCHES = {"tables": "tables", "schemas": "schemas", "text-a1": "text_rules_a", "text-a2": "text_rules_a",
               "text-b1": "text_rules_b", "text-b2": "text_rules_b"}
+# Plan 3 batch file -> the part it moves into, in move order (Tasks 7-15)
+T4_BATCHES = {"cr": "character_rules", "places-1": "places", "places-2": "places", "intent-1": "intent",
+              "intent-2": "intent", "schemas-options": "schemas", "dialogue-1": "dialogue",
+              "dialogue-2": "dialogue", "lore": "lore", "narration": "narration", "nsafety-1": "narration_safety",
+              "nsafety-2": "narration_safety", "lwt": "living_world_turn", "newgame": "new_game"}
 
 
 class SurfaceTests(unittest.TestCase):
@@ -91,6 +99,9 @@ class SurfaceTests(unittest.TestCase):
 
     def test_t3_batches_are_movable(self):
         # Plan 2 T3 batches (Tasks 9-14) against game.py before each move; a moved batch is checked by its re-exports
+        self._batches_are_movable(T3_BATCHES)
+
+    def _batches_are_movable(self, batches):  # one set of rules for the T3 and the T4 test (Plan 3 Task 4, D-364)
         game_py = ROOT / "game.py"
         index = top_level_index(game_py)
         entries: dict[str, list[dict]] = {}
@@ -106,12 +117,12 @@ class SurfaceTests(unittest.TestCase):
         game_lines = game_py.read_text(encoding="utf-8").split("\n")
         # directed edges of inventory.constant_clusters: which top-level statement's value reads which names
         reads = [(node.lineno, {n.id for n in ast.walk(node.value) if isinstance(n, ast.Name)},
-                  set(inventory._bound(node)[1]))
+                  set(inventory.bound_names(node)[1]))
                  for node in ast.parse("\n".join(game_lines)).body
                  if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)) and node.value is not None]
         seen: dict[str, str] = {}
         part_constants: dict[str, set[str]] = {}
-        for batch, part in T3_BATCHES.items():
+        for batch, part in batches.items():
             names = engine_sources.batch_names(batch)
             moved = set(re_exports.get(part, []))
             part_py = ROOT / "game_parts" / f"{part}.py"
@@ -139,6 +150,7 @@ class SurfaceTests(unittest.TestCase):
                         prefix_names(block, engine_names, keep_bare)
                     except MoveRefused as refused:
                         self.fail(f"{batch}: {refused}")
+            # unreachable through import order; kept as a guard
             first_cut = min(entries[n][0]["start"] for n in staying)  # the re-export line takes its place
             for line, read, bound in reads:
                 if bound & set(names) or not read & set(staying):
@@ -147,6 +159,20 @@ class SurfaceTests(unittest.TestCase):
                     self.assertGreater(line, first_cut, f"{sorted(bound)} reads {sorted(read & set(staying))} "
                                                         f"above the first cut block of {batch}")
             part_constants.setdefault(part, set()).update(constants)
+
+    def test_surface_diff_is_silent_when_clean(self):  # D-364: no finding, no output (not even an empty line)
+        from engine_split import surface
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.json"
+            path.write_text(json.dumps(self.golden), encoding="utf-8")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = surface.main(["--diff", "--old", str(path), "--new", str(path)])
+        self.assertEqual((code, out.getvalue()), (0, ""))
+
+    def test_t4_batches_are_movable(self):
+        # Plan 3 T4 batches (Tasks 7-15), same rules as the T3 test
+        self._batches_are_movable(T4_BATCHES)
 
     def test_a_missing_name_is_reported(self):
         live = dict(self.golden)

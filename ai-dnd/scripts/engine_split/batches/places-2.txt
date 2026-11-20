@@ -1,0 +1,15 @@
+_scene_feature_match
+_scene_names
+_variation_index
+_look_opening
+_scene_look_text
+_look_scene_changed
+_keep_people_in_look
+_set_scene_active_npc
+_reopen_public_doors
+_a_walk
+_walked_there
+_may_propose_local_place
+_accepted_local_place
+_settle_local_place
+_is_canonical_city_id

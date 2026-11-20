@@ -522,5616 +522,5622 @@
   },
   {
    "name": "ollama_response_content",
-   "kind": "function",
+   "kind": "import",
    "start": 91,
    "def_line": 91,
-   "end": 100,
-   "lines": 10
+   "end": 91,
+   "lines": 1
   },
   {
    "name": "ollama_reply_was_cut",
-   "kind": "function",
-   "start": 103,
-   "def_line": 103,
-   "end": 107,
-   "lines": 5
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_ASKS_SOMETHING",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_just_served",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_THIRD_PERSON_REPORT",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_SECOND_PERSON_SAID",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_SAID_IT_AGAIN",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_ENDS_IN_SPEECH",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "is_ordinary_environment_look",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "npc_ambiguity_response",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_NEGATED_VERB_SUFFIX",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_affirmative_door_verb",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_SKILL_CHECK_WORD",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_SKILL_ENDING",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_ABILITY_WORD",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_OPEN_SCARE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_COVER_WORD",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_COVER",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_OWN_THING_HIDDEN",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_READING_CHECKS",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_COMMON_SENTENCE_OPENERS",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_QUESTION_CUE_RE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "clean_dm_response",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_hand_names_something",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_ARMED_ROLE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_STRONG_ROLE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_PERSON_FIGHT",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_clean_world_text",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_scene_texts_for_referents",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_ENGLISH_STOP_WORDS",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_reads_english",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_SAVE_ABILITY_TR",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_unarmed_save_text",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_FALL_LINE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_REWOUND_LINE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_PROPOSAL_MARKER_RE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_INTERNAL_MARK_RE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_strip_proposal_markers",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_normalize_interaction_mode",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_GUARD_ROLE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_GUARD_WORD",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_GENERIC_PERSON",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_is_guard",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_serves_at_a_counter",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_topic_place_name",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_LOCATED_PERSON",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_IN_REACH_WORDS",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_COUNTER_WORDS",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_COUNTER_ROLE",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
+  },
+  {
+   "name": "_drop_repeated_sentences",
+   "kind": "import",
+   "start": 91,
+   "def_line": 91,
+   "end": 91,
+   "lines": 1
   },
   {
    "name": "roll_d20",
    "kind": "import",
-   "start": 114,
-   "def_line": 114,
-   "end": 114,
+   "start": 100,
+   "def_line": 100,
+   "end": 100,
    "lines": 1
   },
   {
    "name": "get_modifier",
    "kind": "function",
-   "start": 117,
-   "def_line": 117,
-   "end": 118,
+   "start": 103,
+   "def_line": 103,
+   "end": 104,
    "lines": 2
   },
   {
    "name": "roll_stat",
    "kind": "function",
-   "start": 121,
-   "def_line": 121,
-   "end": 125,
+   "start": 107,
+   "def_line": 107,
+   "end": 111,
    "lines": 5
   },
   {
    "name": "RACES",
-   "kind": "assign",
-   "start": 132,
-   "def_line": 132,
-   "end": 145,
-   "lines": 14
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
   },
   {
    "name": "RACE_FEATURES",
-   "kind": "assign",
-   "start": 152,
-   "def_line": 152,
-   "end": 233,
-   "lines": 82
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
   },
   {
    "name": "CLASSES",
-   "kind": "assign",
-   "start": 240,
-   "def_line": 240,
-   "end": 253,
-   "lines": 14
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
   },
   {
    "name": "CLASS_FEATURES",
-   "kind": "assign",
-   "start": 260,
-   "def_line": 260,
-   "end": 319,
-   "lines": 60
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
   },
   {
    "name": "CLASS_HIT_DICE",
-   "kind": "assign",
-   "start": 326,
-   "def_line": 326,
-   "end": 340,
-   "lines": 15
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
   },
   {
    "name": "SKILLS",
-   "kind": "assign",
-   "start": 351,
-   "def_line": 351,
-   "end": 371,
-   "lines": 21
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
   },
   {
    "name": "CLASS_SKILL_OPTIONS",
-   "kind": "assign",
-   "start": 378,
-   "def_line": 378,
-   "end": 507,
-   "lines": 130
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
   },
   {
    "name": "DIFFICULTY_DC",
-   "kind": "assign",
-   "start": 514,
-   "def_line": 514,
-   "end": 521,
-   "lines": 8
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "RANDOM_NAMES",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "GIANT_ANCESTRY_IDS",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "CELESTIAL_REVELATION_FORMS",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "INNER_RADIANCE_SPEC",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "NECROTIC_SHROUD_SPEC",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "SPECIES_WITH_TRAIT_STATE",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "_ABILITY_NAMES",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "_ORIGIN_TEXT_KEYS",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "_ORIGIN_LIST_KEYS",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "_ORIGIN_SCORE_KEYS",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "DEATH_MODES",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
+  },
+  {
+   "name": "CHECK_FEATURES",
+   "kind": "import",
+   "start": 118,
+   "def_line": 118,
+   "end": 118,
+   "lines": 1
   },
   {
    "name": "choose_option",
    "kind": "function",
-   "start": 528,
-   "def_line": 528,
-   "end": 552,
+   "start": 171,
+   "def_line": 171,
+   "end": 195,
    "lines": 25
-  },
-  {
-   "name": "RANDOM_NAMES",
-   "kind": "assign",
-   "start": 559,
-   "def_line": 559,
-   "end": 564,
-   "lines": 6
   },
   {
    "name": "create_random_character",
    "kind": "function",
-   "start": 567,
-   "def_line": 567,
-   "end": 624,
+   "start": 204,
+   "def_line": 204,
+   "end": 261,
    "lines": 58
   },
   {
    "name": "assign_stats",
    "kind": "function",
-   "start": 631,
-   "def_line": 631,
-   "end": 700,
+   "start": 268,
+   "def_line": 268,
+   "end": 337,
    "lines": 70
   },
   {
    "name": "choose_skill_proficiencies",
    "kind": "function",
-   "start": 707,
-   "def_line": 707,
-   "end": 769,
+   "start": 344,
+   "def_line": 344,
+   "end": 406,
    "lines": 63
   },
   {
    "name": "calculate_hp",
    "kind": "function",
-   "start": 776,
-   "def_line": 776,
-   "end": 780,
+   "start": 413,
+   "def_line": 413,
+   "end": 417,
    "lines": 5
   },
   {
    "name": "calculate_ac",
    "kind": "function",
-   "start": 787,
-   "def_line": 787,
-   "end": 802,
+   "start": 424,
+   "def_line": 424,
+   "end": 439,
    "lines": 16
   },
   {
    "name": "perform_skill_check",
    "kind": "function",
-   "start": 809,
-   "def_line": 809,
-   "end": 830,
+   "start": 446,
+   "def_line": 446,
+   "end": 467,
    "lines": 22
   },
   {
    "name": "_perform_skill_check",
    "kind": "function",
-   "start": 833,
-   "def_line": 833,
-   "end": 922,
+   "start": 470,
+   "def_line": 470,
+   "end": 559,
    "lines": 90
   },
   {
    "name": "is_dialogue_or_emotion",
    "kind": "function",
-   "start": 929,
-   "def_line": 929,
-   "end": 931,
+   "start": 566,
+   "def_line": 566,
+   "end": 568,
    "lines": 3
   },
   {
    "name": "_is_negated_dialogue_action",
    "kind": "function",
-   "start": 934,
-   "def_line": 934,
-   "end": 943,
+   "start": 571,
+   "def_line": 571,
+   "end": 580,
    "lines": 10
   },
   {
    "name": "_reads_as_question",
    "kind": "function",
-   "start": 946,
-   "def_line": 946,
-   "end": 951,
+   "start": 583,
+   "def_line": 583,
+   "end": 588,
    "lines": 6
   },
   {
    "name": "_people_speak_for_themselves",
    "kind": "function",
-   "start": 954,
-   "def_line": 954,
-   "end": 960,
+   "start": 591,
+   "def_line": 591,
+   "end": 597,
    "lines": 7
-  },
-  {
-   "name": "_ASKS_SOMETHING",
-   "kind": "assign",
-   "start": 963,
-   "def_line": 963,
-   "end": 965,
-   "lines": 3
-  },
-  {
-   "name": "_just_served",
-   "kind": "function",
-   "start": 968,
-   "def_line": 968,
-   "end": 971,
-   "lines": 4
   },
   {
    "name": "_asked_of_the_one_at_hand",
    "kind": "function",
-   "start": 974,
-   "def_line": 974,
-   "end": 982,
+   "start": 604,
+   "def_line": 604,
+   "end": 612,
    "lines": 9
   },
   {
    "name": "is_npc_dialogue_input",
    "kind": "function",
-   "start": 985,
-   "def_line": 985,
-   "end": 1029,
+   "start": 615,
+   "def_line": 615,
+   "end": 659,
    "lines": 45
   },
   {
    "name": "_is_conversation_start_input",
    "kind": "function",
-   "start": 1032,
-   "def_line": 1032,
-   "end": 1070,
+   "start": 662,
+   "def_line": 662,
+   "end": 700,
    "lines": 39
   },
   {
    "name": "_is_local_place_question",
    "kind": "function",
-   "start": 1073,
-   "def_line": 1073,
-   "end": 1081,
+   "start": 703,
+   "def_line": 703,
+   "end": 711,
    "lines": 9
   },
   {
    "name": "_unverified_past_event_assertion",
    "kind": "function",
-   "start": 1084,
-   "def_line": 1084,
-   "end": 1113,
+   "start": 714,
+   "def_line": 714,
+   "end": 743,
    "lines": 30
   },
   {
    "name": "_claimed_completed_outcome",
    "kind": "function",
-   "start": 1116,
-   "def_line": 1116,
-   "end": 1122,
+   "start": 746,
+   "def_line": 746,
+   "end": 752,
    "lines": 7
-  },
-  {
-   "name": "_THIRD_PERSON_REPORT",
-   "kind": "assign",
-   "start": 1125,
-   "def_line": 1125,
-   "end": 1127,
-   "lines": 3
-  },
-  {
-   "name": "_SECOND_PERSON_SAID",
-   "kind": "assign",
-   "start": 1128,
-   "def_line": 1128,
-   "end": 1131,
-   "lines": 4
   },
   {
    "name": "_report_of_someone_else",
    "kind": "function",
-   "start": 1134,
-   "def_line": 1134,
-   "end": 1144,
+   "start": 757,
+   "def_line": 757,
+   "end": 767,
    "lines": 11
-  },
-  {
-   "name": "_SAID_IT_AGAIN",
-   "kind": "assign",
-   "start": 1147,
-   "def_line": 1148,
-   "end": 1148,
-   "lines": 1
-  },
-  {
-   "name": "_ENDS_IN_SPEECH",
-   "kind": "assign",
-   "start": 1149,
-   "def_line": 1149,
-   "end": 1149,
-   "lines": 1
   },
   {
    "name": "is_npc_historical_claim",
    "kind": "function",
-   "start": 1152,
-   "def_line": 1152,
-   "end": 1173,
+   "start": 772,
+   "def_line": 772,
+   "end": 793,
    "lines": 22
   },
   {
    "name": "_reported_npc_claim_followed_by_player_inspection",
    "kind": "function",
-   "start": 1176,
-   "def_line": 1176,
-   "end": 1185,
+   "start": 796,
+   "def_line": 796,
+   "end": 805,
    "lines": 10
-  },
-  {
-   "name": "is_ordinary_environment_look",
-   "kind": "function",
-   "start": 1188,
-   "def_line": 1188,
-   "end": 1205,
-   "lines": 18
-  },
-  {
-   "name": "npc_ambiguity_response",
-   "kind": "function",
-   "start": 1208,
-   "def_line": 1208,
-   "end": 1211,
-   "lines": 4
-  },
-  {
-   "name": "_NEGATED_VERB_SUFFIX",
-   "kind": "assign",
-   "start": 1214,
-   "def_line": 1214,
-   "end": 1214,
-   "lines": 1
-  },
-  {
-   "name": "_affirmative_door_verb",
-   "kind": "function",
-   "start": 1217,
-   "def_line": 1217,
-   "end": 1234,
-   "lines": 18
-  },
-  {
-   "name": "_SKILL_CHECK_WORD",
-   "kind": "assign",
-   "start": 1237,
-   "def_line": 1237,
-   "end": 1237,
-   "lines": 1
-  },
-  {
-   "name": "_SKILL_ENDING",
-   "kind": "assign",
-   "start": 1238,
-   "def_line": 1239,
-   "end": 1239,
-   "lines": 1
-  },
-  {
-   "name": "_ABILITY_WORD",
-   "kind": "assign",
-   "start": 1240,
-   "def_line": 1240,
-   "end": 1241,
-   "lines": 2
   },
   {
    "name": "named_skill",
    "kind": "function",
-   "start": 1244,
-   "def_line": 1244,
-   "end": 1269,
+   "start": 818,
+   "def_line": 818,
+   "end": 843,
    "lines": 26
-  },
-  {
-   "name": "_OPEN_SCARE",
-   "kind": "assign",
-   "start": 1272,
-   "def_line": 1272,
-   "end": 1276,
-   "lines": 5
   },
   {
    "name": "open_scare_try",
    "kind": "function",
-   "start": 1279,
-   "def_line": 1279,
-   "end": 1288,
+   "start": 848,
+   "def_line": 848,
+   "end": 857,
    "lines": 10
   },
   {
    "name": "_SOMEONE_ELSES_PURSE",
    "kind": "assign",
-   "start": 1291,
-   "def_line": 1293,
-   "end": 1294,
+   "start": 860,
+   "def_line": 862,
+   "end": 863,
    "lines": 2
-  },
-  {
-   "name": "_COVER_WORD",
-   "kind": "assign",
-   "start": 1297,
-   "def_line": 1299,
-   "end": 1302,
-   "lines": 4
-  },
-  {
-   "name": "_COVER",
-   "kind": "assign",
-   "start": 1303,
-   "def_line": 1305,
-   "end": 1308,
-   "lines": 4
-  },
-  {
-   "name": "_OWN_THING_HIDDEN",
-   "kind": "assign",
-   "start": 1309,
-   "def_line": 1310,
-   "end": 1310,
-   "lines": 1
   },
   {
    "name": "_stealth_skill",
    "kind": "function",
-   "start": 1313,
-   "def_line": 1313,
-   "end": 1325,
+   "start": 868,
+   "def_line": 868,
+   "end": 880,
    "lines": 13
   },
   {
    "name": "deterministic_check_for_action",
    "kind": "function",
-   "start": 1328,
-   "def_line": 1328,
-   "end": 1342,
+   "start": 883,
+   "def_line": 883,
+   "end": 897,
    "lines": 15
-  },
-  {
-   "name": "_READING_CHECKS",
-   "kind": "assign",
-   "start": 1345,
-   "def_line": 1345,
-   "end": 1345,
-   "lines": 1
   },
   {
    "name": "_word_check_for_action",
    "kind": "function",
-   "start": 1348,
-   "def_line": 1348,
-   "end": 1433,
+   "start": 902,
+   "def_line": 902,
+   "end": 987,
    "lines": 86
   },
   {
    "name": "known_player_action_narration",
    "kind": "function",
-   "start": 1436,
-   "def_line": 1436,
-   "end": 1457,
+   "start": 990,
+   "def_line": 990,
+   "end": 1011,
    "lines": 22
   },
   {
    "name": "known_character_answer",
    "kind": "function",
-   "start": 1460,
-   "def_line": 1460,
-   "end": 1484,
+   "start": 1014,
+   "def_line": 1014,
+   "end": 1038,
    "lines": 25
-  },
-  {
-   "name": "_COMMON_SENTENCE_OPENERS",
-   "kind": "assign",
-   "start": 1487,
-   "def_line": 1489,
-   "end": 1493,
-   "lines": 5
-  },
-  {
-   "name": "_QUESTION_CUE_RE",
-   "kind": "assign",
-   "start": 1495,
-   "def_line": 1495,
-   "end": 1497,
-   "lines": 3
   },
   {
    "name": "_model_query_type_is_plausible",
    "kind": "function",
-   "start": 1500,
-   "def_line": 1500,
-   "end": 1507,
+   "start": 1044,
+   "def_line": 1044,
+   "end": 1051,
    "lines": 8
   },
   {
    "name": "_detect_query_type",
    "kind": "function",
-   "start": 1510,
-   "def_line": 1510,
-   "end": 1591,
+   "start": 1054,
+   "def_line": 1054,
+   "end": 1135,
    "lines": 82
   },
   {
    "name": "_detect_explore_type",
    "kind": "function",
-   "start": 1594,
-   "def_line": 1594,
-   "end": 1605,
+   "start": 1138,
+   "def_line": 1138,
+   "end": 1149,
    "lines": 12
   },
   {
    "name": "_query_location_candidates",
    "kind": "function",
-   "start": 1608,
-   "def_line": 1608,
-   "end": 1617,
+   "start": 1152,
+   "def_line": 1152,
+   "end": 1161,
    "lines": 10
   },
   {
    "name": "_handle_query",
    "kind": "function",
-   "start": 1619,
-   "def_line": 1619,
-   "end": 1675,
+   "start": 1163,
+   "def_line": 1163,
+   "end": 1219,
    "lines": 57
   },
   {
    "name": "resolve_python_world_action",
    "kind": "function",
-   "start": 1678,
-   "def_line": 1678,
-   "end": 1826,
+   "start": 1222,
+   "def_line": 1222,
+   "end": 1370,
    "lines": 149
   },
   {
    "name": "analyze_player_action",
    "kind": "function",
-   "start": 1828,
-   "def_line": 1828,
-   "end": 1837,
+   "start": 1372,
+   "def_line": 1372,
+   "end": 1381,
    "lines": 10
-  },
-  {
-   "name": "clean_dm_response",
-   "kind": "function",
-   "start": 1845,
-   "def_line": 1845,
-   "end": 1890,
-   "lines": 46
   },
   {
    "name": "recent_dm_narrations",
    "kind": "assign",
-   "start": 1893,
-   "def_line": 1893,
-   "end": 1893,
+   "start": 1391,
+   "def_line": 1391,
+   "end": 1391,
    "lines": 1
   },
   {
    "name": "world_state",
    "kind": "assign",
-   "start": 1894,
-   "def_line": 1894,
-   "end": 1967,
+   "start": 1392,
+   "def_line": 1392,
+   "end": 1465,
    "lines": 74
   },
   {
    "name": "INITIAL_WORLD_STATE",
    "kind": "assign",
-   "start": 1968,
-   "def_line": 1968,
-   "end": 1968,
+   "start": 1466,
+   "def_line": 1466,
+   "end": 1466,
    "lines": 1
   },
   {
    "name": "SAVE_FORMAT_VERSION",
    "kind": "assign",
-   "start": 1969,
-   "def_line": 1969,
-   "end": 1969,
+   "start": 1467,
+   "def_line": 1467,
+   "end": 1467,
    "lines": 1
   },
   {
    "name": "_SUPPORTED_SAVE_VERSIONS",
    "kind": "assign",
-   "start": 1970,
-   "def_line": 1970,
-   "end": 1970,
+   "start": 1468,
+   "def_line": 1468,
+   "end": 1468,
    "lines": 1
-  },
-  {
-   "name": "GIANT_ANCESTRY_IDS",
-   "kind": "assign",
-   "start": 1973,
-   "def_line": 1973,
-   "end": 1973,
-   "lines": 1
-  },
-  {
-   "name": "CELESTIAL_REVELATION_FORMS",
-   "kind": "assign",
-   "start": 1974,
-   "def_line": 1974,
-   "end": 1978,
-   "lines": 5
   },
   {
    "name": "RULE_ORDER",
    "kind": "assign",
-   "start": 1979,
-   "def_line": 1983,
-   "end": 1983,
-   "lines": 1
-  },
-  {
-   "name": "INNER_RADIANCE_SPEC",
-   "kind": "assign",
-   "start": 1984,
-   "def_line": 1984,
-   "end": 1984,
-   "lines": 1
-  },
-  {
-   "name": "NECROTIC_SHROUD_SPEC",
-   "kind": "assign",
-   "start": 1985,
-   "def_line": 1985,
-   "end": 1986,
-   "lines": 2
-  },
-  {
-   "name": "SPECIES_WITH_TRAIT_STATE",
-   "kind": "assign",
-   "start": 1987,
-   "def_line": 1987,
-   "end": 1987,
+   "start": 1471,
+   "def_line": 1475,
+   "end": 1475,
    "lines": 1
   },
   {
    "name": "_new_species_trait_state",
    "kind": "function",
-   "start": 1990,
-   "def_line": 1990,
-   "end": 2011,
+   "start": 1478,
+   "def_line": 1478,
+   "end": 1499,
    "lines": 22
   },
   {
    "name": "_new_persisted_species_trait_state",
    "kind": "function",
-   "start": 2014,
-   "def_line": 2014,
-   "end": 2017,
+   "start": 1502,
+   "def_line": 1502,
+   "end": 1505,
    "lines": 4
   },
   {
    "name": "_validate_species_trait_state",
    "kind": "function",
-   "start": 2020,
-   "def_line": 2020,
-   "end": 2095,
+   "start": 1508,
+   "def_line": 1508,
+   "end": 1583,
    "lines": 76
   },
   {
    "name": "initialize_species_trait_state",
    "kind": "function",
-   "start": 2098,
-   "def_line": 2098,
-   "end": 2114,
+   "start": 1586,
+   "def_line": 1586,
+   "end": 1602,
    "lines": 17
-  },
-  {
-   "name": "_ABILITY_NAMES",
-   "kind": "assign",
-   "start": 2117,
-   "def_line": 2117,
-   "end": 2117,
-   "lines": 1
-  },
-  {
-   "name": "_ORIGIN_TEXT_KEYS",
-   "kind": "assign",
-   "start": 2118,
-   "def_line": 2118,
-   "end": 2118,
-   "lines": 1
-  },
-  {
-   "name": "_ORIGIN_LIST_KEYS",
-   "kind": "assign",
-   "start": 2119,
-   "def_line": 2119,
-   "end": 2119,
-   "lines": 1
-  },
-  {
-   "name": "_ORIGIN_SCORE_KEYS",
-   "kind": "assign",
-   "start": 2120,
-   "def_line": 2120,
-   "end": 2120,
-   "lines": 1
   },
   {
    "name": "_origin_choices_valid",
    "kind": "function",
-   "start": 2123,
-   "def_line": 2123,
-   "end": 2146,
+   "start": 1607,
+   "def_line": 1607,
+   "end": 1630,
    "lines": 24
   },
   {
    "name": "_origin_choices_for_save",
    "kind": "function",
-   "start": 2149,
-   "def_line": 2149,
-   "end": 2155,
+   "start": 1633,
+   "def_line": 1633,
+   "end": 1639,
    "lines": 7
   },
   {
    "name": "_PERSISTED_PLAYER_CONDITION_FIELDS",
    "kind": "assign",
-   "start": 2158,
-   "def_line": 2158,
-   "end": 2161,
+   "start": 1642,
+   "def_line": 1642,
+   "end": 1645,
    "lines": 4
   },
   {
    "name": "_validate_player_condition_state",
    "kind": "function",
-   "start": 2164,
-   "def_line": 2164,
-   "end": 2181,
+   "start": 1648,
+   "def_line": 1648,
+   "end": 1665,
    "lines": 18
   },
   {
    "name": "_validate_player_weapon_proficiencies",
    "kind": "function",
-   "start": 2184,
-   "def_line": 2184,
-   "end": 2194,
+   "start": 1668,
+   "def_line": 1668,
+   "end": 1678,
    "lines": 11
   },
   {
    "name": "_player_state_for_save",
    "kind": "function",
-   "start": 2197,
-   "def_line": 2197,
-   "end": 2309,
+   "start": 1681,
+   "def_line": 1681,
+   "end": 1793,
    "lines": 113
   },
   {
    "name": "serialize_game_state",
    "kind": "function",
-   "start": 2312,
-   "def_line": 2312,
-   "end": 2328,
+   "start": 1796,
+   "def_line": 1796,
+   "end": 1812,
    "lines": 17
   },
   {
    "name": "_validate_combat_v3_payload",
    "kind": "function",
-   "start": 2331,
-   "def_line": 2331,
-   "end": 2449,
+   "start": 1815,
+   "def_line": 1815,
+   "end": 1933,
    "lines": 119
   },
   {
    "name": "_validate_long_rest_history",
    "kind": "function",
-   "start": 2452,
-   "def_line": 2452,
-   "end": 2463,
+   "start": 1936,
+   "def_line": 1936,
+   "end": 1947,
    "lines": 12
   },
   {
    "name": "long_rest_gap_seconds",
    "kind": "function",
-   "start": 2466,
-   "def_line": 2466,
-   "end": 2471,
+   "start": 1950,
+   "def_line": 1950,
+   "end": 1955,
    "lines": 6
   },
   {
    "name": "_validate_saved_multilevel_slots",
    "kind": "function",
-   "start": 2474,
-   "def_line": 2474,
-   "end": 2485,
+   "start": 1958,
+   "def_line": 1958,
+   "end": 1969,
    "lines": 12
   },
   {
    "name": "_validate_save_payload",
    "kind": "function",
-   "start": 2488,
-   "def_line": 2488,
-   "end": 2854,
+   "start": 1972,
+   "def_line": 1972,
+   "end": 2338,
    "lines": 367
   },
   {
    "name": "save_game",
    "kind": "function",
-   "start": 2857,
-   "def_line": 2857,
-   "end": 2875,
+   "start": 2341,
+   "def_line": 2341,
+   "end": 2359,
    "lines": 19
   },
   {
    "name": "_repair_dilim1_fields",
    "kind": "function",
-   "start": 2878,
-   "def_line": 2878,
-   "end": 2890,
+   "start": 2362,
+   "def_line": 2362,
+   "end": 2374,
    "lines": 13
   },
   {
    "name": "_known_happenings",
    "kind": "function",
-   "start": 2893,
-   "def_line": 2893,
-   "end": 2902,
+   "start": 2377,
+   "def_line": 2377,
+   "end": 2386,
    "lines": 10
-  },
-  {
-   "name": "_hand_names_something",
-   "kind": "function",
-   "start": 2905,
-   "def_line": 2905,
-   "end": 2913,
-   "lines": 9
   },
   {
    "name": "_repair_dilim2_fields",
    "kind": "function",
-   "start": 2916,
-   "def_line": 2916,
-   "end": 2953,
+   "start": 2391,
+   "def_line": 2391,
+   "end": 2428,
    "lines": 38
   },
   {
    "name": "load_game",
    "kind": "function",
-   "start": 2956,
-   "def_line": 2956,
-   "end": 3141,
+   "start": 2431,
+   "def_line": 2431,
+   "end": 2616,
    "lines": 186
   },
   {
    "name": "_tavern_door_notice",
    "kind": "function",
-   "start": 3144,
-   "def_line": 3144,
-   "end": 3152,
+   "start": 2619,
+   "def_line": 2619,
+   "end": 2627,
    "lines": 9
   },
   {
    "name": "_venue_door_id",
    "kind": "function",
-   "start": 3155,
-   "def_line": 3155,
-   "end": 3156,
+   "start": 2630,
+   "def_line": 2630,
+   "end": 2631,
    "lines": 2
   },
   {
    "name": "_venue_door_for",
    "kind": "function",
-   "start": 3159,
-   "def_line": 3159,
-   "end": 3166,
+   "start": 2634,
+   "def_line": 2634,
+   "end": 2641,
    "lines": 8
   },
   {
    "name": "_venue_entry_door",
    "kind": "function",
-   "start": 3169,
-   "def_line": 3169,
-   "end": 3195,
+   "start": 2644,
+   "def_line": 2644,
+   "end": 2670,
    "lines": 27
   },
   {
    "name": "_locked_door_refusal",
    "kind": "function",
-   "start": 3198,
-   "def_line": 3198,
-   "end": 3200,
+   "start": 2673,
+   "def_line": 2673,
+   "end": 2675,
    "lines": 3
   },
   {
    "name": "_mark_lock_seen",
    "kind": "function",
-   "start": 3203,
-   "def_line": 3203,
-   "end": 3215,
+   "start": 2678,
+   "def_line": 2678,
+   "end": 2690,
    "lines": 13
   },
   {
    "name": "_lock_known_to_player",
    "kind": "function",
-   "start": 3218,
-   "def_line": 3218,
-   "end": 3221,
+   "start": 2693,
+   "def_line": 2693,
+   "end": 2696,
    "lines": 4
   },
   {
    "name": "_current_door",
    "kind": "function",
-   "start": 3224,
-   "def_line": 3224,
-   "end": 3235,
+   "start": 2699,
+   "def_line": 2699,
+   "end": 2710,
    "lines": 12
   },
   {
    "name": "_narration_fact_packet",
    "kind": "function",
-   "start": 3238,
-   "def_line": 3238,
-   "end": 3248,
+   "start": 2713,
+   "def_line": 2713,
+   "end": 2723,
    "lines": 11
   },
   {
    "name": "_normalize_ground_items",
    "kind": "function",
-   "start": 3251,
-   "def_line": 3251,
-   "end": 3270,
+   "start": 2726,
+   "def_line": 2726,
+   "end": 2745,
    "lines": 20
-  },
-  {
-   "name": "DEATH_MODES",
-   "kind": "assign",
-   "start": 3273,
-   "def_line": 3273,
-   "end": 3273,
-   "lines": 1
   },
   {
    "name": "_death_state_defaults",
    "kind": "function",
-   "start": 3276,
-   "def_line": 3276,
-   "end": 3292,
+   "start": 2750,
+   "def_line": 2750,
+   "end": 2766,
    "lines": 17
   },
   {
    "name": "ensure_death_state",
    "kind": "function",
-   "start": 3295,
-   "def_line": 3295,
-   "end": 3378,
+   "start": 2769,
+   "def_line": 2769,
+   "end": 2852,
    "lines": 84
   },
   {
    "name": "PlayerCannotAct",
    "kind": "class",
-   "start": 3381,
-   "def_line": 3381,
-   "end": 3382,
+   "start": 2855,
+   "def_line": 2855,
+   "end": 2856,
    "lines": 2
   },
   {
    "name": "require_player_can_act",
    "kind": "function",
-   "start": 3385,
-   "def_line": 3385,
-   "end": 3396,
+   "start": 2859,
+   "def_line": 2859,
+   "end": 2870,
    "lines": 12
   },
   {
    "name": "stabilize_player",
    "kind": "function",
-   "start": 3399,
-   "def_line": 3399,
-   "end": 3412,
+   "start": 2873,
+   "def_line": 2873,
+   "end": 2886,
    "lines": 14
   },
   {
    "name": "attempt_player_stabilization",
    "kind": "function",
-   "start": 3415,
-   "def_line": 3415,
-   "end": 3453,
+   "start": 2889,
+   "def_line": 2889,
+   "end": 2927,
    "lines": 39
   },
   {
    "name": "heal_player",
    "kind": "function",
-   "start": 3456,
-   "def_line": 3456,
-   "end": 3470,
+   "start": 2930,
+   "def_line": 2930,
+   "end": 2944,
    "lines": 15
   },
   {
    "name": "set_player_max_hp",
    "kind": "function",
-   "start": 3473,
-   "def_line": 3473,
-   "end": 3482,
+   "start": 2947,
+   "def_line": 2947,
+   "end": 2956,
    "lines": 10
   },
   {
    "name": "apply_npc_damage",
    "kind": "function",
-   "start": 3485,
-   "def_line": 3485,
-   "end": 3505,
+   "start": 2959,
+   "def_line": 2959,
+   "end": 2979,
    "lines": 21
   },
   {
    "name": "_capture_combat_death_checkpoint",
    "kind": "function",
-   "start": 3508,
-   "def_line": 3508,
-   "end": 3534,
+   "start": 2982,
+   "def_line": 2982,
+   "end": 3008,
    "lines": 27
   },
   {
    "name": "_restore_combat_death_checkpoint",
    "kind": "function",
-   "start": 3537,
-   "def_line": 3537,
-   "end": 3617,
+   "start": 3011,
+   "def_line": 3011,
+   "end": 3091,
    "lines": 81
   },
   {
    "name": "_finalize_player_death",
    "kind": "function",
-   "start": 3620,
-   "def_line": 3620,
-   "end": 3649,
+   "start": 3094,
+   "def_line": 3094,
+   "end": 3123,
    "lines": 30
   },
   {
    "name": "_apply_player_damage",
    "kind": "function",
-   "start": 3652,
-   "def_line": 3652,
-   "end": 3752,
+   "start": 3126,
+   "def_line": 3126,
+   "end": 3226,
    "lines": 101
   },
   {
    "name": "_combat_defaults",
    "kind": "function",
-   "start": 3755,
-   "def_line": 3755,
-   "end": 3770,
+   "start": 3229,
+   "def_line": 3229,
+   "end": 3244,
    "lines": 16
   },
   {
    "name": "_combat_record_for_actor",
    "kind": "function",
-   "start": 3773,
-   "def_line": 3773,
-   "end": 3820,
+   "start": 3247,
+   "def_line": 3247,
+   "end": 3294,
    "lines": 48
   },
   {
    "name": "_migrate_legacy_combat_state",
    "kind": "function",
-   "start": 3823,
-   "def_line": 3823,
-   "end": 3925,
+   "start": 3297,
+   "def_line": 3297,
+   "end": 3399,
    "lines": 103
   },
   {
    "name": "_sync_combat_participant_records",
    "kind": "function",
-   "start": 3928,
-   "def_line": 3928,
-   "end": 3946,
+   "start": 3402,
+   "def_line": 3402,
+   "end": 3420,
    "lines": 19
   },
   {
    "name": "ensure_combat_state",
    "kind": "function",
-   "start": 3949,
-   "def_line": 3949,
-   "end": 3974,
+   "start": 3423,
+   "def_line": 3423,
+   "end": 3448,
    "lines": 26
-  },
-  {
-   "name": "_ARMED_ROLE",
-   "kind": "assign",
-   "start": 3977,
-   "def_line": 3977,
-   "end": 3977,
-   "lines": 1
-  },
-  {
-   "name": "_STRONG_ROLE",
-   "kind": "assign",
-   "start": 3978,
-   "def_line": 3978,
-   "end": 3978,
-   "lines": 1
-  },
-  {
-   "name": "_PERSON_FIGHT",
-   "kind": "assign",
-   "start": 3979,
-   "def_line": 3980,
-   "end": 3984,
-   "lines": 5
   },
   {
    "name": "person_fight_kind",
    "kind": "function",
-   "start": 3987,
-   "def_line": 3987,
-   "end": 3990,
+   "start": 3453,
+   "def_line": 3453,
+   "end": 3456,
    "lines": 4
   },
   {
    "name": "_person_fight",
    "kind": "function",
-   "start": 3993,
-   "def_line": 3993,
-   "end": 4003,
+   "start": 3459,
+   "def_line": 3459,
+   "end": 3469,
    "lines": 11
   },
   {
    "name": "ensure_npc_enemy_stats",
    "kind": "function",
-   "start": 4006,
-   "def_line": 4006,
-   "end": 4019,
+   "start": 3472,
+   "def_line": 3472,
+   "end": 3485,
    "lines": 14
   },
   {
    "name": "location_features",
    "kind": "function",
-   "start": 4022,
-   "def_line": 4022,
-   "end": 4025,
+   "start": 3488,
+   "def_line": 3488,
+   "end": 3491,
    "lines": 4
   },
   {
    "name": "feature_descriptions",
    "kind": "function",
-   "start": 4028,
-   "def_line": 4028,
-   "end": 4032,
+   "start": 3494,
+   "def_line": 3494,
+   "end": 3498,
    "lines": 5
   },
   {
    "name": "active_npcs",
    "kind": "function",
-   "start": 4035,
-   "def_line": 4035,
-   "end": 4038,
+   "start": 3501,
+   "def_line": 3501,
+   "end": 3504,
    "lines": 4
   },
   {
    "name": "generate_npc_id",
    "kind": "function",
-   "start": 4041,
-   "def_line": 4041,
-   "end": 4048,
+   "start": 3507,
+   "def_line": 3507,
+   "end": 3514,
    "lines": 8
-  },
-  {
-   "name": "_clean_world_text",
-   "kind": "function",
-   "start": 4051,
-   "def_line": 4051,
-   "end": 4057,
-   "lines": 7
   },
   {
    "name": "_clean_world_text_list",
    "kind": "function",
-   "start": 4060,
-   "def_line": 4060,
-   "end": 4068,
+   "start": 3519,
+   "def_line": 3519,
+   "end": 3527,
    "lines": 9
-  },
-  {
-   "name": "_scene_texts_for_referents",
-   "kind": "function",
-   "start": 4071,
-   "def_line": 4071,
-   "end": 4083,
-   "lines": 13
   },
   {
    "name": "_has_unregistered_person_name",
    "kind": "function",
-   "start": 4086,
-   "def_line": 4086,
-   "end": 4120,
+   "start": 3532,
+   "def_line": 3532,
+   "end": 3566,
    "lines": 35
   },
   {
    "name": "validate_npc_proposal",
    "kind": "function",
-   "start": 4123,
-   "def_line": 4123,
-   "end": 4159,
+   "start": 3569,
+   "def_line": 3569,
+   "end": 3605,
    "lines": 37
   },
   {
    "name": "create_npc_from_ai",
    "kind": "function",
-   "start": 4162,
-   "def_line": 4162,
-   "end": 4214,
+   "start": 3608,
+   "def_line": 3608,
+   "end": 3660,
    "lines": 53
-  },
-  {
-   "name": "_ENGLISH_STOP_WORDS",
-   "kind": "assign",
-   "start": 4217,
-   "def_line": 4217,
-   "end": 4217,
-   "lines": 1
-  },
-  {
-   "name": "_reads_english",
-   "kind": "function",
-   "start": 4220,
-   "def_line": 4220,
-   "end": 4225,
-   "lines": 6
   },
   {
    "name": "create_local_feature",
    "kind": "function",
-   "start": 4228,
-   "def_line": 4228,
-   "end": 4297,
+   "start": 3667,
+   "def_line": 3667,
+   "end": 3736,
    "lines": 70
   },
   {
    "name": "_valid_local_feature_parent_id",
    "kind": "function",
-   "start": 4300,
-   "def_line": 4300,
-   "end": 4324,
+   "start": 3739,
+   "def_line": 3739,
+   "end": 3763,
    "lines": 25
   },
   {
    "name": "_legacy_hidden_feature_name_collision",
    "kind": "function",
-   "start": 4327,
-   "def_line": 4327,
-   "end": 4346,
+   "start": 3766,
+   "def_line": 3766,
+   "end": 3785,
    "lines": 20
   },
   {
    "name": "_local_detail_claims_unsupported_mechanics",
    "kind": "function",
-   "start": 4349,
-   "def_line": 4349,
-   "end": 4367,
+   "start": 3788,
+   "def_line": 3788,
+   "end": 3806,
    "lines": 19
   },
   {
    "name": "_feature_proposal_conflicts_with_canonical_door",
    "kind": "function",
-   "start": 4370,
-   "def_line": 4370,
-   "end": 4405,
+   "start": 3809,
+   "def_line": 3809,
+   "end": 3844,
    "lines": 36
   },
   {
    "name": "_SHOP_ECONOMY_PATTERN",
    "kind": "assign",
-   "start": 4408,
-   "def_line": 4408,
-   "end": 4414,
+   "start": 3847,
+   "def_line": 3847,
+   "end": 3853,
    "lines": 7
   },
   {
    "name": "_SHOP_TRANSACTION_REQUEST_PATTERN",
    "kind": "assign",
-   "start": 4415,
-   "def_line": 4415,
-   "end": 4420,
+   "start": 3854,
+   "def_line": 3854,
+   "end": 3859,
    "lines": 6
   },
   {
    "name": "_SHOP_ENTITY_QUERY_PATTERN",
    "kind": "assign",
-   "start": 4421,
-   "def_line": 4421,
-   "end": 4426,
+   "start": 3860,
+   "def_line": 3860,
+   "end": 3865,
    "lines": 6
   },
   {
    "name": "_SHOP_CREATION_ACTION_PATTERN",
    "kind": "assign",
-   "start": 4427,
-   "def_line": 4427,
-   "end": 4431,
+   "start": 3866,
+   "def_line": 3866,
+   "end": 3870,
    "lines": 5
   },
   {
    "name": "_is_shopkeeper_role",
    "kind": "function",
-   "start": 4434,
-   "def_line": 4434,
-   "end": 4442,
+   "start": 3873,
+   "def_line": 3873,
+   "end": 3881,
    "lines": 9
   },
   {
    "name": "_runs_a_shop",
    "kind": "function",
-   "start": 4445,
-   "def_line": 4445,
-   "end": 4456,
+   "start": 3884,
+   "def_line": 3884,
+   "end": 3895,
    "lines": 12
   },
   {
    "name": "_campaign_has_shopkeeper",
    "kind": "function",
-   "start": 4459,
-   "def_line": 4459,
-   "end": 4474,
+   "start": 3898,
+   "def_line": 3898,
+   "end": 3913,
    "lines": 16
   },
   {
    "name": "_explicit_campaign_shop_request",
    "kind": "function",
-   "start": 4477,
-   "def_line": 4477,
-   "end": 4499,
+   "start": 3916,
+   "def_line": 3916,
+   "end": 3938,
    "lines": 23
   },
   {
    "name": "_shop_economy_request",
    "kind": "function",
-   "start": 4502,
-   "def_line": 4502,
-   "end": 4505,
+   "start": 3941,
+   "def_line": 3941,
+   "end": 3944,
    "lines": 4
   },
   {
    "name": "_explicit_campaign_shop_negative_request",
    "kind": "function",
-   "start": 4508,
-   "def_line": 4508,
-   "end": 4522,
+   "start": 3947,
+   "def_line": 3947,
+   "end": 3961,
    "lines": 15
   },
   {
    "name": "_shop_presence_question",
    "kind": "function",
-   "start": 4525,
-   "def_line": 4525,
-   "end": 4530,
+   "start": 3964,
+   "def_line": 3964,
+   "end": 3969,
    "lines": 6
   },
   {
    "name": "generate_shop_id",
    "kind": "function",
-   "start": 4533,
-   "def_line": 4533,
-   "end": 4544,
+   "start": 3972,
+   "def_line": 3972,
+   "end": 3983,
    "lines": 12
   },
   {
    "name": "validate_shop_proposal",
    "kind": "function",
-   "start": 4547,
-   "def_line": 4547,
-   "end": 4610,
+   "start": 3986,
+   "def_line": 3986,
+   "end": 4049,
    "lines": 64
   },
   {
    "name": "create_shop_from_proposal",
    "kind": "function",
-   "start": 4613,
-   "def_line": 4613,
-   "end": 4640,
+   "start": 4052,
+   "def_line": 4052,
+   "end": 4079,
    "lines": 28
   },
   {
    "name": "ensure_npc_combat_stats",
    "kind": "function",
-   "start": 4643,
-   "def_line": 4643,
-   "end": 4654,
+   "start": 4082,
+   "def_line": 4082,
+   "end": 4093,
    "lines": 12
   },
   {
    "name": "calculate_attack_bonus",
    "kind": "function",
-   "start": 4657,
-   "def_line": 4657,
-   "end": 4659,
+   "start": 4096,
+   "def_line": 4096,
+   "end": 4098,
    "lines": 3
   },
   {
    "name": "roll_attack",
    "kind": "function",
-   "start": 4662,
-   "def_line": 4662,
-   "end": 4664,
+   "start": 4101,
+   "def_line": 4101,
+   "end": 4103,
    "lines": 3
   },
   {
    "name": "roll_damage",
    "kind": "function",
-   "start": 4667,
-   "def_line": 4667,
-   "end": 4676,
+   "start": 4106,
+   "def_line": 4106,
+   "end": 4115,
    "lines": 10
   },
   {
    "name": "resolve_combat_target",
    "kind": "function",
-   "start": 4679,
-   "def_line": 4679,
-   "end": 4715,
+   "start": 4118,
+   "def_line": 4118,
+   "end": 4154,
    "lines": 37
   },
   {
    "name": "_species_trait_state",
    "kind": "function",
-   "start": 4718,
-   "def_line": 4718,
-   "end": 4742,
+   "start": 4157,
+   "def_line": 4157,
+   "end": 4181,
    "lines": 25
   },
   {
    "name": "_set_temporary_hit_points",
    "kind": "function",
-   "start": 4745,
-   "def_line": 4745,
-   "end": 4752,
+   "start": 4184,
+   "def_line": 4184,
+   "end": 4191,
    "lines": 8
   },
   {
    "name": "grant_temporary_hit_points",
    "kind": "function",
-   "start": 4755,
-   "def_line": 4755,
-   "end": 4763,
+   "start": 4194,
+   "def_line": 4194,
+   "end": 4202,
    "lines": 9
   },
   {
    "name": "_species_bonus_action",
    "kind": "function",
-   "start": 4766,
-   "def_line": 4766,
-   "end": 4779,
+   "start": 4205,
+   "def_line": 4205,
+   "end": 4218,
    "lines": 14
   },
   {
    "name": "_species_player_turn_id",
    "kind": "function",
-   "start": 4782,
-   "def_line": 4782,
-   "end": 4786,
+   "start": 4221,
+   "def_line": 4221,
+   "end": 4225,
    "lines": 5
   },
   {
    "name": "_apply_species_on_hit_effects",
    "kind": "function",
-   "start": 4789,
-   "def_line": 4789,
-   "end": 4860,
+   "start": 4228,
+   "def_line": 4228,
+   "end": 4299,
    "lines": 72
   },
   {
    "name": "_finish_species_player_turn",
    "kind": "function",
-   "start": 4863,
-   "def_line": 4863,
-   "end": 4930,
+   "start": 4302,
+   "def_line": 4302,
+   "end": 4369,
    "lines": 68
   },
   {
    "name": "resolve_species_trait_action",
    "kind": "function",
-   "start": 4933,
-   "def_line": 4933,
-   "end": 5293,
+   "start": 4372,
+   "def_line": 4372,
+   "end": 4732,
    "lines": 361
   },
   {
    "name": "resolve_attack",
    "kind": "function",
-   "start": 5296,
-   "def_line": 5296,
-   "end": 5303,
+   "start": 4735,
+   "def_line": 4735,
+   "end": 4742,
    "lines": 8
   },
   {
    "name": "register_attack_hook",
    "kind": "function",
-   "start": 5306,
-   "def_line": 5306,
-   "end": 5307,
+   "start": 4745,
+   "def_line": 4745,
+   "end": 4746,
    "lines": 2
   },
   {
    "name": "roll_initiative",
    "kind": "function",
-   "start": 5310,
-   "def_line": 5310,
-   "end": 5312,
+   "start": 4749,
+   "def_line": 4749,
+   "end": 4751,
    "lines": 3
   },
   {
    "name": "roll_initiative_npc",
    "kind": "function",
-   "start": 5315,
-   "def_line": 5315,
-   "end": 5317,
+   "start": 4754,
+   "def_line": 4754,
+   "end": 4756,
    "lines": 3
   },
   {
    "name": "roll_initiative_player",
    "kind": "function",
-   "start": 5320,
-   "def_line": 5320,
-   "end": 5322,
+   "start": 4759,
+   "def_line": 4759,
+   "end": 4761,
    "lines": 3
   },
   {
    "name": "_combat_participant_can_act",
    "kind": "function",
-   "start": 5325,
-   "def_line": 5325,
-   "end": 5350,
+   "start": 4764,
+   "def_line": 4764,
+   "end": 4789,
    "lines": 26
   },
   {
    "name": "_mark_combat_action_used",
    "kind": "function",
-   "start": 5353,
-   "def_line": 5353,
-   "end": 5366,
+   "start": 4792,
+   "def_line": 4792,
+   "end": 4805,
    "lines": 14
   },
   {
    "name": "_resolve_player_death_turn",
    "kind": "function",
-   "start": 5369,
-   "def_line": 5369,
-   "end": 5444,
+   "start": 4808,
+   "def_line": 4808,
+   "end": 4883,
    "lines": 76
   },
   {
    "name": "_spares_the_fallen",
    "kind": "function",
-   "start": 5447,
-   "def_line": 5447,
-   "end": 5451,
+   "start": 4886,
+   "def_line": 4886,
+   "end": 4890,
    "lines": 5
   },
   {
    "name": "_combat_end_if_decided",
    "kind": "function",
-   "start": 5454,
-   "def_line": 5454,
-   "end": 5483,
+   "start": 4893,
+   "def_line": 4893,
+   "end": 4922,
    "lines": 30
   },
   {
    "name": "_resolve_enemy_turns_until_player",
    "kind": "function",
-   "start": 5486,
-   "def_line": 5486,
-   "end": 5554,
+   "start": 4925,
+   "def_line": 4925,
+   "end": 4993,
    "lines": 69
   },
   {
    "name": "find_weapon_in_inventory",
    "kind": "function",
-   "start": 5557,
-   "def_line": 5557,
-   "end": 5573,
+   "start": 4996,
+   "def_line": 4996,
+   "end": 5012,
    "lines": 17
   },
   {
    "name": "start_combat",
    "kind": "function",
-   "start": 5576,
-   "def_line": 5576,
-   "end": 5578,
+   "start": 5015,
+   "def_line": 5015,
+   "end": 5017,
    "lines": 3
   },
   {
    "name": "_start_combat_with_initiative",
    "kind": "function",
-   "start": 5581,
-   "def_line": 5581,
-   "end": 5685,
+   "start": 5020,
+   "def_line": 5020,
+   "end": 5124,
    "lines": 105
   },
   {
    "name": "resolve_enemy_attack",
    "kind": "function",
-   "start": 5688,
-   "def_line": 5688,
-   "end": 5726,
+   "start": 5127,
+   "def_line": 5127,
+   "end": 5165,
    "lines": 39
   },
   {
    "name": "_reduce_attack_damage_to_player",
    "kind": "function",
-   "start": 5729,
-   "def_line": 5729,
-   "end": 5763,
+   "start": 5168,
+   "def_line": 5168,
+   "end": 5202,
    "lines": 35
   },
   {
    "name": "_storm_thunder_reaction",
    "kind": "function",
-   "start": 5766,
-   "def_line": 5766,
-   "end": 5802,
+   "start": 5205,
+   "def_line": 5205,
+   "end": 5241,
    "lines": 37
   },
   {
    "name": "_apply_attack_damage_to_player",
    "kind": "function",
-   "start": 5805,
-   "def_line": 5805,
-   "end": 5870,
+   "start": 5244,
+   "def_line": 5244,
+   "end": 5309,
    "lines": 66
   },
   {
    "name": "end_combat",
    "kind": "function",
-   "start": 5873,
-   "def_line": 5873,
-   "end": 5902,
+   "start": 5312,
+   "def_line": 5312,
+   "end": 5341,
    "lines": 30
   },
   {
    "name": "_begin_combat_actor_turn",
    "kind": "function",
-   "start": 5905,
-   "def_line": 5905,
-   "end": 5915,
+   "start": 5344,
+   "def_line": 5344,
+   "end": 5354,
    "lines": 11
   },
   {
    "name": "join_combat_participants",
    "kind": "function",
-   "start": 5918,
-   "def_line": 5918,
-   "end": 5919,
+   "start": 5357,
+   "def_line": 5357,
+   "end": 5358,
    "lines": 2
   },
   {
    "name": "remove_combat_participant",
    "kind": "function",
-   "start": 5922,
-   "def_line": 5922,
-   "end": 5923,
+   "start": 5361,
+   "def_line": 5361,
+   "end": 5362,
    "lines": 2
   },
   {
    "name": "register_initiative_hook",
    "kind": "function",
-   "start": 5926,
-   "def_line": 5926,
-   "end": 5927,
+   "start": 5365,
+   "def_line": 5365,
+   "end": 5366,
    "lines": 2
   },
   {
    "name": "advance_combat_turn",
    "kind": "function",
-   "start": 5930,
-   "def_line": 5930,
-   "end": 5969,
+   "start": 5369,
+   "def_line": 5369,
+   "end": 5408,
    "lines": 40
   },
   {
    "name": "_combat_snapshot",
    "kind": "function",
-   "start": 5972,
-   "def_line": 5972,
-   "end": 5982,
+   "start": 5411,
+   "def_line": 5411,
+   "end": 5421,
    "lines": 11
   },
   {
    "name": "_finish_combat_result",
    "kind": "function",
-   "start": 5985,
-   "def_line": 5985,
-   "end": 5988,
+   "start": 5424,
+   "def_line": 5424,
+   "end": 5427,
    "lines": 4
   },
   {
    "name": "_public_combatant_label",
    "kind": "function",
-   "start": 5991,
-   "def_line": 5991,
-   "end": 6007,
+   "start": 5430,
+   "def_line": 5430,
+   "end": 5446,
    "lines": 17
   },
   {
    "name": "_combat_narration",
    "kind": "function",
-   "start": 6010,
-   "def_line": 6010,
-   "end": 6065,
+   "start": 5449,
+   "def_line": 5449,
+   "end": 5504,
    "lines": 56
-  },
-  {
-   "name": "_SAVE_ABILITY_TR",
-   "kind": "assign",
-   "start": 6068,
-   "def_line": 6068,
-   "end": 6068,
-   "lines": 1
-  },
-  {
-   "name": "_unarmed_save_text",
-   "kind": "function",
-   "start": 6071,
-   "def_line": 6071,
-   "end": 6089,
-   "lines": 19
-  },
-  {
-   "name": "_FALL_LINE",
-   "kind": "assign",
-   "start": 6092,
-   "def_line": 6092,
-   "end": 6093,
-   "lines": 2
-  },
-  {
-   "name": "_REWOUND_LINE",
-   "kind": "assign",
-   "start": 6094,
-   "def_line": 6094,
-   "end": 6095,
-   "lines": 2
   },
   {
    "name": "_enemy_exchange_text",
    "kind": "function",
-   "start": 6098,
-   "def_line": 6098,
-   "end": 6149,
+   "start": 5513,
+   "def_line": 5513,
+   "end": 5564,
    "lines": 52
   },
   {
    "name": "validate_world_updates",
    "kind": "function",
-   "start": 6152,
-   "def_line": 6152,
-   "end": 6306,
+   "start": 5567,
+   "def_line": 5567,
+   "end": 5721,
    "lines": 155
   },
   {
    "name": "_bind_world_update_mentions",
    "kind": "function",
-   "start": 6309,
-   "def_line": 6309,
-   "end": 6409,
+   "start": 5724,
+   "def_line": 5724,
+   "end": 5824,
    "lines": 101
-  },
-  {
-   "name": "_PROPOSAL_MARKER_RE",
-   "kind": "assign",
-   "start": 6412,
-   "def_line": 6412,
-   "end": 6412,
-   "lines": 1
-  },
-  {
-   "name": "_INTERNAL_MARK_RE",
-   "kind": "assign",
-   "start": 6413,
-   "def_line": 6413,
-   "end": 6415,
-   "lines": 3
-  },
-  {
-   "name": "_strip_proposal_markers",
-   "kind": "function",
-   "start": 6418,
-   "def_line": 6418,
-   "end": 6419,
-   "lines": 2
   },
   {
    "name": "_repair_internal_marks",
    "kind": "function",
-   "start": 6422,
-   "def_line": 6422,
-   "end": 6463,
+   "start": 5831,
+   "def_line": 5831,
+   "end": 5872,
    "lines": 42
   },
   {
    "name": "_filter_unaccepted_proposal_mentions",
    "kind": "function",
-   "start": 6466,
-   "def_line": 6466,
-   "end": 6493,
+   "start": 5875,
+   "def_line": 5875,
+   "end": 5902,
    "lines": 28
   },
   {
    "name": "_filter_unsupported_lore_paragraphs",
    "kind": "function",
-   "start": 6496,
-   "def_line": 6496,
-   "end": 6508,
+   "start": 5905,
+   "def_line": 5905,
+   "end": 5917,
    "lines": 13
   },
   {
    "name": "merge_world_updates",
    "kind": "function",
-   "start": 6511,
-   "def_line": 6511,
-   "end": 6545,
+   "start": 5920,
+   "def_line": 5920,
+   "end": 5954,
    "lines": 35
-  },
-  {
-   "name": "_normalize_interaction_mode",
-   "kind": "function",
-   "start": 6548,
-   "def_line": 6548,
-   "end": 6551,
-   "lines": 4
   },
   {
    "name": "_conversation_npcs",
    "kind": "function",
-   "start": 6554,
-   "def_line": 6554,
-   "end": 6557,
+   "start": 5959,
+   "def_line": 5959,
+   "end": 5962,
    "lines": 4
   },
   {
    "name": "_active_interlocutor",
    "kind": "function",
-   "start": 6560,
-   "def_line": 6560,
-   "end": 6562,
+   "start": 5965,
+   "def_line": 5965,
+   "end": 5967,
    "lines": 3
   },
   {
    "name": "_clear_active_interlocutor",
    "kind": "function",
-   "start": 6565,
-   "def_line": 6565,
-   "end": 6566,
+   "start": 5970,
+   "def_line": 5970,
+   "end": 5971,
    "lines": 2
   },
   {
    "name": "_is_end_conversation_request",
    "kind": "function",
-   "start": 6569,
-   "def_line": 6569,
-   "end": 6574,
+   "start": 5974,
+   "def_line": 5974,
+   "end": 5979,
    "lines": 6
   },
   {
    "name": "_without_place_names",
    "kind": "function",
-   "start": 6577,
-   "def_line": 6577,
-   "end": 6584,
+   "start": 5982,
+   "def_line": 5982,
+   "end": 5989,
    "lines": 8
-  },
-  {
-   "name": "_GUARD_ROLE",
-   "kind": "assign",
-   "start": 6587,
-   "def_line": 6587,
-   "end": 6587,
-   "lines": 1
-  },
-  {
-   "name": "_GUARD_WORD",
-   "kind": "assign",
-   "start": 6588,
-   "def_line": 6588,
-   "end": 6588,
-   "lines": 1
-  },
-  {
-   "name": "_GENERIC_PERSON",
-   "kind": "assign",
-   "start": 6589,
-   "def_line": 6589,
-   "end": 6593,
-   "lines": 5
-  },
-  {
-   "name": "_is_guard",
-   "kind": "function",
-   "start": 6596,
-   "def_line": 6596,
-   "end": 6597,
-   "lines": 2
-  },
-  {
-   "name": "_serves_at_a_counter",
-   "kind": "function",
-   "start": 6600,
-   "def_line": 6600,
-   "end": 6601,
-   "lines": 2
   },
   {
    "name": "_words_fit_person",
    "kind": "function",
-   "start": 6604,
-   "def_line": 6604,
-   "end": 6608,
+   "start": 5998,
+   "def_line": 5998,
+   "end": 6002,
    "lines": 5
   },
   {
    "name": "most_plausible_addressee",
    "kind": "function",
-   "start": 6611,
-   "def_line": 6611,
-   "end": 6632,
+   "start": 6005,
+   "def_line": 6005,
+   "end": 6026,
    "lines": 22
-  },
-  {
-   "name": "_topic_place_name",
-   "kind": "function",
-   "start": 6635,
-   "def_line": 6635,
-   "end": 6643,
-   "lines": 9
-  },
-  {
-   "name": "_LOCATED_PERSON",
-   "kind": "assign",
-   "start": 6646,
-   "def_line": 6646,
-   "end": 6650,
-   "lines": 5
-  },
-  {
-   "name": "_IN_REACH_WORDS",
-   "kind": "assign",
-   "start": 6651,
-   "def_line": 6651,
-   "end": 6654,
-   "lines": 4
-  },
-  {
-   "name": "_COUNTER_WORDS",
-   "kind": "assign",
-   "start": 6655,
-   "def_line": 6655,
-   "end": 6655,
-   "lines": 1
-  },
-  {
-   "name": "_COUNTER_ROLE",
-   "kind": "assign",
-   "start": 6656,
-   "def_line": 6656,
-   "end": 6656,
-   "lines": 1
-  },
-  {
-   "name": "_drop_repeated_sentences",
-   "kind": "function",
-   "start": 6659,
-   "def_line": 6659,
-   "end": 6673,
-   "lines": 15
   },
   {
    "name": "_drop_absent_counter_sentences",
    "kind": "function",
-   "start": 6676,
-   "def_line": 6676,
-   "end": 6696,
+   "start": 6035,
+   "def_line": 6035,
+   "end": 6055,
    "lines": 21
   },
   {
    "name": "_absent_described_person",
    "kind": "function",
-   "start": 6699,
-   "def_line": 6699,
-   "end": 6723,
+   "start": 6058,
+   "def_line": 6058,
+   "end": 6082,
    "lines": 25
   },
   {
    "name": "_absent_person_text",
    "kind": "function",
-   "start": 6726,
-   "def_line": 6726,
-   "end": 6732,
+   "start": 6085,
+   "def_line": 6085,
+   "end": 6091,
    "lines": 7
   },
   {
    "name": "_is_plain_person_reference",
-   "kind": "function",
-   "start": 6735,
-   "def_line": 6735,
-   "end": 6740,
-   "lines": 6
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_ADDRESSEE_OPERATIONS",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_OFFER_OPERATIONS",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_OFFER_MARKER",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_fold_keep_punctuation",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_ADDRESS_VERB",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_SPEAKING_VERB",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_CONTINUATION_TERMS",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_OBJECT_INSPECTION",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_claim_keywords",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_format_npc_memory",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_CLAIM_DENIAL_LINES",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_SPEECH_REPEAT_LINES",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_lines_already_said",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "speech_repeat_line",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_NARRATOR_PROFILE_FIELDS",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_narrator_visible_profile",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_bodies_here_context",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_untrusted_player_block",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_extract_json_object",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_NPC_SPEECH_LOG_KEY",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_NPC_SPEECH_KEEP",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_MENTIONS_PROMPT_RULE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_VOICED_PROMPT_RULE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_rumour_lane_on",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_voiced_keys",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_CLAIM_REJECTION_RE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_CLAIM_ACCEPTANCE_RE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_SPEECH_CUT_RE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_SPEECH_META_RE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_strip_pictographs",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_REAL_WORLD_FAITH",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_without_real_world_faith",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_is_explicit_name_led_gesture_line",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_clean_npc_stage_direction",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_compose_experimental_npc_speech",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_without_label_variant",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_npc_speech_rejects_claim",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_CLAIM_PLAIN_DENIAL_RE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_npc_speech_grants_claim",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_spoken_name_answer",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_SPEECH_ANSWER_RULES",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_job_news_line",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_turns_to_someone_else",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_elsewhere_line",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_overheard_work",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_ASKS_WHO_YOU_ARE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_accept_named_job",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_REFUSED_MOVE_RULE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_bag_note",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_dm_prompt_note",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_claim_denial_quotes",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_has_private_profile_value",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_FOLLOWUP_WORDS",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_is_short_followup",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_experimental_speech_recap",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_normalize_turkish_typos",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_mechanical_outcome",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_GENERIC_NO_CHANGE_RESPONSE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_GENERIC_NO_CHANGE_RESPONSES",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_INTERNAL_PLAYER_FACING_RE",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_is_internal_player_facing_text",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
+  },
+  {
+   "name": "_narration_scene_type",
+   "kind": "import",
+   "start": 6094,
+   "def_line": 6094,
+   "end": 6094,
+   "lines": 1
   },
   {
    "name": "_settle_address",
    "kind": "function",
-   "start": 6743,
-   "def_line": 6743,
-   "end": 6752,
+   "start": 6097,
+   "def_line": 6097,
+   "end": 6106,
    "lines": 10
   },
   {
    "name": "_npc_answers_to",
    "kind": "function",
-   "start": 6755,
-   "def_line": 6755,
-   "end": 6781,
+   "start": 6109,
+   "def_line": 6109,
+   "end": 6135,
    "lines": 27
   },
   {
    "name": "_word_for_nobody_here",
    "kind": "function",
-   "start": 6784,
-   "def_line": 6784,
-   "end": 6788,
+   "start": 6138,
+   "def_line": 6138,
+   "end": 6142,
    "lines": 5
   },
   {
    "name": "resolve_npc_reference",
    "kind": "function",
-   "start": 6791,
-   "def_line": 6791,
-   "end": 6880,
+   "start": 6145,
+   "def_line": 6145,
+   "end": 6234,
    "lines": 90
-  },
-  {
-   "name": "_ADDRESSEE_OPERATIONS",
-   "kind": "assign",
-   "start": 6883,
-   "def_line": 6886,
-   "end": 6889,
-   "lines": 4
-  },
-  {
-   "name": "_OFFER_OPERATIONS",
-   "kind": "assign",
-   "start": 6892,
-   "def_line": 6892,
-   "end": 6892,
-   "lines": 1
-  },
-  {
-   "name": "_OFFER_MARKER",
-   "kind": "assign",
-   "start": 6893,
-   "def_line": 6893,
-   "end": 6897,
-   "lines": 5
   },
   {
    "name": "_interaction_proposal_applies",
    "kind": "function",
-   "start": 6900,
-   "def_line": 6900,
-   "end": 6928,
+   "start": 6241,
+   "def_line": 6241,
+   "end": 6269,
    "lines": 29
   },
   {
    "name": "_grounded_item_request_proposal",
    "kind": "function",
-   "start": 6931,
-   "def_line": 6931,
-   "end": 7003,
+   "start": 6272,
+   "def_line": 6272,
+   "end": 6344,
    "lines": 73
-  },
-  {
-   "name": "_fold_keep_punctuation",
-   "kind": "function",
-   "start": 7006,
-   "def_line": 7006,
-   "end": 7011,
-   "lines": 6
-  },
-  {
-   "name": "_ADDRESS_VERB",
-   "kind": "assign",
-   "start": 7014,
-   "def_line": 7014,
-   "end": 7014,
-   "lines": 1
   },
   {
    "name": "_explicit_addressee",
    "kind": "function",
-   "start": 7017,
-   "def_line": 7017,
-   "end": 7060,
+   "start": 6351,
+   "def_line": 6351,
+   "end": 6394,
    "lines": 44
-  },
-  {
-   "name": "_SPEAKING_VERB",
-   "kind": "assign",
-   "start": 7063,
-   "def_line": 7063,
-   "end": 7066,
-   "lines": 4
   },
   {
    "name": "_is_spoken_to",
    "kind": "function",
-   "start": 7069,
-   "def_line": 7069,
-   "end": 7078,
+   "start": 6399,
+   "def_line": 6399,
+   "end": 6408,
    "lines": 10
-  },
-  {
-   "name": "_CONTINUATION_TERMS",
-   "kind": "assign",
-   "start": 7081,
-   "def_line": 7081,
-   "end": 7086,
-   "lines": 6
   },
   {
    "name": "_is_short_conversation_continuation",
    "kind": "function",
-   "start": 7089,
-   "def_line": 7089,
-   "end": 7092,
-   "lines": 4
-  },
-  {
-   "name": "_OBJECT_INSPECTION",
-   "kind": "assign",
-   "start": 7095,
-   "def_line": 7095,
-   "end": 7098,
+   "start": 6413,
+   "def_line": 6413,
+   "end": 6416,
    "lines": 4
   },
   {
    "name": "_is_object_inspection",
    "kind": "function",
-   "start": 7101,
-   "def_line": 7101,
-   "end": 7102,
+   "start": 6421,
+   "def_line": 6421,
+   "end": 6422,
    "lines": 2
   },
   {
    "name": "_is_door_inspection_request",
    "kind": "function",
-   "start": 7105,
-   "def_line": 7105,
-   "end": 7115,
+   "start": 6425,
+   "def_line": 6425,
+   "end": 6435,
    "lines": 11
   },
   {
    "name": "record_npc_interaction",
    "kind": "function",
-   "start": 7118,
-   "def_line": 7118,
-   "end": 7172,
+   "start": 6438,
+   "def_line": 6438,
+   "end": 6492,
    "lines": 55
   },
   {
    "name": "_remember_owner_locked_tavern_focus",
    "kind": "function",
-   "start": 7175,
-   "def_line": 7175,
-   "end": 7224,
+   "start": 6495,
+   "def_line": 6495,
+   "end": 6544,
    "lines": 50
   },
   {
    "name": "_remember_accepted_profile_focus",
    "kind": "function",
-   "start": 7227,
-   "def_line": 7227,
-   "end": 7258,
+   "start": 6547,
+   "def_line": 6547,
+   "end": 6578,
    "lines": 32
-  },
-  {
-   "name": "_claim_keywords",
-   "kind": "function",
-   "start": 7261,
-   "def_line": 7261,
-   "end": 7295,
-   "lines": 35
   },
   {
    "name": "npc_memory_supports_claim",
    "kind": "function",
-   "start": 7298,
-   "def_line": 7298,
-   "end": 7304,
+   "start": 6583,
+   "def_line": 6583,
+   "end": 6589,
    "lines": 7
   },
   {
    "name": "npc_memory_supporting_entry",
    "kind": "function",
-   "start": 7307,
-   "def_line": 7307,
-   "end": 7379,
+   "start": 6592,
+   "def_line": 6592,
+   "end": 6664,
    "lines": 73
-  },
-  {
-   "name": "_format_npc_memory",
-   "kind": "function",
-   "start": 7382,
-   "def_line": 7382,
-   "end": 7396,
-   "lines": 15
-  },
-  {
-   "name": "_CLAIM_DENIAL_LINES",
-   "kind": "assign",
-   "start": 7399,
-   "def_line": 7399,
-   "end": 7408,
-   "lines": 10
-  },
-  {
-   "name": "_SPEECH_REPEAT_LINES",
-   "kind": "assign",
-   "start": 7411,
-   "def_line": 7411,
-   "end": 7420,
-   "lines": 10
   },
   {
    "name": "_STOCK_SAID",
    "kind": "assign",
-   "start": 7423,
-   "def_line": 7425,
-   "end": 7425,
+   "start": 6673,
+   "def_line": 6675,
+   "end": 6675,
    "lines": 1
   },
   {
    "name": "_stock_said",
    "kind": "function",
-   "start": 7428,
-   "def_line": 7428,
-   "end": 7438,
+   "start": 6678,
+   "def_line": 6678,
+   "end": 6688,
    "lines": 11
   },
   {
    "name": "_stock",
    "kind": "function",
-   "start": 7441,
-   "def_line": 7441,
-   "end": 7444,
+   "start": 6691,
+   "def_line": 6691,
+   "end": 6694,
    "lines": 4
   },
   {
    "name": "_is_stock",
    "kind": "function",
-   "start": 7447,
-   "def_line": 7447,
-   "end": 7449,
+   "start": 6697,
+   "def_line": 6697,
+   "end": 6699,
    "lines": 3
   },
   {
    "name": "_only_stock",
    "kind": "function",
-   "start": 7452,
-   "def_line": 7452,
-   "end": 7459,
+   "start": 6702,
+   "def_line": 6702,
+   "end": 6709,
    "lines": 8
-  },
-  {
-   "name": "_lines_already_said",
-   "kind": "function",
-   "start": 7462,
-   "def_line": 7462,
-   "end": 7464,
-   "lines": 3
   },
   {
    "name": "_without_lines_already_said",
    "kind": "function",
-   "start": 7467,
-   "def_line": 7467,
-   "end": 7477,
+   "start": 6714,
+   "def_line": 6714,
+   "end": 6724,
    "lines": 11
-  },
-  {
-   "name": "speech_repeat_line",
-   "kind": "function",
-   "start": 7480,
-   "def_line": 7480,
-   "end": 7492,
-   "lines": 13
   },
   {
    "name": "historical_claim_denial",
    "kind": "function",
-   "start": 7495,
-   "def_line": 7495,
-   "end": 7507,
+   "start": 6729,
+   "def_line": 6729,
+   "end": 6741,
    "lines": 13
-  },
-  {
-   "name": "_NARRATOR_PROFILE_FIELDS",
-   "kind": "assign",
-   "start": 7510,
-   "def_line": 7512,
-   "end": 7512,
-   "lines": 1
-  },
-  {
-   "name": "_narrator_visible_profile",
-   "kind": "function",
-   "start": 7515,
-   "def_line": 7515,
-   "end": 7518,
-   "lines": 4
   },
   {
    "name": "_narrator_shop_record",
    "kind": "function",
-   "start": 7521,
-   "def_line": 7521,
-   "end": 7532,
+   "start": 6748,
+   "def_line": 6748,
+   "end": 6759,
    "lines": 12
   },
   {
    "name": "_narrator_fact_view",
    "kind": "function",
-   "start": 7535,
-   "def_line": 7535,
-   "end": 7543,
+   "start": 6762,
+   "def_line": 6762,
+   "end": 6770,
    "lines": 9
-  },
-  {
-   "name": "_bodies_here_context",
-   "kind": "function",
-   "start": 7546,
-   "def_line": 7546,
-   "end": 7550,
-   "lines": 5
   },
   {
    "name": "build_world_context",
    "kind": "function",
-   "start": 7553,
-   "def_line": 7553,
-   "end": 7696,
+   "start": 6775,
+   "def_line": 6775,
+   "end": 6918,
    "lines": 144
   },
   {
    "name": "location_display_name",
    "kind": "function",
-   "start": 7698,
-   "def_line": 7698,
-   "end": 7704,
+   "start": 6920,
+   "def_line": 6920,
+   "end": 6926,
    "lines": 7
   },
   {
    "name": "_location_alias_values",
    "kind": "function",
-   "start": 7707,
-   "def_line": 7707,
-   "end": 7712,
+   "start": 6929,
+   "def_line": 6929,
+   "end": 6934,
    "lines": 6
   },
   {
    "name": "_reference_token_matches",
    "kind": "function",
-   "start": 7715,
-   "def_line": 7715,
-   "end": 7729,
+   "start": 6937,
+   "def_line": 6937,
+   "end": 6951,
    "lines": 15
   },
   {
    "name": "named_by_sight",
    "kind": "function",
-   "start": 7732,
-   "def_line": 7732,
-   "end": 7747,
+   "start": 6954,
+   "def_line": 6954,
+   "end": 6969,
    "lines": 16
   },
   {
    "name": "_entity_reference_in_text",
    "kind": "function",
-   "start": 7750,
-   "def_line": 7750,
-   "end": 7760,
+   "start": 6972,
+   "def_line": 6972,
+   "end": 6982,
    "lines": 11
   },
   {
    "name": "resolve_location_reference",
    "kind": "function",
-   "start": 7763,
-   "def_line": 7763,
-   "end": 7801,
+   "start": 6985,
+   "def_line": 6985,
+   "end": 7023,
    "lines": 39
   },
   {
    "name": "_location_reference_in_text",
    "kind": "function",
-   "start": 7804,
-   "def_line": 7804,
-   "end": 7835,
+   "start": 7026,
+   "def_line": 7026,
+   "end": 7057,
    "lines": 32
   },
   {
    "name": "_travel_destination_reference_in_text",
    "kind": "function",
-   "start": 7838,
-   "def_line": 7838,
-   "end": 7877,
+   "start": 7060,
+   "def_line": 7060,
+   "end": 7099,
    "lines": 40
   },
   {
    "name": "normalize_location_id",
    "kind": "function",
-   "start": 7880,
-   "def_line": 7880,
-   "end": 7884,
+   "start": 7102,
+   "def_line": 7102,
+   "end": 7106,
    "lines": 5
   },
   {
    "name": "clean_location_description",
    "kind": "function",
-   "start": 7887,
-   "def_line": 7887,
-   "end": 7898,
+   "start": 7109,
+   "def_line": 7109,
+   "end": 7120,
    "lines": 12
   },
   {
    "name": "validate_location_proposal",
    "kind": "function",
-   "start": 7901,
-   "def_line": 7901,
-   "end": 7929,
+   "start": 7123,
+   "def_line": 7123,
+   "end": 7151,
    "lines": 29
   },
   {
    "name": "create_location_from_proposal",
    "kind": "function",
-   "start": 7932,
-   "def_line": 7932,
-   "end": 7953,
+   "start": 7154,
+   "def_line": 7154,
+   "end": 7175,
    "lines": 22
   },
   {
    "name": "ensure_campaign_clock",
    "kind": "function",
-   "start": 7956,
-   "def_line": 7956,
-   "end": 7961,
+   "start": 7178,
+   "def_line": 7178,
+   "end": 7183,
    "lines": 6
   },
   {
    "name": "advance_campaign_time",
    "kind": "function",
-   "start": 7964,
-   "def_line": 7964,
-   "end": 8051,
+   "start": 7186,
+   "def_line": 7186,
+   "end": 7273,
    "lines": 88
   },
   {
    "name": "commit_location_change",
    "kind": "function",
-   "start": 8054,
-   "def_line": 8054,
-   "end": 8107,
+   "start": 7276,
+   "def_line": 7276,
+   "end": 7329,
    "lines": 54
   },
   {
    "name": "INTENT_TYPES",
-   "kind": "assign",
-   "start": 8110,
-   "def_line": 8110,
-   "end": 8115,
-   "lines": 6
-  },
-  {
-   "name": "SKILL_INTENT_TO_SKILL",
-   "kind": "assign",
-   "start": 8116,
-   "def_line": 8116,
-   "end": 8121,
-   "lines": 6
-  },
-  {
-   "name": "INTENT_SCHEMA",
-   "kind": "assign",
-   "start": 8122,
-   "def_line": 8122,
-   "end": 8146,
-   "lines": 25
-  },
-  {
-   "name": "SCENE_DETAIL_KIND_ALLOWLIST",
-   "kind": "assign",
-   "start": 8147,
-   "def_line": 8147,
-   "end": 8147,
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
    "lines": 1
   },
   {
-   "name": "_untrusted_player_block",
-   "kind": "function",
-   "start": 8160,
-   "def_line": 8160,
-   "end": 8167,
-   "lines": 8
+   "name": "SKILL_INTENT_TO_SKILL",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
+  },
+  {
+   "name": "INTENT_SCHEMA",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
+  },
+  {
+   "name": "SCENE_DETAIL_KIND_ALLOWLIST",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
+  },
+  {
+   "name": "NPC_SCHEMA",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
+  },
+  {
+   "name": "LOCATION_SCHEMA",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
+  },
+  {
+   "name": "WORLD_UPDATE_SCHEMA",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
+  },
+  {
+   "name": "DM_RESPONSE_SCHEMA",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
+  },
+  {
+   "name": "NARRATOR_VOICE",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
+  },
+  {
+   "name": "system_prompt",
+   "kind": "import",
+   "start": 7332,
+   "def_line": 7332,
+   "end": 7332,
+   "lines": 1
   },
   {
    "name": "_intent_scene_npc_candidates",
    "kind": "function",
-   "start": 8170,
-   "def_line": 8170,
-   "end": 8186,
+   "start": 7347,
+   "def_line": 7347,
+   "end": 7363,
    "lines": 17
   },
   {
    "name": "_recent_player_visible_narration",
    "kind": "function",
-   "start": 8189,
-   "def_line": 8189,
-   "end": 8200,
+   "start": 7366,
+   "def_line": 7366,
+   "end": 7377,
    "lines": 12
   },
   {
    "name": "_validated_scene_npc_id",
    "kind": "function",
-   "start": 8203,
-   "def_line": 8203,
-   "end": 8224,
+   "start": 7380,
+   "def_line": 7380,
+   "end": 7401,
    "lines": 22
   },
   {
    "name": "_named_word_of",
    "kind": "function",
-   "start": 8227,
-   "def_line": 8227,
-   "end": 8235,
+   "start": 7404,
+   "def_line": 7404,
+   "end": 7412,
    "lines": 9
   },
   {
    "name": "_validated_local_person_proposal",
    "kind": "function",
-   "start": 8238,
-   "def_line": 8238,
-   "end": 8259,
+   "start": 7415,
+   "def_line": 7415,
+   "end": 7436,
    "lines": 22
   },
   {
    "name": "_scene_detail_proposals_allowed",
    "kind": "function",
-   "start": 8262,
-   "def_line": 8262,
-   "end": 8277,
+   "start": 7439,
+   "def_line": 7439,
+   "end": 7454,
    "lines": 16
   },
   {
    "name": "_scene_observation_proposal_turn",
    "kind": "function",
-   "start": 8280,
-   "def_line": 8280,
-   "end": 8291,
+   "start": 7457,
+   "def_line": 7457,
+   "end": 7468,
    "lines": 12
   },
   {
    "name": "_local_person_request_key",
    "kind": "function",
-   "start": 8294,
-   "def_line": 8294,
-   "end": 8302,
+   "start": 7471,
+   "def_line": 7471,
+   "end": 7479,
    "lines": 9
-  },
-  {
-   "name": "_extract_json_object",
-   "kind": "function",
-   "start": 8305,
-   "def_line": 8305,
-   "end": 8344,
-   "lines": 40
   },
   {
    "name": "_EXPERIMENTAL_NPC_SPEECH_SCHEMA",
    "kind": "assign",
-   "start": 8347,
-   "def_line": 8352,
-   "end": 8398,
+   "start": 7484,
+   "def_line": 7489,
+   "end": 7535,
    "lines": 47
   },
   {
    "name": "_EXPERIMENTAL_NPC_SPEECH_OPTIONS",
    "kind": "assign",
-   "start": 8399,
-   "def_line": 8399,
-   "end": 8413,
+   "start": 7536,
+   "def_line": 7536,
+   "end": 7550,
    "lines": 15
-  },
-  {
-   "name": "_NPC_SPEECH_LOG_KEY",
-   "kind": "assign",
-   "start": 8414,
-   "def_line": 8414,
-   "end": 8414,
-   "lines": 1
-  },
-  {
-   "name": "_NPC_SPEECH_KEEP",
-   "kind": "assign",
-   "start": 8415,
-   "def_line": 8415,
-   "end": 8415,
-   "lines": 1
   },
   {
    "name": "_speech_debug_trail",
    "kind": "function",
-   "start": 8418,
-   "def_line": 8418,
-   "end": 8434,
+   "start": 7553,
+   "def_line": 7553,
+   "end": 7569,
    "lines": 17
   },
   {
    "name": "_npc_speech_enabled",
    "kind": "function",
-   "start": 8437,
-   "def_line": 8437,
-   "end": 8445,
+   "start": 7572,
+   "def_line": 7572,
+   "end": 7580,
    "lines": 9
   },
   {
    "name": "_experimental_recent_exchanges",
    "kind": "function",
-   "start": 8448,
-   "def_line": 8448,
-   "end": 8465,
+   "start": 7583,
+   "def_line": 7583,
+   "end": 7600,
    "lines": 18
-  },
-  {
-   "name": "_MENTIONS_PROMPT_RULE",
-   "kind": "assign",
-   "start": 8468,
-   "def_line": 8468,
-   "end": 8472,
-   "lines": 5
-  },
-  {
-   "name": "_VOICED_PROMPT_RULE",
-   "kind": "assign",
-   "start": 8475,
-   "def_line": 8475,
-   "end": 8479,
-   "lines": 5
-  },
-  {
-   "name": "_rumour_lane_on",
-   "kind": "function",
-   "start": 8482,
-   "def_line": 8482,
-   "end": 8484,
-   "lines": 3
   },
   {
    "name": "_speech_answer_rules",
    "kind": "function",
-   "start": 8487,
-   "def_line": 8487,
-   "end": 8493,
+   "start": 7609,
+   "def_line": 7609,
+   "end": 7615,
    "lines": 7
-  },
-  {
-   "name": "_voiced_keys",
-   "kind": "function",
-   "start": 8496,
-   "def_line": 8496,
-   "end": 8499,
-   "lines": 4
   },
   {
    "name": "_remember_experimental_npc_speech",
    "kind": "function",
-   "start": 8502,
-   "def_line": 8502,
-   "end": 8531,
+   "start": 7620,
+   "def_line": 7620,
+   "end": 7649,
    "lines": 30
-  },
-  {
-   "name": "_CLAIM_REJECTION_RE",
-   "kind": "assign",
-   "start": 8534,
-   "def_line": 8534,
-   "end": 8538,
-   "lines": 5
-  },
-  {
-   "name": "_CLAIM_ACCEPTANCE_RE",
-   "kind": "assign",
-   "start": 8539,
-   "def_line": 8539,
-   "end": 8546,
-   "lines": 8
-  },
-  {
-   "name": "_SPEECH_CUT_RE",
-   "kind": "assign",
-   "start": 8549,
-   "def_line": 8549,
-   "end": 8549,
-   "lines": 1
-  },
-  {
-   "name": "_SPEECH_META_RE",
-   "kind": "assign",
-   "start": 8550,
-   "def_line": 8550,
-   "end": 8554,
-   "lines": 5
-  },
-  {
-   "name": "_strip_pictographs",
-   "kind": "function",
-   "start": 8557,
-   "def_line": 8557,
-   "end": 8565,
-   "lines": 9
-  },
-  {
-   "name": "_REAL_WORLD_FAITH",
-   "kind": "assign",
-   "start": 8568,
-   "def_line": 8569,
-   "end": 8576,
-   "lines": 8
-  },
-  {
-   "name": "_without_real_world_faith",
-   "kind": "function",
-   "start": 8579,
-   "def_line": 8579,
-   "end": 8586,
-   "lines": 8
   },
   {
    "name": "_clean_npc_speech",
    "kind": "function",
-   "start": 8589,
-   "def_line": 8589,
-   "end": 8617,
+   "start": 7662,
+   "def_line": 7662,
+   "end": 7690,
    "lines": 29
-  },
-  {
-   "name": "_is_explicit_name_led_gesture_line",
-   "kind": "function",
-   "start": 8620,
-   "def_line": 8620,
-   "end": 8636,
-   "lines": 17
-  },
-  {
-   "name": "_clean_npc_stage_direction",
-   "kind": "function",
-   "start": 8639,
-   "def_line": 8639,
-   "end": 8643,
-   "lines": 5
-  },
-  {
-   "name": "_compose_experimental_npc_speech",
-   "kind": "function",
-   "start": 8646,
-   "def_line": 8646,
-   "end": 8654,
-   "lines": 9
   },
   {
    "name": "_render_experimental_npc_speech",
    "kind": "function",
-   "start": 8657,
-   "def_line": 8657,
-   "end": 8668,
+   "start": 7699,
+   "def_line": 7699,
+   "end": 7710,
    "lines": 12
-  },
-  {
-   "name": "_without_label_variant",
-   "kind": "function",
-   "start": 8671,
-   "def_line": 8671,
-   "end": 8686,
-   "lines": 16
-  },
-  {
-   "name": "_npc_speech_rejects_claim",
-   "kind": "function",
-   "start": 8689,
-   "def_line": 8689,
-   "end": 8694,
-   "lines": 6
-  },
-  {
-   "name": "_CLAIM_PLAIN_DENIAL_RE",
-   "kind": "assign",
-   "start": 8697,
-   "def_line": 8697,
-   "end": 8699,
-   "lines": 3
-  },
-  {
-   "name": "_npc_speech_grants_claim",
-   "kind": "function",
-   "start": 8702,
-   "def_line": 8702,
-   "end": 8705,
-   "lines": 4
   },
   {
    "name": "_npc_speech_is_claim_refusal",
    "kind": "function",
-   "start": 8708,
-   "def_line": 8708,
-   "end": 8720,
+   "start": 7721,
+   "def_line": 7721,
+   "end": 7733,
    "lines": 13
   },
   {
    "name": "_npc_name_stance",
    "kind": "function",
-   "start": 8723,
-   "def_line": 8723,
-   "end": 8736,
+   "start": 7736,
+   "def_line": 7736,
+   "end": 7749,
    "lines": 14
-  },
-  {
-   "name": "_spoken_name_answer",
-   "kind": "function",
-   "start": 8739,
-   "def_line": 8739,
-   "end": 8749,
-   "lines": 11
-  },
-  {
-   "name": "_SPEECH_ANSWER_RULES",
-   "kind": "assign",
-   "start": 8752,
-   "def_line": 8752,
-   "end": 8767,
-   "lines": 16
   },
   {
    "name": "_town_note",
    "kind": "function",
-   "start": 8770,
-   "def_line": 8770,
-   "end": 8780,
+   "start": 7756,
+   "def_line": 7756,
+   "end": 7766,
    "lines": 11
   },
   {
    "name": "_has_spoken_to_player",
    "kind": "function",
-   "start": 8783,
-   "def_line": 8783,
-   "end": 8787,
+   "start": 7769,
+   "def_line": 7769,
+   "end": 7773,
    "lines": 5
-  },
-  {
-   "name": "_job_news_line",
-   "kind": "function",
-   "start": 8790,
-   "def_line": 8790,
-   "end": 8798,
-   "lines": 9
   },
   {
    "name": "_has_session",
    "kind": "function",
-   "start": 8801,
-   "def_line": 8801,
-   "end": 8802,
+   "start": 7778,
+   "def_line": 7778,
+   "end": 7779,
    "lines": 2
   },
   {
    "name": "_job_talk_with",
    "kind": "function",
-   "start": 8805,
-   "def_line": 8805,
-   "end": 8808,
+   "start": 7782,
+   "def_line": 7782,
+   "end": 7785,
    "lines": 4
   },
   {
    "name": "_offer_talk_with",
    "kind": "function",
-   "start": 8811,
-   "def_line": 8811,
-   "end": 8814,
+   "start": 7788,
+   "def_line": 7788,
+   "end": 7791,
    "lines": 4
   },
   {
    "name": "_offer_terms_shown",
    "kind": "function",
-   "start": 8817,
-   "def_line": 8817,
-   "end": 8827,
+   "start": 7794,
+   "def_line": 7794,
+   "end": 7804,
    "lines": 11
   },
   {
    "name": "_nobody_here",
    "kind": "function",
-   "start": 8830,
-   "def_line": 8830,
-   "end": 8842,
+   "start": 7807,
+   "def_line": 7807,
+   "end": 7819,
    "lines": 13
   },
   {
    "name": "_thread_person",
    "kind": "function",
-   "start": 8845,
-   "def_line": 8845,
-   "end": 8862,
+   "start": 7822,
+   "def_line": 7822,
+   "end": 7839,
    "lines": 18
   },
   {
    "name": "_physical_line",
    "kind": "function",
-   "start": 8865,
-   "def_line": 8865,
-   "end": 8874,
+   "start": 7842,
+   "def_line": 7842,
+   "end": 7851,
    "lines": 10
   },
   {
    "name": "_carry_out_thread_turn",
    "kind": "function",
-   "start": 8877,
-   "def_line": 8877,
-   "end": 8951,
+   "start": 7854,
+   "def_line": 7854,
+   "end": 7928,
    "lines": 75
   },
   {
    "name": "_job_gate",
    "kind": "function",
-   "start": 8954,
-   "def_line": 8954,
-   "end": 8966,
+   "start": 7931,
+   "def_line": 7931,
+   "end": 7943,
    "lines": 13
   },
   {
    "name": "_thread_gate",
    "kind": "function",
-   "start": 8969,
-   "def_line": 8969,
-   "end": 9010,
+   "start": 7946,
+   "def_line": 7946,
+   "end": 7987,
    "lines": 42
-  },
-  {
-   "name": "_turns_to_someone_else",
-   "kind": "function",
-   "start": 9013,
-   "def_line": 9013,
-   "end": 9017,
-   "lines": 5
   },
   {
    "name": "_town_in_play",
    "kind": "function",
-   "start": 9020,
-   "def_line": 9020,
-   "end": 9022,
+   "start": 7992,
+   "def_line": 7992,
+   "end": 7994,
    "lines": 3
-  },
-  {
-   "name": "_elsewhere_line",
-   "kind": "function",
-   "start": 9025,
-   "def_line": 9025,
-   "end": 9037,
-   "lines": 13
   },
   {
    "name": "_named_elsewhere_line",
    "kind": "function",
-   "start": 9040,
-   "def_line": 9040,
-   "end": 9055,
+   "start": 7999,
+   "def_line": 7999,
+   "end": 8014,
    "lines": 16
-  },
-  {
-   "name": "_overheard_work",
-   "kind": "function",
-   "start": 9058,
-   "def_line": 9058,
-   "end": 9080,
-   "lines": 23
-  },
-  {
-   "name": "_ASKS_WHO_YOU_ARE",
-   "kind": "assign",
-   "start": 9083,
-   "def_line": 9083,
-   "end": 9083,
-   "lines": 1
   },
   {
    "name": "_town_fallback",
    "kind": "function",
-   "start": 9086,
-   "def_line": 9086,
-   "end": 9103,
+   "start": 8021,
+   "def_line": 8021,
+   "end": 8038,
    "lines": 18
   },
   {
    "name": "_person_fallback",
    "kind": "function",
-   "start": 9106,
-   "def_line": 9106,
-   "end": 9109,
+   "start": 8041,
+   "def_line": 8041,
+   "end": 8044,
    "lines": 4
   },
   {
    "name": "_job_fallback",
    "kind": "function",
-   "start": 9112,
-   "def_line": 9112,
-   "end": 9119,
+   "start": 8047,
+   "def_line": 8047,
+   "end": 8054,
    "lines": 8
-  },
-  {
-   "name": "_accept_named_job",
-   "kind": "function",
-   "start": 9122,
-   "def_line": 9122,
-   "end": 9130,
-   "lines": 9
   },
   {
    "name": "_coin_persuasion",
    "kind": "function",
-   "start": 9133,
-   "def_line": 9133,
-   "end": 9160,
+   "start": 8059,
+   "def_line": 8059,
+   "end": 8086,
    "lines": 28
   },
   {
    "name": "_show_coin_roll",
    "kind": "function",
-   "start": 9163,
-   "def_line": 9163,
-   "end": 9169,
+   "start": 8089,
+   "def_line": 8089,
+   "end": 8095,
    "lines": 7
   },
   {
    "name": "_settle_spoken_commitment",
    "kind": "function",
-   "start": 9172,
-   "def_line": 9172,
-   "end": 9194,
+   "start": 8098,
+   "def_line": 8098,
+   "end": 8120,
    "lines": 23
   },
   {
    "name": "_with_only_backed_money",
    "kind": "function",
-   "start": 9197,
-   "def_line": 9197,
-   "end": 9203,
+   "start": 8123,
+   "def_line": 8123,
+   "end": 8129,
    "lines": 7
-  },
-  {
-   "name": "_REFUSED_MOVE_RULE",
-   "kind": "assign",
-   "start": 9206,
-   "def_line": 9207,
-   "end": 9207,
-   "lines": 1
-  },
-  {
-   "name": "_bag_note",
-   "kind": "function",
-   "start": 9210,
-   "def_line": 9210,
-   "end": 9212,
-   "lines": 3
-  },
-  {
-   "name": "_dm_prompt_note",
-   "kind": "function",
-   "start": 9215,
-   "def_line": 9215,
-   "end": 9218,
-   "lines": 4
-  },
-  {
-   "name": "_claim_denial_quotes",
-   "kind": "function",
-   "start": 9221,
-   "def_line": 9221,
-   "end": 9222,
-   "lines": 2
-  },
-  {
-   "name": "_has_private_profile_value",
-   "kind": "function",
-   "start": 9225,
-   "def_line": 9225,
-   "end": 9232,
-   "lines": 8
   },
   {
    "name": "_experimental_speech_note",
    "kind": "function",
-   "start": 9235,
-   "def_line": 9235,
-   "end": 9348,
+   "start": 8142,
+   "def_line": 8142,
+   "end": 8255,
    "lines": 114
   },
   {
    "name": "_experimental_npc_dialogue_context",
    "kind": "function",
-   "start": 9351,
-   "def_line": 9351,
-   "end": 9434,
+   "start": 8258,
+   "def_line": 8258,
+   "end": 8341,
    "lines": 84
-  },
-  {
-   "name": "_FOLLOWUP_WORDS",
-   "kind": "assign",
-   "start": 9437,
-   "def_line": 9437,
-   "end": 9441,
-   "lines": 5
-  },
-  {
-   "name": "_is_short_followup",
-   "kind": "function",
-   "start": 9444,
-   "def_line": 9444,
-   "end": 9453,
-   "lines": 10
   },
   {
    "name": "_experimental_speech_final_line",
    "kind": "function",
-   "start": 9456,
-   "def_line": 9456,
-   "end": 9470,
+   "start": 8348,
+   "def_line": 8348,
+   "end": 8362,
    "lines": 15
-  },
-  {
-   "name": "_experimental_speech_recap",
-   "kind": "function",
-   "start": 9473,
-   "def_line": 9473,
-   "end": 9496,
-   "lines": 24
   },
   {
    "name": "_local_place_recommendation_options",
    "kind": "function",
-   "start": 9499,
-   "def_line": 9499,
-   "end": 9528,
+   "start": 8367,
+   "def_line": 8367,
+   "end": 8396,
    "lines": 30
   },
   {
    "name": "_local_place_access",
    "kind": "function",
-   "start": 9531,
-   "def_line": 9531,
-   "end": 9542,
+   "start": 8399,
+   "def_line": 8399,
+   "end": 8410,
    "lines": 12
   },
   {
    "name": "_attributed_place_note",
    "kind": "function",
-   "start": 9545,
-   "def_line": 9545,
-   "end": 9560,
+   "start": 8413,
+   "def_line": 8413,
+   "end": 8428,
    "lines": 16
   },
   {
    "name": "_ground_local_place_recommendation_reply",
    "kind": "function",
-   "start": 9563,
-   "def_line": 9563,
-   "end": 9631,
+   "start": 8431,
+   "def_line": 8431,
+   "end": 8499,
    "lines": 69
   },
   {
    "name": "_ground_local_place_recommendation_stage",
    "kind": "function",
-   "start": 9634,
-   "def_line": 9634,
-   "end": 9705,
+   "start": 8502,
+   "def_line": 8502,
+   "end": 8573,
    "lines": 72
   },
   {
    "name": "_local_place_recommendation_guidance",
    "kind": "function",
-   "start": 9708,
-   "def_line": 9708,
-   "end": 9764,
+   "start": 8576,
+   "def_line": 8576,
+   "end": 8632,
    "lines": 57
   },
   {
    "name": "IntentInfrastructureError",
    "kind": "class",
-   "start": 9767,
-   "def_line": 9767,
-   "end": 9772,
+   "start": 8635,
+   "def_line": 8635,
+   "end": 8640,
    "lines": 6
   },
   {
    "name": "parse_player_intent",
    "kind": "function",
-   "start": 9775,
-   "def_line": 9775,
-   "end": 10194,
+   "start": 8643,
+   "def_line": 8643,
+   "end": 9062,
    "lines": 420
   },
   {
    "name": "_has_travel_language",
    "kind": "function",
-   "start": 10197,
-   "def_line": 10197,
-   "end": 10216,
+   "start": 9065,
+   "def_line": 9065,
+   "end": 9084,
    "lines": 20
   },
   {
    "name": "_travel_completion",
    "kind": "function",
-   "start": 10219,
-   "def_line": 10219,
-   "end": 10231,
+   "start": 9087,
+   "def_line": 9087,
+   "end": 9099,
    "lines": 13
-  },
-  {
-   "name": "_normalize_turkish_typos",
-   "kind": "function",
-   "start": 10234,
-   "def_line": 10234,
-   "end": 10244,
-   "lines": 11
   },
   {
    "name": "normalize_intent",
    "kind": "function",
-   "start": 10247,
-   "def_line": 10247,
-   "end": 10361,
+   "start": 9104,
+   "def_line": 9104,
+   "end": 9218,
    "lines": 115
   },
   {
    "name": "_normalize_turkish_location",
    "kind": "function",
-   "start": 10364,
-   "def_line": 10364,
-   "end": 10371,
+   "start": 9221,
+   "def_line": 9221,
+   "end": 9228,
    "lines": 8
   },
   {
    "name": "validate_intent",
    "kind": "function",
-   "start": 10374,
-   "def_line": 10374,
-   "end": 10450,
+   "start": 9231,
+   "def_line": 9231,
+   "end": 9307,
    "lines": 77
   },
   {
    "name": "_ensure_location_entities",
    "kind": "function",
-   "start": 10453,
-   "def_line": 10453,
-   "end": 10468,
+   "start": 9310,
+   "def_line": 9310,
+   "end": 9325,
    "lines": 16
   },
   {
    "name": "update_world_state_from_player",
    "kind": "function",
-   "start": 10471,
-   "def_line": 10471,
-   "end": 10475,
+   "start": 9328,
+   "def_line": 9328,
+   "end": 9332,
    "lines": 5
   },
   {
    "name": "_explicit_sword_drop",
    "kind": "function",
-   "start": 10478,
-   "def_line": 10478,
-   "end": 10486,
+   "start": 9335,
+   "def_line": 9335,
+   "end": 9343,
    "lines": 9
   },
   {
    "name": "update_inventory_from_player",
    "kind": "function",
-   "start": 10489,
-   "def_line": 10489,
-   "end": 10555,
+   "start": 9346,
+   "def_line": 9346,
+   "end": 9412,
    "lines": 67
   },
   {
    "name": "apply_check_outcome_to_world_state",
    "kind": "function",
-   "start": 10558,
-   "def_line": 10558,
-   "end": 10584,
+   "start": 9415,
+   "def_line": 9415,
+   "end": 9441,
    "lines": 27
   },
   {
    "name": "_current_npc_name",
    "kind": "function",
-   "start": 10587,
-   "def_line": 10587,
-   "end": 10592,
+   "start": 9444,
+   "def_line": 9444,
+   "end": 9449,
    "lines": 6
-  },
-  {
-   "name": "_mechanical_outcome",
-   "kind": "function",
-   "start": 10595,
-   "def_line": 10595,
-   "end": 10608,
-   "lines": 14
   },
   {
    "name": "_stands_by_their_words",
    "kind": "function",
-   "start": 10611,
-   "def_line": 10611,
-   "end": 10615,
+   "start": 9454,
+   "def_line": 9454,
+   "end": 9458,
    "lines": 5
   },
   {
    "name": "_fallback_narration",
    "kind": "function",
-   "start": 10618,
-   "def_line": 10618,
-   "end": 10718,
+   "start": 9461,
+   "def_line": 9461,
+   "end": 9561,
    "lines": 101
-  },
-  {
-   "name": "_GENERIC_NO_CHANGE_RESPONSE",
-   "kind": "assign",
-   "start": 10721,
-   "def_line": 10721,
-   "end": 10723,
-   "lines": 3
-  },
-  {
-   "name": "_GENERIC_NO_CHANGE_RESPONSES",
-   "kind": "assign",
-   "start": 10724,
-   "def_line": 10725,
-   "end": 10731,
-   "lines": 7
   },
   {
    "name": "_quiet_place_line",
    "kind": "function",
-   "start": 10734,
-   "def_line": 10734,
-   "end": 10745,
+   "start": 9566,
+   "def_line": 9566,
+   "end": 9577,
    "lines": 12
   },
   {
    "name": "_generic_no_change_response",
    "kind": "function",
-   "start": 10748,
-   "def_line": 10748,
-   "end": 10754,
+   "start": 9580,
+   "def_line": 9580,
+   "end": 9586,
    "lines": 7
-  },
-  {
-   "name": "_INTERNAL_PLAYER_FACING_RE",
-   "kind": "assign",
-   "start": 10756,
-   "def_line": 10756,
-   "end": 10762,
-   "lines": 7
-  },
-  {
-   "name": "_is_internal_player_facing_text",
-   "kind": "function",
-   "start": 10765,
-   "def_line": 10765,
-   "end": 10768,
-   "lines": 4
   },
   {
    "name": "_natural_unresolved_action_response",
    "kind": "function",
-   "start": 10771,
-   "def_line": 10771,
-   "end": 10779,
+   "start": 9592,
+   "def_line": 9592,
+   "end": 9600,
    "lines": 9
   },
   {
-   "name": "_narration_scene_type",
-   "kind": "function",
-   "start": 10782,
-   "def_line": 10782,
-   "end": 10795,
-   "lines": 14
-  },
-  {
    "name": "_NARRATION_PERSISTENT_OBJECT_HEADS",
-   "kind": "assign",
-   "start": 10798,
-   "def_line": 10798,
-   "end": 10801,
-   "lines": 4
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
   },
   {
    "name": "_NARRATION_PERSISTENT_OBJECT_STATE",
-   "kind": "assign",
-   "start": 10802,
-   "def_line": 10802,
-   "end": 10806,
-   "lines": 5
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
   },
   {
    "name": "_registered_persistent_object_names",
-   "kind": "function",
-   "start": 10809,
-   "def_line": 10809,
-   "end": 10858,
-   "lines": 50
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_HELD_SKIP",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_PREFIXES",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_CONTEXT_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_COPULA_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_PLAYER_MENTAL_STATE_AFFECT_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_PLAYER_FEELING_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_is_figurative_key_transfer",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_NARRATED_NAME_PATTERNS",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_unseen_registered_names",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_SPEAKING_NAME_PATTERNS",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_unseen_speakers",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_lore_claims_are_supported",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_lore_guard_text",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_lore_fact_records",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_LORE_ENTITY_TITLE_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_LORE_PROPER_NAME_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_LORE_ENTITY_FOLLOWING_CUE_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_LORE_SENTENCE_START_WORDS",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_GENERIC_SPEAKER_LABEL_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_is_generic_speaker_label",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_LORE_UNSUPPORTED_DETAIL_PATTERNS",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_LORE_RULER_TITLE_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_LORE_ENTITY_RELATION_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_LORE_ROUTE_DISTANCE_QUERY_RE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_UNVERIFIED_LORE_RESPONSE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_UNVERIFIED_DISTANCE_RESPONSE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_UNVERIFIED_RULER_RESPONSE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_INDOOR_DETAIL",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_ASKS_DISTANCE",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_salvage_plain_speech",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_TERMINATOR_MASK",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_split_sentences_keep_speech",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_spoken_lore_fact_ids",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
+  },
+  {
+   "name": "_has_active_local_npc_focus_for_place_request",
+   "kind": "import",
+   "start": 9605,
+   "def_line": 9605,
+   "end": 9605,
+   "lines": 1
   },
   {
    "name": "_unregistered_persistent_object_claim",
    "kind": "function",
-   "start": 10861,
-   "def_line": 10861,
-   "end": 10915,
+   "start": 9610,
+   "def_line": 9610,
+   "end": 9664,
    "lines": 55
-  },
-  {
-   "name": "_HELD_SKIP",
-   "kind": "assign",
-   "start": 10918,
-   "def_line": 10918,
-   "end": 10921,
-   "lines": 4
   },
   {
    "name": "_unregistered_held_object",
    "kind": "function",
-   "start": 10924,
-   "def_line": 10924,
-   "end": 10945,
+   "start": 9669,
+   "def_line": 9669,
+   "end": 9690,
    "lines": 22
   },
   {
    "name": "_resolve_campaign_npc_reference",
    "kind": "function",
-   "start": 10948,
-   "def_line": 10948,
-   "end": 10959,
+   "start": 9693,
+   "def_line": 9693,
+   "end": 9704,
    "lines": 12
   },
   {
    "name": "_unsupported_npc_history_or_relationship_claim",
    "kind": "function",
-   "start": 10962,
-   "def_line": 10962,
-   "end": 11032,
+   "start": 9707,
+   "def_line": 9707,
+   "end": 9777,
    "lines": 71
-  },
-  {
-   "name": "_PLAYER_MENTAL_STATE_PREFIXES",
-   "kind": "assign",
-   "start": 11035,
-   "def_line": 11035,
-   "end": 11039,
-   "lines": 5
-  },
-  {
-   "name": "_PLAYER_MENTAL_STATE_CONTEXT_RE",
-   "kind": "assign",
-   "start": 11040,
-   "def_line": 11040,
-   "end": 11044,
-   "lines": 5
-  },
-  {
-   "name": "_PLAYER_MENTAL_STATE_COPULA_RE",
-   "kind": "assign",
-   "start": 11045,
-   "def_line": 11045,
-   "end": 11049,
-   "lines": 5
-  },
-  {
-   "name": "_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE",
-   "kind": "assign",
-   "start": 11050,
-   "def_line": 11050,
-   "end": 11058,
-   "lines": 9
-  },
-  {
-   "name": "_PLAYER_MENTAL_STATE_AFFECT_RE",
-   "kind": "assign",
-   "start": 11059,
-   "def_line": 11059,
-   "end": 11062,
-   "lines": 4
-  },
-  {
-   "name": "_PLAYER_FEELING_RE",
-   "kind": "assign",
-   "start": 11065,
-   "def_line": 11065,
-   "end": 11072,
-   "lines": 8
   },
   {
    "name": "_unverified_player_mental_state_trigger",
    "kind": "function",
-   "start": 11075,
-   "def_line": 11075,
-   "end": 11104,
+   "start": 9784,
+   "def_line": 9784,
+   "end": 9813,
    "lines": 30
   },
   {
    "name": "_authorized_item_transfer_matches",
    "kind": "function",
-   "start": 11107,
-   "def_line": 11107,
-   "end": 11128,
+   "start": 9816,
+   "def_line": 9816,
+   "end": 9837,
    "lines": 22
   },
   {
    "name": "_is_explicitly_negated_transfer",
    "kind": "function",
-   "start": 11131,
-   "def_line": 11131,
-   "end": 11152,
+   "start": 9840,
+   "def_line": 9840,
+   "end": 9861,
    "lines": 22
-  },
-  {
-   "name": "_is_figurative_key_transfer",
-   "kind": "function",
-   "start": 11155,
-   "def_line": 11155,
-   "end": 11157,
-   "lines": 3
   },
   {
    "name": "_experimental_private_npc_disclosure",
    "kind": "function",
-   "start": 11160,
-   "def_line": 11160,
-   "end": 11230,
+   "start": 9866,
+   "def_line": 9866,
+   "end": 9936,
    "lines": 71
-  },
-  {
-   "name": "_NARRATED_NAME_PATTERNS",
-   "kind": "assign",
-   "start": 11233,
-   "def_line": 11234,
-   "end": 11240,
-   "lines": 7
-  },
-  {
-   "name": "_unseen_registered_names",
-   "kind": "function",
-   "start": 11243,
-   "def_line": 11243,
-   "end": 11260,
-   "lines": 18
-  },
-  {
-   "name": "_SPEAKING_NAME_PATTERNS",
-   "kind": "assign",
-   "start": 11263,
-   "def_line": 11265,
-   "end": 11269,
-   "lines": 5
   },
   {
    "name": "_inside_speech",
    "kind": "import",
-   "start": 11272,
-   "def_line": 11272,
-   "end": 11272,
+   "start": 9945,
+   "def_line": 9945,
+   "end": 9945,
    "lines": 1
   },
   {
    "name": "_SPEECH_SPAN_RE",
    "kind": "import",
-   "start": 11272,
-   "def_line": 11272,
-   "end": 11272,
+   "start": 9945,
+   "def_line": 9945,
+   "end": 9945,
    "lines": 1
-  },
-  {
-   "name": "_unseen_speakers",
-   "kind": "function",
-   "start": 11275,
-   "def_line": 11275,
-   "end": 11290,
-   "lines": 16
   },
   {
    "name": "_unseen_self_introductions",
    "kind": "function",
-   "start": 11293,
-   "def_line": 11293,
-   "end": 11302,
+   "start": 9950,
+   "def_line": 9950,
+   "end": 9959,
    "lines": 10
   },
   {
    "name": "_unseen_speaker_repaired",
    "kind": "function",
-   "start": 11305,
-   "def_line": 11305,
-   "end": 11340,
+   "start": 9962,
+   "def_line": 9962,
+   "end": 9997,
    "lines": 36
   },
   {
    "name": "_narration_safety_decision",
    "kind": "function",
-   "start": 11343,
-   "def_line": 11343,
-   "end": 12396,
+   "start": 10000,
+   "def_line": 10000,
+   "end": 11053,
    "lines": 1054
   },
   {
    "name": "_narration_is_unsafe",
    "kind": "function",
-   "start": 12399,
-   "def_line": 12399,
-   "end": 12402,
+   "start": 11056,
+   "def_line": 11056,
+   "end": 11059,
    "lines": 4
   },
   {
    "name": "is_player_world_assertion",
    "kind": "function",
-   "start": 12405,
-   "def_line": 12405,
-   "end": 12420,
+   "start": 11062,
+   "def_line": 11062,
+   "end": 11077,
    "lines": 16
   },
   {
    "name": "should_generate_npcs",
    "kind": "function",
-   "start": 12423,
-   "def_line": 12423,
-   "end": 12429,
+   "start": 11080,
+   "def_line": 11080,
+   "end": 11086,
    "lines": 7
   },
   {
    "name": "should_generate_features",
    "kind": "function",
-   "start": 12432,
-   "def_line": 12432,
-   "end": 12458,
+   "start": 11089,
+   "def_line": 11089,
+   "end": 11115,
    "lines": 27
-  },
-  {
-   "name": "NPC_SCHEMA",
-   "kind": "assign",
-   "start": 12461,
-   "def_line": 12461,
-   "end": 12474,
-   "lines": 14
-  },
-  {
-   "name": "LOCATION_SCHEMA",
-   "kind": "assign",
-   "start": 12475,
-   "def_line": 12475,
-   "end": 12486,
-   "lines": 12
-  },
-  {
-   "name": "WORLD_UPDATE_SCHEMA",
-   "kind": "assign",
-   "start": 12487,
-   "def_line": 12487,
-   "end": 12550,
-   "lines": 64
   },
   {
    "name": "_empty_lore_authority_context",
    "kind": "function",
-   "start": 12551,
-   "def_line": 12551,
-   "end": 12568,
+   "start": 11118,
+   "def_line": 11118,
+   "end": 11135,
    "lines": 18
   },
   {
    "name": "_prepare_lore_authority_context",
    "kind": "function",
-   "start": 12571,
-   "def_line": 12571,
-   "end": 12590,
+   "start": 11138,
+   "def_line": 11138,
+   "end": 11157,
    "lines": 20
-  },
-  {
-   "name": "_lore_claims_are_supported",
-   "kind": "function",
-   "start": 12593,
-   "def_line": 12593,
-   "end": 12623,
-   "lines": 31
-  },
-  {
-   "name": "_lore_guard_text",
-   "kind": "function",
-   "start": 12626,
-   "def_line": 12626,
-   "end": 12633,
-   "lines": 8
-  },
-  {
-   "name": "_lore_fact_records",
-   "kind": "function",
-   "start": 12636,
-   "def_line": 12636,
-   "end": 12656,
-   "lines": 21
   },
   {
    "name": "_lore_entity_names",
    "kind": "function",
-   "start": 12659,
-   "def_line": 12659,
-   "end": 12712,
+   "start": 11166,
+   "def_line": 11166,
+   "end": 11219,
    "lines": 54
-  },
-  {
-   "name": "_LORE_ENTITY_TITLE_RE",
-   "kind": "assign",
-   "start": 12715,
-   "def_line": 12715,
-   "end": 12722,
-   "lines": 8
-  },
-  {
-   "name": "_LORE_PROPER_NAME_RE",
-   "kind": "assign",
-   "start": 12723,
-   "def_line": 12723,
-   "end": 12726,
-   "lines": 4
-  },
-  {
-   "name": "_LORE_ENTITY_FOLLOWING_CUE_RE",
-   "kind": "assign",
-   "start": 12727,
-   "def_line": 12727,
-   "end": 12734,
-   "lines": 8
-  },
-  {
-   "name": "_LORE_SENTENCE_START_WORDS",
-   "kind": "assign",
-   "start": 12735,
-   "def_line": 12735,
-   "end": 12748,
-   "lines": 14
   },
   {
    "name": "_is_registered_lore_name",
    "kind": "function",
-   "start": 12751,
-   "def_line": 12751,
-   "end": 12770,
+   "start": 11224,
+   "def_line": 11224,
+   "end": 11243,
    "lines": 20
-  },
-  {
-   "name": "_GENERIC_SPEAKER_LABEL_RE",
-   "kind": "assign",
-   "start": 12773,
-   "def_line": 12773,
-   "end": 12776,
-   "lines": 4
-  },
-  {
-   "name": "_is_generic_speaker_label",
-   "kind": "function",
-   "start": 12779,
-   "def_line": 12779,
-   "end": 12781,
-   "lines": 3
   },
   {
    "name": "_has_unregistered_narrative_entity",
    "kind": "function",
-   "start": 12784,
-   "def_line": 12784,
-   "end": 12841,
+   "start": 11250,
+   "def_line": 11250,
+   "end": 11307,
    "lines": 58
-  },
-  {
-   "name": "_LORE_UNSUPPORTED_DETAIL_PATTERNS",
-   "kind": "assign",
-   "start": 12844,
-   "def_line": 12844,
-   "end": 12970,
-   "lines": 127
-  },
-  {
-   "name": "_LORE_RULER_TITLE_RE",
-   "kind": "assign",
-   "start": 12971,
-   "def_line": 12971,
-   "end": 12975,
-   "lines": 5
-  },
-  {
-   "name": "_LORE_ENTITY_RELATION_RE",
-   "kind": "assign",
-   "start": 12976,
-   "def_line": 12976,
-   "end": 12986,
-   "lines": 11
-  },
-  {
-   "name": "_LORE_ROUTE_DISTANCE_QUERY_RE",
-   "kind": "assign",
-   "start": 12987,
-   "def_line": 12987,
-   "end": 12994,
-   "lines": 8
-  },
-  {
-   "name": "_UNVERIFIED_LORE_RESPONSE",
-   "kind": "assign",
-   "start": 12995,
-   "def_line": 12999,
-   "end": 13001,
-   "lines": 3
-  },
-  {
-   "name": "_UNVERIFIED_DISTANCE_RESPONSE",
-   "kind": "assign",
-   "start": 13002,
-   "def_line": 13002,
-   "end": 13005,
-   "lines": 4
-  },
-  {
-   "name": "_UNVERIFIED_RULER_RESPONSE",
-   "kind": "assign",
-   "start": 13006,
-   "def_line": 13006,
-   "end": 13009,
-   "lines": 4
   },
   {
    "name": "_rejected_lore_narration",
    "kind": "function",
-   "start": 13012,
-   "def_line": 13012,
-   "end": 13020,
+   "start": 11312,
+   "def_line": 11312,
+   "end": 11320,
    "lines": 9
-  },
-  {
-   "name": "_INDOOR_DETAIL",
-   "kind": "assign",
-   "start": 13023,
-   "def_line": 13023,
-   "end": 13025,
-   "lines": 3
   },
   {
    "name": "_stage_within_the_street",
    "kind": "function",
-   "start": 13028,
-   "def_line": 13028,
-   "end": 13054,
+   "start": 11325,
+   "def_line": 11325,
+   "end": 11351,
    "lines": 27
   },
   {
    "name": "_shown_stage_direction",
    "kind": "function",
-   "start": 13057,
-   "def_line": 13057,
-   "end": 13063,
+   "start": 11354,
+   "def_line": 11354,
+   "end": 11360,
    "lines": 7
-  },
-  {
-   "name": "_ASKS_DISTANCE",
-   "kind": "assign",
-   "start": 13066,
-   "def_line": 13066,
-   "end": 13066,
-   "lines": 1
   },
   {
    "name": "_unverified_lore_response",
    "kind": "function",
-   "start": 13069,
-   "def_line": 13069,
-   "end": 13093,
+   "start": 11365,
+   "def_line": 11365,
+   "end": 11389,
    "lines": 25
   },
   {
    "name": "_names_the_district_here",
    "kind": "function",
-   "start": 13096,
-   "def_line": 13096,
-   "end": 13102,
+   "start": 11392,
+   "def_line": 11392,
+   "end": 11398,
    "lines": 7
   },
   {
    "name": "_narration_has_unsupported_lore_claim",
    "kind": "function",
-   "start": 13105,
-   "def_line": 13105,
-   "end": 13207,
+   "start": 11401,
+   "def_line": 11401,
+   "end": 11503,
    "lines": 103
-  },
-  {
-   "name": "_salvage_plain_speech",
-   "kind": "function",
-   "start": 13210,
-   "def_line": 13210,
-   "end": 13233,
-   "lines": 24
-  },
-  {
-   "name": "_TERMINATOR_MASK",
-   "kind": "assign",
-   "start": 13236,
-   "def_line": 13236,
-   "end": 13236,
-   "lines": 1
-  },
-  {
-   "name": "_split_sentences_keep_speech",
-   "kind": "function",
-   "start": 13239,
-   "def_line": 13239,
-   "end": 13248,
-   "lines": 10
   },
   {
    "name": "_repair_unsupported_lore_narration",
    "kind": "function",
-   "start": 13251,
-   "def_line": 13251,
-   "end": 13264,
+   "start": 11512,
+   "def_line": 11512,
+   "end": 11525,
    "lines": 14
   },
   {
    "name": "_scene_has_registered_craft_role",
    "kind": "function",
-   "start": 13267,
-   "def_line": 13267,
-   "end": 13278,
+   "start": 11528,
+   "def_line": 11528,
+   "end": 11539,
    "lines": 12
-  },
-  {
-   "name": "_spoken_lore_fact_ids",
-   "kind": "function",
-   "start": 13281,
-   "def_line": 13281,
-   "end": 13322,
-   "lines": 42
-  },
-  {
-   "name": "_has_active_local_npc_focus_for_place_request",
-   "kind": "function",
-   "start": 13325,
-   "def_line": 13325,
-   "end": 13351,
-   "lines": 27
   },
   {
    "name": "_supported_lore_question_response",
    "kind": "function",
-   "start": 13354,
-   "def_line": 13354,
-   "end": 13832,
+   "start": 11546,
+   "def_line": 11546,
+   "end": 12024,
    "lines": 479
   },
   {
    "name": "_player_question_has_unverified_lore_claim",
    "kind": "function",
-   "start": 13835,
-   "def_line": 13835,
-   "end": 14030,
+   "start": 12027,
+   "def_line": 12027,
+   "end": 12222,
    "lines": 196
   },
   {
-   "name": "DM_RESPONSE_SCHEMA",
-   "kind": "assign",
-   "start": 14033,
-   "def_line": 14033,
-   "end": 14063,
-   "lines": 31
+   "name": "_validated_player_line",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
   },
   {
-   "name": "_validated_player_line",
-   "kind": "function",
-   "start": 14065,
-   "def_line": 14065,
-   "end": 14088,
-   "lines": 24
+   "name": "_WINDOW_WORDS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_LOCK_WORDS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_TRACK_WORDS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_resolved_skill_result_narration",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_TELLS_FAILURE",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_UNMOVED",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_QUOTE_CLOSER_RE",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_QUOTE_OPENER_RE",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_trim_dangling_quote",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_dialogue_repair_has_attributed_answer",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_skill_result_category",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_print_skill_result",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_ATTACK_VERB_PATTERN",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_ATTACK_BLOW_PHRASE",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_CHARGING_IN",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_ATTACK_LOOKALIKE_TOKEN",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_ATTACK_INSTRUMENT_TOKENS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_INANIMATE_HIT_OBJECT",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_CREATURE_REFERENCE",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_attack_verb_tokens",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_immediate_check_refusal",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_turkish_genitive_form",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_asks_what_is_going_on",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_is_bare_greeting",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_is_scene_referent_activity_observation",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_public_scene_person_text",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_LOOK_OPENINGS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_CONVERSATION_OPENINGS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_OWN_ACTS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_WALKED_UP",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_said_after_approach",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_SAY_VERBS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_SAY_ENGLISH",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_HAIL_FILLERS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_line_addresses",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_PLANNER_STAYS_OUT",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_NO_BLOW_NOW",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_BLOW_WORDS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_word_root",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_NOT_A_LOCAL_PLACE",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_NARRATOR_PRONOUNS",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_NARRATOR_PLURAL",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
+  },
+  {
+   "name": "_singular_narrator",
+   "kind": "import",
+   "start": 12226,
+   "def_line": 12226,
+   "end": 12226,
+   "lines": 1
   },
   {
    "name": "_feature_refs_are_visible",
    "kind": "function",
-   "start": 14091,
-   "def_line": 14091,
-   "end": 14102,
+   "start": 12229,
+   "def_line": 12229,
+   "end": 12240,
    "lines": 12
   },
   {
    "name": "_dm_response_schema_for_turn",
    "kind": "function",
-   "start": 14105,
-   "def_line": 14105,
-   "end": 14136,
+   "start": 12243,
+   "def_line": 12243,
+   "end": 12274,
    "lines": 32
   },
   {
    "name": "_living_world_prompt_context",
    "kind": "function",
-   "start": 14139,
-   "def_line": 14139,
-   "end": 14215,
+   "start": 12277,
+   "def_line": 12277,
+   "end": 12353,
    "lines": 77
   },
   {
    "name": "ask_dungeon_master",
    "kind": "function",
-   "start": 14218,
-   "def_line": 14218,
-   "end": 14726,
+   "start": 12356,
+   "def_line": 12356,
+   "end": 12864,
    "lines": 509
-  },
-  {
-   "name": "_WINDOW_WORDS",
-   "kind": "assign",
-   "start": 14729,
-   "def_line": 14729,
-   "end": 14729,
-   "lines": 1
-  },
-  {
-   "name": "_LOCK_WORDS",
-   "kind": "assign",
-   "start": 14730,
-   "def_line": 14730,
-   "end": 14730,
-   "lines": 1
-  },
-  {
-   "name": "_TRACK_WORDS",
-   "kind": "assign",
-   "start": 14731,
-   "def_line": 14731,
-   "end": 14731,
-   "lines": 1
   },
   {
    "name": "_ensure_venue_window",
    "kind": "function",
-   "start": 14734,
-   "def_line": 14734,
-   "end": 14757,
+   "start": 12869,
+   "def_line": 12869,
+   "end": 12892,
    "lines": 24
   },
   {
    "name": "_finding_says_too_much",
    "kind": "function",
-   "start": 14760,
-   "def_line": 14760,
-   "end": 14773,
+   "start": 12895,
+   "def_line": 12895,
+   "end": 12908,
    "lines": 14
   },
   {
    "name": "_bound_on_a_named_word",
    "kind": "function",
-   "start": 14776,
-   "def_line": 14776,
-   "end": 14801,
+   "start": 12911,
+   "def_line": 12911,
+   "end": 12936,
    "lines": 26
   },
   {
    "name": "_found_on_a_pass",
    "kind": "function",
-   "start": 14804,
-   "def_line": 14804,
-   "end": 14823,
+   "start": 12939,
+   "def_line": 12939,
+   "end": 12958,
    "lines": 20
   },
   {
    "name": "_inspection_findings",
    "kind": "function",
-   "start": 14826,
-   "def_line": 14826,
-   "end": 14933,
+   "start": 12961,
+   "def_line": 12961,
+   "end": 13068,
    "lines": 108
-  },
-  {
-   "name": "_resolved_skill_result_narration",
-   "kind": "function",
-   "start": 14936,
-   "def_line": 14936,
-   "end": 14961,
-   "lines": 26
-  },
-  {
-   "name": "_TELLS_FAILURE",
-   "kind": "assign",
-   "start": 14964,
-   "def_line": 14964,
-   "end": 14964,
-   "lines": 1
-  },
-  {
-   "name": "_UNMOVED",
-   "kind": "assign",
-   "start": 14967,
-   "def_line": 14968,
-   "end": 14971,
-   "lines": 4
   },
   {
    "name": "_states_the_failed_check",
    "kind": "function",
-   "start": 14974,
-   "def_line": 14974,
-   "end": 14984,
+   "start": 13077,
+   "def_line": 13077,
+   "end": 13087,
    "lines": 11
   },
   {
    "name": "_fallback_for_action_result",
    "kind": "function",
-   "start": 14987,
-   "def_line": 14987,
-   "end": 15050,
+   "start": 13090,
+   "def_line": 13090,
+   "end": 13153,
    "lines": 64
   },
   {
    "name": "_record_narration_safety",
    "kind": "function",
-   "start": 15053,
-   "def_line": 15053,
-   "end": 15079,
+   "start": 13156,
+   "def_line": 13156,
+   "end": 13182,
    "lines": 27
-  },
-  {
-   "name": "_QUOTE_CLOSER_RE",
-   "kind": "assign",
-   "start": 15082,
-   "def_line": 15082,
-   "end": 15082,
-   "lines": 1
-  },
-  {
-   "name": "_QUOTE_OPENER_RE",
-   "kind": "assign",
-   "start": 15083,
-   "def_line": 15083,
-   "end": 15083,
-   "lines": 1
-  },
-  {
-   "name": "_trim_dangling_quote",
-   "kind": "function",
-   "start": 15086,
-   "def_line": 15086,
-   "end": 15099,
-   "lines": 14
   },
   {
    "name": "_remove_trigger_sentence",
    "kind": "function",
-   "start": 15102,
-   "def_line": 15102,
-   "end": 15135,
+   "start": 13189,
+   "def_line": 13189,
+   "end": 13222,
    "lines": 34
-  },
-  {
-   "name": "_dialogue_repair_has_attributed_answer",
-   "kind": "function",
-   "start": 15138,
-   "def_line": 15138,
-   "end": 15187,
-   "lines": 50
   },
   {
    "name": "_repair_attributed_speech",
    "kind": "function",
-   "start": 15190,
-   "def_line": 15190,
-   "end": 15218,
+   "start": 13227,
+   "def_line": 13227,
+   "end": 13255,
    "lines": 29
   },
   {
    "name": "_is_player_name_inquiry_to_npc",
    "kind": "function",
-   "start": 15221,
-   "def_line": 15221,
-   "end": 15232,
+   "start": 13258,
+   "def_line": 13258,
+   "end": 13269,
    "lines": 12
   },
   {
    "name": "_is_historical_player_name_query",
    "kind": "function",
-   "start": 15235,
-   "def_line": 15235,
-   "end": 15240,
+   "start": 13272,
+   "def_line": 13272,
+   "end": 13277,
    "lines": 6
   },
   {
    "name": "_hero_first_name",
    "kind": "function",
-   "start": 15243,
-   "def_line": 15243,
-   "end": 15244,
+   "start": 13280,
+   "def_line": 13280,
+   "end": 13281,
    "lines": 2
   },
   {
    "name": "_explicit_player_name_disclosure",
    "kind": "function",
-   "start": 15247,
-   "def_line": 15247,
-   "end": 15257,
+   "start": 13284,
+   "def_line": 13284,
+   "end": 13294,
    "lines": 11
   },
   {
    "name": "_known_player_name",
    "kind": "function",
-   "start": 15260,
-   "def_line": 15260,
-   "end": 15267,
+   "start": 13297,
+   "def_line": 13297,
+   "end": 13304,
    "lines": 8
   },
   {
    "name": "_historical_player_name_from_npc_memory",
    "kind": "function",
-   "start": 15270,
-   "def_line": 15270,
-   "end": 15283,
+   "start": 13307,
+   "def_line": 13307,
+   "end": 13320,
    "lines": 14
   },
   {
    "name": "_historical_player_name_from_claims",
    "kind": "function",
-   "start": 15286,
-   "def_line": 15286,
-   "end": 15306,
+   "start": 13323,
+   "def_line": 13323,
+   "end": 13343,
    "lines": 21
   },
   {
    "name": "_narration_contradicts_supported_name_memory",
    "kind": "function",
-   "start": 15309,
-   "def_line": 15309,
-   "end": 15327,
+   "start": 13346,
+   "def_line": 13346,
+   "end": 13364,
    "lines": 19
   },
   {
    "name": "_narrated_money_can_lie",
    "kind": "function",
-   "start": 15330,
-   "def_line": 15330,
-   "end": 15335,
+   "start": 13367,
+   "def_line": 13367,
+   "end": 13372,
    "lines": 6
   },
   {
    "name": "finalize_narration",
    "kind": "function",
-   "start": 15338,
-   "def_line": 15338,
-   "end": 15687,
+   "start": 13375,
+   "def_line": 13375,
+   "end": 13724,
    "lines": 350
   },
   {
    "name": "initialize_game",
    "kind": "function",
-   "start": 15694,
-   "def_line": 15694,
-   "end": 15890,
+   "start": 13731,
+   "def_line": 13731,
+   "end": 13927,
    "lines": 197
-  },
-  {
-   "name": "NARRATOR_VOICE",
-   "kind": "assign",
-   "start": 15897,
-   "def_line": 15897,
-   "end": 15903,
-   "lines": 7
-  },
-  {
-   "name": "system_prompt",
-   "kind": "assign",
-   "start": 15905,
-   "def_line": 15905,
-   "end": 15961,
-   "lines": 57
   },
   {
    "name": "messages",
    "kind": "assign",
-   "start": 15964,
-   "def_line": 15964,
-   "end": 15969,
+   "start": 13937,
+   "def_line": 13937,
+   "end": 13942,
    "lines": 6
   },
   {
    "name": "DEBUG_MODE",
    "kind": "assign",
-   "start": 15972,
-   "def_line": 15972,
-   "end": 15972,
+   "start": 13945,
+   "def_line": 13945,
+   "end": 13945,
    "lines": 1
   },
   {
    "name": "_world_snapshot",
    "kind": "function",
-   "start": 15975,
-   "def_line": 15975,
-   "end": 16001,
+   "start": 13948,
+   "def_line": 13948,
+   "end": 13974,
    "lines": 27
   },
   {
    "name": "_changed_state_fields",
    "kind": "function",
-   "start": 16004,
-   "def_line": 16004,
-   "end": 16024,
+   "start": 13977,
+   "def_line": 13977,
+   "end": 13997,
    "lines": 21
-  },
-  {
-   "name": "_skill_result_category",
-   "kind": "function",
-   "start": 16027,
-   "def_line": 16027,
-   "end": 16031,
-   "lines": 5
-  },
-  {
-   "name": "_print_skill_result",
-   "kind": "function",
-   "start": 16034,
-   "def_line": 16034,
-   "end": 16048,
-   "lines": 15
   },
   {
    "name": "_commit_travel_action",
    "kind": "function",
-   "start": 16051,
-   "def_line": 16051,
-   "end": 16095,
+   "start": 14004,
+   "def_line": 14004,
+   "end": 14048,
    "lines": 45
-  },
-  {
-   "name": "_ATTACK_VERB_PATTERN",
-   "kind": "assign",
-   "start": 16098,
-   "def_line": 16098,
-   "end": 16098,
-   "lines": 1
-  },
-  {
-   "name": "_ATTACK_BLOW_PHRASE",
-   "kind": "assign",
-   "start": 16099,
-   "def_line": 16100,
-   "end": 16103,
-   "lines": 4
-  },
-  {
-   "name": "_CHARGING_IN",
-   "kind": "assign",
-   "start": 16104,
-   "def_line": 16107,
-   "end": 16107,
-   "lines": 1
-  },
-  {
-   "name": "_ATTACK_LOOKALIKE_TOKEN",
-   "kind": "assign",
-   "start": 16108,
-   "def_line": 16108,
-   "end": 16110,
-   "lines": 3
-  },
-  {
-   "name": "_ATTACK_INSTRUMENT_TOKENS",
-   "kind": "assign",
-   "start": 16111,
-   "def_line": 16111,
-   "end": 16111,
-   "lines": 1
-  },
-  {
-   "name": "_INANIMATE_HIT_OBJECT",
-   "kind": "assign",
-   "start": 16112,
-   "def_line": 16114,
-   "end": 16119,
-   "lines": 6
-  },
-  {
-   "name": "_CREATURE_REFERENCE",
-   "kind": "assign",
-   "start": 16120,
-   "def_line": 16120,
-   "end": 16124,
-   "lines": 5
-  },
-  {
-   "name": "_attack_verb_tokens",
-   "kind": "function",
-   "start": 16127,
-   "def_line": 16127,
-   "end": 16140,
-   "lines": 14
   },
   {
    "name": "_names_present_creature",
    "kind": "function",
-   "start": 16143,
-   "def_line": 16143,
-   "end": 16156,
+   "start": 14055,
+   "def_line": 14055,
+   "end": 14068,
    "lines": 14
   },
   {
    "name": "_has_explicit_attack_verb",
    "kind": "function",
-   "start": 16159,
-   "def_line": 16159,
-   "end": 16195,
+   "start": 14071,
+   "def_line": 14071,
+   "end": 14107,
    "lines": 37
   },
   {
    "name": "_is_explicitly_negated_attack",
    "kind": "function",
-   "start": 16198,
-   "def_line": 16198,
-   "end": 16212,
+   "start": 14110,
+   "def_line": 14110,
+   "end": 14124,
    "lines": 15
-  },
-  {
-   "name": "CHECK_FEATURES",
-   "kind": "assign",
-   "start": 16215,
-   "def_line": 16215,
-   "end": 16215,
-   "lines": 1
-  },
-  {
-   "name": "_immediate_check_refusal",
-   "kind": "function",
-   "start": 16218,
-   "def_line": 16218,
-   "end": 16222,
-   "lines": 5
   },
   {
    "name": "primal_knowledge_check_admission",
    "kind": "function",
-   "start": 16225,
-   "def_line": 16225,
-   "end": 16269,
+   "start": 14131,
+   "def_line": 14131,
+   "end": 14175,
    "lines": 45
   },
   {
    "name": "execute_intent",
    "kind": "function",
-   "start": 16272,
-   "def_line": 16272,
-   "end": 16294,
+   "start": 14178,
+   "def_line": 14178,
+   "end": 14200,
    "lines": 23
   },
   {
    "name": "_execute_intent_internal",
    "kind": "function",
-   "start": 16297,
-   "def_line": 16297,
-   "end": 16844,
+   "start": 14203,
+   "def_line": 14203,
+   "end": 14750,
    "lines": 548
   },
   {
    "name": "_unsupported_available_quest_claim",
    "kind": "function",
-   "start": 16847,
-   "def_line": 16847,
-   "end": 16876,
+   "start": 14753,
+   "def_line": 14753,
+   "end": 14782,
    "lines": 30
   },
   {
    "name": "_names_current_local_exit",
    "kind": "function",
-   "start": 16879,
-   "def_line": 16879,
-   "end": 16909,
+   "start": 14785,
+   "def_line": 14785,
+   "end": 14815,
    "lines": 31
   },
   {
    "name": "_engine_location_parent",
    "kind": "function",
-   "start": 16912,
-   "def_line": 16912,
-   "end": 16916,
+   "start": 14818,
+   "def_line": 14818,
+   "end": 14822,
    "lines": 5
   },
   {
    "name": "_existing_local_tavern",
    "kind": "function",
-   "start": 16919,
-   "def_line": 16919,
-   "end": 16931,
+   "start": 14825,
+   "def_line": 14825,
+   "end": 14837,
    "lines": 13
   },
   {
    "name": "_resolve_explicit_local_scene_parent",
    "kind": "function",
-   "start": 16934,
-   "def_line": 16934,
-   "end": 16966,
+   "start": 14840,
+   "def_line": 14840,
+   "end": 14872,
    "lines": 33
   },
   {
    "name": "_scene_detail_parent",
    "kind": "function",
-   "start": 16969,
-   "def_line": 16969,
-   "end": 16990,
+   "start": 14875,
+   "def_line": 14875,
+   "end": 14896,
    "lines": 22
   },
   {
    "name": "_anchored_structure_features",
    "kind": "function",
-   "start": 16993,
-   "def_line": 16993,
-   "end": 17019,
+   "start": 14899,
+   "def_line": 14899,
+   "end": 14925,
    "lines": 27
   },
   {
    "name": "_observe_anchored_structure",
    "kind": "function",
-   "start": 17022,
-   "def_line": 17022,
-   "end": 17103,
+   "start": 14928,
+   "def_line": 14928,
+   "end": 15009,
    "lines": 82
   },
   {
    "name": "_ensure_local_tavern",
    "kind": "function",
-   "start": 17106,
-   "def_line": 17106,
-   "end": 17157,
+   "start": 15012,
+   "def_line": 15012,
+   "end": 15063,
    "lines": 52
-  },
-  {
-   "name": "_turkish_genitive_form",
-   "kind": "function",
-   "start": 17160,
-   "def_line": 17160,
-   "end": 17183,
-   "lines": 24
   },
   {
    "name": "_ensure_local_merchant",
    "kind": "function",
-   "start": 17186,
-   "def_line": 17186,
-   "end": 17246,
+   "start": 15068,
+   "def_line": 15068,
+   "end": 15128,
    "lines": 61
   },
   {
    "name": "_scene_feature_match",
    "kind": "function",
-   "start": 17249,
-   "def_line": 17249,
-   "end": 17273,
+   "start": 15131,
+   "def_line": 15131,
+   "end": 15155,
    "lines": 25
   },
   {
    "name": "resolve_scene_seating",
    "kind": "function",
-   "start": 17276,
-   "def_line": 17276,
-   "end": 17326,
+   "start": 15158,
+   "def_line": 15158,
+   "end": 15208,
    "lines": 51
-  },
-  {
-   "name": "_asks_what_is_going_on",
-   "kind": "function",
-   "start": 17329,
-   "def_line": 17329,
-   "end": 17334,
-   "lines": 6
   },
   {
    "name": "_direct_npc_smalltalk_response",
    "kind": "function",
-   "start": 17337,
-   "def_line": 17337,
-   "end": 17453,
+   "start": 15213,
+   "def_line": 15213,
+   "end": 15329,
    "lines": 117
-  },
-  {
-   "name": "_is_bare_greeting",
-   "kind": "function",
-   "start": 17456,
-   "def_line": 17456,
-   "end": 17474,
-   "lines": 19
-  },
-  {
-   "name": "_is_scene_referent_activity_observation",
-   "kind": "function",
-   "start": 17477,
-   "def_line": 17477,
-   "end": 17502,
-   "lines": 26
   },
   {
    "name": "_scene_names",
    "kind": "function",
-   "start": 17505,
-   "def_line": 17505,
-   "end": 17509,
+   "start": 15336,
+   "def_line": 15336,
+   "end": 15340,
    "lines": 5
-  },
-  {
-   "name": "_public_scene_person_text",
-   "kind": "function",
-   "start": 17512,
-   "def_line": 17512,
-   "end": 17517,
-   "lines": 6
   },
   {
    "name": "_scene_presence_text",
    "kind": "function",
-   "start": 17520,
-   "def_line": 17520,
-   "end": 17565,
+   "start": 15345,
+   "def_line": 15345,
+   "end": 15390,
    "lines": 46
-  },
-  {
-   "name": "_LOOK_OPENINGS",
-   "kind": "assign",
-   "start": 17568,
-   "def_line": 17568,
-   "end": 17573,
-   "lines": 6
   },
   {
    "name": "_variation_index",
    "kind": "function",
-   "start": 17576,
-   "def_line": 17576,
-   "end": 17588,
+   "start": 15395,
+   "def_line": 15395,
+   "end": 15407,
    "lines": 13
   },
   {
    "name": "_look_opening",
    "kind": "function",
-   "start": 17591,
-   "def_line": 17591,
-   "end": 17594,
+   "start": 15410,
+   "def_line": 15410,
+   "end": 15413,
    "lines": 4
-  },
-  {
-   "name": "_CONVERSATION_OPENINGS",
-   "kind": "assign",
-   "start": 17597,
-   "def_line": 17597,
-   "end": 17602,
-   "lines": 6
   },
   {
    "name": "_conversation_opening_line",
    "kind": "function",
-   "start": 17605,
-   "def_line": 17605,
-   "end": 17608,
+   "start": 15418,
+   "def_line": 15418,
+   "end": 15421,
    "lines": 4
   },
   {
    "name": "_scene_look_text",
    "kind": "function",
-   "start": 17611,
-   "def_line": 17611,
-   "end": 17657,
+   "start": 15424,
+   "def_line": 15424,
+   "end": 15470,
    "lines": 47
   },
   {
    "name": "_look_scene_changed",
    "kind": "function",
-   "start": 17660,
-   "def_line": 17660,
-   "end": 17674,
+   "start": 15473,
+   "def_line": 15473,
+   "end": 15487,
    "lines": 15
   },
   {
    "name": "_keep_people_in_look",
    "kind": "function",
-   "start": 17677,
-   "def_line": 17677,
-   "end": 17690,
+   "start": 15490,
+   "def_line": 15490,
+   "end": 15503,
    "lines": 14
   },
   {
    "name": "_set_scene_active_npc",
    "kind": "function",
-   "start": 17693,
-   "def_line": 17693,
-   "end": 17696,
+   "start": 15506,
+   "def_line": 15506,
+   "end": 15509,
    "lines": 4
   },
   {
    "name": "_promote_scene_referent",
    "kind": "function",
-   "start": 17699,
-   "def_line": 17699,
-   "end": 17727,
+   "start": 15512,
+   "def_line": 15512,
+   "end": 15540,
    "lines": 29
   },
   {
    "name": "_reopen_public_doors",
    "kind": "function",
-   "start": 17730,
-   "def_line": 17730,
-   "end": 17732,
+   "start": 15543,
+   "def_line": 15543,
+   "end": 15545,
    "lines": 3
   },
   {
    "name": "plan_living_world_turn",
    "kind": "function",
-   "start": 17735,
-   "def_line": 17735,
-   "end": 18459,
+   "start": 15548,
+   "def_line": 15548,
+   "end": 16272,
    "lines": 725
   },
   {
    "name": "TurnResolved",
    "kind": "class",
-   "start": 18462,
-   "def_line": 18462,
-   "end": 18465,
+   "start": 16275,
+   "def_line": 16275,
+   "end": 16278,
    "lines": 4
   },
   {
    "name": "_hideout_check",
    "kind": "function",
-   "start": 18468,
-   "def_line": 18468,
-   "end": 18479,
+   "start": 16281,
+   "def_line": 16281,
+   "end": 16292,
    "lines": 12
   },
   {
    "name": "_adventure_scene_turn",
    "kind": "function",
-   "start": 18482,
-   "def_line": 18482,
-   "end": 18513,
+   "start": 16295,
+   "def_line": 16295,
+   "end": 16326,
    "lines": 32
   },
   {
    "name": "_adventure_check_reply",
    "kind": "function",
-   "start": 18516,
-   "def_line": 18516,
-   "end": 18545,
+   "start": 16329,
+   "def_line": 16329,
+   "end": 16358,
    "lines": 30
   },
   {
    "name": "_everyday_action_turn",
    "kind": "function",
-   "start": 18548,
-   "def_line": 18548,
-   "end": 18607,
+   "start": 16361,
+   "def_line": 16361,
+   "end": 16420,
    "lines": 60
   },
   {
    "name": "_local_place_turn",
    "kind": "function",
-   "start": 18610,
-   "def_line": 18610,
-   "end": 18699,
+   "start": 16423,
+   "def_line": 16423,
+   "end": 16512,
    "lines": 90
   },
   {
    "name": "_adventure_travel_reply",
    "kind": "function",
-   "start": 18702,
-   "def_line": 18702,
-   "end": 18719,
+   "start": 16515,
+   "def_line": 16515,
+   "end": 16532,
    "lines": 18
   },
   {
    "name": "_intent_infrastructure_result",
    "kind": "function",
-   "start": 18722,
-   "def_line": 18722,
-   "end": 18735,
+   "start": 16535,
+   "def_line": 16535,
+   "end": 16548,
    "lines": 14
   },
   {
    "name": "_clear_turn_transients",
    "kind": "function",
-   "start": 18738,
-   "def_line": 18738,
-   "end": 18754,
+   "start": 16551,
+   "def_line": 16551,
+   "end": 16567,
    "lines": 17
   },
   {
    "name": "turn_source_key",
    "kind": "function",
-   "start": 18757,
-   "def_line": 18757,
-   "end": 18763,
+   "start": 16570,
+   "def_line": 16570,
+   "end": 16576,
    "lines": 7
   },
   {
    "name": "run_player_turn",
    "kind": "function",
-   "start": 18766,
-   "def_line": 18766,
-   "end": 18776,
+   "start": 16579,
+   "def_line": 16579,
+   "end": 16589,
    "lines": 11
   },
   {
    "name": "_run_player_turn_owned",
    "kind": "function",
-   "start": 18779,
-   "def_line": 18779,
-   "end": 18825,
+   "start": 16592,
+   "def_line": 16592,
+   "end": 16638,
    "lines": 47
   },
   {
    "name": "COIN_LEFT_BEHIND",
    "kind": "assign",
-   "start": 18828,
-   "def_line": 18828,
-   "end": 18828,
+   "start": 16641,
+   "def_line": 16641,
+   "end": 16641,
    "lines": 1
   },
   {
    "name": "_tell_the_coin",
    "kind": "function",
-   "start": 18831,
-   "def_line": 18831,
-   "end": 18875,
+   "start": 16644,
+   "def_line": 16644,
+   "end": 16688,
    "lines": 45
   },
   {
    "name": "_run_player_turn",
    "kind": "function",
-   "start": 18878,
-   "def_line": 18878,
-   "end": 18905,
+   "start": 16691,
+   "def_line": 16691,
+   "end": 16718,
    "lines": 28
   },
   {
    "name": "_run_player_turn_keyed",
    "kind": "function",
-   "start": 18908,
-   "def_line": 18908,
-   "end": 19044,
+   "start": 16721,
+   "def_line": 16721,
+   "end": 16857,
    "lines": 137
-  },
-  {
-   "name": "_OWN_ACTS",
-   "kind": "assign",
-   "start": 19047,
-   "def_line": 19048,
-   "end": 19048,
-   "lines": 1
   },
   {
    "name": "_a_walk",
    "kind": "function",
-   "start": 19051,
-   "def_line": 19051,
-   "end": 19057,
+   "start": 16862,
+   "def_line": 16862,
+   "end": 16868,
    "lines": 7
   },
   {
    "name": "_walked_there",
    "kind": "function",
-   "start": 19060,
-   "def_line": 19060,
-   "end": 19076,
+   "start": 16871,
+   "def_line": 16871,
+   "end": 16887,
    "lines": 17
   },
   {
    "name": "_the_rest_of_the_line",
    "kind": "function",
-   "start": 19079,
-   "def_line": 19079,
-   "end": 19162,
+   "start": 16890,
+   "def_line": 16890,
+   "end": 16973,
    "lines": 84
   },
   {
    "name": "_stock_hearer",
    "kind": "function",
-   "start": 19165,
-   "def_line": 19165,
-   "end": 19185,
+   "start": 16976,
+   "def_line": 16976,
+   "end": 16996,
    "lines": 21
   },
   {
    "name": "_person_answers_stock",
    "kind": "function",
-   "start": 19188,
-   "def_line": 19188,
-   "end": 19227,
+   "start": 16999,
+   "def_line": 16999,
+   "end": 17038,
    "lines": 40
   },
   {
    "name": "_death_closing",
    "kind": "function",
-   "start": 19230,
-   "def_line": 19230,
-   "end": 19238,
+   "start": 17041,
+   "def_line": 17041,
+   "end": 17049,
    "lines": 9
   },
   {
    "name": "_death_save_line",
    "kind": "function",
-   "start": 19241,
-   "def_line": 19241,
-   "end": 19258,
+   "start": 17052,
+   "def_line": 17052,
+   "end": 17069,
    "lines": 18
   },
   {
    "name": "_down_outside_combat_turn",
    "kind": "function",
-   "start": 19261,
-   "def_line": 19261,
-   "end": 19304,
+   "start": 17072,
+   "def_line": 17072,
+   "end": 17115,
    "lines": 44
   },
   {
    "name": "_last_call",
    "kind": "function",
-   "start": 19307,
-   "def_line": 19307,
-   "end": 19321,
+   "start": 17118,
+   "def_line": 17118,
+   "end": 17132,
    "lines": 15
   },
   {
    "name": "combat_refusal_turn",
    "kind": "function",
-   "start": 19324,
-   "def_line": 19324,
-   "end": 19336,
+   "start": 17135,
+   "def_line": 17135,
+   "end": 17147,
    "lines": 13
   },
   {
    "name": "_approach_turn",
    "kind": "function",
-   "start": 19339,
-   "def_line": 19339,
-   "end": 19358,
+   "start": 17150,
+   "def_line": 17150,
+   "end": 17169,
    "lines": 20
   },
   {
    "name": "player_cannot_act_turn",
    "kind": "function",
-   "start": 19361,
-   "def_line": 19361,
-   "end": 19382,
+   "start": 17172,
+   "def_line": 17172,
+   "end": 17193,
    "lines": 22
-  },
-  {
-   "name": "_WALKED_UP",
-   "kind": "assign",
-   "start": 19385,
-   "def_line": 19385,
-   "end": 19385,
-   "lines": 1
-  },
-  {
-   "name": "_said_after_approach",
-   "kind": "function",
-   "start": 19388,
-   "def_line": 19388,
-   "end": 19392,
-   "lines": 5
   },
   {
    "name": "_reads_as_address",
    "kind": "function",
-   "start": 19395,
-   "def_line": 19395,
-   "end": 19397,
+   "start": 17200,
+   "def_line": 17200,
+   "end": 17202,
    "lines": 3
-  },
-  {
-   "name": "_SAY_VERBS",
-   "kind": "assign",
-   "start": 19400,
-   "def_line": 19400,
-   "end": 19400,
-   "lines": 1
-  },
-  {
-   "name": "_SAY_ENGLISH",
-   "kind": "assign",
-   "start": 19401,
-   "def_line": 19401,
-   "end": 19401,
-   "lines": 1
-  },
-  {
-   "name": "_HAIL_FILLERS",
-   "kind": "assign",
-   "start": 19402,
-   "def_line": 19402,
-   "end": 19402,
-   "lines": 1
-  },
-  {
-   "name": "_line_addresses",
-   "kind": "function",
-   "start": 19405,
-   "def_line": 19405,
-   "end": 19431,
-   "lines": 27
   },
   {
    "name": "_addressed_in",
    "kind": "function",
-   "start": 19434,
-   "def_line": 19434,
-   "end": 19441,
+   "start": 17209,
+   "def_line": 17209,
+   "end": 17216,
    "lines": 8
   },
   {
    "name": "_front_recovery",
    "kind": "function",
-   "start": 19444,
-   "def_line": 19444,
-   "end": 19475,
+   "start": 17219,
+   "def_line": 17219,
+   "end": 17250,
    "lines": 32
   },
   {
    "name": "_front_step",
    "kind": "function",
-   "start": 19478,
-   "def_line": 19478,
-   "end": 19708,
-   "lines": 231
-  },
-  {
-   "name": "_PLANNER_STAYS_OUT",
-   "kind": "assign",
-   "start": 19711,
-   "def_line": 19712,
-   "end": 19713,
-   "lines": 2
+   "start": 17253,
+   "def_line": 17253,
+   "end": 17487,
+   "lines": 235
   },
   {
    "name": "_defer_spoken_coin_offer",
    "kind": "function",
-   "start": 19716,
-   "def_line": 19716,
-   "end": 19733,
+   "start": 17492,
+   "def_line": 17492,
+   "end": 17509,
    "lines": 18
   },
   {
    "name": "_record_spoken_coin_response",
    "kind": "function",
-   "start": 19736,
-   "def_line": 19736,
-   "end": 19745,
+   "start": 17512,
+   "def_line": 17512,
+   "end": 17521,
    "lines": 10
   },
   {
    "name": "_economic_listing",
    "kind": "function",
-   "start": 19748,
-   "def_line": 19748,
-   "end": 19752,
+   "start": 17524,
+   "def_line": 17524,
+   "end": 17528,
    "lines": 5
   },
   {
    "name": "_front_economic_offer",
    "kind": "function",
-   "start": 19755,
-   "def_line": 19755,
-   "end": 19857,
+   "start": 17531,
+   "def_line": 17531,
+   "end": 17633,
    "lines": 103
   },
   {
    "name": "_purchase_refused",
    "kind": "function",
-   "start": 19860,
-   "def_line": 19860,
-   "end": 19896,
+   "start": 17636,
+   "def_line": 17636,
+   "end": 17672,
    "lines": 37
   },
   {
    "name": "_hand_over_coin",
    "kind": "function",
-   "start": 19899,
-   "def_line": 19899,
-   "end": 19942,
+   "start": 17675,
+   "def_line": 17675,
+   "end": 17718,
    "lines": 44
   },
   {
-   "name": "_NO_BLOW_NOW",
-   "kind": "assign",
-   "start": 19943,
-   "def_line": 19943,
-   "end": 19943,
-   "lines": 1
+   "name": "_coin_without_a_reading",
+   "kind": "function",
+   "start": 17721,
+   "def_line": 17721,
+   "end": 17757,
+   "lines": 37
   },
   {
    "name": "_blow_stands",
    "kind": "function",
-   "start": 19946,
-   "def_line": 19946,
-   "end": 19955,
+   "start": 17760,
+   "def_line": 17760,
+   "end": 17769,
    "lines": 10
-  },
-  {
-   "name": "_BLOW_WORDS",
-   "kind": "assign",
-   "start": 19958,
-   "def_line": 19959,
-   "end": 19963,
-   "lines": 5
   },
   {
    "name": "_blow_in_the_words",
    "kind": "function",
-   "start": 19966,
-   "def_line": 19966,
-   "end": 19973,
+   "start": 17774,
+   "def_line": 17774,
+   "end": 17781,
    "lines": 8
   },
   {
    "name": "_ask_about_the_blow",
    "kind": "function",
-   "start": 19976,
-   "def_line": 19976,
-   "end": 19986,
+   "start": 17784,
+   "def_line": 17784,
+   "end": 17794,
    "lines": 11
   },
   {
    "name": "_heavy_allowed",
    "kind": "function",
-   "start": 19989,
-   "def_line": 19989,
-   "end": 19993,
+   "start": 17797,
+   "def_line": 17797,
+   "end": 17801,
    "lines": 5
   },
   {
    "name": "_ask_before_the_heavy",
    "kind": "function",
-   "start": 19996,
-   "def_line": 19996,
-   "end": 20013,
+   "start": 17804,
+   "def_line": 17804,
+   "end": 17821,
    "lines": 18
   },
   {
    "name": "_answered_heavy_question",
    "kind": "function",
-   "start": 20016,
-   "def_line": 20016,
-   "end": 20028,
+   "start": 17824,
+   "def_line": 17824,
+   "end": 17836,
    "lines": 13
   },
   {
    "name": "_ask_which_move",
    "kind": "function",
-   "start": 20031,
-   "def_line": 20031,
-   "end": 20043,
+   "start": 17839,
+   "def_line": 17839,
+   "end": 17851,
    "lines": 13
   },
   {
    "name": "_narrated_person",
    "kind": "function",
-   "start": 20046,
-   "def_line": 20046,
-   "end": 20062,
+   "start": 17854,
+   "def_line": 17854,
+   "end": 17870,
    "lines": 17
   },
   {
    "name": "front_read_ahead",
    "kind": "function",
-   "start": 20065,
-   "def_line": 20065,
-   "end": 20082,
-   "lines": 18
+   "start": 17873,
+   "def_line": 17873,
+   "end": 17891,
+   "lines": 19
   },
   {
    "name": "_front_offer_gate",
    "kind": "function",
-   "start": 20085,
-   "def_line": 20085,
-   "end": 20111,
+   "start": 17894,
+   "def_line": 17894,
+   "end": 17920,
    "lines": 27
   },
   {
    "name": "_line_gives",
    "kind": "function",
-   "start": 20114,
-   "def_line": 20114,
-   "end": 20123,
+   "start": 17923,
+   "def_line": 17923,
+   "end": 17932,
    "lines": 10
   },
   {
    "name": "_front_consume",
    "kind": "function",
-   "start": 20126,
-   "def_line": 20126,
-   "end": 20147,
+   "start": 17935,
+   "def_line": 17935,
+   "end": 17956,
    "lines": 22
   },
   {
    "name": "_front_wield",
    "kind": "function",
-   "start": 20150,
-   "def_line": 20150,
-   "end": 20214,
+   "start": 17959,
+   "def_line": 17959,
+   "end": 18023,
    "lines": 65
-  },
-  {
-   "name": "_word_root",
-   "kind": "function",
-   "start": 20217,
-   "def_line": 20217,
-   "end": 20219,
-   "lines": 3
   },
   {
    "name": "_coin_not_parcel",
    "kind": "function",
-   "start": 20222,
-   "def_line": 20222,
-   "end": 20232,
+   "start": 18028,
+   "def_line": 18028,
+   "end": 18038,
    "lines": 11
   },
   {
    "name": "_names_no_parcel",
    "kind": "function",
-   "start": 20235,
-   "def_line": 20235,
-   "end": 20248,
+   "start": 18041,
+   "def_line": 18041,
+   "end": 18054,
    "lines": 14
   },
   {
    "name": "_front_hand_over",
    "kind": "function",
-   "start": 20251,
-   "def_line": 20251,
-   "end": 20306,
+   "start": 18057,
+   "def_line": 18057,
+   "end": 18112,
    "lines": 56
   },
   {
    "name": "_front_work",
    "kind": "function",
-   "start": 20309,
-   "def_line": 20309,
-   "end": 20330,
+   "start": 18115,
+   "def_line": 18115,
+   "end": 18136,
    "lines": 22
   },
   {
    "name": "_take_names_a_job",
    "kind": "function",
-   "start": 20333,
-   "def_line": 20333,
-   "end": 20347,
+   "start": 18139,
+   "def_line": 18139,
+   "end": 18153,
    "lines": 15
   },
   {
    "name": "_front_take",
    "kind": "function",
-   "start": 20350,
-   "def_line": 20350,
-   "end": 20399,
+   "start": 18156,
+   "def_line": 18156,
+   "end": 18205,
    "lines": 50
   },
   {
    "name": "_dispatch_player_turn",
    "kind": "function",
-   "start": 20402,
-   "def_line": 20402,
-   "end": 20894,
+   "start": 18208,
+   "def_line": 18208,
+   "end": 18700,
    "lines": 493
   },
   {
    "name": "_dispatch_turn_body",
    "kind": "function",
-   "start": 20897,
-   "def_line": 20897,
-   "end": 20918,
+   "start": 18703,
+   "def_line": 18703,
+   "end": 18724,
    "lines": 22
   },
   {
    "name": "_sleep_after_walk",
    "kind": "function",
-   "start": 20921,
-   "def_line": 20921,
-   "end": 20952,
+   "start": 18727,
+   "def_line": 18727,
+   "end": 18758,
    "lines": 32
   },
   {
    "name": "_spoken_rest_of_turn",
    "kind": "function",
-   "start": 20955,
-   "def_line": 20955,
-   "end": 20977,
+   "start": 18761,
+   "def_line": 18761,
+   "end": 18783,
    "lines": 23
   },
   {
    "name": "_current_procedural_entity_ids",
    "kind": "function",
-   "start": 20980,
-   "def_line": 20980,
-   "end": 21002,
+   "start": 18786,
+   "def_line": 18786,
+   "end": 18808,
    "lines": 23
-  },
-  {
-   "name": "_NOT_A_LOCAL_PLACE",
-   "kind": "assign",
-   "start": 21005,
-   "def_line": 21005,
-   "end": 21008,
-   "lines": 4
   },
   {
    "name": "_may_propose_local_place",
    "kind": "function",
-   "start": 21011,
-   "def_line": 21011,
-   "end": 21030,
+   "start": 18813,
+   "def_line": 18813,
+   "end": 18832,
    "lines": 20
   },
   {
    "name": "_accepted_local_place",
    "kind": "function",
-   "start": 21033,
-   "def_line": 21033,
-   "end": 21049,
+   "start": 18835,
+   "def_line": 18835,
+   "end": 18851,
    "lines": 17
   },
   {
    "name": "_settle_local_place",
    "kind": "function",
-   "start": 21052,
-   "def_line": 21052,
-   "end": 21070,
+   "start": 18854,
+   "def_line": 18854,
+   "end": 18872,
    "lines": 19
-  },
-  {
-   "name": "_NARRATOR_PRONOUNS",
-   "kind": "assign",
-   "start": 21073,
-   "def_line": 21073,
-   "end": 21076,
-   "lines": 4
-  },
-  {
-   "name": "_NARRATOR_PLURAL",
-   "kind": "assign",
-   "start": 21077,
-   "def_line": 21077,
-   "end": 21091,
-   "lines": 15
-  },
-  {
-   "name": "_singular_narrator",
-   "kind": "function",
-   "start": 21094,
-   "def_line": 21094,
-   "end": 21102,
-   "lines": 9
   },
   {
    "name": "_keep_town_portrait",
    "kind": "function",
-   "start": 21105,
-   "def_line": 21105,
-   "end": 21133,
+   "start": 18879,
+   "def_line": 18879,
+   "end": 18907,
    "lines": 29
   },
   {
    "name": "_narrate_resolved_turn",
    "kind": "function",
-   "start": 21136,
-   "def_line": 21136,
-   "end": 21486,
+   "start": 18910,
+   "def_line": 18910,
+   "end": 19260,
    "lines": 351
   },
   {
    "name": "_is_canonical_city_id",
    "kind": "function",
-   "start": 21489,
-   "def_line": 21489,
-   "end": 21500,
+   "start": 19263,
+   "def_line": 19263,
+   "end": 19274,
    "lines": 12
   },
   {
    "name": "_death_resolution_from_actions",
    "kind": "function",
-   "start": 21503,
-   "def_line": 21503,
-   "end": 21515,
+   "start": 19277,
+   "def_line": 19277,
+   "end": 19289,
    "lines": 13
   },
   {
    "name": "_owner_module_reply",
    "kind": "function",
-   "start": 21518,
-   "def_line": 21518,
-   "end": 21536,
+   "start": 19292,
+   "def_line": 19292,
+   "end": 19310,
    "lines": 19
   },
   {
    "name": "_said_to_someone_here",
    "kind": "function",
-   "start": 21539,
-   "def_line": 21539,
-   "end": 21554,
+   "start": 19313,
+   "def_line": 19313,
+   "end": 19328,
    "lines": 16
   },
   {
    "name": "_run_player_turn_internal",
    "kind": "function",
-   "start": 21557,
-   "def_line": 21557,
-   "end": 24299,
-   "lines": 2743
+   "start": 19331,
+   "def_line": 19331,
+   "end": 22086,
+   "lines": 2756
   },
   {
    "name": "DEFAULT_SAVE_PATH",
    "kind": "assign",
-   "start": 24302,
-   "def_line": 24302,
-   "end": 24302,
+   "start": 22089,
+   "def_line": 22089,
+   "end": 22089,
    "lines": 1
   },
   {
    "name": "start_terminal_game",
    "kind": "function",
-   "start": 24305,
-   "def_line": 24305,
-   "end": 24329,
+   "start": 22092,
+   "def_line": 22092,
+   "end": 22116,
    "lines": 25
   },
   {
    "name": "_PART_MODULES",
    "kind": "assign",
-   "start": 24332,
-   "def_line": 24334,
-   "end": 24334,
+   "start": 22119,
+   "def_line": 22121,
+   "end": 22121,
    "lines": 1
   },
   {
    "name": "_ENGINE_FUNCTIONS",
    "kind": "assign",
-   "start": 24335,
-   "def_line": 24335,
-   "end": 24337,
+   "start": 22122,
+   "def_line": 22122,
+   "end": 22124,
    "lines": 3
   },
   {
    "name": "_CHARACTER_GLOBALS",
    "kind": "assign",
-   "start": 24338,
-   "def_line": 24338,
-   "end": 24348,
+   "start": 22125,
+   "def_line": 22125,
+   "end": 22135,
    "lines": 11
   },
   {
    "name": "_ACTIVE_SESSION",
    "kind": "assign",
-   "start": 24349,
-   "def_line": 24349,
-   "end": 24349,
+   "start": 22136,
+   "def_line": 22136,
+   "end": 22136,
    "lines": 1
   },
   {
    "name": "_DEFAULT_SESSION",
    "kind": "assign",
-   "start": 24350,
-   "def_line": 24350,
-   "end": 24350,
+   "start": 22137,
+   "def_line": 22137,
+   "end": 22137,
    "lines": 1
   },
   {
    "name": "_ENGINE_NAMESPACE",
    "kind": "assign",
-   "start": 24351,
-   "def_line": 24351,
-   "end": 24351,
+   "start": 22138,
+   "def_line": 22138,
+   "end": 22138,
    "lines": 1
   },
   {
    "name": "_restore_in_place",
    "kind": "function",
-   "start": 24354,
-   "def_line": 24354,
-   "end": 24377,
+   "start": 22141,
+   "def_line": 22141,
+   "end": 22164,
    "lines": 24
   },
   {
    "name": "GameSession",
    "kind": "class",
-   "start": 24380,
-   "def_line": 24380,
-   "end": 24818,
+   "start": 22167,
+   "def_line": 22167,
+   "end": 22605,
    "lines": 439
   },
   {
    "name": "_dynamic_engine_transitions",
    "kind": "function",
-   "start": 24821,
-   "def_line": 24821,
-   "end": 24874,
+   "start": 22608,
+   "def_line": 22608,
+   "end": 22661,
    "lines": 54
   },
   {
    "name": "_session",
    "kind": "function",
-   "start": 24877,
-   "def_line": 24877,
-   "end": 24878,
+   "start": 22664,
+   "def_line": 22664,
+   "end": 22665,
    "lines": 2
   },
   {
    "name": "_bind_session_engine",
    "kind": "function",
-   "start": 24881,
-   "def_line": 24881,
-   "end": 24897,
+   "start": 22668,
+   "def_line": 22668,
+   "end": 22684,
    "lines": 17
   },
   {
    "name": "_DEFAULT_SESSION",
    "kind": "assign",
-   "start": 24900,
-   "def_line": 24900,
-   "end": 24900,
+   "start": 22687,
+   "def_line": 22687,
+   "end": 22687,
    "lines": 1
   },
   {
-   "name": "<Assign@24901>",
+   "name": "<Assign@22688>",
    "kind": "other",
-   "start": 24901,
-   "def_line": 24901,
-   "end": 24901,
+   "start": 22688,
+   "def_line": 22688,
+   "end": 22688,
    "lines": 1
   },
   {
-   "name": "<Assign@24902>",
+   "name": "<Assign@22689>",
    "kind": "other",
-   "start": 24902,
-   "def_line": 24902,
-   "end": 24902,
+   "start": 22689,
+   "def_line": 22689,
+   "end": 22689,
    "lines": 1
   },
   {
-   "name": "<Assign@24903>",
+   "name": "<Assign@22690>",
    "kind": "other",
-   "start": 24903,
-   "def_line": 24903,
-   "end": 24903,
+   "start": 22690,
+   "def_line": 22690,
+   "end": 22690,
    "lines": 1
   },
   {
-   "name": "<Expr@24904>",
+   "name": "<Expr@22691>",
    "kind": "other",
-   "start": 24904,
-   "def_line": 24904,
-   "end": 24904,
+   "start": 22691,
+   "def_line": 22691,
+   "end": 22691,
    "lines": 1
   },
   {
-   "name": "<Expr@24905>",
+   "name": "<Expr@22692>",
    "kind": "other",
-   "start": 24905,
-   "def_line": 24905,
-   "end": 24905,
+   "start": 22692,
+   "def_line": 22692,
+   "end": 22692,
    "lines": 1
   },
   {
    "name": "create_session",
    "kind": "function",
-   "start": 24908,
-   "def_line": 24908,
-   "end": 24916,
+   "start": 22695,
+   "def_line": 22695,
+   "end": 22703,
    "lines": 9
   },
   {
-   "name": "<If@24919>",
+   "name": "<If@22706>",
    "kind": "other",
-   "start": 24919,
-   "def_line": 24919,
-   "end": 24935,
+   "start": 22706,
+   "def_line": 22706,
+   "end": 22722,
    "lines": 17
   }
  ],
  "call_graph": {
-  "ollama_response_content": [],
-  "ollama_reply_was_cut": [],
   "get_modifier": [],
   "roll_stat": [
    "_session"
@@ -6183,7 +6189,6 @@
    "_npc_speech_enabled",
    "living_world"
   ],
-  "_just_served": [],
   "_asked_of_the_one_at_hand": [
    "_ASKS_SOMETHING",
    "_entity_reference_in_text",
@@ -6237,17 +6242,6 @@
   "_reported_npc_claim_followed_by_player_inspection": [
    "_is_object_inspection",
    "_normalize_turkish_typos",
-   "re"
-  ],
-  "is_ordinary_environment_look": [
-   "living_world",
-   "re"
-  ],
-  "npc_ambiguity_response": [
-   "living_world"
-  ],
-  "_affirmative_door_verb": [
-   "_NEGATED_VERB_SUFFIX",
    "re"
   ],
   "named_skill": [
@@ -6355,9 +6349,6 @@
    "parse_player_intent",
    "validate_intent"
   ],
-  "clean_dm_response": [
-   "re"
-  ],
   "_new_species_trait_state": [],
   "_new_persisted_species_trait_state": [
    "SPECIES_WITH_TRAIT_STATE",
@@ -6459,7 +6450,6 @@
   ],
   "_repair_dilim1_fields": [],
   "_known_happenings": [],
-  "_hand_names_something": [],
   "_repair_dilim2_fields": [
    "_hand_names_something",
    "_known_happenings",
@@ -6632,11 +6622,9 @@
   "generate_npc_id": [
    "_session"
   ],
-  "_clean_world_text": [],
   "_clean_world_text_list": [
    "_clean_world_text"
   ],
-  "_scene_texts_for_referents": [],
   "_has_unregistered_person_name": [
    "_location_alias_values",
    "_normalize_turkish_typos",
@@ -6661,10 +6649,6 @@
    "local_dialogue",
    "re",
    "validate_npc_proposal"
-  ],
-  "_reads_english": [
-   "_ENGLISH_STOP_WORDS",
-   "re"
   ],
   "create_local_feature": [
    "_clean_world_text",
@@ -7006,9 +6990,6 @@
    "_public_combatant_label",
    "_unarmed_save_text"
   ],
-  "_unarmed_save_text": [
-   "_SAVE_ABILITY_TR"
-  ],
   "_enemy_exchange_text": [
    "_public_combatant_label",
    "_session",
@@ -7036,9 +7017,6 @@
    "_clean_world_text",
    "re"
   ],
-  "_strip_proposal_markers": [
-   "_PROPOSAL_MARKER_RE"
-  ],
   "_repair_internal_marks": [
    "_INTERNAL_MARK_RE",
    "_PROPOSAL_MARKER_RE",
@@ -7065,7 +7043,6 @@
    "create_npc_from_ai",
    "create_shop_from_proposal"
   ],
-  "_normalize_interaction_mode": [],
   "_conversation_npcs": [
    "_session",
    "active_npcs"
@@ -7086,14 +7063,6 @@
    "_normalize_turkish_typos",
    "re"
   ],
-  "_is_guard": [
-   "_GUARD_ROLE",
-   "living_world"
-  ],
-  "_serves_at_a_counter": [
-   "_COUNTER_ROLE",
-   "living_world"
-  ],
   "_words_fit_person": [
    "_COUNTER_WORDS",
    "_GUARD_WORD",
@@ -7105,10 +7074,6 @@
    "_normalize_turkish_typos",
    "_session",
    "_words_fit_person"
-  ],
-  "_topic_place_name": [],
-  "_drop_repeated_sentences": [
-   "re"
   ],
   "_drop_absent_counter_sentences": [
    "_COUNTER_WORDS",
@@ -7132,10 +7097,6 @@
    "active_npcs",
    "living_world",
    "tr_case"
-  ],
-  "_is_plain_person_reference": [
-   "living_world",
-   "re"
   ],
   "_settle_address": [
    "_session",
@@ -7190,9 +7151,6 @@
    "_session",
    "living_world"
   ],
-  "_fold_keep_punctuation": [
-   "re"
-  ],
   "_explicit_addressee": [
    "_ADDRESS_VERB",
    "_fold_keep_punctuation",
@@ -7239,9 +7197,6 @@
    "_session",
    "interaction_adventure"
   ],
-  "_claim_keywords": [
-   "re"
-  ],
   "npc_memory_supports_claim": [
    "_session",
    "npc_memory_supporting_entry"
@@ -7251,7 +7206,6 @@
    "_claimed_completed_outcome",
    "_unverified_past_event_assertion"
   ],
-  "_format_npc_memory": [],
   "_stock_said": [
    "_STOCK_SAID",
    "_session",
@@ -7268,15 +7222,9 @@
    "_stock_said",
    "re"
   ],
-  "_lines_already_said": [],
   "_without_lines_already_said": [
    "_drop_repeated_sentences",
    "_lines_already_said"
-  ],
-  "speech_repeat_line": [
-   "_SPEECH_REPEAT_LINES",
-   "hashlib",
-   "living_world"
   ],
   "historical_claim_denial": [
    "_CLAIM_DENIAL_LINES",
@@ -7287,9 +7235,6 @@
    "interaction_adventure",
    "living_world"
   ],
-  "_narrator_visible_profile": [
-   "_NARRATOR_PROFILE_FIELDS"
-  ],
   "_narrator_shop_record": [
    "_session",
    "living_world"
@@ -7299,9 +7244,6 @@
    "_lock_known_to_player",
    "_session",
    "_venue_door_for"
-  ],
-  "_bodies_here_context": [
-   "living_world"
   ],
   "build_world_context": [
    "_bodies_here_context",
@@ -7415,9 +7357,6 @@
    "talk_mode",
    "turn_source_key"
   ],
-  "_untrusted_player_block": [
-   "hashlib"
-  ],
   "_intent_scene_npc_candidates": [
    "active_npcs",
    "living_world"
@@ -7455,10 +7394,6 @@
    "hashlib",
    "living_world"
   ],
-  "_extract_json_object": [
-   "json",
-   "re"
-  ],
   "_speech_debug_trail": [
    "json",
    "os"
@@ -7472,12 +7407,10 @@
    "_NPC_SPEECH_LOG_KEY",
    "_session"
   ],
-  "_rumour_lane_on": [],
   "_speech_answer_rules": [
    "_SPEECH_ANSWER_RULES",
    "_rumour_lane_on"
   ],
-  "_voiced_keys": [],
   "_remember_experimental_npc_speech": [
    "_active_interlocutor",
    "_has_private_profile_value",
@@ -7487,12 +7420,6 @@
    "is_npc_historical_claim",
    "local_dialogue"
   ],
-  "_strip_pictographs": [
-   "unicodedata"
-  ],
-  "_without_real_world_faith": [
-   "_REAL_WORLD_FAITH"
-  ],
   "_clean_npc_speech": [
    "_SPEECH_CUT_RE",
    "_SPEECH_META_RE",
@@ -7500,30 +7427,10 @@
    "_without_real_world_faith",
    "re"
   ],
-  "_is_explicit_name_led_gesture_line": [
-   "re"
-  ],
-  "_clean_npc_stage_direction": [
-   "re"
-  ],
-  "_compose_experimental_npc_speech": [],
   "_render_experimental_npc_speech": [
    "_without_label_variant",
    "living_world",
    "re"
-  ],
-  "_without_label_variant": [
-   "living_world"
-  ],
-  "_npc_speech_rejects_claim": [
-   "_CLAIM_ACCEPTANCE_RE",
-   "_CLAIM_REJECTION_RE",
-   "local_dialogue"
-  ],
-  "_npc_speech_grants_claim": [
-   "_CLAIM_ACCEPTANCE_RE",
-   "_CLAIM_PLAIN_DENIAL_RE",
-   "local_dialogue"
   ],
   "_npc_speech_is_claim_refusal": [
    "_CLAIM_DENIAL_LINES",
@@ -7535,9 +7442,6 @@
    "living_world",
    "local_dialogue"
   ],
-  "_spoken_name_answer": [
-   "re"
-  ],
   "_town_note": [
    "_has_session",
    "_session"
@@ -7546,7 +7450,6 @@
    "_session",
    "npc_statements"
   ],
-  "_job_news_line": [],
   "_has_session": [
    "_ACTIVE_SESSION"
   ],
@@ -7591,18 +7494,11 @@
    "_session",
    "_thread_person"
   ],
-  "_turns_to_someone_else": [
-   "living_world"
-  ],
   "_town_in_play": [],
-  "_elsewhere_line": [],
   "_named_elsewhere_line": [
    "_elsewhere_line",
    "active_npcs",
    "living_world"
-  ],
-  "_overheard_work": [
-   "npc_statements"
   ],
   "_town_fallback": [
    "_ASKS_WHO_YOU_ARE",
@@ -7619,7 +7515,6 @@
   "_job_fallback": [
    "_session"
   ],
-  "_accept_named_job": [],
   "_coin_persuasion": [
    "_session",
    "_skill_result_category",
@@ -7632,16 +7527,6 @@
    "_session"
   ],
   "_with_only_backed_money": [],
-  "_bag_note": [],
-  "_dm_prompt_note": [
-   "tr_names"
-  ],
-  "_claim_denial_quotes": [
-   "_CLAIM_DENIAL_LINES"
-  ],
-  "_has_private_profile_value": [
-   "interaction_adventure"
-  ],
   "_experimental_speech_note": [
    "_bag_note",
    "_claim_denial_quotes",
@@ -7664,15 +7549,10 @@
    "local_dialogue",
    "talk_front"
   ],
-  "_is_short_followup": [
-   "_FOLLOWUP_WORDS",
-   "local_dialogue"
-  ],
   "_experimental_speech_final_line": [
    "_is_short_followup",
    "_untrusted_player_block"
   ],
-  "_experimental_speech_recap": [],
   "_local_place_recommendation_options": [
    "_local_place_access"
   ],
@@ -7736,9 +7616,6 @@
   ],
   "_travel_completion": [
    "_has_travel_language",
-   "re"
-  ],
-  "_normalize_turkish_typos": [
    "re"
   ],
   "normalize_intent": [
@@ -7814,9 +7691,6 @@
    "_session",
    "living_world"
   ],
-  "_mechanical_outcome": [
-   "re"
-  ],
   "_stands_by_their_words": [
    "_job_talk_with",
    "_session"
@@ -7857,15 +7731,8 @@
    "_stock",
    "_variation_index"
   ],
-  "_is_internal_player_facing_text": [
-   "_INTERNAL_PLAYER_FACING_RE"
-  ],
   "_natural_unresolved_action_response": [
    "_stock"
-  ],
-  "_narration_scene_type": [],
-  "_registered_persistent_object_names": [
-   "equipment_economy"
   ],
   "_unregistered_persistent_object_claim": [
    "_NARRATION_PERSISTENT_OBJECT_HEADS",
@@ -7908,19 +7775,10 @@
    "_normalize_turkish_typos",
    "re"
   ],
-  "_is_figurative_key_transfer": [
-   "re"
-  ],
   "_experimental_private_npc_disclosure": [
    "_normalize_turkish_typos",
    "interaction_adventure",
    "local_dialogue",
-   "re"
-  ],
-  "_unseen_registered_names": [],
-  "_unseen_speakers": [
-   "_SPEAKING_NAME_PATTERNS",
-   "_inside_speech",
    "re"
   ],
   "_unseen_self_introductions": [
@@ -7999,19 +7857,11 @@
    "_empty_lore_authority_context",
    "json"
   ],
-  "_lore_claims_are_supported": [],
-  "_lore_guard_text": [
-   "re"
-  ],
-  "_lore_fact_records": [],
   "_lore_entity_names": [
    "_lore_guard_text"
   ],
   "_is_registered_lore_name": [
    "_lore_guard_text"
-  ],
-  "_is_generic_speaker_label": [
-   "_GENERIC_SPEAKER_LABEL_RE"
   ],
   "_has_unregistered_narrative_entity": [
    "_LORE_ENTITY_FOLLOWING_CUE_RE",
@@ -8068,12 +7918,6 @@
    "_scene_has_registered_craft_role",
    "re"
   ],
-  "_salvage_plain_speech": [],
-  "_split_sentences_keep_speech": [
-   "_SPEECH_SPAN_RE",
-   "_TERMINATOR_MASK",
-   "re"
-  ],
   "_repair_unsupported_lore_narration": [
    "_narration_has_unsupported_lore_claim",
    "_split_sentences_keep_speech",
@@ -8082,8 +7926,6 @@
   "_scene_has_registered_craft_role": [
    "_lore_guard_text"
   ],
-  "_spoken_lore_fact_ids": [],
-  "_has_active_local_npc_focus_for_place_request": [],
   "_supported_lore_question_response": [
    "_has_unregistered_narrative_entity",
    "_lore_entity_names",
@@ -8098,7 +7940,6 @@
    "_lore_guard_text",
    "re"
   ],
-  "_validated_player_line": [],
   "_feature_refs_are_visible": [
    "_session",
    "living_world"
@@ -8190,7 +8031,6 @@
    "living_world",
    "re"
   ],
-  "_resolved_skill_result_narration": [],
   "_states_the_failed_check": [
    "_TELLS_FAILURE",
    "_fallback_for_action_result",
@@ -8212,17 +8052,10 @@
    "_session",
    "json"
   ],
-  "_trim_dangling_quote": [
-   "_QUOTE_CLOSER_RE",
-   "_QUOTE_OPENER_RE"
-  ],
   "_remove_trigger_sentence": [
    "_normalize_turkish_typos",
    "_split_sentences_keep_speech",
    "_trim_dangling_quote"
-  ],
-  "_dialogue_repair_has_attributed_answer": [
-   "re"
   ],
   "_repair_attributed_speech": [
    "_remove_trigger_sentence"
@@ -8323,8 +8156,6 @@
   "_changed_state_fields": [
    "_world_snapshot"
   ],
-  "_skill_result_category": [],
-  "_print_skill_result": [],
   "_commit_travel_action": [
    "_combat_snapshot",
    "_locked_door_refusal",
@@ -8334,12 +8165,6 @@
    "ensure_combat_state",
    "resolve_location_reference",
    "timed_gameplay"
-  ],
-  "_attack_verb_tokens": [
-   "_ATTACK_INSTRUMENT_TOKENS",
-   "_ATTACK_LOOKALIKE_TOKEN",
-   "_ATTACK_VERB_PATTERN",
-   "re"
   ],
   "_names_present_creature": [
    "_CREATURE_REFERENCE",
@@ -8362,9 +8187,6 @@
    "_has_explicit_attack_verb",
    "_normalize_turkish_typos",
    "re"
-  ],
-  "_immediate_check_refusal": [
-   "combat_lifecycle"
   ],
   "primal_knowledge_check_admission": [
    "SKILLS",
@@ -8491,7 +8313,6 @@
    "living_world",
    "name_catalog"
   ],
-  "_turkish_genitive_form": [],
   "_ensure_local_merchant": [
    "_is_shopkeeper_role",
    "_session",
@@ -8512,10 +8333,6 @@
    "_session",
    "living_world"
   ],
-  "_asks_what_is_going_on": [
-   "living_world",
-   "re"
-  ],
   "_direct_npc_smalltalk_response": [
    "_asks_what_is_going_on",
    "_conversation_opening_line",
@@ -8535,19 +8352,8 @@
    "location_display_name",
    "re"
   ],
-  "_is_bare_greeting": [
-   "living_world",
-   "re"
-  ],
-  "_is_scene_referent_activity_observation": [
-   "living_world",
-   "re"
-  ],
   "_scene_names": [
    "active_npcs"
-  ],
-  "_public_scene_person_text": [
-   "living_world"
   ],
   "_scene_presence_text": [
    "_scene_names",
@@ -8809,19 +8615,8 @@
    "_session",
    "ensure_death_state"
   ],
-  "_said_after_approach": [
-   "_WALKED_UP"
-  ],
   "_reads_as_address": [
    "is_npc_dialogue_input"
-  ],
-  "_line_addresses": [
-   "_HAIL_FILLERS",
-   "_SAY_ENGLISH",
-   "_SAY_VERBS",
-   "living_world",
-   "re",
-   "unicodedata"
   ],
   "_addressed_in": [
    "_active_interlocutor",
@@ -8839,6 +8634,7 @@
    "_addressed_in",
    "_blow_in_the_words",
    "_blow_stands",
+   "_coin_without_a_reading",
    "_front_recovery",
    "_hand_over_coin",
    "_has_explicit_attack_verb",
@@ -8885,6 +8681,14 @@
   "_hand_over_coin": [
    "_session",
    "active_npcs"
+  ],
+  "_coin_without_a_reading": [
+   "_active_interlocutor",
+   "_addressed_in",
+   "_hand_over_coin",
+   "_session",
+   "active_npcs",
+   "living_world"
   ],
   "_blow_stands": [
    "_ENDS_IN_SPEECH",
@@ -8936,6 +8740,7 @@
    "_is_end_conversation_request",
    "_normalize_interaction_mode",
    "_session",
+   "combat_lifecycle",
    "ensure_death_state"
   ],
   "_front_offer_gate": [
@@ -8957,7 +8762,6 @@
    "_session",
    "refusals"
   ],
-  "_word_root": [],
   "_coin_not_parcel": [
    "_names_no_parcel",
    "money_owner"
@@ -9092,10 +8896,6 @@
    "_session",
    "living_world",
    "resolve_location_reference"
-  ],
-  "_singular_narrator": [
-   "_NARRATOR_PLURAL",
-   "re"
   ],
   "_keep_town_portrait": [
    "_session",
@@ -9346,80 +9146,7 @@
  },
  "constant_clusters": [
   [
-   "RACES"
-  ],
-  [
-   "RACE_FEATURES"
-  ],
-  [
-   "CLASSES"
-  ],
-  [
-   "CLASS_FEATURES"
-  ],
-  [
-   "CLASS_HIT_DICE"
-  ],
-  [
-   "SKILLS"
-  ],
-  [
-   "CLASS_SKILL_OPTIONS"
-  ],
-  [
-   "DIFFICULTY_DC"
-  ],
-  [
-   "RANDOM_NAMES"
-  ],
-  [
-   "_ASKS_SOMETHING"
-  ],
-  [
-   "_THIRD_PERSON_REPORT"
-  ],
-  [
-   "_SECOND_PERSON_SAID"
-  ],
-  [
-   "_SAID_IT_AGAIN"
-  ],
-  [
-   "_ENDS_IN_SPEECH"
-  ],
-  [
-   "_NEGATED_VERB_SUFFIX"
-  ],
-  [
-   "_SKILL_CHECK_WORD"
-  ],
-  [
-   "_SKILL_ENDING"
-  ],
-  [
-   "_ABILITY_WORD"
-  ],
-  [
-   "_OPEN_SCARE"
-  ],
-  [
    "_SOMEONE_ELSES_PURSE"
-  ],
-  [
-   "_COVER_WORD",
-   "_COVER"
-  ],
-  [
-   "_OWN_THING_HIDDEN"
-  ],
-  [
-   "_READING_CHECKS"
-  ],
-  [
-   "_COMMON_SENTENCE_OPENERS"
-  ],
-  [
-   "_QUESTION_CUE_RE"
   ],
   [
    "recent_dm_narrations"
@@ -9435,52 +9162,10 @@
    "_SUPPORTED_SAVE_VERSIONS"
   ],
   [
-   "GIANT_ANCESTRY_IDS"
-  ],
-  [
-   "CELESTIAL_REVELATION_FORMS"
-  ],
-  [
    "RULE_ORDER"
   ],
   [
-   "INNER_RADIANCE_SPEC"
-  ],
-  [
-   "NECROTIC_SHROUD_SPEC"
-  ],
-  [
-   "SPECIES_WITH_TRAIT_STATE"
-  ],
-  [
-   "_ABILITY_NAMES"
-  ],
-  [
-   "_ORIGIN_TEXT_KEYS"
-  ],
-  [
-   "_ORIGIN_LIST_KEYS"
-  ],
-  [
-   "_ORIGIN_SCORE_KEYS"
-  ],
-  [
    "_PERSISTED_PLAYER_CONDITION_FIELDS"
-  ],
-  [
-   "DEATH_MODES"
-  ],
-  [
-   "_ARMED_ROLE"
-  ],
-  [
-   "_STRONG_ROLE"
-  ],
-  [
-   "_PERSON_FIGHT"
-  ],
-  [
-   "_ENGLISH_STOP_WORDS"
   ],
   [
    "_SHOP_ECONOMY_PATTERN"
@@ -9495,83 +9180,7 @@
    "_SHOP_CREATION_ACTION_PATTERN"
   ],
   [
-   "_SAVE_ABILITY_TR"
-  ],
-  [
-   "_FALL_LINE"
-  ],
-  [
-   "_REWOUND_LINE"
-  ],
-  [
-   "_PROPOSAL_MARKER_RE"
-  ],
-  [
-   "_INTERNAL_MARK_RE"
-  ],
-  [
-   "_GUARD_ROLE"
-  ],
-  [
-   "_GUARD_WORD"
-  ],
-  [
-   "_GENERIC_PERSON"
-  ],
-  [
-   "_LOCATED_PERSON"
-  ],
-  [
-   "_IN_REACH_WORDS"
-  ],
-  [
-   "_COUNTER_WORDS"
-  ],
-  [
-   "_COUNTER_ROLE"
-  ],
-  [
-   "_ADDRESSEE_OPERATIONS"
-  ],
-  [
-   "_OFFER_OPERATIONS"
-  ],
-  [
-   "_OFFER_MARKER"
-  ],
-  [
-   "_ADDRESS_VERB"
-  ],
-  [
-   "_SPEAKING_VERB"
-  ],
-  [
-   "_CONTINUATION_TERMS"
-  ],
-  [
-   "_OBJECT_INSPECTION"
-  ],
-  [
-   "_CLAIM_DENIAL_LINES"
-  ],
-  [
-   "_SPEECH_REPEAT_LINES"
-  ],
-  [
    "_STOCK_SAID"
-  ],
-  [
-   "_NARRATOR_PROFILE_FIELDS"
-  ],
-  [
-   "INTENT_TYPES",
-   "INTENT_SCHEMA"
-  ],
-  [
-   "SKILL_INTENT_TO_SKILL"
-  ],
-  [
-   "SCENE_DETAIL_KIND_ALLOWLIST"
   ],
   [
    "_EXPERIMENTAL_NPC_SPEECH_SCHEMA"
@@ -9580,230 +9189,13 @@
    "_EXPERIMENTAL_NPC_SPEECH_OPTIONS"
   ],
   [
-   "_NPC_SPEECH_LOG_KEY"
-  ],
-  [
-   "_NPC_SPEECH_KEEP"
-  ],
-  [
-   "_MENTIONS_PROMPT_RULE"
-  ],
-  [
-   "_VOICED_PROMPT_RULE"
-  ],
-  [
-   "_CLAIM_REJECTION_RE"
-  ],
-  [
-   "_CLAIM_ACCEPTANCE_RE"
-  ],
-  [
-   "_SPEECH_CUT_RE"
-  ],
-  [
-   "_SPEECH_META_RE"
-  ],
-  [
-   "_REAL_WORLD_FAITH"
-  ],
-  [
-   "_CLAIM_PLAIN_DENIAL_RE"
-  ],
-  [
-   "_SPEECH_ANSWER_RULES"
-  ],
-  [
-   "_ASKS_WHO_YOU_ARE"
-  ],
-  [
-   "_REFUSED_MOVE_RULE"
-  ],
-  [
-   "_FOLLOWUP_WORDS"
-  ],
-  [
-   "_GENERIC_NO_CHANGE_RESPONSE",
-   "_GENERIC_NO_CHANGE_RESPONSES"
-  ],
-  [
-   "_INTERNAL_PLAYER_FACING_RE"
-  ],
-  [
-   "_NARRATION_PERSISTENT_OBJECT_HEADS"
-  ],
-  [
-   "_NARRATION_PERSISTENT_OBJECT_STATE"
-  ],
-  [
-   "_HELD_SKIP"
-  ],
-  [
-   "_PLAYER_MENTAL_STATE_PREFIXES"
-  ],
-  [
-   "_PLAYER_MENTAL_STATE_CONTEXT_RE"
-  ],
-  [
-   "_PLAYER_MENTAL_STATE_COPULA_RE"
-  ],
-  [
-   "_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE"
-  ],
-  [
-   "_PLAYER_MENTAL_STATE_AFFECT_RE"
-  ],
-  [
-   "_PLAYER_FEELING_RE"
-  ],
-  [
-   "_NARRATED_NAME_PATTERNS"
-  ],
-  [
-   "_SPEAKING_NAME_PATTERNS"
-  ],
-  [
-   "NPC_SCHEMA",
-   "LOCATION_SCHEMA",
-   "WORLD_UPDATE_SCHEMA",
-   "DM_RESPONSE_SCHEMA"
-  ],
-  [
-   "_LORE_ENTITY_TITLE_RE"
-  ],
-  [
-   "_LORE_PROPER_NAME_RE"
-  ],
-  [
-   "_LORE_ENTITY_FOLLOWING_CUE_RE"
-  ],
-  [
-   "_LORE_SENTENCE_START_WORDS"
-  ],
-  [
-   "_GENERIC_SPEAKER_LABEL_RE"
-  ],
-  [
-   "_LORE_UNSUPPORTED_DETAIL_PATTERNS"
-  ],
-  [
-   "_LORE_RULER_TITLE_RE"
-  ],
-  [
-   "_LORE_ENTITY_RELATION_RE"
-  ],
-  [
-   "_LORE_ROUTE_DISTANCE_QUERY_RE"
-  ],
-  [
-   "_UNVERIFIED_LORE_RESPONSE"
-  ],
-  [
-   "_UNVERIFIED_DISTANCE_RESPONSE"
-  ],
-  [
-   "_UNVERIFIED_RULER_RESPONSE"
-  ],
-  [
-   "_INDOOR_DETAIL"
-  ],
-  [
-   "_ASKS_DISTANCE"
-  ],
-  [
-   "_TERMINATOR_MASK"
-  ],
-  [
-   "_WINDOW_WORDS"
-  ],
-  [
-   "_LOCK_WORDS"
-  ],
-  [
-   "_TRACK_WORDS"
-  ],
-  [
-   "_TELLS_FAILURE"
-  ],
-  [
-   "_UNMOVED"
-  ],
-  [
-   "_QUOTE_CLOSER_RE"
-  ],
-  [
-   "_QUOTE_OPENER_RE"
-  ],
-  [
-   "NARRATOR_VOICE",
-   "system_prompt",
    "messages"
   ],
   [
    "DEBUG_MODE"
   ],
   [
-   "_ATTACK_VERB_PATTERN"
-  ],
-  [
-   "_ATTACK_BLOW_PHRASE"
-  ],
-  [
-   "_CHARGING_IN"
-  ],
-  [
-   "_ATTACK_LOOKALIKE_TOKEN"
-  ],
-  [
-   "_ATTACK_INSTRUMENT_TOKENS"
-  ],
-  [
-   "_INANIMATE_HIT_OBJECT"
-  ],
-  [
-   "_CREATURE_REFERENCE"
-  ],
-  [
-   "CHECK_FEATURES"
-  ],
-  [
-   "_LOOK_OPENINGS"
-  ],
-  [
-   "_CONVERSATION_OPENINGS"
-  ],
-  [
    "COIN_LEFT_BEHIND"
-  ],
-  [
-   "_OWN_ACTS"
-  ],
-  [
-   "_WALKED_UP"
-  ],
-  [
-   "_SAY_VERBS"
-  ],
-  [
-   "_SAY_ENGLISH"
-  ],
-  [
-   "_HAIL_FILLERS"
-  ],
-  [
-   "_PLANNER_STAYS_OUT"
-  ],
-  [
-   "_NO_BLOW_NOW"
-  ],
-  [
-   "_BLOW_WORDS"
-  ],
-  [
-   "_NOT_A_LOCAL_PLACE"
-  ],
-  [
-   "_NARRATOR_PRONOUNS",
-   "_NARRATOR_PLURAL"
   ],
   [
    "DEFAULT_SAVE_PATH"
@@ -9826,18 +9218,11 @@
   ]
  ],
  "closed_helpers": [
-  "ollama_response_content",
-  "ollama_reply_was_cut",
   "get_modifier",
   "choose_option",
   "choose_skill_proficiencies",
   "calculate_hp",
   "calculate_ac",
-  "_just_served",
-  "is_ordinary_environment_look",
-  "npc_ambiguity_response",
-  "_affirmative_door_verb",
-  "clean_dm_response",
   "_new_species_trait_state",
   "_origin_choices_valid",
   "_validate_player_condition_state",
@@ -9847,107 +9232,32 @@
   "_validate_saved_multilevel_slots",
   "_repair_dilim1_fields",
   "_known_happenings",
-  "_hand_names_something",
   "_venue_door_id",
   "_mark_lock_seen",
   "_lock_known_to_player",
   "_death_state_defaults",
   "_combat_defaults",
-  "_clean_world_text",
-  "_scene_texts_for_referents",
-  "_reads_english",
   "_is_shopkeeper_role",
   "_explicit_campaign_shop_request",
   "_shop_economy_request",
   "_explicit_campaign_shop_negative_request",
   "_shop_presence_question",
-  "_unarmed_save_text",
-  "_strip_proposal_markers",
-  "_normalize_interaction_mode",
-  "_is_guard",
-  "_serves_at_a_counter",
-  "_topic_place_name",
-  "_drop_repeated_sentences",
-  "_is_plain_person_reference",
-  "_fold_keep_punctuation",
-  "_claim_keywords",
-  "_format_npc_memory",
-  "_lines_already_said",
-  "speech_repeat_line",
-  "_narrator_visible_profile",
-  "_bodies_here_context",
-  "_untrusted_player_block",
-  "_extract_json_object",
   "_speech_debug_trail",
-  "_rumour_lane_on",
-  "_voiced_keys",
-  "_strip_pictographs",
-  "_without_real_world_faith",
-  "_is_explicit_name_led_gesture_line",
-  "_clean_npc_stage_direction",
-  "_compose_experimental_npc_speech",
-  "_without_label_variant",
-  "_npc_speech_rejects_claim",
-  "_npc_speech_grants_claim",
-  "_spoken_name_answer",
-  "_job_news_line",
   "_has_session",
   "_carry_out_thread_turn",
-  "_turns_to_someone_else",
   "_town_in_play",
-  "_elsewhere_line",
-  "_overheard_work",
-  "_accept_named_job",
   "_show_coin_roll",
   "_with_only_backed_money",
-  "_bag_note",
-  "_dm_prompt_note",
-  "_claim_denial_quotes",
-  "_has_private_profile_value",
-  "_is_short_followup",
-  "_experimental_speech_recap",
   "_local_place_access",
-  "_normalize_turkish_typos",
-  "_mechanical_outcome",
-  "_is_internal_player_facing_text",
-  "_narration_scene_type",
-  "_registered_persistent_object_names",
-  "_is_figurative_key_transfer",
-  "_unseen_registered_names",
   "_empty_lore_authority_context",
-  "_lore_claims_are_supported",
-  "_lore_guard_text",
-  "_lore_fact_records",
-  "_is_generic_speaker_label",
-  "_salvage_plain_speech",
-  "_split_sentences_keep_speech",
-  "_spoken_lore_fact_ids",
-  "_has_active_local_npc_focus_for_place_request",
-  "_validated_player_line",
   "_dm_response_schema_for_turn",
-  "_resolved_skill_result_narration",
-  "_trim_dangling_quote",
-  "_dialogue_repair_has_attributed_answer",
   "_narrated_money_can_lie",
-  "_skill_result_category",
-  "_print_skill_result",
-  "_attack_verb_tokens",
-  "_immediate_check_refusal",
-  "_turkish_genitive_form",
-  "_asks_what_is_going_on",
-  "_is_bare_greeting",
-  "_is_scene_referent_activity_observation",
-  "_public_scene_person_text",
   "_adventure_travel_reply",
   "_intent_infrastructure_result",
   "_clear_turn_transients",
   "turn_source_key",
   "_a_walk",
-  "_said_after_approach",
-  "_line_addresses",
   "_economic_listing",
-  "_word_root",
-  "_singular_narrator",
   "_is_canonical_city_id",
   "_death_resolution_from_actions",
   "_said_to_someone_here",
