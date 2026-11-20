@@ -1011,7 +1011,7 @@
  },
  "_combat_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(result)"
  },
@@ -1077,19 +1077,19 @@
  },
  "_death_closing": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "_death_resolution_from_actions": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(actions)"
  },
  "_death_save_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(save_result, enemy_actions=<tuple>, resolution=None)"
  },
@@ -1155,7 +1155,7 @@
  },
  "_down_outside_combat_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1197,7 +1197,7 @@
  },
  "_enemy_exchange_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(enemies, named=None)"
  },
@@ -2295,7 +2295,7 @@
  },
  "_public_combatant_label": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(identity, *, player_fallback=None, fallback=None)"
  },

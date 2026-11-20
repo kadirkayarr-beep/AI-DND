@@ -963,6 +963,7 @@ class NewGamePart(unittest.TestCase):
 
 COMBAT_1 = tuple(batch_names("combat-1"))
 COMBAT_2 = tuple(batch_names("combat-2"))
+COMBAT_3 = tuple(batch_names("combat-3"))
 
 
 def _session_snapshot(session):
@@ -1133,6 +1134,23 @@ class CombatFlowPart(unittest.TestCase):
         self.assertEqual(s.world_state["death_state"], {**death, "last_resolution": resolution})
         self.assertEqual(json.dumps(s.world_state["combat"], sort_keys=True, default=str), combat)
         self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
+
+    def test_combat_3_lives_in_the_part(self):
+        self.assertEqual(set(COMBAT_3) - set(routing_audit.re_exports(ROOT).get("combat_flow", ())), set())
+
+    def test_combat_texts_answer_as_before(self):
+        # expected lines captured on 36fb0ddd (unmoved) with p4t7-capture.py, on a bare GameSession(seed=5)
+        s = game.GameSession(seed=5)
+        self.assertEqual(game._public_combatant_label("player", player_fallback="Kara Yolcu", session=s), "Kara Yolcu")
+        self.assertEqual(game._public_combatant_label("t7_yok", fallback="Yabancı Tüccar", session=s), "Yabancı Tüccar")
+        s.world_state["npcs"] = [{"id": "t7_bekci", "name": "Bekçi Halil", "location": "x"}]
+        self.assertEqual(game._public_combatant_label("t7_bekci", session=s), "Bekçi Halil")
+        self.assertEqual(game._death_save_line({"roll": 12, "outcome": "success"}, session=s),
+                         "Ölüm kurtarma zarın: 12. Karanlıkta yatıyorsun, bedenin sana uymuyor; hayata tutunuyorsun. "
+                         "Ölüm kurtarma: 0 başarı, 0 başarısızlık.")
+        self.assertEqual(game._death_save_line({"roll": 20, "outcome": "revived"}, session=s),
+                         "Ölüm kurtarma zarın: 20. Bir anda ciğerlerine hava doluyor; gözlerini açıyorsun, canın az da "
+                         "olsa geri döndü.")
 
 
 if __name__ == "__main__":

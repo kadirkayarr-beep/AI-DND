@@ -2053,81 +2053,7 @@ from game_parts.combat_flow import resolve_species_trait_action, resolve_attack,
 
 
 
-def _public_combatant_label(identity, *, player_fallback=None, fallback=None):
-    if identity == "player":
-        return player_fallback or _session().character.get("name") or "Sen"
-    if isinstance(identity, str):
-        npc = next((
-            item for item in _session().world_state.get("npcs", [])
-            if isinstance(item, dict) and item.get("id") == identity
-        ), None)
-        if npc is not None:
-            return living_world.public_npc_name(npc)
-    if isinstance(fallback, str):
-        npc = next((item for item in _session().world_state.get("npcs", [])
-                    if isinstance(item, dict) and item.get("name") == fallback), None)
-        if npc is not None:
-            return living_world.public_npc_name(npc)
-        return fallback
-    return "Rakip"
-
-
-def _combat_narration(result):
-    """Render mechanical outcomes in natural language without another model call."""
-    if result.get("weapon_line"):  # which weapon was drawn, or which one is missing (gear), comes first
-        return f"{result['weapon_line']} {_combat_narration({k: v for k, v in result.items() if k != 'weapon_line'})}"
-    if result.get("direct_response"):
-        return result["direct_response"]
-    target = _public_combatant_label(result.get("target_id") or result.get("target"), fallback=result.get("target_name"))
-    outcome = result.get("outcome")
-    save = result.get("resolution") if result.get("unarmed_option") in ("shove", "grapple") else None
-    if isinstance(save, dict) and outcome in ("hit", "miss"):
-        text = _unarmed_save_text(target, result, save)
-    elif outcome == "miss":
-        text = "Saldırın hedefi ıskalar."
-    elif outcome in ("hit", "critical_hit"):
-        kind = "kritik bir darbe" if outcome == "critical_hit" else "bir darbe"
-        text = f"{target}, {kind} alır: {result.get('damage', 0)} hasar."
-    elif outcome == "end_turn":
-        text = "Turunu bitirirsin."
-    elif outcome == "react":
-        text = "Hazırladığın tepkiyi uygularsın."
-        response = result.get("response")
-        if isinstance(response, dict) and response.get("kind") == "move":
-            text += f" {response.get('distance_ft')} fit ilerlersin."
-        elif isinstance(response, dict) and response.get("outcome"):  # the readied attack's own roll and result
-            text += " " + _combat_narration({k: v for k, v in response.items()
-                                             if k not in {"enemy_action", "enemy_actions", "combat"}})
-    elif outcome == "decline_reaction":
-        text = "Bu tepki fırsatını kullanmazsın."
-    else:
-        return "Bu saldırı gerçekleşmez."
-    if result.get("target_status") == "dead":
-        text += f" {target} ölür."
-    elif result.get("target_status") == "unconscious":
-        text += f" {target} bilincini kaybeder."
-    # The singular field is a compatibility alias, not the complete exchange.
-    enemies = result.get("enemy_actions")
-    if enemies is None:
-        enemies = [result.get("enemy_action") or {}]
-    first = [enemy for enemy in enemies if enemy.get("before_player")]
-    if first:  # an enemy who won initiative acted before the player's move: told before it
-        named = len(enemies) > 1
-        text = f"{_enemy_exchange_text(first, named=named).strip()} {text}"
-        text += _enemy_exchange_text([enemy for enemy in enemies if not enemy.get("before_player")], named=named)
-    else:
-        text += _enemy_exchange_text(enemies)
-    resolution = _death_resolution_from_actions(enemies)
-    if resolution and resolution.get("rolled_back"):
-        text += f" {_REWOUND_LINE}"
-    elif result.get("combat", {}).get("player_combat_status") == "dead":
-        text += f" Ölürsün. {_death_closing()}"
-    elif result.get("combat", {}).get("player_combat_status") == "unconscious":
-        text += f" {_FALL_LINE}"
-    elif outcome in ("end_turn", "react", "decline_reaction") and result.get("combat", {}).get("player_combat_status") == "active":
-        combat = result["combat"]
-        text += f" Bilincin açık; {combat['player_current_hp']}/{combat['player_max_hp']} canın kaldı."
-    return text
+from game_parts.combat_flow import _public_combatant_label, _combat_narration, _enemy_exchange_text, _death_closing, _death_save_line, _down_outside_combat_turn, _death_resolution_from_actions
 
 
 
@@ -2136,58 +2062,8 @@ def _combat_narration(result):
 
 
 
-def _enemy_exchange_text(enemies, named=None):
-    """What the other side did; player-visible labels come from the canonical knowledge projection. An attack marked
-    ``before_player`` came before the player's move and is not called a counter-attack."""
-    if named is None:
-        named = len(enemies) > 1
-    monster_text = {
-        "dodge": " Rakibin savunmaya geçer.",
-        "parley_proposed": " Rakibin konuşmayı önerir; yanıtını bekler.",
-        "surrender_proposed": " Rakibin teslim olmayı önerir; yanıtını bekler.",
-        "flee_declared": " Rakibin bildiği çıkışa doğru çekilir.",
-    }
-    text = ""
-    announced = set()
-    for enemy in enemies:
-        subject = "Rakibinin"
-        first = "Rakibin"
-        if named and (enemy.get("actor_id") or enemy.get("actor")):
-            actor = enemy.get("actor_id") or enemy.get("actor")
-            public_actor = _public_combatant_label(actor)
-            npc = next((item for item in _session().world_state.get("npcs", [])
-                        if isinstance(item, dict) and item.get("id") == actor), None)
-            # Only a known name is "X adlı"; an unknown rival is told by what is seen ("Bir kervancı").
-            subject = (f"{public_actor} adlı rakibinin"
-                       if npc is not None and living_world.npc_name_known_to_player(npc) else None)
-            first = public_actor
-        if enemy.get("before_player") and enemy.get("outcome") == "miss":
-            text += f" {first} senden önce davranıp saldırır; seni ıskalar."
-        elif enemy.get("before_player") and enemy.get("outcome") in ("hit", "critical_hit"):
-            kind = "kritik bir vuruşla " if enemy["outcome"] == "critical_hit" else ""
-            text += f" {first} senden önce davranıp saldırır; {kind}sana isabet eder; {enemy['damage']} hasar alırsın."
-        elif enemy.get("outcome") == "miss":
-            text += (f" {subject} karşı saldırısı seni ıskalar." if subject
-                     else f" {first} karşı saldırıya geçer; seni ıskalar.")
-        elif enemy.get("outcome") in ("hit", "critical_hit"):
-            kind = "kritik " if enemy["outcome"] == "critical_hit" else ""
-            text += (f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın." if subject
-                     else f" {first} karşı saldırıya geçer; {kind and 'kritik bir vuruşla '}sana isabet eder; "
-                          f"{enemy['damage']} hasar alırsın.")
-        check = enemy.get("concentration_check")  # 4C.4b: the engine's Constitution save, told as it fell
-        if isinstance(check, dict) and check.get("kept"):
-            text += (f" Konsantrasyonunu korursun ({check['spell_id']}; Dayanıklılık kurtarması "
-                     f"{check['total']}, ZS {check['dc']}).")
-        elif isinstance(check, dict):
-            text += f" Konsantrasyonun bozulur; {check['spell_id']} sona erer."
-        said = (enemy.get("actor_id") or enemy.get("actor"), enemy.get("outcome"))
-        if said not in announced:
-            announced.add(said)
-            text += monster_text.get(enemy.get("outcome"), "")
-        if enemy.get("outcome") == "dash":
-            import bounded_encounter
-            text += bounded_encounter.visible_dash_narration(_session(), enemy)
-    return text
+
+
 
 
 def validate_world_updates(
@@ -7840,81 +7716,10 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     return result
 
 
-def _death_closing():
-    """What is left after the last breath, said plainly."""
-    state = ensure_death_state()
-    start_over = "Yeni bir karakterle yeni bir maceraya başlayabilirsin."
-    if state["terminal"]:
-        return f"Bu kampanya burada kapandı. {start_over}"
-    if state.get("last_call") is None:
-        return f"Karanlığa son bir kez seslenebilirsin; duyan olur mu, kimse bilemez. Ya da {start_over[0].lower()}{start_over[1:]}"
-    return start_over
 
 
-def _death_save_line(save_result, enemy_actions=(), resolution=None):
-    """One breath of the fight for your life, in the fiction, with the count that matters."""
-    death = ensure_death_state()
-    parts = [f"Ölüm kurtarma zarın: {save_result['roll']}."]
-    blows = _enemy_exchange_text([a for a in enemy_actions if a.get("outcome") != "dodge"]).strip()
-    if (resolution or {}).get("rolled_back"):
-        parts += [blows, _REWOUND_LINE]
-    elif death["dead"]:
-        parts += [blows, "Son nefesin göğsünden çekiliyor, ses de ışık da uzaklaşıyor. Öldün.", _death_closing()]
-    elif save_result["outcome"] == "revived":
-        parts += ["Bir anda ciğerlerine hava doluyor; gözlerini açıyorsun, canın az da olsa geri döndü.", blows]
-    elif death["stable"]:
-        parts += ["Kanın yavaşlıyor; bilincin kapalı ama artık ölmüyorsun.", blows]
-    else:
-        held = "hayata tutunuyorsun" if save_result["outcome"] == "success" else "hayat elinden kayıyor"
-        parts += [f"Karanlıkta yatıyorsun, bedenin sana uymuyor; {held}.", blows,
-                  f"Ölüm kurtarma: {death['successes']} başarı, {death['failures']} başarısızlık."]
-    return " ".join(part for part in parts if part)
 
 
-def _down_outside_combat_turn(player_input):
-    """No fight is left: a dying body gets one save per turn, a stable one sleeps until it wakes."""
-    ensure_campaign_clock()
-    death = ensure_death_state()
-    world = _session().world_state
-    waits = re.search(r"\b(?:bekl\w*|wait)\b", campaign_time.normalize(player_input))
-    if death["stable"] and not (waits and "campaign_time" in world):
-        raise PlayerCannotAct("Bilinçsiz karakter eylem gerçekleştiremez.")
-    if "campaign_time" not in world:
-        # A save from before the campaign clock: the turn itself is the only time there is.
-        save = _resolve_player_death_turn(noncombat_key=f"noncombat:{uuid4()}")
-        time_result = {"death_results": [{"action": "death_save", "death_save": save}]}
-    else:
-        now = world["campaign_time"]["elapsed_seconds"]
-        if death["stable"]:
-            recovery = death["recovery"]
-            try:
-                asked = campaign_time.requested_duration(player_input)
-            except campaign_time.DurationConflict:
-                asked = None  # two lengths said: the body sleeps until it wakes, as when none is said
-            seconds = asked or (max(1, recovery["at"] - now) if recovery else 3600)
-        else:
-            due = death["noncombat_next_save_at"]
-            seconds = 6 if due is None else max(1, due - now)
-        time_result = advance_campaign_time(seconds, "wait")
-    status = world["player_combat_status"]
-    saves = [item["death_save"] for item in time_result.get("death_results", [])
-             if item.get("action") == "death_save" and item.get("death_save")]
-    if saves:
-        narration = _death_save_line(saves[-1], resolution=saves[-1].get("death_resolution"))
-    elif status == "dead":
-        narration = f"Son nefesin göğsünden çekiliyor, ses de ışık da uzaklaşıyor. Öldün. {_death_closing()}"
-    elif status == "active":
-        narration = "Canın bir nebze geri döndü; hâlâ yerde yatıyorsun."
-    else:
-        narration = "Zaman geçiyor; hâlâ bilinçsizsin."
-    action_result = {"action": "death_save", "status": "resolved", "success": status == "active",
-                     "outcome": status, "time": time_result}
-    if saves:
-        action_result["death_save"] = saves[-1]
-    if ensure_death_state().get("last_resolution"):
-        action_result["death_resolution"] = ensure_death_state()["last_resolution"]
-    return {"narration": narration, "action_result": action_result,
-            "model_calls": 0, "intent_model_calls": 0, "narrator_model_calls": 0}
 
 
 def _last_call():
@@ -10008,19 +9813,6 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
 
 
 
-def _death_resolution_from_actions(actions):
-    for action in actions:
-        if not isinstance(action, dict):
-            continue
-        resolution = action.get("death_resolution")
-        if isinstance(resolution, dict):
-            return copy.deepcopy(resolution)
-        death_save = action.get("death_save")
-        if isinstance(death_save, dict) and isinstance(
-            death_save.get("death_resolution"), dict
-        ):
-            return copy.deepcopy(death_save["death_resolution"])
-    return None
 
 
 def _owner_module_reply(player_input, interaction_mode):
