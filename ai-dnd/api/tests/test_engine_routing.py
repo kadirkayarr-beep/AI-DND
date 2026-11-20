@@ -304,6 +304,21 @@ class RoutingAuditTests(unittest.TestCase):
         self.assertEqual(TARGETS["open"], "absent")
         self.assertEqual(self.run_all(self.tree(src, game=reexporting("f"))), [])
 
+    def test_a_module_that_re_exports_a_builtin_is_r11(self):
+        """D-440: a module that binds open from builtins hands out the builtin; a patch on game.open cannot reach it."""
+        src = "import game\nimport talk_mode\ndef f(p):\n    return talk_mode.open(p)\n"
+        for shim in ("from builtins import open\n", "import builtins\nopen = builtins.open\n"):
+            with self.subTest(shim=shim):
+                self.fresh()
+                findings = self.run_all(self.tree(src, game=reexporting("f"), extra={"talk_mode.py": shim}))
+                self.assertEqual([f.split(":")[0] + ":" + f.split(":")[1] for f in findings], ["R11 game_parts/p.py:4"], findings)
+
+    def test_a_modules_own_open_is_still_not_r11(self):
+        """Guard (b585dd96): the module's own def open is not the builtin, even with its source in the tree."""
+        src = "import game\nimport talk_mode\ndef f(w):\n    return talk_mode.open(w, 'n', turn=0)\n"
+        extra = {"talk_mode.py": "import builtins\ndef open(w, n, turn=0):\n    return builtins.len(w)\n"}
+        self.assertEqual(self.run_all(self.tree(src, game=reexporting("f"), extra=extra)), [])
+
 
 if __name__ == "__main__":
     unittest.main()

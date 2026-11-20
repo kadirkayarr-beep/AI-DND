@@ -557,6 +557,40 @@ def _module_ok(module: str, allowed_imports: set[str]) -> bool:
     return module.split(".")[0] in sys.stdlib_module_names or module in allowed_imports
 
 
+def _imported_modules(imports: list) -> dict[str, set[str]]:
+    """Bound name -> the dotted module names it may stand for (`import a.b` binds a; `from a import b` may bind a.b)."""
+    out: dict[str, set[str]] = {}
+    for node in imports:
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                out.setdefault(a.asname or a.name.split(".")[0], set()).add(a.name if a.asname else a.name.split(".")[0])
+        elif not node.level and node.module:
+            for a in node.names:
+                out.setdefault(a.asname or a.name, set()).add(f"{node.module}.{a.name}")
+    return out
+
+
+def _binds_builtin(root: Path, module: str, name: str) -> bool:
+    """D-440: the module's source under root binds name from builtins (`from builtins import name` or
+    `name = builtins.name`), so module.name is the builtin a patch on game.name cannot reach."""
+    base = root.joinpath(*module.split("."))
+    path = next((p for p in (base.with_suffix(".py"), base / "__init__.py") if p.is_file()), None)
+    if path is None:
+        return False
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    aliases = {a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names
+               if a.name == "builtins"}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.ImportFrom) and not n.level and n.module == "builtins" \
+                and any(a.name == name and (a.asname or a.name) == name for a in n.names):
+            return True
+        if isinstance(n, ast.Assign) and isinstance(n.value, ast.Attribute) and n.value.attr == name \
+                and isinstance(n.value.value, ast.Name) and n.value.value.id in aliases \
+                and any(isinstance(t, ast.Name) and t.id == name for t in n.targets):
+            return True
+    return False
+
+
 def _part_findings(path: Path, rel: str, ctx: dict) -> list[str]:
     tree, top = _read(path)
     if tree is None:
@@ -678,11 +712,14 @@ def _part_findings(path: Path, rel: str, ctx: dict) -> list[str]:
             for use, attr, is_load in w.game_attrs if not is_load]
 
     # R11: a patched name of kind import/absent reached through an imported module (or builtins/io), not through game;
-    # a patched builtin (absent, e.g. open) is reached only through builtins/io, not through another module's own attribute
+    # a patched builtin (absent, e.g. open) is reached only through builtins/io, not through another module's own attribute,
+    # unless that module's source binds the name from builtins (D-440)
     via_import = {b.name for b in w.binds if b.kind in {"import", "reexport"}} | {"builtins", "io"}
+    modules = _imported_modules(w.imports)
     out += [f"R11 {rel}:{line}: {name}.{attr} reaches patched name {attr} past game; a patch on game.{attr} cannot reach it"
             for name, attr, line in w.name_attrs if attr in ctx["module_targets"] and name in via_import
-            and (attr not in ctx["builtin_targets"] or name in {"builtins", "io"})]
+            and (attr not in ctx["builtin_targets"] or name in {"builtins", "io"}
+                 or any(_binds_builtin(ctx["root"], m, attr) for m in modules.get(name, ())))]
 
     # R12: game itself as a value (getattr(game, ...), an alias, an argument) unless an allowlist row names it
     for u in w.bare_game:
@@ -727,7 +764,7 @@ def audit(root: Path, surface_targets: dict[str, str], allowed_imports: set[str]
            "game_bound": game_bound, "reexports": reexports, "allow": allow, "allow_used": set(),
            "module_targets": {name for name, kind in surface_targets.items() if kind in {"import", "absent"}},
            "builtin_targets": {name for name, kind in surface_targets.items() if kind == "absent" and hasattr(builtins, name)},
-           "game_defined": game_defined, "imported": imported, "part_binds": {}}
+           "game_defined": game_defined, "imported": imported, "part_binds": {}, "root": root}
     for path in part_files(root):
         rel = path.relative_to(root).as_posix()
         if rel == "game_parts/__init__.py" and path.read_text(encoding="utf-8").strip() != "import game":
