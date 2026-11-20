@@ -1,0 +1,979 @@
+import game
+import equipment_economy
+import hashlib
+import json
+import living_world
+import local_dialogue
+import re
+
+
+def is_dialogue_or_emotion(player_input):
+    """Keep ordinary conversation, questions and feelings out of skill checks."""
+    return game.is_npc_dialogue_input(player_input)
+
+def _is_negated_dialogue_action(player_input):
+    """Keep explicit negative speech acts from opening an NPC conversation."""
+    text = game._normalize_turkish_typos(
+        living_world._text_outside_quotes(str(player_input or ""))
+    )
+    return bool(re.search(
+        r"\b(?:konus|sohbet|sor|seslen|selamver)\w*"
+        r"(?:miyorum|muyorum|miyor|muyor|mayacag\w*|meyeceg\w*|mam|mem)\b",
+        text,
+    ))
+
+def _reads_as_question(player_input):
+    """A written question, with or without the mark players often leave out."""
+    return "?" in str(player_input) or bool(re.search(
+        r"\b(?:mi|mu)\s*[.!…]*$|\bvarmi\s*[.!…]*$",
+        game._normalize_turkish_typos(str(player_input)),
+    ))
+
+def _people_speak_for_themselves(world_state):
+    """A town with its own people and work: what they know is in their notes, so they can answer anything."""
+    import local_places
+    if game._npc_speech_enabled():
+        return True
+    return (local_places.settlement_of(world_state, world_state.get("location")) is not None
+            and bool(living_world._campaign_seed(world_state)))  # only reads: a question must not build a town
+
+def _asked_of_the_one_at_hand(player_input, npc):
+    """A question that calls someone by name goes to them, with or without a question mark."""
+    if (not isinstance(npc, dict) or game._has_explicit_attack_verb(player_input)
+            or not game._people_speak_for_themselves(game._session().world_state)):
+        return False
+    text = game._normalize_turkish_typos(str(player_input))
+    served = game._just_served(game._session().world_state) and game._session().world_state["flags"].get("active_npc_id") == npc.get("id")
+    return bool((game._entity_reference_in_text(npc.get("name", ""), text) or served)
+                and ("?" in str(player_input) or game._ASKS_SOMETHING.search(text)))
+
+def is_npc_dialogue_input(player_input):
+    if not isinstance(player_input, str):
+        return False
+    if game._is_negated_dialogue_action(player_input):
+        return False
+    if game.is_ordinary_environment_look(player_input) or living_world.classify_scene_action(player_input) == "look":
+        return False
+    text = player_input.casefold().strip()
+    normalized = game._normalize_turkish_typos(player_input)
+    # A reported NPC utterance can qualify an explicit first-person move; it
+    # must not turn that move into a new conversation addressed to the speaker.
+    # Keep this narrow so questions and ordinary historical claims stay dialogue.
+    if (
+        "?" not in text
+        and game.is_npc_historical_claim(player_input)
+        and re.search(r"\b(?:gid\w*|yaklas\w*|yonel\w*|ilerle\w*)\b", normalized)
+    ):
+        return False
+    if (
+        local_dialogue.is_local_dialogue_input(player_input)
+        or game._explicit_player_name_disclosure(player_input)
+        or local_dialogue.is_local_place_recommendation_request(player_input)
+        or game._is_player_name_inquiry_to_npc(player_input)
+    ):
+        return True
+    if game._reads_as_question(player_input) or game.is_npc_historical_claim(player_input):
+        return True
+    if re.search(
+        r"\b(?:selam\w*|merhaba\w*|iyi günler|teşekkür\w*|sağ ol)\b",
+        text,
+    ):
+        return True
+    # A song is sung to the room, not said to the last person spoken to.
+    sung = re.search(r"\b(?:sarki|turku|mars|ninni|ilahi)\w*\b", normalized)
+    if not sung and re.search(r"\b(?:konuş\w*|sohbet\w*|laf ed\w*|selam ver\w*|sor\w*|söylüyorum|söylerim)\b", text):
+        return True
+    return bool(re.match(
+        r"^(selam|merhaba|iyi günler|teşekkür|sağ ol|korkuyorum|"
+        r"sinirleniyorum|sinirliyim|üzülüyorum|üzgünüm|mutluyum|"
+        r"endişeliyim|korkmuş hissediyorum|kim(sin)?\b|"
+        r"burada ne zamandır|bu kasabada|bu şehirde|buralarda yeni misin|"
+        r"burada güvenli|doğuda ne var|komutanı tanıyor musun|"
+        r"bana biraz .{1,40} bahset|burada ne oluyor)\b",
+        text
+    ))
+
+def _is_conversation_start_input(player_input):
+    if not isinstance(player_input, str):
+        return False
+    if game.is_npc_historical_claim(player_input):
+        return False
+    text = game._normalize_turkish_typos(player_input)
+    if not re.search(r"\b(?:konus\w*|sohbet\w*|laf\s+et\w*)\b", text):
+        return False
+    # An opening is a proposal or a stated wish to talk, in the player's own
+    # voice: "sohbet edelim mi?", "konuşalım", "seninle konuşmak istiyorum".
+    # A second-person question about the NPC ("sohbet etmeyi seviyor musun?",
+    # "tercih edersin?") expects an answer and is not an opening, even though
+    # both mention talking. The "mi" particle alone cannot separate them.
+    is_opening_proposal = bool(re.search(
+        r"\b(?:konusalim|sohbet edelim|laf edelim|konusmaya baslayalim)\b"
+        r"|\b(?:konusmak|sohbet etmek|laf etmek) (?:istiyorum|isterim|istiyoruz)\b"
+        r"|\bbenimle konus\b",
+        text,
+    ))
+    if is_opening_proposal:
+        opening_only = re.fullmatch(
+            r"\s*(?:(?:[\w'-]+\s+ile\s+)?(?:biraz\s+)?"
+            r"(?:konusalim|sohbet edelim|laf edelim|konusmaya baslayalim)"
+            r"|(?:[\w'-]+\s+ile\s+)?(?:konusmak|sohbet etmek|laf etmek)\s+"
+            r"(?:istiyorum|isterim|istiyoruz)|benimle konus)"
+            r"(?:\s+(?:mi|mı|mu|mü))?[?.!…\s]*",
+            text,
+        )
+        if opening_only:
+            return True
+    is_answer_seeking = (
+        "?" in player_input
+        or bool(re.search(r"\b(?:mi|mı|mu|mü)\b", player_input))
+        or bool(re.search(
+            r"\b(?:ne|neler|kim|nerede|nerden|nereden|hangi|nasil|neden|niye)\b",
+            text,
+        ))
+    )
+    return not is_answer_seeking
+
+def _is_local_place_question(player_input):
+    if not isinstance(player_input, str):
+        return False
+    text = game._normalize_turkish_typos(player_input)
+    return bool(re.search(
+        r"\b(?:nasil\s+bir\s+yer\s+burasi|burasi\s+nasil\s+bir\s+yer|"
+        r"bu\s+yer\s+nasil|buralarda\s+yeniyim|burada\s+yeniyim)\b",
+        text,
+    ))
+
+def _unverified_past_event_assertion(player_input):
+    """An attributed past narrative is not an accepted campaign event."""
+    if not isinstance(player_input, str):
+        return False
+    text = game._normalize_turkish_typos(player_input)
+    # Questions, denials and future intentions do not assert an accomplished event.
+    if "?" in player_input or re.search(
+        r"\b(?:degil|olmadi|almadim|yapmadim|olacagim|alacagim|yapacagim)\b",
+        text,
+    ):
+        return False
+    attributed_past = re.search(
+        r"\b(?:onceki|gecmis|daha once|evvelki)\b.{0,90}"
+        r"\b(?:anlati\w*|hikaye\w*|yazi\w*|metin\w*)\b",
+        text,
+    )
+    reported_as_fact = re.search(
+        r"\b(?:yaz\w*|soyle\w*|anlat\w*|bahset\w*)\b",
+        text,
+    )
+    past_claim = re.search(
+        r"\b(?:oldu\w*|aldi\w*|kazandi\w*|verdi\w*|basladi\w*)\b",
+        text,
+    )
+    explicit_past = re.search(
+        r"\b(?:daha once|gecmiste)\b.{0,100}"
+        r"\b(?:oldu\w*|aldi\w*|kazandi\w*|verdi\w*)\b",
+        text,
+    )
+    return bool((attributed_past and reported_as_fact and past_claim) or explicit_past)
+
+def _report_of_someone_else(player_input, npc_target):
+    """"İskeledeki adam seni tavsiye etti": a third person spoke, not the one addressed."""
+    text = game._normalize_turkish_typos(player_input)
+    if not isinstance(npc_target, dict) or not game._THIRD_PERSON_REPORT.search(text) or game._SECOND_PERSON_SAID.search(text):
+        return False
+    named = any(
+        game._entity_reference_in_text(label, text)
+        for label in (npc_target.get("name"), npc_target.get("role"), living_world.public_npc_role(npc_target))
+        if isinstance(label, str) and label.strip()
+    )
+    return not named
+
+def is_npc_historical_claim(player_input):
+    """Identify claims about prior NPC speech or past disclosures so they cannot create world facts."""
+    if not isinstance(player_input, str):
+        return False
+    if game._explicit_player_name_disclosure(player_input):
+        return False
+    text = game._SAID_IT_AGAIN.sub(" ", player_input.casefold()).strip()
+    return bool(re.search(
+        r"\b(?:daha önce|az önce|önceden|geçen sefer|geçen gün|vaktiyle|bir keresinde|hatırlarsan)\b.{0,180}"
+        r"\b(?:söyle\w*|de\w*|anlat\w*|bahset\w*|konuş\w*|söz\s+ver\w*|vadet\w*)\b|"
+        r"\b(?:söylemişti[kmnez]?|demişti[kmnez]?|anlatmıştı[kmnez]?|bahsetmişti[kmnez]?|konuşmuştu[kmnez]?)\b|"
+        r"\b(?:söyledi[kmnez]?|dedi[kmnez]?|anlattı[kmnez]?|bahsetti[kmnez]?|konuştu[kmnez]?)\b|"
+        r"\b(?:söylenmişti|denmişti|anlatılmıştı|bahsedilmişti)\b|"
+        r"\b(?:söz\s+vermişti[kmnez]?|söz\s+verdi[kmnez]?|vadetmişti[kmnez]?|vadetti[kmnez]?)\b|"
+        r"\b(?:bana|bize|sana)\b.{0,80}"
+        r"\b(?:söylemiş\w*|söyledi\w*|anlatmış\w*|anlattı\w*|bahsetmiş\w*|bahsetti\w*|demiş\w*|dedi\w*|konuşmuş\w*|konuştu\w*|söz\s+vermiş\w*|söz\s+verdi\w*|vadetmiş\w*|vadetti\w*)\b|"
+        r"\b(?:hatırl\w*|hatirl\w*)\b|"
+        # "Hani geçen sefer ... 50 altın vericektin", "dün ... verecektin"
+        r"\b(?:hani|dün|geçen\s+(?:sefer|hafta|gün|ay)|daha\s+önce|önceden)\b.{0,160}"
+        r"\b\w+(?:acak|ecek|ıcak|icek|ucak|ücek)t[ıiuü]\w*\b",
+        text,
+    ))
+
+def _reported_npc_claim_followed_by_player_inspection(player_input):
+    """Keep a clear player inspection after reported NPC speech actionable."""
+    if not isinstance(player_input, str):
+        return False
+    text = game._normalize_turkish_typos(player_input)
+    match = re.search(
+        r"\b(?:dedi|soyledi|anlatti|bahsetti)\s*[,;:]\s*(?P<action>.+)$",
+        text,
+    )
+    return bool(match and game._is_object_inspection(match.group("action")))
+
+def named_skill(player_input):
+    """The one skill the line names as the check to roll ("Atletizm zarı", "Strength (Athletics) check"), else None.
+
+    The skill word and the check word stand side by side, or the skill stands in brackets after an ability word
+    ("Güç (Atletizm)"): "tip", "tarih", "doğa" and "kontrol" far apart in a line are everyday words."""
+    from api.dnd_2024_rules import SKILL_DEFINITIONS
+    if not isinstance(player_input, str) or "?" in player_input:
+        return None
+    text = game._normalize_turkish_typos(player_input)
+    marked = game._normalize_turkish_typos(player_input.replace("(", " xopenx ").replace(")", " xclosex "))
+    named = {}
+    for key, definition in SKILL_DEFINITIONS.items():
+        english = re.escape(game._normalize_turkish_typos(key))
+        turkish = game._normalize_turkish_typos(definition["name_tr"].split(" (")[0])
+        suffix = game._SKILL_ENDING if len(turkish) >= 5 else ""
+        pattern = rf"(?:\b{english}\b|\b{re.escape(turkish)}{suffix}\b)"
+        if re.search(pattern, text):
+            named[key] = pattern
+    if len(named) != 1:
+        return None
+    skill, pattern = next(iter(named.items()))
+    side_by_side = re.search(
+        rf"{pattern}(?:\s+xclosex)?\s+{game._SKILL_CHECK_WORD}\b|\b{game._SKILL_CHECK_WORD}\s+{pattern}", marked)
+    # "Yetenek (Beceri)" is the form the sheet prints a skill in: an ability word, then the skill in brackets.
+    in_brackets = re.search(rf"\b{game._ABILITY_WORD}\s+xopenx\s+{pattern}\s+xclosex", marked)
+    return skill if side_by_side or in_brackets else None
+
+def open_scare_try(player_input) -> bool:
+    """D-099: "muhafızı korkutmaya çalışıyorum" is an attempt the dice settle, whoever it is aimed at. Only a present,
+    first-person, finished sentence outside quotes counts (never "korkutmaya çalıştım", "beni korkutmaya çalışıyor", a
+    quoted threat, a plan, or words said to somebody). D-226: before a colon is the try, after it what is said."""
+    if not isinstance(player_input, str) or "?" in player_input:
+        return False
+    import living_world
+    told = living_world._text_outside_quotes(player_input).split(":", 1)[0]
+    bare = " ".join(re.findall(r"\w+", game._normalize_turkish_typos(told)))
+    return bool(game._OPEN_SCARE.search(bare))
+
+def _stealth_skill(player_input):
+    """The skill a hiding line rolls: Stealth with cover or the dark, Sleight of Hand for one's own thing, else
+    None (no roll: seen in the open by day)."""
+    folded = " ".join(re.findall(r"\w+", game._normalize_turkish_typos(living_world._text_outside_quotes(player_input))))
+    if game._OWN_THING_HIDDEN.search(folded):
+        return "Sleight of Hand"
+    import bold_acts
+    import local_places
+    import world_threads
+    world = game._session().world_state
+    here = world.get("location")
+    indoors = bold_acts._door_out(world, here) is not None and local_places.settlement_of(world, here) != here
+    return "Stealth" if indoors or world_threads._in_the_night(world) or game._COVER.search(folded) else None
+
+def _word_check_for_action(player_input):
+    """The engine's own word rules for a check, before any reading."""
+    text = player_input.casefold()
+    normalized_text = game._normalize_turkish_typos(player_input)
+    skill = game.named_skill(player_input)
+    if skill:
+        return {"action_type": "check", "skill": skill, "difficulty": "medium"}
+
+    if "?" not in player_input:
+        if re.search(
+            r"\b(?:ikna\s+etmeye\s+calis(?!m)\w*|ikna\s+ediyorum|ikna\s+edecegim|"
+            r"ikna\s+etmek\s+istiyorum|razi\s+etmeye\s+calis(?!m)\w*|"
+            r"inandirmaya\s+calis(?!m)\w*|guvenini\s+kazan\w*|pazarlik\s+yap\w*)\b",
+            normalized_text,
+        ):
+            return {"action_type": "check", "skill": "Persuasion", "difficulty": "medium"}
+        # D-175: spotting a lie ("yalan söyleyip söylemediğini", "yalan mı söylüyor") is Insight, not Deception.
+        if re.search(r"\byalan\s+(?:soyleyip\s+soyleme\w*|mi\s+soyl\w*|soyl\w*\s+mu\b)", normalized_text):
+            return {"action_type": "check", "skill": "Insight", "difficulty": "medium"}
+        if re.search(
+            r"\byalan\s+soyle(?!m)\w*|\b(?:kandir|aldat)(?!m)\w*|\bblof\s+yap(?!m)\w*",
+            normalized_text,
+        ):
+            return {"action_type": "check", "skill": "Deception", "difficulty": "medium"}
+        if re.search(
+            r"\btakla\s+(?:atiyorum|atacagim|atmaya\s+calis(?!m)\w*|atmak\s+istiyorum)|"
+            r"\bdengede\s+(?:yuruyorum|ilerliyorum|kaliyorum|geciyorum)|"
+            r"\b(?:ip|halat)\s+uzerinde\s+(?:yuruyorum|ilerliyorum)|"
+            r"\bakrobatik\s+hareket\s+(?:yapiyorum|ediyorum)",
+            normalized_text,
+        ):
+            return {"action_type": "check", "skill": "Acrobatics", "difficulty": "medium"}
+        if game.open_scare_try(player_input):  # D-099
+            return {"action_type": "check", "skill": "Intimidation", "difficulty": "medium"}
+        if re.search(
+            r"\biz(?:leri|lerini)?\s+sur(?:uyorum|meye\s+calis(?!m)\w*)|"
+            r"\biz(?:leri|lerini)?\s+takip\s+(?:ediyorum|ederek|etmeye\s+calis(?!m)\w*)|"
+            r"\b(?:yolumu|yonumu)\s+bul(?:uyorum|maya\s+calis(?!m)\w*)|"
+            r"\byiyecek\s+ar(?:iyorum|amaya\s+calis(?!m)\w*)|"
+            r"\bbarinak\s+kurmaya\s+calis(?!m)\w*",
+            normalized_text,
+        ):
+            return {"action_type": "check", "skill": "Survival", "difficulty": "medium"}
+
+    if any(token in text for token in ("gizlen", "saklan", "sessizce ilerle")):
+        return {"action_type": "check", "skill": "Stealth", "difficulty": "medium"}
+    if "tırman" in text or "tırmanmaya" in text:
+        return {"action_type": "check", "skill": "Athletics", "difficulty": "medium"}
+    door = game._current_door()
+    lockpick_attempt = any(term in text for term in ("kilidi açmaya", "kilidi açıyorum", "lockpick"))
+    # LR00-P1: "kırmayacağım", "zorlamıyorum", "zorlanmış mı?" are not attempts.
+    break_attempt = game._affirmative_door_verb(normalized_text, r"kapiyi\s+", ("kir", "parcala", "yik"))
+    force_attempt = (
+        game._affirmative_door_verb(normalized_text, r"", ("zorla",))
+        or any(term in text for term in ("iterek", "kırarak"))
+    )
+    if "?" in player_input:
+        break_attempt = force_attempt = False
+    door_attempt = lockpick_attempt or break_attempt or force_attempt or bool(re.search(r"\bkapıyı açıyorum\b", text))
+    if ("kapı" in text or "kapıyı" in text or "kilit" in text) and door_attempt and door and not door["open"]:
+        if door["locked"] or lockpick_attempt or break_attempt or force_attempt:
+            skill = "Sleight of Hand" if lockpick_attempt else "Athletics"
+            return {"action_type": "check", "skill": skill, "difficulty": "medium"}
+        return {"action_type": "narrative"}
+    if ("kapı" in text or "kapıyı" in text or "kilit" in text) and door_attempt and not door:
+        return {"action_type": "narrative"}
+    if "kilit" in text and "aç" in text and door and door["locked"]:
+        return {"action_type": "check", "skill": "Sleight of Hand", "difficulty": "medium"}
+    if "yalan" in text and any(token in text for token in ("anlamaya", "söyleyip", "doğru mu")):
+        return {"action_type": "check", "skill": "Insight", "difficulty": "medium"}
+    if any(token in text for token in (
+        "ses dinliyorum", "ses dinle", "bir şey duymaya çalış", "ses geliyor mu",
+        "kapının arkasından ses", "tehlike var mı", "tehlikeyi fark etmeye",
+        "bir şey fark etmeye çalış", "bir şey görüyor muyum", "etrafı gözlemliyorum",
+        "çevreyi gözlemliyorum", "etrafıma dikkatlice bak", "bir şey hissediyor muyum"
+    )):
+        return {"action_type": "check", "skill": "Perception", "difficulty": "medium"}
+    if any(token in text for token in (
+        "etrafı araştır", "masayı incel", "kapıyı incel", "izleri incel",
+        "kilidin nasıl çalış", "gizli bir bölme ara", "gizli bölme ara",
+        "ipuçlarını araştır", "ayrıntıları araştır", "bir şeyi analiz ed"
+    )):
+        return {"action_type": "check", "skill": "Investigation", "difficulty": "medium"}
+    if any(token in text for token in ("onu korkutmaya", "gözdağı vermeye", "tehdit ediyorum")):
+        return {"action_type": "check", "skill": "Intimidation", "difficulty": "medium"}
+    return None
+
+def known_player_action_narration(player_input):
+    """Narrate common explicit actions without asking the model to control the hero."""
+    world_state = game._session().world_state
+    text = player_input.casefold().strip()
+    npc_name = game._current_npc_name()
+    location = game.location_display_name()
+
+    if re.search(r"\b(masaya oturuyorum|oturuyorum)\b", text):
+        if any("masa" in item.casefold() for item in game.feature_descriptions() + equipment_economy.labels(world_state["inventory"])):
+            return "Masalardan birine geçip oturuyorsun; çevrendeki uğultu olduğu gibi sürüyor."
+        return "Etrafına bakınıyorsun ama oturabileceğin bir masa göremiyorsun."
+    if re.search(r"\b(ayağa kalkıyorum|kalkıyorum|ayağa kalk)\b", text):
+        return "Ayağa kalkıyorsun; çevrende her şey olduğu gibi sürüyor."
+    if re.search(r"\b(yürüyorum|yürü|ilerliyorum)\b", text):
+        return "Birkaç adım ilerliyorsun; çevredeki sesler ve hareket sürüp gidiyor."
+    if game.is_ordinary_environment_look(text):
+        features = game.feature_descriptions()
+        if features:
+            return f"{location} içinde gözüne çarpanlar: {', '.join(features)}."
+        # An ordinary glance can receive temporary atmospheric narration from the DM.
+        return None
+    return None
+
+def known_character_answer(player_input):
+    text = game._normalize_turkish_typos(player_input)
+
+    def asks_any(phrases):
+        return any(game._normalize_turkish_typos(phrase) in text for phrase in phrases)
+
+    asks_identity = asks_any(("ben kimim", "karakterim kim", "kim oynuyorum"))
+    asks_class = asks_any(("hangi sınıfım", "sınıfım ne", "hangi class"))
+    asks_race = asks_any(("hangi ırktayım", "ırkım ne", "hangi ırkım"))
+    asks_level = asks_any(("seviyem kaç", "levelim kaç", "kaçıncı seviyedeyim"))
+    asks_name_self = asks_any((
+        "benim adım ne", "benim ismim ne", "karakterimin adı ne", "karakterimin ismi ne"
+    ))
+    if not (asks_identity or asks_class or asks_race or asks_level or asks_name_self):
+        return None
+    facts = []
+    if asks_identity or asks_name_self:
+        facts.append(f"Adın {game._session().character['name']}")
+    if asks_race:
+        facts.append(f"ırkın {game._session().character['race']}")
+    if asks_class:
+        facts.append(f"sınıfın {game._session().character['class']}")
+    if asks_level:
+        facts.append(f"seviyen {game._session().character['level']}")
+    return "; ".join(facts) + "."
+
+def _model_query_type_is_plausible(player_input):
+    """A model-supplied query_type counts only when the player asked something.
+
+    Live qwen fills query_type on plain statements ("Tamam, o zaman gideyim."),
+    and the engine then answered a location query to a statement.
+    """
+    text = game._normalize_turkish_typos(living_world._text_outside_quotes(str(player_input)))
+    return bool(game._QUESTION_CUE_RE.search(text))
+
+def _detect_query_type(player_input, npc_target=None):
+    """Ground questions in known entities, not in an ambient NPC alone."""
+    world_state = game._session().world_state
+    text = game._normalize_turkish_typos(living_world._text_outside_quotes(str(player_input)))
+    self_phrases = (
+        "ben kimim", "karakterim kim", "kim oynuyorum",
+        "benim adım ne", "benim ismim ne", "karakterimin adı ne", "karakterimin ismi ne",
+        "hangi sınıfım", "sınıfım ne", "hangi class",
+        "hangi ırktayım", "ırkım ne", "hangi ırkım",
+        "seviyem kaç", "levelim kaç", "kaçıncı seviyedeyim",
+    )
+    if any(game._normalize_turkish_typos(phrase) in text for phrase in self_phrases):
+        return "self"
+    if local_dialogue.is_world_subject_question(player_input):
+        # A setting question must never borrow the active NPC as its subject.
+        return None
+    if re.search(r"\bkim(?:ler)?\b.{0,48}\b(?:var|bulun\w*|bekl\w*|dur\w*)\b", text) or \
+            re.search(r"\bkimler\s+(?:burada|etrafta)\b", text):
+        return "presence"
+    asks_name = bool(
+        re.search(r"\b(?:ad(?:i|in|iniz)|ism(?:i|in|iniz))\s+(?:ne|nedir)\b", text)
+        or re.search(r"\b(?:adini|ismini)\s+sor\w*\b", text)
+        or local_dialogue.personal_question_kind(player_input) == "npc_identity"
+    )
+    location_query = any(game._normalize_turkish_typos(phrase) in text for phrase in (
+        "neredeyim", "nerdeyim", "nerdeyiz", "şu an neredeyim", "hangi yerdeyim", "konumum neresi",
+    )) or bool(re.search(r"\bhangi\s+(?:mekan|yer|konum)\w*\b", text)) or bool(re.fullmatch(
+        # Accusative current-location object + affirmative information imperative.
+        # Negative/past forms (soyleme/soyledim) must not authorize a query.
+        r"(?:(?:bana|lutfen)\s+)*(?:bulundugum|bulundugumuz)\s+(?:yeri|konumu|mekani)\s+"
+        r"(?:soyle(?:yin|yiniz)?|anlat(?:in|iniz)?)\b", text,
+    ))
+    location_id = game._location_reference_in_text(player_input)
+    # A resolved place + a terminal locative interrogative asks for that place,
+    # not the player's current location and not an ungrounded lore answer.
+    import exploration
+    query_locations = game._query_location_candidates(player_input)
+    query_location_id = query_locations[0] if len(query_locations) == 1 else None
+    referenced_location = world_state.get("locations", {}).get(query_location_id, {})
+    location_query = location_query or bool(
+        query_location_id in exploration.known_locations(world_state)
+        and isinstance(referenced_location, dict)
+        and not referenced_location.get("hidden")
+        and re.search(r"\bner(?:e)?de(?:dir)?\s*[?!.]*$", text)
+    )
+    explicit_npcs = [
+        npc for npc in game.active_npcs()
+        if (
+            living_world.npc_name_known_to_player(npc)
+            and game._entity_reference_in_text(npc.get("name", ""), player_input)
+        )
+        or (
+            living_world.npc_role_known_to_player(npc)
+            and game._entity_reference_in_text(npc.get("role", ""), player_input)
+        )
+    ]
+    location_phrase = bool(re.search(
+        r"\b(?:buranin|bu\s+mekanin|bu\s+yerin|bulundugum\s+yerin)\b", text
+    ))
+    if location_query or (asks_name and (location_phrase or location_id)):
+        return "location"
+    named_identity = any(
+        re.fullmatch(re.escape(game._normalize_turkish_typos(npc.get("name", ""))) + r"\s+(?:kim(?:dir)?|mi(?:sin(?:iz)?)?)[?!.]*", text)
+        for npc in explicit_npcs if npc.get("name")
+    )
+    if asks_name or named_identity or re.search(r"\bkimsin(?:iz)?\b", text):
+        if len(explicit_npcs) == 1:
+            return "npc_identity"
+        # "İsmi nedir?" is about someone or something else; only "ismin", "adını"
+        # and the like address the person spoken to.
+        if (
+            re.search(r"\b(?:adi|ismi)\b", text)
+            and not re.search(r"\b(?:adin\w*|ismin\w*|kimsin\w*)\b", text)
+        ):
+            return None
+        if not explicit_npcs and not location_id and not location_phrase and npc_target in game.active_npcs():
+            return "npc_identity"
+        if not explicit_npcs and not location_id and not location_phrase and not npc_target:
+            # A known conversational target may be recovered by the action layer,
+            # but this classifier cannot invent an NPC from a bare question.
+            return None
+    return None
+
+def _detect_explore_type(player_input):
+    """Distinguish ordinary looking from an investigative search."""
+    text = game._normalize_turkish_typos(player_input)
+    if game._detect_query_type(player_input):
+        return None
+    neighborhood = bool(re.search(r"\b(?:etraf\w*|cevre\w*|bura\w*|yakin\w*|ortam\w*)\b", text))
+    look = bool(re.search(r"\b(?:ne|neler|nasil|bak\w*|gor\w*|goz\s+at\w*|suz\w*|kolacan\w*|incel\w*|arastir\w*)\b", text))
+    if not (neighborhood and look) and not re.search(r"\bne\s+gor\w*\b", text):
+        return None
+    if re.search(r"\b(?:incel\w*|arastir\w*|analiz\w*|ipuclar\w*|izleri\s+ara\w*|gizli\w*\s+ara\w*)\b", text):
+        return "inspect" if re.search(r"\b(?:incel\w*|analiz\w*)\b", text) else "search"
+    return "observe"
+
+def _query_location_candidates(player_input):
+    """All registered place subjects in unquoted text; never pick the first."""
+    text = living_world._text_outside_quotes(str(player_input))
+    return [
+        key for key, record in game._session().world_state.get("locations", {}).items()
+        if isinstance(record, dict) and any(
+            game._entity_reference_in_text(alias, text)
+            for alias in game._location_alias_values(record)
+        )
+    ]
+
+def resolve_python_world_action(player_input):
+    """Resolve explicit world interactions and reject unsupported assertions safely."""
+    world_state = game._session().world_state
+    text = player_input.casefold()
+    door = game._current_door()
+
+    door_action = ("kapı" in text or "kapıya" in text or "kilit" in text) and any(
+        token in text for token in ("aç", "kapat", "zorla", "kır", "it", "kilit", "bak", "incele")
+    )
+    if door_action:
+        import grounded_action
+        parsed = grounded_action.plan(game._session(), player_input)
+        physical = any(
+            step.get("verb") in grounded_action.TARGET_VERBS
+            and not any(step.get(k) for k in ("question", "negated", "reported", "not_now"))
+            for step in parsed["steps"]
+        )
+        if not physical:
+            door_action = False
+    if "kapı" in text and any(token in text for token in ("yok ettim", "yok ettin", "parçaladım", "kırdım")):
+        return "Kapıya bakıyorsun: hâlâ yerinde ve sapasağlam duruyor."
+    if door_action and not door:
+        # Keep the owner's known absence typed; a handled reply is not a
+        # successfully executed door action.
+        return {
+            "action": "world_interaction",
+            "success": False,
+            "status": "blocked",
+            "reason": "target_unknown",
+            "target_type": "door",
+            "target_id": None,
+            "state_changes": [],
+            "direct_response": "Burada açıp kapatabileceğin bir kapı görünmüyor.",
+        }
+    if not door and re.search(r"\bkapı(?:yı)?\s+(?:açıldı|açtım|kırıldı|kırdım|kapandı|kapattım)\b", text):
+        return "Etrafında öyle bir kapı yok."
+    if door and re.search(r"\bkapı(?:yı)?\s+(?:açıldı|açtım|kırıldı|kırdım|kapandı|kapattım)\b", text):
+        state = "açık" if door["open"] else "kilitli ve kapalı" if door["locked"] else "kapalı"
+        return f"{door['name']} hâlâ {state}."
+
+    if re.search(r"\b(?:aslında\s+)?kapı\s+yok\b", text):
+        if door:
+            state = "açık" if door["open"] else "kapalı"
+            return f"{door['name']} karşında duruyor; {state}."
+        return "Gerçekten de burada bir kapı görünmüyor."
+
+    if any(token in text for token in ("duvarı yumruk", "duvara yumruk", "duvarı kır", "duvarı yık")):
+        return "Duvar kalın ve sağlam; ona zarar verecek bir yolun yok gibi görünüyor."
+    if "duvar" in text and re.search(r"çatla|yık|kır|yok", text):
+        return "Duvar olduğu gibi duruyor; ne bir çatlak var ne bir yıkıntı."
+
+    weapon_mentioned = any(token in text for token in ("kılıç", "kılıc", "silah"))
+    if any(token in text for token in ("kılıç", "kılıc")) and any(token in text for token in ("yiyorum", "yemeye çalış")):
+        return "Kılıcı yiyemezsin; Kılıç mevcut konumunda kalır."
+    if weapon_mentioned and any(token in text for token in ("kırdım", "yok ettim", "sattım", "parçaladım")):
+        if "Kılıç" in equipment_economy.labels(world_state["inventory"]):
+            return "Kılıcın hâlâ yanında; ona bir şey olmamış."
+        if "Kılıç" in equipment_economy.labels(world_state["ground_items"]):
+            return "Kılıç hâlâ yerde, olduğu gibi duruyor."
+        return "Eşyaların olduğu gibi duruyor."
+    if re.search(r"\buçuyorum\b|\buçmaya çalış", text):
+        return "Kollarını açıp sıçrıyorsun ama ayakların yeniden yere iniyor; seni uçuracak bir gücün yok."
+    if re.search(r"\b(?:öldüm|ölüyorum|öleceğim)\b", text):
+        return "Göğsün inip kalkıyor; hâlâ hayattasın."
+    if re.search(r"\b(?:öldü|öldürüldü|hayatını kaybetti)\b", text):
+        return "Etrafına bakıyorsun; öyle bir ölüm görmüyorsun."
+    if re.search(r"\böldürdüm\b", text):
+        return "Etrafına bakıyorsun; yerde yatan kimseyi görmüyorsun."
+    if re.search(r"\b\d+\s+altın\b|\baltın ver\b|\bpara ver\b", text):
+        return "Öyle bir altın ortada yok; kesen olduğu gibi duruyor."
+    if re.search(r"\bkapı(?:yı|sı)?\s+açık\b", text) and door:
+        state = "açık" if door["open"] else "kilitli ve kapalı" if door["locked"] else "kapalı"
+        return f"{door['name']} aslında {state}."
+    if re.search(r"\bben\s+(?:aslında\s+)?(?:kral(?:ım)?|kraliçe(?:yim)?|komutan(?:ım)?|imparator(?:um)?|lord(?:um)?|lady(?:im)?)\b", text):
+        return "Sözlerin havada kalıyor; çevrendekiler sana öyle biriymişsin gibi davranmıyor."
+    if re.search(r"\b(?:tavernadayım|meyhanedeyim|ormandayım|kalede(?:yim)?|buradayım)\b", text):
+        return game._stock("Etrafına bakıyorsun: hâlâ aynı yerdesin. Bir yere gitmek istersen nereye gittiğini söyle.")
+    if re.search(r"\b(?:çantamda|envanterimde)\b.{0,40}\b(?:altın|kılıç|eşya|potion)\b", text):
+        return "Çantanı yokluyorsun; içindekiler olduğu gibi duruyor."
+    if re.search(r"\bburada kimse yok\b", text):
+        active_names = [npc["name"] for npc in world_state["npcs"] if npc.get("location") == world_state["location"]]
+        if active_names:
+            return f"Etrafına bakıyorsun: {', '.join(active_names)} hâlâ burada."
+        return "Gerçekten de çevrende kimse görünmüyor."
+    if re.search(r"\bgeri geldim\b", text):
+        return "Nereye döndüğünü söylemedin; hâlâ buradasın."
+
+    missing_item = re.search(
+        r"\b([a-zçğıöşü]+(?:['’][a-zçğıöşü]+)?)\s+([a-zçğıöşü]+)\s+(?:ver|getir|hazırla)\b",
+        text,
+    )
+    if missing_item:
+        recipient, item_name = missing_item.groups()
+        known_recipients = {"bana"}
+        for npc in game.active_npcs():
+            known_recipients.update((npc.get("name", "").casefold(), npc.get("role", "").casefold()))
+        if not any(recipient.casefold().startswith(target) for target in known_recipients if target):
+            missing_item = None
+    if missing_item:
+        tracked_items = {item.casefold() for item in equipment_economy.labels(world_state["inventory"] + world_state["ground_items"])}
+        for container in world_state["containers"]:
+            tracked_items.update(item.casefold() for item in container.get("contents", []))
+        if item_name not in tracked_items:
+            return game._stock(f"Çevrede {item_name} diye bir şey göremiyorsun.")
+
+    if door and re.search(r"\bkapıyı\s+(?:kapatıyorum|kapat)\b", text):
+        if door["open"]:
+            door["open"] = False
+            return f"Kapıyı kapatıyorsun; {door['name']} artık kapalı."
+        return f"{door['name']} zaten kapalı."
+
+    # Handle "içeri giriyorum" / "kapıyı açıp içeri giriyorum" type entries
+    if re.search(r"\b(içeri giriyorum|içeri gir|içeriye giriyorum|kapıyı açıp içeri giriyorum)\b", text):
+        if door:
+            if door["open"]:
+                return f"{door['name']} zaten açık; içeri girersin."
+            if door["locked"]:
+                return None  # Locked door needs skill check / key
+            # Unlocked, closed door - open it and enter
+            door["open"] = True
+            npc_name = game._current_npc_name()
+            location = game.location_display_name()
+            if location == "Taverna" and npc_name:
+                return f"{door['name']} açılır. {location} salonundaki sohbet uğultusu belirginleşir. Tezgâhın arkasındaki {npc_name} burada durur."
+            return f"{door['name']} açılır. {location} içindeki sesler ve çevre ayrıntıları belirginleşir."
+        # No door registered at this location
+        return None
+
+    if door and re.search(r"\bkapıy(?:ı|a)\s+(?:aç|zorla|kır)|\bkilidi aç", text):
+        if door["open"]:
+            return f"{door['name']} zaten açık."
+        if any(token in text for token in ("zorla", "kır", "parçala", "yık")):
+            return None  # A forced/breaking attempt needs the Python check.
+        if door["locked"]:
+            return None  # The skill check owns the outcome.
+        if not door["open"]:
+            door["open"] = True
+            return f"Kapıyı itiyorsun; {door['name']} açılıyor."
+        return f"{door['name']} zaten açık."
+
+    if ("kapı" in text or "kapıya" in text) and any(token in text for token in ("bak", "incele")):
+        if not door:
+            return "Burada bakabileceğin bir kapı görünmüyor."
+        if "incele" in text or "kilidin nasıl çalış" in text:
+            return None  # A real investigation check is resolved below.
+        state = "kilitli ve kapalı" if door["locked"] else ("açık" if door["open"] else "kapalı")
+        game._mark_lock_seen(game._session().world_state, door)  # W03: the player was just shown the lock
+        return f"{door['name']} {state}. {door['description']}"
+    return None
+
+def analyze_player_action(
+    player_input,
+    character_class,
+    proficient_skills
+):
+    """Compatibility wrapper for the former action analyzer entry point."""
+    intent = game.validate_intent(game.normalize_intent(game.parse_player_intent(player_input), player_input), player_input)
+    if intent.get("intent") in {"stealth", "perception", "investigation", "search", "door"}:
+        return {"action_type": "check", "skill": intent.get("skill", "Perception"), "difficulty": intent.get("difficulty", "medium")}
+    return {"action_type": "narrative"}
+
+def _travel_destination_reference_in_text(text):
+    """Use the last named location as the destination in an explicit travel command."""
+    if not isinstance(text, str):
+        return None
+    normalized = game._normalize_turkish_typos(text)
+    text_tokens = list(re.finditer(r"[a-z0-9]+", normalized))
+    if not text_tokens:
+        return None
+
+    locations = game._session().world_state.get("locations", {})
+    matches = []
+    for location_id, location in locations.items():
+        for alias in game._location_alias_values(location):
+            alias_tokens = re.findall(r"[a-z0-9]+", alias)
+            if not alias_tokens or len(alias_tokens) > len(text_tokens):
+                continue
+            for start in range(len(text_tokens) - len(alias_tokens) + 1):
+                if all(
+                    game._reference_token_matches(
+                        alias_token, text_tokens[start + offset].group(0)
+                    )
+                    for offset, alias_token in enumerate(alias_tokens)
+                ):
+                    matches.append((
+                        text_tokens[start + len(alias_tokens) - 1].end(),
+                        len(alias_tokens),
+                        location_id,
+                    ))
+
+    if not matches:
+        return None
+    last_mention = max(match[0] for match in matches)
+    last_matches = [match for match in matches if match[0] == last_mention]
+    longest_alias = max(match[1] for match in last_matches)
+    candidate_ids = {
+        match[2] for match in last_matches if match[1] == longest_alias
+    }
+    if len(candidate_ids) == 1:
+        return next(iter(candidate_ids))
+    return game._location_reference_in_text(normalized)
+
+def _intent_scene_npc_candidates():
+    """Bounded, player-safe candidate set for scene-grounded NPC resolution."""
+    candidates = []
+    for npc in game.active_npcs()[:6]:
+        if (
+            not isinstance(npc, dict)
+            or not isinstance(npc.get("id"), str)
+            or npc.get("hidden") is True
+        ):
+            continue
+        candidates.append({
+            "id": npc["id"],
+            "name": living_world.public_npc_name(npc),
+            "role": living_world.public_npc_role(npc) or "",
+            "appearance": str(npc.get("appearance") or "")[:180],
+        })
+    return candidates
+
+def _recent_player_visible_narration(limit=600):
+    """Last shown assistant turn, used only as an untrusted reference hint."""
+    messages = getattr(game._session(), "messages", None)
+    if not isinstance(messages, list):
+        return ""
+    for item in reversed(messages):
+        if not isinstance(item, dict) or item.get("role") != "assistant":
+            continue
+        text = item.get("content")
+        if isinstance(text, str) and text.strip():
+            return text.strip()[-limit:]
+    return ""
+
+def _validated_scene_npc_id(raw_intent, player_input):
+    """Accept only an active candidate tied to an exact quote from this turn."""
+    target = raw_intent.get("target") if isinstance(raw_intent, dict) else None
+    if not isinstance(target, dict):
+        return None
+    npc_id = target.get("npc_id")
+    quote = target.get("evidence_quote")
+    if (
+        not isinstance(npc_id, str)
+        or not isinstance(quote, str)
+        or not quote.strip()
+        or len(quote) > 100
+        or game._normalize_turkish_typos(quote) not in game._normalize_turkish_typos(player_input)
+    ):
+        return None
+    return next(
+        (
+            npc for npc in game._intent_scene_npc_candidates()
+            if npc["id"] == npc_id
+        ),
+        None,
+    )
+
+def _named_word_of(raw_intent):
+    """The plain word the old reading gave for a person ("satıcı") when it validated none; None when it named no one
+    or named someone who is here."""
+    target = raw_intent.get("target") if isinstance(raw_intent, dict) else None
+    if not isinstance(target, dict) or target.get("type") != "npc" or game._validated_local_person_proposal(raw_intent):
+        return None
+    reference = target.get("reference")
+    word = reference.strip()[:80] or None if isinstance(reference, str) else None
+    return game._word_for_nobody_here(word, game._conversation_npcs())  # someone here answers to it: today's path
+
+def _validated_local_person_proposal(raw_intent):
+    """Return bounded NPC fields; they remain untrusted until canonical validation."""
+    proposal = raw_intent.get("local_person_proposal") if isinstance(raw_intent, dict) else None
+    if not isinstance(proposal, dict):
+        return None
+    name = game._clean_world_text(proposal.get("name"), 40)
+    if (
+        not name
+        or "_" in name
+        or not re.fullmatch(r"[\w .’'-]+", name, flags=re.UNICODE)
+    ):
+        return None
+    values = {"name": name}
+    for key, limit in (("role", 60), ("appearance", 180), ("reason", 120)):
+        value = proposal.get(key)
+        if not isinstance(value, str):
+            return None
+        value = " ".join(value.replace("\x00", "").split()).strip()
+        if not value or len(value) > limit:
+            return None
+        values[key] = value
+    return values
+
+def _scene_detail_proposals_allowed(player_input, world_state, interaction_mode):
+    """Single source for the intent call's scene-detail proposal permission."""
+    return (
+        not game.is_player_world_assertion(player_input)
+        and not (
+            living_world.is_anchored_structure_inquiry(player_input)
+            and re.search(
+                r"\b(?:var\s*m[iı]|bulunuyor\s*m[iı]|mevcut\s*m[iı])\b",
+                living_world.normalize_text(player_input),
+            )
+        )
+        and game.should_generate_features(player_input, interaction_mode=interaction_mode)
+        and game._scene_detail_parent(
+            world_state.get("location"), player_input
+        ) is not None
+    )
+
+def _scene_observation_proposal_turn(player_input, world_state, interaction_mode):
+    return (
+        living_world.classify_scene_action(player_input) in {"look", "inspect"}
+        and bool(re.search(
+            r"\b(?:oda\w*|salon\w*|hol\w*|room\w*)\b",
+            living_world.normalize_text(player_input),
+        ))
+        and not living_world.is_anchored_structure_inquiry(player_input)
+        and game._scene_detail_proposals_allowed(
+            player_input, world_state, interaction_mode
+        )
+    )
+
+def _local_person_request_key(player_input):
+    world = game._session().world_state
+    phrase = living_world.normalize_text(str(player_input or ""))
+    scope = "\0".join((
+        str(world.get("campaign_id", "")),
+        str(world.get("location", "")),
+        phrase,
+    ))
+    return hashlib.sha256(scope.encode("utf-8")).hexdigest()
+
+def _experimental_speech_final_line(player_input, interaction_context):
+    """Last prompt line: the player's message, and for a bare follow-up what it refers to."""
+    line = game._untrusted_player_block("Current player message: ", player_input)
+    last = (
+        interaction_context.get("last_exchange")
+        if isinstance(interaction_context, dict) else None
+    )
+    if game._is_short_followup(player_input) and isinstance(last, dict):
+        npc_line = str(last.get("npc_reply", "")).strip()[:300]
+        if npc_line:
+            line += (
+                " (a short follow-up to YOUR previous reply, which was: "
+                f"“{npc_line}”. Answer about that reply.)"
+            )
+    return line
+
+def _local_place_recommendation_guidance(
+    player_input, interaction_context, world_state
+):
+    if not local_dialogue.is_local_place_recommendation_request(player_input):
+        return ""
+    requested_kind = local_dialogue.local_place_recommendation_kind(player_input)
+    if local_dialogue.is_open_local_place_discovery(player_input):
+        return (
+            "\nLOCAL PLACE DISCOVERY: The player asks generally for another place, "
+            "not a specific venue or service. Keep any place you mention as your "
+            "attributed NPC statement; it is not a narrator-confirmed world fact. "
+            "Do not move the player, claim they visited, or reveal hidden places.\n"
+        )
+    addressee = (
+        interaction_context.get("addressee")
+        if isinstance(interaction_context, dict) else None
+    )
+    npc_id = (
+        interaction_context.get("npc_id")
+        if isinstance(interaction_context, dict) else None
+    )
+    if not isinstance(npc_id, str) and isinstance(addressee, dict):
+        npc_id = addressee.get("npc_id")
+    npc = next(
+        (
+            item for item in world_state.get("npcs", [])
+            if isinstance(item, dict) and item.get("id") == npc_id
+        ),
+        None,
+    )
+    options = game._local_place_recommendation_options(
+        npc, world_state, place_kind=requested_kind
+    )
+    if not options:
+        if requested_kind is None:
+            return ""
+        return (
+            "\nLOCAL PLACE RECOMMENDATION: The player asks for a specific kind "
+            "of nearby venue/service, but no visible canonical option of that "
+            "kind is available. Do not substitute an unrelated venue; any new "
+            "name is only an attributed, unverified NPC rumor. Do not move the "
+            "player or reveal hidden places.\n"
+        )
+    return (
+        "\nLOCAL PLACE RECOMMENDATION: The player asks for an ordinary local "
+        "suggestion. Recommend only an exact place from the Python-known "
+        "nearby options below as a currently visitable target. Do not present "
+        "a new name as an established or visitable place. You may still express "
+        "personal preferences, opinions, and harmless creative speech; if you "
+        "mention an unlisted place, frame it only as an unverified rumor and "
+        "do not direct the player there. A locked place may be mentioned only "
+        "with its locked status, never as currently visitable. Do not expose "
+        "hidden place or NPC information. Keep it concise and in character.\n"
+        "Python-known nearby place options (read-only; location_id is only a "
+        "grounding identifier): "
+        f"{json.dumps(options, ensure_ascii=False, separators=(',', ':'))}\n"
+    )
+
+class IntentInfrastructureError(Exception):
+    """The intent classifier could not run; the turn must not be committed."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+def _has_travel_language(player_input):
+    text = game._normalize_turkish_typos(
+        living_world._text_outside_quotes(str(player_input))
+    )
+    if re.search(
+        r"\b(?:gitmiyorum|gitme|gitmek istemiyorum|donmuyorum|donme|"
+        r"girmiyorum|girmiyoruz|girmem|girme|girmek istemiyorum|"
+        r"girmeyi istemiyorum|girmeyeceg\w*|girmeyi dusunmuyor\w*)\b",
+        text,
+    ):
+        return False
+    if re.search(r"\b(?:ne|neler|kim|kimler)\b.{0,32}\bvar\b", text):
+        return False
+    return bool(re.search(
+        r"\b(?:git\w*|gid\w*|don\w*|ulas\w*|"
+        r"var(?:iyorum|iyorsun|iyor|iyoruz|iyorlar|dim|din|dik|diniz|dilar|acak\w*|mak|maya)|"
+        r"gir(?:iyor\w*|di\w*|ecek\w*|eceg\w*|mek|meye|erek|ip|ince|in|elim|sin|sinler)?|"
+        r"gec\w*|ilerl\w*|yuru\w*)\b",
+        text,
+    ))
+
+def _travel_completion(player_input, model_completion="unclear"):
+    text = str(player_input).casefold()
+    if re.search(r"\b(?:gitmiyorum|gitme|gitmek istemiyorum|dönmüyorum|dönme)\b", text):
+        return "unclear"
+    if re.search(r"\b(?:istiyorum|isterim|planlıyorum|niyetim|gideceğim|gitmeyi düşünüyorum)\b", text):
+        return "intended"
+    if re.search(r"\b(?:gidiyorum|gidiyoruz|gittim|girdim|giriyorum|giriyoruz|ulaştım|ulaşıyorum|vardım|varıyorum|döndüm|dönüyorum|dönüyoruz|içeri giriyorum)\b", text):
+        return "completed"
+    if re.search(r"\b(?:gitme|gitmiyorum|dönme|dönmüyorum)\b", text):
+        return "intended"
+    if model_completion in ("intended", "completed"):
+        return model_completion
+    return "completed" if game._has_travel_language(text) else "unclear"
+
+def _normalize_turkish_location(text, reference):
+    """Ground a model location target in complete player words."""
+    world_state = game._session().world_state
+    location_id = game.resolve_location_reference(reference)
+    if location_id:
+        location = world_state.get("locations", {}).get(location_id, {})
+        return any(game._entity_reference_in_text(alias, text) for alias in game._location_alias_values(location))
+    return game._entity_reference_in_text(reference, text)

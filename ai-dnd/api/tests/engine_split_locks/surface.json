@@ -81,7 +81,7 @@
  },
  "IntentInfrastructureError": {
   "kind": "class",
-  "module": "game"
+  "module": "game_parts.intent"
  },
  "LOCATION_SCHEMA": {
   "kind": "data",
@@ -825,7 +825,7 @@
  },
  "_asked_of_the_one_at_hand": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, npc)"
  },
@@ -1107,13 +1107,13 @@
  },
  "_detect_explore_type": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_detect_query_type": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, npc_target=None)"
  },
@@ -1275,7 +1275,7 @@
  },
  "_experimental_speech_final_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, interaction_context)"
  },
@@ -1533,7 +1533,7 @@
  },
  "_has_travel_language": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1605,7 +1605,7 @@
  },
  "_intent_scene_npc_candidates": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "()"
  },
@@ -1629,7 +1629,7 @@
  },
  "_is_conversation_start_input": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1695,13 +1695,13 @@
  },
  "_is_local_place_question": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_is_negated_dialogue_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1863,7 +1863,7 @@
  },
  "_local_person_request_key": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1875,7 +1875,7 @@
  },
  "_local_place_recommendation_guidance": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, interaction_context, world_state)"
  },
@@ -1983,7 +1983,7 @@
  },
  "_model_query_type_is_plausible": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1995,7 +1995,7 @@
  },
  "_named_word_of": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(raw_intent)"
  },
@@ -2133,7 +2133,7 @@
  },
  "_normalize_turkish_location": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(text, reference)"
  },
@@ -2229,7 +2229,7 @@
  },
  "_people_speak_for_themselves": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(world_state)"
  },
@@ -2313,7 +2313,7 @@
  },
  "_query_location_candidates": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2331,7 +2331,7 @@
  },
  "_reads_as_question": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2343,7 +2343,7 @@
  },
  "_recent_player_visible_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(limit=600)"
  },
@@ -2451,13 +2451,13 @@
  },
  "_report_of_someone_else": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, npc_target)"
  },
  "_reported_npc_claim_followed_by_player_inspection": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2565,7 +2565,7 @@
  },
  "_scene_detail_proposals_allowed": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, world_state, interaction_mode)"
  },
@@ -2595,7 +2595,7 @@
  },
  "_scene_observation_proposal_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, world_state, interaction_mode)"
  },
@@ -2781,7 +2781,7 @@
  },
  "_stealth_skill": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2895,13 +2895,13 @@
  },
  "_travel_completion": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, model_completion='unclear')"
  },
  "_travel_destination_reference_in_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -2991,7 +2991,7 @@
  },
  "_unverified_past_event_assertion": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3051,7 +3051,7 @@
  },
  "_validated_local_person_proposal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(raw_intent)"
  },
@@ -3063,7 +3063,7 @@
  },
  "_validated_scene_npc_id": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(raw_intent, player_input)"
  },
@@ -3135,7 +3135,7 @@
  },
  "_word_check_for_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3195,7 +3195,7 @@
  },
  "analyze_player_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, character_class, proficient_skills)"
  },
@@ -3525,19 +3525,19 @@
  },
  "is_dialogue_or_emotion": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "is_npc_dialogue_input": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "is_npc_historical_claim": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3564,13 +3564,13 @@
  },
  "known_character_answer": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "known_player_action_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3640,7 +3640,7 @@
  },
  "named_skill": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3694,7 +3694,7 @@
  },
  "open_scare_try": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input) -> bool"
  },
@@ -3836,7 +3836,7 @@
  },
  "resolve_python_world_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },

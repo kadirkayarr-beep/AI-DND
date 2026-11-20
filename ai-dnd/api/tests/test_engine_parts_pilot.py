@@ -67,8 +67,9 @@ def value_digest(names) -> str:
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.places", "game_parts.text_rules_a",
-                                              "game_parts.text_rules_b"))  # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Task 8
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.intent", "game_parts.places",
+                                              "game_parts.text_rules_a", "game_parts.text_rules_b"))
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8 and 9
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -482,6 +483,77 @@ class PlacesPart(unittest.TestCase):
         self.assertTrue(game._reference_token_matches("han", "hanlar"))
         self.assertTrue(game._reference_token_matches("kapı", "kapıdan"))
         self.assertFalse(game._reference_token_matches("han", "kapı"))
+
+
+INTENT_1 = tuple(batch_names("intent-1"))
+
+
+class IntentPart(unittest.TestCase):
+    """T4.3 batches intent-1 and intent-2: intent reading and validation helpers live in game_parts/intent.py."""
+
+    def test_intent_1_lives_in_the_part(self):
+        self.assertEqual(set(INTENT_1) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
+
+    def test_intent_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # both names read game._session() (measured on d9bbb857): record what it returns during the session= call
+        real = game._session
+        with fixed_town(self, 20261204):
+            s = game.create_session(seed=11)
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            cases = (
+                ("is_npc_historical_claim", ("Bu adam dün beni soydu.",), False),
+                ("known_character_answer", ("Benim adım ne?",), f"Adın {s.character['name']}."),
+            )
+            for name, args, expected in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    self.assertEqual(getattr(game, name)(*args, session=s), expected)
+                    self.assertTrue(seen)
+                    self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_intent_helpers_answer_as_before(self):
+        # expected values captured on d9bbb857 before the move; a new session's places are tavern, forest, castle
+        self.assertTrue(game.is_dialogue_or_emotion("Merhaba, nasılsın?"))
+        self.assertFalse(game.is_dialogue_or_emotion("Kılıcımı çekiyorum."))
+        self.assertTrue(game._reads_as_question("Burası neresi?"))
+        self.assertFalse(game._reads_as_question("Kapıyı açıyorum."))
+        with fixed_town(self, 20261205):
+            s = game.create_session(seed=11)
+            self.assertTrue(game._normalize_turkish_location("Ormana gidiyorum", "forest", session=s))
+            self.assertFalse(game._normalize_turkish_location("Kaleye yürüyorum", "orman", session=s))
+
+    def test_the_intent_error_is_one_class(self):
+        # the moved _detect_query_type is on the turn path in both flags (measured on d9bbb857); game.active_npcs (an
+        # existing census target) raises game.IntentInfrastructureError only when that moved caller reads it, and the
+        # staying handler in _run_player_turn must catch it as its own class and restore the world
+        real = game.active_npcs
+        planted = game.IntentInfrastructureError("planted")
+        callers = []
+
+        def active_npcs(*args, **kwargs):
+            callers.append(sys._getframe(1).f_code.co_name)
+            if callers[-1] == "_detect_query_type":
+                raise planted
+            return real(*args, **kwargs)
+
+        active_npcs._session_bound = True  # GameSession.__getattr__ hands out only session-bound engine helpers
+        with fixed_town(self, 20261206):
+            s = game.create_session(seed=11)
+            before = json.dumps(s.world_state, sort_keys=True, default=str)
+            with patch.object(game, "active_npcs", new=active_npcs), \
+                 patch.object(game.ollama, "chat", side_effect=RuntimeError("no model in this test")):
+                result = s.run_player_turn("Etrafa bakıyorum.")
+            self.assertEqual(callers[-1], "_detect_query_type")
+            self.assertEqual(result["action_result"]["status"], "infrastructure_failure")
+            self.assertEqual(result["action_result"]["infrastructure_code"], "planted")
+            self.assertEqual(json.dumps(s.world_state, sort_keys=True, default=str), before)
 
 
 if __name__ == "__main__":
