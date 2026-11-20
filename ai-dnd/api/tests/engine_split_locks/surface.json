@@ -705,7 +705,7 @@
  },
  "_a_walk": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(read, action_result)"
  },
@@ -729,7 +729,7 @@
  },
  "_accepted_local_place": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(packet, action_result)"
  },
@@ -1623,7 +1623,7 @@
  },
  "_is_canonical_city_id": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(loc_id)"
  },
@@ -1797,7 +1797,7 @@
  },
  "_keep_people_in_look": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(narration, action_result)"
  },
@@ -1917,13 +1917,13 @@
  },
  "_look_opening": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_name)"
  },
  "_look_scene_changed": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "()"
  },
@@ -1965,7 +1965,7 @@
  },
  "_may_propose_local_place": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(resolved_turn, player_input)"
  },
@@ -2415,7 +2415,7 @@
  },
  "_reopen_public_doors": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "()"
  },
@@ -2571,7 +2571,7 @@
  },
  "_scene_feature_match": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(player_input, location_id)"
  },
@@ -2583,13 +2583,13 @@
  },
  "_scene_look_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_id)"
  },
  "_scene_names": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_id)"
  },
@@ -2625,7 +2625,7 @@
  },
  "_set_scene_active_npc": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(npc, turn_index)"
  },
@@ -2643,7 +2643,7 @@
  },
  "_settle_local_place": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(action_result)"
  },
@@ -3069,7 +3069,7 @@
  },
  "_variation_index": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(key, size)"
  },
@@ -3099,7 +3099,7 @@
  },
  "_walked_there": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(read, action_result, place_before)"
  },

@@ -13712,31 +13712,7 @@ def _ensure_local_merchant(location_id, *, create=True):
     return merchant, shop
 
 
-def _scene_feature_match(player_input, location_id):
-    matches = []
-    text = living_world.normalize_text(
-        living_world._text_outside_quotes(player_input)
-    )
-    for feature in _session().world_state.get("features", []):
-        if not isinstance(feature, dict) or feature.get("location") != location_id:
-            continue
-        aliases = [feature.get("name", ""), *feature.get("aliases", [])]
-        best = 0
-        for alias in aliases:
-            if not isinstance(alias, str) or not alias.strip():
-                continue
-            if (
-                _entity_reference_in_text(alias, text)
-                or living_world.normalize_text(alias) in text
-            ):
-                words = re.findall(r"[a-z0-9]+", _normalize_turkish_typos(alias))
-                best = max(best, len(words))
-        if best:
-            matches.append((best, feature))
-    if not matches:
-        return []
-    longest = max(score for score, _feature in matches)
-    return [feature for score, feature in matches if score == longest]
+from game_parts.places import _scene_feature_match, _scene_names, _variation_index, _look_opening, _scene_look_text, _look_scene_changed, _keep_people_in_look, _set_scene_active_npc, _reopen_public_doors, _a_walk, _walked_there, _may_propose_local_place, _accepted_local_place, _settle_local_place, _is_canonical_city_id
 
 
 def resolve_scene_seating(action_input):
@@ -13917,11 +13893,6 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
 
 
 
-def _scene_names(location_id):
-    return [
-        npc for npc in active_npcs(location_id)
-        if isinstance(npc, dict) and npc.get("name")
-    ]
 
 
 
@@ -13976,25 +13947,8 @@ def _scene_presence_text(location_id):
 
 
 
-def _variation_index(key, size):
-    """0 on first use of ``key``, then one step per turn; stable within a turn.
-
-    Transient presentation state only: never saved, never read by rules.
-    """
-    session = _session()
-    store = session.__dict__.setdefault("_variation_state", {})
-    turn = session.world_state.get("flags", {}).get("turn_index", 0)
-    last_turn, count = store.get(key, (None, -1))
-    if last_turn != turn:
-        count += 1
-        store[key] = (turn, count)
-    return store[key][1] % size
 
 
-def _look_opening(location_name):
-    """First look keeps the plain line; repeated looks do not repeat it verbatim."""
-    openings = [line.format(name=location_name) for line in _LOOK_OPENINGS]
-    return openings[_variation_index(("look", location_name), len(openings))]
 
 
 
@@ -14005,92 +13959,12 @@ def _conversation_opening_line(name):
     return openings[_variation_index(("opening", name), len(openings))]
 
 
-def _scene_look_text(location_id):
-    world_state = _session().world_state
-    location_name = location_display_name(location_id)
-    people = [npc for npc in _scene_names(location_id) if not npc.get("hidden")]
-    features = living_world.visible_scene_facts(world_state).get("features", [])
-    turn_index = world_state.get("flags", {}).get("turn_index", 0)
-    scene = living_world.ensure_scene_record(
-        world_state,
-        location_id,
-        turn_index,
-    )
-    if isinstance(location_id, str):
-        living_world.expire_referents(
-            world_state, turn_index, location_id=location_id
-        )
-    parts = [_look_opening(location_name)]
-    if people:
-        parts.append(
-            "Yakında " + living_world.public_scene_people(people[:3]) + " var."
-        )
-        parts.extend(
-            f"{living_world.turkish_initial_upper(living_world.public_npc_name(npc))}: {npc['appearance']}"
-            for npc in people[:2]
-            if isinstance(npc.get("appearance"), str) and npc["appearance"].strip()
-        )
-    import fallen
-    parts.append(fallen.scene_line(world_state))
-    if features:
-        parts.append(
-            living_world.turkish_initial_upper(
-                ", ".join(feature.get("name", "bir ayrıntı") for feature in features[:3])
-            ) + " gözüne çarpıyor."
-        )
-    referent = next(
-        (
-            ref for ref in scene.get("referents", [])
-            if ref.get("lifecycle") == "presented"
-        ),
-        None,
-    )
-    if referent and isinstance(referent.get("description"), str):
-        parts.append(referent["description"])
-    elif scene.get("kind") == "wilderness":
-        parts.append("Burası sakin; doğal sesler dışında belirgin bir hareket yok.")
-    elif scene.get("last_beat"):
-        parts.append(scene["last_beat"])
-    return " ".join(part for part in parts if part)
 
 
-def _look_scene_changed():
-    """True on a first look and whenever people, details or the moment here have changed."""
-    world_state = _session().world_state
-    here = world_state.get("location")
-    scene = world_state.get("scene_state", {}).get("scenes", {}).get(here)
-    seen = [
-        here,
-        sorted(str(npc.get("id")) for npc in _scene_names(here) if not npc.get("hidden")),
-        sorted(str(item.get("name")) for item in living_world.visible_scene_facts(world_state).get("features", [])),
-        scene.get("last_beat") if isinstance(scene, dict) else None,
-    ]
-    flags = world_state.setdefault("flags", {})
-    changed = flags.get("last_look_scene") != seen
-    flags["last_look_scene"] = seen
-    return changed
 
 
-def _keep_people_in_look(narration, action_result):
-    """A narrated look may reword the scene but nobody standing here disappears from it."""
-    if not isinstance(narration, str) or not (action_result or {}).get("scene_look"):
-        return narration
-    told = _normalize_turkish_typos(narration)
-    here = _session().world_state.get("location")
-    missing = [
-        npc for npc in _scene_names(here)[:3]
-        if not npc.get("hidden")
-        and _normalize_turkish_typos(living_world.public_npc_name(npc)) not in told
-    ]
-    if not missing:
-        return narration
-    return f"{narration} Yakında {living_world.public_scene_people(missing)} var."
 
 
-def _set_scene_active_npc(npc, turn_index):
-    if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
-        return
-    talk_mode.open(_session().world_state, npc["id"], turn=turn_index)
 
 
 def _promote_scene_referent(referent, location_id):
@@ -14124,9 +13998,6 @@ def _promote_scene_referent(referent, location_id):
     return npc
 
 
-def _reopen_public_doors():
-    import grounded_action
-    grounded_action.reopen_public_doors(_session().world_state)
 
 
 def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
@@ -15443,32 +15314,8 @@ def _run_player_turn_keyed(
 
 
 
-def _a_walk(read, action_result):
-    """The first part was a walk: the reading said go_to, or the receipt is a walk's own (grounded go/enter, travel)."""
-    if read.get("kind") == "go_to":
-        return True
-    steps = action_result.get("steps") if action_result.get("action") == "grounded_action" else None
-    return action_result.get("action") == "travel" or bool(
-        isinstance(steps, list) and steps and isinstance(steps[0], dict) and steps[0].get("verb") in {"go", "enter"})
 
 
-def _walked_there(read, action_result, place_before):
-    """The walk got there: the player stands in the place walked to, or in front of it (its receipt completed)."""
-    here = _session().world_state.get("location")
-    if action_result.get("action") == "travel":
-        if action_result.get("status") == "already_here":  # "zaten içindesin": being there is having got there
-            return here == action_result.get("target_id")
-        return action_result.get("status") == "resolved" and here == action_result.get("target_id") != place_before
-    if action_result.get("action") != "grounded_action" or action_result.get("status") != "completed":
-        return False
-    target = read.get("id") if read.get("kind") == "go_to" else action_result.get("target_id")
-    if target is None:
-        return False
-    steps = [step for step in action_result.get("steps") or [] if isinstance(step, dict)]
-    return here == target or (here == place_before and any(
-        step.get("target_id") == target and step.get("position") in {"at_door", "outside"}
-        and not (step.get("door_state") or {}).get("locked")  # a locked door is where the walk stopped
-        for step in steps))
 
 
 def _the_rest_of_the_line(result, messages, action_id, session_id, place_before):
@@ -17394,66 +17241,10 @@ def _current_procedural_entity_ids():
 
 
 
-def _may_propose_local_place(resolved_turn, player_input):
-    """Only an unknown destination, asked for from the open streets of a settlement."""
-    import heard_rumours
-    import local_places
-    result = resolved_turn.action_result
-    world_state = _session().world_state
-    settlement = local_places.settlement_of(world_state, world_state.get("location"))
-    return bool(
-        resolved_turn.allow_new_locations
-        and isinstance(result, dict)
-        and result.get("action") == "travel"
-        and result.get("status") == "awaiting_proposal"
-        and (
-            living_world.on_open_street(world_state)
-            # An NPC of this settlement said the name aloud: the player may follow it from indoors too.
-            or heard_rumours.heard_in_speech(world_state, settlement, result.get("target_reference")) is not None
-        )
-        and settlement
-        and not is_player_world_assertion(player_input)
-    )
 
 
-def _accepted_local_place(packet, action_result):
-    """Take one place from the packet, named in the player's words; the rest of it is dropped."""
-    updates = packet.get("world_updates")
-    proposals = updates.get("create_locations") if isinstance(updates, dict) else None
-    proposal = proposals[0] if isinstance(proposals, list) and proposals else None
-    if not isinstance(proposal, dict):
-        return []
-    import heard_rumours
-    validated = validate_location_proposal({
-        "type": proposal.get("type"), "description": proposal.get("description"),
-        "name": heard_rumours.base_name(action_result.get("target_reference") or ""), "aliases": [proposal.get("name")],
-    })
-    if not validated or validated["type"].casefold() in _NOT_A_LOCAL_PLACE:
-        return []
-    if living_world.reads_as_street(validated["name"], proposal.get("type")):
-        validated["type"] = "district"
-    return [validated]
 
 
-def _settle_local_place(action_result):
-    """A new local place hangs under its settlement, which also gives it the walking route."""
-    import heard_rumours
-    import local_places
-    world_state = _session().world_state
-    settlement = local_places.settlement_of(world_state, world_state.get("location"))
-    place_id = resolve_location_reference(heard_rumours.base_name(action_result.get("target_reference", "")))
-    place = world_state["locations"].get(place_id)
-    if settlement and isinstance(place, dict):
-        place.update(parent_location_id=settlement, exit_location_id=settlement, tags=["campaign_local"])
-        said_by = heard_rumours.heard_in_speech(world_state, settlement, action_result.get("target_reference"))
-        if said_by:
-            place["provenance"] = {"source": "npc_rumour", "said_by": said_by,
-                                   "turn": world_state.get("flags", {}).get("turn_index", 0)}
-        # The kind decides what the scene may hold and which people and street life it gets.
-        if place.get("type") == "district":
-            place.update(scene_kind="city", environment="city")
-        elif living_world.scene_kind(world_state, place_id) == "quiet":
-            place["scene_kind"] = "building"
 
 
 
@@ -17844,18 +17635,6 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     return final_dict
 
 
-def _is_canonical_city_id(loc_id):
-    if not isinstance(loc_id, str):
-        return False
-    lid = loc_id.casefold()
-    return (
-        lid in ("city", "town", "village", "settlement")
-        or ":city:" in lid
-        or ":town:" in lid
-        or ":village:" in lid
-        or ":settlement:" in lid
-        or lid.startswith(("city:", "town:", "village:", "settlement:"))
-    )
 
 
 def _death_resolution_from_actions(actions):

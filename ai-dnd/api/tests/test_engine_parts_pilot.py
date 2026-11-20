@@ -430,6 +430,7 @@ class CharacterRulesPart(unittest.TestCase):
 
 
 PLACES_1 = tuple(batch_names("places-1"))
+PLACES_2 = tuple(batch_names("places-2"))
 
 
 class PlacesPart(unittest.TestCase):
@@ -438,15 +439,21 @@ class PlacesPart(unittest.TestCase):
     def test_places_1_lives_in_the_part(self):
         self.assertEqual(set(PLACES_1) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
 
+    def test_places_2_lives_in_the_part(self):
+        self.assertEqual(set(PLACES_2) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
+
     def test_places_session_helpers_use_the_given_session(self):  # Review Focus 4
         # every name reads game._session() (measured on 33ab2efd): record what it returns during the session= call
         real = game._session
         with fixed_town(self, 20261202):
             s = game.create_session(seed=11)
+            s.world_state["location"] = "forest"
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             cases = (
                 ("resolve_location_reference", ("ormanı",), "forest"),
                 ("update_inventory_from_player", ("kılıcı yere bırakıyorum",), None),
+                ("_walked_there", ({"kind": "go_to"}, {"action": "travel", "status": "already_here", "target_id": "forest"},
+                                   None), True),
             )
             for name, args, expected in cases:
                 seen = []
