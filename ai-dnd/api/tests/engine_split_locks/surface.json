@@ -3579,7 +3579,7 @@
  },
  "load_game": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(path)"
  },

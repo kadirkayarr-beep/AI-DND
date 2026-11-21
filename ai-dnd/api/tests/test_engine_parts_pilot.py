@@ -1198,6 +1198,7 @@ class CoinPart(unittest.TestCase):
 
 
 SAVE_1 = tuple(batch_names("save-1"))
+SAVE_2 = tuple(batch_names("save-2"))
 
 
 class SavefilePart(unittest.TestCase):
@@ -1205,6 +1206,9 @@ class SavefilePart(unittest.TestCase):
 
     def test_save_1_lives_in_the_part(self):
         self.assertEqual(set(SAVE_1) - set(routing_audit.re_exports(ROOT).get("savefile", ())), set())
+
+    def test_save_2_lives_in_the_part(self):
+        self.assertEqual(set(SAVE_2) - set(routing_audit.re_exports(ROOT).get("savefile", ())), set())
 
     def test_the_save_repair_warnings_log_under_game(self):  # Review Focus 3
         # one broken row per repair function; the lines were captured on 2df1d98f (unmoved) with p4t9-preflight.py
