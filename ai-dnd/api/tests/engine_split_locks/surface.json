@@ -1329,7 +1329,7 @@
  },
  "_fallback_for_action_result": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, action_result=None, npc_target=None)"
  },
@@ -1371,7 +1371,7 @@
  },
  "_finding_says_too_much": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(text)"
  },
@@ -2031,7 +2031,7 @@
  },
  "_narrated_money_can_lie": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(action_result)"
  },
@@ -2775,7 +2775,7 @@
  },
  "_states_the_failed_check": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration, result, player_input)"
  },
@@ -3213,7 +3213,7 @@
  },
  "ask_dungeon_master": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(messages, player_input, allow_new_npcs=False, allow_new_features=False, npc_target=None, world_entry=False, action_result=None, allow_new_locations=False, return_details=False, lore_context=None, allow_new_shops=False, scene_plan=None, narration_only=False)"
  },
@@ -3426,7 +3426,7 @@
  },
  "finalize_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration, player_input, npc_target=None, action_result=None, fallback_reason_code=None, supported_player_claims=None, target_id=None, *, resolved_fallback_response=None, attributed_speech=None, python_town_response=None)"
  },

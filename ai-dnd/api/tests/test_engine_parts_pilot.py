@@ -20,6 +20,8 @@ if str(ROOT / "scripts") not in sys.path:
 import game  # noqa: E402
 from api.auth import FixedAuthenticator  # noqa: E402
 from api.main import create_app  # noqa: E402
+from api.narrative_director import install_narrative_context_adapter, narrative_turn_context  # noqa: E402
+from api.narrative_memory import empty_narrative_memory  # noqa: E402
 from api.session_manager import SessionManager  # noqa: E402
 from api.tests.auth_fixture import TEST_PLAYER  # noqa: E402
 from api.tests.engine_sources import batch_names, engine_source_files  # noqa: E402
@@ -923,6 +925,13 @@ class LorePart(unittest.TestCase):
 
 NARRATION = tuple(batch_names("narration"))
 NARRATION_S_1 = tuple(batch_names("narration-s-1"))
+NARRATION_S_2 = tuple(batch_names("narration-s-2"))
+
+
+def _model_reply(narration):
+    """What game.ollama.chat returns for one narration with no world updates (shape of ollama_response_content)."""
+    return {"message": {"content": json.dumps({"narration": narration, "world_updates": {}, "lore_claims": []},
+                                              ensure_ascii=False)}, "done_reason": "stop"}
 
 
 class NarrationPart(unittest.TestCase):
@@ -933,6 +942,47 @@ class NarrationPart(unittest.TestCase):
 
     def test_narration_s_1_lives_in_the_part(self):  # Plan 4 T5.4g
         self.assertEqual(set(NARRATION_S_1) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
+
+    def test_narration_s_2_lives_in_the_part(self):  # Plan 4 T5.4h
+        self.assertEqual(set(NARRATION_S_2) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
+
+    def test_the_narrative_adapter_reaches_the_moved_ask(self):  # Review Focus 5
+        # the adapter is permanent and installs once (create_app does the same); inside the director's turn frame an
+        # offline model call must reach the build wrapper through game.build_world_context (the frame gets its
+        # diagnostics) and the finalize wrapper through game.finalize_narration (it hands the frame's claims to the
+        # original finalize, counted here once); expected values measured on 83804208 before the move
+        install_narrative_context_adapter(game)
+        finalize = game.finalize_narration
+        cell = finalize.__closure__[finalize.__code__.co_freevars.index("original_finalize")]
+        original = cell.cell_contents
+        counted = MagicMock(wraps=original)
+        with fixed_town(self, 20261381):
+            s = game.create_session(seed=11)
+            cell.cell_contents = counted
+            try:
+                with patch.object(game, "ollama") as model,                         narrative_turn_context(empty_narrative_memory(), "Etrafa bakıyorum.") as frame:
+                    model.chat.side_effect = ConnectionError("offline")
+                    answer = game.ask_dungeon_master([], "Etrafa bakıyorum.", session=s)
+            finally:
+                cell.cell_contents = original
+        self.assertEqual(model.chat.call_count, 1)
+        self.assertEqual(answer, "Çevrede şimdilik belirgin bir değişiklik olmuyor.")
+        self.assertIn("selected_counts", frame.diagnostics)
+        self.assertEqual(counted.call_count, 1)
+        self.assertEqual(counted.call_args.kwargs.get("fallback_reason_code"), "MODEL_UNAVAILABLE")
+        self.assertIn("supported_player_claims", counted.call_args.kwargs)
+
+    def test_a_patched_ollama_reaches_the_moved_ask(self):
+        # census import target: the moved ask must call game.ollama (measured on 83804208 before the move)
+        with fixed_town(self, 20261382):
+            s = game.create_session(seed=11)
+            with patch.object(game, "ollama") as model:
+                model.chat.return_value = _model_reply("Rüzgâr kepenkleri sallıyor.")
+                answer = game.ask_dungeon_master([], "Etrafa bakıyorum.", return_details=True, session=s)
+        self.assertEqual(model.chat.call_count, 1)
+        self.assertEqual(answer, {"narration": "Rüzgâr kepenkleri sallıyor.", "world_updates": {}, "lore_claims": [],
+                                  "player_line": None, "item_claims": None, "valid_response": True,
+                                  "fallback_reason_code": None})
 
     def test_narration_session_helpers_use_the_given_session(self):  # Review Focus 4
         # both names read game._session() (measured on 8cc9a805): record what it returns during the session= call
@@ -962,8 +1012,17 @@ class NarrationPart(unittest.TestCase):
                 ("_inspection_findings", ("kuyuya bakıyorum", "failure"), {}, well_failed),
                 # Plan 4 T5.4g, captured on afd69027 before the move: the people the context shows
                 ("build_world_context", (), {}, ["Tarvek"]),
+                # Plan 4 T5.4h, captured on 83804208 before the move: Tarvek's mark reads as his name (the default
+                # session drops it); the model (game.ollama, patched below) answers once, for the ask
+                ("finalize_narration", ("[[npc_t14_tarvek]] başını kaldırıp sana bakıyor.", "Kuyucuya bakıyorum."), {},
+                 "Tarvek başını kaldırıp sana bakıyor."),
+                ("ask_dungeon_master", ([], "Kuyucuya bakıyorum."), {}, "Tarvek başını kaldırıp sana bakıyor."),
             )
             views = {"build_world_context": lambda context: [npc.get("name") for npc in context["npcs"]]}
+            model_patch = patch.object(game, "ollama")
+            model = model_patch.start()
+            self.addCleanup(model_patch.stop)
+            model.chat.return_value = _model_reply("[[npc_t14_tarvek]] başını kaldırıp sana bakıyor.")
             for name, args, kwargs, expected in cases:
                 seen = []
 
@@ -977,6 +1036,7 @@ class NarrationPart(unittest.TestCase):
                     self.assertEqual(views.get(name, lambda value: value)(answer), expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(model.chat.call_count, 1)
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
 
     def test_world_updates_validate_as_before(self):
