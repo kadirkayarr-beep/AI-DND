@@ -1,0 +1,85 @@
+UNPARSED /mnt/c/Users/Kadir/Desktop/AI-DND-TOOLS/measure/engine-split/p5/tree/p4m-0b1dca5a/ai-dnd/reports/wave3-local-live-20261006/local_dev_proxy.py
+TELEMETRY_NOT_SAVE api.model_chain:HaikuSpend.add ['save:os.replace', 'save:write_text']
+TELEMETRY_NOT_SAVE api.usage_ledger:UsageLedger.record ['save:open-write']
+TELEMETRY_NOT_SAVE api.usage_ledger:one_writer ['save:open-write']
+TELEMETRY_NOT_SAVE front_proposal:log_turn ['save:open-write']
+TELEMETRY_NOT_SAVE game:_speech_debug_trail ['save:open-write']
+TELEMETRY_NOT_SAVE reports.wave3-local-live-20261006.run_rejected_narration_live:main ['save:write_text']
+TELEMETRY_NOT_SAVE reports.wave3-local-live-20261006.run_wave3_followup:main ['save:write_text']
+TELEMETRY_NOT_SAVE reports.wave3-local-live-20261006.run_wave3_live_acceptance:main ['save:write_text']
+TELEMETRY_NOT_SAVE reports.wave3-local-live-20261006.run_weapon_fix_live:main ['save:write_text']
+TELEMETRY_NOT_SAVE run_tests:run_unittest_gate ['save:write_text']
+ENGINE_MODULES 242 UNITS 5805 WRITERS 94
+WRITER_MODULE adventure.dialogue_jobs ['money'] 2
+WRITER_MODULE adventure.rewards ['money'] 1
+WRITER_MODULE api.character_creation ['money'] 1
+WRITER_MODULE api.dnd_2024_rules ['money'] 1
+WRITER_MODULE api.main ['money', 'save'] 4
+WRITER_MODULE api.narrative_memory ['money'] 1
+WRITER_MODULE api.persistence.campaign_store ['save'] 13
+WRITER_MODULE api.persistence.campaign_validation ['save'] 2
+WRITER_MODULE api.runtime_recovery ['save'] 1
+WRITER_MODULE api.serializers ['save'] 2
+WRITER_MODULE api.session_manager ['death'] 2
+WRITER_MODULE bold_acts ['money'] 4
+WRITER_MODULE character_progression ['save'] 1
+WRITER_MODULE class_progression.barbarian ['save'] 1
+WRITER_MODULE class_progression.fighter ['save'] 1
+WRITER_MODULE class_progression.monk ['save'] 1
+WRITER_MODULE class_progression.noncaster ['save'] 2
+WRITER_MODULE class_progression.paladin ['save'] 1
+WRITER_MODULE class_progression.prepared_caster ['save'] 1
+WRITER_MODULE class_progression.rogue ['save'] 1
+WRITER_MODULE class_progression.sorcerer ['save'] 1
+WRITER_MODULE economic_actions ['money'] 9
+WRITER_MODULE equipment_economy ['death', 'money'] 3
+WRITER_MODULE equipment_native ['money'] 1
+WRITER_MODULE game ['death', 'money', 'save'] 14
+WRITER_MODULE game_parts.combat_flow ['death', 'save'] 10
+WRITER_MODULE game_parts.savefile ['death', 'save'] 3
+WRITER_MODULE game_parts.terminal ['save'] 1
+WRITER_MODULE incidents.rewards ['money'] 2
+WRITER_MODULE item_transfers ['money'] 2
+WRITER_MODULE save_migration ['save'] 1
+WRITER_MODULE shop_trade ['money'] 1
+WRITER_MODULE world_happenings ['money'] 1
+WRITER_MODULE world_reactions ['death', 'money'] 2
+NO_CODE turn-1 ResolvedTurn (class with no methods)
+HELD turn-1 _carry_out_thread_turn ['money:store'] hops=1 game:_carry_out_thread_turn -> adventure.dialogue_jobs:deliver [module-attr]
+HELD turn-1 _thread_gate ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=0 game:_thread_gate
+HELD turn-1 _execute_intent_internal ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=1 game:_execute_intent_internal -> game:perform_skill_check [name]
+HELD turn-1 _hideout_check ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=1 game:_hideout_check -> game:perform_skill_check [name]
+HELD turn-1 _adventure_scene_turn ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=3 game:_adventure_scene_turn -> game:_adventure_check_reply [name] -> game:_hideout_check [name] -> game:perform_skill_check [name]
+HELD turn-1 _adventure_check_reply ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=2 game:_adventure_check_reply -> game:_hideout_check [name] -> game:perform_skill_check [name]
+HELD turn-1 _everyday_action_turn ['money:.setdefault', 'money:.setdefault-key'] hops=4 game:_everyday_action_turn -> interaction_adventure:resolve [module-attr] -> equipment_economy:execute [module-attr] -> equipment_economy:_apply [name] -> equipment_native:market [module-attr]
+HELD turn-1 _local_place_turn ['save:_restore_in_place', 'save:serialize_game_state'] hops=2 game:_local_place_turn -> game:GameSession.evaluate_quest_events [method-by-name] -> game:GameSession._forfeit_unrecordable_xp [self]
+HELD turn-2 run_player_turn ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=1 game:run_player_turn -> game:_run_player_turn_owned [name]
+HELD turn-2 _run_player_turn_owned ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=0 game:_run_player_turn_owned
+HELD turn-2 _tell_the_coin ['money:store'] hops=3 game:_tell_the_coin -> money_owner:open_card_after_reply [module-attr] -> economic_actions:prepare_from_turn [module-attr] -> economic_actions:cancel_prepared [name]
+HELD turn-2 _run_player_turn ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=1 game:_run_player_turn -> game:_run_player_turn_keyed [name]
+HELD turn-2 _run_player_turn_keyed ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=0 game:_run_player_turn_keyed
+HELD turn-2 _the_rest_of_the_line ['death:.setdefault', 'death:.setdefault-key', 'death:store'] hops=2 game:_the_rest_of_the_line -> game:_dispatch_player_turn [name] -> game_parts.combat_flow:ensure_death_state [from-import]
+HELD turn-2 _person_answers_stock ['save:_restore_runtime_snapshot'] hops=0 game:_person_answers_stock
+HELD turn-2 _last_call ['death:.setdefault', 'death:.setdefault-key', 'death:store'] hops=1 game:_last_call -> game_parts.combat_flow:ensure_death_state [from-import]
+HELD turn-2 _approach_turn ['death:store'] hops=10 game:_approach_turn -> combat_lifecycle:approach [module-attr] -> action_economy:move [module-attr] -> action_economy:publish_event [name] -> action_economy:monster_event [name] -> monster_combat:after_event [module-attr] -> monster_combat:window [name] -> monster_combat:execute [name] -> weapon_attack:resolve [module-attr] -> weapon_attack:_resolve [name] -> game_parts.combat_flow:_apply_attack_damage_to_player [session-getattr]
+HELD turn-2 player_cannot_act_turn ['death:.setdefault', 'death:.setdefault-key', 'death:store'] hops=1 game:player_cannot_act_turn -> game_parts.combat_flow:ensure_death_state [from-import]
+HELD turn-2 _front_step ['money:store'] hops=0 game:_front_step
+HELD turn-2 _record_spoken_coin_response ['money:store'] hops=2 game:_record_spoken_coin_response -> economic_actions:prepare_from_turn [module-attr] -> economic_actions:cancel_prepared [name]
+HELD turn-2 _front_economic_offer ['money:store'] hops=2 game:_front_economic_offer -> economic_actions:prepare_from_turn [module-attr] -> economic_actions:cancel_prepared [name]
+HELD turn-3 _coin_without_a_reading ['money:store'] hops=0 game:_coin_without_a_reading
+HELD turn-3 _narrated_person ['money:.setdefault', 'money:.setdefault-key'] hops=2 game:_narrated_person -> game:create_npc_from_ai [name] -> equipment_economy:give_person_purse [module-attr]
+HELD turn-3 front_read_ahead ['money:store'] hops=1 game:front_read_ahead -> game:_front_step [name]
+HELD turn-3 _front_offer_gate ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=1 game:_front_offer_gate -> game:_thread_gate [name]
+HELD turn-3 _front_consume ['death:.setdefault', 'death:.setdefault-key', 'death:store'] hops=2 game:_front_consume -> game_parts.combat_flow:require_player_can_act [session-getattr] -> game_parts.combat_flow:ensure_death_state [module-attr]
+HELD turn-3 _front_wield ['death:.setdefault', 'death:.setdefault-key', 'death:store'] hops=2 game:_front_wield -> game_parts.combat_flow:require_player_can_act [session-getattr] -> game_parts.combat_flow:ensure_death_state [module-attr]
+HELD turn-3 _front_hand_over ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=1 game:_front_hand_over -> game:_thread_gate [name]
+HELD turn-3 _front_work ['save:_capture_runtime_snapshot', 'save:_restore_runtime_snapshot'] hops=1 game:_front_work -> game:_thread_gate [name]
+HELD turn-3 _front_take ['death:.setdefault', 'death:.setdefault-key', 'death:store'] hops=2 game:_front_take -> game_parts.combat_flow:require_player_can_act [session-getattr] -> game_parts.combat_flow:ensure_death_state [module-attr]
+HELD turn-3 _dispatch_player_turn ['death:.setdefault', 'death:.setdefault-key', 'death:store'] hops=1 game:_dispatch_player_turn -> game_parts.combat_flow:ensure_death_state [from-import]
+HELD turn-3 _dispatch_turn_body ['death:.pop', 'death:.setdefault', 'death:.update', 'death:store'] hops=1 game:_dispatch_turn_body -> game:_run_player_turn_internal [name]
+HELD turn-3 _sleep_after_walk ['death:.setdefault', 'death:.setdefault-key', 'death:store'] hops=3 game:_sleep_after_walk -> timed_gameplay:resolve_input [module-attr] -> game_parts.combat_flow:require_player_can_act [session-getattr] -> game_parts.combat_flow:ensure_death_state [module-attr]
+HELD turn-4 _spoken_rest_of_turn ['death:.pop', 'death:.setdefault', 'death:.update', 'death:store'] hops=1 game:_spoken_rest_of_turn -> game:_run_player_turn_internal [name]
+HELD turn-4 _narrate_resolved_turn ['save:_restore_in_place', 'save:serialize_game_state'] hops=2 game:_narrate_resolved_turn -> game:GameSession.evaluate_quest_events [method-by-name] -> game:GameSession._forfeit_unrecordable_xp [self]
+HELD turn-5 _run_player_turn_internal ['death:.pop', 'death:.setdefault', 'death:.update', 'death:store'] hops=0 game:_run_player_turn_internal
+SUMMARY held=36 missing=0 clean=31 {'money': 9, 'save': 15, 'death': 12}
+PY 3.12.3

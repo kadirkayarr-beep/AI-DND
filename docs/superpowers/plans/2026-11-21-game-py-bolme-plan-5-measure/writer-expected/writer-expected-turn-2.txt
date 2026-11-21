@@ -1,0 +1,13 @@
+run_player_turn
+_run_player_turn_owned
+_tell_the_coin
+_run_player_turn
+_run_player_turn_keyed
+_the_rest_of_the_line
+_person_answers_stock
+_last_call
+_approach_turn
+player_cannot_act_turn
+_front_step
+_record_spoken_coin_response
+_front_economic_offer

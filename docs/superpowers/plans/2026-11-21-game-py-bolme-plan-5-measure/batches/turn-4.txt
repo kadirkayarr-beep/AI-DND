@@ -1,0 +1,5 @@
+_spoken_rest_of_turn
+_current_procedural_entity_ids
+_keep_town_portrait
+_narrate_resolved_turn
+_owner_module_reply

@@ -1,0 +1,2 @@
+_spoken_rest_of_turn
+_narrate_resolved_turn
