@@ -704,6 +704,49 @@ class IntentPart(unittest.TestCase):
             self.assertEqual(s.world_state["location"], "forest")
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
 
+    def test_a_presence_query_creates_its_person_with_a_purse_from_the_part(self):  # Plan 4 TM4, D-456
+        # the HELD money path of intent-s: _handle_query's presence branch in an empty, unseen place reaches
+        # materialize_scene(create_npc=game.create_npc_from_ai) -> equipment_economy.give_person_purse; every person and
+        # purse it writes must land in the given session, never in the default one
+        import equipment_economy
+        real = game._session
+        real_purse = equipment_economy.give_person_purse
+        with fixed_town(self, 20261353):
+            s = game.create_session(seed=11)
+            s.world_state["locations"]["tm4_meydan"] = {"id": "tm4_meydan", "name": "Taş Meydan", "type": "city",
+                                                       "description": ""}
+            s.world_state["location"] = "tm4_meydan"
+            self.assertEqual(game.active_npcs("tm4_meydan", session=s), [])
+            before_ids = {npc["id"] for npc in s.world_state["npcs"]}
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            seen, purses = [], []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            def purse(world, npc):
+                purses.append((world, npc["id"]))
+                return real_purse(world, npc)
+
+            with patch.object(game, "_session", side_effect=record), \
+                 patch.object(equipment_economy, "give_person_purse", side_effect=purse):
+                text = game._handle_query("Burada kimler var?", "presence", session=s)
+            new = [npc for npc in s.world_state["npcs"] if npc["id"] not in before_ids]
+            self.assertTrue(new)
+            self.assertTrue(all(npc["location"] == "tm4_meydan" for npc in new))
+            self.assertEqual([npc_id for _world, npc_id in purses], [npc["id"] for npc in new])
+            self.assertTrue(all(world is s.world_state for world, _npc_id in purses))
+            for npc in new:
+                self.assertIn(npc["id"], s.world_state["currency"])
+            self.assertIsInstance(text, str)
+            self.assertTrue(seen)
+            self.assertTrue(all(value is s for value in seen))
+            default_after = game._session().world_state
+            self.assertEqual(json.dumps(default_after, sort_keys=True, default=str), default_world)
+            self.assertFalse({npc["id"] for npc in new} & set(default_after.get("currency", {})))
+
     def test_a_rebound_execute_intent_reaches_its_moved_caller(self):  # Plan 4 T5.4e, Review Focus 5
         # trace_ai_pipeline.py rebinds game.execute_intent; update_world_state_from_player (moved in intent-s) must call
         # the rebound name; the parse/normalize/validate patches are the shape test_shops.py uses
