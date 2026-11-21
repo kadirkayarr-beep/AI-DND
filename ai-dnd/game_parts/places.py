@@ -9,6 +9,8 @@ import npc_statements
 import re
 import scheduled_events
 import talk_mode
+import copy
+import timed_gameplay
 
 
 def _tavern_door_notice(tavern_id):
@@ -1281,3 +1283,355 @@ def _is_canonical_city_id(loc_id):
         or ":settlement:" in lid
         or lid.startswith(("city:", "town:", "village:", "settlement:"))
     )
+
+def generate_npc_id():
+    world_state = game._session().world_state
+    number = max(1, int(world_state.get("next_npc_number", 1)))
+    existing = {npc.get("id") for npc in world_state["npcs"]}
+    while f"npc_{number:03d}" in existing:
+        number += 1
+    world_state["next_npc_number"] = number + 1
+    return f"npc_{number:03d}"
+
+def create_npc_from_ai(proposal, request_key=None, *, allow_other_location=False):
+    world_state = game._session().world_state
+    validated = game.validate_npc_proposal(proposal, allow_other_location=allow_other_location)
+    if not validated:
+        return None
+    if isinstance(request_key, str) and re.fullmatch(r"[0-9a-f]{64}", request_key):
+        existing_request = next(
+            (
+                npc for npc in world_state["npcs"]
+                if npc.get("origin_request_key") == request_key
+                and npc.get("location") == validated["location"]
+            ),
+            None,
+        )
+        if existing_request is not None:
+            return existing_request
+    normalized_name = validated["name"].casefold()
+    normalized_role = validated["role"].casefold()
+    for npc in world_state["npcs"]:
+        if (
+            npc.get("location") == validated["location"]
+            and npc.get("name", "").casefold() == normalized_name
+        ):
+            if npc.get("role", "").casefold() != normalized_role:
+                return None
+            local_dialogue.ensure_personal_profile(npc)
+            return npc
+    if len(world_state["npcs"]) >= 60 or len(game.active_npcs(validated["location"])) >= 6:
+        return None
+    npc = {
+        "id": game.generate_npc_id(),
+        **validated,
+        **(
+            {"origin_request_key": request_key}
+            if isinstance(request_key, str)
+            and re.fullmatch(r"[0-9a-f]{64}", request_key)
+            else {}
+        ),
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "tags": [],
+        # Canonical identity exists immediately, but the player must learn the name.
+        # Legacy saves without this field remain name-known for compatibility.
+        "name_known_to_player": False,
+        "role_known_to_player": living_world.role_is_visibly_obvious(validated.get("role")),
+    }
+    living_world.assign_visible_trait(world_state, npc)
+    local_dialogue.ensure_personal_profile(npc)
+    npc["voice_trait"] = local_dialogue.voice_trait(world_state, npc)
+    game.ensure_npc_combat_stats(npc)
+    equipment_economy.give_person_gear(world_state, npc)  # D-231
+    equipment_economy.give_person_purse(world_state, npc)  # D-207
+    world_state["npcs"].append(npc)
+    return npc
+
+def clean_location_description(text, *, whole_words=False):
+    """A place description on one line, at most 240 characters and free of game mechanics; "" otherwise.
+
+    `whole_words` is for a heard rumour's claim only, which also loses unbacked money afterwards: there 'altında',
+    'pazar', 'zarar', 'öldürdü' stay. A place the model proposes keeps the substring check ('altınlık' goes too).
+    """
+    description = game._clean_world_text(text, 240) or ""
+    mechanical_terms = ("hp", "damage", "hasar", "inventory", "envanter", "altın", "d20", "dc", "zar", "kapı açık", "öldü")
+    folded = description.casefold()
+    if any((re.search(rf"\b{re.escape(term)}\b", folded) if whole_words else term in folded) for term in mechanical_terms):
+        return ""
+    return description
+
+def commit_location_change(location_id, turn_index=None):
+    """Commit a location transition after Python has resolved its destination."""
+    world_state = game._session().world_state
+    previous_location = world_state.get("location")
+    if game._venue_entry_door(world_state, previous_location, location_id):
+        return False
+    import authored_dungeon
+    authored_dungeon.require_transition(world_state, location_id)
+    if location_id not in world_state.get("locations", {}):
+        return False
+    entry = game._venue_door_for(location_id)
+    if isinstance(entry, dict) and not entry.get("open") and not entry.get("broken"):
+        entry["open"] = True  # walking in through a door that was only closed
+    world_state["location"] = location_id
+    game.ensure_campaign_clock()
+    game._ensure_location_entities(location_id)
+    effective_turn = (
+        turn_index
+        if type(turn_index) is int
+        else world_state.get("flags", {}).get("turn_index", 0)
+    )
+    living_world.record_scene_visit(world_state, location_id, effective_turn)
+    living_world.materialize_scene(
+        world_state,
+        location_id,
+        effective_turn,
+        create_npc=game.create_npc_from_ai,
+        create_feature=game.create_local_feature,
+    )
+    if previous_location != location_id:
+        # BM T6: the arrival text belongs to one arrival; a move by any path drops it, `narrate` writes the new one.
+        (world_state.get("scene_state") or {})["arrival_text"] = None
+        import economic_actions
+        import grounded_action
+        # C13: a card prepared before this turn is about the place left behind; this turn's own cards stay.
+        economic_actions.cancel_prepared(world_state, actor_id="player",
+                                         except_source_action_id=game.turn_source_key(game._session()))
+        grounded_action.clear_near(world_state)
+        # Narrator lines about the street just left are not this place's facts.
+        game._session().recent_dm_narrations.clear()
+        if game.ensure_combat_state()["active"]:
+            game.end_combat("location_changed")
+        talk_mode.close(world_state, "moved")
+        scheduled_events.arm_table_absence(world_state, previous_location)
+        now = world_state["campaign_time"]["elapsed_seconds"]
+        scheduled_events.process_events(
+            world_state, now, now,
+            observation={"kind": "arrival", "location_id": location_id},
+        )
+    import exploration
+    exploration.apply_environment(world_state)
+    exploration.record_knowledge(world_state)
+    exploration.notice_passively(game._session())
+    return previous_location != location_id
+
+def _ensure_location_entities(location):
+    """Create only Python-owned mechanical entities for a known location."""
+    world_state = game._session().world_state
+    predefined_doors = {
+        "tavern": {
+            "name": "Taverna Kapısı", "description": "Taverna giriş kapısı.",
+            "locked": False, "open": False, "broken": False
+        },
+        "castle": {
+            "name": "Kale Kapısı", "description": "Kalenin giriş kapısı.",
+            "locked": True, "open": False, "broken": False
+        },
+    }
+    door_data = predefined_doors.get(location)
+    if door_data and not any(door.get("location") == location for door in world_state["doors"]):
+        world_state["doors"].append({**door_data, "location": location})
+
+def _commit_travel_action(action_result):
+    """Resolve a proposed/known travel destination and commit only a registered ID."""
+    world_state = game._session().world_state
+    target_reference = action_result.get("target_reference", "")
+    target_id = game.resolve_location_reference(target_reference)
+    if not target_id:
+        world_state.setdefault("flags", {})["pending_destination"] = None
+        action_result.update({"success": False, "status": "failed", "target": None})
+        action_result["state_changes"] = ["flags.pending_destination"]
+        return False
+    action_result["target"] = target_id
+    if action_result.get("completion") == "intended":
+        world_state.setdefault("flags", {})["pending_destination"] = target_id
+        action_result.update({"success": None, "status": "intended"})
+        action_result["state_changes"] = ["flags.pending_destination"]
+        return True
+    if world_state.get("location") in world_state.get("locations", {}):
+        action_result.update(timed_gameplay.start_travel(game._session(), target_id))
+        return action_result.get("success") is True
+    combat_was_active = game.ensure_combat_state()["active"]
+    changed = game.commit_location_change(target_id)
+    if not changed and game._venue_entry_door(
+        world_state, world_state.get("location"), target_id
+    ):
+        door = game._venue_entry_door(world_state, world_state.get("location"), target_id)
+        action_result.update({
+            "success": False,
+            "status": "blocked",
+            "direct_response": game._locked_door_refusal(door),
+            "state_changes": [],
+        })
+        return False
+    if changed and combat_was_active:
+        action_result.update(combat_ended=True, end_reason="location_changed", combat=game._combat_snapshot())
+    world_state.setdefault("flags", {})["pending_destination"] = None
+    action_result.update({
+        "success": True,
+        "status": "completed",
+        "previous_location": action_result.get("previous_location", "Henüz belirlenmedi"),
+        "new_location": target_id,
+    })
+    changes = ["player.location"] if changed else []
+    changes.append("flags.pending_destination")
+    action_result["state_changes"] = changes
+    return True
+
+def _ensure_local_merchant(location_id, *, create=True):
+    world_state = game._session().world_state
+    existing = next(
+        (
+            npc for npc in world_state.get("npcs", [])
+            if isinstance(npc, dict)
+            and npc.get("location") == location_id
+            and game._is_shopkeeper_role(npc.get("role"))
+        ),
+        None,
+    )
+    if existing:
+        shop = next(
+            (
+                item for item in world_state.get("shops", [])
+                if isinstance(item, dict)
+                and item.get("shopkeeper_id") == existing.get("id")
+            ),
+            None,
+        )
+        return existing, shop
+    if not create:
+        return None, None
+    local_merchants = [
+        npc for npc in world_state.get("npcs", [])
+        if isinstance(npc, dict)
+        and npc.get("location") == location_id
+        and game._is_shopkeeper_role(npc.get("role"))
+    ]
+    if (
+        len(local_merchants) >= 3
+        or len(world_state.get("shops", [])) >= 12
+        or len(world_state.get("npcs", [])) >= 60
+    ):
+        return None, None
+    merchant = game.create_npc_from_ai({
+        "name": living_world.stable_local_name(
+            world_state, location_id, "Tüccar"
+        ),
+        "role": "Tüccar",
+        "location": location_id,
+        "appearance": "Sade giysili, çevresini dikkatle gözleyen bir gezgin.",
+        "personality": "Sohbet etmeye açık, aceleci değil.",
+        "relationship": "neutral",
+    })
+    if not merchant:
+        return None, None
+    shop_id = game.generate_shop_id()
+    shop = {
+        "id": shop_id,
+        "name": f"{game._turkish_genitive_form(merchant['name'])} Tezgâhı",
+        "description": "Küçük, sade bir yerel tezgâh.",
+        "location": location_id,
+        "tags": ["campaign_local", "shop"],
+        "shopkeeper_id": merchant["id"],
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+    }
+    merchant["tags"] = ["campaign_local", "shopkeeper", f"shop:{shop_id}"]
+    merchant["shop_id"] = shop_id
+    world_state.setdefault("shops", []).append(shop)
+    return merchant, shop
+
+def _scene_presence_text(location_id):
+    world_state = game._session().world_state
+    people = game._scene_names(location_id)
+    shops = [
+        shop for shop in world_state.get("shops", [])
+        if isinstance(shop, dict) and shop.get("location") == location_id
+    ]
+    turn_index = world_state.get("flags", {}).get("turn_index", 0)
+    scene = living_world.ensure_scene_record(
+        world_state,
+        location_id,
+        turn_index,
+    )
+    if isinstance(location_id, str):
+        living_world.expire_referents(
+            world_state, turn_index, location_id=location_id
+        )
+    visible = living_world.public_scene_people(people[:4])
+    ref_descriptions = [
+        ref.get("description")
+        for ref in scene.get("referents", [])
+        if ref.get("lifecycle") == "presented"
+        and isinstance(ref.get("description"), str)
+    ]
+    import fallen
+    bodies = fallen.scene_line(world_state)
+    if bodies and not visible:
+        return bodies
+    if visible:
+        response = f"Yakınında {visible} var."
+        if bodies:
+            response += " " + bodies
+        if ref_descriptions:
+            response += " " + ref_descriptions[0]
+        if shops:
+            response += " " + ", ".join(
+                living_world.public_shop_name(world_state, shop) for shop in shops[:3]
+            ) + " da yakında."
+        return response
+    if shops:
+        return "Yakında " + ", ".join(
+            living_world.public_shop_name(world_state, shop) for shop in shops[:3]
+        ) + " var."
+    if scene.get("kind") == "wilderness":
+        return "Çevre sessiz; doğal seslerden başka belirgin bir hareket yok."
+    return "Şu an yakınında konuşabileceğin biri görünmüyor; çevredeki hareketliliği izleyebilirsin."
+
+def _promote_scene_referent(referent, location_id):
+    world_state = game._session().world_state
+    promoted_id = referent.get("promoted_npc_id")
+    if referent.get("lifecycle") == "promoted" and isinstance(promoted_id, str):
+        return next(
+            (
+                npc for npc in world_state.get("npcs", [])
+                if isinstance(npc, dict) and npc.get("id") == promoted_id
+            ),
+            None,
+        )
+    npc = game.create_npc_from_ai({
+        "name": living_world.stable_local_name(
+            world_state, location_id, "Yolcu"
+        ),
+        "role": "Yolcu",
+        "location": location_id,
+        "appearance": "",  # the referent describes what happened, not this person
+        "personality": "Kibar, konuşmaya açık ve temkinli.",
+        "relationship": "neutral",
+    })
+    if not npc:
+        return None
+    living_world.promote_referent(world_state, referent, npc["id"])
+    profile = local_dialogue.ensure_personal_profile(npc)
+    if profile and isinstance(referent.get("description"), str):
+        # This person was in the event; it is what they can talk about.
+        profile["current_activity"] = referent["description"]
+    return npc
+
+def _adventure_travel_reply(session, destination):
+    before = copy.deepcopy(session.world_state)
+    # D-123: the same journey owner as any trip - closed roads, venue doors and road time all apply.
+    action_result = timed_gameplay.start_travel(session, destination)
+    flags = session.world_state.setdefault("flags", {})
+    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    session.evaluate_quest_events(before, action_result)
+    narration = action_result["direct_response"]
+    session.messages.extend([
+        {"role": "user", "content": destination},
+        {"role": "assistant", "content": narration},
+    ])
+    return {
+        "messages": session.messages,
+        "narration": narration,
+        "model_calls": 0,
+        "action_result": action_result,
+    }

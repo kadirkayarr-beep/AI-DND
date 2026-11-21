@@ -486,6 +486,7 @@ class CharacterRulesPart(unittest.TestCase):
 
 PLACES_1 = tuple(batch_names("places-1"))
 PLACES_2 = tuple(batch_names("places-2"))
+PLACES_S = tuple(batch_names("places-s"))
 
 
 class PlacesPart(unittest.TestCase):
@@ -496,6 +497,9 @@ class PlacesPart(unittest.TestCase):
 
     def test_places_2_lives_in_the_part(self):
         self.assertEqual(set(PLACES_2) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
+
+    def test_places_s_lives_in_the_part(self):  # Plan 4 T5.4d
+        self.assertEqual(set(PLACES_S) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
 
     def test_places_session_helpers_use_the_given_session(self):  # Review Focus 4
         # every name reads game._session() (measured on 33ab2efd): record what it returns during the session= call
@@ -513,7 +517,11 @@ class PlacesPart(unittest.TestCase):
                 ("update_inventory_from_player", ("kılıcı yere bırakıyorum",), None),
                 ("_walked_there", ({"kind": "go_to"}, {"action": "travel", "status": "already_here", "target_id": "forest"},
                                    None), True),
+                # Plan 4 T5.4d (D-447): the walk and the new person go to the place only s has
+                ("commit_location_change", ("t16_kuyu",), True),
+                ("create_npc_from_ai", ({"name": "Dorn", "role": "Muhafız", "location": "t16_kuyu"},), None),
             )
+            answers = {}
             for name, args, expected in cases:
                 seen = []
 
@@ -523,11 +531,15 @@ class PlacesPart(unittest.TestCase):
                     return value
 
                 with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
-                    answer = getattr(game, name)(*args, session=s)
+                    answer = answers[name] = getattr(game, name)(*args, session=s)
                     if expected is not None:
                         self.assertEqual(answer, expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(s.world_state["location"], "t16_kuyu")
+            self.assertEqual((answers["create_npc_from_ai"]["name"], answers["create_npc_from_ai"]["location"]),
+                             ("Dorn", "t16_kuyu"))
+            self.assertIn(answers["create_npc_from_ai"], s.world_state["npcs"])
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
 
     def test_places_helpers_answer_as_before(self):
@@ -541,6 +553,34 @@ class PlacesPart(unittest.TestCase):
         self.assertTrue(game._reference_token_matches("han", "hanlar"))
         self.assertTrue(game._reference_token_matches("kapı", "kapıdan"))
         self.assertFalse(game._reference_token_matches("han", "kapı"))
+
+    def test_a_created_npc_gets_its_written_purse_from_the_part(self):  # Plan 4 T5.4d, the test_d207_written_purse shape
+        import equipment_economy
+        with fixed_town(self, 20261341):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "tavern"  # a new session has not placed the player yet
+            default_before = _session_snapshot(game._DEFAULT_SESSION)
+            guard = game.create_npc_from_ai({"name": "Dorn", "role": "Muhafız", "location": "tavern"}, session=s)
+            self.assertIsNotNone(guard)
+            self.assertIn(guard, s.world_state["npcs"])
+            self.assertEqual(s.world_state["currency"][guard["id"]], equipment_economy.person_purse(s.world_state, guard))
+            self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
+
+    def test_grounded_action_still_reaches_create_npc_from_ai(self):  # Plan 4 T5.4d
+        # grounded_action._create_venue calls run.game.create_npc_from_ai(..., session=run.session) for a new shop
+        import grounded_action
+        with fixed_town(self, 20261342):
+            s = game.create_session(seed=11)
+            settlement = s.world_state["location"]
+            run = grounded_action._Run(s, "")
+            with patch.object(game, "create_npc_from_ai", wraps=game.create_npc_from_ai) as created:
+                record = grounded_action._create_venue(run, settlement, name="Kavaf Dükkânı", kind="generic",
+                                                       noun="dukkan", provenance={"source": "test"})
+        created.assert_called_once()
+        self.assertIs(created.call_args.kwargs["session"], s)
+        self.assertTrue(created.call_args.kwargs["allow_other_location"])
+        owners = [npc for npc in s.world_state["npcs"] if npc.get("place_role_of") == record["id"]]
+        self.assertEqual([(npc["name"], npc["location"]) for npc in owners], [(record["resident_name"], record["id"])])
 
 
 INTENT_1 = tuple(batch_names("intent-1"))

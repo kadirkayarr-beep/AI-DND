@@ -759,7 +759,7 @@
  },
  "_adventure_travel_reply": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(session, destination)"
  },
@@ -1035,7 +1035,7 @@
  },
  "_commit_travel_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(action_result)"
  },
@@ -1209,7 +1209,7 @@
  },
  "_ensure_local_merchant": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_id, *, create=True)"
  },
@@ -1221,7 +1221,7 @@
  },
  "_ensure_location_entities": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location)"
  },
@@ -2289,7 +2289,7 @@
  },
  "_promote_scene_referent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(referent, location_id)"
  },
@@ -2601,7 +2601,7 @@
  },
  "_scene_presence_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_id)"
  },
@@ -3279,7 +3279,7 @@
  },
  "clean_location_description": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(text, *, whole_words=False)"
  },
@@ -3297,7 +3297,7 @@
  },
  "commit_location_change": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_id, turn_index=None)"
  },
@@ -3324,7 +3324,7 @@
  },
  "create_npc_from_ai": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(proposal, request_key=None, *, allow_other_location=False)"
  },
@@ -3453,7 +3453,7 @@
  },
  "generate_npc_id": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "()"
  },
