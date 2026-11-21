@@ -66,6 +66,8 @@ for n in sorted(t4):
         report["no_node"].append(n)
         continue
     seg = "\n".join(lines[node.lineno - 1:node.end_lineno])
+    if isinstance(node, ast.ClassDef) and node.decorator_list:  # pre-flight C2: class decorators were missed
+        report["decorated"].append([n, [ast.get_source_segment(source, d) for d in node.decorator_list]])
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         if node.decorator_list:
             report["decorated"].append(n)

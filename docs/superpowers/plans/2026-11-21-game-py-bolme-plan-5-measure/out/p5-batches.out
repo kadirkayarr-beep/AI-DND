@@ -1,31 +1,37 @@
 NEVER_READERS [('_dynamic_engine_transitions', ['GameSession']), ('_restore_in_place', ['GameSession'])]
 STAY {'_restore_in_place': ['GameSession'], '_dynamic_engine_transitions': ['GameSession']}
-BATCHES 5 NAMES 67 LINES 6153
-turn-1: turn names=16 lines=998 sensitive=6
-  names: ResolvedTurn, _has_session, _carry_out_thread_turn, _thread_gate, DEBUG_MODE, _world_snapshot, _changed_state_fields, _execute_intent_internal, TurnResolved, _hideout_check, _adventure_scene_turn, _adventure_check_reply, _everyday_action_turn, _local_place_turn, _intent_infrastructure_result, _clear_turn_transients
+BATCHES 6 NAMES 67 LINES 6153
+front-1: turn_front names=13 lines=970 sensitive=6
+  names: _has_session, _carry_out_thread_turn, _thread_gate, _world_snapshot, _changed_state_fields, _execute_intent_internal, _hideout_check, _adventure_scene_turn, _adventure_check_reply, _everyday_action_turn, _local_place_turn, _intent_infrastructure_result, _clear_turn_transients
   sensitive: _carry_out_thread_turn, _thread_gate, _world_snapshot, _changed_state_fields, _execute_intent_internal, _clear_turn_transients
-  header: ['from typing import Optional, List, Dict, Any', 'import action_economy', 'import adventure.play as adventure_play', 'import combat_lifecycle', 'import copy', 'import held_weapon', 'import interaction_adventure', 'import json', 'import living_world', 'import money_owner', 'import monster_sense', 'import re', 'import refusals', 'import sys', 'import timed_gameplay', 'import weapon_attack']
-  from-import names read (M5 Ruling: list only these): ['Any', 'Dict', 'List', 'Optional']
+  header: ['import action_economy', 'import adventure.play as adventure_play', 'import combat_lifecycle', 'import copy', 'import held_weapon', 'import interaction_adventure', 'import json', 'import living_world', 'import money_owner', 'import monster_sense', 'import re', 'import refusals', 'import sys', 'import timed_gameplay', 'import weapon_attack']
+  from-import names read (M5 Ruling: list only these): []
   prefixed: []  census: [['_thread_gate', 'function'], ['_adventure_scene_turn', 'function'], ['_local_place_turn', 'function'], ['_clear_turn_transients', 'function']]
-turn-2: turn names=22 lines=964 sensitive=12
-  names: turn_source_key, run_player_turn, _run_player_turn_owned, _tell_the_coin, _run_player_turn, _run_player_turn_keyed, _the_rest_of_the_line, _person_answers_stock, _last_call, combat_refusal_turn, _approach_turn, player_cannot_act_turn, _reads_as_address, _addressed_in, _front_recovery, _front_step, _defer_spoken_coin_offer, _record_spoken_coin_response, _economic_listing, _front_economic_offer, _purchase_refused, _hand_over_coin
-  sensitive: _run_player_turn_owned, _tell_the_coin, _run_player_turn_keyed, _the_rest_of_the_line, _person_answers_stock, _front_step, _defer_spoken_coin_offer, _record_spoken_coin_response, _economic_listing, _front_economic_offer, _purchase_refused, _hand_over_coin
-  header: ['from api.core_resolution import (\n    resolution_action_scope,\n    resolve_attack_roll,\n    resolve_death_save,\n    resolve_saving_throw,\n    resolve_skill_check,\n)', 'import adventure.play as adventure_play', 'import combat_lifecycle', 'import contextlib', 'import copy', 'import equipment_economy', 'import interaction_adventure', 'import living_world', 'import local_dialogue', 'import money_owner', 'import refusals', 'import talk_mode', 'import timed_gameplay', 'import tr_case', 'import weapon_attack']
-  from-import names read (M5 Ruling: list only these): ['resolution_action_scope']
-  prefixed: []  census: [['run_player_turn', 'function'], ['_run_player_turn', 'function'], ['_the_rest_of_the_line', 'function']]
-turn-3: turn names=23 lines=990 sensitive=9
-  names: _coin_without_a_reading, _blow_stands, _blow_in_the_words, _ask_about_the_blow, _heavy_allowed, _ask_before_the_heavy, _answered_heavy_question, _ask_which_move, _narrated_person, front_read_ahead, _front_offer_gate, _line_gives, _front_consume, _front_wield, _coin_not_parcel, _names_no_parcel, _front_hand_over, _front_work, _take_names_a_job, _front_take, _dispatch_player_turn, _dispatch_turn_body, _sleep_after_walk
-  sensitive: _coin_without_a_reading, front_read_ahead, _front_offer_gate, _line_gives, _coin_not_parcel, _names_no_parcel, _front_hand_over, _dispatch_player_turn, _sleep_after_walk
-  header: ['from api.core_resolution import (\n    resolution_action_scope,\n    resolve_attack_roll,\n    resolve_death_save,\n    resolve_saving_throw,\n    resolve_skill_check,\n)', 'import action_economy', 'import adventure.play as adventure_play', 'import combat_lifecycle', 'import contextlib', 'import equipment_economy', 'import initiative', 'import interaction_adventure', 'import living_world', 'import money_owner', 'import re', 'import refusals', 'import talk_mode', 'import timed_gameplay', 'import tr_case']
-  from-import names read (M5 Ruling: list only these): ['resolution_action_scope']
-  prefixed: []  census: [['_coin_without_a_reading', 'function'], ['front_read_ahead', 'function'], ['_front_hand_over', 'function'], ['_front_take', 'function'], ['_dispatch_player_turn', 'function'], ['_sleep_after_walk', 'function']]
-turn-4: turn names=5 lines=445 sensitive=3
-  names: _spoken_rest_of_turn, _current_procedural_entity_ids, _keep_town_portrait, _narrate_resolved_turn, _owner_module_reply
-  sensitive: _current_procedural_entity_ids, _keep_town_portrait, _narrate_resolved_turn
-  header: ['from api.core_resolution import (\n    resolution_action_scope,\n    resolve_attack_roll,\n    resolve_death_save,\n    resolve_saving_throw,\n    resolve_skill_check,\n)', 'import contextlib', 'import held_weapon', 'import incidents.hooks as incident_hooks', 'import monster_sense', 'import re', 'import talk_mode']
-  from-import names read (M5 Ruling: list only these): ['resolution_action_scope']
+front-2: turn_front names=30 lines=944 sensitive=14
+  names: _tell_the_coin, _the_rest_of_the_line, _person_answers_stock, _last_call, combat_refusal_turn, _approach_turn, player_cannot_act_turn, _reads_as_address, _addressed_in, _front_recovery, _front_step, _defer_spoken_coin_offer, _record_spoken_coin_response, _economic_listing, _front_economic_offer, _purchase_refused, _hand_over_coin, _coin_without_a_reading, _blow_stands, _blow_in_the_words, _ask_about_the_blow, _heavy_allowed, _ask_before_the_heavy, _answered_heavy_question, _ask_which_move, _narrated_person, front_read_ahead, _front_offer_gate, _line_gives, _front_consume
+  sensitive: _tell_the_coin, _the_rest_of_the_line, _person_answers_stock, _front_step, _defer_spoken_coin_offer, _record_spoken_coin_response, _economic_listing, _front_economic_offer, _purchase_refused, _hand_over_coin, _coin_without_a_reading, front_read_ahead, _front_offer_gate, _line_gives
+  header: ['import adventure.play as adventure_play', 'import combat_lifecycle', 'import copy', 'import equipment_economy', 'import interaction_adventure', 'import living_world', 'import money_owner', 'import re', 'import refusals', 'import talk_mode', 'import timed_gameplay', 'import tr_case', 'import weapon_attack']
+  from-import names read (M5 Ruling: list only these): []
+  prefixed: []  census: [['_the_rest_of_the_line', 'function'], ['_coin_without_a_reading', 'function'], ['front_read_ahead', 'function']]
+front-3: turn_front names=8 lines=265 sensitive=4
+  names: _front_wield, _coin_not_parcel, _names_no_parcel, _front_hand_over, _front_work, _take_names_a_job, _front_take, _sleep_after_walk
+  sensitive: _coin_not_parcel, _names_no_parcel, _front_hand_over, _sleep_after_walk
+  header: ['import living_world', 'import money_owner', 'import refusals', 'import talk_mode', 'import timed_gameplay', 'import tr_case']
+  from-import names read (M5 Ruling: list only these): []
+  prefixed: []  census: [['_front_hand_over', 'function'], ['_front_take', 'function'], ['_sleep_after_walk', 'function']]
+turn-1: turn names=13 lines=848 sensitive=5
+  names: ResolvedTurn, DEBUG_MODE, TurnResolved, turn_source_key, run_player_turn, _run_player_turn_owned, _run_player_turn, _run_player_turn_keyed, _dispatch_player_turn, _dispatch_turn_body, _spoken_rest_of_turn, _current_procedural_entity_ids, _keep_town_portrait
+  sensitive: _run_player_turn_owned, _run_player_turn_keyed, _dispatch_player_turn, _current_procedural_entity_ids, _keep_town_portrait
+  header: ['from api.core_resolution import (\n    resolution_action_scope,\n    resolve_attack_roll,\n    resolve_death_save,\n    resolve_saving_throw,\n    resolve_skill_check,\n)', 'from dataclasses import dataclass, field', 'from typing import Optional, List, Dict, Any', 'import action_economy', 'import adventure.play as adventure_play', 'import combat_lifecycle', 'import contextlib', 'import copy', 'import equipment_economy', 'import initiative', 'import interaction_adventure', 'import living_world', 'import local_dialogue', 'import money_owner', 'import re', 'import timed_gameplay']
+  from-import names read (M5 Ruling: list only these): ['Any', 'Dict', 'List', 'Optional', 'dataclass', 'resolution_action_scope']
+  prefixed: []  census: [['run_player_turn', 'function'], ['_run_player_turn', 'function'], ['_dispatch_player_turn', 'function']]
+turn-2: turn names=2 lines=370 sensitive=1
+  names: _narrate_resolved_turn, _owner_module_reply
+  sensitive: _narrate_resolved_turn
+  header: ['import held_weapon', 'import incidents.hooks as incident_hooks', 'import monster_sense', 'import re', 'import talk_mode']
+  from-import names read (M5 Ruling: list only these): []
   prefixed: []  census: [['_narrate_resolved_turn', 'function']]
-turn-5: turn names=1 lines=2756 sensitive=1
+turn-3: turn names=1 lines=2756 sensitive=1
   names: _run_player_turn_internal
   sensitive: _run_player_turn_internal
   header: ['import campaign_time', 'import combat_lifecycle', 'import copy', 'import incidents.hooks as incident_hooks', 'import interaction_adventure', 'import json', 'import living_world', 'import local_dialogue', 'import money_owner', 'import re', 'import scheduled_events', 'import sys', 'import talk_front', 'import talk_mode', 'import timed_gameplay']

@@ -1,12 +1,1 @@
-_coin_without_a_reading
-_narrated_person
-front_read_ahead
-_front_offer_gate
-_front_consume
-_front_wield
-_front_hand_over
-_front_work
-_front_take
-_dispatch_player_turn
-_dispatch_turn_body
-_sleep_after_walk
+_run_player_turn_internal

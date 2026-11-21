@@ -1,3 +1,5 @@
+decorated 1
+    ['ResolvedTurn', ['dataclass']]
 reads_never_moved 51
 reads_later_or_held 51
 census_target 14

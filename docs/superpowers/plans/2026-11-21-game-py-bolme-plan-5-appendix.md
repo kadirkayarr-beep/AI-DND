@@ -7,6 +7,11 @@ bench ran (Plan 4 Stage B held slots 2 and 4). Raw outputs are in `2026-11-21-ga
 scripts at its top; draft batch files in `batches/`; draft M12 reading lists in `writer-expected/`. Plan 5 Task 0 measures
 again on `P5BASE` (Ruling M).
 
+Pre-flight fixes (same day, same archive, same Python): `p5_checks.py` now sees class decorators and `batches5.py` cuts
+two targets (`turn_front`, `turn`; Ruling H) and counts decorator names as read. Steps 4, 5 and 7 were run again
+(`STORE/out-c1/`); `out/p5-checks.out`, `out/p5-batches.out`, `out/p5-batches.json`, `out/writer-scan.out`, `batches/`
+and `writer-expected/` hold the new outputs. The other outputs did not change.
+
 ## A. Commands
 
 Archives (Git Bash; `<S>` = `C:/Users/Kadir/Desktop/AI-DND-TOOLS/measure/engine-split/p5`):
@@ -31,14 +36,16 @@ Each script: `MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-24.04 -- python3 <script> <ar
 | 7 | `M3/writer_scan.py <S>/tree/<tree> <S>/p5-batches.json` (13 s; exit 1 by design) | `out/writer-scan.out` |
 
 `p5_checks.py` and `session_callers5.py` are Plan 4's `p4_checks.py` and `session_callers.py` with the scope `plan4`
-changed to `plan5`. `batches5.py` is Plan 4's `batches4.py` for one target part (`turn`), plus the never-moved misfit
-rule (Ruling I) and the M5 list of `from X import (...)` names read.
+changed to `plan5`, plus a class-decorator check. `batches5.py` is Plan 4's `batches4.py` for two target parts (`CORE` =
+spec §5's `turn.py` content → `turn`, the rest → `turn_front`; move order `turn_front` batches, `turn` batches, the name
+over CAP last), plus the never-moved misfit rule (Ruling I), decorator names counted as read, and the M5 list of
+`from X import (...)` names read.
 
 ## B. Base facts on `0b1dca5a`
 
 - `ai-dnd/game.py` 11 971 lines, 130 top-level names. Parts: Plan 3's 11 plus `combat_flow`, `coin`, `savefile`
   (all in `_PART_MODULES`); data parts `tables`, `schemas`; `terminal`.
-- Still in `game.py` for Plan 4 Tasks 10-15: 52 names, about 3 675 lines (`schemas` 1, `cr-s` 1, `places-s` 10,
+- Still in `game.py` for Plan 4 Tasks 10-15: 43 names, about 3 675 lines (`schemas` 1, `cr-s` 1, `places-s` 10,
   `intent-s` 6, `dialogue-s` 8, `lore-s` 1, `narration-s` 14, `lwt-s` 2). They leave before `P5BASE`.
 - Never moved: 18 names, 618 lines (`GameSession` 439).
 - `size_budget.json`: `files` = `game.py` 11 971, `game_parts/narration_safety.py` 1 505 (frozen at arrival);
@@ -48,7 +55,7 @@ rule (Ruling I) and the M5 list of `from X import (...)` names read.
   `sys.modules` (N3 rule 6). `routing_audit` R6 flags them in a part unless a row `(file, function, name, reason)`
   matches; R12 flags `game` used as a value.
 - `test_engine_size_budget.test_long_functions_cannot_grow_or_appear` names `"game.py::_run_player_turn_internal"`
-  literally (Task 10 rewrites the key).
+  literally (Task 11 rewrites the key).
 - Sensitivity: `classify_all.py` → `FILES 19 FLAGGED 89 LOCKED 89`, `DIFF not_in_lock=0 locked_not_flagged=0`
   (`run` joined the lock in Plan 4 Task 2).
 
@@ -82,24 +89,31 @@ staying: `_restore_in_place` 24 S, `_dynamic_engine_transitions` 54.
 
 ## D. Batches (`out/p5-batches.out`, CAP 1 000; files in `-measure/batches/`)
 
-| Batch | Task | Names | Lines | S | Census targets moved | `from X import` names (M5) |
-|---|---|---|---|---|---|---|
-| turn-1 | 6 | 16 | 998 | 6 | `_thread_gate`, `_adventure_scene_turn`, `_local_place_turn`, `_clear_turn_transients` | `typing`: `Any, Dict, List, Optional` |
-| turn-2 | 7 | 22 | 964 | 12 | `run_player_turn`, `_run_player_turn`, `_the_rest_of_the_line` | `api.core_resolution`: `resolution_action_scope` |
-| turn-3 | 8 | 23 | 990 | 9 | `_coin_without_a_reading`, `front_read_ahead`, `_front_hand_over`, `_front_take`, `_dispatch_player_turn`, `_sleep_after_walk` | `api.core_resolution`: `resolution_action_scope` |
-| turn-4 | 9 | 5 | 445 | 3 | `_narrate_resolved_turn` | `api.core_resolution`: `resolution_action_scope` |
-| turn-5 | 10 | 1 | 2 756 | 1 | — | — |
+Two parts (Ruling H). Move order as listed.
 
-Total 67 names, 6 153 lines. No census `import`/`absent` target is read by any batch (nothing for the mover to prefix
-besides engine names). Header module lines per batch are printed in `out/p5-batches.out` (`header:`; the
-`from X import (...)` lines there are shown whole, M5 lists only the names in the last column).
+| Batch | Part | Task | Names | Lines | S | Census targets moved | `from X import` names (M5) |
+|---|---|---|---|---|---|---|---|
+| front-1 | `turn_front` | 6 | 13 | 970 | 6 | `_thread_gate`, `_adventure_scene_turn`, `_local_place_turn`, `_clear_turn_transients` | — |
+| front-2 | `turn_front` | 7 | 30 | 944 | 14 | `_the_rest_of_the_line`, `_coin_without_a_reading`, `front_read_ahead` | — |
+| front-3 | `turn_front` | 8 | 8 | 265 | 4 | `_front_hand_over`, `_front_take`, `_sleep_after_walk` | — |
+| turn-1 | `turn` | 9 | 13 | 848 | 5 | `run_player_turn`, `_run_player_turn`, `_dispatch_player_turn` | `typing`: `Any, Dict, List, Optional`; `dataclasses`: `dataclass`; `api.core_resolution`: `resolution_action_scope` |
+| turn-2 | `turn` | 10 | 2 | 370 | 1 | `_narrate_resolved_turn` | — |
+| turn-3 | `turn` | 11 | 1 | 2 756 | 1 | — | — |
 
-`turn.py` size as the batches arrive (moved lines plus about 20 header lines): about 1 020, 1 990, 2 990 (Ruling H entry
-appears), 3 430, 6 180. `game.py` after Plan 4 and Plan 5: about 11 971 − 3 675 − 6 153 ≈ 2 150 plus re-export lines.
+Total 67 names, 6 153 lines, 31 sensitive: `turn_front` 51 / 2 179 / 24, `turn` 16 / 3 974 / 7. No census
+`import`/`absent` target is read by any batch (nothing for the mover to prefix besides engine names). Header module lines
+per batch are printed in `out/p5-batches.out` (`header:`; the `from X import (...)` lines there are shown whole, M5 lists
+only the names in the last column). `field` from `dataclasses` is not read.
+
+Part sizes as the batches arrive (moved lines plus header lines plus about 1.1 separator lines per name, the Plan 4
+rate): `turn_front.py` about 1 000, 1 975, 2 255 (whole; ≤ 2 500, no `files` entry); `turn.py` about 885, 1 260, 4 020
+(`files` entry created at `turn-3`, frozen). Task 4 and Task 11 record the real numbers.
 
 ## E. Risk checks (`out/p5-checks.out`) and writer scan (`out/writer-scan.out`)
 
-- None of: decorators, `global`, non-constant defaults, character-global reads, builtin `open`, engine imports (in-function
+- Decorators: one, `ResolvedTurn` `@dataclass` (`decorated 1`; the draft check looked at functions only, pre-flight C2;
+  Ruling L).
+- None of: `global`, non-constant defaults, character-global reads, builtin `open`, engine imports (in-function
   imports: 145 sites, none of `game` or `game_parts`), census `import` targets read, split constant clusters,
   free non-engine reads.
 - Identity names: `_local_place_turn` `sys.modules[__name__]`; `_run_player_turn_internal` `sys.modules[__name__]` and
@@ -119,16 +133,17 @@ appears), 3 430, 6 180. `game.py` after Plan 4 and Plan 5: about 11 971 − 3 67
   (`game.DEBUG_MODE`). `_has_session`: read only by `game_parts/dialogue.py`.
 - **Writer scan** (`SUMMARY held=36 missing=0 clean=31`, money 9, save 15, death 12; `NO_CODE turn-1 ResolvedTurn`):
   HELD per batch, the draft M12 reading lists (`writer-expected/`):
-  - turn-1 (8): `_carry_out_thread_turn`, `_thread_gate`, `_execute_intent_internal`, `_hideout_check`,
+  - front-1 (8): `_carry_out_thread_turn`, `_thread_gate`, `_execute_intent_internal`, `_hideout_check`,
     `_adventure_scene_turn`, `_adventure_check_reply`, `_everyday_action_turn`, `_local_place_turn`;
-  - turn-2 (13): `run_player_turn`, `_run_player_turn_owned`, `_tell_the_coin`, `_run_player_turn`,
-    `_run_player_turn_keyed`, `_the_rest_of_the_line`, `_person_answers_stock`, `_last_call`, `_approach_turn`,
-    `player_cannot_act_turn`, `_front_step`, `_record_spoken_coin_response`, `_front_economic_offer`;
-  - turn-3 (12): `_coin_without_a_reading`, `_narrated_person`, `front_read_ahead`, `_front_offer_gate`,
-    `_front_consume`, `_front_wield`, `_front_hand_over`, `_front_work`, `_front_take`, `_dispatch_player_turn`,
-    `_dispatch_turn_body`, `_sleep_after_walk`;
-  - turn-4 (2): `_spoken_rest_of_turn`, `_narrate_resolved_turn`;
-  - turn-5 (1): `_run_player_turn_internal`.
+  - front-2 (14): `_tell_the_coin`, `_the_rest_of_the_line`, `_person_answers_stock`, `_last_call`, `_approach_turn`,
+    `player_cannot_act_turn`, `_front_step`, `_record_spoken_coin_response`, `_front_economic_offer`,
+    `_coin_without_a_reading`, `_narrated_person`, `front_read_ahead`, `_front_offer_gate`, `_front_consume`;
+  - front-3 (5): `_front_wield`, `_front_hand_over`, `_front_work`, `_front_take`, `_sleep_after_walk`;
+  - turn-1 (7): `run_player_turn`, `_run_player_turn_owned`, `_run_player_turn`, `_run_player_turn_keyed`,
+    `_dispatch_player_turn`, `_dispatch_turn_body`, `_spoken_rest_of_turn`;
+  - turn-2 (1): `_narrate_resolved_turn`;
+  - turn-3 (1): `_run_player_turn_internal`.
+  Death writers sit in front-2, front-3, turn-1 and turn-3 (the plan's `DEATH` list goes to Tasks 7, 8, 9, 11).
   The scan's `HELD` line is `HELD <batch> <name> <kinds> hops=<n> <path>`: compare by the third field.
   On the TM4 tree some paths will start in the Plan 4 parts (for example `perform_skill_check` in `character_rules`);
   the names should not change, Task 0 Step 3 checks it.
@@ -154,3 +169,14 @@ value. The turn core is the hottest code left; Task 4's rehearsal is the first b
 - Which input reaches the `locals()` branch (Task 2 Step 1).
 - The R6 `function` key `routing_audit` reports for each identity use (Task 1 measures it with a fixture).
 - Any bench.
+
+## I. `game.py` after Plan 4 and Plan 5 (pre-flight I5)
+
+Measured on `0b1dca5a` (WSL `python3`, read-only): every top-level node whose names are all Plan 4 (`plan4`, 43) or
+Plan 5 (`plan5` minus the two `STAY` names) removed, decorator lines included. Result: 11 971 → **2 148 lines** = 1 292
+blank + 97 comment-only + 759 code (never-moved names 618 lines, Ruling I's 78 lines, imports, existing re-export lines,
+module setup). Plan 5 adds its own re-export lines on top. A pure move leaves each block's separator blank lines behind,
+so most of the 1 292 blank lines are leftovers of Plans 1-5. `game.py` ≤ 1 500 is reachable only by removing those
+blank lines (spec §2 non-goal "biçim düzeltme": Plan 6 needs a Ruling and an approval row first) or by a spec decision;
+see the plan's "Plan 6 outline" and D-473. The pre-flight review measured 2 147 with its own script; the one-line
+difference was not traced.
