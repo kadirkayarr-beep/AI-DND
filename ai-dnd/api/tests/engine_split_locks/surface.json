@@ -987,7 +987,7 @@
  },
  "_coin_persuasion": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(action_result)"
  },
@@ -1281,7 +1281,7 @@
  },
  "_experimental_speech_note": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, name_stance, player_input)"
  },
@@ -1767,7 +1767,7 @@
  },
  "_job_fallback": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world)"
  },
@@ -2145,7 +2145,7 @@
  },
  "_npc_answers_to": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, text)"
  },
@@ -2187,7 +2187,7 @@
  },
  "_offer_talk_with": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -2649,7 +2649,7 @@
  },
  "_settle_spoken_commitment": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, player_input, raw, spoken, *, threat=None, persuade=None, stage=None)"
  },
@@ -2667,7 +2667,7 @@
  },
  "_show_coin_roll": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(action_result, card)"
  },
@@ -3105,7 +3105,7 @@
  },
  "_with_only_backed_money": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(speech, settled)"
  },

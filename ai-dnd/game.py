@@ -999,33 +999,7 @@ from game_parts.text_rules_a import _is_plain_person_reference, _ADDRESSEE_OPERA
 
 
 
-def _npc_answers_to(npc, text):
-    """Does the text name this person the way the player knows them: name, shown role or shown label?"""
-    name_match = (
-        living_world.npc_name_known_to_player(npc)
-        and _entity_reference_in_text(npc.get("name", ""), text)
-    )
-    # The player reads the public role ("dükkâncı"), not the internal one
-    # ("shopkeeper"): both name the same NPC, only when the role is shown.
-    role_match = (
-        living_world.npc_role_known_to_player(npc)
-        and (
-            _entity_reference_in_text(npc.get("role", ""), text)
-            or _entity_reference_in_text(
-                living_world.public_npc_role(npc) or "", text
-            )
-        )
-    )
-    # The label the player is shown ("Yakındaki kişi", "Bir köylü") is public
-    # by construction, so typing it back must address that person.
-    descriptor_match = (
-        not living_world.npc_name_known_to_player(npc)
-        and (
-            _entity_reference_in_text(living_world.public_npc_descriptor(npc), text)
-            or named_by_sight(npc, text)
-        )
-    )
-    return bool(name_match or role_match or descriptor_match)
+from game_parts.dialogue import _npc_answers_to, _offer_talk_with, _job_fallback, _coin_persuasion, _show_coin_roll, _settle_spoken_commitment, _with_only_backed_money, _experimental_speech_note
 
 
 
@@ -1502,10 +1476,6 @@ def _has_session():
 
 
 
-def _offer_talk_with(npc):
-    """This reply answers the offer itself: the money was argued, it was turned down, or the line named the work."""
-    turn = getattr(_session(), "_thread_turn", None)
-    return _job_talk_with(npc) and bool(turn.get("offer_talk") or turn.get("decision") in {"questioning_terms", "declined"})
 
 
 
@@ -1655,89 +1625,6 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
 
 
 
-def _job_fallback(world):
-    """A person's own short word on the money when the reply could not be used."""
-    import town_knowledge
-    try:
-        return town_knowledge.job_reply(world, getattr(_session(), "_thread_turn", None))
-    except Exception:
-        town_knowledge.log_failure()
-        return None
-
-
-
-
-def _coin_persuasion(action_result):
-    """D-166: the Persuasion roll asking a person for coin takes, at their DC (`influence.dc`).
-
-    A Persuasion this turn already rolled is reused against that DC, never rerolled; any other roll this turn asked
-    for something else, so it gives no coin (None). Otherwise one fresh roll, its card returned for the turn to show.
-    """
-    def persuade(dc, advantage):
-        if action_result.get("action") == "skill_check":
-            total = action_result.get("total")
-            if action_result.get("skill") != "Persuasion" or type(total) is not int:
-                return None
-            return {"success": total >= dc}
-        character = _session().character
-        check = perform_skill_check("Persuasion", dc, character["modifiers"], character["proficient_skills"],
-                                    character["proficiency_bonus"], advantage=advantage,
-                                    expertise_skills=character.get("expertise_skills", ()))
-        outcome = _skill_result_category(check.get("result"))
-        card = {
-            "action": "skill_check", "skill": check["skill"], "ability": check["ability"], "dice": check["dice"],
-            **({"dice_rolls": check["dice_rolls"]} if "dice_rolls" in check else {}),
-            "modifier": check["modifier"], "proficiency_bonus": check["proficiency_bonus"],
-            "expertise": check["expertise"], "advantage": check["advantage"], "disadvantage": check["disadvantage"],
-            "action_id": check["resolution"].get("action_id"), "resolution_id": check["resolution"].get("resolution_id"),
-            "resolution": check["resolution"], "total": check["total"], "dc": check["dc"], "outcome": outcome,
-            "success": outcome == "success", "status": "resolved",
-        }
-        return {"success": outcome == "success", "card": card}
-    return persuade
-
-
-def _show_coin_roll(action_result, card):
-    """D-166: the coin ask's roll shows on the turn, while the turn stays what it was: a talk stays a talk (its
-    action, success and status, which 'talk to X' objectives and a guard's question read). A turn that already
-    rolled a check keeps its own card."""
-    if card and action_result.get("action") != "skill_check":
-        action_result.update({key: value for key, value in card.items() if key not in {"action", "success", "status"}},
-                             coin_ask_roll=True)
-
-
-def _settle_spoken_commitment(world, npc, player_input, raw, spoken, *, threat=None, persuade=None, stage=None):
-    """What the reply proposed reaches the record if it checks out. A failure here costs the turn nothing."""
-    import town_knowledge
-    session = _session()
-    gate = getattr(session, "_thread_turn", None)
-    try:
-        import world_happenings
-        said = threat.split()[0] if isinstance(threat, str) and threat.strip() else None
-        if said == world_happenings.PLAYER_THREATENED and not _heavy_allowed("threat", player_input,
-                                                                             person_id=npc.get("id")):
-            threat = None  # D-109: only a threat said now and asked yes hurts a tie; the reply's own claim stays words
-        settled = town_knowledge.settle_reply(
-            world, npc, player_input, raw, spoken,
-            accept_job=lambda thread: _accept_named_job(session, world, npc, thread),
-            moved=(gate or {}).get("paid_cp") or 0, threat=threat, purchase=getattr(session, "_purchase_said", False),
-            persuade=persuade, stage=stage,
-        )
-        import pocket
-        settled["spoken"], settled["unbacked"] = pocket.settle_claim(session, raw, settled["spoken"], npc)
-        return settled
-    except Exception:
-        town_knowledge.log_failure()
-        return {"spoken": spoken, "note": None, "allowed": set(), "moved": 0, "stage": stage}
-
-
-def _with_only_backed_money(speech, settled):
-    """The sentences that claim money Python did not move leave the line. False when nothing is left to say."""
-    import town_knowledge
-    for field in ("spoken_text", "stage_direction"):
-        speech[field] = town_knowledge.without_unbacked_money(
-            speech[field], allowed=settled.get("allowed"), moved=bool(settled.get("moved")))
-    return bool(speech["spoken_text"].strip())
 
 
 
@@ -1750,120 +1637,16 @@ def _with_only_backed_money(speech, settled):
 
 
 
-def _experimental_speech_note(world, npc, name_stance, player_input):
-    """Plain Turkish lines read just before the player's message: who speaks, the name, the ask."""
-    label = living_world.public_npc_name(npc)
-    lines = [
-        f"Konuşan sensin; sahnedeki “{label}” sensin, oyuncu karşındaki kişidir.",
-        f"Konuşma biçimin: {local_dialogue.voice_trait(world, npc)} Sıradan birisin, herkese yardım etmek zorunda değilsin.",
-    ]
-    name = str(npc.get("name") or "").strip()
-    if name_stance == "withhold":
-        reason = local_dialogue.name_withheld_reason(world, npc)
-        lines.append(
-            f"Adını söylemek istemiyorsun ({reason}); ad vermeden doğal biçimde geçiştir, "
-            "sahte ad söyleme."
-        )
-    elif name_stance == "reveal":
-        lines.append(
-            f"Adın {name}. Oyuncu adını soruyor: adını kendi sesinle söyle; tek kelimeyle bırakma, yanına konuşma biçimine uyan kısa bir söz ekle."
-        )
-    elif living_world.npc_name_known_to_player(npc):
-        lines.append(f"Adın {name}; sorulmadıkça tekrar etme.")
-    else:
-        lines.append("Adın sorulmadı: kendini tanıtma, kendine ad uydurma.")
-    rest = getattr(_session(), "_front_rest", "")
-    if rest:
-        lines.append(f"Oyuncu aynı sözde şunu da söyledi: {rest} Buna da cevap ver.")
-    player_name = _known_player_name(npc)
-    if player_name:
-        said = len((world.get("npc_speech_log") or {}).get(npc.get("id"), []))
-        lines.append(
-            f"Karşındakinin adı {player_name}."
-            + (" Bu cevapta onu adıyla hitap et." if said % 3 == 0
-               else " Bu cevapta adını söylemene gerek yok.")
-        )
-    import town_knowledge
-    asked_for = town_knowledge.person_named_in(world, player_input)  # "Özpil nerede?" asked of someone here (Task 29)
-    place = (town_knowledge.place_of_person(world, asked_for)
-             if asked_for and npc_statements.fold(asked_for) != npc_statements.fold(name) else None)
-    if place is not None:
-        lines.append(f"Kasabanın bildiği (motor kaydı): {asked_for}, {place['name']} tarafında bulunur. "
-                     "Sorulursa bunu söyleyebilirsin; başka bir yer söyleme.")
-    earlier = town_knowledge.said_before_note(world, npc, _claim_denial_quotes()).strip()
-    if earlier:
-        lines.append(earlier)
-    import npc_told
-    about = npc_statements.claim_about(player_input)
-    supported = npc_told.supports(world, npc.get("id"), player_input, about=about)
-    told = supported if supported else npc_told.relevant(world, npc.get("id"), player_input)
-    if told:
-        lines.append(npc_told.view(told,
-            header="Oyuncunun sana daha önce söyledikleri (söylendi; doğruluğunu bilmezsin):"))
-    elif about == "own_words":
-        context = npc_told.context_rows(world, npc.get("id"))
-        if context:
-            lines.append(npc_told.view(context,
-                header="Oyuncunun sana son söyledikleri (yalnız bağlam; bu sözle ilgisi belli değil):"))
-    said_before = _lines_already_said(npc, world)[-3:]
-    if said_before:
-        lines.append(
-            "Az önce şunları söyledin: " + " / ".join(line[:120] for line in said_before)
-            + " Bunları aynen tekrar etme, yeni bir şey söyle."
-        )
-    extras = talk_front.speech_extras(world, npc)  # BM Task 6: one line for each field the context carries
-    if "zaman" in extras:
-        lines.append(f"Şu an saat {extras['zaman']['saat']}, vakit {extras['zaman']['vakit']}: sözünü bu saate uydur "
-                     "(akşamsa sabah duasından ya da sabah işinden söz etme).")
-    if "sahne_anlatimi" in extras:
-        lines.append("Oyuncuya `sahne_anlatimi` alanındaki sahne gösterildi; sen o sahnenin içindesin: "
-                     "gösterilenleri inkâr etme, çelişme; en fazla azıcık ekleyebilirsin.")
-    if "son_sozlerin" in extras:
-        lines.append("Son sözlerin `son_sozlerin` alanında; aynı reddi ya da bahaneyi yeniden söyleme.")
-    if local_dialogue.personal_question_kind(player_input) == "local_work":
-        lines.append(
-            "Oyuncu kendine iş arıyor, senin işini sormuyor: bildiğin bir iş veya yer "
-            "varsa onu söyle, yoksa kimin ya da nerenin bilebileceğini söyle."
-        )
-    handed = getattr(_session(), "_handed_note", None)
-    if handed:
-        lines.append(f"Oyuncu az önce sana şunu verdi, artık sende: {handed}.")
-        _session()._handed_note = None
-    decision = money_owner.current(_session())
-    told_coin = False
-    if decision is not None and decision.amount_cp > 0 and decision.npc_id == npc.get("id"):
-        # Read from the money owner's decision: coin waiting for a card is not theirs yet (decisions 3 and 11), coin
-        # with no meaning opens no card and is only shown. Only the person it was held out to hears of it; a past
-        # payment is no coin held out now, and the guard weighs a bribe on its own card.
-        if decision.kind in money_owner.WAITS_FOR_CONFIRMATION:
-            lines.append(f"Oyuncu sana {decision.amount_cp} bakır uzatıyor; para henüz sende değil, "
-                         "oyuncu kartı onaylarsa geçer.")
-            told_coin = True
-        elif decision.kind == "unclear":
-            lines.append(f"Oyuncu sana {decision.amount_cp} bakır gösterdi, ne için olduğu belli değil; "
-                         "para el değiştirmedi.")
-            told_coin = True
-    pending = getattr(_session(), "_spoken_coin_proposal", None)
-    if not told_coin and pending is not None and pending.recipient_id == npc.get("id"):
-        # A validated gift or tip waiting for this person's own spoken answer (D0): prompt evidence only, never tender.
-        lines.append(f"Oyuncu sana {pending.amount_cp} bakır uzatıyor; para henüz sende değil, "
-                     "oyuncu kartı onaylarsa geçer.")
-    import bold_acts
-    import pocket
-    lines.append(bold_acts.room_note(npc, player_input, world=world))
-    lines.append(bold_acts.price_note(npc, player_input, world=world))
-    lines.append(_bag_note(pocket.bag_names(world)))
-    if getattr(_session(), "_empty_handed", False):
-        lines.append("Oyuncu bir şey uzatıyor gibi konuşuyor ama elinde öyle bir şey yok; ondan bir şey almış gibi yazma.")
-    import bold_acts
-    import truth_card
-    held_out_cp = (decision.amount_cp if decision is not None and decision.npc_id == npc.get("id")
-                   and decision.kind != "paid_before" else 0)
-    card = truth_card.npc_view(world, npc=npc, held_out_cp=held_out_cp,
-                               this_turn=getattr(_session(), "_turn_notes", ()))
-    return (_speech_answer_rules() + " ".join(lines) + "\n" + card + "\n" + bold_acts.speech_note(world, npc) + _town_note(world, npc)
-            + town_knowledge.promise_note(world, npc)
-            + town_knowledge.money_decided_note(getattr(_session(), "_thread_turn", None)) + "\n")
+
+
+
+
+
+
+
+
+
+
 
 
 

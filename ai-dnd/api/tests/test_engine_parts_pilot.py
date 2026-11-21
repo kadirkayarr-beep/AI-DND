@@ -726,6 +726,7 @@ class IntentPart(unittest.TestCase):
 
 DIALOGUE_1 = tuple(batch_names("dialogue-1"))
 DIALOGUE_2 = tuple(batch_names("dialogue-2"))
+DIALOGUE_S = tuple(batch_names("dialogue-s"))
 
 
 class DialoguePart(unittest.TestCase):
@@ -736,6 +737,9 @@ class DialoguePart(unittest.TestCase):
 
     def test_dialogue_2_lives_in_the_part(self):
         self.assertEqual(set(DIALOGUE_2) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
+
+    def test_dialogue_s_lives_in_the_part(self):  # Plan 4 T5.4f
+        self.assertEqual(set(DIALOGUE_S) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
 
     def test_the_stock_said_deque_is_one_object(self):
         # a call with no session (_session() gives None) uses the module deque; the re-export keeps one object
@@ -755,6 +759,8 @@ class DialoguePart(unittest.TestCase):
             s.world_state["locations"]["t17_han"] = {"id": "t17_han", "name": "Kuyu Hanı", "type": "tavern",
                                                      "parent_location_id": s.world_state["location"],
                                                      "description": ""}
+            # Plan 4 T5.4f (D-447): the rest of the line only the given session holds; the default session has none
+            s._front_rest = "Kuyu nerede?"
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             cases = (
                 ("resolve_npc_reference", ("Bela, merhaba",), {"status": "found", "npc": "npc_t10_bela"}),
@@ -765,6 +771,15 @@ class DialoguePart(unittest.TestCase):
                  "Bela, “Fena değil, teşekkür ederim. Sorduğun için sağ ol,” diye karşılık verir."),
                 ("_direct_npc_smalltalk_response", ("Yakınlarda bir han var mı?", bela),
                  "Bela, “Yakınlarda Kuyu Hanı var,” diye yanıt verir."),
+                # Plan 4 T5.4f: the note's own lines (its second line), captured on 893655cc before the move, after
+                # the cases above (Bela's earlier words are in it)
+                ("_experimental_speech_note", (s.world_state, bela, None, "Merhaba, nasılsın?"),
+                 "Konuşan sensin; sahnedeki “Bela” sensin, oyuncu karşındaki kişidir. Konuşma biçimin: Alaycıdır; "
+                 "kuru bir laf sokuşturur. Sıradan birisin, herkese yardım etmek zorunda değilsin. Adın Bela; "
+                 "sorulmadıkça tekrar etme. Oyuncu aynı sözde şunu da söyledi: Kuyu nerede? Buna da cevap ver. "
+                 "Daha önce sen gerçekten şunları söyledin: Hoş geldin yolcu. Oyuncu bunlardan söz ediyorsa inkâr "
+                 "etme; kendi sözün olarak karşılık ver.   Oyuncunun üstünde gerçekten olanlar: Macera çantası, "
+                 "Kılıç. Başka bir şey onun elinde değildir."),
             )
             for name, args, expected in cases:
                 seen = []
@@ -779,6 +794,8 @@ class DialoguePart(unittest.TestCase):
                     if isinstance(answer, dict):
                         answer = {key: value.get("id") if isinstance(value, dict) else value
                                   for key, value in answer.items()}
+                    if name == "_experimental_speech_note":
+                        answer = answer.split("\n")[1]
                     self.assertEqual(answer, expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
@@ -803,6 +820,15 @@ class DialoguePart(unittest.TestCase):
                          "istemem. Ama bu benim ağzımdan çıkmadı.”")
         self.assertEqual(game.historical_claim_denial(None, "x"),
                          "Bu kişi omuz silkiyor. “Yanlış kapıyı çalıyorsun, dostum. Ben böyle bir şey söylemedim.”")
+
+    def test_coin_persuasion_answers_as_before(self):  # Plan 4 T5.4f
+        # captured on 893655cc before the move: a Persuasion this turn rolled is reused against the DC, never
+        # rerolled; a roll of another skill gives no coin; no session and no fresh roll is needed for either
+        persuasion = game._coin_persuasion({"action": "skill_check", "skill": "Persuasion", "total": 15})
+        self.assertEqual(persuasion(12, False), {"success": True})
+        self.assertEqual(persuasion(16, False), {"success": False})
+        athletics = game._coin_persuasion({"action": "skill_check", "skill": "Athletics", "total": 19})
+        self.assertIsNone(athletics(12, False))
 
 
 LORE = tuple(batch_names("lore"))
