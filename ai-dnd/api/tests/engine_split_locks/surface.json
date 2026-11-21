@@ -1497,7 +1497,7 @@
  },
  "_handle_query": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, query_type, npc_target=None)"
  },
@@ -3354,7 +3354,7 @@
  },
  "deterministic_check_for_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3408,7 +3408,7 @@
  },
  "execute_intent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None)"
  },
@@ -3646,7 +3646,7 @@
  },
  "normalize_intent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(raw_intent, player_input)"
  },
@@ -3703,7 +3703,7 @@
  },
  "parse_player_intent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, interaction_context=None, dialogue_narration=False, operation_hint=None, require_conversation=False, allow_scene_detail_proposals=False, allow_local_person_proposal=False, experimental_npc_dialogue=False, recent_scene_narration='', strict=False, speech_note='', front_list=None)"
  },
@@ -4014,7 +4014,7 @@
  },
  "update_world_state_from_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },

@@ -585,6 +585,7 @@ class PlacesPart(unittest.TestCase):
 
 INTENT_1 = tuple(batch_names("intent-1"))
 INTENT_2 = tuple(batch_names("intent-2"))
+INTENT_S = tuple(batch_names("intent-s"))
 
 
 class IntentPart(unittest.TestCase):
@@ -595,6 +596,9 @@ class IntentPart(unittest.TestCase):
 
     def test_intent_2_lives_in_the_part(self):
         self.assertEqual(set(INTENT_2) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
+
+    def test_intent_s_lives_in_the_part(self):  # Plan 4 T5.4e
+        self.assertEqual(set(INTENT_S) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
 
     def test_a_rebound_validate_intent_reaches_a_moved_caller(self):  # Review Focus 5
         # analyze_player_action (moved in intent-1) reads game.parse_player_intent, game.normalize_intent and
@@ -621,11 +625,21 @@ class IntentPart(unittest.TestCase):
             s = game.create_session(seed=11)
             # a hero name only the given session has (D-447): the default session's hero would make the claim True
             s.character["name"] = "Torvald Kaya"
+            # Plan 4 T5.4e (D-447): a place only the given session has; the default session cannot name it as the target
+            s.world_state["location"] = "forest"
+            s.world_state["locations"]["t16_kuyu"] = {"id": "t16_kuyu", "name": "Kuyu Başı", "type": "city",
+                                                      "description": ""}
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             cases = (
                 ("is_npc_historical_claim", ("Bu adam dün beni soydu.",), False),
                 ("is_npc_historical_claim", ("Adımı söyledim, Torvald.",), False),
                 ("known_character_answer", ("Benim adım ne?",), f"Adın {s.character['name']}."),
+                # Plan 4 T5.4e: captured on 3619f580 before the move; no road is known, so nothing is written
+                ("execute_intent", ({"intent": "travel", "target": {"type": "location", "reference": "Kuyu Başı"}},
+                                    "Kuyu Başı'na gidiyorum."),
+                 {"action": "travel", "success": False, "status": "unverified", "state_changes": [],
+                  "completion": "completed", "target_reference": "Kuyu Başı", "target": "t16_kuyu",
+                  "previous_location": "forest", "direct_response": "Oraya giden bir yol bilmiyorsun."}),
             )
             for name, args, expected in cases:
                 seen = []
@@ -639,7 +653,37 @@ class IntentPart(unittest.TestCase):
                     self.assertEqual(getattr(game, name)(*args, session=s), expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(s.world_state["location"], "forest")
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_a_rebound_execute_intent_reaches_its_moved_caller(self):  # Plan 4 T5.4e, Review Focus 5
+        # trace_ai_pipeline.py rebinds game.execute_intent; update_world_state_from_player (moved in intent-s) must call
+        # the rebound name; the parse/normalize/validate patches are the shape test_shops.py uses
+        seen = []
+
+        def record(intent, player_input, *args, **kwargs):
+            seen.append((intent, player_input, args, kwargs))
+            return {"action": "narrative", "success": True, "state_changes": []}
+
+        with fixed_town(self, 20261350):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "tavern"
+            with patch.object(game, "parse_player_intent", return_value={}),                  patch.object(game, "normalize_intent", return_value={}),                  patch.object(game, "validate_intent", return_value={"intent_type": "narrative"}),                  patch.object(game, "execute_intent", side_effect=record):
+                out = game.update_world_state_from_player("The wind is blowing.", session=s)
+        self.assertEqual(seen, [({"intent_type": "narrative"}, "The wind is blowing.", (), {})])
+        self.assertEqual(out, {"action": "narrative", "success": True, "state_changes": []})
+
+    def test_a_patched_ollama_reaches_the_moved_parse(self):  # Plan 4 T5.4e
+        # parse_player_intent (moved in intent-s) asks the model through game.ollama; a patched module must answer it
+        fixed = {"intent": "perception", "skill": "Perception", "difficulty": "medium",
+                 "target": {"type": "none", "reference": ""}}
+        with fixed_town(self, 20261351):
+            s = game.create_session(seed=11)
+            with patch.object(game, "ollama") as model:
+                model.chat.return_value = {"message": {"content": json.dumps(fixed)}, "done_reason": "stop"}
+                out = game.parse_player_intent("Etrafa bakıyorum.", session=s)
+        model.chat.assert_called_once()
+        self.assertEqual(out, fixed)
 
     def test_intent_helpers_answer_as_before(self):
         # expected values captured on d9bbb857 before the move; a new session's places are tavern, forest, castle
