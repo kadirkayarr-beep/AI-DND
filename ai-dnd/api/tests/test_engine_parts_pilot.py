@@ -1171,6 +1171,7 @@ class NarrationSafetyPart(unittest.TestCase):
 
 
 LWT = tuple(batch_names("lwt"))
+LWT_S = tuple(batch_names("lwt-s"))
 
 
 class LivingWorldTurnPart(unittest.TestCase):
@@ -1179,8 +1180,44 @@ class LivingWorldTurnPart(unittest.TestCase):
     def test_lwt_lives_in_the_part(self):
         self.assertEqual(set(LWT) - set(routing_audit.re_exports(ROOT).get("living_world_turn", ())), set())
 
+    def test_lwt_s_lives_in_the_part(self):  # Plan 4 T5.5
+        self.assertEqual(set(LWT_S) - set(routing_audit.re_exports(ROOT).get("living_world_turn", ())), set())
+
+    def test_a_patched_uuid4_reaches_the_moved_clock(self):
+        # an unconscious hero outside combat with no episode id gets one from game.uuid4 when the clock moves
+        import campaign_time
+        fixed = "00000000-0000-4000-8000-000000000015"
+        with fixed_town(self, 20261370):
+            s = game.create_session(seed=11)
+            campaign_time.initialize(s.world_state)
+            game._apply_player_damage(s.character["current_hp"], session=s)
+            death = game.ensure_death_state(session=s)
+            self.assertEqual(death["noncombat_next_save_at"], 6)
+            death["noncombat_episode_id"] = None
+            with patch.object(game, "uuid4", return_value=fixed) as made:
+                result = game.advance_campaign_time(1, "wait", session=s)
+        made.assert_called_once_with()
+        self.assertEqual(game.ensure_death_state(session=s)["noncombat_episode_id"], fixed)
+        self.assertEqual(result["elapsed_seconds"], 1)
+        self.assertEqual(result["death_results"], [])
+
+    def test_the_rule_order_is_read_from_game(self):
+        # advance_campaign_time checks game.RULE_ORDER before the clock moves (K04): a patched, incomplete table refuses
+        import campaign_time
+        import event_order
+        with fixed_town(self, 20261371):
+            s = game.create_session(seed=11)
+            campaign_time.initialize(s.world_state)
+            clock = json.dumps(s.world_state["campaign_time"], sort_keys=True)
+            with patch.object(game, "RULE_ORDER", {"effect_expiry": 0, "damage": 1, "death": 2}), \
+                 self.assertRaises(event_order.UnresolvedRuleOrder) as caught:
+                game.advance_campaign_time(60, "wait", session=s)
+        self.assertEqual(str(caught.exception), "Rule order table is missing: regeneration")
+        self.assertEqual(json.dumps(s.world_state["campaign_time"], sort_keys=True), clock)
+
     def test_living_world_session_helpers_use_the_given_session(self):  # Review Focus 4
         # both names read game._session() (measured on 30c48f41): record what it returns during the session= call
+        # Plan 4 T5.5: advance_campaign_time joins (measured on 7bb78b5e); the clock exists only in s (D-447)
         real = game._session
         with fixed_town(self, 20261214):
             s = game.create_session(seed=11)
@@ -1189,7 +1226,8 @@ class LivingWorldTurnPart(unittest.TestCase):
             s.world_state["location"] = "t14_square"
             s.world_state.pop("campaign_time", None)
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
-            for name in ("ensure_campaign_clock", "_living_world_prompt_context"):
+            for name, args in (("ensure_campaign_clock", ()), ("_living_world_prompt_context", ()),
+                               ("advance_campaign_time", (60, "wait"))):
                 seen = []
 
                 def record():
@@ -1198,12 +1236,18 @@ class LivingWorldTurnPart(unittest.TestCase):
                     return value
 
                 with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
-                    answer = getattr(game, name)(session=s)
+                    answer = getattr(game, name)(*args, session=s)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
                     if name == "ensure_campaign_clock":
                         self.assertIs(answer, s.world_state["campaign_time"])
                         self.assertEqual(answer["elapsed_seconds"], 0)
+                    elif name == "advance_campaign_time":
+                        self.assertEqual([answer[key] for key in ("elapsed_seconds", "requested_seconds",
+                                                                  "remaining_seconds", "interrupted")], [60, 60, 0, False])
+                        self.assertEqual(answer["before"]["detail"], "1 Mirtul 1501 DR — 09:00:00")
+                        self.assertEqual(answer["death_results"], [])
+                        self.assertEqual(s.world_state["campaign_time"]["elapsed_seconds"], 60)
                     else:
                         context = json.loads(answer)
                         self.assertEqual(context["location_id"], "t14_square")

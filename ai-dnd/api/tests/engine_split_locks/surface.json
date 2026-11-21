@@ -3174,7 +3174,7 @@
  },
  "advance_campaign_time": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.living_world_turn",
   "session_bound": true,
   "signature": "(seconds, reason, source=None, observation=None)"
  },
@@ -3721,7 +3721,7 @@
  },
  "plan_living_world_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.living_world_turn",
   "session_bound": true,
   "signature": "(player_input, target_id=None, interaction_mode=None)"
  },
