@@ -169,7 +169,7 @@ Then it writes the batch files and rehearses the whole move with a cumulative sp
   - `turn_front.py` (51 names, 2 179 lines, about 2 255 with header and separators): every other T6 name (front gates, thread, coin and intent-execution helpers, refusal and place turns). A normal part: `part_max` 2 500, no `files` entry.
   - `turn.py` alone stays over 2 500. The spec allows exactly that: §11 freezes `turn.py` at its arrival size instead of `part_max`. `size_budget.json` does it with a `files` entry. The entry is created once, in `turn-3` (Task 11), at the real size when `_run_player_turn_internal` arrives; before that `turn.py` is about 1 260 lines and needs no entry. After `turn-3` it only goes down.
   - Karar 10: creating a number above `part_max` counts as raising it. One approval §23 row (row 5) and one `kadir-notes.md` line: "turn.py <n> satırla geldi (tasarım 3 900 demişti), spec §11 gereği geldiği boyutta donduruldu; turn_front.py <m> satır, normal 2 500 sınırında."
-  - Ruling: the name `turn_front.py` — it holds what the turn calls before and around the dispatch (the "front" gates and steps), it sorts next to `turn.py`, and it is the name the draft and the pre-flight review already used — if wrong: a rename is one pure move of one file plus its re-export lines.
+  - Ruling: a new module `turn_front.py` is allowed although spec §5's table lists only `turn.py` — spec §5 says exact limits follow the T0 call-graph report, and spec §5/§11 (each part ≤ 2 500) forces the cut because the T6 names total 6 153 lines; the frozen-at-arrival rule covers only `turn.py`. §23 row 11 records it as a spec deviation. Also the name `turn_front.py` — it holds what the turn calls before and around the dispatch (the "front" gates and steps), it sorts next to `turn.py`, and it is the name the draft and the pre-flight review already used — if wrong: a rename is one pure move of one file plus its re-export lines.
   - Ruling: move order `front-1..3`, then `turn-1`, `turn-2`, `turn-3` (`_run_player_turn_internal` last) — `turn.py`'s frozen entry is then created once at its real size; `turn_front.py` is whole before the core lands; D-429's `_coin_without_a_reading` lands in a non-frozen part — if wrong: only the review order changes (every call goes through `game.X`).
 - **Ruling I: two `turn` names stay in `game.py`.** `_restore_in_place` (sensitive, Undo) and `_dynamic_engine_transitions` are read inside `game.py` only by `GameSession`, which never moves (appendix C, `batches5.py` `STAY`).
   - This is the misfit rule (a name follows its only callers) applied to never-moved code. `plan4_map.py`'s call graph does not see `GameSession`'s methods.
@@ -271,7 +271,7 @@ Only Task 2 changes `ai-dnd/game.py`, and only two expressions.
 - [ ] **Step 2: Worktrees and ledger.**
   - `git worktree add ../AI-DND-k2-bolme-p5n -b task/game-py-bolme-p5-nets <P5BASE>`; `--detach ../AI-DND-k2-bolme-p5a <P5BASE>`; `--detach ../AI-DND-k2-bolme-p5o 2e576967dda2fbfdf6a47d22d9313fbc76c195f8`.
   - Bring the plan into `p5n`: `git checkout task/game-py-bolme-p5 -- docs/superpowers/plans/2026-11-21-game-py-bolme-plan-5.md docs/superpowers/plans/2026-11-21-game-py-bolme-plan-5-appendix.md docs/superpowers/plans/2026-11-21-game-py-bolme-plan-5-measure`.
-  - `docs/design/INDEX.md`: bring only this branch's one added line, never the whole file (`P5BASE` may hold newer INDEX lines from Plan 4): `git diff 45d2c690 task/game-py-bolme-p5 -- docs/design/INDEX.md | git apply`. Check: `git diff P5BASE -- docs/design/INDEX.md` shows exactly one added line and no removed line.
+  - `docs/design/INDEX.md`: bring only this branch's one added line, never the whole file (`P5BASE` may hold newer INDEX lines from Plan 4): `git diff 45d2c690 task/game-py-bolme-p5 -- docs/design/INDEX.md | git apply`. Check: `git diff P5BASE -- docs/design/INDEX.md` shows exactly one added line and no removed line. If `git apply` refuses (surrounding lines changed on `P5BASE`), add the one line by hand after the Plan 4 line (`grep -n "bolme-plan-5" docs/design/INDEX.md` finds it); the same check stays.
   - Create the ledger. Copy Plan 4's `run-gatewait.sh` and `run-foreignload.sh` unchanged.
 - [ ] **Step 3: Measure again (Ruling M).** Appendix A steps 1-7 on a `git archive P5BASE` copy under `STORE/tree/p5base`, WSL Python, outputs to `STORE/out-p5base/`. The scripts are the fixed ones (`p5_checks.py` sees class decorators; `batches5.py` cuts two targets and counts decorator names as read). Compare with the draft (`-measure/out/`):
   - equal names in every batch and lines within ±5 % → "appendix holds";
@@ -439,7 +439,7 @@ Each task is a pure move under the Move procedure. Every task is strong: every b
 - `TurnResolved` and `ResolvedTurn` are classes: they move and are re-exported. `_run_player_turn_internal` (still in `game.py` until `turn-3`) raises `TurnResolved`; `_dispatch_player_turn`, `_dispatch_turn_body` and `_spoken_rest_of_turn` catch it. Both sides must see the same class object.
 - `ResolvedTurn` keeps `@dataclass` (Ruling L); header per M5.
 - `DEBUG_MODE` (constant) moves. Ruling (pre-flight Minor 5): after `turn-3`, `_run_player_turn_internal` reads `turn.py`'s own binding bare, while `game_parts/narration_safety.py` reads `game.DEBUG_MODE` (the re-exported copy); a runtime `game.DEBUG_MODE = True` would then reach only `narration_safety` — nothing writes it today (measured: written nowhere, appendix E) and it is a debug switch, not game state — if wrong: one debug print path stays silent; the fix is a one-line `game.DEBUG_MODE` read in a later behaviour slice.
-- `run_player_turn` is patched at 167 sites, `_dispatch_player_turn` at 17: the keyed turn must call `game._dispatch_player_turn`. Long function `_dispatch_player_turn` key moves. `turn.py` is about 870 lines after this batch: no `files` entry.
+- `run_player_turn` is patched at 167 sites, `_dispatch_player_turn` at 17: the keyed turn must call `game._dispatch_player_turn`. Long function `_dispatch_player_turn` key moves. `turn.py` is about 885 lines after this batch: no `files` entry.
 
 - [ ] **Step 1: Tests** (seeds `20261440`-`20261449`):
   - `test_turn_1_lives_in_the_part` (red).
@@ -498,7 +498,7 @@ Each task is a pure move under the Move procedure. Every task is strong: every b
 **Review tier:** strong (whole-branch review on Opus): the Stage B diff; the money, death and Undo tests named in Tasks 6-11; M7 for the six batches, each against its move commit's parent; `writer_scan.py` on the gate tree with all six batch files (`missing=0`, `HELD` sets equal the expected files exactly, by the `$3` column).
 
 - [ ] **Step 1:** `git fetch origin`; merge `origin/main` if it moved (`MAIN_SHA`). If `game.py` or a part changed underneath: rerun M7 for every batch against a fresh base and regenerate the locks.
-- [ ] **Step 2: Whole-branch review before the suites.** One fix wave, red-first (Opus); scoped re-review (Opus). From Step 3 on, only the ledger, debt rows and PR text change; any change to code, tests or locks reruns Steps 3-6.
+- [ ] **Step 2: Whole-branch review before the suites.** One fix wave, red-first (Opus); scoped re-review (Opus). From Step 3 on, only the ledger, debt rows, PR text and §23 row 10 (written with Step 5's Ruling) change; any change to code, tests or locks reruns Steps 3-6.
 - [ ] **Step 3: N4/N7 bases** (Plan 4 Task 17 Step 3 Ruling carried).
   - `git worktree add --detach ../AI-DND-k2-bolme-p5b <Stage A tip>`; in it, `git merge --no-ff --no-edit <MAIN_SHA>` (local, never pushed).
   - Check: `git diff <p5b HEAD> <Stage B tip> --stat -- . ':!ai-dnd/game.py' ':!ai-dnd/game_parts'` lists only Stage B's own tests, locks and docs. `git diff --quiet <P5BASE> <Stage B tip> -- <every money, death and Undo test named in Tasks 6-11, UNDO and DEATH included>`: RC 0.
@@ -566,6 +566,7 @@ def test_the_room_reading_really_failed_in_the_http_test(self):                 
 | 8 | Shard timeout 4 500 s, wall clock | carried from Plans 3-4 (D-448) | taşındı | Task 0 |
 | 9 | M12 writer scan | Plan 4 row 8 carried: the `HELD` set equals Task 3's recorded set exactly | gevşetme olabilir (taşındı) | Task 0 |
 | 10 | N7 at TM5 | coverage equality checked although spec TM5 lists only N4 | sıkılaştırma | Task 13 |
+| 11 | `turn_front.py` (spec §5 table) | new module outside the spec's table: the §5/§11 size limit forces the cut; mechanism of the split unchanged | spec sapması: yeni modül, `turn.py` dondurma kuralına dokunmaz (güçlü inceleme) | Task 6 |
 
 ## Debt rows this plan owns and what happens to each
 
@@ -619,7 +620,7 @@ Ruling: Plan 5 does not change `move_block` to drop separator blank lines (the r
 3. **Step scan.** Every move task names its batch, sizes, tests, seeds, named M10 modules and commit message. Test bodies that depend on existing tests name the graphify query that finds them.
 4. **Name consistency.** Batches `front-1..3`, `turn-1..3` match `-measure/batches/` and appendix D; labels `p5t<N>-<B>-<off|fon>`; Review Focus test names match Tasks 2, 3, 7-10 and 12; `_PART_MODULES` gains `game_parts.turn_front` once (Task 6) and `game_parts.turn` once (Task 9).
 5. **Proportion.** 15 tasks: Stage A 6, Stage B 8, Stage C 1. Strong: Tasks 1, 2, 5, 6-11, 13, 14. Opus net review: Task 3. Runner only: Tasks 0, 4, 12. Full suites: 6, all in Task 13. A/B series: Tasks 0, 4, 6-11, 13, 14 (10 series of 12 bench runs).
-6. **Loosening check.** No Ruling loosens a controller or CLAUDE.md rule. Boundary rows marked "gevşetme olabilir": §23 rows 2, 3, 4, 5, 9. Rows 1 and 10 are stricter.
+6. **Loosening check.** No Ruling loosens a controller or CLAUDE.md rule. Boundary rows marked "gevşetme olabilir": §23 rows 2, 3, 4, 5, 9; row 11 is a spec deviation. Rows 1 and 10 are stricter.
 
 ## Execution
 
@@ -649,5 +650,6 @@ Review: `C:/Users/Kadir/Desktop/AI-DND-TOOLS/measure/engine-split/p5/p5-prefligh
 | Minor 6 | Task 2 Step 3: planted `sys.modules["json"]` proves both pins red before the edit. |
 | Minor 7 | Task 0 Step 7 and Task 3 Step 4 write ledger lines; the register row is updated in Task 13 Step 8. |
 | Minor 8 | Ruling E names Plan 4 Task 10. |
+| Re-review A-D | A: Task 0 Step 2 INDEX fallback (add the line by hand). B: Task 13 Step 2 allows §23 row 10. C: `turn.py` after `turn-1` is about 885 (848 moved lines plus header and separators; 885 + 370 + header gives the 1 260 of the next batch) in Task 9 and the appendix. D: Ruling H allows the new module `turn_front.py` (spec §5/§11 size limit); §23 row 11 (spec deviation, Plan 4 row 9 style). |
 
 Rulings J, K and I stand as the review found them. No finding was ruled against.
