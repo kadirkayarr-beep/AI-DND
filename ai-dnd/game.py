@@ -1633,58 +1633,7 @@ from game_parts.schemas import INTENT_TYPES, SKILL_INTENT_TO_SKILL, INTENT_SCHEM
 
 
 
-# Lean schema for NPC speech: separate speech and stage direction fields, and one
-# optional proposal of what was promised. No operation envelope: the proposal names
-# a listed job or a kind of promise, and Python alone decides what comes of it. Sampling
-# follows the Qwen3 non-thinking guidance with a repetition penalty; the
-# classifier's temperature 0.0 repeated itself in the 18 Oct live sample.
-_EXPERIMENTAL_NPC_SPEECH_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "spoken_text": {"type": "string", "maxLength": 600},
-        "stage_direction": {"type": "string", "maxLength": 600},
-        "coin_answer": {"type": "string", "enum": ["takes", "declines", "none"]},
-        "coin_answer_for": {"type": "string", "enum": ["unclear"]},
-        # Early on purpose: a small model leaves late optional fields out. The engine lists the values per person.
-        "asks_for": {"type": "string", "enum": ["none"]},
-        "remember_player_line": {"type": "boolean"},
-        # D-249: the place or trail the NPC names (kind "none" when none); Python records it as a heard rumour. The
-        # engine fills `place_kind`, makes the field required (live Haiku skips optional fields) and drops the whole
-        # field when the rumour lane is off.
-        "mentions": {
-            "type": "object",
-            "properties": {
-                "kind": {"type": "string", "enum": ["none", "place", "trail"]},
-                "name": {"type": "string", "maxLength": 60},
-                "place_kind": {"type": "string", "enum": ["archive"]},
-                "about": {"type": "string", "maxLength": 120},
-            },
-            "required": ["kind", "name"],
-            "additionalProperties": False,
-        },
-        "commitment": {
-            "type": "object",
-            "properties": {
-                "kind": {"type": "string", "enum": [
-                    "job_offer", "job_accepted", "pay", "give", "escort", "show", "meet", "help",
-                ]},
-                "thread_id": {"type": "string", "maxLength": 24},
-                "amount_cp": {"type": "integer"},
-                "terms": {"type": "string", "maxLength": 160},
-                "item": {"type": "string", "maxLength": 48},
-            },
-            "required": ["kind"],
-            "additionalProperties": False,
-        },
-        # Required, because a small model leaves an optional field out: real play never once filled one for a threat.
-        "threat": {"type": "string", "maxLength": 48},
-        # BM T7: which of the listed knowledge items (k1..) the reply really passed on. The engine fills the keys per
-        # person and makes the field required; Python still checks the reply's own words before it marks anything heard.
-        "voiced": {"type": "array", "items": {"type": "string", "enum": ["none"]}, "maxItems": 3},
-    },
-    "required": ["spoken_text", "stage_direction", "threat"],
-    "additionalProperties": False,
-}
+from game_parts.schemas import _EXPERIMENTAL_NPC_SPEECH_SCHEMA
 from game_parts.schemas import _EXPERIMENTAL_NPC_SPEECH_OPTIONS
 
 

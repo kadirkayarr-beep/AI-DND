@@ -219,6 +219,15 @@ class SchemasPart(unittest.TestCase):
         self.assertEqual(value_digest(("_EXPERIMENTAL_NPC_SPEECH_OPTIONS",)),
                          "6b73f273148a6af846bf9cfbeab27fcb438259f54666d1eaf1e810388a7a7b49")
 
+    def test_the_npc_speech_schema_lives_in_schemas(self):  # Plan 4 T5.4a
+        self.assertIn("_EXPERIMENTAL_NPC_SPEECH_SCHEMA", routing_audit.re_exports(ROOT).get("schemas", ()))
+
+    def test_the_npc_speech_schema_did_not_change(self):
+        # captured on 0b1dca5a before the move with p4t10-capture.py (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave
+        # this same hex)
+        self.assertEqual(value_digest(("_EXPERIMENTAL_NPC_SPEECH_SCHEMA",)),
+                         "1cdfc93bed84fd11110e13f2996b79e1975082c19cab463bb2dcaa85585c1900")
+
 
 class TextA1Part(unittest.TestCase):
     """T3.3 batch text-a1: text helpers and regexes live in game_parts/text_rules_a.py; game.py re-exports them."""
