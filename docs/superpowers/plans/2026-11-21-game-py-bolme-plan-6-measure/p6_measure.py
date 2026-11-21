@@ -134,7 +134,7 @@ SKIP_PARTS = (
     "ai-dnd/scripts/engine_split/batches/", ".superpowers/", "graphify-out/", "docs/engine-split/",
 )
 WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-counts, counts_all = {}, {}
+counts, counts_all, skipped = {}, {}, []
 for f in root.rglob("*"):
     if not f.is_file() or f.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".pdf", ".zip", ".mp3",
                                                 ".wav", ".ogg", ".woff", ".woff2", ".ttf", ".db", ".sqlite", ".pyc"}:
@@ -145,6 +145,7 @@ for f in root.rglob("*"):
     try:
         data = f.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
+        skipped.append(rel)
         continue
     skip = rel.startswith(SKIP_PARTS) or any(s in rel for s in SKIP_PARTS)
     for w in WORD.findall(data):
@@ -199,6 +200,9 @@ print("AFTER_P5_KEEP1", pr["after_blank_rule_keep_1"])
 print("REMAINING", pr["remaining_top_level_names"], pr["remaining_kinds"])
 for k, v in parts.items():
     print("PART", k, v)
+print("SKIPPED", len(skipped))
+for p_ in skipped:
+    print("  SKIPPED", p_)
 print("DEAD_SCAN", result["dead_name_scan"]["count"], "names", result["dead_name_scan"]["lines"], "lines")
 for c in candidates:
     print("  DEAD", c["file"], c["name"], c["lines"], "outside", c["count_outside_bookkeeping"], "all", c["count_everywhere"])
