@@ -903,7 +903,7 @@
  },
  "_campaign_has_shopkeeper": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "()"
  },
@@ -1299,13 +1299,13 @@
  },
  "_explicit_campaign_shop_negative_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_explicit_campaign_shop_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1737,7 +1737,7 @@
  },
  "_is_shopkeeper_role": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(role)"
  },
@@ -2535,7 +2535,7 @@
  },
  "_runs_a_shop": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(world_state, npc)"
  },
@@ -2655,13 +2655,13 @@
  },
  "_shop_economy_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_shop_presence_question": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3342,7 +3342,7 @@
  },
  "create_shop_from_proposal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(proposal)"
  },
@@ -3459,7 +3459,7 @@
  },
  "generate_shop_id": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "()"
  },
@@ -4044,7 +4044,7 @@
  },
  "validate_shop_proposal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(proposal)"
  },

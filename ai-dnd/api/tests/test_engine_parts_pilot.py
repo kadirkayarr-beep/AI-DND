@@ -67,13 +67,13 @@ def value_digest(names) -> str:
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.combat_flow",
-                                              "game_parts.dialogue", "game_parts.intent",
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.coin",
+                                              "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent",
                                               "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
                                               "game_parts.text_rules_a", "game_parts.text_rules_b"))
         # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15,
-        # Plan 4 Task 7
+        # Plan 4 Tasks 7 and 8
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -114,10 +114,11 @@ class PilotRollD20(unittest.TestCase):
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
         # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
-        # living_world_turn, new_game); Plan 4 Task 7: combat_flow
+        # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin
         names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
                  "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
-                 "_narration_safety_decision", "ensure_campaign_clock", "initialize_game", "ensure_death_state")
+                 "_narration_safety_decision", "ensure_campaign_clock", "initialize_game", "ensure_death_state",
+                 "_shop_presence_question")
         show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
@@ -125,7 +126,8 @@ class PilotRollD20(unittest.TestCase):
                              (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b",
                                   "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
                                   "game_parts.narration", "game_parts.narration_safety",
-                                  "game_parts.living_world_turn", "game_parts.new_game", "game_parts.combat_flow"]),
+                                  "game_parts.living_world_turn", "game_parts.new_game", "game_parts.combat_flow",
+                                  "game_parts.coin"]),
                              done.stderr)
 
 
@@ -1151,6 +1153,46 @@ class CombatFlowPart(unittest.TestCase):
         self.assertEqual(game._death_save_line({"roll": 20, "outcome": "revived"}, session=s),
                          "Ölüm kurtarma zarın: 20. Bir anda ciğerlerine hava doluyor; gözlerini açıyorsun, canın az da "
                          "olsa geri döndü.")
+
+
+COIN = tuple(batch_names("coin"))
+
+
+class CoinPart(unittest.TestCase):
+    """T5.2 batch coin: shop and purse helpers live in game_parts/coin.py."""
+
+    def test_coin_lives_in_the_part(self):
+        self.assertEqual(set(COIN) - set(routing_audit.re_exports(ROOT).get("coin", ())), set())
+
+    def test_the_coin_left_behind_alias_is_money_owners_object(self):
+        import money_owner
+        self.assertIs(game.COIN_LEFT_BEHIND, money_owner.COIN_LEFT_BEHIND)
+
+    def test_a_patched_create_shop_from_proposal_reaches_its_staying_caller(self):
+        # merge_world_updates (stays in game.py until Task 14) calls create_shop_from_proposal bare
+        proposal = {"name": "t8_Kuyu Dükkanı", "shopkeeper": {"name": "t8_Sekiz"}}
+        keeper = {"id": "t8_keeper", "name": "Sekiz Usta"}
+        with fixed_town(self, 20261320):
+            s = game.create_session(seed=11)
+            default_before = _session_snapshot(game._DEFAULT_SESSION)
+            with patch.object(game, "create_shop_from_proposal",
+                              return_value={"id": "t8_shop", "shopkeeper": keeper}) as made:
+                created = s.merge_world_updates({"create_shops": [proposal]})
+            self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
+        made.assert_called_once_with(proposal)
+        self.assertEqual(created, [keeper])
+
+    def test_shop_requests_answer_as_before(self):
+        # expected answers captured on 36fb0ddd (unmoved) with p4t8-capture.py
+        cases = (("_shop_economy_request", "Bu kılıcın fiyatı ne kadar?", True),
+                 ("_shop_economy_request", "Kapıyı yavaşça açıyorum.", False),
+                 ("_explicit_campaign_shop_negative_request", "Burada dükkan açma, sadece yürüyelim.", True),
+                 ("_explicit_campaign_shop_negative_request", "Dükkan sahibine selam veriyorum.", False),
+                 ("_shop_presence_question", "Bu kasabada bir tüccar var mı?", True),
+                 ("_shop_presence_question", "Tüccar burada bekliyor.", False))
+        for name, text, expected in cases:
+            with self.subTest(name=name, text=text):
+                self.assertIs(getattr(game, name)(text), expected)
 
 
 if __name__ == "__main__":
