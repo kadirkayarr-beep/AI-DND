@@ -658,6 +658,52 @@ class IntentPart(unittest.TestCase):
             self.assertEqual(s.world_state["location"], "forest")
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
 
+    def test_an_immediate_check_snapshots_the_given_session(self):  # Review Focus 4, Plan 4 Task 16 Fault 6
+        # execute_intent reads game._session() only when check_feature is set: the snapshot taken before the check
+        # and restored after a failed check must belong to the given session, never the default one
+        real = game._session
+        real_capture = game.GameSession._capture_runtime_snapshot
+        real_restore = game.GameSession._restore_runtime_snapshot
+        with fixed_town(self, 20261352):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "forest"
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            seen, captured, restored = [], [], []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            def capture(owner):
+                captured.append(owner)
+                return real_capture(owner)
+
+            def restore(owner, snapshot):
+                restored.append(owner)
+                return real_restore(owner, snapshot)
+
+            def failing_check(*args, **kwargs):
+                # the check writes into the active session, then fails: execute_intent must roll the write back
+                game._session().world_state["location"] = "castle"
+                raise RuntimeError("t16 check failure")
+
+            with patch.object(game, "_session", side_effect=record), \
+                 patch.object(game, "primal_knowledge_check_admission", return_value=None), \
+                 patch.object(game, "perform_skill_check", side_effect=failing_check) as check, \
+                 patch.object(game.GameSession, "_capture_runtime_snapshot", autospec=True, side_effect=capture), \
+                 patch.object(game.GameSession, "_restore_runtime_snapshot", autospec=True, side_effect=restore):
+                with self.assertRaisesRegex(RuntimeError, "t16 check failure"):
+                    game.execute_intent({"intent": "unknown"}, "Takla atıyorum.", check_feature="primal_knowledge",
+                                        session=s)
+            check.assert_called_once()
+            self.assertEqual(captured, [s])
+            self.assertEqual(restored, [s])
+            self.assertTrue(seen)
+            self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(s.world_state["location"], "forest")
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
     def test_a_rebound_execute_intent_reaches_its_moved_caller(self):  # Plan 4 T5.4e, Review Focus 5
         # trace_ai_pipeline.py rebinds game.execute_intent; update_world_state_from_player (moved in intent-s) must call
         # the rebound name; the parse/normalize/validate patches are the shape test_shops.py uses
