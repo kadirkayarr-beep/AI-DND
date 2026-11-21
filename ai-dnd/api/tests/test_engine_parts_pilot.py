@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -1193,6 +1194,75 @@ class CoinPart(unittest.TestCase):
         for name, text, expected in cases:
             with self.subTest(name=name, text=text):
                 self.assertIs(getattr(game, name)(text), expected)
+
+
+class SavefilePart(unittest.TestCase):
+    """T5.3 batches save-1 and save-2: save validation, repair, writing and loading live in game_parts/savefile.py."""
+
+    def test_the_save_repair_warnings_log_under_game(self):  # Review Focus 3
+        # one broken row per repair function; the lines were captured on 2df1d98f (unmoved) with p4t9-preflight.py
+        with fixed_town(self, 20261330), tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "t9_repair.json"
+            game.save_game(path, session=game.create_session(seed=31))
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            flags = payload["world_state"].setdefault("flags", {})
+            flags["money_declined"] = {"t9_osman": "bad"}  # _repair_dilim1_fields (economic_actions.repair_declines)
+            flags["active_npc_id"] = "t9_nobody"  # _repair_dilim2_fields: a talk with someone not in the save
+            path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            loaded = game.create_session(seed=32)
+            with self.assertLogs("game", "WARNING") as logged:
+                game.load_game(path, session=loaded)
+        self.assertEqual([(record.name, record.levelname, record.getMessage()) for record in logged.records],
+                         [("game", "WARNING", "dilim1 load repaired: money_declined.t9_osman"),
+                          ("game", "WARNING", "dilim2 load repaired: talk:nobody")])
+
+    def test_save_round_trip_after_the_move(self):  # Review Focus 3
+        with fixed_town(self, 20261331), tempfile.TemporaryDirectory() as folder:
+            default_before = _session_snapshot(game._DEFAULT_SESSION)
+            s = game.create_session(seed=31)
+            path = Path(folder) / "t9_round.json"
+            game.save_game(path, session=s)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            loaded = game.create_session(seed=33)
+            game.load_game(path, session=loaded)
+            again = json.loads(json.dumps(game.serialize_game_state(session=loaded), ensure_ascii=False))
+            self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
+        self.assertEqual(saved["format"], "ai-dnd-save")
+        self.assertEqual(again, saved)
+
+    def test_a_patched_os_reaches_the_moved_save_game(self):
+        # save_game reads os for its fsync only; the replace is pathlib's
+        with fixed_town(self, 20261332), tempfile.TemporaryDirectory() as folder:
+            s = game.create_session(seed=31)
+            with patch.object(game, "os", wraps=os) as patched:
+                written = game.save_game(Path(folder) / "t9_os.json", session=s)
+            self.assertTrue(written.is_file())
+        patched.fsync.assert_called_once()
+        self.assertEqual([call[0] for call in patched.mock_calls], ["fsync"])
+
+    def test_save_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # serialize_game_state reads game._session() only: every read must return the given session; the name and the
+        # narration exist only there (D-447)
+        real = game._session
+        with fixed_town(self, 20261333):
+            s = game.create_session(seed=31)
+            s.character["name"] = "t9_Yalnız Kâtip"
+            s.recent_dm_narrations.append("t9_yalnız anlatı")
+            default_before = _session_snapshot(game._session())
+            seen = []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            with patch.object(game, "_session", side_effect=record):
+                payload = game.serialize_game_state(session=s)
+            self.assertTrue(seen)
+            self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(payload["player"]["name"], "t9_Yalnız Kâtip")
+            self.assertEqual(payload["recent_dm_narrations"][-1], "t9_yalnız anlatı")
+            self.assertEqual(_session_snapshot(game._session()), default_before)
 
 
 if __name__ == "__main__":

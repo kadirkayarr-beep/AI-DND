@@ -1327,7 +1327,7 @@ def _repair_dilim1_fields(world: dict) -> list[str]:
     dropped += economic_actions.repair_ledger_labels(world)
     dropped += bold_acts.repair_counter_tip(world)
     for name in dropped:
-        logging.getLogger(__name__).warning("dilim1 load repaired: %s", name)
+        logging.getLogger("game").warning("dilim1 load repaired: %s", name)
     return dropped
 
 
@@ -1381,7 +1381,7 @@ def _repair_dilim2_fields(world: dict) -> list[str]:
             talk_mode.close(world, "repair")
             fixed.append(f"talk:{active}")
     for name in fixed:
-        logging.getLogger(__name__).warning("dilim2 load repaired: %s", name)
+        logging.getLogger("game").warning("dilim2 load repaired: %s", name)
     return fixed
 
 
