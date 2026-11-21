@@ -72,9 +72,10 @@ class WrapperFilter(unittest.TestCase):
                                               "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent",
                                               "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
-                                              "game_parts.text_rules_a", "game_parts.text_rules_b"))
+                                              "game_parts.savefile", "game_parts.text_rules_a",
+                                              "game_parts.text_rules_b"))
         # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15,
-        # Plan 4 Tasks 7 and 8
+        # Plan 4 Tasks 7, 8 and 9
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -115,11 +116,11 @@ class PilotRollD20(unittest.TestCase):
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
         # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
-        # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin
+        # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin; Task 9: savefile
         names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
                  "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
                  "_narration_safety_decision", "ensure_campaign_clock", "initialize_game", "ensure_death_state",
-                 "_shop_presence_question")
+                 "_shop_presence_question", "save_game")
         show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
@@ -128,7 +129,7 @@ class PilotRollD20(unittest.TestCase):
                                   "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
                                   "game_parts.narration", "game_parts.narration_safety",
                                   "game_parts.living_world_turn", "game_parts.new_game", "game_parts.combat_flow",
-                                  "game_parts.coin"]),
+                                  "game_parts.coin", "game_parts.savefile"]),
                              done.stderr)
 
 
@@ -1196,8 +1197,14 @@ class CoinPart(unittest.TestCase):
                 self.assertIs(getattr(game, name)(text), expected)
 
 
+SAVE_1 = tuple(batch_names("save-1"))
+
+
 class SavefilePart(unittest.TestCase):
     """T5.3 batches save-1 and save-2: save validation, repair, writing and loading live in game_parts/savefile.py."""
+
+    def test_save_1_lives_in_the_part(self):
+        self.assertEqual(set(SAVE_1) - set(routing_audit.re_exports(ROOT).get("savefile", ())), set())
 
     def test_the_save_repair_warnings_log_under_game(self):  # Review Focus 3
         # one broken row per repair function; the lines were captured on 2df1d98f (unmoved) with p4t9-preflight.py

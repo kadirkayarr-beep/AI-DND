@@ -1,6 +1,6 @@
 {
   "files": {
-    "game.py": 13017,
+    "game.py": 12156,
     "game_parts/narration_safety.py": 1505
   },
   "part_max": 2500,
@@ -12,7 +12,6 @@
     "game.py::_front_step": 235,
     "game.py::_narrate_resolved_turn": 351,
     "game.py::_run_player_turn_internal": 2756,
-    "game.py::_validate_save_payload": 367,
     "game.py::ask_dungeon_master": 509,
     "game.py::finalize_narration": 350,
     "game.py::load_game": 186,
@@ -24,6 +23,7 @@
     "game_parts/lore.py::_supported_lore_question_response": 479,
     "game_parts/narration_safety.py::_narration_safety_decision": 1054,
     "game_parts/new_game.py::initialize_game": 197,
+    "game_parts/savefile.py::_validate_save_payload": 367,
     "game_parts/terminal.py::run": 184
   }
 }
