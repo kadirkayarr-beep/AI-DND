@@ -3709,7 +3709,7 @@
  },
  "perform_skill_check": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.character_rules",
   "session_bound": true,
   "signature": "(skill, dc, modifiers, proficient_skills, proficiency_bonus, advantage=False, disadvantage=False, expertise_skills=None, check_feature=None, check_evidence=None)"
  },

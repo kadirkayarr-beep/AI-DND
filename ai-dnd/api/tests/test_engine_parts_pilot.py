@@ -431,14 +431,21 @@ class CharacterRulesPart(unittest.TestCase):
         rolled.assert_called_once_with()
 
     def test_character_rules_session_helpers_use_the_given_session(self):  # Review Focus 4
-        # both names read game._session() (measured on 0b159e30): record what it returns during the session= call
+        # every name reads game._session() (measured on 0b159e30; perform_skill_check on 0b1dca5a): record what it
+        # returns during the session= call
         real = game._session
         with fixed_town(self, 20261201):
             s = game.create_session(seed=11)
             s.character["species"] = "Goliath"
             s.character["proficiency_bonus"] = 2
+            # Plan 4 T5.4b (D-447): a slow-paced journey gives Perception advantage, and only s travels
+            s.world_state["journey"] = {"status": "TRAVELLING", "pace": "slow"}
+            self.assertNotEqual((game._session().world_state.get("journey") or {}).get("status"), "TRAVELLING")
             default_character = dict(game._session().character)
-            for name, args in (("roll_stat", ()), ("initialize_species_trait_state", ("hill",))):
+            answers = {}
+            for name, args in (("roll_stat", ()), ("initialize_species_trait_state", ("hill",)),
+                               ("perform_skill_check", ("Perception", 10, s.character["modifiers"],
+                                                        s.character["proficient_skills"], 2))):
                 seen = []
 
                 def record():
@@ -447,11 +454,26 @@ class CharacterRulesPart(unittest.TestCase):
                     return value
 
                 with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
-                    getattr(game, name)(*args, session=s)
+                    answers[name] = getattr(game, name)(*args, session=s)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
             self.assertEqual(s.character["giant_ancestry"], "hill")
+            self.assertIs(answers["perform_skill_check"]["advantage"], True)
             self.assertEqual(dict(game._session().character), default_character)
+
+    def test_perform_skill_check_lives_in_character_rules(self):  # Plan 4 T5.4b
+        self.assertIn("perform_skill_check", routing_audit.re_exports(ROOT)["character_rules"])
+
+    def test_a_patched_perform_skill_check_reaches_its_staying_caller(self):
+        # _hideout_check stays in game.py and calls perform_skill_check bare; 24 patch sites patch it on game
+        with fixed_town(self, 20261340):
+            character = game._session().character
+            with patch.object(game, "perform_skill_check", return_value={"result": "BAŞARILI"}) as checked:
+                self.assertIs(game._hideout_check("Stealth", 13), True)
+        checked.assert_called_once_with("Stealth", 13, character["modifiers"],
+                                        character.get("proficient_skills") or [],
+                                        character.get("proficiency_bonus") or 2,
+                                        expertise_skills=character.get("expertise_skills") or ())
 
     def test_cr_helpers_answer_as_before(self):
         # one fixed character (Barbarian, DEX 14, CON 16, WIS 12); expected values captured on 0b159e30 before the move

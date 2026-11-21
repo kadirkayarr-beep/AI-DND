@@ -456,3 +456,26 @@ def roll_initiative_npc():
 def roll_initiative_player():
     """Roll initiative for player."""
     return game.roll_initiative(game._session().character["dexterity_mod"])
+
+def perform_skill_check(
+    skill, dc, modifiers, proficient_skills, proficiency_bonus,
+    advantage=False, disadvantage=False, expertise_skills=None,
+    check_feature=None, check_evidence=None,
+):
+    if check_feature is None:
+        return game._perform_skill_check(skill, dc, modifiers, proficient_skills, proficiency_bonus,
+                                    advantage, disadvantage, expertise_skills)
+    if check_evidence is not None and type(check_evidence) is not list:
+        raise ValueError('Check evidence must be a caller-owned list.')
+    snapshot = game._session()._capture_runtime_snapshot()
+    evidence = []
+    try:
+        result = game._perform_skill_check(skill, dc, modifiers, proficient_skills, proficiency_bonus,
+                                      advantage, disadvantage, expertise_skills,
+                                      check_feature=check_feature, check_evidence=evidence)
+    except Exception:
+        game._session()._restore_runtime_snapshot(snapshot)
+        raise
+    if check_evidence is not None:
+        check_evidence.extend(evidence)
+    return result
