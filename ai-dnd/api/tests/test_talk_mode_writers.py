@@ -94,7 +94,9 @@ class OnlyTalkModeWrites(unittest.TestCase):
                     reason = node.args[0].value if (len(node.args) == 1 and not node.keywords
                                                     and isinstance(node.args[0], ast.Constant)) else None
                     calls.append((rel, reason))
-        self.assertEqual(sorted(calls), [("game.py", "combat"), ("game.py", "ended"), ("grounded_action.py", "walking")])
+        # the combat clear moved with _start_combat_with_initiative to game_parts/combat_flow.py (game.py split T5.1b)
+        self.assertEqual(sorted(calls), [("game.py", "ended"), ("game_parts/combat_flow.py", "combat"),
+                                         ("grounded_action.py", "walking")])
         self.assertTrue({reason for _, reason in calls} <= set(talk_mode.REASONS))
         with self.assertRaises(TypeError):
             game._clear_active_interlocutor()                            # no default reason
