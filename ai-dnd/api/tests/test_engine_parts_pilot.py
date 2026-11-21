@@ -922,6 +922,7 @@ class LorePart(unittest.TestCase):
 
 
 NARRATION = tuple(batch_names("narration"))
+NARRATION_S_1 = tuple(batch_names("narration-s-1"))
 
 
 class NarrationPart(unittest.TestCase):
@@ -929,6 +930,9 @@ class NarrationPart(unittest.TestCase):
 
     def test_narration_lives_in_the_part(self):
         self.assertEqual(set(NARRATION) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
+
+    def test_narration_s_1_lives_in_the_part(self):  # Plan 4 T5.4g
+        self.assertEqual(set(NARRATION_S_1) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
 
     def test_narration_session_helpers_use_the_given_session(self):  # Review Focus 4
         # both names read game._session() (measured on 8cc9a805): record what it returns during the session= call
@@ -941,6 +945,10 @@ class NarrationPart(unittest.TestCase):
             s.world_state.setdefault("features", []).append({"id": "t17_kuyu", "name": "Kuyu",
                                                              "location": s.world_state["location"],
                                                              "description": "Taş bilezikli eski bir kuyu."})
+            # and Tarvek the well digger where it stands (Plan 4 T5.4g; the default session has nobody there)
+            s.world_state["npcs"].append({"id": "npc_t14_tarvek", "name": "Tarvek", "role": "kuyucu",
+                                          "location": s.world_state["location"], "name_known_to_player": True,
+                                          "role_known_to_player": True})
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             tracks_failed = {"target_kind": "tracks", "target_id": None, "target_name": "izler", "found": False,
                              "text": "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun."}
@@ -952,7 +960,10 @@ class NarrationPart(unittest.TestCase):
                 ("_inspection_findings", ("izlere bakıyorum", "failure"), {}, tracks_failed),
                 ("_inspection_findings", ("etrafa bakıyorum", "failure"), {}, None),
                 ("_inspection_findings", ("kuyuya bakıyorum", "failure"), {}, well_failed),
+                # Plan 4 T5.4g, captured on afd69027 before the move: the people the context shows
+                ("build_world_context", (), {}, ["Tarvek"]),
             )
+            views = {"build_world_context": lambda context: [npc.get("name") for npc in context["npcs"]]}
             for name, args, kwargs, expected in cases:
                 seen = []
 
@@ -962,10 +973,29 @@ class NarrationPart(unittest.TestCase):
                     return value
 
                 with self.subTest(name=name, args=args), patch.object(game, "_session", side_effect=record):
-                    self.assertEqual(getattr(game, name)(*args, session=s, **kwargs), expected)
+                    answer = getattr(game, name)(*args, session=s, **kwargs)
+                    self.assertEqual(views.get(name, lambda value: value)(answer), expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_world_updates_validate_as_before(self):
+        # two update dicts from test_shops.py (a shopkeeper through generic NPC updates; a plain shop proposal);
+        # expected values captured on afd69027 before the move
+        shop = {"name": "Green Lantern", "description": "A small timber storefront with a painted green sign.",
+                "shopkeeper": {"name": "Mira", "personality": "Patient and observant.",
+                               "appearance": "A short-haired human in a plain apron."}}
+        empty = {"create_locations": [], "create_npcs": [], "update_npcs": [], "create_features": [],
+                 "create_shops": [], "events": []}
+        with fixed_town(self, 20261380):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "tavern"
+            updates = {"create_npcs": [{"name": "Mira", "role": "Merchant", "location": "tavern"}],
+                       "create_shops": [shop]}
+            self.assertEqual(game.validate_world_updates(updates, allow_new_npcs=True, allow_new_shops=False,
+                                                         session=s), empty)
+            self.assertEqual(game.validate_world_updates({"create_shops": [shop]}, allow_new_shops=True, session=s),
+                             dict(empty, create_shops=[dict(shop, location="tavern", proposal_key="s1")]))
 
     def test_narration_helpers_answer_as_before(self):
         # one open street with one person (Mira); expected values captured on 8cc9a805 before the move

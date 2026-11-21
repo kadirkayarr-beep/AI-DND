@@ -2,6 +2,14 @@ import game
 import living_world
 import re
 import tr_case
+import campaign_time
+import copy
+import equipment_economy
+import incidents.projection as incident_projection
+import interaction_adventure
+import local_dialogue
+import scheduled_events
+import timed_gameplay
 
 
 def _narration_fact_packet(action_result):
@@ -508,3 +516,596 @@ def _narration_contradicts_supported_name_memory(npc, player_input, narration):
         normalized_narration,
     )
     return contradiction.group(0) if contradiction else None
+
+def validate_world_updates(
+    updates,
+    allow_new_npcs=False,
+    allow_new_features=False,
+    allow_new_locations=False,
+    allow_new_shops=False,
+    allowed_feature_kinds=None,
+):
+    """Whitelist narrative state updates; mechanical state is never accepted here."""
+    world_state = game._session().world_state
+    if not isinstance(updates, dict):
+        return {
+            "create_locations": [], "create_npcs": [], "update_npcs": [],
+            "create_features": [], "create_shops": [], "events": [],
+        }
+    def proposal_key(value, prefix, index):
+        candidate = (
+            game._clean_world_text(value.get("proposal_key"), 16)
+            if isinstance(value, dict)
+            else None
+        )
+        if isinstance(candidate, str) and re.fullmatch(
+            rf"{prefix}[1-9]\d?", candidate
+        ):
+            return candidate
+        return f"{prefix}{index + 1}"
+
+    result = {
+        "create_locations": [], "create_npcs": [], "update_npcs": [],
+        "create_features": [], "create_shops": [], "events": [],
+    }
+
+    if allow_new_locations and isinstance(updates.get("create_locations"), list):
+        for index, proposal in enumerate(updates["create_locations"][:2]):
+            validated = game.validate_location_proposal(proposal)
+            if validated:
+                validated["proposal_key"] = proposal_key(proposal, "l", index)
+                result["create_locations"].append(validated)
+
+    if allow_new_npcs and isinstance(updates.get("create_npcs"), list):
+        rejecting_unapproved_shopkeeper = (
+            not allow_new_shops
+            and isinstance(updates.get("create_shops"), list)
+            and bool(updates["create_shops"])
+        )
+        for index, proposal in enumerate(updates["create_npcs"][:2]):
+            if (
+                rejecting_unapproved_shopkeeper
+                and isinstance(proposal, dict)
+                and game._is_shopkeeper_role(proposal.get("role"))
+            ):
+                continue
+            validated = game.validate_npc_proposal(proposal)
+            if validated:
+                validated["proposal_key"] = proposal_key(proposal, "n", index)
+                result["create_npcs"].append(validated)
+
+    if allow_new_shops and isinstance(updates.get("create_shops"), list):
+        for index, proposal in enumerate(updates["create_shops"][:2]):
+            validated = game.validate_shop_proposal(proposal)
+            if validated:
+                validated["proposal_key"] = proposal_key(proposal, "s", index)
+                result["create_shops"].append(validated)
+
+    if isinstance(updates.get("update_npcs"), list):
+        existing_by_id = {npc.get("id"): npc for npc in world_state["npcs"]}
+        for proposal in updates["update_npcs"][:4]:
+            if not isinstance(proposal, dict) or proposal.get("id") not in existing_by_id:
+                continue
+            existing_npc = existing_by_id[proposal["id"]]
+            update = {"id": proposal["id"]}
+            for key, limit in (("personality", 180), ("appearance", 180), ("backstory", 240), ("relationship", 40)):
+                value = game._clean_world_text(proposal.get(key), limit)
+                if value and not game._has_unregistered_person_name(value, (existing_npc.get("name", ""),)):
+                    update[key] = value
+            for key in ("knowledge",):
+                if key in proposal:
+                    additions = [
+                        value for value in game._clean_world_text_list(proposal[key], 180, 8)
+                        if not game._has_unregistered_person_name(value, (existing_npc.get("name", ""),))
+                    ]
+                    if additions:
+                        update[key] = additions
+            result["update_npcs"].append(update)
+
+    if allow_new_features and isinstance(updates.get("create_features"), list):
+        existing_features = {
+            (
+                feature.get("location"),
+                feature.get("parent_id"),
+                feature.get("name", "").casefold(),
+            )
+            for feature in world_state["features"]
+        }
+        for index, proposal in enumerate(updates["create_features"][:1]):
+            if not isinstance(proposal, dict):
+                continue
+            location = game.normalize_location_id(proposal.get("location", world_state["location"]))
+            name = game._clean_world_text(proposal.get("name"), 60)
+            description = game._clean_world_text(proposal.get("description", ""), 200) or ""
+            readable_text = game._clean_world_text(proposal.get("text"), 200)
+            kind = game._clean_world_text(proposal.get("kind", "feature"), 32) or "feature"
+            if location != world_state["location"] or not name or "\n" in name:
+                continue
+            if allowed_feature_kinds is not None and kind not in allowed_feature_kinds:
+                continue
+            parent_id = (
+                game._valid_local_feature_parent_id(proposal.get("parent_id"), location)
+                if proposal.get("parent_id") is not None
+                else None
+            )
+            if proposal.get("parent_id") is not None and parent_id is None:
+                continue
+            if parent_id and game._feature_proposal_conflicts_with_canonical_door(
+                proposal, parent_id
+            ):
+                continue
+            if game._legacy_hidden_feature_name_collision(
+                proposal, location, parent_id, name
+            ) or game._local_detail_claims_unsupported_mechanics(proposal, parent_id):
+                continue
+            shop_terms = (
+                "shop", "store", "market", "stall", "merchant", "shopkeeper",
+                "trading post", "dükkan", "dukkan", "mağaza", "magaza",
+                "tüccar", "satıcı", "satici", "esnaf",
+            )
+            combined_text = f"{name} {description}".casefold()
+            if (
+                any(term in combined_text for term in shop_terms)
+                or game._SHOP_ECONOMY_PATTERN.search(description)
+            ):
+                continue
+            key = (location, parent_id, name.casefold())
+            if key in existing_features or len(game.location_features(location)) >= 16:
+                continue
+            existing_features.add(key)
+            result["create_features"].append({
+                "location": location,
+                **({"parent_id": parent_id} if parent_id else {}),
+                "name": name,
+                "description": description,
+                **({"text": readable_text} if readable_text else {}),
+                "kind": kind,
+                "aliases": game._clean_world_text_list(proposal.get("aliases", []), 80, 8),
+                "proposal_key": proposal_key(proposal, "f", index),
+            })
+
+    if (allow_new_npcs or allow_new_features) and isinstance(updates.get("events"), list):
+        for event in game._clean_world_text_list(updates["events"], 200, 3):
+            if re.search(r"\b(?:hp|damage|hasar|envanter|altın|zar|d20|dc|kapı|kılıç|silah|eşya|satın aldı|satıldı|öldü|öldür|location)\b", event.casefold()):
+                continue
+            if game._has_unregistered_person_name(event):
+                continue
+            result["events"].append(event)
+    return result
+
+def _bind_world_update_mentions(raw_updates, location_updates, validated_updates, world_state):
+    accepted = set()
+    rejected_names = []
+    categories = (
+        ("create_locations", "l", 2, world_state.get("locations", {}).values()),
+        ("create_npcs", "n", 2, world_state.get("npcs", [])),
+        ("create_features", "f", 4, world_state.get("features", [])),
+        ("create_shops", "s", 2, world_state.get("shops", [])),
+    )
+    for field, prefix, limit, stored_items in categories:
+        raw_items = raw_updates.get(field, []) if isinstance(raw_updates, dict) else []
+        if not isinstance(raw_items, list):
+            continue
+        if field == "create_locations":
+            validated_items = (
+                location_updates.get(field, [])
+                if isinstance(location_updates, dict)
+                else []
+            )
+        else:
+            validated_items = (
+                validated_updates.get(field, [])
+                if isinstance(validated_updates, dict)
+                else []
+            )
+        if not isinstance(validated_items, list):
+            validated_items = []
+        stored_items = list(stored_items) if not isinstance(stored_items, list) else stored_items
+        for index, raw_item in enumerate(raw_items):
+            if not isinstance(raw_item, dict):
+                continue
+            candidate_key = raw_item.get("proposal_key")
+            if not isinstance(candidate_key, str) or not re.fullmatch(
+                rf"{prefix}[1-9]\d?", candidate_key
+            ):
+                candidate_key = f"{prefix}{index + 1}"
+            validated = next(
+                (
+                    item for item in validated_items
+                    if isinstance(item, dict)
+                    and item.get("proposal_key") == candidate_key
+                ),
+                None,
+            )
+            stored = None
+            if validated:
+                name = str(validated.get("name", "")).casefold()
+                location = validated.get("location")
+                if field == "create_locations":
+                    stored = next(
+                        (
+                            item for item in stored_items
+                            if isinstance(item, dict)
+                            and str(item.get("name", "")).casefold() == name
+                            and item.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+                        ),
+                        None,
+                    )
+                elif field == "create_npcs":
+                    stored = next(
+                        (
+                            item for item in stored_items
+                            if isinstance(item, dict)
+                            and str(item.get("name", "")).casefold() == name
+                            and item.get("location") == location
+                        ),
+                        None,
+                    )
+                elif field == "create_features":
+                    stored = next(
+                        (
+                            item for item in stored_items
+                            if isinstance(item, dict)
+                            and str(item.get("name", "")).casefold() == name
+                            and item.get("location") == location
+                        ),
+                        None,
+                    )
+                else:
+                    stored = next(
+                        (
+                            item for item in stored_items
+                            if isinstance(item, dict)
+                            and str(item.get("name", "")).casefold() == name
+                            and item.get("location") == world_state.get("location")
+                        ),
+                        None,
+                    )
+            if stored:
+                accepted.add(candidate_key)
+            else:
+                candidates = [raw_item.get("name")]
+                if field == "create_shops":
+                    keeper = raw_item.get("shopkeeper")
+                    if isinstance(keeper, dict):
+                        candidates.append(keeper.get("name"))
+                rejected_names.extend(
+                    clean for value in candidates
+                    if (clean := game._clean_world_text(value, 60))
+                )
+    return accepted, list(dict.fromkeys(rejected_names))
+
+def merge_world_updates(updates):
+    """Apply only prevalidated proposals, assigning entity IDs in Python."""
+    world_state = game._session().world_state
+    created = []
+    for proposal in updates.get("create_locations", []):
+        game.create_location_from_proposal(proposal)
+    for proposal in updates.get("create_npcs", []):
+        npc = game.create_npc_from_ai(proposal)
+        if npc and npc not in created:
+            created.append(npc)
+    for proposal in updates.get("create_shops", []):
+        created_shop = game.create_shop_from_proposal(proposal)
+        shopkeeper = created_shop.get("shopkeeper") if created_shop else None
+        if shopkeeper and shopkeeper not in created:
+            created.append(shopkeeper)
+    for update in updates.get("update_npcs", []):
+        npc = next((item for item in world_state["npcs"] if item.get("id") == update.get("id")), None)
+        if not npc:
+            continue
+        for key in ("personality", "appearance", "backstory", "relationship"):
+            if update.get(key):
+                npc[key] = update[key]
+        for key in ("knowledge",):
+            if update.get(key):
+                npc[key] = (npc.get(key, []) + update[key])[-8:]
+    for feature in updates.get("create_features", []):
+        game.create_local_feature(feature)
+    for event in updates.get("events", []):
+        world_state["events"].append({
+            "location": world_state["location"],
+            "description": event,
+            "reality_layer": "NARRATIVE_TEXTURE",
+        })
+    world_state["events"] = world_state["events"][-20:]
+    return created
+
+def _narrator_shop_record(shop):
+    """A shop keeps its keeper link only once the keeper's role is known."""
+    if not isinstance(shop, dict):
+        return shop
+    keeper = next(
+        (npc for npc in game._session().world_state.get("npcs", [])
+         if isinstance(npc, dict) and npc.get("id") == shop.get("shopkeeper_id")),
+        None,
+    )
+    if keeper is None or living_world.npc_role_known_to_player(keeper):
+        return shop
+    return {key: value for key, value in shop.items() if key != "shopkeeper_id"}
+
+def build_world_context(npc_target=None):
+    world_state = game._session().world_state
+    game._normalize_ground_items()
+    npcs = game.active_npcs()
+    if npc_target and not any(
+        npc.get("id") == npc_target.get("id")
+        for npc in scheduled_events.visible_npcs(world_state)
+    ):
+        npc_target = None
+    if npc_target and all(npc.get("id") != npc_target.get("id") for npc in npcs):
+        npcs.append(npc_target)
+    model_npcs = []
+    for canonical_npc in npcs[:8]:
+        projected = copy.deepcopy(canonical_npc)
+        projected["name"] = living_world.public_npc_name(canonical_npc)
+        projected["role"] = living_world.public_npc_role(canonical_npc)
+        if not living_world.npc_role_known_to_player(canonical_npc):
+            # Inner character and job links are not visible cues on a stranger.
+            for hidden_key in ("personality", "relationship", "tags", "shop_id"):
+                projected.pop(hidden_key, None)
+        model_npcs.append(projected)
+    context = {
+        "current_campaign_time": campaign_time.public_time(world_state),
+        "player_known_events": scheduled_events.public_events(world_state),
+        "pending_event_decisions": scheduled_events.public_pending(world_state),
+        "journey": timed_gameplay.public_journey(world_state),
+        "character": {
+            "name": game._session().character["name"],
+            "race": game._session().character["race"],
+            "class": game._session().character["class"],
+            "level": game._session().character["level"],
+        },
+        "player_combat": {
+            "current_hp": game._session().character["current_hp"],
+            "max_hp": game._session().character["max_hp"],
+            "armor_class": game._session().character["armor_class"],
+            "combat_status": world_state.get("player_combat_status", "active"),
+        },
+        "combat": {
+            "active": world_state.get("combat", {}).get("active", False),
+            "round": world_state.get("combat", {}).get("round", 0),
+            "initiative_order": world_state.get("combat", {}).get("initiative_order", []),
+            "current_turn_index": world_state.get("combat", {}).get("current_turn_index", 0),
+            "target_id": world_state.get("combat", {}).get("target_id"),
+        },
+        "location": {
+            "id": world_state["location"],
+            "label": game.location_display_name(world_state["location"]),
+            "reality_layer": world_state.get("locations", {}).get(
+                world_state["location"], {}
+            ).get("reality_layer", "UNKNOWN_OR_UNLOADED"),
+        },
+        **game._bodies_here_context(world_state),
+        "npcs": [
+            {key: npc.get(key) for key in (
+                "id", "name", "role", "personality", "appearance", "relationship",
+                "tags", "shop_id",
+                "current_hp", "max_hp", "armor_class", "combat_status"
+            ) if npc.get(key) not in (None, "", [])}
+            | {"reality_layer": npc.get("reality_layer", "UNKNOWN_OR_UNLOADED")}
+            | ({
+                "procedural_personal_profile":
+                    game._narrator_visible_profile(local_dialogue.ensure_personal_profile(npc))
+            } if (
+                npc_target
+                and npc.get("id") == npc_target.get("id")
+                and living_world.npc_role_known_to_player(npc_target)
+            ) else {})
+            | ({
+                "verified_npc_memory": game._format_npc_memory(npc.get("memory", []))
+            } if (
+                not npc_target or npc.get("id") == npc_target.get("id")
+            ) else {"verified_npc_memory": []})
+            for npc in model_npcs
+        ],
+        "shops": [
+            {
+                key: shop.get(key)
+                for key in (
+                    "id", "name", "description", "location", "tags",
+                    "shopkeeper_id",
+                )
+                if shop.get(key) not in (None, "", [])
+            }
+            | {"reality_layer": shop.get("reality_layer", "UNKNOWN_OR_UNLOADED")}
+            for raw_shop in map(game._narrator_shop_record, world_state.get("shops", []))
+            if (shop := living_world.public_shop_projection(world_state, raw_shop)) is not None and shop.get("location") == world_state["location"]
+        ],
+        "active_npc_id": world_state.get("flags", {}).get("active_npc_id"),
+        "current_npc_target": {
+            "id": npc_target.get("id"),
+            "name": living_world.public_npc_name(npc_target),
+            "role": living_world.public_npc_role(npc_target),
+        } if npc_target else None,
+        "features": [
+            {
+                "name": item["name"],
+                "description": item.get("description", ""),
+                "reality_layer": item.get("reality_layer", "UNKNOWN_OR_UNLOADED"),
+            }
+            for item in living_world.visible_features(world_state)[:16]
+        ],
+        "inventory_summary": equipment_economy.labels(world_state["inventory"]),
+        "ground_items_summary": equipment_economy.labels(world_state["ground_items_by_location"].get(world_state["location"], [])),
+        "recent_events": [event["description"] for event in world_state["events"][-5:] if event.get("location") == world_state["location"]],
+        "recent_event_reality_layers": [
+            event.get("reality_layer", "NARRATIVE_TEXTURE")
+            for event in world_state["events"][-5:]
+            if event.get("location") == world_state["location"]
+        ],
+    }
+    scene_incidents = incident_projection.scene_annotation(world_state)
+    if scene_incidents:
+        context["scene_incidents"] = scene_incidents
+    import world_reactions
+    scene_marks = world_reactions.scene_marks(world_state)
+    if scene_marks:
+        context["scene_marks"] = scene_marks
+    known_history = incident_projection.known_history(world_state)
+    if known_history:
+        context["known_history"] = known_history
+    door = game._current_door()
+    if door:
+        context["door"] = {key: door.get(key) for key in ("name", "description", "open", "broken")}
+        if game._lock_known_to_player(world_state, door.get("id")):
+            context["door"]["locked"] = door.get("locked")
+    if npc_target:
+        for record in context["npcs"]:
+            # Old free-form knowledge and another actor's history are not a
+            # verified NPC perspective. Retain the addressed personal profile.
+            record.pop("knowledge", None)
+            record.pop("backstory", None)
+            if record.get("id") != npc_target.get("id"):
+                record.pop("procedural_personal_profile", None)
+                record["verified_npc_memory"] = []
+        perspective = interaction_adventure.perspective(world_state, npc_target)
+        if isinstance(perspective, dict):
+            perspective = copy.deepcopy(perspective)
+            perspective["name"] = living_world.public_npc_name(npc_target)
+            perspective["role"] = living_world.public_npc_role(npc_target)
+            if not living_world.npc_role_known_to_player(npc_target):
+                perspective.pop("personality", None)
+        context["interaction_perspective"] = perspective
+    return context
+
+def _stands_by_their_words(npc, player_input):
+    """The line is about this person's real work or real words: nothing in it is theirs to deny."""
+    import npc_statements
+    return game._job_talk_with(npc) or npc_statements.claim_support(
+        game._session().world_state, npc, player_input).get("status") == "supported"
+
+def _fallback_narration(player_input, npc_target=None):
+    world_state = game._session().world_state
+    outcome = game._mechanical_outcome(player_input)
+    skill_match = re.search(r"(?im)^Skill:\s*(.+?)\s*$", player_input)
+    skill_name = skill_match.group(1).strip() if skill_match else None
+    text = player_input.casefold()
+    npc_name = game._current_npc_name()
+    stealth_action = "gizlen" in text or "saklan" in text
+    door_action = "kapı" in text or "kapıyı" in text or "kilit" in text
+    known_npcs = [npc for npc in world_state["npcs"] if npc.get("location") == world_state["location"]]
+
+    if ("kılıc" in text or "kılıç" in text or "silah" in text) and re.search(
+        r"\b(?:nerede|nerde|var mı|yanımda|envanter\w*|duruyor mu)\b", text
+    ):
+        if "Kılıç" in world_state["ground_items"]:
+            return "Kılıç yerde duruyor ve envanterinde bulunmuyor."
+        if "Kılıç" in world_state["inventory"]:
+            return "Kılıç envanterinde bulunuyor."
+
+    if npc_target is not None and isinstance(npc_target, dict):
+        target_npc = npc_target
+    else:
+        target = game.resolve_npc_reference(player_input)
+        target_npc = target.get("npc") if target.get("status") == "found" else None
+    if target_npc and game._is_player_name_inquiry_to_npc(player_input):
+        remembered_name = game._historical_player_name_from_npc_memory(target_npc, player_input)
+        is_hitap = bool(re.search(r"\b(?:ad[ıi]mla|ismimle)\s+hitap\b", game._normalize_turkish_typos(str(player_input).casefold())))
+        if remembered_name:
+            if is_hitap:
+                return f'{living_world.public_npc_name(target_npc)}, “Elbette, {remembered_name}. Sana adınla hitap edebilirim,” der.'
+            return f'{living_world.public_npc_name(target_npc)}, “Evet, adının {remembered_name} olduğunu hatırlıyorum,” der.'
+        if is_hitap:
+            return f'{living_world.public_npc_name(target_npc)}, “Bana henüz adını söylemedin; adını bilmeden sana adınla hitap edemem,” der.'
+        return f'{living_world.public_npc_name(target_npc)}, “Bana henüz adını söylemedin; adını bilmiyorum,” der.'
+    if target_npc and game.is_npc_historical_claim(player_input) and game._stands_by_their_words(target_npc, player_input):
+        return (game._job_fallback(game._session().world_state)
+                or interaction_adventure.immersive_unknown(target_npc, player_input))
+    if target_npc and game.is_npc_historical_claim(player_input) and not game.npc_memory_supports_claim(target_npc, player_input):
+        return game.historical_claim_denial(target_npc)
+    if target_npc and game.is_npc_historical_claim(player_input):
+        remembered = game.npc_memory_supporting_entry(target_npc, player_input) or ""
+        quote = re.search(r"[\"“](.*?)[\"”]", remembered)
+        if quote:
+            return f'{living_world.public_npc_name(target_npc)}, "Evet, bunu söylemiştim: {quote.group(1)}" diye yanıt verir.'
+        return f'{living_world.public_npc_name(target_npc)}, "Evet, bunu daha önce konuştuğumuzu hatırlıyorum," diye yanıt verir.'
+    if target_npc and re.search(r"(isim|adı|adın|ismin|kimsin|kim\?)", text):
+        return f'{living_world.public_npc_name(target_npc)} sana şöyle bir bakıyor. “Bunun beni ilgilendirdiğini sanmıyorum.”'
+    if target_npc and re.search(r"\b(selam|merhaba|iyi günler)\b", text):
+        return f'{living_world.public_npc_name(target_npc)} selamını alır ve "Merhaba," diye karşılık verir.'
+    if target_npc and re.search(r"\b(?:burada ne zamandır|kaç yıldır|ne kadar süredir)\b.{0,50}\b(?:çalış|burada|taverna)", text):
+        return f'{living_world.public_npc_name(target_npc)}, "Uzun süredir burada çalışıyorum; tam yıl sayısını net hatırlamıyorum," diye yanıt verir.'
+    if target_npc and re.search(r"\b(?:bu kasabada|bu şehirde|doğuda ne var|güvenli bir yer|bu yerden bahset)", text):
+        return interaction_adventure.immersive_unknown(target_npc, player_input)
+    if target_npc and game.is_npc_dialogue_input(player_input):
+        return interaction_adventure.immersive_unknown(target_npc, player_input)
+    if re.search(r"tavernaya (?:git|gidiyorum|dön|geri dön)|ormana (?:git|gidiyorum|dön|geri dön)|kaleye (?:git|gidiyorum|dön|geri dön)", text):
+        place = game.location_display_name()
+        details = game.feature_descriptions()
+        people = [game._public_scene_person_text(npc) for npc in game.active_npcs()]
+        people_text = f" Bu sahnede {', '.join(people)} bulunuyor." if people else ""
+        details_text = f" Çevrede {', '.join(details)} var." if details else ""
+        return f"{place} konumuna vardın.{people_text}{details_text}"
+
+    if stealth_action and outcome in ("critical_failure", "failure"):
+        if npc_name:
+            return f"Saklanma girişimin başarısız olur; {npc_name} seni fark eder."
+        return "Saklanma girişimin başarısız olur."
+    if stealth_action and outcome in ("critical_success", "success"):
+        if npc_name:
+            return f"Saklanma girişimin başarılı olur; {npc_name} seni fark etmez."
+        return "Saklanma girişimin başarılı olur."
+
+    if skill_name in ("Perception", "Investigation", "Survival"):
+        # Success and failure must read differently; no second-person verbs
+        # the agency guard would trim from a Python line.
+        if outcome in ("critical_success", "success"):
+            location_id = world_state.get("location")
+            scenes = world_state.get("scene_state", {}).get("scenes", {})
+            scene = scenes.get(location_id) if isinstance(scenes, dict) else None
+            if isinstance(scene, dict) and scene.get("materialized"):
+                return "İncelemen başarılı. " + game._scene_look_text(location_id)
+            return "İncelemen başarılı: gözden kaçan bir şey yok, ama yeni bir ipucu da çıkmıyor."
+        return "İncelemen sonuç vermedi; bu bakışla yeni bir ayrıntı seçilmiyor."
+
+    if door_action and outcome in ("critical_failure", "failure"):
+        door = game._current_door()
+        return f"Girişim başarısız olur; {door['name']} kapalı kalır." if door else "Burada açabileceğin bir kapı görünmüyor."
+    if door_action and outcome in ("critical_success", "success"):
+        door = game._current_door()
+        if door and door["open"]:
+            result = f"{door['name']} açılır."
+            if door.get("broken"):
+                result = f"{door['name']} kırılarak açılır."
+            return result
+        return "Kapı açılmadı; mevcut durum korunuyor."
+
+    if outcome in ("critical_success", "success"):
+        return game._stock("Girişimin başarıya ulaşır; amaçladığın sonuç gerçekleşir.")
+    if outcome in ("critical_failure", "failure"):
+        return game._stock("Girişimin ters gider ve amaçladığın sonuç gerçekleşmez.")
+    return game._generic_no_change_response()
+
+def _dm_response_schema_for_turn(allow_new_shops=False, narration_only=False):
+    if narration_only:
+        schema = copy.deepcopy(game.DM_RESPONSE_SCHEMA)
+        props = schema["properties"]["world_updates"]["properties"]
+        for field in ("create_locations", "create_npcs", "update_npcs", "create_features", "events", "create_shops"):
+            props[field]["maxItems"] = 0
+        schema["properties"]["lore_claims"]["maxItems"] = 0
+        return schema
+        
+    if not allow_new_shops:
+        return game.DM_RESPONSE_SCHEMA
+
+    schema = copy.deepcopy(game.DM_RESPONSE_SCHEMA)
+    world_updates = schema["properties"]["world_updates"]
+    properties = world_updates["properties"]
+    required = list(world_updates["required"])
+    if "create_shops" not in required:
+        required.append("create_shops")
+    world_updates["required"] = required
+
+    properties["create_shops"]["minItems"] = 1
+    properties["create_shops"]["maxItems"] = 1
+    for field in (
+        "create_locations",
+        "create_npcs",
+        "update_npcs",
+        "create_features",
+        "events",
+    ):
+        properties[field]["maxItems"] = 0
+    schema["properties"]["lore_claims"]["maxItems"] = 0
+    return schema

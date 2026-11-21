@@ -873,7 +873,7 @@
  },
  "_bind_world_update_mentions": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(raw_updates, location_updates, validated_updates, world_state)"
  },
@@ -1149,7 +1149,7 @@
  },
  "_dm_response_schema_for_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(allow_new_shops=False, narration_only=False)"
  },
@@ -1335,7 +1335,7 @@
  },
  "_fallback_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, npc_target=None)"
  },
@@ -2085,7 +2085,7 @@
  },
  "_narrator_shop_record": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(shop)"
  },
@@ -2763,7 +2763,7 @@
  },
  "_stands_by_their_words": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(npc, player_input)"
  },
@@ -3234,7 +3234,7 @@
  },
  "build_world_context": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(npc_target=None)"
  },
@@ -3609,7 +3609,7 @@
  },
  "merge_world_updates": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(updates)"
  },
@@ -4050,7 +4050,7 @@
  },
  "validate_world_updates": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(updates, allow_new_npcs=False, allow_new_features=False, allow_new_locations=False, allow_new_shops=False, allowed_feature_kinds=None)"
  },
