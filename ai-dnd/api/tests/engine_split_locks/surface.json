@@ -1935,7 +1935,7 @@
  },
  "_lore_entity_names": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(lore_context, world_state)"
  },

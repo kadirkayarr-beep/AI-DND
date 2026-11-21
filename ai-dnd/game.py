@@ -2861,60 +2861,7 @@ from game_parts.narration_safety import _narration_safety_decision
 
 
 
-def _lore_entity_names(lore_context, world_state):
-    names_by_id = {}
-    known_phrases = set()
-    known_tokens = set()
-
-    def add_name(entity_id, name):
-        if not isinstance(name, str) or not name.strip():
-            return
-        normalized = _lore_guard_text(name)
-        if not normalized:
-            return
-        known_phrases.add(normalized)
-        if isinstance(entity_id, str) and entity_id:
-            names_by_id.setdefault(entity_id, set()).add(normalized)
-        for token in normalized.split():
-            if len(token) >= 4 and token not in {
-                "city", "town", "river", "mount", "mountain", "region",
-                "road", "north", "south", "east", "west",
-            }:
-                known_tokens.add(token)
-
-    sections = lore_context.get("sections", {}) if isinstance(lore_context, dict) else {}
-    verified_entities = (
-        sections.get("verified_entities", []) if isinstance(sections, dict) else []
-    )
-    for entity in verified_entities if isinstance(verified_entities, list) else []:
-        if not isinstance(entity, dict):
-            continue
-        entity_id = entity.get("entity_id")
-        add_name(entity_id, entity.get("canonical_name"))
-        for alias in entity.get("aliases", []):
-            add_name(entity_id, alias)
-
-    if isinstance(world_state, dict):
-        for location_id, location in world_state.get("locations", {}).items():
-            if isinstance(location, dict):
-                add_name(location_id, location.get("name"))
-                for alias in location.get("aliases", []):
-                    add_name(location_id, alias)
-        for collection in ("npcs", "features", "shops"):
-            for entity in world_state.get(collection, []):
-                if not isinstance(entity, dict):
-                    continue
-                entity_id = entity.get("id") or entity.get("feature_id")
-                add_name(entity_id, entity.get("name"))
-                for alias in entity.get("aliases", []):
-                    add_name(entity_id, alias)
-                if (
-                    collection == "npcs"
-                    and entity.get("location") == world_state.get("location")
-                ):
-                    add_name(entity_id, entity.get("role"))
-
-    return names_by_id, known_phrases, known_tokens
+from game_parts.lore import _lore_entity_names
 
 
 

@@ -778,6 +778,38 @@ class LorePart(unittest.TestCase):
             "npc_known_lore": [], "procedural_local_content": [], "unknown_or_unloaded": [],
         })
 
+    def test_lore_entity_names_lives_in_lore(self):  # Plan 4 T5.4c
+        self.assertIn("_lore_entity_names", routing_audit.re_exports(ROOT).get("lore", ()))
+
+    def test_lore_entity_names_answer_as_before(self):
+        # values captured on 0b1dca5a before the move with p4t10-capture.py (PYTHONHASHSEED=1 and =2 gave the same)
+        lore = {"sections": {"verified_entities": [
+            {"entity_id": "t10_neverwinter", "canonical_name": "Neverwinter", "aliases": ["Kış Diyarı", "Mücevher Şehri"]},
+            {"entity_id": "t10_river", "canonical_name": "Neverwinter River", "aliases": []},
+            "not a dict",
+        ]}}
+        world = {
+            "location": "t10_square",
+            "locations": {"t10_square": {"name": "Pazar Meydanı", "aliases": ["Meydan"]}, "t10_road": {"name": "North Road"}},
+            "npcs": [{"id": "t10_mira", "name": "Mira Taşkalp", "role": "Demirci", "location": "t10_square"},
+                     {"id": "t10_osric", "name": "Osric", "role": "Muhafız", "location": "t10_road",
+                      "aliases": ["Yaşlı Asker"]}],
+            "features": [{"feature_id": "t10_well", "name": "Eski Kuyu"}],
+            "shops": [{"id": "t10_shop", "name": "Kuyu Dükkanı"}, "skip"],
+        }
+        by_id, phrases, tokens = game._lore_entity_names(lore, world)
+        self.assertEqual(by_id, {
+            "t10_mira": {"demirci", "mira taskalp"}, "t10_neverwinter": {"kis diyari", "mucevher sehri", "neverwinter"},
+            "t10_osric": {"osric", "yasli asker"}, "t10_river": {"neverwinter river"}, "t10_road": {"north road"},
+            "t10_shop": {"kuyu dukkani"}, "t10_square": {"meydan", "pazar meydani"}, "t10_well": {"eski kuyu"},
+        })
+        self.assertEqual(phrases, {"demirci", "eski kuyu", "kis diyari", "kuyu dukkani", "meydan", "mira taskalp",
+                                   "mucevher sehri", "neverwinter", "neverwinter river", "north road", "osric",
+                                   "pazar meydani", "yasli asker"})
+        self.assertEqual(tokens, {"asker", "demirci", "diyari", "dukkani", "eski", "kuyu", "meydan", "meydani", "mira",
+                                  "mucevher", "neverwinter", "osric", "pazar", "sehri", "taskalp", "yasli"})
+        self.assertEqual(game._lore_entity_names(None, None), ({}, set(), set()))
+
 
 NARRATION = tuple(batch_names("narration"))
 
