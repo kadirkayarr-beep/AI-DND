@@ -108,6 +108,7 @@
     "character_name": "absent",
     "chat": "absent",
     "commit_location_change": "function",
+    "create_npc_from_ai": "function",
     "create_session": "function",
     "create_shop_from_proposal": "function",
     "current_hp": "absent",

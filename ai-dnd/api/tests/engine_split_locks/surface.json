@@ -113,7 +113,7 @@
  },
  "PlayerCannotAct": {
   "kind": "class",
-  "module": "game"
+  "module": "game_parts.combat_flow"
  },
  "RACES": {
   "kind": "data",
@@ -759,7 +759,7 @@
  },
  "_adventure_travel_reply": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(session, destination)"
  },
@@ -783,19 +783,19 @@
  },
  "_apply_attack_damage_to_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(damage, critical, hit)"
  },
  "_apply_player_damage": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(hp_damage, *, critical=False, took_damage=False, resolved_damage=None)"
  },
  "_apply_species_on_hit_effects": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(target_npc, *, critical=False, deals_damage)"
  },
@@ -861,7 +861,7 @@
  },
  "_begin_combat_actor_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(participant_id)"
  },
@@ -873,7 +873,7 @@
  },
  "_bind_world_update_mentions": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(raw_updates, location_updates, validated_updates, world_state)"
  },
@@ -903,13 +903,13 @@
  },
  "_campaign_has_shopkeeper": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "()"
  },
  "_capture_combat_death_checkpoint": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -987,7 +987,7 @@
  },
  "_coin_persuasion": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(action_result)"
  },
@@ -999,43 +999,43 @@
  },
  "_combat_defaults": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(end_reason=None)"
  },
  "_combat_end_if_decided": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(excluded_participant_ids=<tuple>)"
  },
  "_combat_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(result)"
  },
  "_combat_participant_can_act": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(combat, participant_id)"
  },
  "_combat_record_for_actor": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(participant_id, initiative=None, actions_used=<tuple>)"
  },
  "_combat_snapshot": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "_commit_travel_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(action_result)"
  },
@@ -1077,25 +1077,25 @@
  },
  "_death_closing": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "_death_resolution_from_actions": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(actions)"
  },
  "_death_save_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(save_result, enemy_actions=<tuple>, resolution=None)"
  },
  "_death_state_defaults": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -1149,13 +1149,13 @@
  },
  "_dm_response_schema_for_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(allow_new_shops=False, narration_only=False)"
  },
  "_down_outside_combat_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1197,7 +1197,7 @@
  },
  "_enemy_exchange_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(enemies, named=None)"
  },
@@ -1209,7 +1209,7 @@
  },
  "_ensure_local_merchant": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_id, *, create=True)"
  },
@@ -1221,7 +1221,7 @@
  },
  "_ensure_location_entities": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location)"
  },
@@ -1281,7 +1281,7 @@
  },
  "_experimental_speech_note": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, name_stance, player_input)"
  },
@@ -1299,13 +1299,13 @@
  },
  "_explicit_campaign_shop_negative_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_explicit_campaign_shop_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -1329,13 +1329,13 @@
  },
  "_fallback_for_action_result": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, action_result=None, npc_target=None)"
  },
  "_fallback_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(player_input, npc_target=None)"
  },
@@ -1365,25 +1365,25 @@
  },
  "_finalize_player_death": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(cause)"
  },
  "_finding_says_too_much": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(text)"
  },
  "_finish_combat_result": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(result, before)"
  },
  "_finish_species_player_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -1497,7 +1497,7 @@
  },
  "_handle_query": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, query_type, npc_target=None)"
  },
@@ -1737,7 +1737,7 @@
  },
  "_is_shopkeeper_role": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(role)"
  },
@@ -1767,7 +1767,7 @@
  },
  "_job_fallback": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world)"
  },
@@ -1809,7 +1809,7 @@
  },
  "_known_happenings": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(state)"
  },
@@ -1935,7 +1935,7 @@
  },
  "_lore_entity_names": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.lore",
   "session_bound": true,
   "signature": "(lore_context, world_state)"
  },
@@ -1953,7 +1953,7 @@
  },
  "_mark_combat_action_used": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(participant_id, action_type='attack')"
  },
@@ -1977,7 +1977,7 @@
  },
  "_migrate_legacy_combat_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(legacy)"
  },
@@ -2031,7 +2031,7 @@
  },
  "_narrated_money_can_lie": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(action_result)"
  },
@@ -2085,7 +2085,7 @@
  },
  "_narrator_shop_record": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(shop)"
  },
@@ -2145,7 +2145,7 @@
  },
  "_npc_answers_to": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc, text)"
  },
@@ -2187,7 +2187,7 @@
  },
  "_offer_talk_with": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -2205,13 +2205,13 @@
  },
  "_origin_choices_for_save": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(character)"
  },
  "_origin_choices_valid": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(choices)"
  },
@@ -2253,7 +2253,7 @@
  },
  "_person_fight": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -2271,7 +2271,7 @@
  },
  "_player_state_for_save": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "()"
  },
@@ -2289,13 +2289,13 @@
  },
  "_promote_scene_referent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(referent, location_id)"
  },
  "_public_combatant_label": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(identity, *, player_fallback=None, fallback=None)"
  },
@@ -2361,7 +2361,7 @@
  },
  "_reduce_attack_damage_to_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(damage)"
  },
@@ -2427,13 +2427,13 @@
  },
  "_repair_dilim1_fields": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(world: dict) -> list[str]"
  },
  "_repair_dilim2_fields": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(world: dict) -> list[str]"
  },
@@ -2469,7 +2469,7 @@
  },
  "_resolve_enemy_turns_until_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -2481,7 +2481,7 @@
  },
  "_resolve_player_death_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(*, noncombat_key=None)"
  },
@@ -2493,7 +2493,7 @@
  },
  "_restore_combat_death_checkpoint": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(cause)"
  },
@@ -2535,7 +2535,7 @@
  },
  "_runs_a_shop": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(world_state, npc)"
  },
@@ -2601,7 +2601,7 @@
  },
  "_scene_presence_text": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_id)"
  },
@@ -2631,7 +2631,7 @@
  },
  "_set_temporary_hit_points": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(amount, state=None)"
  },
@@ -2649,25 +2649,25 @@
  },
  "_settle_spoken_commitment": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(world, npc, player_input, raw, spoken, *, threat=None, persuade=None, stage=None)"
  },
  "_shop_economy_request": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_shop_presence_question": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_show_coin_roll": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(action_result, card)"
  },
@@ -2697,19 +2697,19 @@
  },
  "_spares_the_fallen": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(actor_id)"
  },
  "_species_bonus_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "_species_player_turn_id": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -2763,19 +2763,19 @@
  },
  "_stands_by_their_words": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(npc, player_input)"
  },
  "_start_combat_with_initiative": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_target_npc)"
  },
  "_states_the_failed_check": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration, result, player_input)"
  },
@@ -2805,7 +2805,7 @@
  },
  "_storm_thunder_reaction": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(attacker_npc, damage_taken, distance_ft)"
  },
@@ -2829,7 +2829,7 @@
  },
  "_sync_combat_participant_records": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(combat)"
  },
@@ -3009,43 +3009,43 @@
  },
  "_validate_combat_v3_payload": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(combat)"
  },
  "_validate_long_rest_history": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(world)"
  },
  "_validate_player_condition_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(player)"
  },
  "_validate_player_weapon_proficiencies": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(player, version)"
  },
  "_validate_save_payload": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(payload)"
  },
  "_validate_saved_multilevel_slots": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(player, saved_world)"
  },
  "_validate_species_trait_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(value, species, proficiency_bonus=2)"
  },
@@ -3105,7 +3105,7 @@
  },
  "_with_only_backed_money": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(speech, settled)"
  },
@@ -3174,13 +3174,13 @@
  },
  "advance_campaign_time": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.living_world_turn",
   "session_bound": true,
   "signature": "(seconds, reason, source=None, observation=None)"
  },
  "advance_combat_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -3207,13 +3207,13 @@
  },
  "apply_npc_damage": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc, damage, *, knock_out=False)"
  },
  "ask_dungeon_master": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(messages, player_input, allow_new_npcs=False, allow_new_features=False, npc_target=None, world_entry=False, action_result=None, allow_new_locations=False, return_details=False, lore_context=None, allow_new_shops=False, scene_plan=None, narration_only=False)"
  },
@@ -3225,7 +3225,7 @@
  },
  "attempt_player_stabilization": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(healer_id)"
  },
@@ -3234,7 +3234,7 @@
  },
  "build_world_context": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(npc_target=None)"
  },
@@ -3279,7 +3279,7 @@
  },
  "clean_location_description": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(text, *, whole_words=False)"
  },
@@ -3297,7 +3297,7 @@
  },
  "commit_location_change": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(location_id, turn_index=None)"
  },
@@ -3324,7 +3324,7 @@
  },
  "create_npc_from_ai": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "(proposal, request_key=None, *, allow_other_location=False)"
  },
@@ -3342,7 +3342,7 @@
  },
  "create_shop_from_proposal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(proposal)"
  },
@@ -3354,7 +3354,7 @@
  },
  "deterministic_check_for_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -3366,7 +3366,7 @@
  },
  "end_combat": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(reason='combat_ended')"
  },
@@ -3378,25 +3378,25 @@
  },
  "ensure_combat_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "ensure_death_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "ensure_npc_combat_stats": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc)"
  },
  "ensure_npc_enemy_stats": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc)"
  },
@@ -3408,7 +3408,7 @@
  },
  "execute_intent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None)"
  },
@@ -3426,7 +3426,7 @@
  },
  "finalize_narration": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration, player_input, npc_target=None, action_result=None, fallback_reason_code=None, supported_player_claims=None, target_id=None, *, resolved_fallback_response=None, attributed_speech=None, python_town_response=None)"
  },
@@ -3438,7 +3438,7 @@
  },
  "find_weapon_in_inventory": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(weapon_name)"
  },
@@ -3453,13 +3453,13 @@
  },
  "generate_npc_id": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.places",
   "session_bound": true,
   "signature": "()"
  },
  "generate_shop_id": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "()"
  },
@@ -3477,7 +3477,7 @@
  },
  "grant_temporary_hit_points": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(amount)"
  },
@@ -3486,7 +3486,7 @@
  },
  "heal_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(amount)"
  },
@@ -3555,7 +3555,7 @@
  },
  "join_combat_participants": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(actor_ids)"
  },
@@ -3579,7 +3579,7 @@
  },
  "load_game": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(path)"
  },
@@ -3603,13 +3603,13 @@
  },
  "long_rest_gap_seconds": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(world)"
  },
  "merge_world_updates": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(updates)"
  },
@@ -3646,7 +3646,7 @@
  },
  "normalize_intent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(raw_intent, player_input)"
  },
@@ -3703,25 +3703,25 @@
  },
  "parse_player_intent": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input, interaction_context=None, dialogue_narration=False, operation_hint=None, require_conversation=False, allow_scene_detail_proposals=False, allow_local_person_proposal=False, experimental_npc_dialogue=False, recent_scene_narration='', strict=False, speech_note='', front_list=None)"
  },
  "perform_skill_check": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.character_rules",
   "session_bound": true,
   "signature": "(skill, dc, modifiers, proficient_skills, proficiency_bonus, advantage=False, disadvantage=False, expertise_skills=None, check_feature=None, check_evidence=None)"
  },
  "person_fight_kind": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(npc)"
  },
  "plan_living_world_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.living_world_turn",
   "session_bound": true,
   "signature": "(player_input, target_id=None, interaction_mode=None)"
  },
@@ -3764,25 +3764,25 @@
  },
  "register_attack_hook": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(event, callback)"
  },
  "register_initiative_hook": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(event, callback)"
  },
  "remove_combat_participant": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(actor_id)"
  },
  "require_player_can_act": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
@@ -3794,7 +3794,7 @@
  },
  "resolve_attack": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_input, weapon_name, weapon_data, target_npc, *, attack_choice=None, origin='action')"
  },
@@ -3806,7 +3806,7 @@
  },
  "resolve_combat_target": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_input, npc_target=None, target_id=None)"
  },
@@ -3818,7 +3818,7 @@
  },
  "resolve_enemy_attack": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(target_npc)"
  },
@@ -3860,7 +3860,7 @@
  },
  "resolve_species_trait_action": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(action, form=None, ancestry=None, armed=None, elapsed_seconds=None, *, healing_amount=None, remove_poisoned=None, draconic_ancestry=None, shape=None, target_id=None)"
  },
@@ -3914,7 +3914,7 @@
  },
  "save_game": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(path)"
  },
@@ -3923,13 +3923,13 @@
  },
  "serialize_game_state": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "()"
  },
  "set_player_max_hp": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(maximum)"
  },
@@ -3953,13 +3953,13 @@
  },
  "stabilize_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "()"
  },
  "start_combat": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.combat_flow",
   "session_bound": true,
   "signature": "(player_target_npc)"
  },
@@ -4014,7 +4014,7 @@
  },
  "update_world_state_from_player": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -4044,13 +4044,13 @@
  },
  "validate_shop_proposal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.coin",
   "session_bound": true,
   "signature": "(proposal)"
  },
  "validate_world_updates": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(updates, allow_new_npcs=False, allow_new_features=False, allow_new_locations=False, allow_new_shops=False, allowed_feature_kinds=None)"
  },

@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -19,6 +20,8 @@ if str(ROOT / "scripts") not in sys.path:
 import game  # noqa: E402
 from api.auth import FixedAuthenticator  # noqa: E402
 from api.main import create_app  # noqa: E402
+from api.narrative_director import install_narrative_context_adapter, narrative_turn_context  # noqa: E402
+from api.narrative_memory import empty_narrative_memory  # noqa: E402
 from api.session_manager import SessionManager  # noqa: E402
 from api.tests.auth_fixture import TEST_PLAYER  # noqa: E402
 from api.tests.engine_sources import batch_names, engine_source_files  # noqa: E402
@@ -67,11 +70,14 @@ def value_digest(names) -> str:
 
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
-        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.dialogue", "game_parts.intent",
+        self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.coin",
+                                              "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent",
                                               "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
-                                              "game_parts.text_rules_a", "game_parts.text_rules_b"))
-        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15
+                                              "game_parts.savefile", "game_parts.text_rules_a",
+                                              "game_parts.text_rules_b"))
+        # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15,
+        # Plan 4 Tasks 7, 8 and 9
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -112,10 +118,11 @@ class PilotRollD20(unittest.TestCase):
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
         # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
-        # living_world_turn, new_game)
+        # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin; Task 9: savefile
         names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
                  "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
-                 "_narration_safety_decision", "ensure_campaign_clock", "initialize_game")
+                 "_narration_safety_decision", "ensure_campaign_clock", "initialize_game", "ensure_death_state",
+                 "_shop_presence_question", "save_game")
         show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
@@ -123,7 +130,8 @@ class PilotRollD20(unittest.TestCase):
                              (0, ["game_parts.character_rules", "game_parts.text_rules_a", "game_parts.text_rules_b",
                                   "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
                                   "game_parts.narration", "game_parts.narration_safety",
-                                  "game_parts.living_world_turn", "game_parts.new_game"]),
+                                  "game_parts.living_world_turn", "game_parts.new_game", "game_parts.combat_flow",
+                                  "game_parts.coin", "game_parts.savefile"]),
                              done.stderr)
 
 
@@ -212,6 +220,15 @@ class SchemasPart(unittest.TestCase):
         # captured on f5cbace6 before the move (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave this same hex)
         self.assertEqual(value_digest(("_EXPERIMENTAL_NPC_SPEECH_OPTIONS",)),
                          "6b73f273148a6af846bf9cfbeab27fcb438259f54666d1eaf1e810388a7a7b49")
+
+    def test_the_npc_speech_schema_lives_in_schemas(self):  # Plan 4 T5.4a
+        self.assertIn("_EXPERIMENTAL_NPC_SPEECH_SCHEMA", routing_audit.re_exports(ROOT).get("schemas", ()))
+
+    def test_the_npc_speech_schema_did_not_change(self):
+        # captured on 0b1dca5a before the move with p4t10-capture.py (slot Python 3.13; PYTHONHASHSEED=1 and =2 gave
+        # this same hex)
+        self.assertEqual(value_digest(("_EXPERIMENTAL_NPC_SPEECH_SCHEMA",)),
+                         "1cdfc93bed84fd11110e13f2996b79e1975082c19cab463bb2dcaa85585c1900")
 
 
 class TextA1Part(unittest.TestCase):
@@ -416,14 +433,21 @@ class CharacterRulesPart(unittest.TestCase):
         rolled.assert_called_once_with()
 
     def test_character_rules_session_helpers_use_the_given_session(self):  # Review Focus 4
-        # both names read game._session() (measured on 0b159e30): record what it returns during the session= call
+        # every name reads game._session() (measured on 0b159e30; perform_skill_check on 0b1dca5a): record what it
+        # returns during the session= call
         real = game._session
         with fixed_town(self, 20261201):
             s = game.create_session(seed=11)
             s.character["species"] = "Goliath"
             s.character["proficiency_bonus"] = 2
+            # Plan 4 T5.4b (D-447): a slow-paced journey gives Perception advantage, and only s travels
+            s.world_state["journey"] = {"status": "TRAVELLING", "pace": "slow"}
+            self.assertNotEqual((game._session().world_state.get("journey") or {}).get("status"), "TRAVELLING")
             default_character = dict(game._session().character)
-            for name, args in (("roll_stat", ()), ("initialize_species_trait_state", ("hill",))):
+            answers = {}
+            for name, args in (("roll_stat", ()), ("initialize_species_trait_state", ("hill",)),
+                               ("perform_skill_check", ("Perception", 10, s.character["modifiers"],
+                                                        s.character["proficient_skills"], 2))):
                 seen = []
 
                 def record():
@@ -432,11 +456,26 @@ class CharacterRulesPart(unittest.TestCase):
                     return value
 
                 with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
-                    getattr(game, name)(*args, session=s)
+                    answers[name] = getattr(game, name)(*args, session=s)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
             self.assertEqual(s.character["giant_ancestry"], "hill")
+            self.assertIs(answers["perform_skill_check"]["advantage"], True)
             self.assertEqual(dict(game._session().character), default_character)
+
+    def test_perform_skill_check_lives_in_character_rules(self):  # Plan 4 T5.4b
+        self.assertIn("perform_skill_check", routing_audit.re_exports(ROOT)["character_rules"])
+
+    def test_a_patched_perform_skill_check_reaches_its_staying_caller(self):
+        # _hideout_check stays in game.py and calls perform_skill_check bare; 24 patch sites patch it on game
+        with fixed_town(self, 20261340):
+            character = game._session().character
+            with patch.object(game, "perform_skill_check", return_value={"result": "BAŞARILI"}) as checked:
+                self.assertIs(game._hideout_check("Stealth", 13), True)
+        checked.assert_called_once_with("Stealth", 13, character["modifiers"],
+                                        character.get("proficient_skills") or [],
+                                        character.get("proficiency_bonus") or 2,
+                                        expertise_skills=character.get("expertise_skills") or ())
 
     def test_cr_helpers_answer_as_before(self):
         # one fixed character (Barbarian, DEX 14, CON 16, WIS 12); expected values captured on 0b159e30 before the move
@@ -449,6 +488,7 @@ class CharacterRulesPart(unittest.TestCase):
 
 PLACES_1 = tuple(batch_names("places-1"))
 PLACES_2 = tuple(batch_names("places-2"))
+PLACES_S = tuple(batch_names("places-s"))
 
 
 class PlacesPart(unittest.TestCase):
@@ -459,6 +499,9 @@ class PlacesPart(unittest.TestCase):
 
     def test_places_2_lives_in_the_part(self):
         self.assertEqual(set(PLACES_2) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
+
+    def test_places_s_lives_in_the_part(self):  # Plan 4 T5.4d
+        self.assertEqual(set(PLACES_S) - set(routing_audit.re_exports(ROOT).get("places", ())), set())
 
     def test_places_session_helpers_use_the_given_session(self):  # Review Focus 4
         # every name reads game._session() (measured on 33ab2efd): record what it returns during the session= call
@@ -476,7 +519,11 @@ class PlacesPart(unittest.TestCase):
                 ("update_inventory_from_player", ("kılıcı yere bırakıyorum",), None),
                 ("_walked_there", ({"kind": "go_to"}, {"action": "travel", "status": "already_here", "target_id": "forest"},
                                    None), True),
+                # Plan 4 T5.4d (D-447): the walk and the new person go to the place only s has
+                ("commit_location_change", ("t16_kuyu",), True),
+                ("create_npc_from_ai", ({"name": "Dorn", "role": "Muhafız", "location": "t16_kuyu"},), None),
             )
+            answers = {}
             for name, args, expected in cases:
                 seen = []
 
@@ -486,11 +533,15 @@ class PlacesPart(unittest.TestCase):
                     return value
 
                 with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
-                    answer = getattr(game, name)(*args, session=s)
+                    answer = answers[name] = getattr(game, name)(*args, session=s)
                     if expected is not None:
                         self.assertEqual(answer, expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(s.world_state["location"], "t16_kuyu")
+            self.assertEqual((answers["create_npc_from_ai"]["name"], answers["create_npc_from_ai"]["location"]),
+                             ("Dorn", "t16_kuyu"))
+            self.assertIn(answers["create_npc_from_ai"], s.world_state["npcs"])
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
 
     def test_places_helpers_answer_as_before(self):
@@ -505,9 +556,38 @@ class PlacesPart(unittest.TestCase):
         self.assertTrue(game._reference_token_matches("kapı", "kapıdan"))
         self.assertFalse(game._reference_token_matches("han", "kapı"))
 
+    def test_a_created_npc_gets_its_written_purse_from_the_part(self):  # Plan 4 T5.4d, the test_d207_written_purse shape
+        import equipment_economy
+        with fixed_town(self, 20261341):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "tavern"  # a new session has not placed the player yet
+            default_before = _session_snapshot(game._DEFAULT_SESSION)
+            guard = game.create_npc_from_ai({"name": "Dorn", "role": "Muhafız", "location": "tavern"}, session=s)
+            self.assertIsNotNone(guard)
+            self.assertIn(guard, s.world_state["npcs"])
+            self.assertEqual(s.world_state["currency"][guard["id"]], equipment_economy.person_purse(s.world_state, guard))
+            self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
+
+    def test_grounded_action_still_reaches_create_npc_from_ai(self):  # Plan 4 T5.4d
+        # grounded_action._create_venue calls run.game.create_npc_from_ai(..., session=run.session) for a new shop
+        import grounded_action
+        with fixed_town(self, 20261342):
+            s = game.create_session(seed=11)
+            settlement = s.world_state["location"]
+            run = grounded_action._Run(s, "")
+            with patch.object(game, "create_npc_from_ai", wraps=game.create_npc_from_ai) as created:
+                record = grounded_action._create_venue(run, settlement, name="Kavaf Dükkânı", kind="generic",
+                                                       noun="dukkan", provenance={"source": "test"})
+        created.assert_called_once()
+        self.assertIs(created.call_args.kwargs["session"], s)
+        self.assertTrue(created.call_args.kwargs["allow_other_location"])
+        owners = [npc for npc in s.world_state["npcs"] if npc.get("place_role_of") == record["id"]]
+        self.assertEqual([(npc["name"], npc["location"]) for npc in owners], [(record["resident_name"], record["id"])])
+
 
 INTENT_1 = tuple(batch_names("intent-1"))
 INTENT_2 = tuple(batch_names("intent-2"))
+INTENT_S = tuple(batch_names("intent-s"))
 
 
 class IntentPart(unittest.TestCase):
@@ -518,6 +598,9 @@ class IntentPart(unittest.TestCase):
 
     def test_intent_2_lives_in_the_part(self):
         self.assertEqual(set(INTENT_2) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
+
+    def test_intent_s_lives_in_the_part(self):  # Plan 4 T5.4e
+        self.assertEqual(set(INTENT_S) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
 
     def test_a_rebound_validate_intent_reaches_a_moved_caller(self):  # Review Focus 5
         # analyze_player_action (moved in intent-1) reads game.parse_player_intent, game.normalize_intent and
@@ -544,11 +627,21 @@ class IntentPart(unittest.TestCase):
             s = game.create_session(seed=11)
             # a hero name only the given session has (D-447): the default session's hero would make the claim True
             s.character["name"] = "Torvald Kaya"
+            # Plan 4 T5.4e (D-447): a place only the given session has; the default session cannot name it as the target
+            s.world_state["location"] = "forest"
+            s.world_state["locations"]["t16_kuyu"] = {"id": "t16_kuyu", "name": "Kuyu Başı", "type": "city",
+                                                      "description": ""}
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             cases = (
                 ("is_npc_historical_claim", ("Bu adam dün beni soydu.",), False),
                 ("is_npc_historical_claim", ("Adımı söyledim, Torvald.",), False),
                 ("known_character_answer", ("Benim adım ne?",), f"Adın {s.character['name']}."),
+                # Plan 4 T5.4e: captured on 3619f580 before the move; no road is known, so nothing is written
+                ("execute_intent", ({"intent": "travel", "target": {"type": "location", "reference": "Kuyu Başı"}},
+                                    "Kuyu Başı'na gidiyorum."),
+                 {"action": "travel", "success": False, "status": "unverified", "state_changes": [],
+                  "completion": "completed", "target_reference": "Kuyu Başı", "target": "t16_kuyu",
+                  "previous_location": "forest", "direct_response": "Oraya giden bir yol bilmiyorsun."}),
             )
             for name, args, expected in cases:
                 seen = []
@@ -562,7 +655,126 @@ class IntentPart(unittest.TestCase):
                     self.assertEqual(getattr(game, name)(*args, session=s), expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(s.world_state["location"], "forest")
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_an_immediate_check_snapshots_the_given_session(self):  # Review Focus 4, Plan 4 Task 16 Fault 6
+        # execute_intent reads game._session() only when check_feature is set: the snapshot taken before the check
+        # and restored after a failed check must belong to the given session, never the default one
+        real = game._session
+        real_capture = game.GameSession._capture_runtime_snapshot
+        real_restore = game.GameSession._restore_runtime_snapshot
+        with fixed_town(self, 20261352):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "forest"
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            seen, captured, restored = [], [], []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            def capture(owner):
+                captured.append(owner)
+                return real_capture(owner)
+
+            def restore(owner, snapshot):
+                restored.append(owner)
+                return real_restore(owner, snapshot)
+
+            def failing_check(*args, **kwargs):
+                # the check writes into the active session, then fails: execute_intent must roll the write back
+                game._session().world_state["location"] = "castle"
+                raise RuntimeError("t16 check failure")
+
+            with patch.object(game, "_session", side_effect=record), \
+                 patch.object(game, "primal_knowledge_check_admission", return_value=None), \
+                 patch.object(game, "perform_skill_check", side_effect=failing_check) as check, \
+                 patch.object(game.GameSession, "_capture_runtime_snapshot", autospec=True, side_effect=capture), \
+                 patch.object(game.GameSession, "_restore_runtime_snapshot", autospec=True, side_effect=restore):
+                with self.assertRaisesRegex(RuntimeError, "t16 check failure"):
+                    game.execute_intent({"intent": "unknown"}, "Takla atıyorum.", check_feature="primal_knowledge",
+                                        session=s)
+            check.assert_called_once()
+            self.assertEqual(captured, [s])
+            self.assertEqual(restored, [s])
+            self.assertTrue(seen)
+            self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(s.world_state["location"], "forest")
+            self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_a_presence_query_creates_its_person_with_a_purse_from_the_part(self):  # Plan 4 TM4, D-456
+        # the HELD money path of intent-s: _handle_query's presence branch in an empty, unseen place reaches
+        # materialize_scene(create_npc=game.create_npc_from_ai) -> equipment_economy.give_person_purse; every person and
+        # purse it writes must land in the given session, never in the default one
+        import equipment_economy
+        real = game._session
+        real_purse = equipment_economy.give_person_purse
+        with fixed_town(self, 20261353):
+            s = game.create_session(seed=11)
+            s.world_state["locations"]["tm4_meydan"] = {"id": "tm4_meydan", "name": "Taş Meydan", "type": "city",
+                                                       "description": ""}
+            s.world_state["location"] = "tm4_meydan"
+            self.assertEqual(game.active_npcs("tm4_meydan", session=s), [])
+            before_ids = {npc["id"] for npc in s.world_state["npcs"]}
+            default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
+            seen, purses = [], []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            def purse(world, npc):
+                purses.append((world, npc["id"]))
+                return real_purse(world, npc)
+
+            with patch.object(game, "_session", side_effect=record), \
+                 patch.object(equipment_economy, "give_person_purse", side_effect=purse):
+                text = game._handle_query("Burada kimler var?", "presence", session=s)
+            new = [npc for npc in s.world_state["npcs"] if npc["id"] not in before_ids]
+            self.assertTrue(new)
+            self.assertTrue(all(npc["location"] == "tm4_meydan" for npc in new))
+            self.assertEqual([npc_id for _world, npc_id in purses], [npc["id"] for npc in new])
+            self.assertTrue(all(world is s.world_state for world, _npc_id in purses))
+            for npc in new:
+                self.assertIn(npc["id"], s.world_state["currency"])
+            self.assertIsInstance(text, str)
+            self.assertTrue(seen)
+            self.assertTrue(all(value is s for value in seen))
+            default_after = game._session().world_state
+            self.assertEqual(json.dumps(default_after, sort_keys=True, default=str), default_world)
+            self.assertFalse({npc["id"] for npc in new} & set(default_after.get("currency", {})))
+
+    def test_a_rebound_execute_intent_reaches_its_moved_caller(self):  # Plan 4 T5.4e, Review Focus 5
+        # trace_ai_pipeline.py rebinds game.execute_intent; update_world_state_from_player (moved in intent-s) must call
+        # the rebound name; the parse/normalize/validate patches are the shape test_shops.py uses
+        seen = []
+
+        def record(intent, player_input, *args, **kwargs):
+            seen.append((intent, player_input, args, kwargs))
+            return {"action": "narrative", "success": True, "state_changes": []}
+
+        with fixed_town(self, 20261350):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "tavern"
+            with patch.object(game, "parse_player_intent", return_value={}),                  patch.object(game, "normalize_intent", return_value={}),                  patch.object(game, "validate_intent", return_value={"intent_type": "narrative"}),                  patch.object(game, "execute_intent", side_effect=record):
+                out = game.update_world_state_from_player("The wind is blowing.", session=s)
+        self.assertEqual(seen, [({"intent_type": "narrative"}, "The wind is blowing.", (), {})])
+        self.assertEqual(out, {"action": "narrative", "success": True, "state_changes": []})
+
+    def test_a_patched_ollama_reaches_the_moved_parse(self):  # Plan 4 T5.4e
+        # parse_player_intent (moved in intent-s) asks the model through game.ollama; a patched module must answer it
+        fixed = {"intent": "perception", "skill": "Perception", "difficulty": "medium",
+                 "target": {"type": "none", "reference": ""}}
+        with fixed_town(self, 20261351):
+            s = game.create_session(seed=11)
+            with patch.object(game, "ollama") as model:
+                model.chat.return_value = {"message": {"content": json.dumps(fixed)}, "done_reason": "stop"}
+                out = game.parse_player_intent("Etrafa bakıyorum.", session=s)
+        model.chat.assert_called_once()
+        self.assertEqual(out, fixed)
 
     def test_intent_helpers_answer_as_before(self):
         # expected values captured on d9bbb857 before the move; a new session's places are tavern, forest, castle
@@ -605,6 +817,7 @@ class IntentPart(unittest.TestCase):
 
 DIALOGUE_1 = tuple(batch_names("dialogue-1"))
 DIALOGUE_2 = tuple(batch_names("dialogue-2"))
+DIALOGUE_S = tuple(batch_names("dialogue-s"))
 
 
 class DialoguePart(unittest.TestCase):
@@ -615,6 +828,9 @@ class DialoguePart(unittest.TestCase):
 
     def test_dialogue_2_lives_in_the_part(self):
         self.assertEqual(set(DIALOGUE_2) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
+
+    def test_dialogue_s_lives_in_the_part(self):  # Plan 4 T5.4f
+        self.assertEqual(set(DIALOGUE_S) - set(routing_audit.re_exports(ROOT).get("dialogue", ())), set())
 
     def test_the_stock_said_deque_is_one_object(self):
         # a call with no session (_session() gives None) uses the module deque; the re-export keeps one object
@@ -634,6 +850,8 @@ class DialoguePart(unittest.TestCase):
             s.world_state["locations"]["t17_han"] = {"id": "t17_han", "name": "Kuyu Hanı", "type": "tavern",
                                                      "parent_location_id": s.world_state["location"],
                                                      "description": ""}
+            # Plan 4 T5.4f (D-447): the rest of the line only the given session holds; the default session has none
+            s._front_rest = "Kuyu nerede?"
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             cases = (
                 ("resolve_npc_reference", ("Bela, merhaba",), {"status": "found", "npc": "npc_t10_bela"}),
@@ -644,6 +862,15 @@ class DialoguePart(unittest.TestCase):
                  "Bela, “Fena değil, teşekkür ederim. Sorduğun için sağ ol,” diye karşılık verir."),
                 ("_direct_npc_smalltalk_response", ("Yakınlarda bir han var mı?", bela),
                  "Bela, “Yakınlarda Kuyu Hanı var,” diye yanıt verir."),
+                # Plan 4 T5.4f: the note's own lines (its second line), captured on 893655cc before the move, after
+                # the cases above (Bela's earlier words are in it)
+                ("_experimental_speech_note", (s.world_state, bela, None, "Merhaba, nasılsın?"),
+                 "Konuşan sensin; sahnedeki “Bela” sensin, oyuncu karşındaki kişidir. Konuşma biçimin: Alaycıdır; "
+                 "kuru bir laf sokuşturur. Sıradan birisin, herkese yardım etmek zorunda değilsin. Adın Bela; "
+                 "sorulmadıkça tekrar etme. Oyuncu aynı sözde şunu da söyledi: Kuyu nerede? Buna da cevap ver. "
+                 "Daha önce sen gerçekten şunları söyledin: Hoş geldin yolcu. Oyuncu bunlardan söz ediyorsa inkâr "
+                 "etme; kendi sözün olarak karşılık ver.   Oyuncunun üstünde gerçekten olanlar: Macera çantası, "
+                 "Kılıç. Başka bir şey onun elinde değildir."),
             )
             for name, args, expected in cases:
                 seen = []
@@ -658,6 +885,8 @@ class DialoguePart(unittest.TestCase):
                     if isinstance(answer, dict):
                         answer = {key: value.get("id") if isinstance(value, dict) else value
                                   for key, value in answer.items()}
+                    if name == "_experimental_speech_note":
+                        answer = answer.split("\n")[1]
                     self.assertEqual(answer, expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
@@ -682,6 +911,15 @@ class DialoguePart(unittest.TestCase):
                          "istemem. Ama bu benim ağzımdan çıkmadı.”")
         self.assertEqual(game.historical_claim_denial(None, "x"),
                          "Bu kişi omuz silkiyor. “Yanlış kapıyı çalıyorsun, dostum. Ben böyle bir şey söylemedim.”")
+
+    def test_coin_persuasion_answers_as_before(self):  # Plan 4 T5.4f
+        # captured on 893655cc before the move: a Persuasion this turn rolled is reused against the DC, never
+        # rerolled; a roll of another skill gives no coin; no session and no fresh roll is needed for either
+        persuasion = game._coin_persuasion({"action": "skill_check", "skill": "Persuasion", "total": 15})
+        self.assertEqual(persuasion(12, False), {"success": True})
+        self.assertEqual(persuasion(16, False), {"success": False})
+        athletics = game._coin_persuasion({"action": "skill_check", "skill": "Athletics", "total": 19})
+        self.assertIsNone(athletics(12, False))
 
 
 LORE = tuple(batch_names("lore"))
@@ -741,8 +979,48 @@ class LorePart(unittest.TestCase):
             "npc_known_lore": [], "procedural_local_content": [], "unknown_or_unloaded": [],
         })
 
+    def test_lore_entity_names_lives_in_lore(self):  # Plan 4 T5.4c
+        self.assertIn("_lore_entity_names", routing_audit.re_exports(ROOT).get("lore", ()))
+
+    def test_lore_entity_names_answer_as_before(self):
+        # values captured on 0b1dca5a before the move with p4t10-capture.py (PYTHONHASHSEED=1 and =2 gave the same)
+        lore = {"sections": {"verified_entities": [
+            {"entity_id": "t10_neverwinter", "canonical_name": "Neverwinter", "aliases": ["Kış Diyarı", "Mücevher Şehri"]},
+            {"entity_id": "t10_river", "canonical_name": "Neverwinter River", "aliases": []},
+            "not a dict",
+        ]}}
+        world = {
+            "location": "t10_square",
+            "locations": {"t10_square": {"name": "Pazar Meydanı", "aliases": ["Meydan"]}, "t10_road": {"name": "North Road"}},
+            "npcs": [{"id": "t10_mira", "name": "Mira Taşkalp", "role": "Demirci", "location": "t10_square"},
+                     {"id": "t10_osric", "name": "Osric", "role": "Muhafız", "location": "t10_road",
+                      "aliases": ["Yaşlı Asker"]}],
+            "features": [{"feature_id": "t10_well", "name": "Eski Kuyu"}],
+            "shops": [{"id": "t10_shop", "name": "Kuyu Dükkanı"}, "skip"],
+        }
+        by_id, phrases, tokens = game._lore_entity_names(lore, world)
+        self.assertEqual(by_id, {
+            "t10_mira": {"demirci", "mira taskalp"}, "t10_neverwinter": {"kis diyari", "mucevher sehri", "neverwinter"},
+            "t10_osric": {"osric", "yasli asker"}, "t10_river": {"neverwinter river"}, "t10_road": {"north road"},
+            "t10_shop": {"kuyu dukkani"}, "t10_square": {"meydan", "pazar meydani"}, "t10_well": {"eski kuyu"},
+        })
+        self.assertEqual(phrases, {"demirci", "eski kuyu", "kis diyari", "kuyu dukkani", "meydan", "mira taskalp",
+                                   "mucevher sehri", "neverwinter", "neverwinter river", "north road", "osric",
+                                   "pazar meydani", "yasli asker"})
+        self.assertEqual(tokens, {"asker", "demirci", "diyari", "dukkani", "eski", "kuyu", "meydan", "meydani", "mira",
+                                  "mucevher", "neverwinter", "osric", "pazar", "sehri", "taskalp", "yasli"})
+        self.assertEqual(game._lore_entity_names(None, None), ({}, set(), set()))
+
 
 NARRATION = tuple(batch_names("narration"))
+NARRATION_S_1 = tuple(batch_names("narration-s-1"))
+NARRATION_S_2 = tuple(batch_names("narration-s-2"))
+
+
+def _model_reply(narration):
+    """What game.ollama.chat returns for one narration with no world updates (shape of ollama_response_content)."""
+    return {"message": {"content": json.dumps({"narration": narration, "world_updates": {}, "lore_claims": []},
+                                              ensure_ascii=False)}, "done_reason": "stop"}
 
 
 class NarrationPart(unittest.TestCase):
@@ -750,6 +1028,50 @@ class NarrationPart(unittest.TestCase):
 
     def test_narration_lives_in_the_part(self):
         self.assertEqual(set(NARRATION) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
+
+    def test_narration_s_1_lives_in_the_part(self):  # Plan 4 T5.4g
+        self.assertEqual(set(NARRATION_S_1) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
+
+    def test_narration_s_2_lives_in_the_part(self):  # Plan 4 T5.4h
+        self.assertEqual(set(NARRATION_S_2) - set(routing_audit.re_exports(ROOT).get("narration", ())), set())
+
+    def test_the_narrative_adapter_reaches_the_moved_ask(self):  # Review Focus 5
+        # the adapter is permanent and installs once (create_app does the same); inside the director's turn frame an
+        # offline model call must reach the build wrapper through game.build_world_context (the frame gets its
+        # diagnostics) and the finalize wrapper through game.finalize_narration (it hands the frame's claims to the
+        # original finalize, counted here once); expected values measured on 83804208 before the move
+        install_narrative_context_adapter(game)
+        finalize = game.finalize_narration
+        cell = finalize.__closure__[finalize.__code__.co_freevars.index("original_finalize")]
+        original = cell.cell_contents
+        counted = MagicMock(wraps=original)
+        with fixed_town(self, 20261381):
+            s = game.create_session(seed=11)
+            cell.cell_contents = counted
+            try:
+                with patch.object(game, "ollama") as model,                         narrative_turn_context(empty_narrative_memory(), "Etrafa bakıyorum.") as frame:
+                    model.chat.side_effect = ConnectionError("offline")
+                    answer = game.ask_dungeon_master([], "Etrafa bakıyorum.", session=s)
+            finally:
+                cell.cell_contents = original
+        self.assertEqual(model.chat.call_count, 1)
+        self.assertEqual(answer, "Çevrede şimdilik belirgin bir değişiklik olmuyor.")
+        self.assertIn("selected_counts", frame.diagnostics)
+        self.assertEqual(counted.call_count, 1)
+        self.assertEqual(counted.call_args.kwargs.get("fallback_reason_code"), "MODEL_UNAVAILABLE")
+        self.assertIn("supported_player_claims", counted.call_args.kwargs)
+
+    def test_a_patched_ollama_reaches_the_moved_ask(self):
+        # census import target: the moved ask must call game.ollama (measured on 83804208 before the move)
+        with fixed_town(self, 20261382):
+            s = game.create_session(seed=11)
+            with patch.object(game, "ollama") as model:
+                model.chat.return_value = _model_reply("Rüzgâr kepenkleri sallıyor.")
+                answer = game.ask_dungeon_master([], "Etrafa bakıyorum.", return_details=True, session=s)
+        self.assertEqual(model.chat.call_count, 1)
+        self.assertEqual(answer, {"narration": "Rüzgâr kepenkleri sallıyor.", "world_updates": {}, "lore_claims": [],
+                                  "player_line": None, "item_claims": None, "valid_response": True,
+                                  "fallback_reason_code": None})
 
     def test_narration_session_helpers_use_the_given_session(self):  # Review Focus 4
         # both names read game._session() (measured on 8cc9a805): record what it returns during the session= call
@@ -762,6 +1084,10 @@ class NarrationPart(unittest.TestCase):
             s.world_state.setdefault("features", []).append({"id": "t17_kuyu", "name": "Kuyu",
                                                              "location": s.world_state["location"],
                                                              "description": "Taş bilezikli eski bir kuyu."})
+            # and Tarvek the well digger where it stands (Plan 4 T5.4g; the default session has nobody there)
+            s.world_state["npcs"].append({"id": "npc_t14_tarvek", "name": "Tarvek", "role": "kuyucu",
+                                          "location": s.world_state["location"], "name_known_to_player": True,
+                                          "role_known_to_player": True})
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
             tracks_failed = {"target_kind": "tracks", "target_id": None, "target_name": "izler", "found": False,
                              "text": "İzler birbirine karışmış; bu bakışla bir şey çıkaramıyorsun."}
@@ -773,7 +1099,19 @@ class NarrationPart(unittest.TestCase):
                 ("_inspection_findings", ("izlere bakıyorum", "failure"), {}, tracks_failed),
                 ("_inspection_findings", ("etrafa bakıyorum", "failure"), {}, None),
                 ("_inspection_findings", ("kuyuya bakıyorum", "failure"), {}, well_failed),
+                # Plan 4 T5.4g, captured on afd69027 before the move: the people the context shows
+                ("build_world_context", (), {}, ["Tarvek"]),
+                # Plan 4 T5.4h, captured on 83804208 before the move: Tarvek's mark reads as his name (the default
+                # session drops it); the model (game.ollama, patched below) answers once, for the ask
+                ("finalize_narration", ("[[npc_t14_tarvek]] başını kaldırıp sana bakıyor.", "Kuyucuya bakıyorum."), {},
+                 "Tarvek başını kaldırıp sana bakıyor."),
+                ("ask_dungeon_master", ([], "Kuyucuya bakıyorum."), {}, "Tarvek başını kaldırıp sana bakıyor."),
             )
+            views = {"build_world_context": lambda context: [npc.get("name") for npc in context["npcs"]]}
+            model_patch = patch.object(game, "ollama")
+            model = model_patch.start()
+            self.addCleanup(model_patch.stop)
+            model.chat.return_value = _model_reply("[[npc_t14_tarvek]] başını kaldırıp sana bakıyor.")
             for name, args, kwargs, expected in cases:
                 seen = []
 
@@ -783,10 +1121,30 @@ class NarrationPart(unittest.TestCase):
                     return value
 
                 with self.subTest(name=name, args=args), patch.object(game, "_session", side_effect=record):
-                    self.assertEqual(getattr(game, name)(*args, session=s, **kwargs), expected)
+                    answer = getattr(game, name)(*args, session=s, **kwargs)
+                    self.assertEqual(views.get(name, lambda value: value)(answer), expected)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(model.chat.call_count, 1)
             self.assertEqual(json.dumps(game._session().world_state, sort_keys=True, default=str), default_world)
+
+    def test_world_updates_validate_as_before(self):
+        # two update dicts from test_shops.py (a shopkeeper through generic NPC updates; a plain shop proposal);
+        # expected values captured on afd69027 before the move
+        shop = {"name": "Green Lantern", "description": "A small timber storefront with a painted green sign.",
+                "shopkeeper": {"name": "Mira", "personality": "Patient and observant.",
+                               "appearance": "A short-haired human in a plain apron."}}
+        empty = {"create_locations": [], "create_npcs": [], "update_npcs": [], "create_features": [],
+                 "create_shops": [], "events": []}
+        with fixed_town(self, 20261380):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "tavern"
+            updates = {"create_npcs": [{"name": "Mira", "role": "Merchant", "location": "tavern"}],
+                       "create_shops": [shop]}
+            self.assertEqual(game.validate_world_updates(updates, allow_new_npcs=True, allow_new_shops=False,
+                                                         session=s), empty)
+            self.assertEqual(game.validate_world_updates({"create_shops": [shop]}, allow_new_shops=True, session=s),
+                             dict(empty, create_shops=[dict(shop, location="tavern", proposal_key="s1")]))
 
     def test_narration_helpers_answer_as_before(self):
         # one open street with one person (Mira); expected values captured on 8cc9a805 before the move
@@ -902,6 +1260,7 @@ class NarrationSafetyPart(unittest.TestCase):
 
 
 LWT = tuple(batch_names("lwt"))
+LWT_S = tuple(batch_names("lwt-s"))
 
 
 class LivingWorldTurnPart(unittest.TestCase):
@@ -910,8 +1269,44 @@ class LivingWorldTurnPart(unittest.TestCase):
     def test_lwt_lives_in_the_part(self):
         self.assertEqual(set(LWT) - set(routing_audit.re_exports(ROOT).get("living_world_turn", ())), set())
 
+    def test_lwt_s_lives_in_the_part(self):  # Plan 4 T5.5
+        self.assertEqual(set(LWT_S) - set(routing_audit.re_exports(ROOT).get("living_world_turn", ())), set())
+
+    def test_a_patched_uuid4_reaches_the_moved_clock(self):
+        # an unconscious hero outside combat with no episode id gets one from game.uuid4 when the clock moves
+        import campaign_time
+        fixed = "00000000-0000-4000-8000-000000000015"
+        with fixed_town(self, 20261370):
+            s = game.create_session(seed=11)
+            campaign_time.initialize(s.world_state)
+            game._apply_player_damage(s.character["current_hp"], session=s)
+            death = game.ensure_death_state(session=s)
+            self.assertEqual(death["noncombat_next_save_at"], 6)
+            death["noncombat_episode_id"] = None
+            with patch.object(game, "uuid4", return_value=fixed) as made:
+                result = game.advance_campaign_time(1, "wait", session=s)
+        made.assert_called_once_with()
+        self.assertEqual(game.ensure_death_state(session=s)["noncombat_episode_id"], fixed)
+        self.assertEqual(result["elapsed_seconds"], 1)
+        self.assertEqual(result["death_results"], [])
+
+    def test_the_rule_order_is_read_from_game(self):
+        # advance_campaign_time checks game.RULE_ORDER before the clock moves (K04): a patched, incomplete table refuses
+        import campaign_time
+        import event_order
+        with fixed_town(self, 20261371):
+            s = game.create_session(seed=11)
+            campaign_time.initialize(s.world_state)
+            clock = json.dumps(s.world_state["campaign_time"], sort_keys=True)
+            with patch.object(game, "RULE_ORDER", {"effect_expiry": 0, "damage": 1, "death": 2}), \
+                 self.assertRaises(event_order.UnresolvedRuleOrder) as caught:
+                game.advance_campaign_time(60, "wait", session=s)
+        self.assertEqual(str(caught.exception), "Rule order table is missing: regeneration")
+        self.assertEqual(json.dumps(s.world_state["campaign_time"], sort_keys=True), clock)
+
     def test_living_world_session_helpers_use_the_given_session(self):  # Review Focus 4
         # both names read game._session() (measured on 30c48f41): record what it returns during the session= call
+        # Plan 4 T5.5: advance_campaign_time joins (measured on 7bb78b5e); the clock exists only in s (D-447)
         real = game._session
         with fixed_town(self, 20261214):
             s = game.create_session(seed=11)
@@ -920,7 +1315,8 @@ class LivingWorldTurnPart(unittest.TestCase):
             s.world_state["location"] = "t14_square"
             s.world_state.pop("campaign_time", None)
             default_world = json.dumps(game._session().world_state, sort_keys=True, default=str)
-            for name in ("ensure_campaign_clock", "_living_world_prompt_context"):
+            for name, args in (("ensure_campaign_clock", ()), ("_living_world_prompt_context", ()),
+                               ("advance_campaign_time", (60, "wait"))):
                 seen = []
 
                 def record():
@@ -929,12 +1325,18 @@ class LivingWorldTurnPart(unittest.TestCase):
                     return value
 
                 with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
-                    answer = getattr(game, name)(session=s)
+                    answer = getattr(game, name)(*args, session=s)
                     self.assertTrue(seen)
                     self.assertTrue(all(value is s for value in seen))
                     if name == "ensure_campaign_clock":
                         self.assertIs(answer, s.world_state["campaign_time"])
                         self.assertEqual(answer["elapsed_seconds"], 0)
+                    elif name == "advance_campaign_time":
+                        self.assertEqual([answer[key] for key in ("elapsed_seconds", "requested_seconds",
+                                                                  "remaining_seconds", "interrupted")], [60, 60, 0, False])
+                        self.assertEqual(answer["before"]["detail"], "1 Mirtul 1501 DR — 09:00:00")
+                        self.assertEqual(answer["death_results"], [])
+                        self.assertEqual(s.world_state["campaign_time"]["elapsed_seconds"], 60)
                     else:
                         context = json.loads(answer)
                         self.assertEqual(context["location_id"], "t14_square")
@@ -957,6 +1359,317 @@ class NewGamePart(unittest.TestCase):
         character = game._DEFAULT_SESSION.character
         self.assertTrue(character["name"])
         self.assertGreater(character["max_hp"], 0)
+
+
+COMBAT_1 = tuple(batch_names("combat-1"))
+COMBAT_2 = tuple(batch_names("combat-2"))
+COMBAT_3 = tuple(batch_names("combat-3"))
+
+
+def _session_snapshot(session):
+    return json.dumps([session.character, session.world_state], sort_keys=True, default=str)
+
+
+class CombatFlowPart(unittest.TestCase):
+    """T5.1 batches combat-1, combat-2 and combat-3: death, damage and combat turns live in game_parts/combat_flow.py."""
+
+    def test_combat_1_lives_in_the_part(self):
+        self.assertEqual(set(COMBAT_1) - set(routing_audit.re_exports(ROOT).get("combat_flow", ())), set())
+
+    def test_combat_2_lives_in_the_part(self):
+        self.assertEqual(set(COMBAT_2) - set(routing_audit.re_exports(ROOT).get("combat_flow", ())), set())
+
+    def test_the_player_cannot_act_error_is_one_class(self):
+        # the staying handler in game.py's _front_work re-raises PlayerCannotAct and swallows any other error (returns
+        # None): the class require_player_can_act raises must be the class game.py's own handler names
+        import world_threads
+        with fixed_town(self, 20261310):
+            s = game.create_session(seed=11)
+            s.character["current_hp"] = 0
+            s.world_state["player_combat_status"] = "unconscious"
+            person = {"id": "t7_odunci", "name": "Odunculu Remzi"}
+            with patch.object(game, "active_npcs", return_value=[person]), \
+                 patch.object(world_threads, "by_id", return_value={"status": "accepted"}), \
+                 patch.object(world_threads, "says_later", return_value=False):
+                with self.assertRaises(game.PlayerCannotAct) as caught:
+                    game._front_work({"id": "t7_is", "person_id": "t7_odunci"}, "Odun kırıyorum.", session=s)
+        self.assertIs(type(caught.exception), game.PlayerCannotAct)
+        self.assertEqual(str(caught.exception), "Bilinçsiz karakter eylem gerçekleştiremez.")
+        self.assertTrue(issubclass(game.PlayerCannotAct, ValueError))
+
+    def test_a_patched_uuid4_reaches_moved_combat_code(self):
+        fixed = "00000000-0000-4000-8000-000000000007"
+        with fixed_town(self, 20261311):
+            s = game.create_session(seed=11)
+            hp = s.character["current_hp"]
+            with patch.object(game, "uuid4", return_value=fixed) as made:
+                result = game._apply_player_damage(hp, session=s)
+        made.assert_called_once_with()
+        self.assertEqual(result["status"], "unconscious")
+        self.assertEqual(s.world_state["death_state"]["noncombat_episode_id"], fixed)
+
+    def test_combat_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # every name reads game._session() (measured on 36fb0ddd): record what it returns during the session= call;
+        # each input exists only in the given session (D-447)
+        real = game._session
+        with fixed_town(self, 20261312):
+            s = game.create_session(seed=11)
+            s.character["max_hp"] = 40
+            s.character["current_hp"] = 37
+            s.world_state["death_state"] = {"mode": "IRONMAN"}
+            s.world_state.pop("combat", None)
+            s.world_state["player_combat_status"] = "t7_unknown"
+            default_before = _session_snapshot(game._session())
+            cases = (("ensure_death_state", ()), ("ensure_combat_state", ()), ("_apply_player_damage", (5,)),
+                     ("_capture_combat_death_checkpoint", ()), ("_restore_combat_death_checkpoint", ("t7_cause",)))
+            answers = {}
+            for name, args in cases:
+                seen = []
+
+                def record():
+                    value = real()
+                    seen.append(value)
+                    return value
+
+                if name == "_capture_combat_death_checkpoint":
+                    s.world_state["death_state"]["mode"] = "NORMAL"  # IRONMAN keeps no checkpoint
+                with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                    answers[name] = getattr(game, name)(*args, session=s)
+                    self.assertTrue(seen)
+                    self.assertIs(seen[0], s)
+                    # the restore checks the saved hero on a fresh candidate GameSession of its own; never the default
+                    others = [value for value in seen if value is not s]
+                    self.assertTrue(all(isinstance(value, game.GameSession) and value is not game._DEFAULT_SESSION
+                                        for value in others))
+                    if name != "_restore_combat_death_checkpoint":
+                        self.assertEqual(others, [])
+                    if name == "ensure_death_state":  # the restore below swaps s.world_state's dicts for copies
+                        self.assertIs(answers[name], s.world_state["death_state"])
+                        self.assertEqual(answers[name]["mode"], "IRONMAN")
+                    if name == "ensure_combat_state":
+                        self.assertIs(answers[name], s.world_state["combat"])
+                        self.assertEqual(s.world_state["player_combat_status"], "active")
+            self.assertEqual(answers["_apply_player_damage"]["hp_before"], 37)
+            self.assertEqual(answers["_apply_player_damage"]["hp_after"], 32)
+            self.assertEqual(answers["_restore_combat_death_checkpoint"]["cause"], "t7_cause")
+            self.assertEqual(s.character["current_hp"], 32)  # the checkpoint was taken on s after the damage
+            self.assertEqual(_session_snapshot(game._session()), default_before)
+
+        # combat-2 (measured on the combat-2 base): attack, species, death-turn and scheduler helpers on a second
+        # session whose Aasimar hero and enemies exist only there (D-447)
+        from api.tests.test_death_system import start_test_combat
+        from api.tests.test_species_traits import attack_fixture, make_session
+        s2 = make_session("Aasimar", level=3)
+        shrouded = {"id": "t7_golge", "name": "Gölge Avcısı", "combat_status": "active", "current_hp": 10,
+                    "max_hp": 10, "armor_class": 10, "attack_bonus": 0, "damage_die": 8, "damage_dice": 1,
+                    "damage_modifier": 0, "charisma_save_bonus": 0}
+        attack_fixture(s2, shrouded)
+        default_before = _session_snapshot(game._session())
+
+        def on_s2(name, *args, **kwargs):
+            seen = []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            with self.subTest(name=name), patch.object(game, "_session", side_effect=record):
+                answer = getattr(game, name)(*args, session=s2, **kwargs)
+                self.assertTrue(seen)
+                self.assertTrue(all(value is s2 for value in seen))
+            return answer
+
+        with patch.object(game, "roll_d20", return_value=1):
+            shroud = on_s2("resolve_species_trait_action", "celestial_revelation", form="necrotic_shroud")
+        self.assertEqual([save["target_id"] for save in shroud["effects"]["saves"]], ["t7_golge"])
+        with patch.object(game, "roll_d20", side_effect=[13, 18]), patch.object(game, "roll_damage", return_value=1):
+            attack = on_s2("resolve_enemy_attack", shrouded)
+        self.assertEqual(attack["attack_rolls"], [13, 18])
+        start_test_combat(s2)
+        enemy_id = "death-save-enemy"
+        on_s2("_begin_combat_actor_turn", enemy_id)
+        self.assertEqual(s2.world_state["combat"]["current_actor_id"], enemy_id)
+        with patch.object(game, "resolve_enemy_attack", return_value={"action": "enemy_attack", "outcome": "miss"}):
+            turns = on_s2("_resolve_enemy_turns_until_player")
+        self.assertTrue(turns)
+        self.assertEqual(s2.world_state["combat"]["current_actor_id"], "player")
+        s2.character["current_hp"] = 0
+        s2.world_state["player_combat_status"] = "unconscious"
+        with patch.object(game, "roll_d20", return_value=9):
+            death_turn = on_s2("_resolve_player_death_turn")
+        self.assertEqual((death_turn["roll"], death_turn["outcome"]), (9, "failure"))
+        self.assertEqual(_session_snapshot(game._session()), default_before)
+
+    def test_a_patched_resolve_saving_throw_reaches_the_moved_species_action(self):
+        # census import target: the moved resolve_species_trait_action reads game.resolve_saving_throw
+        from api.tests.test_species_traits import attack_fixture, make_session
+        s = make_session("Aasimar", level=3)
+        attack_fixture(s, {"id": "t7_kurt", "name": "Kurt", "combat_status": "active", "current_hp": 10, "max_hp": 10,
+                           "armor_class": 10, "charisma_save_bonus": 0})
+        planted = {"selected_roll": 4, "outcome": "FAILURE", "t7_planted": True}
+        with patch.object(game, "resolve_saving_throw", return_value=planted) as saved:
+            result = game.resolve_species_trait_action("celestial_revelation", form="necrotic_shroud", session=s)
+        saved.assert_called_once()
+        self.assertIs(saved.call_args.kwargs["roll_fn"], game.roll_d20)
+        self.assertIs(result["effects"]["saves"][0]["resolution"], planted)
+        self.assertTrue(result["effects"]["saves"][0]["frightened"])
+
+    def test_combat_death_checkpoint_round_trips_from_the_part(self):  # Review Focus 2
+        with fixed_town(self, 20261313):
+            default_before = _session_snapshot(game._DEFAULT_SESSION)
+            s = game.create_session(seed=21)
+            game.ensure_combat_state(session=s)
+            character = json.dumps(s.character, sort_keys=True, default=str)
+            death = dict(s.world_state["death_state"])
+            combat = json.dumps(s.world_state["combat"], sort_keys=True, default=str)
+            game._capture_combat_death_checkpoint(session=s)
+            self.assertIsNotNone(s.world_state["death_state"]["combat_checkpoint"])
+            damage = game._apply_player_damage(s.character["current_hp"], session=s)
+            self.assertEqual((damage["status"], s.character["current_hp"]), ("unconscious", 0))
+            resolution = game._restore_combat_death_checkpoint("t7_round_trip", session=s)
+        self.assertEqual(resolution, {"mode": "NORMAL", "outcome": "rolled_back", "cause": "t7_round_trip",
+                                      "rolled_back": True, "terminal": False})
+        self.assertEqual(json.dumps(s.character, sort_keys=True, default=str), character)
+        self.assertEqual(s.world_state["death_state"], {**death, "last_resolution": resolution})
+        self.assertEqual(json.dumps(s.world_state["combat"], sort_keys=True, default=str), combat)
+        self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
+
+    def test_combat_3_lives_in_the_part(self):
+        self.assertEqual(set(COMBAT_3) - set(routing_audit.re_exports(ROOT).get("combat_flow", ())), set())
+
+    def test_combat_texts_answer_as_before(self):
+        # expected lines captured on 36fb0ddd (unmoved) with p4t7-capture.py, on a bare GameSession(seed=5)
+        s = game.GameSession(seed=5)
+        self.assertEqual(game._public_combatant_label("player", player_fallback="Kara Yolcu", session=s), "Kara Yolcu")
+        self.assertEqual(game._public_combatant_label("t7_yok", fallback="Yabancı Tüccar", session=s), "Yabancı Tüccar")
+        s.world_state["npcs"] = [{"id": "t7_bekci", "name": "Bekçi Halil", "location": "x"}]
+        self.assertEqual(game._public_combatant_label("t7_bekci", session=s), "Bekçi Halil")
+        self.assertEqual(game._death_save_line({"roll": 12, "outcome": "success"}, session=s),
+                         "Ölüm kurtarma zarın: 12. Karanlıkta yatıyorsun, bedenin sana uymuyor; hayata tutunuyorsun. "
+                         "Ölüm kurtarma: 0 başarı, 0 başarısızlık.")
+        self.assertEqual(game._death_save_line({"roll": 20, "outcome": "revived"}, session=s),
+                         "Ölüm kurtarma zarın: 20. Bir anda ciğerlerine hava doluyor; gözlerini açıyorsun, canın az da "
+                         "olsa geri döndü.")
+
+
+COIN = tuple(batch_names("coin"))
+
+
+class CoinPart(unittest.TestCase):
+    """T5.2 batch coin: shop and purse helpers live in game_parts/coin.py."""
+
+    def test_coin_lives_in_the_part(self):
+        self.assertEqual(set(COIN) - set(routing_audit.re_exports(ROOT).get("coin", ())), set())
+
+    def test_the_coin_left_behind_alias_is_money_owners_object(self):
+        import money_owner
+        self.assertIs(game.COIN_LEFT_BEHIND, money_owner.COIN_LEFT_BEHIND)
+
+    def test_a_patched_create_shop_from_proposal_reaches_its_staying_caller(self):
+        # merge_world_updates (stays in game.py until Task 14) calls create_shop_from_proposal bare
+        proposal = {"name": "t8_Kuyu Dükkanı", "shopkeeper": {"name": "t8_Sekiz"}}
+        keeper = {"id": "t8_keeper", "name": "Sekiz Usta"}
+        with fixed_town(self, 20261320):
+            s = game.create_session(seed=11)
+            default_before = _session_snapshot(game._DEFAULT_SESSION)
+            with patch.object(game, "create_shop_from_proposal",
+                              return_value={"id": "t8_shop", "shopkeeper": keeper}) as made:
+                created = s.merge_world_updates({"create_shops": [proposal]})
+            self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
+        made.assert_called_once_with(proposal)
+        self.assertEqual(created, [keeper])
+
+    def test_shop_requests_answer_as_before(self):
+        # expected answers captured on 36fb0ddd (unmoved) with p4t8-capture.py
+        cases = (("_shop_economy_request", "Bu kılıcın fiyatı ne kadar?", True),
+                 ("_shop_economy_request", "Kapıyı yavaşça açıyorum.", False),
+                 ("_explicit_campaign_shop_negative_request", "Burada dükkan açma, sadece yürüyelim.", True),
+                 ("_explicit_campaign_shop_negative_request", "Dükkan sahibine selam veriyorum.", False),
+                 ("_shop_presence_question", "Bu kasabada bir tüccar var mı?", True),
+                 ("_shop_presence_question", "Tüccar burada bekliyor.", False))
+        for name, text, expected in cases:
+            with self.subTest(name=name, text=text):
+                self.assertIs(getattr(game, name)(text), expected)
+
+
+SAVE_1 = tuple(batch_names("save-1"))
+SAVE_2 = tuple(batch_names("save-2"))
+
+
+class SavefilePart(unittest.TestCase):
+    """T5.3 batches save-1 and save-2: save validation, repair, writing and loading live in game_parts/savefile.py."""
+
+    def test_save_1_lives_in_the_part(self):
+        self.assertEqual(set(SAVE_1) - set(routing_audit.re_exports(ROOT).get("savefile", ())), set())
+
+    def test_save_2_lives_in_the_part(self):
+        self.assertEqual(set(SAVE_2) - set(routing_audit.re_exports(ROOT).get("savefile", ())), set())
+
+    def test_the_save_repair_warnings_log_under_game(self):  # Review Focus 3
+        # one broken row per repair function; the lines were captured on 2df1d98f (unmoved) with p4t9-preflight.py
+        with fixed_town(self, 20261330), tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "t9_repair.json"
+            game.save_game(path, session=game.create_session(seed=31))
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            flags = payload["world_state"].setdefault("flags", {})
+            flags["money_declined"] = {"t9_osman": "bad"}  # _repair_dilim1_fields (economic_actions.repair_declines)
+            flags["active_npc_id"] = "t9_nobody"  # _repair_dilim2_fields: a talk with someone not in the save
+            path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            loaded = game.create_session(seed=32)
+            with self.assertLogs("game", "WARNING") as logged:
+                game.load_game(path, session=loaded)
+        self.assertEqual([(record.name, record.levelname, record.getMessage()) for record in logged.records],
+                         [("game", "WARNING", "dilim1 load repaired: money_declined.t9_osman"),
+                          ("game", "WARNING", "dilim2 load repaired: talk:nobody")])
+
+    def test_save_round_trip_after_the_move(self):  # Review Focus 3
+        with fixed_town(self, 20261331), tempfile.TemporaryDirectory() as folder:
+            default_before = _session_snapshot(game._DEFAULT_SESSION)
+            s = game.create_session(seed=31)
+            path = Path(folder) / "t9_round.json"
+            game.save_game(path, session=s)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            loaded = game.create_session(seed=33)
+            game.load_game(path, session=loaded)
+            again = json.loads(json.dumps(game.serialize_game_state(session=loaded), ensure_ascii=False))
+            self.assertEqual(_session_snapshot(game._DEFAULT_SESSION), default_before)
+        self.assertEqual(saved["format"], "ai-dnd-save")
+        self.assertEqual(again, saved)
+
+    def test_a_patched_os_reaches_the_moved_save_game(self):
+        # save_game reads os for its fsync only; the replace is pathlib's
+        with fixed_town(self, 20261332), tempfile.TemporaryDirectory() as folder:
+            s = game.create_session(seed=31)
+            with patch.object(game, "os", wraps=os) as patched:
+                written = game.save_game(Path(folder) / "t9_os.json", session=s)
+            self.assertTrue(written.is_file())
+        patched.fsync.assert_called_once()
+        self.assertEqual([call[0] for call in patched.mock_calls], ["fsync"])
+
+    def test_save_session_helpers_use_the_given_session(self):  # Review Focus 4
+        # serialize_game_state reads game._session() only: every read must return the given session; the name and the
+        # narration exist only there (D-447)
+        real = game._session
+        with fixed_town(self, 20261333):
+            s = game.create_session(seed=31)
+            s.character["name"] = "t9_Yalnız Kâtip"
+            s.recent_dm_narrations.append("t9_yalnız anlatı")
+            default_before = _session_snapshot(game._session())
+            seen = []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            with patch.object(game, "_session", side_effect=record):
+                payload = game.serialize_game_state(session=s)
+            self.assertTrue(seen)
+            self.assertTrue(all(value is s for value in seen))
+            self.assertEqual(payload["player"]["name"], "t9_Yalnız Kâtip")
+            self.assertEqual(payload["recent_dm_narrations"][-1], "t9_yalnız anlatı")
+            self.assertEqual(_session_snapshot(game._session()), default_before)
 
 
 if __name__ == "__main__":
