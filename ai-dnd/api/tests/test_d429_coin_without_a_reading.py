@@ -113,6 +113,18 @@ class ACoinWithoutAReading(unittest.TestCase):
         self.assertEqual(on["cards"], [], on["narration"])
         self.assertEqual(on["money_after"], on["money_before"])
 
+    def test_coin_for_whoever_serves_that_names_no_ware_keeps_its_note(self):
+        # Review fix 1 (G11): only words naming a thing the counter sells are the counter's to read. A tip, plain coin
+        # or coin for talk held out to whoever serves keeps its `unclear` decision and note; nothing moves.
+        for line, amount in (("barmene 1 gümüş bahşiş veriyorum", 10), ("barmene 5 bakır veriyorum", 5),
+                             ("Marek'e 3 bakır verip ne haber diyorum", 3)):
+            with self.subTest(line=line):
+                on = _played(self, 20261488, "1", line)
+                self.assertEqual(on["route"], "fallback:failed")
+                self.assertEqual(on["seen"], [("unclear", "barman", amount)], on["narration"])
+                self.assertIn(("barman", money_owner.unclear_note(amount)), on["notes"], on["narration"])
+                self.assertEqual(on["money_after"], on["money_before"])
+
 
 class TheRoomReadingReallyFailedOverHttp(EconomicHttpFixture):
     """Case 4: the HTTP room path for "hancıya 1 gümüş verip oda tutuyorum" (test_economic_room's D-402 test) runs on
