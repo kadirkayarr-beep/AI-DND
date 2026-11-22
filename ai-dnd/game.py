@@ -2295,7 +2295,7 @@ def _local_place_turn(player_input):
         world, record, create_npc=create_npc_from_ai, create_feature=create_local_feature,
     )
     import arrival_narration  # here, not at the top: arrival_narration imports game
-    narration, told = arrival_narration.arrive(sys.modules[__name__], world, record, npc, feature, first_visit=created,
+    narration, told = arrival_narration.arrive(sys.modules["game"], world, record, npc, feature, first_visit=created,
                                                player_input=player_input, messages=session.messages)
     action_result = {
         "action": "travel",
@@ -7355,7 +7355,7 @@ def _run_player_turn_internal(
                     # a bad mention is dropped without a trace.
                     if heard_rumours.said_in(attributed_speech["spoken_text"], named):
                         heard_rumours.record_mention(
-                            sys.modules[__name__], _session().world_state, npc_target, raw_intent.get("mentions"),
+                            sys.modules["game"], _session().world_state, npc_target, raw_intent.get("mentions"),
                             _session().world_state.get("flags", {}).get("turn_index", 0))
             if (
                 empty_model_narration
