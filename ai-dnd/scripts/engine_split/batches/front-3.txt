@@ -1,0 +1,8 @@
+_front_wield
+_coin_not_parcel
+_names_no_parcel
+_front_hand_over
+_front_work
+_take_names_a_job
+_front_take
+_sleep_after_walk

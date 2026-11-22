@@ -1,0 +1,13 @@
+_has_session
+_carry_out_thread_turn
+_thread_gate
+_world_snapshot
+_changed_state_fields
+_execute_intent_internal
+_hideout_check
+_adventure_scene_turn
+_adventure_check_reply
+_everyday_action_turn
+_local_place_turn
+_intent_infrastructure_result
+_clear_turn_transients
