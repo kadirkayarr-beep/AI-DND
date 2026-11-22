@@ -31,11 +31,11 @@ PR #121 (dal `task/d249-duzeltme-20261116`, birleşme `e94d81a3`). Kaynak: `D249
 
 ### Bölüm 4 (2026-11-16'da onaylandı)
 - **Satır 60, PR #111.** Dükkân açma (2 test), f04 D05, `test_step0_ledger_play` keseye göre yeniden yazıldı; d229 gösterilen eşya 2'den 1'e; bir tohum 116'dan 163'e; iki yakalanma cümlesi değişti. Kaçabilecek: gösterilen eşya sayısı inince ikinci eşyanın gösterimi artık denetlenmiyor. Öneri: onayla.
-- **Satır 61, PR #110** `test_a_coin_deal_to_nobody_listed_still_asks_who` yeniden yazıldı (para). Listede ayrıntı yok. Öneri: onayla.
+- **Satır 61, PR #110** `test_integ_review_fixes...test_a_coin_deal_to_nobody_listed_still_asks_who` yeniden yazıldı (para, D-097). Kaynak: birleşme `9dd001cd` test farkı. Önce: kişisiz okunan para satırı (`person_id: none`) bir konuşma sürerken de (`speaking_with` npc_a) "kime?" diye sorardı (geçersiz yol). Şimdi: aynı soru yalnız kimseyle konuşulmuyorken sorulur; konuşma sürerken kişisiz para satırı konuşulan kişiye bağlanır (yeni test `test_a_coin_deal_with_no_person_in_a_talk_is_for_the_one_talked_to`: geçerli, `purchase`, npc_a). Kaçabilecek: konuşma sürerken oyuncu parayı başka birine demek istediyse ve model kişiyi okuyamadıysa, para önerisi "kime?" sormadan konuşulan kişiye açılır. Öneri: onayla (oynayışta bak).
 - **Satır 62, PR #109.** Ön okuma tavanı 400'den 700'e. Kaçabilecek: 400-700 arası uzun bir okuma artık hata sayılmaz (daha çok yerel model süresi). Öneri: onayla.
 - **Satır 63, PR #107.** Kaçak döngü tavanı 240'tan 480'e. Kaçabilecek: döngü iki kat uzun sürünce yakalanır. Öneri: onayla.
 - **Satır 64, PR #114** (para). Söylenen tutar metinde kalır; "İşte bu yüzden sana para vermem." silinir; para ya da kese adı geçen al/tut/işte/buyur cümleleri silinir. Kaçabilecek: kesenin değiştiğini söyleyen ama tutar vermeyen bir cümle. Öneri: onayla.
-- **Satır 66, önceki dalgalar (D-109, D-166, kalan sayaç, D-231, #84).** Ayrıntı bu listede değil, KOD 2 devir notunda; D-231 kese ve eşya aramasıdır (para). Öneri: onayla (zaten onaylı); ayrıntı istersen ayrı bakılır.
+- **Satır 66, önceki dalgalar (D-109, D-166, kalan sayaç, D-231, #84).** Ayrıntı bu listede değil, KOD 2 devir notunda; D-231 kese ve eşya aramasıdır (para). Kaçabilecek: doğrulamadım; bu satırların test farkını okumadım. Öneri: onayla (zaten onaylı); ayrıntı istersen ayrı bakılır.
 
 ### Bölüm 5 (D-249 + D-250 tasarım dalı)
 - **Satır 76, `test_story_links.test_a_person_carries_one_at_most`.** Önce: bir kişinin bildiği en çok 5. Şimdi: `town_knowledge.MAX_ITEMS` = 10. Kaçabilecek: 6-10 madde taşıyan kişi artık hata değil (bilerek). Öneri: onayla.
@@ -67,7 +67,7 @@ PR #121 (dal `task/d249-duzeltme-20261116`, birleşme `e94d81a3`). Kaynak: `D249
 - **Satır 177, `test_world_keeps_its_word.LeavingTown` üç test.** Önce: ilk "yola devam" uyarır ve hiçbir şey kıpırdamazdı. Şimdi: uyarır ve bir sonraki yola yürür: konum değişir, saat tam +1 saat; gün süren yolculuk ya da uzak şehre varış yok. Kaçabilecek: yok; yeni davranış tam sayıyla denetleniyor. Öneri: onayla.
 
 ### Bölüm 16 (BM görev 9)
-- **Satır 189, `test_carius_fifth_play.TheRoadOnIsNoWall`.** Önce: ilk "yola devam" durakta kalırdı. Şimdi: uyarır ve yürür; ikinci yürüyüş uyarısız. Öneri: onayla.
+- **Satır 189, `test_carius_fifth_play.TheRoadOnIsNoWall`.** Önce: ilk "yola devam" durakta kalırdı. Şimdi: uyarır ve yürür; ikinci yürüyüş uyarısız. Kaçabilecek: ilk "yola devam" artık durdurmaz; yanlışlıkla söylenen satır oyuncuyu uyarıyla birlikte yürütür. Öneri: onayla.
 
 ### Bölüm 17 (BM son düzeltme)
 - **Satır 195, `test_ready_line_share.ReadyLineShare`.** Önce: hazır satır payı yalnız kaynağı bilinen satırlardan. Şimdi: payda bütün oyuncu satırları; kaynaksız satır `unknown` sayılır. Kaçabilecek: bir ölçüm tanımı değişti; eski ve yeni pay birbiriyle karşılaştırılamaz. Öneri: onayla.
@@ -80,12 +80,12 @@ PR #121 (dal `task/d249-duzeltme-20261116`, birleşme `e94d81a3`). Kaynak: `D249
 - **Satır 210, `test_narration_source_record.TheListIsTheEngines` (iki test).** Kaynak bildiren parça `ENGINE_PART_REPORTERS` listesine adıyla yazılırsa kabul edilir. Kaçabilecek: liste adla genişler; her genişleme diff'te görünür. Öneri: onayla.
 - **Satır 221, `size_budget.json` `long_functions["run"] = 184`.** Terminal döngüsü `game_parts/terminal.py` içine taşındı, yeni uzun işlev izni. Kaçabilecek: yok (büyüme yok). Öneri: onayla.
 - **Satır 232, `test_engine_routing.RoutingAuditTests` R1-R7.** Yardımcı R8 bulgularını süzer; eski "yalnız kendi kuralı" testleri R8'i görmez. Kaçabilecek: yok; R8'in kendi testleri ve bütün ağaç testi on üç kuralı koşar. Öneri: onayla.
-- **Satır 242, N7 kapı kuralı "DOWN boş".** İşlev başına sayı artışı kapıyı durdurmaz, defterde açıklanır. Not: N7 Plan 6 sonunda zorunlu adım olmaktan çıktı (bölüm 24 satır 484). Öneri: onayla.
+- **Satır 242, N7 kapı kuralı "DOWN boş".** İşlev başına sayı artışı kapıyı durdurmaz, defterde açıklanır. Not: N7 Plan 6 sonunda zorunlu adım olmaktan çıktı (bölüm 24 satır 484). Kaçabilecek: bir işlevde çalışan satır sayısının artması kapıyı durdurmaz; defterdeki açıklama yanlışsa artış gözden kaçabilir. Azalma (DOWN) yine durdurur. Öneri: onayla.
 - **Satır 243, `F_fon` geçme kuralı** (para D-370, kayıt D-371). 304 bilinen bayrak açık kırığı kapıda kırmızı saymıyordu. Kaçabilecek: o 304 içinde yeni bir kırık gizlenebilirdi. Durum: bayrak açık kırıklar `task/fon-a` ile düzeldi; Plan 5 ve Plan 6 kapıları `failing_ids 0` istiyor. Öneri: onayla.
 
 ### Bölüm 20 (bayrak açık düzeltmeleri)
 Bölümün ortak anlamı: test artık ön okumayı da tam sayıyla sayıyor (0 çağrı yerine tam `['front']`) ya da başka bir yolu koşuyor.
-- **Satır 290, `test_front_proposal.FrontTable...` (yaklaşık 31 sınıf).** Önce: okuma kesintisinde tur 200 ile oynardı. Şimdi: 503 "tekrar dene", sonra satır yeni kimlikle oynar (senin G6 kararın). Öneri: onayla.
+- **Satır 290, `test_front_proposal.FrontTable...` (yaklaşık 31 sınıf).** Önce: okuma kesintisinde tur 200 ile oynardı. Şimdi: 503 "tekrar dene", sonra satır yeni kimlikle oynar (senin G6 kararın). Kaçabilecek: okuma kesintisinde tur artık oynamaz; "kesintide tur yine oynar" güvencesi bu sınıflarda denetlenmiyor, oyuncu satırı yeniden yazar. Öneri: onayla.
 - **Satır 291, `test_front_failed_fallback` (13 yer, "evet" testi, kayıt testi).** Kesinti yerine "kullanılamaz okuma"; D-240 kurtarması `fallback:failed:<kind>` altında artık denetlenmiyor. Kaçabilecek: o kurtarma yolu bozulursa bu dosya görmez. Öneri: onayla, borç açık (D-406).
 - **Satır 292, `test_d109_timing` hırsızlık ve `test_everyday_gate`.** Başarısız okuma yerine kullanılamaz cevap. Kaçabilecek: başarısız okumada hırsızlık sorusu bu testte denetlenmiyor. Öneri: onayla, borç açık (D-407 belge dizesi).
 - **Satır 297, `test_stage10b...test_before_resolution_failure_restores_state_rng_and_has_no_receipt`** (makbuz, Geri Al). Hata türü değişti; iki bayrakta da 503, durum ve zar geri döner, makbuz yok. Kaçabilecek: yok; geri alma ve makbuzsuzluk aynı sıkı. Öneri: onayla.
@@ -94,42 +94,42 @@ Bölümün ortak anlamı: test artık ön okumayı da tam sayıyla sayıyor (0 �
 - **Satır 300, `test_model_failure_never_locks...low_token_cap`.** Döngü koruması bayrak açıkken denetlenmiyor. Kaçabilecek: bayrak açık yolda döngü koruması bozulursa bu test görmez. Öneri: onayla, borç açık (D-407).
 - **Satır 305, `test_coin_writers` ve `test_economic_room.CoinWithTheLine` 4 test** (para). Bayrak açık: ekilmiş para yerine betikli amaç okuması; bayrak kapalı değişmedi. Kaçabilecek: bayrak açık bu satırlarda başarısız okuma denetlenmiyor (G11 testleri denetliyor). Öneri: onayla.
 - **Satır 308, `test_d231_person_gear...takes_its_purse_and_its_gear`** (kese). 0 çağrı yerine bayrak açık tam `['front']`. Kaçabilecek: yok; kese ve eşya iddiaları aynı. Öneri: onayla.
-- **Satır 313, `test_intent_response_consistency` (on iki test)** (anahtar sözcük: `save_resume`). `calls == 0` yerine `['front'] * n`. Öneri: onayla.
-- **Satır 324, `test_narration_receipt_contract` `enter()` (8 test)** (makbuz). `calls == 0` yerine `read_first()`; gizli sahne denetimi ön okuma isteğini de tarar (daha geniş). Öneri: onayla.
-- **Satır 326, `test_f04_creation_authority` 7 test** (kayıt hatası). `read_first()`; kayıt hatası yeniden denemesi iki okuma. Öneri: onayla.
+- **Satır 313, `test_intent_response_consistency` (on iki test)** (anahtar sözcük: `save_resume`). `calls == 0` yerine `['front'] * n`. Kaçabilecek: yok; çağrı sayısı yine tam (okunan satır kadar ön okuma, başka çağrı yok); satır yalnız çağrı beklentisini değiştirdi. Öneri: onayla.
+- **Satır 324, `test_narration_receipt_contract` `enter()` (8 test)** (makbuz). `calls == 0` yerine `read_first()`; gizli sahne denetimi ön okuma isteğini de tarar (daha geniş). Kaçabilecek: yok; çağrı türleri tam denetleniyor, makbuz iddialarını satır değiştirmedi. Öneri: onayla.
+- **Satır 326, `test_f04_creation_authority` 7 test** (kayıt hatası). `read_first()`; kayıt hatası yeniden denemesi iki okuma. Kaçabilecek: kayıt hatasından sonraki yeniden deneme bir ön okuma daha yapar; bu fazla çağrı artık hata değil (tam iki, fazlası yine kırmızı). Öneri: onayla.
 - **Satır 327, `test_campaign_api...invalid_conditional_conversation_rejects_before_interaction_effects`.** Bayrak açık tür listesi; geçersiz önerinin bayrak açık okunup reddedildiği gösterilmedi. Kaçabilecek: bayrak açık yolda geçersiz koşullu konuşma. Öneri: onayla, borç açık (D-415).
 - **Satır 328, `test_campaign_api.test_free_npc_profile_statement`.** Yalnız bayrak kapalı koşar. Kaçabilecek: bayrak açık konuşma zarfı bu testte hiç sorulmuyor. Öneri: onayla, borç açık (D-413).
 - **Satır 331, `test_campaign_api...unpunctuated_locked_followup_reaches_same_npc_door_context`** (kayıt hatası geri alma). Python'un "kilitli" cevabı ve iki odak denetimi yalnız bayrak kapalı; bayrak açıkta kayıt hatası geri alma, yeniden deneme, bellek geri alma ve yeniden oynatma denetleniyor. Kaçabilecek: bayrak açıkta kilitli kapı cevabının Python'dan geldiği. Öneri: onayla, borç açık (D-414).
-- **Satır 335, `test_npc_initiative...exploration_can_include_one_contextual_initiative_and_replay`.** `<= 2` çağrı yerine tam türler; tur sınırı inisiyatifte 2'den 3'e. Öneri: onayla.
-- **Satır 346, `test_campaign_api...reopened_verified_city_ruler_answer_preserves_lore_and_history`** (yeniden açılan kayıt). Model yalnız ön okumayı yanıtlar; satır başına tür listesi. Öneri: onayla.
-- **Satır 347, `test_npc_player_address` `introduce` yardımcısı (6 test, ad kayıttan sonra da kalır).** 0 çağrı yerine bayrak açık tam `['front']`. Öneri: onayla.
-- **Satır 362, `test_smoke_turn_diagnostics...captures_checkpoint_before_native_turn`** (Geri Al anlık görüntüsü, kayıt 1). Bayrak açık tam bir ön okuma. Öneri: onayla.
-- **Satır 375, `test_companion_wait_regressions.FreeDialogueWaitApiTests` (4 test, kayıt hatası geri alma).** Satır başına `with_reading()`; kayıt hatası iki okuma; yeniden oynatmanın çağrı yapmadığı denetimi eklendi (daha sıkı). Öneri: onayla.
+- **Satır 335, `test_npc_initiative...exploration_can_include_one_contextual_initiative_and_replay`.** `<= 2` çağrı yerine tam türler; tur sınırı inisiyatifte 2'den 3'e. Kaçabilecek: bayrak açık inisiyatifli turda model çağrısı 2'den 3'e çıktı; bu fazla çağrının süresi hata sayılmaz. Türler tam denetlendiği için başka bir çağrı yine yakalanır. Öneri: onayla.
+- **Satır 346, `test_campaign_api...reopened_verified_city_ruler_answer_preserves_lore_and_history`** (yeniden açılan kayıt). Model yalnız ön okumayı yanıtlar; satır başına tür listesi. Kaçabilecek: yok; satır yalnız sahte modelin cevabını ve çağrı türlerini değiştirdi, bilgi ve geçmiş iddiaları satırda değişmedi (test gövdesini okumadım). Öneri: onayla.
+- **Satır 347, `test_npc_player_address` `introduce` yardımcısı (6 test, ad kayıttan sonra da kalır).** 0 çağrı yerine bayrak açık tam `['front']`. Kaçabilecek: yok; tam bir ön okuma bekleniyor, bayrak kapalı yine 0. Öneri: onayla.
+- **Satır 362, `test_smoke_turn_diagnostics...captures_checkpoint_before_native_turn`** (Geri Al anlık görüntüsü, kayıt 1). Bayrak açık tam bir ön okuma. Kaçabilecek: yok; tam bir ön okuma bekleniyor, bayrak kapalı yine 0; Geri Al anlık görüntüsü (kayıt 1) iddiasını satır değiştirmedi. Öneri: onayla.
+- **Satır 375, `test_companion_wait_regressions.FreeDialogueWaitApiTests` (4 test, kayıt hatası geri alma).** Satır başına `with_reading()`; kayıt hatası iki okuma; yeniden oynatmanın çağrı yapmadığı denetimi eklendi (daha sıkı). Kaçabilecek: kayıt hatası testinde başarısız denemenin okuması yeniden denemede bir kez daha yapılır (tam iki okuma, fazlası kırmızı); kayıt geri alma iddiasını satır değiştirmedi. Öneri: onayla.
 - **Satır 380, `test_front_failed_fallback` şehir dışına yürüme ve yolda soygun** (soygun = para). Kesinti yerine kullanılamaz okuma; D-377 durumları kesintide değil kullanılamaz okumada koşuyor. Kaçabilecek: okuma kesintisinde soygun yolu bu testte yok (G6: kesinti artık 503). Öneri: onayla.
-- **Satır 384, `test_step4_branches.Branches.line` (6 test, ücret dahil).** `chat_calls <= 1` yerine tam türler (daha sıkı). Ücret testi içerdiği için tek tek. Öneri: onayla.
-- **Satır 385, `size_budget.json` game.py 22 670 -> 22 727** (onaylandı 2026-11-19). Bugün game.py 1 400 satır; bu sınır geçmişte kaldı. Öneri: onayla.
-- **Satır 386, `_front_step` 231 -> 235** (onaylandı 2026-11-19). Öneri: onayla.
-- **Satır 387, `_run_player_turn_internal` 2 743 -> 2 756** (onaylandı 2026-11-19). Öneri: onayla.
+- **Satır 384, `test_step4_branches.Branches.line` (6 test, ücret dahil).** `chat_calls <= 1` yerine tam türler (daha sıkı). Ücret testi içerdiği için tek tek. Kaçabilecek: yok (daha sıkı). Öneri: onayla.
+- **Satır 385, `size_budget.json` game.py 22 670 -> 22 727** (onaylandı 2026-11-19). Bugün game.py 1 400 satır; bu sınır geçmişte kaldı. Kaçabilecek: yok; sınır bugün 1 450 (satır 479). Öneri: onayla.
+- **Satır 386, `_front_step` 231 -> 235** (onaylandı 2026-11-19). Kaçabilecek: işlev 4 satır daha uzun olabildi; yalnız boyut sınırı, davranış değil. Öneri: onayla.
+- **Satır 387, `_run_player_turn_internal` 2 743 -> 2 756** (onaylandı 2026-11-19). Kaçabilecek: işlev 13 satır daha uzun olabildi; yalnız boyut sınırı, davranış değil. Öneri: onayla.
 
 ### Bölüm 21 (bölme Plan 3)
-- **Satır 396, `test_engine_probe_tools`** (anahtar sözcük: "kayıt testi"). Karışık ağaçta çıkış 2 "ret" yerine 1 "kırık"; ikisi de sıfır değil, dosya yine yazılmaz. Öneri: onayla.
+- **Satır 396, `test_engine_probe_tools`** (anahtar sözcük: "kayıt testi"). Karışık ağaçta çıkış 2 "ret" yerine 1 "kırık"; ikisi de sıfır değil, dosya yine yazılmaz. Kaçabilecek: çıkış kodunu "2 = ret" diye ayıran bir betik karışık ağacı artık "kırık" (1) görür; dosya yine yazılmaz. Öneri: onayla.
 - **Satır 398, `test_engine_routing` R11.** Yamalanan yerleşik ada yalnız `builtins.`/`io.` üzerinden ulaşım bulgu sayılır. Satırdaki kör nokta (`from builtins import open` yapan modül) Plan 4 Görev 2'de kapandı (D-440 kapalı). Kaçabilecek: `from io import open` gibi dar biçimler (bugün motorda yok). Öneri: onayla.
 - **Satır 411, parça zaman aşımı 3 000 s -> 4 500 s**. Kaçabilecek: gerçek bir takılma 25 dakika geç yakalanır. Öneri: onayla.
-- **Satır 412, paket hızı duvar saatiyle.** En uzun parçayla ölçülse bayrak açık paket sınırı %0.4 aşardı. Öneri: onayla.
+- **Satır 412, paket hızı duvar saatiyle.** En uzun parçayla ölçülse bayrak açık paket sınırı %0.4 aşardı. Kaçabilecek: en uzun parça ölçüsündeki %0.4'lük aşım (1.104) duvar saatinde görünmez. Öneri: onayla.
 
 ### Bölüm 22 (bölme Plan 4)
 - **Satır 419, `test_engine_patch_census` `DYNAMIC_REASONS`.** Sayım, `test_engine_module_alias.py` içinde hesaplanan yama adını hedefe çözmeden kabul eder. Kaçabilecek: o dosyada yeni bir dinamik yama adı. Öneri: onayla.
-- **Satır 422, `_batches_are_movable` T5.** Hassas adlar (para/kayıt/ölüm) taşınabilir; karşılığında güçlü inceleme ve `move_check --tier strong`. Öneri: onayla.
-- **Satır 423, `test_every_re_export_is_the_parts_own_object`.** Anlatı adaptörü takılıyken sarmalayıcı, yakaladığı özgün nesne aynı denetimden geçerse kabul. Koruma testi yanlış nesneyi yine reddeder. Öneri: onayla.
+- **Satır 422, `_batches_are_movable` T5.** Hassas adlar (para/kayıt/ölüm) taşınabilir; karşılığında güçlü inceleme ve `move_check --tier strong`. Kaçabilecek: para/kayıt/ölüm adı T5 partisinde taşınırken bu test kırmızı vermez; koruma güçlü incelemeye ve `move_check --tier strong`'a kaldı. Öneri: onayla.
+- **Satır 423, `test_every_re_export_is_the_parts_own_object`.** Anlatı adaptörü takılıyken sarmalayıcı, yakaladığı özgün nesne aynı denetimden geçerse kabul. Koruma testi yanlış nesneyi yine reddeder. Kaçabilecek: adaptör takılıyken sarmalayıcının kendisi değil, yakaladığı özgün nesne denetlenir; sarmalayıcının kendi davranışı bu testte görülmez (test yalnız kimliğe bakar). Öneri: onayla.
 - **Satır 425, M12 yazıcı taraması.** `held=0` yerine: tutulan yazıcı yolları Görev 4'te kaydedilen kümeye tam eşit ve her biri adlı bir testle kapalı. Kaçabilecek: kayıtlı kümede olan bir yol tek başına taşımayı durdurmaz. Öneri: onayla.
 
 ### Bölüm 23 (bölme Plan 5)
-- **Satır 450, M12 yazıcı taraması (Plan 4'ten taşındı).** Satır 425 ile aynı kural. Öneri: onayla.
-- **Satır 451, `move_block` N3 kural 6.** Bir işlevin içindeki `locals(` ya da `sys.modules`, `identity_allowlist.json` satırı adlandırırsa taşınır; öteki her kullanım yine reddedilir. Öneri: onayla.
-- **Satır 452, `_batches_are_movable` T6 (Geri Al koruması).** Altı tur partisinde hassas adlar taşınabilir; yeni koruma Geri Al geri yüklemesinin `game.py`'de kaldığını denetler. Öneri: onayla.
-- **Satır 455, `identity_allowlist.json` ilk satır** (`turn_front.py` `_local_place_turn` `sys.modules`). Öneri: onayla.
-- **Satır 462, `identity_allowlist.json` iki satır** (`turn.py` `_run_player_turn_internal` `sys.modules` ve `locals`). Öneri: onayla.
-- **Satır 463, `size_budget.json` `turn.py` 3 667** (2 500 parça sınırının üstünde; bundan sonra yalnız küçülebilir). Öneri: onayla; tur bölme dilimi küçültecek.
+- **Satır 450, M12 yazıcı taraması (Plan 4'ten taşındı).** Satır 425 ile aynı kural. Kaçabilecek: kayıtlı kümede olan bir yol tek başına taşımayı durdurmaz. Öneri: onayla.
+- **Satır 451, `move_block` N3 kural 6.** Bir işlevin içindeki `locals(` ya da `sys.modules`, `identity_allowlist.json` satırı adlandırırsa taşınır; öteki her kullanım yine reddedilir. Kaçabilecek: izin listesinde satırı olan bir `locals(`/`sys.modules` kullanımı kendiliğinden geçer; satırın doğruluğu incelemeye kalır. Öneri: onayla.
+- **Satır 452, `_batches_are_movable` T6 (Geri Al koruması).** Altı tur partisinde hassas adlar taşınabilir; yeni koruma Geri Al geri yüklemesinin `game.py`'de kaldığını denetler. Kaçabilecek: Geri Al geri yüklemesi dışındaki hassas adlar (67 adın 31'i) taşınırken bu test kırmızı vermez; koruma güçlü incelemeye ve `move_check --tier strong`'a kaldı. Öneri: onayla.
+- **Satır 455, `identity_allowlist.json` ilk satır** (`turn_front.py` `_local_place_turn` `sys.modules`). Kaçabilecek: o işleve sonradan eklenen ikinci bir `sys.modules` kullanımı da muhtemelen geçer (doğrulamadım: satır dosyayı, işlevi ve adı anar, yeri anmaz). Öneri: onayla.
+- **Satır 462, `identity_allowlist.json` iki satır** (`turn.py` `_run_player_turn_internal` `sys.modules` ve `locals`). Kaçabilecek: o işleve sonradan eklenen ikinci bir `sys.modules` ya da `locals(` kullanımı da muhtemelen geçer (doğrulamadım, satır 455 ile aynı). Öneri: onayla.
+- **Satır 463, `size_budget.json` `turn.py` 3 667** (2 500 parça sınırının üstünde; bundan sonra yalnız küçülebilir). Kaçabilecek: `turn.py` 2 500 sınırının 1 167 satır üstünde kalabilir; büyüyemez. Öneri: onayla; tur bölme dilimi küçültecek.
 
 ### Bölüm 24 (bölme Plan 6, bu dal)
 - **Satır 479, `size_budget.json` game.py 1 450 ve `test_game_py_is_within_the_spec_cap`**. Bütçe gerçek boyut + 50 satır pay; tavan testi (< 1 500) sıkılaştırma. Kaçabilecek: game.py 50 satıra kadar büyüyebilir, her kullanım bir Ruling ve onay satırı ister. Öneri: onayla.
