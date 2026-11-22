@@ -1386,8 +1386,8 @@ if __name__ != "__main__":
             lambda module, value, key=_alias_key: _DEFAULT_SESSION.character.__setitem__(key, value)))
     del _alias_name, _alias_key
 
-    # Imported modules retain live character aliases. Plain exec dictionaries
-    # must use create_session() and explicit session-owned state instead.
+    # Imported modules retain live character aliases. The engine file is never
+    # run as a second copy (exec, runpy); the terminal entry delegates here.
     if isinstance(sys.modules.get(__name__), types.ModuleType) and sys.modules[__name__].__dict__ is globals():
         sys.modules[__name__].__class__ = _GameModule
 
