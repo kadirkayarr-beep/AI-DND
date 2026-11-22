@@ -376,7 +376,7 @@ class TextB1Part(unittest.TestCase):
             ("düz metin", False, "düz metin"),
         )
         for raw, expected, after in salvage:
-            with self.subTest(helper="_salvage_plain_speech", raw=after):
+            with self.subTest(helper="_salvage_plain_speech", after=after):
                 self.assertIs(game._salvage_plain_speech(raw), expected)
                 self.assertEqual(raw, after)
 
