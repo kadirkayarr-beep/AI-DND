@@ -26,6 +26,7 @@ from api.narrative_director import install_narrative_context_adapter, narrative_
 from api.narrative_memory import empty_narrative_memory  # noqa: E402
 from api.session_manager import SessionManager  # noqa: E402
 from api.tests import test_campaign_api as campaign_api  # noqa: E402
+from api.tests import test_front_proposal as front_tests  # noqa: E402
 from api.tests import test_heard_rumours_turn as rumour_turn  # noqa: E402
 from api.tests import test_local_person_persistence as local_person  # noqa: E402
 from api.tests import test_thread_gate as thread_gate_tests  # noqa: E402
@@ -1747,6 +1748,7 @@ class TurnIdentityNames(unittest.IsolatedAsyncioTestCase):
 
 
 FRONT_1 = tuple(batch_names("front-1"))
+FRONT_2 = tuple(batch_names("front-2"))
 TRANSIENTS = ("_front_coin", "_economic_turn_key", "_coin_rest_hint")
 
 
@@ -1793,6 +1795,146 @@ class TurnFrontPart(unittest.TestCase):
             self.assertEqual(s.world_state["location"], "forest")
             self.assertEqual(_session_snapshot(default), default_before)
 
+    def test_front_2_lives_in_the_part(self):
+        self.assertEqual(set(FRONT_2) - set(routing_audit.re_exports(ROOT).get("turn_front", ())), set())
+
+    def test_turn_money_helpers_use_the_given_session(self):  # Review Focus 5, D-447
+        # The coin and the person exist only in s: every game._session() read must return s and the default session
+        # stays as it was; the answers were captured on 26f0b226 (unmoved), both flags; fixed_town gives the second
+        # session of this test the next seed (20261421)
+        with self.subTest(helper="_tell_the_coin"):
+            self.assertEqual(_money_helper_outcome(self, "_tell_the_coin", 20261420), {
+                "cards": [("prepared", "gift", "t7_oren", 5, "t7-tip")], "purse": 500, "coin_paid": None,
+                "narration": "Kese şıngırdıyor. Oren için teklif hazır: en çok 5 bakır. Onaylarsan işlem yapılır.",
+                "all_reads_given": True, "default_unchanged": True})
+        with self.subTest(helper="_the_rest_of_the_line"):
+            self.assertEqual(_money_helper_outcome(self, "_the_rest_of_the_line", 20261420), {
+                "said": [("şehirde ne var?", True, "t7_oren", "t7-line", "t7-session", "say", True)],
+                "same_result": True, "narration": "Kese şıngırdıyor. Kuzey kapısında bir kule var.", "rest_left": "",
+                "all_reads_given": True, "default_unchanged": True})
+
+    def test_a_coin_without_a_reading_answers_as_before(self):
+        # D-429's two lines (its row: the beer twin, the named non-innkeeper with a bed asked for), each in both flags,
+        # pinned exactly as on 26f0b226 (unmoved) with the flag-on gap included: this is a move, not the fix
+        room = ("Marek başıyla merdivenleri gösteriyor. “Gecelik 50 bakır.” Marek için teklif hazır: en çok 50 bakır. "
+                "Onaylarsan işlem yapılır.")
+        expected = {
+            ("barmene 2 bakır verip bi bira istiyorum", "0"): {
+                "route": None, "seen": [], "decision": None, "action": ("shop_offer", "offer_open"), "cards": [],
+                "counter": "none", "purse": 500, "narration": "Marek tezgâha dayanıyor. “Bira 4 bakır. Kaç tane?”"},
+            ("barmene 2 bakır verip bi bira istiyorum", "1"): {  # the gap: unclear, no counter, "Peki."
+                "route": "fallback:failed", "seen": [(None, ("unclear", "barman", 2), 2)],
+                "decision": ("unclear", "barman", 2), "action": ("dialogue", "proposal_rejected"), "cards": [],
+                "counter": None, "purse": 500, "narration": "Marek omuz silkiyor. “Peki.”"},
+            ("Aldric'e 1 gümüş verip oda tutuyorum", "0"): {
+                "route": None, "seen": [], "decision": None, "action": ("lodging", "offered"),
+                "cards": [("prepared", "room", "barman")], "counter": None, "purse": 500, "narration": room},
+            ("Aldric'e 1 gümüş verip oda tutuyorum", "1"): {
+                "route": "fallback:failed", "seen": [(None, None, 10)], "decision": None, "action": ("lodging", "offered"),
+                "cards": [("prepared", "room", "barman")], "counter": None, "purse": 500,
+                "narration": f"{room} Uzattığın para hesaba katılmadı; kesende kalıyor."},
+        }
+        for (line, flag), outcome in expected.items():
+            with self.subTest(line=line, flag=flag):
+                self.assertEqual(_coin_line_outcome(self, 20261423, flag, line), outcome)
+
+
+
+def _money_helper_outcome(test, helper, seed):
+    """What `helper` does with session=s when the coin and the person it needs exist only in s (D-447)."""
+    from money_owner import CoinDecision
+    real = game._session
+    with fixed_town(test, seed), patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=7)
+        w = s.world_state
+        here = w["location"]
+        oren = {"id": "t7_oren", "name": "Oren", "role": "Yolcu", "location": here, "current_hp": 10}
+        w["npcs"] = [oren]
+        w["currency"] = {"player": 500, "t7_oren": 100}
+        default = game._session()
+        default_before = _session_snapshot(default)
+        seen = []
+
+        def record():
+            value = real()
+            seen.append(value)
+            return value
+
+        result = {"narration": "Kese şıngırdıyor.",
+                  "action_result": {"action": "narrative", "status": "resolved", "state_changes": ["currency"]}}
+        if helper == "_tell_the_coin":
+            s._economic_turn_key = "t7-tip"
+            s._coin_decision = CoinDecision("gift", "t7_oren", 5, 0, None, "model", here)
+            s._coin_paid = (5, oren, here)
+            with patch.object(game, "_session", side_effect=record):
+                game._tell_the_coin(result, session=s)
+            offers = w.get("flags", {}).get("economic_offers", {})
+            facts = {"cards": sorted((data["status"], data["proposal"]["purpose"], data["proposal"]["recipient_id"],
+                                      data["proposal"]["amount_cp"], data["proposal"]["source_action_id"])
+                                     for data in offers.values()),
+                     "purse": w["currency"]["player"], "coin_paid": s._coin_paid, "narration": result["narration"]}
+        else:
+            s._front_rest = "şehirde ne var?"
+            s._front_read = {"id": "t7_oren"}
+            said = []
+
+            def dispatch(*args, **kwargs):
+                said.append((args[0], args[1] is s.messages, args[2], args[4], args[5], args[7], game._session() is s))
+                return {"messages": s.messages, "narration": "Kuzey kapısında bir kule var.", "model_calls": 0,
+                        "action_result": {"action": "dialogue", "status": "resolved", "npc_id": "t7_oren",
+                                          "state_changes": []}}
+
+            with patch.object(game, "_session", side_effect=record), \
+                    patch.object(game, "_dispatch_player_turn", side_effect=dispatch), \
+                    patch("api.ollama_adapter.model_calls_left", return_value=True):
+                out = game._the_rest_of_the_line(result, s.messages, "t7-line", "t7-session", here, session=s)
+            facts = {"said": said, "same_result": out is result, "narration": result["narration"],
+                     "rest_left": s._front_rest}
+        facts["all_reads_given"] = bool(seen) and all(value is s for value in seen)
+        facts["default_unchanged"] = _session_snapshot(default) == default_before
+    return facts
+
+
+def _coin_line_outcome(test, seed, flag, line):
+    """One coin line at the counter (test_economic_room's table plus a named smith), the flag set, no model answer."""
+    import campaign_time
+    import money_owner
+    original = game._coin_without_a_reading
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=7)
+        w = s.world_state
+        here = w["location"]
+        w["npcs"] = [
+            {"id": "barman", "name": "Marek", "role": "Barmen", "location": here, "current_hp": 10},
+            {"id": "guest", "name": "Oren", "role": "Yolcu", "location": here, "current_hp": 10},
+            {"id": "t7_aldric", "name": "Aldric", "role": "Demirci", "location": here, "current_hp": 10},
+        ]
+        w["currency"] = {"player": 500, "barman": 100, "guest": 100, "t7_aldric": 100}
+        w.setdefault("flags", {})["turn_index"] = 3
+        campaign_time.initialize(w)
+        seen = []
+
+        def watch(*args):
+            original(*args)
+            decided = money_owner.current(s)
+            seen.append((args[1], None if decided is None else (decided.kind, decided.npc_id, decided.amount_cp),
+                         s._front_coin))
+
+        with patch("game._coin_without_a_reading", side_effect=watch):
+            result = s.run_player_turn(line)
+        decided = money_owner.current(s)
+        action = result.get("action_result") or {}
+        offers = w.get("flags", {}).get("economic_offers", {})
+        counter = w["flags"].get("counter_offer_v1")
+        return {"route": getattr(s, "_front_route", None), "seen": seen,
+                "decision": None if decided is None else (decided.kind, decided.npc_id, decided.amount_cp),
+                "action": (action.get("action"), action.get("status")),
+                "cards": sorted((data["status"], data["proposal"]["purpose"], data["proposal"]["recipient_id"])
+                                for data in offers.values()),
+                "counter": None if counter is None else counter.get("tender_cp", "none"),
+                "purse": w["currency"]["player"], "narration": result.get("narration")}
+
 
 class ThreadGateRoute(unittest.IsolatedAsyncioTestCase):
     """The turn path reads game._thread_gate; the gate reaches _carry_out_thread_turn (test_thread_gate's table)."""
@@ -1813,6 +1955,32 @@ class ThreadGateRoute(unittest.IsolatedAsyncioTestCase):
             await self.line("olur", "Güzel, başla bakalım.")
         gate.assert_called()
         self.assertEqual(self.status(), "accepted")
+
+
+class FrontReadAheadRoute(unittest.IsolatedAsyncioTestCase):
+    """api/main.py reads the front reading as session.front_read_ahead: the session finds it in game's namespace
+    (test_front_proposal's table, flag on, the reading scripted)."""
+
+    asyncSetUp = front_tests.FrontTable.asyncSetUp
+    asyncTearDown = front_tests.FrontTable.asyncTearDown
+    campaign_with_npc = front_tests.FrontTable.campaign_with_npc
+    open_job = front_tests.FrontTable.open_job
+    begin = front_tests.FrontTable.begin
+    line = front_tests.FrontTable.line
+    routes = front_tests.FrontTable.routes
+
+    async def test_a_patched_front_read_ahead_reaches_its_caller(self):
+        with fixed_town(self, 20261422):
+            await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        line = "şu adamın bu kasaba hakkında ne düşündüğünü merak ettim"
+        with patch.object(game, "front_read_ahead", wraps=game.front_read_ahead) as reading:
+            reply = await self.line(line)
+        reading.assert_called_once()
+        self.assertEqual(reading.call_args.args, (line,))
+        self.assertIs(reading.call_args.kwargs["session"], self.session)
+        self.assertIn(self.client.narration, reply["narration"])
+        self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
 
 
 if __name__ == "__main__":
