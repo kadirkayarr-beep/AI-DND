@@ -467,3 +467,10 @@ Bayrak açık (AI_DND_FRONT_PROPOSAL=1, yerel oyunun varsayılanı) kırık test
 | `test_narration_source_record.TheListIsTheEngines.test_no_other_engine_module_reports_a_source` (Task 11, turn-3) | `ENGINE_PART_REPORTERS` `()` -> `("game_parts/turn.py",)`: the moved `_run_player_turn_internal` writes `narration_source`, so `turn.py` now mentions it (the constant's own comment: a move task names the part); the mentioning set must still equal the named files exactly, the value scan unchanged | eşit sıkılık |
 | N7 at TM5 (Task 13 Step 5; spec TM5 lists only N4) | coverage equality (`coverage_by_function.py --diff`, `DOWN 0` outside the noise set) checked at TM5 in both flags; noise set per flag = union of both flags' base noise plus the earlier band (D-468 Ruling): `_inspection_findings` [84, 85], `calculate_ac` [5, 6]; result `DOWN 0`, `UP 2` (`_dispatch_player_turn`, `_owner_module_reply`, explained by Stage B tests) in both flags | sıkılaştırma |
 | `TurnFrontPart.test_a_coin_without_a_reading_answers_as_before` (Task 14, D-429) | the flag-on beer-twin row (the pinned gap: `unclear` for Marek, no counter, "Peki.") -> the fixed outcome: no decision kept, the counter opens as with the flag off (`shop_offer`/`offer_open`, counter tender `none`), the coin told back (`COIN_NOT_TENDERED`), purse 500; the other three rows unchanged, still exact literals | eşit sıkılık (davranış düzeltmesi, D-429) |
+
+## 24. game.py bölme Plan 6 (dal `task/game-py-bolme-p6-close`)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| Speed rule (Task 6, closing gate) | cumulative A/B against `TM0BASE` 2e576967 at the closing gate (Ruling B: OLD `p6o`, NEW the closure tip, prefix `p6t6cum`); median(NEW five) / median(OLD five) ≤ 1.10; above it STOP, no retake to pass | sıkılaştırma, gevşetme değil |
+| Shard timeout 4 500 s, wall clock | carried from Plans 3-5 (D-448): every `slot_gate.sh` call (pattern or full) uses 4 500 s; suite speed read as wall clock | taşındı |
