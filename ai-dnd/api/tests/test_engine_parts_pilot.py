@@ -1839,17 +1839,18 @@ class TurnFrontPart(unittest.TestCase):
 
     def test_a_coin_without_a_reading_answers_as_before(self):
         # D-429's two lines (its row: the beer twin, the named non-innkeeper with a bed asked for), each in both flags,
-        # pinned exactly as on 26f0b226 (unmoved) with the flag-on gap included: this is a move, not the fix
+        # three rows as on 26f0b226; the flag-on beer row is the Task 14 outcome (D-429 fix)
         room = ("Marek başıyla merdivenleri gösteriyor. “Gecelik 50 bakır.” Marek için teklif hazır: en çok 50 bakır. "
                 "Onaylarsan işlem yapılır.")
         expected = {
             ("barmene 2 bakır verip bi bira istiyorum", "0"): {
                 "route": None, "seen": [], "decision": None, "action": ("shop_offer", "offer_open"), "cards": [],
                 "counter": "none", "purse": 500, "narration": "Marek tezgâha dayanıyor. “Bira 4 bakır. Kaç tane?”"},
-            ("barmene 2 bakır verip bi bira istiyorum", "1"): {  # the gap: unclear, no counter, "Peki."
-                "route": "fallback:failed", "seen": [(None, ("unclear", "barman", 2), 2)],
-                "decision": ("unclear", "barman", 2), "action": ("dialogue", "proposal_rejected"), "cards": [],
-                "counter": None, "purse": 500, "narration": "Marek omuz silkiyor. “Peki.”"},
+            ("barmene 2 bakır verip bi bira istiyorum", "1"): {  # D-429 fixed: the counter opens as with the flag off
+                "route": "fallback:failed", "seen": [(None, None, 2)], "decision": None,
+                "action": ("shop_offer", "offer_open"), "cards": [], "counter": "none", "purse": 500,
+                "narration": "Marek tezgâha dayanıyor. “Bira 4 bakır. Kaç tane?” Uzattığın para hesaba katılmadı; "
+                             "kesende kalıyor."},
             ("Aldric'e 1 gümüş verip oda tutuyorum", "0"): {
                 "route": None, "seen": [], "decision": None, "action": ("lodging", "offered"),
                 "cards": [("prepared", "room", "barman")], "counter": None, "purse": 500, "narration": room},
