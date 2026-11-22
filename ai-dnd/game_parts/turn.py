@@ -17,6 +17,8 @@ import money_owner
 import re
 import timed_gameplay
 from typing import Optional, List, Dict, Any
+import held_weapon
+import monster_sense
 
 
 @dataclass
@@ -879,3 +881,23 @@ def _keep_town_portrait(action_result, narration):
     portrait = " ".join(game._split_sentences_keep_speech(clean)[:2]).strip()
     if portrait:
         record["town_portrait"] = portrait
+
+def _owner_module_reply(player_input, interaction_mode):
+    """Slash-owner commands stay on their modules. SAY and ASK_DM stay speech."""
+    text = player_input.strip() if isinstance(player_input, str) else ""
+    if interaction_mode in {"say", "ask_dm"} and not text.startswith("/"):
+        return None
+    session = game._session()
+    world = session.world_state if isinstance(session.world_state, dict) else {}
+    combat = world.get("combat")
+    if (
+        isinstance(combat, dict)
+        and combat.get("active")
+        and combat.get("current_actor_id") not in (None, "player")
+    ):
+        return None
+    for owner in (monster_sense, held_weapon):
+        reply = owner.resolve_turn(session, player_input)
+        if reply is not None:
+            return reply
+    return None

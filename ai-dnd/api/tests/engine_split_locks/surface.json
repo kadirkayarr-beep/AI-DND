@@ -2223,7 +2223,7 @@
  },
  "_owner_module_reply": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, interaction_mode)"
  },

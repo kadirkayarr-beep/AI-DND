@@ -1863,25 +1863,7 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
 
 
 
-def _owner_module_reply(player_input, interaction_mode):
-    """Slash-owner commands stay on their modules. SAY and ASK_DM stay speech."""
-    text = player_input.strip() if isinstance(player_input, str) else ""
-    if interaction_mode in {"say", "ask_dm"} and not text.startswith("/"):
-        return None
-    session = _session()
-    world = session.world_state if isinstance(session.world_state, dict) else {}
-    combat = world.get("combat")
-    if (
-        isinstance(combat, dict)
-        and combat.get("active")
-        and combat.get("current_actor_id") not in (None, "player")
-    ):
-        return None
-    for owner in (monster_sense, held_weapon):
-        reply = owner.resolve_turn(session, player_input)
-        if reply is not None:
-            return reply
-    return None
+from game_parts.turn import _owner_module_reply
 
 
 

@@ -2012,6 +2012,7 @@ class FrontReadAheadRoute(unittest.IsolatedAsyncioTestCase):
 
 
 TURN_1 = tuple(batch_names("turn-1"))
+TURN_2 = tuple(batch_names("turn-2"))
 NOTHING_CHANGED = "Bu hamle tamamlanamadı; dünya durumu değişmedi."
 
 
@@ -2020,6 +2021,19 @@ class TurnPart(unittest.TestCase):
 
     def test_turn_1_lives_in_the_part(self):
         self.assertEqual(set(TURN_1) - set(routing_audit.re_exports(ROOT).get("turn", ())), set())
+
+    def test_turn_2_lives_in_the_part(self):  # T6.1e: _owner_module_reply only (_narrate_resolved_turn held, Task 4)
+        self.assertEqual(set(TURN_2) - set(routing_audit.re_exports(ROOT).get("turn", ())), set())
+
+    def test_an_owner_command_is_answered_for_the_given_session(self):  # D-447, T6.1e
+        # the moved _owner_module_reply reads game._session(): /equip clear empties the hands only s has (a weapon
+        # only in s), with no model call, and the default session stays; captured on 0e43d241 (unmoved), both flags
+        expected = {flag: {"narration": "Elini boşalttın.", "model_calls": 0, "action": ("equip", "resolved", True),
+                           "equipment": {"main_hand": None, "off_hand": None}, "default_unchanged": True}
+                    for flag in ("", "1")}  # the same in both flags
+        for flag, outcome in expected.items():
+            with self.subTest(flag=flag):
+                self.assertEqual(_owner_turn_outcome(self, 20261450, flag), outcome)
 
     def test_the_turn_resolved_signal_is_one_class(self):
         # _run_player_turn_internal (in game.py until turn-3) raises TurnResolved; the moved _dispatch_turn_body catches
@@ -2148,6 +2162,22 @@ def _dispatched_turn_outcome(test, seed, flag):
         return {"seen": seen, "narration": out.get("narration"),
                 "action": (out["action_result"]["action"], out["action_result"]["status"]),
                 "key_cleared": getattr(s, "_economic_turn_key", None),
+                "default_unchanged": _session_snapshot(default) == default_before}
+
+
+def _owner_turn_outcome(test, seed, flag):
+    """A slash owner command through the whole turn: held_weapon answers it through _owner_module_reply, for s."""
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=13)
+        default = game._session()
+        s.world_state["equipment"] = {"main_hand": "t10-blade-only-in-s", "off_hand": None}
+        default_before = _session_snapshot(default)
+        out = game.run_player_turn("/equip clear", interaction_mode="do", session=s)
+        result = out["action_result"]
+        return {"narration": out.get("narration"), "model_calls": out.get("model_calls"),
+                "action": (result.get("action"), result.get("status"), result.get("success")),
+                "equipment": s.world_state.get("equipment"),
                 "default_unchanged": _session_snapshot(default) == default_before}
 
 
