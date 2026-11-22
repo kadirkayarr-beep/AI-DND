@@ -1,0 +1,28 @@
+game.py names=130 lines=11971
+never|never|- {'names': 16, 'lines': 576}
+never|never|S {'names': 2, 'lines': 42}
+plan4|character_rules|S {'names': 1, 'lines': 22}
+plan4|dialogue|-H {'names': 1, 'lines': 23}
+plan4|dialogue|S {'names': 7, 'lines': 195}
+plan4|intent|-H {'names': 2, 'lines': 62}
+plan4|intent|S {'names': 4, 'lines': 573}
+plan4|living_world_turn|-H {'names': 1, 'lines': 88}
+plan4|living_world_turn|S {'names': 1, 'lines': 725}
+plan4|lore|S {'names': 1, 'lines': 54}
+plan4|narration|-H {'names': 4, 'lines': 181}
+plan4|narration|S {'names': 10, 'lines': 1358}
+plan4|places|-H {'names': 7, 'lines': 223}
+plan4|places|S {'names': 3, 'lines': 119}
+plan4|schemas|- {'names': 1, 'lines': 52}
+plan5|turn|- {'names': 37, 'lines': 814}
+plan5|turn|S {'names': 32, 'lines': 5417}
+NAMES plan4|character_rules (1): perform_skill_check
+NAMES plan4|dialogue (8): _npc_answers_to, _offer_talk_with, _job_fallback, _coin_persuasion, _show_coin_roll, _settle_spoken_commitment, _with_only_backed_money, _experimental_speech_note
+NAMES plan4|intent (6): deterministic_check_for_action, _handle_query, parse_player_intent, normalize_intent, update_world_state_from_player, execute_intent
+NAMES plan4|living_world_turn (2): advance_campaign_time, plan_living_world_turn
+NAMES plan4|lore (1): _lore_entity_names
+NAMES plan4|narration (14): validate_world_updates, _bind_world_update_mentions, merge_world_updates, _narrator_shop_record, build_world_context, _stands_by_their_words, _fallback_narration, _dm_response_schema_for_turn, ask_dungeon_master, _finding_says_too_much, _states_the_failed_check, _fallback_for_action_result, _narrated_money_can_lie, finalize_narration
+NAMES plan4|places (10): generate_npc_id, create_npc_from_ai, clean_location_description, commit_location_change, _ensure_location_entities, _commit_travel_action, _ensure_local_merchant, _scene_presence_text, _promote_scene_referent, _adventure_travel_reply
+NAMES plan4|schemas (1): _EXPERIMENTAL_NPC_SPEECH_SCHEMA
+NAMES x|NEW (0): 
+HELD_P3_MISSING []

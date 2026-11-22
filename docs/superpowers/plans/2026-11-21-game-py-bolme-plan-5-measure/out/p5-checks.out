@@ -1,0 +1,36 @@
+decorated 1
+    ['ResolvedTurn', ['dataclass']]
+reads_never_moved 51
+reads_later_or_held 51
+census_target 14
+    ['_adventure_scene_turn', 'function']
+    ['_clear_turn_transients', 'function']
+    ['_coin_without_a_reading', 'function']
+    ['_dispatch_player_turn', 'function']
+    ['_front_hand_over', 'function']
+    ['_front_take', 'function']
+    ['_local_place_turn', 'function']
+    ['_narrate_resolved_turn', 'function']
+    ['_run_player_turn', 'function']
+    ['_sleep_after_walk', 'function']
+    ['_the_rest_of_the_line', 'function']
+    ['_thread_gate', 'function']
+    ['front_read_ahead', 'function']
+    ['run_player_turn', 'function']
+in_function_import 145
+identity_name 5
+    ['_local_place_turn', 'sys.modules']
+    ['_local_place_turn', '__name__']
+    ['_run_player_turn_internal', 'locals']
+    ['_run_player_turn_internal', 'sys.modules']
+    ['_run_player_turn_internal', '__name__']
+calls_adapter_names 2
+    ['_narrate_resolved_turn', ['ask_dungeon_master', 'finalize_narration']]
+    ['_run_player_turn_internal', ['finalize_narration']]
+not_called_tests_count 1
+    46
+patched_sites_t4 14
+patched_sites_t4_sens 0
+touching_counts {'turn': 398}
+source_readers_mention 1
+    combat_refusal_turn

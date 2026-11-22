@@ -1,0 +1,48 @@
+character_rules|- {'names': 19, 'lines': 427}
+character_rules|S {'names': 1, 'lines': 22}
+coin|- {'names': 5, 'lines': 28}
+coin|S {'names': 10, 'lines': 189}
+combat_flow|- {'names': 52, 'lines': 1656}
+combat_flow|S {'names': 9, 'lines': 473}
+dialogue|- {'names': 66, 'lines': 1250}
+dialogue|S {'names': 7, 'lines': 195}
+intent|- {'names': 46, 'lines': 1182}
+intent|S {'names': 4, 'lines': 573}
+living_world_turn|- {'names': 5, 'lines': 304}
+living_world_turn|S {'names': 1, 'lines': 725}
+lore|- {'names': 14, 'lines': 999}
+lore|S {'names': 1, 'lines': 54}
+narration_safety|- {'names': 15, 'lines': 1480}
+narration|- {'names': 25, 'lines': 665}
+narration|S {'names': 10, 'lines': 1358}
+never|- {'names': 16, 'lines': 576}
+never|S {'names': 2, 'lines': 42}
+new_game|- {'names': 1, 'lines': 197}
+places|- {'names': 65, 'lines': 1436}
+places|S {'names': 3, 'lines': 119}
+savefile|- {'names': 11, 'lines': 208}
+savefile|S {'names': 8, 'lines': 840}
+schemas|- {'names': 2, 'lines': 67}
+turn|- {'names': 38, 'lines': 815}
+turn|S {'names': 32, 'lines': 5417}
+misfits 18
+  _claimed_completed_outcome intent -> dialogue ['npc_memory_supporting_entry']
+  _conversation_opening_line places -> dialogue ['_direct_npc_smalltalk_response']
+  _drop_absent_counter_sentences dialogue -> narration ['finalize_narration']
+  _ensure_location_entities intent -> places ['commit_location_change']
+  _experimental_speech_final_line dialogue -> intent ['parse_player_intent']
+  _local_place_recommendation_guidance places -> intent ['parse_player_intent']
+  _narration_contradicts_supported_name_memory dialogue -> narration ['finalize_narration']
+  _observe_anchored_structure places -> living_world_turn ['plan_living_world_turn']
+  _rejected_lore_narration lore -> narration ['finalize_narration']
+  _repair_attributed_speech narration_safety -> narration ['finalize_narration']
+  _travel_destination_reference_in_text places -> intent ['normalize_intent', 'validate_intent']
+  _unseen_speaker_repaired narration_safety -> narration ['finalize_narration']
+  _unsupported_available_quest_claim places -> narration_safety ['_narration_safety_decision']
+  _validate_species_trait_state character_rules -> savefile ['_validate_save_payload']
+  create_location_from_proposal places -> narration ['merge_world_updates']
+  long_rest_gap_seconds savefile -> combat_flow ['resolve_species_trait_action']
+  named_by_sight places -> dialogue ['_npc_answers_to']
+  resolve_scene_seating places -> living_world_turn ['plan_living_world_turn']
+const_moves {}
+lock keys ['not_called_tests', 'targets']
