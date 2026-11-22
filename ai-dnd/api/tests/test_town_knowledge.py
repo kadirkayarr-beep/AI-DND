@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import json
 import unittest
@@ -247,7 +248,10 @@ class ThroughTheRealTurn(unittest.IsolatedAsyncioTestCase):
     TOWN_SEED = 7400
 
     async def start(self):
-        with fixed_town(self, self.TOWN_SEED):
+        # Classes that borrow start() (test_d252_speech_trail and others) pin their own town around it and have no
+        # TOWN_SEED; for them nothing changes.
+        seed = getattr(self, "TOWN_SEED", None)
+        with fixed_town(self, seed) if seed is not None else contextlib.nullcontext():
             self.city, self.session_id, self.session, self.turn_url, self.npc = await self.campaign_with_npc()
         self.client = speech.ScriptedNpcSpeechClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
