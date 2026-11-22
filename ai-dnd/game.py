@@ -262,9 +262,6 @@ INITIAL_WORLD_STATE = copy.deepcopy(world_state)
 from game_parts.savefile import SAVE_FORMAT_VERSION, _SUPPORTED_SAVE_VERSIONS, _validate_species_trait_state, _origin_choices_valid, _origin_choices_for_save, _PERSISTED_PLAYER_CONDITION_FIELDS, _validate_player_condition_state, _validate_player_weapon_proficiencies, _player_state_for_save, serialize_game_state, _validate_combat_v3_payload, _validate_long_rest_history, _validate_saved_multilevel_slots, _validate_save_payload, save_game, _repair_dilim1_fields, _known_happenings, _repair_dilim2_fields
 
 
-# K01: PHB 2024 (D&D 5e - Players Handbook 2024.pdf, PDF page 185, Aasimar > Celestial Revelation > Necrotic Shroud):
-# "Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw ... or have the Frightened condition".
-# K02: "each creature within 10 feet of you takes Radiant damage" (same page, Inner Radiance); allies are not excluded.
 # K04: the recorded order of simultaneous due items (technical decision record, see event_order.py).
 RULE_ORDER = event_order.DEFAULT_RULE_ORDER
 
