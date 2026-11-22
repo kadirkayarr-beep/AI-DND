@@ -82,9 +82,9 @@ class WrapperFilter(unittest.TestCase):
                                               "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
                                               "game_parts.savefile", "game_parts.text_rules_a",
-                                              "game_parts.text_rules_b", "game_parts.turn_front"))
+                                              "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_front"))
         # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15,
-        # Plan 4 Tasks 7, 8 and 9, Plan 5 Task 6
+        # Plan 4 Tasks 7, 8 and 9, Plan 5 Tasks 6 and 9
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -126,11 +126,11 @@ class PilotRollD20(unittest.TestCase):
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
         # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
         # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin; Task 9: savefile; Plan 5 Task 6:
-        # turn_front
+        # turn_front; Plan 5 Task 9: turn
         names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
                  "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
                  "_narration_safety_decision", "ensure_campaign_clock", "initialize_game", "ensure_death_state",
-                 "_shop_presence_question", "save_game", "_thread_gate")
+                 "_shop_presence_question", "save_game", "_thread_gate", "_dispatch_player_turn")
         show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
@@ -139,7 +139,8 @@ class PilotRollD20(unittest.TestCase):
                                   "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
                                   "game_parts.narration", "game_parts.narration_safety",
                                   "game_parts.living_world_turn", "game_parts.new_game", "game_parts.combat_flow",
-                                  "game_parts.coin", "game_parts.savefile", "game_parts.turn_front"]),
+                                  "game_parts.coin", "game_parts.savefile", "game_parts.turn_front",
+                                  "game_parts.turn"]),
                              done.stderr)
 
 
@@ -2008,6 +2009,146 @@ class FrontReadAheadRoute(unittest.IsolatedAsyncioTestCase):
         self.assertIs(reading.call_args.kwargs["session"], self.session)
         self.assertIn(self.client.narration, reply["narration"])
         self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+
+
+TURN_1 = tuple(batch_names("turn-1"))
+NOTHING_CHANGED = "Bu hamle tamamlanamadı; dünya durumu değişmedi."
+
+
+class TurnPart(unittest.TestCase):
+    """T6.1 batch turn-1: the owned and keyed turn and the turn dispatch live in game_parts/turn.py."""
+
+    def test_turn_1_lives_in_the_part(self):
+        self.assertEqual(set(TURN_1) - set(routing_audit.re_exports(ROOT).get("turn", ())), set())
+
+    def test_the_turn_resolved_signal_is_one_class(self):
+        # _run_player_turn_internal (in game.py until turn-3) raises TurnResolved; the moved _dispatch_turn_body catches
+        # it and narrates the resolved turn, with and without an action id
+        with fixed_town(self, 20261440):
+            s = game.create_session(seed=13)
+            resolved = game.ResolvedTurn(action_result={"action": "look"}, fallback_response="t9", raw_result={})
+
+            def internal(*args, **kwargs):
+                raise game.TurnResolved({"t9": "raw"}, resolved)
+
+            for action_id, session_id in ((None, None), ("t9-act", "t9-session")):
+                with self.subTest(action_id=action_id), \
+                        patch.object(game, "_run_player_turn_internal", side_effect=internal) as inner, \
+                        patch.object(game, "_narrate_resolved_turn", return_value={"narration": "t9-told"}) as told:
+                    out = game._dispatch_turn_body("t9 bakıyorum", s.messages, None, None, "say", action_id,
+                                                   session_id, None, None, session=s)
+                    self.assertEqual(out, {"narration": "t9-told"})
+                    inner.assert_called_once()
+                    told.assert_called_once_with(resolved, "t9 bakıyorum", s.messages, None)
+        # one object under both names: the re-export binds game.TurnResolved to the part's class (tests may not name a
+        # part module through sys.modules, routing R2), and the catch above reads game.TurnResolved
+        self.assertEqual((game.TurnResolved.__module__, game.ResolvedTurn.__module__),
+                         ("game_parts.turn", "game_parts.turn"))
+
+    def test_resolved_turn_is_the_same_dataclass(self):  # Ruling L; captured on 8c18ca6b (unmoved)
+        missing = dataclasses.MISSING
+        self.assertTrue(dataclasses.is_dataclass(game.ResolvedTurn))
+        self.assertEqual([(f.name, f.default, f.default_factory) for f in dataclasses.fields(game.ResolvedTurn)],
+                         [
+            ("action_result", missing, missing), ("fallback_response", missing, missing),
+            ("raw_result", missing, missing), ("requires_narration", True, missing),
+            ("safety_reason_code", None, missing), ("safety_handling", "accepted", missing),
+            ("quest_outcomes", None, missing), ("npc_target", None, missing), ("target_id", None, missing),
+            ("lore_context", None, missing), ("intent_source", "deterministic", missing),
+            ("intent_model_calls", 0, missing), ("messages", None, missing), ("allow_new_npcs", False, missing),
+            ("allow_new_features", False, missing), ("allow_new_locations", False, missing),
+            ("allow_new_shops", False, missing), ("expected_location_change", False, missing),
+            ("scene_plan", None, missing), ("quest_world_before", None, missing)])
+
+    def test_a_failed_turn_rolls_back_from_the_part(self):  # Review Focus 3, the test_roadmap_c10_primal_failure shape
+        # plain: the keyed turn restores s on IntentInfrastructureError and says nothing changed; check: the owned turn
+        # restores its own snapshot of s and raises again. Both flags; captured on 8c18ca6b (unmoved)
+        expected = {}
+        plain = {"seen": [("Kapıyı itiyorum.", True)],
+                 "reply": {"narration": NOTHING_CHANGED,
+                           "action_result": {"action": "unknown", "status": "infrastructure_failure", "success": False,
+                                             "state_changes": [], "infrastructure_code": "intent_timeout",
+                                             "direct_response": NOTHING_CHANGED}},
+                 "same": True, "runtime_same": True, "marker": False, "default_unchanged": True}
+        check = {"seen": [("Kapıyı itiyorum.", True)], "reply": "RuntimeError: t9 failed turn", "same": True,
+                 "runtime_same": True, "marker": False, "default_unchanged": True}
+        for flag in ("", "1"):  # the same in both flags
+            expected[(flag, "plain")], expected[(flag, "check")] = plain, check
+        for (flag, kind), outcome in expected.items():
+            with self.subTest(flag=flag, kind=kind):
+                self.assertEqual(_failed_turn_outcome(self, 20261441, flag, kind), outcome)
+
+    def test_a_patched_dispatch_reaches_the_moved_keyed_turn(self):
+        # run_player_turn -> _run_player_turn_owned -> _run_player_turn -> _run_player_turn_keyed reads
+        # game._dispatch_player_turn; both flags, captured on 8c18ca6b (unmoved)
+        expected = {flag: {"seen": [("Kapıyı itiyorum.", "t9-act", "t9-session", True)],
+                           "narration": "Kapı gıcırdayarak açılıyor.", "action": ("narrative", "resolved"),
+                           "key_cleared": None, "default_unchanged": True}
+                    for flag in ("", "1")}  # the same in both flags
+        for flag, outcome in expected.items():
+            with self.subTest(flag=flag):
+                self.assertEqual(_dispatched_turn_outcome(self, 20261445, flag), outcome)
+
+
+def _failed_turn_outcome(test, seed, flag, kind):
+    """A turn whose dispatch marks s and rolls its dice, then fails: what s, the default session and the reply show."""
+    feature = sorted(game.CHECK_FEATURES)[0]
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=13)
+        default = game._session()
+        default_before = _session_snapshot(default)
+        before = _session_snapshot(s)
+        runtime_before = s._capture_runtime_snapshot()
+        seen = []
+
+        def dispatch(*args, **kwargs):
+            seen.append((args[0], game._session() is s))
+            game._session().world_state.setdefault("flags", {})["t9_marker"] = True
+            game._session().rng.randint(1, 20)
+            if kind == "plain":
+                raise game.IntentInfrastructureError("intent_timeout")
+            raise RuntimeError("t9 failed turn")
+
+        with patch.object(game, "_dispatch_player_turn", side_effect=dispatch):
+            if kind == "plain":
+                reply = game.run_player_turn("Kapıyı itiyorum.", interaction_mode="do", session=s)
+            else:
+                with patch.object(game, "primal_knowledge_check_admission"):
+                    try:
+                        game.run_player_turn("Kapıyı itiyorum.", interaction_mode="do", check_feature=feature,
+                                             check_evidence=[], session=s)
+                        reply = "no error"
+                    except RuntimeError as error:
+                        reply = f"RuntimeError: {error}"
+        return {"seen": seen, "reply": reply, "same": _session_snapshot(s) == before,
+                "runtime_same": s._capture_runtime_snapshot() == runtime_before,
+                "marker": "t9_marker" in s.world_state.get("flags", {}),
+                "default_unchanged": _session_snapshot(default) == default_before}
+
+
+def _dispatched_turn_outcome(test, seed, flag):
+    """A turn whose dispatch is patched on game: the keyed turn calls it once, for s, and finishes its answer."""
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=13)
+        default = game._session()
+        default_before = _session_snapshot(default)
+        seen = []
+
+        def dispatch(*args, **kwargs):
+            seen.append((args[0], args[4], args[5], game._session() is s))
+            return {"messages": s.messages, "narration": "Kapı gıcırdayarak açılıyor.", "model_calls": 0,
+                    "action_result": {"action": "narrative", "status": "resolved", "success": True,
+                                      "state_changes": []}}
+
+        with patch.object(game, "_dispatch_player_turn", side_effect=dispatch):
+            out = game.run_player_turn("Kapıyı itiyorum.", interaction_mode="do", action_id="t9-act",
+                                       session_id="t9-session", session=s)
+        return {"seen": seen, "narration": out.get("narration"),
+                "action": (out["action_result"]["action"], out["action_result"]["status"]),
+                "key_cleared": getattr(s, "_economic_turn_key", None),
+                "default_unchanged": _session_snapshot(default) == default_before}
 
 
 if __name__ == "__main__":

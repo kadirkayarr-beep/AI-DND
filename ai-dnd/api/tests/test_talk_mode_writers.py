@@ -95,7 +95,8 @@ class OnlyTalkModeWrites(unittest.TestCase):
                                                     and isinstance(node.args[0], ast.Constant)) else None
                     calls.append((rel, reason))
         # the combat clear moved with _start_combat_with_initiative to game_parts/combat_flow.py (game.py split T5.1b)
-        self.assertEqual(sorted(calls), [("game.py", "ended"), ("game_parts/combat_flow.py", "combat"),
+        # the ended clear moved with _dispatch_player_turn to game_parts/turn.py (game.py split T6.1d)
+        self.assertEqual(sorted(calls), [("game_parts/combat_flow.py", "combat"), ("game_parts/turn.py", "ended"),
                                          ("grounded_action.py", "walking")])
         self.assertTrue({reason for _, reason in calls} <= set(talk_mode.REASONS))
         with self.assertRaises(TypeError):

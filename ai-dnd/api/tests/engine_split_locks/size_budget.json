@@ -1,13 +1,12 @@
 {
   "files": {
-    "game.py": 6129,
+    "game.py": 5282,
     "game_parts/narration_safety.py": 1505
   },
   "part_max": 2500,
   "slack": 50,
   "long_function_min": 151,
   "long_functions": {
-    "game.py::_dispatch_player_turn": 493,
     "game.py::_narrate_resolved_turn": 351,
     "game.py::_run_player_turn_internal": 2756,
     "game_parts/combat_flow.py::resolve_species_trait_action": 361,
@@ -23,6 +22,7 @@
     "game_parts/savefile.py::_validate_save_payload": 367,
     "game_parts/savefile.py::load_game": 186,
     "game_parts/terminal.py::run": 184,
+    "game_parts/turn.py::_dispatch_player_turn": 493,
     "game_parts/turn_front.py::_execute_intent_internal": 548,
     "game_parts/turn_front.py::_front_step": 235
   }

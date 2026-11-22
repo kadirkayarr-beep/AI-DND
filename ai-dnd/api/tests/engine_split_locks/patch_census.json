@@ -89,6 +89,7 @@
     "_resolve_player_death_turn": "function",
     "_restore_combat_death_checkpoint": "function",
     "_run_player_turn": "function",
+    "_run_player_turn_internal": "function",
     "_session": "function",
     "_skill_result_category": "function",
     "_sleep_after_walk": "function",

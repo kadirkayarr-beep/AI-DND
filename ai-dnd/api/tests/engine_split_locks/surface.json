@@ -133,7 +133,7 @@
  },
  "ResolvedTurn": {
   "kind": "class",
-  "module": "game"
+  "module": "game_parts.turn"
  },
  "SAVE_FORMAT_VERSION": {
   "kind": "data",
@@ -157,7 +157,7 @@
  },
  "TurnResolved": {
   "kind": "class",
-  "module": "game"
+  "module": "game_parts.turn"
  },
  "WEAPONS": {
   "kind": "data",
@@ -1071,7 +1071,7 @@
  },
  "_current_procedural_entity_ids": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "()"
  },
@@ -1131,13 +1131,13 @@
  },
  "_dispatch_player_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
  },
  "_dispatch_turn_body": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages, target_id, scene_plan, interaction_mode, action_id, session_id, check_feature, check_evidence)"
  },
@@ -1803,7 +1803,7 @@
  },
  "_keep_town_portrait": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(action_result, narration)"
  },
@@ -2027,7 +2027,7 @@
   "kind": "function",
   "module": "game",
   "session_bound": true,
-  "signature": "(resolved_turn: game.ResolvedTurn, player_input, messages, target_id)"
+  "signature": "(resolved_turn: game_parts.turn.ResolvedTurn, player_input, messages, target_id)"
  },
  "_narrated_money_can_lie": {
   "kind": "function",
@@ -2511,7 +2511,7 @@
  },
  "_run_player_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
  },
@@ -2523,13 +2523,13 @@
  },
  "_run_player_turn_keyed": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
  },
  "_run_player_turn_owned": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages, target_id, scene_plan, action_id, session_id, combat_action, interaction_mode, check_feature, check_evidence)"
  },
@@ -2751,7 +2751,7 @@
  },
  "_spoken_rest_of_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(grounded, player_input, messages, action_id, session_id)"
  },
@@ -3908,7 +3908,7 @@
  },
  "run_player_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
  },
@@ -3996,7 +3996,7 @@
  },
  "turn_source_key": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(session)"
  },
