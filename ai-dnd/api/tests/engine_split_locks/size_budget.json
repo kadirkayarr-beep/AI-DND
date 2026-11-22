@@ -1,17 +1,14 @@
 {
   "files": {
-    "game.py": 8305,
-    "game_parts/narration_safety.py": 1505
+    "game.py": 2509,
+    "game_parts/narration_safety.py": 1505,
+    "game_parts/turn.py": 3667
   },
   "part_max": 2500,
   "slack": 50,
   "long_function_min": 151,
   "long_functions": {
-    "game.py::_dispatch_player_turn": 493,
-    "game.py::_execute_intent_internal": 548,
-    "game.py::_front_step": 235,
     "game.py::_narrate_resolved_turn": 351,
-    "game.py::_run_player_turn_internal": 2756,
     "game_parts/combat_flow.py::resolve_species_trait_action": 361,
     "game_parts/intent.py::parse_player_intent": 420,
     "game_parts/living_world_turn.py::plan_living_world_turn": 725,
@@ -24,6 +21,10 @@
     "game_parts/new_game.py::initialize_game": 197,
     "game_parts/savefile.py::_validate_save_payload": 367,
     "game_parts/savefile.py::load_game": 186,
-    "game_parts/terminal.py::run": 184
+    "game_parts/terminal.py::run": 184,
+    "game_parts/turn.py::_dispatch_player_turn": 493,
+    "game_parts/turn.py::_run_player_turn_internal": 2756,
+    "game_parts/turn_front.py::_execute_intent_internal": 548,
+    "game_parts/turn_front.py::_front_step": 235
   }
 }

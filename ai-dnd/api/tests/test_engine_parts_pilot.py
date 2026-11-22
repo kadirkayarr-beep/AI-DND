@@ -26,8 +26,10 @@ from api.narrative_director import install_narrative_context_adapter, narrative_
 from api.narrative_memory import empty_narrative_memory  # noqa: E402
 from api.session_manager import SessionManager  # noqa: E402
 from api.tests import test_campaign_api as campaign_api  # noqa: E402
+from api.tests import test_front_proposal as front_tests  # noqa: E402
 from api.tests import test_heard_rumours_turn as rumour_turn  # noqa: E402
 from api.tests import test_local_person_persistence as local_person  # noqa: E402
+from api.tests import test_thread_gate as thread_gate_tests  # noqa: E402
 from api.tests.auth_fixture import TEST_PLAYER  # noqa: E402
 from api.tests.engine_sources import batch_names, engine_source_files  # noqa: E402
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound  # noqa: E402
@@ -80,9 +82,9 @@ class WrapperFilter(unittest.TestCase):
                                               "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
                                               "game_parts.savefile", "game_parts.text_rules_a",
-                                              "game_parts.text_rules_b"))
+                                              "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_front"))
         # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15,
-        # Plan 4 Tasks 7, 8 and 9
+        # Plan 4 Tasks 7, 8 and 9, Plan 5 Tasks 6 and 9
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -123,11 +125,12 @@ class PilotRollD20(unittest.TestCase):
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
         # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
-        # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin; Task 9: savefile
+        # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin; Task 9: savefile; Plan 5 Task 6:
+        # turn_front; Plan 5 Task 9: turn
         names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
                  "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
                  "_narration_safety_decision", "ensure_campaign_clock", "initialize_game", "ensure_death_state",
-                 "_shop_presence_question", "save_game")
+                 "_shop_presence_question", "save_game", "_thread_gate", "_dispatch_player_turn")
         show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
@@ -136,7 +139,8 @@ class PilotRollD20(unittest.TestCase):
                                   "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
                                   "game_parts.narration", "game_parts.narration_safety",
                                   "game_parts.living_world_turn", "game_parts.new_game", "game_parts.combat_flow",
-                                  "game_parts.coin", "game_parts.savefile"]),
+                                  "game_parts.coin", "game_parts.savefile", "game_parts.turn_front",
+                                  "game_parts.turn"]),
                              done.stderr)
 
 
@@ -1742,6 +1746,565 @@ class TurnIdentityNames(unittest.IsolatedAsyncioTestCase):
                          ("dialogue", "created_local_person"))
         new = [(npc["id"], npc["name"], npc["role"]) for npc in world["npcs"] if npc["id"] not in before]
         self.assertEqual(new, [("npc_001", "Neris", "kıyı balıkçısı")])
+
+
+FRONT_1 = tuple(batch_names("front-1"))
+FRONT_2 = tuple(batch_names("front-2"))
+FRONT_3 = tuple(batch_names("front-3"))
+TRANSIENTS = ("_front_coin", "_economic_turn_key", "_coin_rest_hint")
+INTERNAL_TURN = {  # the same in both flags; captured on f1bc2ad1 (unmoved)
+    "walk": {"narration": "Oraya giden bir yol bilmiyorsun.", "model_calls": None,
+             "action": ("travel", "unverified", None), "reads": True, "only_s": True, "location": "forest", "hp": 12,
+             "default_unchanged": True},
+    "down": {"narration": "Ölüm kurtarma zarın: 15. Karanlıkta yatıyorsun, bedenin sana uymuyor; hayata tutunuyorsun. "
+                          "Ölüm kurtarma: 1 başarı, 0 başarısızlık.", "model_calls": 0,
+             "action": ("death_save", "resolved", None), "reads": True, "only_s": True, "location": "forest", "hp": 0,
+             "default_unchanged": True},
+}
+
+
+class TurnFrontPart(unittest.TestCase):
+    """T6.1 batch front-1: thread turns, intent execution and place turns live in game_parts/turn_front.py."""
+
+    def test_front_1_lives_in_the_part(self):
+        self.assertEqual(set(FRONT_1) - set(routing_audit.re_exports(ROOT).get("turn_front", ())), set())
+
+    def test_turn_session_helpers_use_the_given_session(self):  # D-447
+        # _execute_intent_internal reads game._session() only: every read must return the given session, and the place
+        # it is asked for exists only there; the answer was captured on 2f2d45a1 (unmoved), both flags
+        real = game._session
+        with fixed_town(self, 20261410):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "forest"
+            s.world_state["locations"]["t6_kuyu"] = {"id": "t6_kuyu", "name": "Kuyu Başı", "type": "city",
+                                                     "description": ""}
+            default = game._session()
+            default_before = _session_snapshot(default)
+            seen = []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            with patch.object(game, "_session", side_effect=record):
+                out = game._execute_intent_internal(
+                    {"intent": "travel", "target": {"type": "location", "reference": "Kuyu Başı"}},
+                    "Kuyu Başı'na gidiyorum.", session=s)
+            self.assertEqual(out, {"action": "travel", "success": False, "status": "unverified", "state_changes": [],
+                                   "completion": "completed", "target_reference": "Kuyu Başı", "target": "t6_kuyu",
+                                   "previous_location": "forest",
+                                   "direct_response": "Oraya giden bir yol bilmiyorsun."})
+            self.assertTrue(seen)
+            self.assertTrue(all(value is s for value in seen))
+            # _clear_turn_transients takes its session as an argument, as api/main.py calls it; coin only s holds
+            s._front_coin, s._economic_turn_key, s._coin_rest_hint = 7, "t6_tur", "t6_artık"
+            default_transients = [getattr(default, name, None) for name in TRANSIENTS]
+            game._clear_turn_transients(s)
+            self.assertEqual([getattr(s, name) for name in TRANSIENTS], [0, None, ""])
+            self.assertEqual([getattr(default, name, None) for name in TRANSIENTS], default_transients)
+            self.assertEqual(s.world_state["location"], "forest")
+            self.assertEqual(_session_snapshot(default), default_before)
+        # T6.2: _run_player_turn_internal takes no session and reads game._session() only (the bound engine wrapper
+        # takes session=); every read must return s; "walk" asks for a place only s has, "down" gives only s 0 hit
+        # points (the default session would walk); the answers were captured on f1bc2ad1 (unmoved), both flags
+        for flag in ("", "1"):
+            for kind in ("walk", "down"):
+                with self.subTest(helper="_run_player_turn_internal", flag=flag, kind=kind):
+                    self.assertEqual(_internal_turn_outcome(self, 20261460, flag, kind), INTERNAL_TURN[kind])
+
+    def test_front_2_lives_in_the_part(self):
+        self.assertEqual(set(FRONT_2) - set(routing_audit.re_exports(ROOT).get("turn_front", ())), set())
+
+    def test_turn_money_helpers_use_the_given_session(self):  # Review Focus 5, D-447
+        # The coin and the person exist only in s: every game._session() read must return s and the default session
+        # stays as it was; the answers were captured on 26f0b226 (unmoved), both flags; fixed_town gives the second
+        # session of this test the next seed (20261421)
+        with self.subTest(helper="_tell_the_coin"):
+            self.assertEqual(_money_helper_outcome(self, "_tell_the_coin", 20261420), {
+                "cards": [("prepared", "gift", "t7_oren", 5, "t7-tip")], "purse": 500, "coin_paid": None,
+                "narration": "Kese şıngırdıyor. Oren için teklif hazır: en çok 5 bakır. Onaylarsan işlem yapılır.",
+                "all_reads_given": True, "default_unchanged": True})
+        with self.subTest(helper="_the_rest_of_the_line"):
+            self.assertEqual(_money_helper_outcome(self, "_the_rest_of_the_line", 20261420), {
+                "said": [("şehirde ne var?", True, "t7_oren", "t7-line", "t7-session", "say", True)],
+                "same_result": True, "narration": "Kese şıngırdıyor. Kuzey kapısında bir kule var.", "rest_left": "",
+                "all_reads_given": True, "default_unchanged": True})
+        with self.subTest(helper="_sleep_after_walk"):  # T6.1c; the third session of this test: seed 20261432
+            self.assertEqual(_money_helper_outcome(self, "_sleep_after_walk", 20261430), {  # captured on 25afc54e
+                "cards": [("prepared", "room", "t8_marek", None, "t8-walk")], "purse": 500,
+                "narration": "Hana giriyorsun. Marek başıyla merdivenleri gösteriyor. “Gecelik 50 bakır.” Marek için "
+                             "teklif hazır: en çok 50 bakır. Onaylarsan işlem yapılır.",
+                "coin_seen_by": None, "rest_left": "", "all_reads_given": True, "default_unchanged": True})
+
+    def test_a_coin_without_a_reading_answers_as_before(self):
+        # D-429's two lines (its row: the beer twin, the named non-innkeeper with a bed asked for), each in both flags,
+        # pinned exactly as on 26f0b226 (unmoved) with the flag-on gap included: this is a move, not the fix
+        room = ("Marek başıyla merdivenleri gösteriyor. “Gecelik 50 bakır.” Marek için teklif hazır: en çok 50 bakır. "
+                "Onaylarsan işlem yapılır.")
+        expected = {
+            ("barmene 2 bakır verip bi bira istiyorum", "0"): {
+                "route": None, "seen": [], "decision": None, "action": ("shop_offer", "offer_open"), "cards": [],
+                "counter": "none", "purse": 500, "narration": "Marek tezgâha dayanıyor. “Bira 4 bakır. Kaç tane?”"},
+            ("barmene 2 bakır verip bi bira istiyorum", "1"): {  # the gap: unclear, no counter, "Peki."
+                "route": "fallback:failed", "seen": [(None, ("unclear", "barman", 2), 2)],
+                "decision": ("unclear", "barman", 2), "action": ("dialogue", "proposal_rejected"), "cards": [],
+                "counter": None, "purse": 500, "narration": "Marek omuz silkiyor. “Peki.”"},
+            ("Aldric'e 1 gümüş verip oda tutuyorum", "0"): {
+                "route": None, "seen": [], "decision": None, "action": ("lodging", "offered"),
+                "cards": [("prepared", "room", "barman")], "counter": None, "purse": 500, "narration": room},
+            ("Aldric'e 1 gümüş verip oda tutuyorum", "1"): {
+                "route": "fallback:failed", "seen": [(None, None, 10)], "decision": None, "action": ("lodging", "offered"),
+                "cards": [("prepared", "room", "barman")], "counter": None, "purse": 500,
+                "narration": f"{room} Uzattığın para hesaba katılmadı; kesende kalıyor."},
+        }
+        for (line, flag), outcome in expected.items():
+            with self.subTest(line=line, flag=flag):
+                self.assertEqual(_coin_line_outcome(self, 20261423, flag, line), outcome)
+
+    def test_front_3_lives_in_the_part(self):
+        self.assertEqual(set(FRONT_3) - set(routing_audit.re_exports(ROOT).get("turn_front", ())), set())
+
+
+
+def _money_helper_outcome(test, helper, seed):
+    """What `helper` does with session=s when the coin and the person it needs exist only in s (D-447)."""
+    from money_owner import CoinDecision
+    real = game._session
+    with fixed_town(test, seed), patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=7)
+        w = s.world_state
+        here = w["location"]
+        oren = {"id": "t7_oren", "name": "Oren", "role": "Yolcu", "location": here, "current_hp": 10}
+        w["npcs"] = [oren]
+        w["currency"] = {"player": 500, "t7_oren": 100}
+        default = game._session()
+        default_before = _session_snapshot(default)
+        seen = []
+
+        def record():
+            value = real()
+            seen.append(value)
+            return value
+
+        result = {"narration": "Kese şıngırdıyor.",
+                  "action_result": {"action": "narrative", "status": "resolved", "state_changes": ["currency"]}}
+        if helper == "_tell_the_coin":
+            s._economic_turn_key = "t7-tip"
+            s._coin_decision = CoinDecision("gift", "t7_oren", 5, 0, None, "model", here)
+            s._coin_paid = (5, oren, here)
+            with patch.object(game, "_session", side_effect=record):
+                game._tell_the_coin(result, session=s)
+            offers = w.get("flags", {}).get("economic_offers", {})
+            facts = {"cards": sorted((data["status"], data["proposal"]["purpose"], data["proposal"]["recipient_id"],
+                                      data["proposal"]["amount_cp"], data["proposal"]["source_action_id"])
+                                     for data in offers.values()),
+                     "purse": w["currency"]["player"], "coin_paid": s._coin_paid, "narration": result["narration"]}
+        elif helper == "_sleep_after_walk":
+            # the walk has moved the player; the innkeeper, the turn key and the line's rest exist only in s
+            w["npcs"].append({"id": "t8_marek", "name": "Marek", "role": "Barmen", "location": here, "current_hp": 10})
+            w["currency"]["t8_marek"] = 0
+            s._economic_turn_key = "t8-walk"
+            s._front_rest = "t8-kalan"
+            walked = {"narration": "Hana giriyorsun.",
+                      "action_result": {"action": "move", "status": "completed", "state_changes": ["location"]}}
+            with patch.object(game, "_session", side_effect=record):
+                game._sleep_after_walk(walked, "hana gidip bi oda tutayım", "t8-the-street", None, session=s)
+            offers = w.get("flags", {}).get("economic_offers", {})
+            facts = {"cards": sorted((data["status"], data["proposal"]["purpose"],
+                                      data["proposal"].get("recipient_id"), data["proposal"].get("amount_cp"),
+                                      data["proposal"].get("source_action_id"))
+                                     for data in offers.values()),
+                     "purse": w["currency"]["player"], "narration": walked["narration"],
+                     "coin_seen_by": walked["action_result"].get("coin_seen_by"), "rest_left": s._front_rest}
+        else:
+            s._front_rest = "şehirde ne var?"
+            s._front_read = {"id": "t7_oren"}
+            said = []
+
+            def dispatch(*args, **kwargs):
+                said.append((args[0], args[1] is s.messages, args[2], args[4], args[5], args[7], game._session() is s))
+                return {"messages": s.messages, "narration": "Kuzey kapısında bir kule var.", "model_calls": 0,
+                        "action_result": {"action": "dialogue", "status": "resolved", "npc_id": "t7_oren",
+                                          "state_changes": []}}
+
+            with patch.object(game, "_session", side_effect=record), \
+                    patch.object(game, "_dispatch_player_turn", side_effect=dispatch), \
+                    patch("api.ollama_adapter.model_calls_left", return_value=True):
+                out = game._the_rest_of_the_line(result, s.messages, "t7-line", "t7-session", here, session=s)
+            facts = {"said": said, "same_result": out is result, "narration": result["narration"],
+                     "rest_left": s._front_rest}
+        facts["all_reads_given"] = bool(seen) and all(value is s for value in seen)
+        facts["default_unchanged"] = _session_snapshot(default) == default_before
+    return facts
+
+
+def _coin_line_outcome(test, seed, flag, line):
+    """One coin line at the counter (test_economic_room's table plus a named smith), the flag set, no model answer."""
+    import campaign_time
+    import money_owner
+    original = game._coin_without_a_reading
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=7)
+        w = s.world_state
+        here = w["location"]
+        w["npcs"] = [
+            {"id": "barman", "name": "Marek", "role": "Barmen", "location": here, "current_hp": 10},
+            {"id": "guest", "name": "Oren", "role": "Yolcu", "location": here, "current_hp": 10},
+            {"id": "t7_aldric", "name": "Aldric", "role": "Demirci", "location": here, "current_hp": 10},
+        ]
+        w["currency"] = {"player": 500, "barman": 100, "guest": 100, "t7_aldric": 100}
+        w.setdefault("flags", {})["turn_index"] = 3
+        campaign_time.initialize(w)
+        seen = []
+
+        def watch(*args):
+            original(*args)
+            decided = money_owner.current(s)
+            seen.append((args[1], None if decided is None else (decided.kind, decided.npc_id, decided.amount_cp),
+                         s._front_coin))
+
+        with patch("game._coin_without_a_reading", side_effect=watch):
+            result = s.run_player_turn(line)
+        decided = money_owner.current(s)
+        action = result.get("action_result") or {}
+        offers = w.get("flags", {}).get("economic_offers", {})
+        counter = w["flags"].get("counter_offer_v1")
+        return {"route": getattr(s, "_front_route", None), "seen": seen,
+                "decision": None if decided is None else (decided.kind, decided.npc_id, decided.amount_cp),
+                "action": (action.get("action"), action.get("status")),
+                "cards": sorted((data["status"], data["proposal"]["purpose"], data["proposal"]["recipient_id"])
+                                for data in offers.values()),
+                "counter": None if counter is None else counter.get("tender_cp", "none"),
+                "purse": w["currency"]["player"], "narration": result.get("narration")}
+
+
+class ThreadGateRoute(unittest.IsolatedAsyncioTestCase):
+    """The turn path reads game._thread_gate; the gate reaches _carry_out_thread_turn (test_thread_gate's table)."""
+
+    asyncSetUp = thread_gate_tests.ThreadTable.asyncSetUp
+    asyncTearDown = thread_gate_tests.ThreadTable.asyncTearDown
+    campaign_with_npc = thread_gate_tests.ThreadTable.campaign_with_npc
+    open_job = thread_gate_tests.ThreadTable.open_job
+    line = thread_gate_tests.ThreadTable.line
+    offer = thread_gate_tests.ThreadTable.offer
+    status = thread_gate_tests.ThreadTable.status
+
+    async def test_a_patched_thread_gate_reaches_its_moved_caller(self):
+        with fixed_town(self, 20261411):
+            await self.open_job()
+        self.offer()
+        with patch.object(game, "_thread_gate", wraps=game._thread_gate) as gate:
+            await self.line("olur", "Güzel, başla bakalım.")
+        gate.assert_called()
+        self.assertEqual(self.status(), "accepted")
+
+
+class FrontReadAheadRoute(unittest.IsolatedAsyncioTestCase):
+    """api/main.py reads the front reading as session.front_read_ahead: the session finds it in game's namespace
+    (test_front_proposal's table, flag on, the reading scripted)."""
+
+    asyncSetUp = front_tests.FrontTable.asyncSetUp
+    asyncTearDown = front_tests.FrontTable.asyncTearDown
+    campaign_with_npc = front_tests.FrontTable.campaign_with_npc
+    open_job = front_tests.FrontTable.open_job
+    begin = front_tests.FrontTable.begin
+    line = front_tests.FrontTable.line
+    routes = front_tests.FrontTable.routes
+
+    async def test_a_patched_front_read_ahead_reaches_its_caller(self):
+        with fixed_town(self, 20261422):
+            await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        line = "şu adamın bu kasaba hakkında ne düşündüğünü merak ettim"
+        with patch.object(game, "front_read_ahead", wraps=game.front_read_ahead) as reading:
+            reply = await self.line(line)
+        reading.assert_called_once()
+        self.assertEqual(reading.call_args.args, (line,))
+        self.assertIs(reading.call_args.kwargs["session"], self.session)
+        self.assertIn(self.client.narration, reply["narration"])
+        self.assertEqual(self.routes()[-1]["route"], "front:speak_to")
+
+
+TURN_1 = tuple(batch_names("turn-1"))
+TURN_2 = tuple(batch_names("turn-2"))
+TURN_3 = tuple(batch_names("turn-3"))
+NOTHING_CHANGED = "Bu hamle tamamlanamadı; dünya durumu değişmedi."
+
+
+class TurnPart(unittest.TestCase):
+    """T6.1 batch turn-1: the owned and keyed turn and the turn dispatch live in game_parts/turn.py."""
+
+    def test_turn_1_lives_in_the_part(self):
+        self.assertEqual(set(TURN_1) - set(routing_audit.re_exports(ROOT).get("turn", ())), set())
+
+    def test_turn_2_lives_in_the_part(self):  # T6.1e: _owner_module_reply only (_narrate_resolved_turn held, Task 4)
+        self.assertEqual(set(TURN_2) - set(routing_audit.re_exports(ROOT).get("turn", ())), set())
+
+    def test_turn_3_lives_in_the_part(self):  # T6.2: _run_player_turn_internal, whole
+        self.assertEqual(set(TURN_3) - set(routing_audit.re_exports(ROOT).get("turn", ())), set())
+
+    def test_an_owner_command_is_answered_for_the_given_session(self):  # D-447, T6.1e
+        # the moved _owner_module_reply reads game._session(): /equip clear empties the hands only s has (a weapon
+        # only in s), with no model call, and the default session stays; captured on 0e43d241 (unmoved), both flags
+        expected = {flag: {"narration": "Elini boşalttın.", "model_calls": 0, "action": ("equip", "resolved", True),
+                           "equipment": {"main_hand": None, "off_hand": None}, "default_unchanged": True}
+                    for flag in ("", "1")}  # the same in both flags
+        for flag, outcome in expected.items():
+            with self.subTest(flag=flag):
+                self.assertEqual(_owner_turn_outcome(self, 20261450, flag), outcome)
+
+    def test_the_turn_resolved_signal_is_one_class(self):
+        # _run_player_turn_internal (in game.py until turn-3) raises TurnResolved; the moved _dispatch_turn_body catches
+        # it and narrates the resolved turn, with and without an action id
+        with fixed_town(self, 20261440):
+            s = game.create_session(seed=13)
+            resolved = game.ResolvedTurn(action_result={"action": "look"}, fallback_response="t9", raw_result={})
+
+            def internal(*args, **kwargs):
+                raise game.TurnResolved({"t9": "raw"}, resolved)
+
+            for action_id, session_id in ((None, None), ("t9-act", "t9-session")):
+                with self.subTest(action_id=action_id), \
+                        patch.object(game, "_run_player_turn_internal", side_effect=internal) as inner, \
+                        patch.object(game, "_narrate_resolved_turn", return_value={"narration": "t9-told"}) as told:
+                    out = game._dispatch_turn_body("t9 bakıyorum", s.messages, None, None, "say", action_id,
+                                                   session_id, None, None, session=s)
+                    self.assertEqual(out, {"narration": "t9-told"})
+                    inner.assert_called_once()
+                    told.assert_called_once_with(resolved, "t9 bakıyorum", s.messages, None)
+        # one object under both names: the re-export binds game.TurnResolved to the part's class (tests may not name a
+        # part module through sys.modules, routing R2), and the catch above reads game.TurnResolved
+        self.assertEqual((game.TurnResolved.__module__, game.ResolvedTurn.__module__),
+                         ("game_parts.turn", "game_parts.turn"))
+
+    def test_resolved_turn_is_the_same_dataclass(self):  # Ruling L; captured on 8c18ca6b (unmoved)
+        missing = dataclasses.MISSING
+        self.assertTrue(dataclasses.is_dataclass(game.ResolvedTurn))
+        self.assertEqual([(f.name, f.default, f.default_factory) for f in dataclasses.fields(game.ResolvedTurn)],
+                         [
+            ("action_result", missing, missing), ("fallback_response", missing, missing),
+            ("raw_result", missing, missing), ("requires_narration", True, missing),
+            ("safety_reason_code", None, missing), ("safety_handling", "accepted", missing),
+            ("quest_outcomes", None, missing), ("npc_target", None, missing), ("target_id", None, missing),
+            ("lore_context", None, missing), ("intent_source", "deterministic", missing),
+            ("intent_model_calls", 0, missing), ("messages", None, missing), ("allow_new_npcs", False, missing),
+            ("allow_new_features", False, missing), ("allow_new_locations", False, missing),
+            ("allow_new_shops", False, missing), ("expected_location_change", False, missing),
+            ("scene_plan", None, missing), ("quest_world_before", None, missing)])
+
+    def test_a_failed_turn_rolls_back_from_the_part(self):  # Review Focus 3, the test_roadmap_c10_primal_failure shape
+        # plain: the keyed turn restores s on IntentInfrastructureError and says nothing changed; check: the owned turn
+        # restores its own snapshot of s and raises again. Both flags; captured on 8c18ca6b (unmoved)
+        expected = {}
+        plain = {"seen": [("Kapıyı itiyorum.", True)],
+                 "reply": {"narration": NOTHING_CHANGED,
+                           "action_result": {"action": "unknown", "status": "infrastructure_failure", "success": False,
+                                             "state_changes": [], "infrastructure_code": "intent_timeout",
+                                             "direct_response": NOTHING_CHANGED}},
+                 "same": True, "runtime_same": True, "marker": False, "default_unchanged": True}
+        check = {"seen": [("Kapıyı itiyorum.", True)], "reply": "RuntimeError: t9 failed turn", "same": True,
+                 "runtime_same": True, "marker": False, "default_unchanged": True}
+        for flag in ("", "1"):  # the same in both flags
+            expected[(flag, "plain")], expected[(flag, "check")] = plain, check
+        for (flag, kind), outcome in expected.items():
+            with self.subTest(flag=flag, kind=kind):
+                self.assertEqual(_failed_turn_outcome(self, 20261441, flag, kind), outcome)
+
+    def test_a_patched_dispatch_reaches_the_moved_keyed_turn(self):
+        # run_player_turn -> _run_player_turn_owned -> _run_player_turn -> _run_player_turn_keyed reads
+        # game._dispatch_player_turn; both flags, captured on 8c18ca6b (unmoved)
+        expected = {flag: {"seen": [("Kapıyı itiyorum.", "t9-act", "t9-session", True)],
+                           "narration": "Kapı gıcırdayarak açılıyor.", "action": ("narrative", "resolved"),
+                           "key_cleared": None, "default_unchanged": True}
+                    for flag in ("", "1")}  # the same in both flags
+        for flag, outcome in expected.items():
+            with self.subTest(flag=flag):
+                self.assertEqual(_dispatched_turn_outcome(self, 20261445, flag), outcome)
+
+
+SPEECH_LINE = "Buralarda duyduğun bir şey var mı?"
+
+
+class TurnCoreRoute(unittest.IsolatedAsyncioTestCase):
+    """T6.2: one person's speech turn over HTTP (TurnIdentityNames' heard-rumours shape) reaches the speech trail and
+    the finalize call of _run_player_turn_internal itself; both flags, captured on f1bc2ad1 (unmoved)."""
+
+    maxDiff = None
+    asyncSetUp = TurnIdentityNames.asyncSetUp
+    asyncTearDown = TurnIdentityNames.asyncTearDown
+    _session_id = TurnIdentityNames._session_id
+    _turn = TurnIdentityNames._turn
+
+    async def _speech_turn(self, seed, flag):
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}):
+            session_id = await self._session_id(seed)
+            world = self.manager.get(session_id).game_session.world_state
+            npc = {"id": "npc_t11_edric", "name": "Edric", "role": "Yolcu", "location": world["location"],
+                   "reality_layer": "PROCEDURAL_LOCAL_FICTION"}
+            local_dialogue.ensure_personal_profile(npc)
+            world["npcs"].append(npc)
+            with patch.object(self.app.state.ollama_adapter, "_client", rumour_turn._Client(rumour_turn.MENTION)):
+                return await self._turn(session_id, message=SPEECH_LINE, target_id="npc_t11_edric",
+                                        interaction_mode="say")
+
+    async def test_the_speech_debug_trail_patch_still_reaches_the_turn(self):  # D-344
+        # _speech_debug_trail stays in game.py (never moved) and writes through game.open, so a game.open patch must
+        # still see the turn's own speech record after the turn moves
+        for flag in ("", "1"):
+            with self.subTest(flag=flag):
+                with patch.dict(os.environ, {"AI_DND_SPEECH_DEBUG": "t11-speech-trail.jsonl"}), \
+                        patch.object(game, "open", create=True) as opened:
+                    await self._speech_turn(20261466, flag)
+                written = [json.loads(c.args[0])
+                           for c in opened.return_value.__enter__.return_value.write.call_args_list]
+                self.assertEqual({
+                    "opened": [(c.args, c.kwargs) for c in opened.call_args_list],
+                    "records": [(r.get("route"), r.get("player"), r.get("npc_id"), sorted(r)) for r in written],
+                }, {  # the same in both flags; one record, the turn's own (no free_v1 route record on this path)
+                    "opened": [(("t11-speech-trail.jsonl", "a"), {"encoding": "utf-8"})],
+                    "records": [(None, SPEECH_LINE, "npc_t11_edric", [
+                        "at", "before_finalize", "cleaned", "finalize_changed_text", "history_echo",
+                        "invalid_or_empty", "model_lore_claims", "model_raw", "model_world_updates", "npc_id",
+                        "npc_name", "player", "safe_narration", "safety", "shown", "unverified_claim_in_prompt"])],
+                })
+
+    async def test_the_narrative_adapter_reaches_the_moved_turn(self):  # Review Focus 4 (amended after G6a)
+        # the app installs the adapter once (create_app); the turn's own finalize_narration(...) call (the only one that
+        # passes attributed_speech= and python_town_response=) must reach the adapter's wrapper through
+        # game.finalize_narration; the wrapped original is counted; counts measured on f1bc2ad1 (unmoved)
+        install_narrative_context_adapter(game)
+        finalize = game.finalize_narration
+        cell = finalize.__closure__[finalize.__code__.co_freevars.index("original_finalize")]
+        original = cell.cell_contents
+        for flag in ("", "1"):
+            with self.subTest(flag=flag):
+                counted = MagicMock(wraps=original)
+                cell.cell_contents = counted
+                try:
+                    await self._speech_turn(20261468, flag)
+                finally:
+                    cell.cell_contents = original
+                both = [c for c in counted.call_args_list
+                        if {"attributed_speech", "python_town_response"} <= set(c.kwargs)]
+                self.assertEqual(len(both), 1)
+                self.assertEqual({
+                    "calls": [sorted(c.kwargs) for c in counted.call_args_list],
+                    "turn_call": (both[0].args[1], both[0].args[2].get("id"),
+                                  both[0].kwargs["attributed_speech"].get("spoken_text")),
+                }, {  # the same in both flags: the original finalize ran once, from the turn's own call
+                    "calls": [["attributed_speech", "fallback_reason_code", "python_town_response",
+                               "supported_player_claims"]],
+                    "turn_call": (SPEECH_LINE, "npc_t11_edric", rumour_turn.SPOKEN),
+                })
+
+
+def _failed_turn_outcome(test, seed, flag, kind):
+    """A turn whose dispatch marks s and rolls its dice, then fails: what s, the default session and the reply show."""
+    feature = sorted(game.CHECK_FEATURES)[0]
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=13)
+        default = game._session()
+        default_before = _session_snapshot(default)
+        before = _session_snapshot(s)
+        runtime_before = s._capture_runtime_snapshot()
+        seen = []
+
+        def dispatch(*args, **kwargs):
+            seen.append((args[0], game._session() is s))
+            game._session().world_state.setdefault("flags", {})["t9_marker"] = True
+            game._session().rng.randint(1, 20)
+            if kind == "plain":
+                raise game.IntentInfrastructureError("intent_timeout")
+            raise RuntimeError("t9 failed turn")
+
+        with patch.object(game, "_dispatch_player_turn", side_effect=dispatch):
+            if kind == "plain":
+                reply = game.run_player_turn("Kapıyı itiyorum.", interaction_mode="do", session=s)
+            else:
+                with patch.object(game, "primal_knowledge_check_admission"):
+                    try:
+                        game.run_player_turn("Kapıyı itiyorum.", interaction_mode="do", check_feature=feature,
+                                             check_evidence=[], session=s)
+                        reply = "no error"
+                    except RuntimeError as error:
+                        reply = f"RuntimeError: {error}"
+        return {"seen": seen, "reply": reply, "same": _session_snapshot(s) == before,
+                "runtime_same": s._capture_runtime_snapshot() == runtime_before,
+                "marker": "t9_marker" in s.world_state.get("flags", {}),
+                "default_unchanged": _session_snapshot(default) == default_before}
+
+
+def _dispatched_turn_outcome(test, seed, flag):
+    """A turn whose dispatch is patched on game: the keyed turn calls it once, for s, and finishes its answer."""
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=13)
+        default = game._session()
+        default_before = _session_snapshot(default)
+        seen = []
+
+        def dispatch(*args, **kwargs):
+            seen.append((args[0], args[4], args[5], game._session() is s))
+            return {"messages": s.messages, "narration": "Kapı gıcırdayarak açılıyor.", "model_calls": 0,
+                    "action_result": {"action": "narrative", "status": "resolved", "success": True,
+                                      "state_changes": []}}
+
+        with patch.object(game, "_dispatch_player_turn", side_effect=dispatch):
+            out = game.run_player_turn("Kapıyı itiyorum.", interaction_mode="do", action_id="t9-act",
+                                       session_id="t9-session", session=s)
+        return {"seen": seen, "narration": out.get("narration"),
+                "action": (out["action_result"]["action"], out["action_result"]["status"]),
+                "key_cleared": getattr(s, "_economic_turn_key", None),
+                "default_unchanged": _session_snapshot(default) == default_before}
+
+
+def _owner_turn_outcome(test, seed, flag):
+    """A slash owner command through the whole turn: held_weapon answers it through _owner_module_reply, for s."""
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=13)
+        default = game._session()
+        s.world_state["equipment"] = {"main_hand": "t10-blade-only-in-s", "off_hand": None}
+        default_before = _session_snapshot(default)
+        out = game.run_player_turn("/equip clear", interaction_mode="do", session=s)
+        result = out["action_result"]
+        return {"narration": out.get("narration"), "model_calls": out.get("model_calls"),
+                "action": (result.get("action"), result.get("status"), result.get("success")),
+                "equipment": s.world_state.get("equipment"),
+                "default_unchanged": _session_snapshot(default) == default_before}
+
+
+def _internal_turn_outcome(test, seed, flag, kind):
+    """One turn through _run_player_turn_internal for s (session=): what it answers, and whom game._session() named."""
+    real = game._session
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=11)
+        s.world_state["location"] = "forest"
+        s.world_state["locations"]["t11_kuyu"] = {"id": "t11_kuyu", "name": "Kuyu Başı", "type": "city",
+                                                  "description": ""}
+        if kind == "down":
+            s.character["current_hp"] = 0
+        default = game._session()
+        default_before = _session_snapshot(default)
+        seen = []
+
+        def record():
+            value = real()
+            seen.append(value)
+            return value
+
+        with patch.object(game, "_session", side_effect=record):
+            out = game._run_player_turn_internal("Kuyu Başı'na gidiyorum.", interaction_mode="do", session=s)
+        result = out.get("action_result") or {}
+        return {"narration": out.get("narration"), "model_calls": out.get("model_calls"),
+                "action": (result.get("action"), result.get("status"), result.get("target")),
+                "reads": len(seen) > 0, "only_s": all(value is s for value in seen),
+                "location": s.world_state["location"], "hp": s.character.get("current_hp"),
+                "default_unchanged": _session_snapshot(default) == default_before}
 
 
 if __name__ == "__main__":

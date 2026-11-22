@@ -133,7 +133,7 @@
  },
  "ResolvedTurn": {
   "kind": "class",
-  "module": "game"
+  "module": "game_parts.turn"
  },
  "SAVE_FORMAT_VERSION": {
   "kind": "data",
@@ -157,7 +157,7 @@
  },
  "TurnResolved": {
   "kind": "class",
-  "module": "game"
+  "module": "game_parts.turn"
  },
  "WEAPONS": {
   "kind": "data",
@@ -741,19 +741,19 @@
  },
  "_addressed_in": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input, *, or_the_talk=True)"
  },
  "_adventure_check_reply": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session, skill)"
  },
  "_adventure_scene_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -777,7 +777,7 @@
  },
  "_answered_heavy_question": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -801,25 +801,25 @@
  },
  "_approach_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(target_id)"
  },
  "_ask_about_the_blow": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(person_id, player_input='', with_word='')"
  },
  "_ask_before_the_heavy": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(asked)"
  },
  "_ask_which_move": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(person_id)"
  },
@@ -879,13 +879,13 @@
  },
  "_blow_in_the_words": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input, target_id)"
  },
  "_blow_stands": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -915,13 +915,13 @@
  },
  "_carry_out_thread_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session, world, gate, person, player_input)"
  },
  "_changed_state_fields": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(before)"
  },
@@ -975,13 +975,13 @@
  },
  "_clear_turn_transients": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session) -> None"
  },
  "_coin_not_parcel": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session, world, person, item_id, player_input)"
  },
@@ -993,7 +993,7 @@
  },
  "_coin_without_a_reading": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input, target_id, listed)"
  },
@@ -1071,7 +1071,7 @@
  },
  "_current_procedural_entity_ids": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "()"
  },
@@ -1101,7 +1101,7 @@
  },
  "_defer_spoken_coin_offer": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route)"
  },
@@ -1131,13 +1131,13 @@
  },
  "_dispatch_player_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
  },
  "_dispatch_turn_body": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages, target_id, scene_plan, interaction_mode, action_id, session_id, check_feature, check_evidence)"
  },
@@ -1179,7 +1179,7 @@
  },
  "_economic_listing": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session, person)"
  },
@@ -1239,13 +1239,13 @@
  },
  "_everyday_action_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_execute_intent_internal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None)"
  },
@@ -1407,55 +1407,55 @@
  },
  "_front_consume": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
  "_front_economic_offer": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
  "_front_hand_over": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
  "_front_offer_gate": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
  "_front_recovery": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input, listed)"
  },
  "_front_step": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input, target_id, interaction_mode, combat_action, check_feature)"
  },
  "_front_take": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
  "_front_wield": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
  "_front_work": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
@@ -1491,7 +1491,7 @@
  },
  "_hand_over_coin": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, listed, front=None, *, owner_routed=False)"
  },
@@ -1521,7 +1521,7 @@
  },
  "_has_session": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "()"
  },
@@ -1551,7 +1551,7 @@
  },
  "_heavy_allowed": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(what, player_input, *, person_id=None, deed=None)"
  },
@@ -1563,7 +1563,7 @@
  },
  "_hideout_check": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(skill, dc)"
  },
@@ -1599,7 +1599,7 @@
  },
  "_intent_infrastructure_result": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(error)"
  },
@@ -1803,7 +1803,7 @@
  },
  "_keep_town_portrait": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(action_result, narration)"
  },
@@ -1821,7 +1821,7 @@
  },
  "_last_call": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "()"
  },
@@ -1839,7 +1839,7 @@
  },
  "_line_gives": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(item_id, player_input)"
  },
@@ -1887,7 +1887,7 @@
  },
  "_local_place_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2007,7 +2007,7 @@
  },
  "_names_no_parcel": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(world, person, item_id, player_input)"
  },
@@ -2027,7 +2027,7 @@
   "kind": "function",
   "module": "game",
   "session_bound": true,
-  "signature": "(resolved_turn: game.ResolvedTurn, player_input, messages, target_id)"
+  "signature": "(resolved_turn: game_parts.turn.ResolvedTurn, player_input, messages, target_id)"
  },
  "_narrated_money_can_lie": {
   "kind": "function",
@@ -2037,7 +2037,7 @@
  },
  "_narrated_person": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(word, player_input, listed)"
  },
@@ -2223,7 +2223,7 @@
  },
  "_owner_module_reply": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, interaction_mode)"
  },
@@ -2241,7 +2241,7 @@
  },
  "_person_answers_stock": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(result, player_input, messages, target_id, interaction_mode, action_id, session_id, snapshot)"
  },
@@ -2307,7 +2307,7 @@
  },
  "_purchase_refused": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session, person, amount, player_input)"
  },
@@ -2325,7 +2325,7 @@
  },
  "_reads_as_address": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2355,7 +2355,7 @@
  },
  "_record_spoken_coin_response": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(npc, response)"
  },
@@ -2511,25 +2511,25 @@
  },
  "_run_player_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
  },
  "_run_player_turn_internal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, interaction_mode=None, action_id=None, check_feature=None, check_evidence=None)"
  },
  "_run_player_turn_keyed": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
  },
  "_run_player_turn_owned": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages, target_id, scene_plan, action_id, session_id, combat_action, interaction_mode, check_feature, check_evidence)"
  },
@@ -2691,7 +2691,7 @@
  },
  "_sleep_after_walk": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(walked, player_input, place_before, scene_plan=None)"
  },
@@ -2751,7 +2751,7 @@
  },
  "_spoken_rest_of_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(grounded, player_input, messages, action_id, session_id)"
  },
@@ -2835,7 +2835,7 @@
  },
  "_take_names_a_job": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route)"
  },
@@ -2847,19 +2847,19 @@
  },
  "_tell_the_coin": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(result)"
  },
  "_the_rest_of_the_line": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(result, messages, action_id, session_id, place_before)"
  },
  "_thread_gate": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input, target_id, interaction_mode, *, front=None)"
  },
@@ -3159,7 +3159,7 @@
  },
  "_world_snapshot": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "()"
  },
@@ -3291,7 +3291,7 @@
  },
  "combat_refusal_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(error)"
  },
@@ -3444,7 +3444,7 @@
  },
  "front_read_ahead": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input, target_id=None, interaction_mode=None)"
  },
@@ -3727,7 +3727,7 @@
  },
  "player_cannot_act_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "()"
  },
@@ -3908,7 +3908,7 @@
  },
  "run_player_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, action_id=None, session_id=None, combat_action=None, interaction_mode=None, check_feature=None, check_evidence=None)"
  },
@@ -3996,7 +3996,7 @@
  },
  "turn_source_key": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(session)"
  },
