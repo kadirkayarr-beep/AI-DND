@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from engine_split import blank_runs  # noqa: E402
+from api.tests.engine_sources import engine_source_files  # noqa: E402
 
 
 def _lines(text: str) -> list[str]:
@@ -96,6 +97,13 @@ class BlankRunsFixtureTests(unittest.TestCase):
         with mock.patch.object(blank_runs, "find", return_value=[3]):
             findings = blank_runs.verify(old, new)
         self.assertTrue(any("inside" in finding for finding in findings), findings)
+
+
+class EngineLayoutGuardTests(unittest.TestCase):
+    def test_no_engine_file_has_more_than_two_blank_lines_in_a_row_at_top_level(self):
+        for path in engine_source_files(ROOT):
+            with self.subTest(path=path.relative_to(ROOT).as_posix()):
+                self.assertEqual(blank_runs.find(path.read_bytes().decode("utf-8").split("\n"), keep=2), [])
 
 
 if __name__ == "__main__":
