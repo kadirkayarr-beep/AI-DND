@@ -1,0 +1,8 @@
+SESSION_CALLERS names=7 calls=12
+  _sleep_after_walk 4 ['api/tests/test_coin_writers.py', 'api/tests/test_economic_room.py', 'api/tests/test_money_routes.py']
+  _tell_the_coin 2 ['api/tests/test_economic_dialogue.py', 'api/tests/test_economic_room.py']
+  _narrate_resolved_turn 2 ['api/tests/test_f04_frozen_narrator_faults.py']
+  _the_rest_of_the_line 1 ['api/tests/test_economic_dialogue.py']
+  run_player_turn 1 ['api/tests/test_engine_parts_pilot.py']
+  _front_work 1 ['api/tests/test_engine_parts_pilot.py']
+  _front_recovery 1 ['api/tests/test_front_failed_fallback.py']

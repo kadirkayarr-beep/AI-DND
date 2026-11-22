@@ -4,6 +4,7 @@ The source text is edited in place: blocks are cut byte for byte, and the only c
 six characters `game.` before each free reference to an engine name. Nothing is regenerated from a syntax tree.
 Run: python scripts/engine_split/move_block.py --game game.py --part game_parts/<x>.py (--names a,b | --names-file F)
      --census api/tests/engine_split_locks/patch_census.json [--report out.json]
+     [--identity-allowlist api/tests/engine_split_locks/identity_allowlist.json]
 A refusal prints `REFUSED <reason>` on stderr, exits 2 and writes no file.
 """
 from __future__ import annotations
@@ -27,6 +28,7 @@ FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 DYNAMIC_NAMES = {"__file__", "__name__"}
 DYNAMIC_CALLS = {"globals", "locals", "vars"}
+IDENTITY_ROW_NAMES = {"locals", "sys.modules"}  # the only identity uses an identity_allowlist.json row can let through
 COMPREHENSION_NAMES = {ast.ListComp: "listcomp", ast.SetComp: "setcomp", ast.DictComp: "dictcomp", ast.GeneratorExp: "genexpr"}
 MOVABLE_KINDS ={"function", "class", "assign"}
 # Spec section 5: names that stay in game.py (the `game.py (kalır)` row and the bullets under the table).
@@ -54,8 +56,11 @@ def _collect_tables(table: symtable.SymbolTable, out: dict) -> None:
 class _Scan:
     """Walks one block with the symtable of the same text and records the free references to engine names."""
 
-    def __init__(self, block: str, prefix: set[str]):
+    def __init__(self, block: str, prefix: set[str], identity_allow=frozenset(), part_rel: str | None = None):
         self.prefix = prefix
+        self.identity_allow = identity_allow  # (file, function, name) rows, the key R6 (routing_audit) uses
+        self.part_rel = part_rel
+        self.qual: list[str] = []  # enclosing def and class names, joined with "." as R6 reports the function
         self.tree = ast.parse(block)
         self.top = symtable.symtable(block, "<block>", "exec")
         self.tables: dict = {}
@@ -83,6 +88,11 @@ class _Scan:
             return None
         raise MoveRefused(f"scope mismatch between ast and symtable at line {node.lineno}")
 
+    def allowed(self, name: str, in_def: bool) -> bool:
+        """An identity use (`locals` or `sys.modules`) inside a def that an identity_allowlist.json row names for this part and function."""
+        key = (self.part_rel, ".".join(self.qual) or "<module>", name)
+        return in_def and name in IDENTITY_ROW_NAMES and self.part_rel is not None and key in self.identity_allow
+
     def visit_all(self, nodes, table, in_def, where):
         for node in nodes:
             if node is not None:
@@ -100,11 +110,16 @@ class _Scan:
                                table, in_def, "annotation")
             inner = self.claim(node, "function")
             body = node.body if isinstance(node, FUNCTION_NODES) else [node.body]
+            self.qual += [node.name] if isinstance(node, FUNCTION_NODES) else []  # a lambda keeps its enclosing name (R6)
             self.visit_all(body, inner, True, None)
+            if isinstance(node, FUNCTION_NODES):
+                self.qual.pop()
         elif isinstance(node, ast.ClassDef):
             self.visit_all(node.decorator_list, table, in_def, "decorator")
             self.visit_all(node.bases + [k.value for k in node.keywords], table, in_def, where)
+            self.qual.append(node.name)
             self.visit_all(node.body, self.claim(node, "class"), in_def, where)
+            self.qual.pop()
         elif isinstance(node, COMPREHENSIONS):
             first = node.generators[0]
             self.visit(first.iter, table, in_def, where)
@@ -124,10 +139,11 @@ class _Scan:
         else:
             if isinstance(node, ast.Global):
                 raise MoveRefused(f"`global` statement at line {node.lineno}")
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in DYNAMIC_CALLS:
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in DYNAMIC_CALLS
+                    and not self.allowed(node.func.id, in_def)):
                 raise MoveRefused(f"`{node.func.id}(` at line {node.lineno} (N3 rule 6)")
             if (isinstance(node, ast.Attribute) and node.attr == "modules"
-                    and isinstance(node.value, ast.Name) and node.value.id == "sys"):
+                    and isinstance(node.value, ast.Name) and node.value.id == "sys" and not self.allowed("sys.modules", in_def)):
                 raise MoveRefused(f"`sys.modules` at line {node.lineno} (N3 rule 6)")
             self.visit_all(ast.iter_child_nodes(node), table, in_def, where)
 
@@ -156,15 +172,18 @@ class _Scan:
         self.hits.append((node.lineno, node.col_offset, node.id))
 
 
-def prefix_names(block: str, engine_names: set[str], keep_bare: set[str]) -> tuple[str, list[tuple[int, int, str]]]:
+def prefix_names(block: str, engine_names: set[str], keep_bare: set[str], identity_allow=frozenset(),
+                 part_rel: str | None = None) -> tuple[str, list[tuple[int, int, str]]]:
     """Insert `game.` before each free (global-scope) reference to a name in engine_names - keep_bare.
 
     Returns the new text and the insertions (line, column, name), 1-based line, column in characters of the original.
     Raises MoveRefused for the N3 refusals (bare open, engine name in a default / decorator / annotation or outside a
     def body, `global`, __file__, __name__, globals(), locals(), vars(), sys.modules).
+    A `locals(` call or a `sys.modules` read is let through, unchanged, when identity_allow holds
+    (part_rel, <function as R6 reports it>, "locals" | "sys.modules"); every other refusal stays.
     """
     lines = block.split("\n")  # "\r" stays at the end of its line, so line endings survive
-    hits = _Scan(block, set(engine_names) - set(keep_bare)).run()
+    hits = _Scan(block, set(engine_names) - set(keep_bare), identity_allow, part_rel).run()
     try:
         name_tokens = {tok.start: tok.string for tok in tokenize.generate_tokens(io.StringIO(block).readline)
                        if tok.type == tokenize.NAME}
@@ -183,13 +202,14 @@ def prefix_names(block: str, engine_names: set[str], keep_bare: set[str]) -> tup
     return "\n".join(lines), insertions
 
 
-def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[str]) -> dict:
+def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[str], identity_allow=frozenset()) -> dict:
     """Cut the blocks that bind `names` out of game_py, append them (prefixed) to part_py, leave one import line.
 
     The import line takes the place of the first cut block. Both files are written only when every block was accepted.
     The part header (`import game`, stdlib and other non-engine imports) is written by hand; move() does not add it.
     surface_targets is used as given: the caller must first drop the patch-census targets marked `absent`.
     Names in NEVER_MOVED (spec section 5) are refused.
+    identity_allow: (file, function, name) rows of identity_allowlist.json; the part's file is `<folder>/<file name>`.
     Returns {"blocks": [{"names", "game_span", "part_span"}], "insertions": [(part line, col, name)], "import_line"}.
     """
     game_py, part_py = Path(game_py), Path(part_py)
@@ -229,11 +249,13 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
     in_part = {e["name"] for e in part_index if e["kind"] == "assign"} | {n for n in moved_names if by_name[n]["kind"] == "assign"}
     keep_bare = in_part - set(surface_targets)
 
+    part_rel = f"{part_py.resolve().parent.name}/{part_py.name}"  # game_parts/<x>.py, as R6 names the file
     game_lines = game_py.read_bytes().decode("utf-8").split("\n")
     blocks, insertions, appended = [], [], list(part_lines[:-1]) if part_lines[-1] == "" else list(part_lines)
     for key in ordered:
         start, end = key
-        text, ins = prefix_names("\n".join(game_lines[start - 1:end]) + "\n", engine_names, keep_bare)
+        text, ins = prefix_names("\n".join(game_lines[start - 1:end]) + "\n", engine_names, keep_bare, identity_allow,
+                                 part_rel)
         if appended:
             appended.append("")  # one blank line between blocks
         first = len(appended) + 1
@@ -268,6 +290,7 @@ def main(argv: list[str] | None = None) -> int:
     names_group.add_argument("--names-file", type=Path, help="one name per line")
     ap.add_argument("--census", required=True, type=Path, help="patch_census.json lock; its `absent` targets are dropped")
     ap.add_argument("--report", type=Path, help="write move()'s result here as JSON")
+    ap.add_argument("--identity-allowlist", type=Path, help="identity_allowlist.json; its rows let those identity uses move")
     args = ap.parse_args(argv)
     if args.names is not None:
         names = [name.strip() for name in args.names.split(",") if name.strip()]
@@ -277,8 +300,10 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("no names given")
     targets = json.loads(args.census.read_text(encoding="utf-8"))["targets"]
     surface_targets = {name for name, kind in targets.items() if kind != "absent"}
+    rows = json.loads(args.identity_allowlist.read_text(encoding="utf-8")) if args.identity_allowlist else []
+    identity_allow = frozenset((row["file"], row["function"], row["name"]) for row in rows)
     try:
-        result = move(args.game, args.part, names, surface_targets)
+        result = move(args.game, args.part, names, surface_targets, identity_allow)
     except MoveRefused as exc:
         print(f"REFUSED {exc}", file=sys.stderr)
         return 2

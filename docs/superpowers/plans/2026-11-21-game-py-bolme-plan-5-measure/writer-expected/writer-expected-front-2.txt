@@ -1,0 +1,14 @@
+_tell_the_coin
+_the_rest_of_the_line
+_person_answers_stock
+_last_call
+_approach_turn
+player_cannot_act_turn
+_front_step
+_record_spoken_coin_response
+_front_economic_offer
+_coin_without_a_reading
+_narrated_person
+front_read_ahead
+_front_offer_gate
+_front_consume

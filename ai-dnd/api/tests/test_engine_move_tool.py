@@ -1,9 +1,11 @@
 """Tests for the in-place move tool (scripts/engine_split/move_block.py)."""
 from __future__ import annotations
 
+import ast
 import contextlib
 import io
 import json
+import symtable
 import sys
 import tempfile
 import unittest
@@ -188,6 +190,93 @@ class MoveTests(unittest.TestCase):
             with self.subTest(name):
                 with self.assertRaises(MoveRefused):
                     move(self.game, self.part, [name], set())
+
+
+class IdentityAllowlistTests(unittest.TestCase):  # Plan 5 Task 1, spec section 7, Ruling J
+    LOCALS = b'def f():\n    x = 1\n    return locals().get("x")\n'
+    MODULES = b'def f():\n    return sys.modules["game"]\n'
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+        self.game = self.tmp / "game.py"
+        (self.tmp / "game_parts").mkdir()
+        self.part = self.tmp / "game_parts" / "p.py"
+        self.part.write_bytes(b"import sys\nimport game\n")
+
+    def r6_keys(self) -> set[tuple[str, str]]:
+        """(function, name) of every identity use R6 (routing_audit) reports in the part: the row key it would need."""
+        from engine_split import routing_audit
+        text = self.part.read_text(encoding="utf-8")
+        walker = routing_audit._Walker(ast.parse(text), symtable.symtable(text, str(self.part), "exec"))
+        uses = [u for u in walker.reads if u.name in routing_audit.IDENTITY_NAMES] + walker.identity
+        return {(u.function, u.name) for u in uses}
+
+    def assert_refused_and_untouched(self, game_src: bytes, rows: set[tuple[str, str, str]], names=("f",)):
+        self.part.write_bytes(b"import sys\nimport game\n")  # each subtest starts from the same part
+        self.game.write_bytes(game_src)
+        with self.assertRaises(MoveRefused):
+            move(self.game, self.part, list(names), set(), identity_allow=frozenset(rows))
+        self.assertEqual(self.game.read_bytes(), game_src)
+        self.assertEqual(self.part.read_bytes(), b"import sys\nimport game\n")
+
+    def test_move_block_moves_an_allowlisted_locals_call(self):
+        self.game.write_bytes(b"import sys\n\n" + self.LOCALS)
+        move(self.game, self.part, ["f"], set(), identity_allow=frozenset({("game_parts/p.py", "f", "locals")}))
+        self.assertEqual(self.part.read_bytes(), b"import sys\nimport game\n\n" + self.LOCALS)
+        self.assertEqual(self.r6_keys(), {("f", "locals")})  # the row names the use exactly as R6 reports it
+
+    def test_move_block_moves_an_allowlisted_sys_modules_read(self):
+        self.game.write_bytes(b"import sys\n\n" + self.MODULES)
+        move(self.game, self.part, ["f"], set(), identity_allow=frozenset({("game_parts/p.py", "f", "sys.modules")}))
+        self.assertEqual(self.part.read_bytes(), b"import sys\nimport game\n\n" + self.MODULES)
+        self.assertEqual(self.r6_keys(), {("f", "sys.modules")})
+
+    def test_move_block_still_refuses_an_unlisted_locals_call(self):  # guard
+        for label, rows in {"no row": set(), "a row for another name": {("game_parts/p.py", "f", "sys.modules")}}.items():
+            with self.subTest(label):
+                self.assert_refused_and_untouched(b"import sys\n\n" + self.LOCALS, rows)
+
+    def test_move_block_refuses_a_listed_identity_use_outside_a_def(self):  # outside a def it reads the part's globals
+        for label, (block, name, row) in {
+                "module level locals": (b"X = locals()\n", "X", ("game_parts/p.py", "<module>", "locals")),
+                "class body locals": (b"class C:\n    Y = locals()\n", "C", ("game_parts/p.py", "C", "locals")),
+                "module level sys.modules": (b"M = sys.modules\n", "M", ("game_parts/p.py", "<module>", "sys.modules")),
+        }.items():
+            with self.subTest(label):
+                self.assert_refused_and_untouched(b"import sys\n\n" + block, {row}, names=(name,))
+
+    def test_move_block_refuses_a_row_for_another_part_or_function(self):  # guard
+        for label, row in {"another part": ("game_parts/q.py", "f", "sys.modules"),
+                           "another function": ("game_parts/p.py", "g", "sys.modules"),
+                           "game.py itself": ("game.py", "f", "sys.modules")}.items():
+            with self.subTest(label):
+                self.assert_refused_and_untouched(b"import sys\n\n" + self.MODULES, {row})
+
+    def test_move_block_still_refuses_dunder_name_even_with_a_row(self):  # guard
+        for name, block in {"__name__": b"def f():\n    return __name__\n", "__file__": b"def f():\n    return __file__\n",
+                            "globals": b"def f():\n    return globals()\n", "vars": b"def f(o):\n    return vars(o)\n"}.items():
+            with self.subTest(name):
+                self.assert_refused_and_untouched(b"import sys\n\n" + block, {("game_parts/p.py", "f", name)})
+
+    def test_the_cli_reads_the_identity_allowlist(self):
+        rows = self.tmp / "identity_allowlist.json"
+        rows.write_text(json.dumps([{"file": "game_parts/p.py", "function": "f", "name": "locals",
+                                     "reason": "spec section 7"}]), encoding="utf-8")
+        census = self.tmp / "patch_census.json"
+        census.write_text(json.dumps({"targets": {}, "not_called_tests": []}), encoding="utf-8")
+        self.game.write_bytes(b"import sys\n\n" + self.LOCALS)
+        from engine_split.move_block import main
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                code = main(["--game", str(self.game), "--part", str(self.part), "--names", "f", "--census", str(census),
+                             "--identity-allowlist", str(rows)])
+            except SystemExit as exc:  # argparse: an unknown option exits instead of returning
+                code = exc.code
+        self.assertEqual((code, err.getvalue()), (0, ""))
+        self.assertEqual(self.part.read_bytes(), b"import sys\nimport game\n\n" + self.LOCALS)
 
 
 class MoveCliTests(unittest.TestCase):  # D-348: the command line of move_block.py

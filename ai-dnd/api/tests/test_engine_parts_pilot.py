@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -18,11 +19,15 @@ if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
 import game  # noqa: E402
+import local_dialogue  # noqa: E402
 from api.auth import FixedAuthenticator  # noqa: E402
 from api.main import create_app  # noqa: E402
 from api.narrative_director import install_narrative_context_adapter, narrative_turn_context  # noqa: E402
 from api.narrative_memory import empty_narrative_memory  # noqa: E402
 from api.session_manager import SessionManager  # noqa: E402
+from api.tests import test_campaign_api as campaign_api  # noqa: E402
+from api.tests import test_heard_rumours_turn as rumour_turn  # noqa: E402
+from api.tests import test_local_person_persistence as local_person  # noqa: E402
 from api.tests.auth_fixture import TEST_PLAYER  # noqa: E402
 from api.tests.engine_sources import batch_names, engine_source_files  # noqa: E402
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound  # noqa: E402
@@ -1670,6 +1675,73 @@ class SavefilePart(unittest.TestCase):
             self.assertEqual(payload["player"]["name"], "t9_Yalnız Kâtip")
             self.assertEqual(payload["recent_dm_narrations"][-1], "t9_yalnız anlatı")
             self.assertEqual(_session_snapshot(game._session()), default_before)
+
+
+NEVERWINTER = {"campaign_start": {
+    "setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+    "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}}
+
+
+class TurnIdentityNames(unittest.IsolatedAsyncioTestCase):
+    """Plan 5 Task 2 (Ruling J): turn code hands the engine module, not its own module, to arrival and heard rumours.
+
+    Inputs measured on 2f0cc18c in both flags (ledger Task 2 Step 1); the same literals hold with the flag on and off.
+    """
+
+    async def asyncSetUp(self):
+        await campaign_api.CampaignApiTests.asyncSetUp(self)
+
+    async def asyncTearDown(self):
+        await campaign_api.CampaignApiTests.asyncTearDown(self)
+
+    async def _session_id(self, seed):
+        with fixed_town(self, seed):
+            created = await self.http.post("/api/game/campaigns", json=NEVERWINTER)
+        self.assertEqual(created.status_code, 200, created.text)
+        return created.json()["session_id"]
+
+    async def _turn(self, session_id, **body):
+        response = await self.http.post(f"/api/game/sessions/{session_id}/turn",
+                                        json={"action_id": str(uuid.uuid4()), **body})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()
+
+    async def test_a_local_place_turn_hands_the_game_module_to_arrival(self):
+        import arrival_narration
+        session_id = await self._session_id(20261401)
+        with patch.object(arrival_narration, "arrive", wraps=arrival_narration.arrive) as arrive:
+            await self._turn(session_id, message="Arşive gidiyorum.")
+        arrive.assert_called_once()
+        self.assertIs(arrive.call_args.args[0], game)
+
+    async def test_heard_rumours_gets_the_game_module_from_the_turn(self):
+        import heard_rumours
+        session_id = await self._session_id(20261402)
+        world = self.manager.get(session_id).game_session.world_state
+        npc = {"id": "npc_t2_edric", "name": "Edric", "role": "Yolcu", "location": world["location"],
+               "reality_layer": "PROCEDURAL_LOCAL_FICTION"}
+        local_dialogue.ensure_personal_profile(npc)
+        world["npcs"].append(npc)
+        with patch.object(self.app.state.ollama_adapter, "_client", rumour_turn._Client(rumour_turn.MENTION)), \
+                patch.object(heard_rumours, "record_mention", wraps=heard_rumours.record_mention) as record:
+            await self._turn(session_id, message="Buralarda duyduğun bir şey var mı?", target_id="npc_t2_edric",
+                             interaction_mode="say")
+        record.assert_called_once()
+        self.assertIs(record.call_args.args[0], game)
+        self.assertEqual(len(world["heard_rumours"]), 1)
+
+    async def test_a_preparsed_local_person_reaches_the_turn(self):
+        # the locals().get("preparsed_scene_intent") branch of _run_player_turn_internal creates the proposed person
+        session_id = await self._session_id(20261403)
+        world = self.manager.get(session_id).game_session.world_state
+        before = {npc["id"] for npc in world["npcs"]}
+        with patch.object(self.app.state.ollama_adapter, "_client", local_person.LocalPersonModel()):
+            body = await self._turn(session_id, interaction_mode="say",
+                                    message="Sahilde bir balıkçı bulup liman söylentilerini onunla konuşmak istiyorum.")
+        self.assertEqual((body["turn_outcome"]["action"], body["turn_outcome"]["status"]),
+                         ("dialogue", "created_local_person"))
+        new = [(npc["id"], npc["name"], npc["role"]) for npc in world["npcs"] if npc["id"] not in before]
+        self.assertEqual(new, [("npc_001", "Neris", "kıyı balıkçısı")])
 
 
 if __name__ == "__main__":
