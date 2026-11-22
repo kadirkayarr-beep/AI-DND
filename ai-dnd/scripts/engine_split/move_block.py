@@ -88,10 +88,10 @@ class _Scan:
             return None
         raise MoveRefused(f"scope mismatch between ast and symtable at line {node.lineno}")
 
-    def allowed(self, name: str) -> bool:
-        """An identity use (`locals` or `sys.modules`) that an identity_allowlist.json row names for this part and function."""
+    def allowed(self, name: str, in_def: bool) -> bool:
+        """An identity use (`locals` or `sys.modules`) inside a def that an identity_allowlist.json row names for this part and function."""
         key = (self.part_rel, ".".join(self.qual) or "<module>", name)
-        return name in IDENTITY_ROW_NAMES and self.part_rel is not None and key in self.identity_allow
+        return in_def and name in IDENTITY_ROW_NAMES and self.part_rel is not None and key in self.identity_allow
 
     def visit_all(self, nodes, table, in_def, where):
         for node in nodes:
@@ -140,10 +140,10 @@ class _Scan:
             if isinstance(node, ast.Global):
                 raise MoveRefused(f"`global` statement at line {node.lineno}")
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in DYNAMIC_CALLS
-                    and not self.allowed(node.func.id)):
+                    and not self.allowed(node.func.id, in_def)):
                 raise MoveRefused(f"`{node.func.id}(` at line {node.lineno} (N3 rule 6)")
             if (isinstance(node, ast.Attribute) and node.attr == "modules"
-                    and isinstance(node.value, ast.Name) and node.value.id == "sys" and not self.allowed("sys.modules")):
+                    and isinstance(node.value, ast.Name) and node.value.id == "sys" and not self.allowed("sys.modules", in_def)):
                 raise MoveRefused(f"`sys.modules` at line {node.lineno} (N3 rule 6)")
             self.visit_all(ast.iter_child_nodes(node), table, in_def, where)
 

@@ -213,11 +213,11 @@ class IdentityAllowlistTests(unittest.TestCase):  # Plan 5 Task 1, spec section 
         uses = [u for u in walker.reads if u.name in routing_audit.IDENTITY_NAMES] + walker.identity
         return {(u.function, u.name) for u in uses}
 
-    def assert_refused_and_untouched(self, game_src: bytes, rows: set[tuple[str, str, str]]):
+    def assert_refused_and_untouched(self, game_src: bytes, rows: set[tuple[str, str, str]], names=("f",)):
         self.part.write_bytes(b"import sys\nimport game\n")  # each subtest starts from the same part
         self.game.write_bytes(game_src)
         with self.assertRaises(MoveRefused):
-            move(self.game, self.part, ["f"], set(), identity_allow=frozenset(rows))
+            move(self.game, self.part, list(names), set(), identity_allow=frozenset(rows))
         self.assertEqual(self.game.read_bytes(), game_src)
         self.assertEqual(self.part.read_bytes(), b"import sys\nimport game\n")
 
@@ -237,6 +237,15 @@ class IdentityAllowlistTests(unittest.TestCase):  # Plan 5 Task 1, spec section 
         for label, rows in {"no row": set(), "a row for another name": {("game_parts/p.py", "f", "sys.modules")}}.items():
             with self.subTest(label):
                 self.assert_refused_and_untouched(b"import sys\n\n" + self.LOCALS, rows)
+
+    def test_move_block_refuses_a_listed_identity_use_outside_a_def(self):  # outside a def it reads the part's globals
+        for label, (block, name, row) in {
+                "module level locals": (b"X = locals()\n", "X", ("game_parts/p.py", "<module>", "locals")),
+                "class body locals": (b"class C:\n    Y = locals()\n", "C", ("game_parts/p.py", "C", "locals")),
+                "module level sys.modules": (b"M = sys.modules\n", "M", ("game_parts/p.py", "<module>", "sys.modules")),
+        }.items():
+            with self.subTest(label):
+                self.assert_refused_and_untouched(b"import sys\n\n" + block, {row}, names=(name,))
 
     def test_move_block_refuses_a_row_for_another_part_or_function(self):  # guard
         for label, row in {"another part": ("game_parts/q.py", "f", "sys.modules"),
