@@ -82,7 +82,7 @@ class SizeBudgetTests(unittest.TestCase):
 
     def test_long_functions_cannot_grow_or_appear(self):
         self.assertNotEqual(long_function_findings({"game.py::brand_new": 151}, LOCK), [])
-        key = "game.py::_run_player_turn_internal"
+        key = "game_parts/turn.py::_run_player_turn_internal"
         grown = {key: LOCK["long_functions"][key] + 1}
         self.assertNotEqual(long_function_findings(grown, LOCK), [])
         self.assertEqual(long_function_findings({"game.py::brand_new": 150}, LOCK), [])

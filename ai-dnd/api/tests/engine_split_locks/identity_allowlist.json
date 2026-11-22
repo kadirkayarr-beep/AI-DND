@@ -4,5 +4,17 @@
     "function": "_local_place_turn",
     "name": "sys.modules",
     "reason": "spec section 7 identity use; game.py split Plan 5 Ruling J (names the engine module / its own locals)"
+  },
+  {
+    "file": "game_parts/turn.py",
+    "function": "_run_player_turn_internal",
+    "name": "sys.modules",
+    "reason": "spec section 7 identity use; game.py split Plan 5 Ruling J (names the engine module / its own locals)"
+  },
+  {
+    "file": "game_parts/turn.py",
+    "function": "_run_player_turn_internal",
+    "name": "locals",
+    "reason": "spec section 7 identity use; game.py split Plan 5 Ruling J (names the engine module / its own locals)"
   }
 ]

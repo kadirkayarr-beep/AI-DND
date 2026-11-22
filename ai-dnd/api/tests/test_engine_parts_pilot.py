@@ -1752,6 +1752,15 @@ FRONT_1 = tuple(batch_names("front-1"))
 FRONT_2 = tuple(batch_names("front-2"))
 FRONT_3 = tuple(batch_names("front-3"))
 TRANSIENTS = ("_front_coin", "_economic_turn_key", "_coin_rest_hint")
+INTERNAL_TURN = {  # the same in both flags; captured on f1bc2ad1 (unmoved)
+    "walk": {"narration": "Oraya giden bir yol bilmiyorsun.", "model_calls": None,
+             "action": ("travel", "unverified", None), "reads": True, "only_s": True, "location": "forest", "hp": 12,
+             "default_unchanged": True},
+    "down": {"narration": "Ölüm kurtarma zarın: 15. Karanlıkta yatıyorsun, bedenin sana uymuyor; hayata tutunuyorsun. "
+                          "Ölüm kurtarma: 1 başarı, 0 başarısızlık.", "model_calls": 0,
+             "action": ("death_save", "resolved", None), "reads": True, "only_s": True, "location": "forest", "hp": 0,
+             "default_unchanged": True},
+}
 
 
 class TurnFrontPart(unittest.TestCase):
@@ -1796,6 +1805,13 @@ class TurnFrontPart(unittest.TestCase):
             self.assertEqual([getattr(default, name, None) for name in TRANSIENTS], default_transients)
             self.assertEqual(s.world_state["location"], "forest")
             self.assertEqual(_session_snapshot(default), default_before)
+        # T6.2: _run_player_turn_internal takes no session and reads game._session() only (the bound engine wrapper
+        # takes session=); every read must return s; "walk" asks for a place only s has, "down" gives only s 0 hit
+        # points (the default session would walk); the answers were captured on f1bc2ad1 (unmoved), both flags
+        for flag in ("", "1"):
+            for kind in ("walk", "down"):
+                with self.subTest(helper="_run_player_turn_internal", flag=flag, kind=kind):
+                    self.assertEqual(_internal_turn_outcome(self, 20261460, flag, kind), INTERNAL_TURN[kind])
 
     def test_front_2_lives_in_the_part(self):
         self.assertEqual(set(FRONT_2) - set(routing_audit.re_exports(ROOT).get("turn_front", ())), set())
@@ -2013,6 +2029,7 @@ class FrontReadAheadRoute(unittest.IsolatedAsyncioTestCase):
 
 TURN_1 = tuple(batch_names("turn-1"))
 TURN_2 = tuple(batch_names("turn-2"))
+TURN_3 = tuple(batch_names("turn-3"))
 NOTHING_CHANGED = "Bu hamle tamamlanamadı; dünya durumu değişmedi."
 
 
@@ -2024,6 +2041,9 @@ class TurnPart(unittest.TestCase):
 
     def test_turn_2_lives_in_the_part(self):  # T6.1e: _owner_module_reply only (_narrate_resolved_turn held, Task 4)
         self.assertEqual(set(TURN_2) - set(routing_audit.re_exports(ROOT).get("turn", ())), set())
+
+    def test_turn_3_lives_in_the_part(self):  # T6.2: _run_player_turn_internal, whole
+        self.assertEqual(set(TURN_3) - set(routing_audit.re_exports(ROOT).get("turn", ())), set())
 
     def test_an_owner_command_is_answered_for_the_given_session(self):  # D-447, T6.1e
         # the moved _owner_module_reply reads game._session(): /equip clear empties the hands only s has (a weapon
@@ -2104,6 +2124,82 @@ class TurnPart(unittest.TestCase):
                 self.assertEqual(_dispatched_turn_outcome(self, 20261445, flag), outcome)
 
 
+SPEECH_LINE = "Buralarda duyduğun bir şey var mı?"
+
+
+class TurnCoreRoute(unittest.IsolatedAsyncioTestCase):
+    """T6.2: one person's speech turn over HTTP (TurnIdentityNames' heard-rumours shape) reaches the speech trail and
+    the finalize call of _run_player_turn_internal itself; both flags, captured on f1bc2ad1 (unmoved)."""
+
+    maxDiff = None
+    asyncSetUp = TurnIdentityNames.asyncSetUp
+    asyncTearDown = TurnIdentityNames.asyncTearDown
+    _session_id = TurnIdentityNames._session_id
+    _turn = TurnIdentityNames._turn
+
+    async def _speech_turn(self, seed, flag):
+        with patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}):
+            session_id = await self._session_id(seed)
+            world = self.manager.get(session_id).game_session.world_state
+            npc = {"id": "npc_t11_edric", "name": "Edric", "role": "Yolcu", "location": world["location"],
+                   "reality_layer": "PROCEDURAL_LOCAL_FICTION"}
+            local_dialogue.ensure_personal_profile(npc)
+            world["npcs"].append(npc)
+            with patch.object(self.app.state.ollama_adapter, "_client", rumour_turn._Client(rumour_turn.MENTION)):
+                return await self._turn(session_id, message=SPEECH_LINE, target_id="npc_t11_edric",
+                                        interaction_mode="say")
+
+    async def test_the_speech_debug_trail_patch_still_reaches_the_turn(self):  # D-344
+        # _speech_debug_trail stays in game.py (never moved) and writes through game.open, so a game.open patch must
+        # still see the turn's own speech record after the turn moves
+        for flag in ("", "1"):
+            with self.subTest(flag=flag):
+                with patch.dict(os.environ, {"AI_DND_SPEECH_DEBUG": "t11-speech-trail.jsonl"}), \
+                        patch.object(game, "open", create=True) as opened:
+                    await self._speech_turn(20261466, flag)
+                written = [json.loads(c.args[0])
+                           for c in opened.return_value.__enter__.return_value.write.call_args_list]
+                self.assertEqual({
+                    "opened": [(c.args, c.kwargs) for c in opened.call_args_list],
+                    "records": [(r.get("route"), r.get("player"), r.get("npc_id"), sorted(r)) for r in written],
+                }, {  # the same in both flags; one record, the turn's own (no free_v1 route record on this path)
+                    "opened": [(("t11-speech-trail.jsonl", "a"), {"encoding": "utf-8"})],
+                    "records": [(None, SPEECH_LINE, "npc_t11_edric", [
+                        "at", "before_finalize", "cleaned", "finalize_changed_text", "history_echo",
+                        "invalid_or_empty", "model_lore_claims", "model_raw", "model_world_updates", "npc_id",
+                        "npc_name", "player", "safe_narration", "safety", "shown", "unverified_claim_in_prompt"])],
+                })
+
+    async def test_the_narrative_adapter_reaches_the_moved_turn(self):  # Review Focus 4 (amended after G6a)
+        # the app installs the adapter once (create_app); the turn's own finalize_narration(...) call (the only one that
+        # passes attributed_speech= and python_town_response=) must reach the adapter's wrapper through
+        # game.finalize_narration; the wrapped original is counted; counts measured on f1bc2ad1 (unmoved)
+        install_narrative_context_adapter(game)
+        finalize = game.finalize_narration
+        cell = finalize.__closure__[finalize.__code__.co_freevars.index("original_finalize")]
+        original = cell.cell_contents
+        for flag in ("", "1"):
+            with self.subTest(flag=flag):
+                counted = MagicMock(wraps=original)
+                cell.cell_contents = counted
+                try:
+                    await self._speech_turn(20261468, flag)
+                finally:
+                    cell.cell_contents = original
+                both = [c for c in counted.call_args_list
+                        if {"attributed_speech", "python_town_response"} <= set(c.kwargs)]
+                self.assertEqual(len(both), 1)
+                self.assertEqual({
+                    "calls": [sorted(c.kwargs) for c in counted.call_args_list],
+                    "turn_call": (both[0].args[1], both[0].args[2].get("id"),
+                                  both[0].kwargs["attributed_speech"].get("spoken_text")),
+                }, {  # the same in both flags: the original finalize ran once, from the turn's own call
+                    "calls": [["attributed_speech", "fallback_reason_code", "python_town_response",
+                               "supported_player_claims"]],
+                    "turn_call": (SPEECH_LINE, "npc_t11_edric", rumour_turn.SPOKEN),
+                })
+
+
 def _failed_turn_outcome(test, seed, flag, kind):
     """A turn whose dispatch marks s and rolls its dice, then fails: what s, the default session and the reply show."""
     feature = sorted(game.CHECK_FEATURES)[0]
@@ -2178,6 +2274,36 @@ def _owner_turn_outcome(test, seed, flag):
         return {"narration": out.get("narration"), "model_calls": out.get("model_calls"),
                 "action": (result.get("action"), result.get("status"), result.get("success")),
                 "equipment": s.world_state.get("equipment"),
+                "default_unchanged": _session_snapshot(default) == default_before}
+
+
+def _internal_turn_outcome(test, seed, flag, kind):
+    """One turn through _run_player_turn_internal for s (session=): what it answers, and whom game._session() named."""
+    real = game._session
+    with fixed_town(test, seed), patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": flag}), \
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        s = game.create_session(seed=11)
+        s.world_state["location"] = "forest"
+        s.world_state["locations"]["t11_kuyu"] = {"id": "t11_kuyu", "name": "Kuyu Başı", "type": "city",
+                                                  "description": ""}
+        if kind == "down":
+            s.character["current_hp"] = 0
+        default = game._session()
+        default_before = _session_snapshot(default)
+        seen = []
+
+        def record():
+            value = real()
+            seen.append(value)
+            return value
+
+        with patch.object(game, "_session", side_effect=record):
+            out = game._run_player_turn_internal("Kuyu Başı'na gidiyorum.", interaction_mode="do", session=s)
+        result = out.get("action_result") or {}
+        return {"narration": out.get("narration"), "model_calls": out.get("model_calls"),
+                "action": (result.get("action"), result.get("status"), result.get("target")),
+                "reads": len(seen) > 0, "only_s": all(value is s for value in seen),
+                "location": s.world_state["location"], "hp": s.character.get("current_hp"),
                 "default_unchanged": _session_snapshot(default) == default_before}
 
 

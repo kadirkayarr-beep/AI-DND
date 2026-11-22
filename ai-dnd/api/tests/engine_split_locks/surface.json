@@ -2517,7 +2517,7 @@
  },
  "_run_player_turn_internal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn",
   "session_bound": true,
   "signature": "(player_input, messages=None, target_id=None, scene_plan=None, interaction_mode=None, action_id=None, check_feature=None, check_evidence=None)"
  },

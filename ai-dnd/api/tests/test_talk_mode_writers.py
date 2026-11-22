@@ -112,7 +112,9 @@ class OnlyTalkModeWrites(unittest.TestCase):
                 if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "current"
                         and isinstance(node.func.value, ast.Name) and node.func.value.id == "talk_mode"):
                     calls.append((rel, len(node.args), sorted(k.arg for k in node.keywords)))
-        self.assertEqual(sorted({rel for rel, _, _ in calls}), ["api/serializers.py", "game.py", "game_parts/dialogue.py"])
+        # game.py's one call moved with _run_player_turn_internal to game_parts/turn.py (game.py split T6.2)
+        self.assertEqual(sorted({rel for rel, _, _ in calls}),
+                         ["api/serializers.py", "game_parts/dialogue.py", "game_parts/turn.py"])
         self.assertEqual([c for c in calls if c[1] != 1 or c[2]], [])        # exactly one argument: the world
 
 
