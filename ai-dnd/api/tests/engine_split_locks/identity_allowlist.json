@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "file": "game_parts/turn_front.py",
+    "function": "_local_place_turn",
+    "name": "sys.modules",
+    "reason": "spec section 7 identity use; game.py split Plan 5 Ruling J (names the engine module / its own locals)"
+  }
+]

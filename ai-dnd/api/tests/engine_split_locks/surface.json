@@ -747,13 +747,13 @@
  },
  "_adventure_check_reply": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session, skill)"
  },
  "_adventure_scene_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -915,13 +915,13 @@
  },
  "_carry_out_thread_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session, world, gate, person, player_input)"
  },
  "_changed_state_fields": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(before)"
  },
@@ -975,7 +975,7 @@
  },
  "_clear_turn_transients": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session) -> None"
  },
@@ -1239,13 +1239,13 @@
  },
  "_everyday_action_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
  "_execute_intent_internal": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None)"
  },
@@ -1521,7 +1521,7 @@
  },
  "_has_session": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "()"
  },
@@ -1563,7 +1563,7 @@
  },
  "_hideout_check": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(skill, dc)"
  },
@@ -1599,7 +1599,7 @@
  },
  "_intent_infrastructure_result": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(error)"
  },
@@ -1887,7 +1887,7 @@
  },
  "_local_place_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input)"
  },
@@ -2859,7 +2859,7 @@
  },
  "_thread_gate": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(player_input, target_id, interaction_mode, *, front=None)"
  },
@@ -3159,7 +3159,7 @@
  },
  "_world_snapshot": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "()"
  },

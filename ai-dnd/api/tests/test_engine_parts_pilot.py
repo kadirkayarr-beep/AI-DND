@@ -28,6 +28,7 @@ from api.session_manager import SessionManager  # noqa: E402
 from api.tests import test_campaign_api as campaign_api  # noqa: E402
 from api.tests import test_heard_rumours_turn as rumour_turn  # noqa: E402
 from api.tests import test_local_person_persistence as local_person  # noqa: E402
+from api.tests import test_thread_gate as thread_gate_tests  # noqa: E402
 from api.tests.auth_fixture import TEST_PLAYER  # noqa: E402
 from api.tests.engine_sources import batch_names, engine_source_files  # noqa: E402
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound  # noqa: E402
@@ -80,9 +81,9 @@ class WrapperFilter(unittest.TestCase):
                                               "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
                                               "game_parts.savefile", "game_parts.text_rules_a",
-                                              "game_parts.text_rules_b"))
+                                              "game_parts.text_rules_b", "game_parts.turn_front"))
         # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15,
-        # Plan 4 Tasks 7, 8 and 9
+        # Plan 4 Tasks 7, 8 and 9, Plan 5 Task 6
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")
@@ -123,11 +124,12 @@ class PilotRollD20(unittest.TestCase):
     @guard_bound(CHILD_PROCESS)
     def test_both_import_orders_work_in_a_fresh_interpreter(self):
         # Plan 3 Task 15: one function per new part (places, intent, dialogue, lore, narration, narration_safety,
-        # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin; Task 9: savefile
+        # living_world_turn, new_game); Plan 4 Task 7: combat_flow; Task 8: coin; Task 9: savefile; Plan 5 Task 6:
+        # turn_front
         names = ("roll_d20", "_inside_speech", "_split_sentences_keep_speech", "_current_door", "validate_intent",
                  "resolve_npc_reference", "_is_registered_lore_name", "should_generate_npcs",
                  "_narration_safety_decision", "ensure_campaign_clock", "initialize_game", "ensure_death_state",
-                 "_shop_presence_question", "save_game")
+                 "_shop_presence_question", "save_game", "_thread_gate")
         show = "; ".join(f"print(game.{name}.__module__)" for name in names)
         for code in ("import game, game_parts; " + show, "import game_parts, game; " + show):
             done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=120)
@@ -136,7 +138,7 @@ class PilotRollD20(unittest.TestCase):
                                   "game_parts.places", "game_parts.intent", "game_parts.dialogue", "game_parts.lore",
                                   "game_parts.narration", "game_parts.narration_safety",
                                   "game_parts.living_world_turn", "game_parts.new_game", "game_parts.combat_flow",
-                                  "game_parts.coin", "game_parts.savefile"]),
+                                  "game_parts.coin", "game_parts.savefile", "game_parts.turn_front"]),
                              done.stderr)
 
 
@@ -1742,6 +1744,75 @@ class TurnIdentityNames(unittest.IsolatedAsyncioTestCase):
                          ("dialogue", "created_local_person"))
         new = [(npc["id"], npc["name"], npc["role"]) for npc in world["npcs"] if npc["id"] not in before]
         self.assertEqual(new, [("npc_001", "Neris", "kıyı balıkçısı")])
+
+
+FRONT_1 = tuple(batch_names("front-1"))
+TRANSIENTS = ("_front_coin", "_economic_turn_key", "_coin_rest_hint")
+
+
+class TurnFrontPart(unittest.TestCase):
+    """T6.1 batch front-1: thread turns, intent execution and place turns live in game_parts/turn_front.py."""
+
+    def test_front_1_lives_in_the_part(self):
+        self.assertEqual(set(FRONT_1) - set(routing_audit.re_exports(ROOT).get("turn_front", ())), set())
+
+    def test_turn_session_helpers_use_the_given_session(self):  # D-447
+        # _execute_intent_internal reads game._session() only: every read must return the given session, and the place
+        # it is asked for exists only there; the answer was captured on 2f2d45a1 (unmoved), both flags
+        real = game._session
+        with fixed_town(self, 20261410):
+            s = game.create_session(seed=11)
+            s.world_state["location"] = "forest"
+            s.world_state["locations"]["t6_kuyu"] = {"id": "t6_kuyu", "name": "Kuyu Başı", "type": "city",
+                                                     "description": ""}
+            default = game._session()
+            default_before = _session_snapshot(default)
+            seen = []
+
+            def record():
+                value = real()
+                seen.append(value)
+                return value
+
+            with patch.object(game, "_session", side_effect=record):
+                out = game._execute_intent_internal(
+                    {"intent": "travel", "target": {"type": "location", "reference": "Kuyu Başı"}},
+                    "Kuyu Başı'na gidiyorum.", session=s)
+            self.assertEqual(out, {"action": "travel", "success": False, "status": "unverified", "state_changes": [],
+                                   "completion": "completed", "target_reference": "Kuyu Başı", "target": "t6_kuyu",
+                                   "previous_location": "forest",
+                                   "direct_response": "Oraya giden bir yol bilmiyorsun."})
+            self.assertTrue(seen)
+            self.assertTrue(all(value is s for value in seen))
+            # _clear_turn_transients takes its session as an argument, as api/main.py calls it; coin only s holds
+            s._front_coin, s._economic_turn_key, s._coin_rest_hint = 7, "t6_tur", "t6_artık"
+            default_transients = [getattr(default, name, None) for name in TRANSIENTS]
+            game._clear_turn_transients(s)
+            self.assertEqual([getattr(s, name) for name in TRANSIENTS], [0, None, ""])
+            self.assertEqual([getattr(default, name, None) for name in TRANSIENTS], default_transients)
+            self.assertEqual(s.world_state["location"], "forest")
+            self.assertEqual(_session_snapshot(default), default_before)
+
+
+class ThreadGateRoute(unittest.IsolatedAsyncioTestCase):
+    """The turn path reads game._thread_gate; the gate reaches _carry_out_thread_turn (test_thread_gate's table)."""
+
+    asyncSetUp = thread_gate_tests.ThreadTable.asyncSetUp
+    asyncTearDown = thread_gate_tests.ThreadTable.asyncTearDown
+    campaign_with_npc = thread_gate_tests.ThreadTable.campaign_with_npc
+    open_job = thread_gate_tests.ThreadTable.open_job
+    line = thread_gate_tests.ThreadTable.line
+    offer = thread_gate_tests.ThreadTable.offer
+    status = thread_gate_tests.ThreadTable.status
+
+    async def test_a_patched_thread_gate_reaches_its_moved_caller(self):
+        with fixed_town(self, 20261411):
+            await self.open_job()
+        self.offer()
+        with patch.object(game, "_thread_gate", wraps=game._thread_gate) as gate:
+            await self.line("olur", "Güzel, başla bakalım.")
+        gate.assert_called()
+        self.assertEqual(self.status(), "accepted")
 
 
 if __name__ == "__main__":
