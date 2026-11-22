@@ -1749,6 +1749,7 @@ class TurnIdentityNames(unittest.IsolatedAsyncioTestCase):
 
 FRONT_1 = tuple(batch_names("front-1"))
 FRONT_2 = tuple(batch_names("front-2"))
+FRONT_3 = tuple(batch_names("front-3"))
 TRANSIENTS = ("_front_coin", "_economic_turn_key", "_coin_rest_hint")
 
 
@@ -1812,6 +1813,12 @@ class TurnFrontPart(unittest.TestCase):
                 "said": [("şehirde ne var?", True, "t7_oren", "t7-line", "t7-session", "say", True)],
                 "same_result": True, "narration": "Kese şıngırdıyor. Kuzey kapısında bir kule var.", "rest_left": "",
                 "all_reads_given": True, "default_unchanged": True})
+        with self.subTest(helper="_sleep_after_walk"):  # T6.1c; the third session of this test: seed 20261432
+            self.assertEqual(_money_helper_outcome(self, "_sleep_after_walk", 20261430), {  # captured on 25afc54e
+                "cards": [("prepared", "room", "t8_marek", None, "t8-walk")], "purse": 500,
+                "narration": "Hana giriyorsun. Marek başıyla merdivenleri gösteriyor. “Gecelik 50 bakır.” Marek için "
+                             "teklif hazır: en çok 50 bakır. Onaylarsan işlem yapılır.",
+                "coin_seen_by": None, "rest_left": "", "all_reads_given": True, "default_unchanged": True})
 
     def test_a_coin_without_a_reading_answers_as_before(self):
         # D-429's two lines (its row: the beer twin, the named non-innkeeper with a bed asked for), each in both flags,
@@ -1837,6 +1844,9 @@ class TurnFrontPart(unittest.TestCase):
         for (line, flag), outcome in expected.items():
             with self.subTest(line=line, flag=flag):
                 self.assertEqual(_coin_line_outcome(self, 20261423, flag, line), outcome)
+
+    def test_front_3_lives_in_the_part(self):
+        self.assertEqual(set(FRONT_3) - set(routing_audit.re_exports(ROOT).get("turn_front", ())), set())
 
 
 
@@ -1873,6 +1883,23 @@ def _money_helper_outcome(test, helper, seed):
                                       data["proposal"]["amount_cp"], data["proposal"]["source_action_id"])
                                      for data in offers.values()),
                      "purse": w["currency"]["player"], "coin_paid": s._coin_paid, "narration": result["narration"]}
+        elif helper == "_sleep_after_walk":
+            # the walk has moved the player; the innkeeper, the turn key and the line's rest exist only in s
+            w["npcs"].append({"id": "t8_marek", "name": "Marek", "role": "Barmen", "location": here, "current_hp": 10})
+            w["currency"]["t8_marek"] = 0
+            s._economic_turn_key = "t8-walk"
+            s._front_rest = "t8-kalan"
+            walked = {"narration": "Hana giriyorsun.",
+                      "action_result": {"action": "move", "status": "completed", "state_changes": ["location"]}}
+            with patch.object(game, "_session", side_effect=record):
+                game._sleep_after_walk(walked, "hana gidip bi oda tutayım", "t8-the-street", None, session=s)
+            offers = w.get("flags", {}).get("economic_offers", {})
+            facts = {"cards": sorted((data["status"], data["proposal"]["purpose"],
+                                      data["proposal"].get("recipient_id"), data["proposal"].get("amount_cp"),
+                                      data["proposal"].get("source_action_id"))
+                                     for data in offers.values()),
+                     "purse": w["currency"]["player"], "narration": walked["narration"],
+                     "coin_seen_by": walked["action_result"].get("coin_seen_by"), "rest_left": s._front_rest}
         else:
             s._front_rest = "şehirde ne var?"
             s._front_read = {"id": "t7_oren"}

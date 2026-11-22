@@ -981,7 +981,7 @@
  },
  "_coin_not_parcel": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(session, world, person, item_id, player_input)"
  },
@@ -1419,7 +1419,7 @@
  },
  "_front_hand_over": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
@@ -1443,19 +1443,19 @@
  },
  "_front_take": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
  "_front_wield": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
  "_front_work": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
  },
@@ -2007,7 +2007,7 @@
  },
  "_names_no_parcel": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(world, person, item_id, player_input)"
  },
@@ -2691,7 +2691,7 @@
  },
  "_sleep_after_walk": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(walked, player_input, place_before, scene_plan=None)"
  },
@@ -2835,7 +2835,7 @@
  },
  "_take_names_a_job": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route)"
  },
