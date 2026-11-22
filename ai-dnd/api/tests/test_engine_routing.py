@@ -137,7 +137,9 @@ class RoutingAuditTests(unittest.TestCase):
         return self.tmp
 
     def run_all(self, root: Path, allowlist=None) -> list[str]:
-        return audit(root, TARGETS, ALLOWED, ALLOWLIST if allowlist is None else allowlist, CHARACTER_NAMES)
+        # a fixture tree has none of the live lock's functions: it runs with no identity rows unless a test gives some
+        # (the live lock is read by test_the_real_tree_is_clean); Plan 5 front-1 adds the lock's first row
+        return audit(root, TARGETS, ALLOWED, [] if allowlist is None else allowlist, CHARACTER_NAMES)
 
     def run_audit(self, root: Path, allowlist=None) -> list[str]:
         """The full audit minus R8: the R1-R7 fixtures define names game.py does not re-export (R8 has its own rows)."""
