@@ -19,6 +19,7 @@ Kadir programcı değil: kısa, açık, dürüst ve sade Türkçe yaz; doğrulam
 - **En az kod:** istenmeyen özellik, tek kullanımlık soyutlama, istenmemiş ayar, imkânsız durum için hata işleme yok.
 - **Cerrahi değişiklik:** yalnız görevin gerektirdiği satırlara dokun; komşu kodu, yorumu, biçimi düzeltme; var olan stile uy. Yalnız kendi değişikliğinin boşa çıkardığı import/değişken/işlevi kaldır; eski ölü kodu bildir, silme.
 - **Doğrulanabilir hedef:** her işi teste çevir (önce kırmızı test, sonra düzeltme); çok adımlı işte her adımın yanına doğrulamasını yaz.
+- **Motor dosyası (karar 8):** game.py'ye yeni işlev eklenmez; yeni kod ilgili `game_parts` modülüne ya da kendi modülüne girer. `game_parts` içinde motor adları `game.X` diye çağrılır. Boyut bütçesi yalnız Kadir'in onayıyla yükseltilir.
 
 ## Agent skills
 
