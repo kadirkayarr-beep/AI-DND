@@ -1762,7 +1762,9 @@ def _coin_without_a_reading(player_input, target_id, listed):
     An unclear decision that names nobody is not kept: the coin stays in hand with no decision and is read as it is
     with no reading (`bold_acts.held_out_coin`): the room or the counter the words ask for takes it as tender or
     tells it back, else who it is for is asked (`money_owner.open_card_after_reply`). Nor a room decision when the
-    words ask for no bed (a beer, a tip), nor an unclear one when they ask for a bed outside an arrest (D-402)."""
+    words ask for no bed (a beer, a tip), nor, outside an arrest and a fight, an unclear one when they ask for a bed
+    (D-402) or are for whoever serves here (D-429: a beer paid below its price opens the counter). In a fight the
+    unclear decision stays (R11) and keeps its note."""
     import bold_acts
     import front_proposal
     import money_owner
@@ -1785,10 +1787,13 @@ def _coin_without_a_reading(player_input, target_id, listed):
     decided = money_owner.current(session)
     folded = bold_acts.fold(session, player_input)
     bed = bool(bold_acts._ROOM.search(folded) and bold_acts._wants_the_bed(folded))
+    calm = (world_reactions.arrester(session.world_state) is None
+            and not (session.world_state.get("combat") or {}).get("active"))
     if decided is not None and ((decided.kind == "room" and not bed) or (decided.kind == "unclear" and (
-            decided.npc_id is None or (bed and world_reactions.arrester(session.world_state) is None)))):
+            decided.npc_id is None or (calm and (bed or shop_trade.is_vendor(session.world_state, person)))))):
         # No room asked for (a beer ordered, a tip): the structural room is a guess the words do not make. A bed asked
-        # for outside an arrest is the room card's, as with the flag off (D-402). The coin stays in hand, undecided
+        # for outside an arrest is the room card's, as with the flag off (D-402); coin for whoever serves is their
+        # counter's or room's to read (D-429). The coin stays in hand, undecided
         session._coin_decision = None
 
 def _blow_stands(player_input):
