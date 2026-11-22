@@ -1839,7 +1839,7 @@ class TurnFrontPart(unittest.TestCase):
 
     def test_a_coin_without_a_reading_answers_as_before(self):
         # D-429's two lines (its row: the beer twin, the named non-innkeeper with a bed asked for), each in both flags,
-        # pinned exactly as on 26f0b226 (unmoved); the flag-on beer gap is closed by Plan 5 Task 14 (D-429 fix)
+        # three rows as on 26f0b226; the flag-on beer row is the Task 14 outcome (D-429 fix)
         room = ("Marek başıyla merdivenleri gösteriyor. “Gecelik 50 bakır.” Marek için teklif hazır: en çok 50 bakır. "
                 "Onaylarsan işlem yapılır.")
         expected = {

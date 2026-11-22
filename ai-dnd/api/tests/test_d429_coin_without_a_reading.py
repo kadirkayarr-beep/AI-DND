@@ -110,6 +110,7 @@ class ACoinWithoutAReading(unittest.TestCase):
         on = _played(self, 20261484, "1", BED_TO_THE_INNKEEPER, fight=True)
         self.assertEqual(on["route"], "fallback:failed")
         self.assertEqual(on["seen"], [("unclear", "barman", 10)], on["narration"])
+        self.assertIn(("barman", money_owner.unclear_note(10)), on["notes"], on["narration"])
         self.assertEqual(on["cards"], [], on["narration"])
         self.assertEqual(on["money_after"], on["money_before"])
 
