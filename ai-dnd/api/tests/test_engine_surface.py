@@ -44,6 +44,10 @@ T5_BATCHES = {"combat-1": "combat_flow", "combat-2": "combat_flow", "combat-3": 
 # Plan 5 batch file -> the part it moves into, in move order (Tasks 6-11); sensitive names allowed (spec T6)
 T6_BATCHES = {"front-1": "turn_front", "front-2": "turn_front", "front-3": "turn_front", "turn-1": "turn",
               "turn-2": "turn", "turn-3": "turn"}
+# Plan 5 Ruling J: the identity_allowlist.json rows the front-1 and turn-3 move commits add (file, function, name)
+T6_IDENTITY_ROWS = frozenset({("game_parts/turn_front.py", "_local_place_turn", "sys.modules"),
+                              ("game_parts/turn.py", "_run_player_turn_internal", "sys.modules"),
+                              ("game_parts/turn.py", "_run_player_turn_internal", "locals")})
 # api.narrative_director's adapter: wrapped engine name -> the closure variable holding the engine's own object (D-349)
 ADAPTER_ORIGINALS = {"build_world_context": "original_build", "ask_dungeon_master": "original_ask",
                      "finalize_narration": "original_finalize"}
@@ -170,7 +174,8 @@ class SurfaceTests(unittest.TestCase):
         # Plan 2 T3 batches (Tasks 9-14) against game.py before each move; a moved batch is checked by its re-exports
         self._batches_are_movable(T3_BATCHES)
 
-    def _batches_are_movable(self, batches, sensitive_allowed=False):  # one set of rules for T3, T4 and T5 (D-364)
+    def _batches_are_movable(self, batches, sensitive_allowed=False,
+                             identity_rows=frozenset()):  # one set of rules for T3, T4 and T5 (D-364)
         game_py = ROOT / "game.py"
         index = top_level_index(game_py)
         entries: dict[str, list[dict]] = {}
@@ -220,6 +225,14 @@ class SurfaceTests(unittest.TestCase):
                         prefix_names(block, engine_names, keep_bare)
                     except MoveRefused as refused:
                         self.fail(f"{batch}: {refused}")
+            for name in [n for n in staying if n not in constants]:  # the mover's N3 scan of each def and class
+                entry = entries[name][0]
+                block = "\n".join(game_lines[entry["start"] - 1:entry["end"]]) + "\n"
+                with self.subTest(batch=batch, block=name):
+                    try:
+                        prefix_names(block, engine_names, keep_bare, identity_rows, f"game_parts/{part}.py")
+                    except MoveRefused as refused:
+                        self.fail(f"{batch}: {name}: {refused}")
             # unreachable through import order; kept as a guard
             first_cut = min(entries[n][0]["start"] for n in staying)  # the re-export line takes its place
             for line, read, bound in reads:
@@ -250,7 +263,7 @@ class SurfaceTests(unittest.TestCase):
 
     def test_t6_batches_are_movable(self):
         # Plan 5 T6 batches (Tasks 6-11), same rules as the T3-T5 tests; sensitive names allowed (spec T6)
-        self._batches_are_movable(T6_BATCHES, sensitive_allowed=True)
+        self._batches_are_movable(T6_BATCHES, sensitive_allowed=True, identity_rows=T6_IDENTITY_ROWS)
 
     def test_the_undo_restore_stays_with_the_session(self):
         # Plan 5 Ruling I: GameSession alone reads these two, so they stay in game.py (spec §5: Undo snapshot untouched)

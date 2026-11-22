@@ -1,2 +1,1 @@
-_narrate_resolved_turn
 _owner_module_reply
