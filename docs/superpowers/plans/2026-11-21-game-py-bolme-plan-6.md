@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status: DRAFT, projected from Plan 5.** Plan 5 has not run. The numbers come from a read-only measurement of p4m `9c42a1ef` (Plan 4 Stage B, after Task 10's first batch) with Plan 4's remaining batch files and Plan 5's draft batch files removed by projection. Task 0 measures again on the tree that holds Plan 5's merges (Ruling M).
+**Status: DRAFT, amended 2026-11-22 for Plan 5's outcomes.** Plan 5 Stage A is merged (PR #139, `ae68f323`); Stage B is running. The numbers come from a read-only measurement of a `git archive` copy of p5m `f1bc2ad1` (Stage B after T6.1e) with the last batch (`turn-3`) removed by projection. They are draft numbers: Task 0 measures again on the tree that holds Plan 5's merges (Ruling M). Plan 5 held `_narrate_resolved_turn` in `game.py`; Ruling N keeps it there.
 
 **Goal:** Close the game.py split (spec stage T7). Bring `ai-dnd/game.py` to ≤ 1 500 lines by deleting the blank lines the moves left behind, lock the final sizes, report dead-code candidates with evidence for Kadir, write the permanent rules and docs, pass the closing gate, and end with Kadir's play.
 
@@ -13,27 +13,29 @@
 **Spec:** `docs/superpowers/specs/2026-11-17-game-py-bolme-design.md` (approved 2026-11-17): §2 (goals, non-goals), §8 rows T7.1-T7.4 and "Kapı", §9 (tools), §10 (dead code), §11 (re-bloat prevention), §14 (owner decisions 7, 8, 9, 10). Where this plan and the spec differ without a `Ruling` line, the spec wins.
 - Plans 3, 4 and 5 (`docs/superpowers/plans/2026-11-19-…-plan-3.md`, `2026-11-20-…-plan-4.md`, `2026-11-21-…-plan-5.md`) hold the gate routines this plan reuses by name.
 
-**Measure folder:** `docs/superpowers/plans/2026-11-21-game-py-bolme-plan-6-measure/` (scripts `p6_measure.py <tree> <extra batch dir> <out.json>`, `remaining.py <tree> <extra batch dir>`, `part_runs.py <tree>`; `<tree>` is the folder that holds `ai-dnd/`; on `P6BASE` the extra batch dir is an empty dir; raw outputs in `out/`). Other paths: `classify_all.py` = `docs/superpowers/plans/2026-11-20-game-py-bolme-plan-4-measure/classify_all.py`; Plan 5's ledger dir = `C:/Users/Kadir/Desktop/AI-DND-k2-bolme-p5n/.superpowers/sdd/2026-11-21-game-py-bolme-plan-5/`.
+**Measure folder:** `docs/superpowers/plans/2026-11-21-game-py-bolme-plan-6-measure/` (scripts `p6_measure.py <tree> <extra batch dir> <out.json>`, `remaining.py <tree> <extra batch dir>`, `part_runs.py <tree>`; `<tree>` is the folder that holds `ai-dnd/`; on `P6BASE` the extra batch dir is an empty dir; raw outputs in `out-p5m-f1bc2ad1/` (current draft) and `out/` (first draft, superseded)). Other paths: `classify_all.py` = `docs/superpowers/plans/2026-11-20-game-py-bolme-plan-4-measure/classify_all.py`; Plan 5's ledger dir = `C:/Users/Kadir/Desktop/AI-DND-k2-bolme-p5n/.superpowers/sdd/2026-11-21-game-py-bolme-plan-5/`.
 
 **Scope:**
 - spec rows T7.1, T7.2, T7.3, T7.4 and the closing play;
 - the Plan 5 I5 requirement: a Ruling and an approval row before any blank line leaves `game.py`;
-- debt rows D-343, D-351, D-379, D-380(3), D-470..D-473 (Plan 5), and every row whose trigger names Plan 6, T7 or "kapanış" (table "Debt rows").
+- debt rows D-343, D-351, D-379, D-380(3), D-470..D-473 (Plan 5), and every row whose trigger names Plan 6, T7 or "kapanış" (table "Debt rows");
+- Plan 5's parks owned by Plan 6: P5T5-1, P5T5-2, P5T5-3, P5T5-8, P5T5-11, P5T4-1, P5T4-3 (table "Plan 5 parks").
 
 **Gates:**
 - Closing gate (Task 6): N4/N7 against Task 4's bases, gate suites in both flags, cumulative speed, split-wide recheck, whole-branch review, then one PR.
 - Play gate (Task 7): Kadir plays at least 10 minutes. Plan 6 and the split are "done" only after it.
 - PR D (Task 8) exists only if Kadir says "evet" to deleting a dead-code row. It comes after Plan 6 and after the ledger line "oynayış yapıldı"; it is outside the autonomy grant, so its push, PR and merge each need Kadir's fresh approval in chat.
 
-**Measured draft base (2026-11-21, read-only, p4m `9c42a1ef61d98f39a6ca3450b021594b9e49971f`, WSL Python 3.12.3; `-measure/out/`):**
-- `game.py` today: 11 920 lines = 1 468 blank + 503 comment-only + 9 949 code.
-- Still to move before Plan 6: 109 names (Plan 4's last 8 batches: 42; Plan 5's six batches: 67).
-- Projected `game.py` after Plan 5: **2 158 lines = 1 292 blank + 92 comment-only + 774 code** (14 projected re-export lines included). Plan 5 appendix I measured 2 148 plus re-export lines on `0b1dca5a`; the few-line difference was not traced.
-- Top-level blank runs in that projection: largest 210, 156, 130, 109; 45 runs in all.
-- **Blank rule (at most 2 blank lines between two top-level statements, PEP 8; nothing inside a statement touched): 2 158 → 1 021 lines** (155 blank). Keeping at most 1 would give 961.
-- What stays in `game.py`: 7 functions (`_speech_debug_trail`, `start_terminal_game`, `_restore_in_place`, `_dynamic_engine_transitions`, `_session`, `_bind_session_engine`, `create_session`), `GameSession` (439 lines), 13 assignments, 7 other top-level statements, and the import/re-export lines.
-- Every part already has at most 2 blank lines in a row at top level (`out/part-runs.out`). The layout touches only `game.py`.
-- Dead-code draft (spec §10 condition 1 only, `p6_measure.py` scan over the whole tree): the spec's 5 candidates are all still defined. 3 have no mention outside their definition, their re-export line and the split's own bookkeeping files: `_filter_unsupported_lore_paragraphs` (`lore.py`, 13 lines), `_existing_local_tavern` (`places.py`, 13), `update_world_state_from_player` (5; batch `intent-s`). 2 are called only by the split's own pin tests in `test_engine_parts_pilot`: `analyze_player_action` (`intent.py`, 10), `is_dialogue_or_emotion` (`intent.py`, 3). The whole-engine scan found no further name. Conditions 2-4 are not tested yet.
+**Measured draft base (2026-11-22, read-only, `git archive` of p5m `f1bc2ad12421a21a74a9c2932914c9a6f3fefb4b`, WSL Python 3.12.3; `p6_measure.py <tree> <empty dir>`, `remaining.py`, `part_runs.py`; raw outputs `-measure/out-p5m-f1bc2ad1/`). Draft numbers; Task 0 Step 3 measures again on `P6BASE`. The first draft (p4m `9c42a1ef`, `-measure/out/`) is superseded:**
+- `game.py` at `f1bc2ad1`: 5 264 lines = 1 381 blank + 298 comment-only + 3 585 code.
+- Still to move before Plan 6: 1 name (`turn-3`: `_run_player_turn_internal`). `_narrate_resolved_turn` (351 lines, 1 sensitive) is held: Plan 5 Task 4's `move_block` refused it ("engine name 'ResolvedTurn' in a annotation", N3 rule 4; parts have no `from __future__ import annotations`), and `turn-2.txt` now holds only `_owner_module_reply`. It is not projected out.
+- Projected `game.py` after Plan 5: **2 509 lines = 1 315 blank + 107 comment-only + 1 087 code** (1 projected re-export line). Plan 5's rehearsal (Task 4, after `turn-3`) measured 2 509 too.
+- Top-level blank runs in that projection: largest 105, 96, 90, 74; 79 runs in all.
+- **Blank rule (at most 2 blank lines between two top-level statements, PEP 8; nothing inside a statement touched): 2 509 → 1 398 lines** (204 blank; 1 111 lines deleted; 102 lines under 1 500). Keeping at most 1 would give 1 326. Without the hold (first draft) it was 1 021.
+- What stays in `game.py`: 8 functions (`_speech_debug_trail`, `_narrate_resolved_turn`, `start_terminal_game`, `_restore_in_place`, `_dynamic_engine_transitions`, `_session`, `_bind_session_engine`, `create_session`), `GameSession` (439 lines), 13 assignments, 7 other top-level statements, and the import/re-export lines.
+- Parts at `f1bc2ad1`: every part has at most 2 blank lines in a row at top level (`part-runs.out`); the layout touches only `game.py`. Largest: `turn_front.py` 2 250 (final; ≤ 2 500), `combat_flow.py` 2 206, `narration.py` 2 073. `turn.py` is 903 now and 3 667 after `turn-3` (rehearsal), then frozen at that size (spec §11).
+- `p6_measure.py` printed `SKIPPED 5` (not UTF-8): `ai-dnd/docs/evidence/v01-20261025/phase1-run1.log`, `phase1-run2.log`, `phase2-red.log`, `ai-dnd/reports/wave3-local-live-20261006/full_suite_api_discover_retry.log`, `full_suite_release_gates_retry.log`. Task 0 Step 3 and Task 5 Step 1 rule each one.
+- Dead-code draft (spec §10 condition 1 only, `p6_measure.py` scan over the whole tree): the spec's 5 candidates are all still defined. 2 have no mention outside their definition, their re-export line and the split's own bookkeeping files: `_filter_unsupported_lore_paragraphs` (`lore.py`, 13 lines), `_existing_local_tavern` (`places.py`, 13). 3 are called only by the split's own pin tests in `test_engine_parts_pilot`: `analyze_player_action` (`intent.py`, 10), `is_dialogue_or_emotion` (`intent.py`, 3), `update_world_state_from_player` (`intent.py`, 5; moved in `intent-s` after the first draft; its pin calls `game.update_world_state_from_player`). The whole-engine scan found no further name. Conditions 2-4 are not tested yet.
 
 ## Global Constraints
 
@@ -42,7 +44,8 @@
   - `P6BASE` = the `origin/main` commit when Task 0 starts.
   - `TM0BASE` = `2e576967dda2fbfdf6a47d22d9313fbc76c195f8` (unchanged since Plan 4).
   - `CUM_P5` = Plan 5's last binding cumulative ratio (its ledger, Task 14). Information only for this plan.
-- **Ruling M (draft): measured on p4m `9c42a1ef` and projected, not measured on `P6BASE`** — `P6BASE` does not exist yet and the controller asked for the draft now — if wrong: Task 0 Step 3 measures again on `P6BASE`; measurement wins, with a `Ruling` per changed number.
+- **Ruling M (draft, amended 2026-11-22): measured on p5m `f1bc2ad1` with `turn-3` projected, not measured on `P6BASE`** — `P6BASE` does not exist yet (Plan 5 Stage B and C still run) and the controller asked for the amendment now — if wrong: Task 0 Step 3 measures again on `P6BASE`; measurement wins, with a `Ruling` per changed number.
+- **Ruling N: `_narrate_resolved_turn` stays in `game.py` in Plan 6 (no move, no pre-move edit)** — with it, `game.py` after the blank rule is 1 398 lines (draft), under spec §2's "1 500 satırın altına" and §11's cap, so the size goal holds with zero code change; every move costs more and two options break a limit: `turn.py` is frozen at its arrival size (spec §11, "yalnız küçülebilir"); `turn_front.py` would be about 2 605 > 2 500; `narration.py` would be about 2 430 (fits, but the function is turn core: it commits travel and reaches `GameSession.evaluate_quest_events`, a save writer); a new part adds a header, a `_PART_MODULES` entry and a budget entry; and every move first needs the annotation fix (P5T4-1), the save-writer pin (P5T5-8), a strong M1-M12 move task and a bench series, in a plan that moves nothing; spec §5's "`game.py` (kalır)" list does not name it, so §24 row 9 marks the deviation "gevşetme olabilir", and the move goes to the turn-split slice (spec §12, D-470's owner) with its preconditions in the "Plan 5 parks" table — if wrong: 351 lines stay in `game.py` one slice longer and the cap keeps only about 100 lines of headroom; the later move is the same work it is today.
 - **Autonomy (Kadir 2026-11-20, Plans 3-6).**
   - Every "ask Kadir" or "tell Kadir" becomes a ledger entry plus a line in `kadir-notes.md`, with a `Ruling`. Nothing waits for an answer, except the two owner stops below.
   - The controller pushes, opens PRs and merges under that grant, for Tasks 0-7 only. Task 8 runs after Plan 6: the grant does not cover it, and CLAUDE.md's default applies (push, PR and merge each with Kadir's fresh approval in chat). Workers never push, open PRs, merge, delete branches or force anything. No force push. Never delete a branch.
@@ -92,7 +95,7 @@
   - Ledger: `C:/Users/Kadir/Desktop/AI-DND-k2-bolme-p6n/.superpowers/sdd/2026-11-21-game-py-bolme-plan-6/progress.md` (local, not committed). `run-*.sh`, `pre-plant/`, `kadir-notes.md`, `task-<N>-report.md` live there. Raw lines are copied, never estimated. Decisions: `Ruling: <karar> — <neden> — <yanlışsa maliyeti>`.
 - **Red first.** Every new test is seen failing for the stated reason before the change. A guard green on a clean tree is shown red with a planted fault under Plan 3's pre-plant rule (copy file and sha256 to `pre-plant/`; plant; run; copy back; check sha256 and `git diff HEAD --stat` unchanged). A first-run green meant to be red becomes a guard plus a `Ruling`; a red is never forced.
 - **Old-behaviour tests** change only with equal or greater strictness, each with a row in `docs/agents/onay-listesi-20261115.md` §24. Ruling: a new section "## 24. game.py bölme Plan 6 (dal `task/game-py-bolme-p6-close`)", created in Task 0 — if wrong: a heading. A moved boundary is marked "gevşetme olabilir". Unmarked loosening, skipping or deleting stops the work.
-- **Findings** go to `docs/agents/debt-register.md`, ids `D-490..D-509` (Plan 4 holds D-450..D-469, Plan 5 D-470..D-489; the draft check found D-460 as the highest id on every branch). Before each push, read the highest id on `origin/main` and open branches.
+- **Findings** go to `docs/agents/debt-register.md`, ids `D-490..D-509` (Plan 4 holds D-450..D-469, Plan 5 D-470..D-489; Plan 5's controller found D-469 as the highest id on `origin/main` and `p5n` on 2026-11-22). Before each push, read the highest id on `origin/main` and open branches.
 - **Review tiers.** Opus implementers; Opus runners for Tasks 0 and 4. Every committed change gets an independent Opus review on a `git archive <sha>` copy. Strong (deletion, whole-branch): Tasks 1 and 6, and Task 8 if it runs. Normal Opus: Tasks 2, 3, 5. The fable model is never used.
 - **Tools.** Stdlib only in committed code and in CI. Forbidden: `ast.unparse`, formatters, `ruff --fix`, `ruff format`, rope, libcst codegen, import-linter, desloppify. `blank_runs.py` deletes whole lines in place and never rewrites a line. `sensitivity.py --write` is never run.
 - **Every implementer brief carries:** `docs/agents/implementer-preamble.md`; `STORE/common.md`; the graphify rule (`graphify query "<question>"` with cwd `C:/Users/Kadir/Desktop/AI - DND` before the first grep or source read; raw files only for located lines; `graphify update .` once at the end, never committed); function and file names, never line numbers; "never read `game.py` or a part over 1 000 lines whole"; the superpowers skills `test-driven-development` and `verification-before-completion`.
@@ -119,7 +122,7 @@ Failure modes the spec implies but no listed check exercises; each is pinned in 
 | `ai-dnd/api/tests/engine_split_locks/size_budget.json` | `game.py` lowered to its real size | 1 |
 | `ai-dnd/api/tests/test_engine_size_budget.py` | `test_game_py_is_within_the_spec_cap` | 1 |
 | `ai-dnd/game_parts/tables.py` | the K01/K02 comment block above the spec constants it describes (D-379) | 2 |
-| `ai-dnd/api/tests/test_engine_parts_pilot.py` | subtest keyword `raw` → `after` (D-380(3)) | 2 |
+| `ai-dnd/api/tests/test_engine_parts_pilot.py` | subtest keyword `raw` → `after` (D-380(3)); two `TurnIdentityNames` pins turn without the classifier warning (P5T5-11) | 2 |
 | `ai-dnd/scripts/engine_split/requirements-dev.txt` | `vulture==2.14` | 2 |
 | `CLAUDE.md`, `docs/agents/implementer-preamble.md`, `GLOSSARY.md` (new), `docs/adr/0001-game-parts-merkez-kurali.md` (new), `docs/design/INDEX.md` | permanent rules and the record of the split (spec T7.3, decision 8) | 3 |
 | `docs/engine-split/olu-kod-kaniti.md` (new) | dead-code evidence table for Kadir (spec §10, T7.2) | 5 |
@@ -139,8 +142,9 @@ Failure modes the spec implies but no listed check exercises; each is pinned in 
   - Create the ledger. Copy Plan 5's `run-gatewait.sh` and `run-foreignload.sh` unchanged.
 - [ ] **Step 3: Measure again (Ruling M).** `git archive P6BASE | tar -x -C STORE/tree/p6base`; run `-measure/p6_measure.py STORE/tree/p6base <an empty dir> STORE/p6base.json`, `remaining.py STORE/tree/p6base <an empty dir>` and `part_runs.py STORE/tree/p6base` with WSL `python3 -I`; outputs to `STORE/out-p6base/` and copy them into `-measure/out-p6base/`. Expected:
   - `STILL_TO_MOVE 0`; `AFTER_P5` equals `TODAY` (nothing left to move);
-  - `SKIPPED 0` from `p6_measure.py`; a skipped path gets a Ruling (is a mention lost?);
-  - `TODAY_KEEP2` < 1 500 → "the size path holds". Write the real numbers in the plan's "Measured draft base" as a `P6BASE` line.
+  - `SKIPPED` from `p6_measure.py`: each skipped path gets a Ruling (is a mention lost?); draft: 5 old logs, not UTF-8;
+  - `TODAY_KEEP2` < 1 500 → "the size path holds" (draft: 1 398). Write the real numbers in the plan's "Measured draft base" as a `P6BASE` line.
+  - `remaining.py` lists `function _narrate_resolved_turn 351` (Ruling N applies). If Plan 5 moved it after all: Ruling N lapses, ledger line, §24 row 9 is not written.
   - If `TODAY_KEEP2` ≥ 1 500: Ruling plus `kadir-notes.md` line; Task 1 still runs, `game.py`'s budget becomes the real size, D-473 stays open with the number. Plan 6 does not move code to reach 1 500.
   - Every part ≤ 2 500 or at a frozen `files` entry (`narration_safety.py`, `turn.py`); every part's top-level blank runs ≤ 2. A part with a run > 2: Ruling, and Task 1's layout covers it too.
   - The spec's five dead-code candidates: where each is defined now (draft: `lore.py`, `places.py`, `intent.py` ×3).
@@ -149,22 +153,23 @@ Failure modes the spec implies but no listed check exercises; each is pinned in 
 - [ ] **Step 6: Batch → commit map** (read-only, ledger script; used by Task 6 Step 2). For every `scripts/engine_split/batches/<B>.txt` listed in `T3_BATCHES`..`T6_BATCHES` of `test_engine_surface.py`:
   - primary key: the batch's M11 commit subject from its plan's task text (Plans 2-5), `git log --no-merges --fixed-strings --grep "<subject>" --format=%H TM0BASE..P6BASE` (`--no-merges`: a single-commit PR's merge message can repeat the subject);
   - cross-check: `git log --format=%H -S "def <name>(" TM0BASE..P6BASE -- ai-dnd/game_parts/<part>.py` (or `-S "class <name>"`) for the batch's first name, searching for the name token, not the whole line; for a constant use `-G '^<NAME> ='` instead of `-S "<NAME> ="` (`-S "RACES ="` also counts `SUBRACES =`) and take the oldest listed commit (`-G` also lists a later edit of that line);
+  - the batch file as it is at `P6BASE`: `turn-2.txt` holds only `_owner_module_reply` (Plan 5 hold commit `c506d846`), so its first name is `_owner_module_reply`; `_narrate_resolved_turn` is in no batch file and in no map row;
   - both give the same single commit; the manual pair `game.py:base:<N>:_PART_MODULES` and `game.py:new:<M>:_PART_MODULES` (`<N>`, `<M>` from `grep -n '^_PART_MODULES'` in `<commit>^:ai-dnd/game.py` and `<commit>:ai-dnd/game.py`), only when the `_PART_MODULES` line text differs between `<commit>^` and `<commit>` (compare the line text, not `grep -n` output). It is not tied to a part's first batch: on this branch the line does not change in the first batch of `tables`, `schemas`, `text_rules_a`, `character_rules`, and a `--manual` entry that exempts nothing is itself a `CHANGED` line.
   - Table batch / part / commit / manual pair (`pair` or `none`) in the ledger. A batch with no commit, two commits, or disagreeing keys: Ruling with the evidence; a batch that cannot be mapped at all is a STOP for Task 6 Step 2, found now instead of at the gate.
-- [ ] **Step 7: Debt bookkeeping** (ledger only): every row whose trigger names Plan 6, T7, "kapanış" or "bölme kapanışı", Plan 5's D-470..D-489 included, added to this plan's table with its task. Free-id check for D-490..D-509.
+- [ ] **Step 7: Debt bookkeeping** (ledger only): every row whose trigger names Plan 6, T7, "kapanış" or "bölme kapanışı", Plan 5's D-470..D-489 included, added to this plan's table with its task. For each park in "Plan 5 parks": the register row id Plan 5's Task 13 Step 8 wrote for it, or "none". Free-id check for D-490..D-509.
 - [ ] **Step 8: Approval list and commit.** Create §24 with rows 1 and 6 ("Approval list §24 rows"). **Commit** `game.py split plan 6: plan and measurements (measured again on P6BASE)`.
 
 ### Task 1: Layout — delete the blank lines the moves left behind; final `game.py` budget
 
 **Review tier:** strong (Opus implementer, Opus review). It deletes lines from the file that holds `GameSession` (Undo); spec T7 and Plan 4's outline: "strong review on any deletion".
 
-**Ruling (Plan 5 I5, D-379, D-473): deleting blank lines that moves orphaned is the end of the moves, not a format fix** — spec §2 lists "biçim düzeltme" as a non-goal, but spec §2 also sets `game.py` ≤ 1 500 as a goal, and moving cannot reach it (2 158 projected lines, 1 292 blank); D-379 already holds the Plan 3 Ruling "Plan 6'da tek bir düzen commit'i"; the rule removes only whole blank lines between top-level statements beyond two (PEP 8), never inside a statement, so code, comments, strings and line order are unchanged — if wrong: one revert commit restores every blank line; `engine_hash` changes either way. §24 row 2 marks it "gevşetme olabilir (spec §2 hedef olmayanı yorumlanıyor)". `kadir-notes.md` lines: "game.py'deki taşımadan kalan boş satırlar silindi: <önce> → <sonra> satır; kod, yorum ve metin aynı." and "yeni kalıcı kural: motor dosyalarında üst düzeyde en çok iki boş satır (test_engine_layout)".
+**Ruling (Plan 5 I5, D-379, D-473): deleting blank lines that moves orphaned is the end of the moves, not a format fix** — spec §2 lists "biçim düzeltme" as a non-goal, but spec §2 also sets `game.py` ≤ 1 500 as a goal, and moving cannot reach it (2 509 projected lines, 1 315 blank); D-379 already holds the Plan 3 Ruling "Plan 6'da tek bir düzen commit'i"; the rule removes only whole blank lines between top-level statements beyond two (PEP 8), never inside a statement, so code, comments, strings and line order are unchanged — if wrong: one revert commit restores every blank line; `engine_hash` changes either way. §24 row 2 marks it "gevşetme olabilir (spec §2 hedef olmayanı yorumlanıyor)". `kadir-notes.md` lines: "game.py'deki taşımadan kalan boş satırlar silindi: <önce> → <sonra> satır; kod, yorum ve metin aynı." and "yeni kalıcı kural: motor dosyalarında üst düzeyde en çok iki boş satır (test_engine_layout)".
 
 **Ruling: the cap test asserts `< 1500`** — spec §2 says "1 500 satırın altına" (strictly under), §5 and §11 say ≤ 1 500; the strict form satisfies both — if wrong: a file of exactly 1 500 lines is refused, one line short of the looser reading.
 
 **Files:**
 - Create: `ai-dnd/scripts/engine_split/blank_runs.py`, `ai-dnd/api/tests/test_engine_layout.py`
-- Modify: `ai-dnd/game.py` (blank lines only) plus any part Task 0 Step 3 named, `ai-dnd/api/tests/engine_split_locks/size_budget.json` (`files["game.py"]`), `ai-dnd/api/tests/test_engine_size_budget.py`, `docs/agents/onay-listesi-20261115.md` §24 (rows 2, 3, 4)
+- Modify: `ai-dnd/game.py` (blank lines only) plus any part Task 0 Step 3 named, `ai-dnd/api/tests/engine_split_locks/size_budget.json` (`files["game.py"]`), `ai-dnd/api/tests/test_engine_size_budget.py`, `docs/agents/onay-listesi-20261115.md` §24 (rows 2, 3, 4, 9)
 
 **Interfaces — Produces:**
 - `blank_runs.find(lines: list[str], keep: int = 2) -> list[int]`: 1-based numbers of blank lines (only whitespace) that are outside every top-level statement's span (first decorator line to `end_lineno`) and come after `keep` such blank lines in the same run. Runs at the very start or end of the file count the same way. Callers split text on `"\n"` only (keeping `\r`), never `str.splitlines`, so line numbers match `ast`.
@@ -195,21 +200,21 @@ def test_game_py_is_within_the_spec_cap(self):   # in test_engine_size_budget.py
     # LOCK["files"]["game.py"] < 1500 and real_sizes()["game.py"] < 1500  (spec §2 "altına"; §5, §11 say <= 1500)
 ```
 
-  Run them: both red on `game.py` only (draft: 1 137 lines to delete, 2 158 > 1 500). If the cap test is green here (a smaller `P6BASE`), it becomes a guard: plant `files["game.py"] = 1500`, see red, restore.
+  Run them: both red on `game.py` only (draft: 1 111 lines to delete, 2 509 > 1 500). If the cap test is green here (a smaller `P6BASE`), it becomes a guard: plant `files["game.py"] = 1500`, see red, restore.
 - [ ] **Step 4: Apply.** `SLOTPY blank_runs.py --apply /mnt/c/Users/Kadir/Desktop/AI-DND-k2-bolme-p6n/ai-dnd/game.py` (absolute worktree path, never relative: the slot's tree is a copy; the same for any part Task 0 Step 3 named). Then:
-  - in `p6n`: `git diff --numstat -- ai-dnd/game.py` shows 0 added and about 1 137 deleted (the `DELETED` number); a worktree diff of 0 lines means the copy was edited: STOP, redo with the absolute path;
+  - in `p6n`: `git diff --numstat -- ai-dnd/game.py` shows 0 added and about 1 111 deleted (the `DELETED` number); a worktree diff of 0 lines means the copy was edited: STOP, redo with the absolute path;
   - write the old text with Git Bash, `git -C <p6n> show P6BASE:ai-dnd/game.py > <ledger>/game-p6base.py` (WSL git cannot read the `p6n` worktree: its `.git` file points at a `C:/...` gitdir); then a ledger script run through SLOTPY on the two `/mnt/c/...` paths: `blank_runs.verify(<ledger>/game-p6base.py, <p6n>/ai-dnd/game.py)` prints nothing;
   - `move_check.py --comments-only` against the `P6BASE` archive: `COMMENTS base=<C6> now=<C6>`;
   - `size_budget.json` `files["game.py"]` = the new real size (lowering needs no approval, spec §11);
   - `routing_audit.py` → `clean`; `outside_probe.py` → `PROBE ok`; `python test_regression.py` → `Results: 30 passed, 0 failed out of 30`.
 - [ ] **Step 5: Runs.** Targeted `p6t1-off/-fon`: `ENGINE_SET` + `api.tests.test_engine_layout` + `NEIGHBOURS`: `RESULT exit=0`. Pattern run `p6t1-readers-off`, then `p6t1-readers-fon` (Ruling E form): every module in `docs/engine-split/source-readers.md`, `test_engine_sources`, `test_engine_hash_parts`, `test_sessions`, `test_startup`: `PAR_EXIT=0`, `failing_ids 0`.
-- [ ] **Step 6:** §24 rows 2, 3, 4; `kadir-notes.md` lines (above). **Commit** (the real-file guard, the cap test, the budget and the blank-line deletion) `game.py split T7.1b: game.py loses the blank lines the moves left behind (<before> -> <after> lines); budget and spec cap locked`.
+- [ ] **Step 6:** §24 rows 2, 3, 4, 9; `kadir-notes.md` lines (above) plus "Tur anlatım işlevi `_narrate_resolved_turn` (351 satır) game.py'de kaldı (Ruling N); boyut hedefi yine tutuyor, tur bölme diliminde çıkacak.". **Commit** (the real-file guard, the cap test, the budget and the blank-line deletion) `game.py split T7.1b: game.py loses the blank lines the moves left behind (<before> -> <after> lines); budget and spec cap locked`.
 
-### Task 2: Closing tidy-ups (D-379 comment, D-380(3), D-351, dev tools)
+### Task 2: Closing tidy-ups (D-379 comment, D-380(3), D-351, dev tools, parks P5T5-11 and P5T5-2)
 
-**Review tier:** normal (Opus implementer, Opus review). No executed line changes. Three commits, one review.
+**Review tier:** normal (Opus implementer, Opus review). No executed engine line changes. Four commits, one review.
 
-**Files:** Modify `ai-dnd/game.py` (one comment block leaves), `ai-dnd/game_parts/tables.py` (it arrives), `ai-dnd/api/tests/test_engine_parts_pilot.py`, `ai-dnd/scripts/engine_split/requirements-dev.txt`, `docs/agents/onay-listesi-20261115.md` §24 (row 5).
+**Files:** Modify `ai-dnd/game.py` (one comment block leaves), `ai-dnd/game_parts/tables.py` (it arrives), `ai-dnd/api/tests/test_engine_parts_pilot.py`, `ai-dnd/scripts/engine_split/requirements-dev.txt`, `docs/agents/onay-listesi-20261115.md` §24 (rows 5, 10). Planted and restored only (never committed): `ai-dnd/scripts/engine_split/move_block.py` (Step 6).
 
 - [ ] **Step 1: D-379 second half.** The K01 and K02 comment lines above `RULE_ORDER` in `game.py` describe the species-trait specs that live in `game_parts/tables.py` (graphify "INNER_RADIANCE_SPEC Necrotic Shroud spec constant tables"). The K04 line describes `RULE_ORDER` and stays.
   - Ruling: the move completes T3.1's move of these specs (the comments were left behind), not a format fix (spec §2 non-goal) — the text and order are unchanged, only the file changes — if wrong: one revert puts the lines back.
@@ -220,6 +225,12 @@ def test_game_py_is_within_the_spec_cap(self):   # in test_engine_size_budget.py
   - **Commit** `game.py split T7: the salvage subtest names its expected text after, not raw (D-380 item 3)`.
 - [ ] **Step 3: D-351 open item (`import game` unused in `text_rules_a.py`).** Measure: `grep -c "game\." game_parts/text_rules_a.py` (draft: 0). Ruling: it stays — every part starts with `import game` (spec §7 cycle rule; `routing_audit` and the surface test expect the uniform header), it costs nothing at run time, and its ruff F401 line is counted in D-445 — if wrong: a later prefix-removal slice (D-343) deletes it with the others. No code change; the row is closed in Task 6 Step 8 with this Ruling.
 - [ ] **Step 4: Dev-only tools (spec §9, decision 5).** Add `VULTURE` (`vulture==2.14` or Task 0's Ruling version) to `requirements-dev.txt`. Nothing installs it in CI. **Commit** `game.py split T7: vulture pinned as a dev-only report tool (spec section 9)`.
+- [ ] **Step 5: P5T5-11 (flag-on classifier warning in two Plan 5 pins).** In `TurnIdentityNames`, `test_a_local_place_turn_hands_the_game_module_to_arrival` and `test_heard_rumours_gets_the_game_module_from_the_turn` wrap their `_turn` call in `self.assertNoLogs("ai_dnd.api.ollama", level="WARNING")` (the logger of `api/ollama_adapter.py`, which logs "Classifier unavailable; turn goes on"). Every existing assertion stays.
+  - Red: `p6t2-p5t5-11-red-fon` (gate_boot first), `api.tests.test_engine_parts_pilot` + `NEIGHBOURS`: both tests fail on that warning. Run `p6t2-p5t5-11-red-off` too and record the result (Plan 5 saw the warning in flag-on runs only).
+  - Fix: both tests answer the classifier call with a test-local client in `test_engine_parts_pilot.py` that returns a valid classifier reading and hands every other call to the client the test uses today. The borrowed helpers (`campaign_api.CampaignApiTests`, `test_heard_rumours_turn`'s `_Client`) are not edited (P5T5-6).
+  - Ruling if answering the classifier changes what the pin asserts (arrival not called, another `record_mention` count): keep today's client and replace `assertNoLogs` with `assertLogs` on the same logger plus the exact warning count measured on `P6BASE` per flag (the park's second form) — equal strictness, the test still states what happens — if wrong: the pin keeps a known warning, now counted.
+  - Green: `p6t2-p5t5-11-off/-fon`, `RESULT exit=0`. §24 row 10. **Commit** `game.py split T7: two turn identity pins answer the classifier and assert no warning (park P5T5-11)`.
+- [ ] **Step 6: P5T5-2 (proof only, no commit).** Pre-plant rule on `move_block.py`: drop the `name in IDENTITY_ROW_NAMES` condition from `_Scan.allowed()` (a row then lets any name through); run `api.tests.test_engine_move_tool` + `NEIGHBOURS` (`p6t2-p5t5-2-plant-off`): the `globals` and `vars` subtests of `IdentityAllowlistTests.test_move_block_still_refuses_dunder_name_even_with_a_row` are red; restore, `sha256sum -c` OK, `git diff HEAD --stat` unchanged. Ledger the run. If either subtest stays green: Ruling, park for Task 6 Step 8 (debt row, owner the next plan that runs `move_block`).
 
 ### Task 3: Permanent rules and docs (spec T7.3, decision 8)
 
@@ -230,7 +241,7 @@ def test_game_py_is_within_the_spec_cap(self):   # in test_engine_size_budget.py
 - [ ] **Step 1: CLAUDE.md** (decision 8, approved 2026-11-17). Add under "Kodlama ilkeleri", word for word from spec §11: "game.py'ye yeni işlev eklenmez; yeni kod ilgili `game_parts` modülüne ya da kendi modülüne girer. `game_parts` içinde motor adları `game.X` diye çağrılır. Boyut bütçesi yalnız Kadir'in onayıyla yükseltilir." Nothing else in `CLAUDE.md` changes.
 - [ ] **Step 2: `implementer-preamble.md`.** New checklist item `(i)` with the same three sentences, plus: "Yeni bir parça ya da `game.py`'de iki boş satırdan uzun boşluk `test_engine_layout` ve `test_engine_size_budget` tarafından reddedilir."
 - [ ] **Step 3: `GLOSSARY.md`** (new; Turkish, one line each): `game_parts`, merkez kuralı (`game.X`), yeniden dışa vurum, yama yüzeyi, boyut bütçesi (mandal, `slack` 50, `part_max` 2 500, dondurulmuş dosya), hassas liste, N1-N8 (one line each, which stay permanent and which are retired; the N2 and N8 lines carry the live duty of Step 4).
-- [ ] **Step 4: ADR `docs/adr/0001-game-parts-merkez-kurali.md`** (new; Turkish; Context / Decision / Consequences): `game.py` split into `game_parts/` with the centre rule; never-moved names (spec §5); the size latch and karar 10; N1, N2, N3, the size and layout tests stay in CI; **N4 (`ledger_diff.py`), N5 (`move_check.py`, `move_block.py`), N7 (`coverage_by_function.py`) and N8 (`sensitivity.py`) are retired as required gate steps** (spec §11) — their scripts and their tests stay in the repo and in CI unchanged; what retired means: no future task must run the N4, N5, N7 tools, a future split may. **Live duties that stay** (stated in the ADR and the GLOSSARY):
+- [ ] **Step 4: ADR `docs/adr/0001-game-parts-merkez-kurali.md`** (new; Turkish; Context / Decision / Consequences): `game.py` split into `game_parts/` with the centre rule; never-moved names (spec §5); the one held name, `_narrate_resolved_turn` (not a never-moved name: Ruling N, N3 rule 4, moves in the turn-split slice); the size latch and karar 10; N1, N2, N3, the size and layout tests stay in CI; **N4 (`ledger_diff.py`), N5 (`move_check.py`, `move_block.py`), N7 (`coverage_by_function.py`) and N8 (`sensitivity.py`) are retired as required gate steps** (spec §11) — their scripts and their tests stay in the repo and in CI unchanged; what retired means: no future task must run the N4, N5, N7 tools, a future split may. **Live duties that stay** (stated in the ADR and the GLOSSARY):
   - N8: `test_engine_sensitivity.test_every_flagged_function_in_every_engine_file_is_in_the_lock_or_removed` checks the live engine in CI, and `sensitivity.py --write` refuses once `game_parts/` exists. So a new money or save function turns CI red until it gets a hand-written `sensitive.json` row, under strong review and with an approval-list row.
   - N2 (`patch_census`) is permanent and live: a new patch target changes its lock the same way.
   §24 row 7 ("gevşetme olabilir (spec §11 emeklilik; testler yerinde)").
@@ -282,7 +293,7 @@ def test_game_py_is_within_the_spec_cap(self):   # in test_engine_size_budget.py
   3. every remerge-diff from Step 2;
   4. `git diff TM0BASE..HEAD` of the six lock files (`surface`, `patch_census`, `sensitive`, `identity_allowlist`, `allowed_imports`, `size_budget`), each change mapped to its approval-list row;
   5. every "gevşetme olabilir" row in approval sections §18-§24;
-  6. the final `game.py` after Task 1 (about 1 020 lines; `GameSession`, the wrapper and the binding code), read in two halves (the 1 000-line rule).
+  6. the final `game.py` after Task 1 (about 1 400 lines; `GameSession`, `_narrate_resolved_turn`, the wrapper and the binding code), read in two halves (the 1 000-line rule).
   Plus Step 2's tables; `routing_audit.py` `clean`; D-472 (`sys.modules["game"]` vs the spec's literal `game`): the reviewer confirms or rejects Plan 5's Ruling J and the row is closed or kept with that verdict.
   Independent second method, not based on `move_check`: for 3 move commits chosen at random (one each from Plans 3, 4 and 5; the seed in the ledger), `git show --color-moved=plain --color-moved-ws=no <c>` shows no uncoloured `+`/`-` line except re-export, header and `_PART_MODULES` lines.
   One fix wave, red-first (Opus); scoped re-review (Opus). Ruling: the review reads the list above, not the ~25 000 moved lines again — move purity is machine-proven (Step 2) and spot-checked by the second method, and every move had its own review and stage gate — if wrong: a missed defect surfaces in Kadir's play or later. From Step 4 on, only the ledger, debt rows, PR text and Task 5's table text may change; any code, test or lock change reruns Steps 4-7, and any engine-file change also reruns Step 2.
@@ -290,7 +301,7 @@ def test_game_py_is_within_the_spec_cap(self):   # in test_engine_size_budget.py
 - [ ] **Step 5: N4 and N7 per flag.** `ledger_diff.py --diff --base <b> --base2 <c> --new <gate>`: `DROPS 0`, `LOST 0`, `SUBLOST 0`, `SUBGONE 0`, `SUBCRASH 0`. `coverage_by_function.py --diff`: `DOWN 0` outside the noise set; every `UP` explained. Any drop stops the plan.
 - [ ] **Step 6: Speed (Rulings B, C).** Suites by wall clock against the Ruling C limits. Cumulative A/B `p6t6cum`, OLD `p6o`, NEW `p6n`: ≤ 1.10, above it STOP. One flag-on reading `p6tcbench-fon`, recorded only. Every number with its load line. D-448 closed with these numbers or carried with them.
 - [ ] **Step 7: Checks without a suite.** `outside_probe.py` → `PROBE ok parts=` listing every part (D-341); `test_regression.py` 30/30 (D-342); `classify_all.py` → `not_in_lock=0`; ruff once (`uvx --from ruff==0.17.5 ruff check --select F821,F401,F811 --no-fix game.py game_parts`, count into D-445); both import orders with the `start_local.ps1` interpreter rc 0; sizes: `game.py` = `size_budget.json` < 1 500, every part ≤ 2 500 or at its frozen entry; `blank_runs.py --check` clean. Zero-tolerance journeys: `NEIGHBOURS` alone in both flags (`p6tc-journeys-off/-fon`), journey count pasted.
-- [ ] **Step 8: Debt rows** (table below; every park from Tasks 0-7 gets a row with an owner).
+- [ ] **Step 8: Debt rows** (tables "Debt rows" and "Plan 5 parks" below; every park from Tasks 0-7 gets a row with an owner).
 - [ ] **Step 9:** Recheck free ids. Push, open the PR (text: the size path, Step 2's tables, N4/N7, speed, the dead-code table link and "nothing deleted"; it never says "done" or "bitti": the split counts as done only after Kadir's play), ancestor check, merge, CI rules. `graphify update .` in the main repo folder (local only; `graphify-out` is gitignored).
 - [ ] **Step 10:** Open `bash`/`sleep` processes and slot runs checked. Ledger lines "kapanış kapısı geçti", "oynayış bekliyor". Worktrees are not deleted.
 
@@ -304,7 +315,7 @@ def test_game_py_is_within_the_spec_cap(self):   # in test_engine_size_budget.py
   2. Ölü kod tablosu (`docs/engine-split/olu-kod-kaniti.md`): her satır için "evet sil" ya da "kalsın".
   3. `game.` önekini kaldırmak (D-343): öneri "şimdilik hayır, ayrı karar".
   4. `legacy_debug/` altındaki 25 eski betik (D-339): öneri "bilinerek bırakılsın"; silmek senin kararın.
-  5. Sonraki dilim: tur işlevini parçalamak (spec §12, D-470). Bu dilim "oynayış yapıldı" satırından önce başlamaz (CLAUDE.md oynayış kapısı).
+  5. Sonraki dilim: tur işlevini parçalamak (spec §12, D-470). `game.py`'de kalan tur anlatım işlevi `_narrate_resolved_turn` (351 satır) da o dilimde taşınır (Ruling N). Bu dilim "oynayış yapıldı" satırından önce başlamaz (CLAUDE.md oynayış kapısı).
 - [ ] **Step 3: Wait for the play.** Nothing in this step is a Ruling. When Kadir reports the play: ledger "oynayış yapıldı (Kadir <tarih>, <dakika> dk)". A defect he finds that traces to the split gets a red-first fix task (strong) and a new play; any other defect gets a debt row. Then "Plan 6 bitti; bölme bitti". The `docs/design/INDEX.md` spec line "kapandı (oynayış bekliyor)" becomes "kapandı" in Task 8's first commit or, if Task 8 does not run, in the next slice's first commit; the ledger records which. Ruling: no PR for one line — if wrong: INDEX shows "oynayış bekliyor" a little longer.
 
 ### Task 8 (conditional, after Plan 6): delete the rows Kadir approved
@@ -333,6 +344,8 @@ Runs only for rows Kadir answered "evet" in chat (quoted in the ledger), and not
 | 6 | Shard timeout 4 500 s, wall clock | carried from Plans 3-5 (D-448) | taşındı | Task 0 |
 | 7 | N4, N5, N7, N8 | retired as required gate steps (spec §11); scripts and tests stay in CI unchanged | gevşetme olabilir (spec §11 emeklilik; testler yerinde) | Task 3 |
 | 8 | Dead-code condition 1 | the split's bookkeeping files do not count as uses; split pin tests reported in their own column | gevşetme olabilir (spec §10 koşul 1 yorumlanıyor) | Task 5 |
+| 9 | Spec §5 "`game.py` (kalır)" list | `_narrate_resolved_turn` stays in `game.py` (Ruling N; held by N3 rule 4 in Plan 5); the size goal still holds | gevşetme olabilir (spec §5 hedef yapısından sapma; boyut hedefi tutuyor) | Task 1 |
+| 10 | `TurnIdentityNames` arrival and heard-rumours pins | no WARNING from `ai_dnd.api.ollama` during the turn, or its exact count (P5T5-11) | sıkılaştırma | Task 2 |
 
 ## Debt rows this plan owns and what happens to each
 
@@ -344,7 +357,7 @@ Runs only for rows Kadir answered "evet" in chat (quoted in the ledger), and not
 | D-380 item 3 subtest keyword | Task 2 Step 2; item closed, row closed if no item is left open |
 | D-343 `game.` prefix | not done (spec §4: separate, optional); Task 7 asks Kadir; trigger → "Kadir'in kararı (Plan 6 Görev 7)" |
 | D-339 `legacy_debug` exec scripts | Task 7 asks Kadir; Ruling until he answers: "bölmeden sonra çalışmadıkları bilinerek bırakılır" (the row's own trigger), row stays open for his answer |
-| D-470 `turn.py` frozen at arrival (Plan 5) | carried; owner: the turn-split slice (spec §12) |
+| D-470 `turn.py` frozen at arrival (Plan 5; 3 667 lines in the rehearsal, not the about 4 020 the row's text expects) | carried with the real size; owner: the turn-split slice (spec §12) |
 | D-471 `_restore_in_place`, `_dynamic_engine_transitions` stay (Plan 5) | closed: permanent, spec §5 "Geri Al anlık görüntüsü dokunulmadan kalır" |
 | D-472 `sys.modules["game"]` (Plan 5) | Task 6 Step 3 review verdict; closed or kept with it |
 | D-341, D-342 probes | Task 6 Step 7; carried (they close only with an automated test) |
@@ -352,9 +365,23 @@ Runs only for rows Kadir answered "evet" in chat (quoted in the ledger), and not
 | D-448 load-sensitive speed | Task 6 Step 6; closed or carried with the numbers |
 | Rows with a Plan 6/T7 trigger found in Task 0 Step 7 | handled in the task they name |
 
-New rows (ids from `D-490`, written in Task 6 Step 8): `D-490` dead-code table waits for Kadir's answer per row (owner Kadir, trigger "Kadir'in cevabı; Görev 8"); further rows only for parks.
+New rows (ids from `D-490`, written in Task 6 Step 8): `D-490` dead-code table waits for Kadir's answer per row (owner Kadir, trigger "Kadir'in cevabı; Görev 8"); `D-491` and `D-492` from "Plan 5 parks" only when Plan 5 wrote no row for them (Task 0 Step 7); further rows only for parks.
 
 Carried unchanged: D-344, D-345, D-346, D-356-D-358, D-362, D-363, D-365, D-436.
+
+### Plan 5 parks
+
+Plan 5's Task 13 Step 8 may write register rows for these parks. Task 0 Step 7 records each row id. Where a row exists, Task 6 Step 8 updates its owner and trigger as below instead of writing a new row.
+
+| Park | What | Handling and owner |
+|---|---|---|
+| P5T5-8 | No test drives the save writer path `_narrate_resolved_turn` travel branch → `GameSession.evaluate_quest_events` → `_forfeit_unrecordable_xp` | Row with the hold (`D-491` if Plan 5 wrote none): "`_narrate_resolved_turn` held in `game.py` (Ruling N)". Owner: the turn-split slice. Before its move: trace one candidate test or add a base pin (travel turn completing a `visit_location` quest, award refused and forfeited). Plan 6 runs no move, and its only `game.py` edit (Task 1) is checked by `verify` and `ast.dump` |
+| P5T4-1 | Parts have no `from __future__ import annotations`; moved annotations are evaluated at def time (root of the hold) | Same row as P5T5-8. Owner: the turn-split slice decides, red first and under strong review: quote the annotation in `game.py` before the move, or add the import to part headers (a mover and N3 rule change) |
+| P5T5-1 | `move_block.py` `main` reads `--identity-allowlist` rows without a shape check: a malformed file gives a traceback, not `REFUSED` exit 2 | Row "move_block hardening" (`D-492` if Plan 5 wrote none). Owner: the next plan that runs `move_block` (first expected: the turn-split slice); fix red first before its first move. Ruling: no fix in Plan 6 — Plan 6 runs no `move_block`, N5 retires as a required step at Plan 6's end (Task 3), and P5T4-1's fix changes the same N3 scan, so one strong-reviewed tool change later instead of two — if wrong: the gaps stay one plan longer; no Plan 6 step can hit them |
+| P5T5-3 | `move_block` `_Scan.visit` misses `sys.modules` through an alias, `from sys import modules`, `game.sys.modules` and a bare uncalled `locals` | Same row and owner as P5T5-1 |
+| P5T4-3 | `move_block`'s `REFUSED` text on stderr interleaves with the caller's echo through `wsl.exe` (cosmetic; the message is complete) | Same row and owner as P5T5-1: callers write stderr to its own file |
+| P5T5-11 | Flag-on `Classifier unavailable` warning in two `TurnIdentityNames` pins | Task 2 Step 5; closed in Task 6 Step 8 |
+| P5T5-2 | `globals`/`vars` subtests of `test_move_block_still_refuses_dunder_name_even_with_a_row` never planted red | Task 2 Step 6 (proof only); closed in Task 6 Step 8, or a row if a subtest stayed green |
 
 ---
 
@@ -368,11 +395,12 @@ Carried unchanged: D-344, D-345, D-346, D-356-D-358, D-362, D-363, D-365, D-436.
    - "Kapı: Kadir 10 dk oynar" → Task 7.
    - §11 re-bloat: size latch and cap (Task 1), layout guard (Task 1), CLAUDE.md line (Task 3), N1-N3 kept (ADR).
    - Plan 5 I5 (Ruling and approval row before any blank line goes) → Task 1's Ruling and §24 row 2.
-2. **Size path.** Draft: 11 920 today → 2 158 after Plans 4-5 → 1 021 after the blank rule (≤ 1 500 with 479 lines to spare). Task 0 confirms on `P6BASE`; if it does not hold, Plan 6 lowers what it can and says so (no new moves).
+2. **Size path.** Draft: 5 264 at p5m `f1bc2ad1` → 2 509 after `turn-3` → 1 398 after the blank rule (under 1 500 by 102 lines, with `_narrate_resolved_turn` held, Ruling N). Task 0 confirms on `P6BASE`; if it does not hold, Plan 6 lowers what it can and says so (no new moves).
 3. **Lessons carried:** 4 500 s shards; WMI foreign-load script; detached start in the escaped `'-lc','\"…\"'` form with a start check; 9-minute polls, 150-minute cap, Status CONTINUE, redo after a kill; cumulative rule against `TM0BASE` ≤ 1.10 as a real stop; both flags everywhere; red-first with the pre-plant rule; approval rows in a new §24; "gevşetme olabilir" marking.
 4. **Names.** `blank_runs.find/verify(old, new, keep)`, CLI `--check/--apply`; test names match Review Focus and §24; `VULTURE` set in Task 0 Step 5, used in Tasks 2 and 5; labels `p6t<N>-…`, gate `p6g0-…`/`p6tc-…`; no flag-off label contains `fon`.
 5. **Proportion.** 9 tasks (8 plus the conditional one). Strong: 1, 6 (and 8). Normal Opus: 2, 3, 5. Runner: 0, 4. Full suites: 6 (4 bases, 2 gate), one A/B series.
-6. **Loosening check.** No Ruling loosens a controller or CLAUDE.md rule. Boundary rows marked "gevşetme olabilir": §24 rows 2, 7, 8. Rows 1, 3, 4 are stricter; row 5 equal.
+6. **Loosening check.** No Ruling loosens a controller or CLAUDE.md rule. Boundary rows marked "gevşetme olabilir": §24 rows 2, 7, 8, 9. Rows 1, 3, 4, 10 are stricter; row 5 equal.
+7. **Plan 5 outcomes (2026-11-22).** `_narrate_resolved_turn` hold → Ruling N, §24 row 9, Task 0 Step 3 check, Task 1 note, Task 3 ADR, Task 6 Step 3 read, Task 7 item 5. Parks P5T5-1, -2, -3, -8, -11, P5T4-1, -3 → "Plan 5 parks", each with an owner.
 
 ## Execution
 
@@ -385,7 +413,7 @@ Review: `C:/Users/Kadir/Desktop/AI-DND-TOOLS/measure/engine-split/p6/p6-prefligh
 | Id | What changed |
 |---|---|
 | I1 | `STORE/common.md`: the only hand edit of `game.py` is Task 2 Step 1's comment move (its own commit), not Task 3's. |
-| I2 | Task 1 Step 4: `--apply` gets the absolute `p6n` path; `verify` reads the old text with `git show P6BASE:`; `numstat` in `p6n` must show 0 added, about 1 137 deleted. Global SLOTPY rule says the slot's tree is a copy. |
+| I2 | Task 1 Step 4: `--apply` gets the absolute `p6n` path; `verify` reads the old text with `git show P6BASE:`; `numstat` in `p6n` must show 0 added, about 1 137 deleted (1 111 after the 2026-11-22 amendment). Global SLOTPY rule says the slot's tree is a copy. |
 | I3 | `verify(old, new, keep)` also requires the deleted line set to equal `find(old, keep)`; new test `test_verify_refuses_a_blank_line_removed_inside_a_def`; Review Focus 1 updated. |
 | I4 | Task 6 Step 2: remerge-diff check for every merge since `TM0BASE`; one whole-split `move_check` from `TM0BASE` to HEAD, every `CHANGED` name explained by a non-move commit or STOP. |
 | I5 | New Task 0 Step 6: batch → commit map (M11 subject primary, `-S "def <name>("` cross-check, both agree), `_PART_MODULES` pair by `grep -n`; Task 6 Step 2 writes the full command, `--tier strong` for all (Ruling), archives only `game.py` and `game_parts`. |
@@ -427,3 +455,17 @@ Re-review: `C:/Users/Kadir/Desktop/AI-DND-TOOLS/measure/engine-split/p6/p6-rerev
 | m-a | Task 6 Step 2: `-L` names the part file at HEAD. |
 | m-b | Task 6 Step 2: the part for `p6-all-moved.txt` comes from the batch-to-commit map. |
 | m7 | Fix report: the branch is on origin at 10c6f63b (pushed by the controller); report corrected. |
+
+## Amendment after Plan 5 outcomes (2026-11-22)
+
+Sources: Plan 5 ledger ("Task 4", "Ruling: Plan 5 amendment after Task 4", "Parks from the review minors", "Controller (Task 5 Step 4)", Tasks 6-10), `task-4-report.md`; measurement on a `git archive` copy of p5m `f1bc2ad1` (`-measure/out-p5m-f1bc2ad1/`). Report: `C:/Users/Kadir/Desktop/AI-DND-TOOLS/measure/engine-split/p6/p6-amend-after-p5.md`.
+
+| What | Changed |
+|---|---|
+| Status, Ruling M, measured base | Draft numbers re-measured on p5m `f1bc2ad1` with `turn-3` projected: `game.py` 2 509 after Plan 5, 1 398 after the blank rule (was 2 158 and 1 021). `SKIPPED 5`; dead-code draft 2 + 3. |
+| Ruling N (new) | `_narrate_resolved_turn` stays in `game.py`; §24 row 9; owner of the move: the turn-split slice. |
+| Task 0 | Step 3 checks the hold and rules the skipped paths; Step 6 notes `turn-2.txt` after the hold; Step 7 records Plan 5's row ids for the parks. |
+| Task 1 | Numbers 1 111 / 2 509; §24 row 9; one more `kadir-notes.md` line. |
+| Task 2 | Step 5 (P5T5-11, red first, §24 row 10, own commit); Step 6 (P5T5-2 plant proof, no commit). |
+| Tasks 3, 6, 7 | ADR names the held function; review reads about 1 400 lines; Kadir's item 5 names it. |
+| Debt | Ids: Plan 5 D-470..D-489, Plan 6 D-490..D-509; new table "Plan 5 parks" with owners; D-470 real size. |
