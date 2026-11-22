@@ -242,9 +242,13 @@ class ThroughTheRealTurn(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
     asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
     campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
+    # The town is pinned (CLAUDE.md "Sabit kasaba"): a random campaign id gave random towns, and in some (seeds 179,
+    # 863) one person owns two matters and the opening's street talk already says their name (main CI 45041610987).
+    TOWN_SEED = 7400
 
     async def start(self):
-        self.city, self.session_id, self.session, self.turn_url, self.npc = await self.campaign_with_npc()
+        with fixed_town(self, self.TOWN_SEED):
+            self.city, self.session_id, self.session, self.turn_url, self.npc = await self.campaign_with_npc()
         self.client = speech.ScriptedNpcSpeechClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         self.session = self.manager.get(self.session_id).game_session
@@ -488,9 +492,8 @@ class PointingGoesSomewhere(ThroughTheRealTurn):
 
     async def test_street_talk_is_newer_than_what_someone_said_earlier(self):
         # Real play: "Selwyn Karakolu ..." overheard, then "Oraya gidiyorum" went back to the temple named before.
-        # The town is pinned (D-074): in some towns every open matter is already heard before the walk.
-        with fixed_town(self, 7400):
-            world = await self.heard()
+        # The town is pinned (D-074, TOWN_SEED): in some towns every open matter is already heard before the walk.
+        world = await self.heard()
         await self.say("İş bilen var mı?", f"{self.place['name']} tarafına bak.")
         for npc in world["npcs"]:
             npc["location"] = "elsewhere"
