@@ -306,5 +306,10 @@ Task 12 fix round 2: done
 - Step 3 speed (same method as Task 7: OLD = AI-DND-k2-d331 @54835935 = TBBASE, NEW = this worktree HEAD d065e8b6, slot 4, flag off, warm-ups discarded, order O,N,N,O,O,N,N,O,O,N). OLD: 23.36 22.47 23.23 22.25 22.97 -> median 22.97. NEW: 24.65 22.92 22.90 23.32 25.07 -> median 23.32. Ratio 1.015 (limit 1.10) PASS. Raw: tb13-bench.txt. Off flag only, as in Task 7 Ruling.
 - Step 4 whole-branch Opus review on `git diff TBBASE...HEAD`: controller dispatches (not done here). Verdict must be written here.
 - Step 5 PR: skipped (workers never push or open PRs this week; owner ruling). `graphify update .`: not run, graphify-out does not exist in this worktree (carried note).
-- Approval list at dilim end (gevşetme olabilir): game.py budget rises for R8 re-exports (T4 +1, T6 +8, T10 +9, T11 +4, T12 +6 as recorded), key removal for resolved_narration long_functions (T6), surface.json signature (T5). Open parks: plain-name raw_intent fix then 5 refused T11b rows + T10 rows 3521/3585; T11a flow-sensitive cut_block; Task 14 play: oynayış bekliyor.
+- Approval list at dilim end (gevşetme olabilir): game.py size_budget rises, all R8 re-export lines (T4 +1, T6 +8, T8 +4, T9a +11, T9b +9, T10 +9, T11a +6, T11b +4, T12 +6; total +58; budget = real size 1116; net budget 1447 -> 1116), key removal for resolved_narration long_functions (T6), surface.json signature (T5). Open parks: plain-name raw_intent fix then 5 refused T11b rows + T10 rows 3521/3585; T11a flow-sensitive cut_block; Task 14 play: oynayış bekliyor.
 Task 13: implemented (commits d065e8b6..HEAD)
+
+Task 13 fix round 1
+- Finding 1 fixed: approval-list row rewritten with all nine game.py budget rises (+58 total), marked gevşetme olabilir.
+- Finding 2 fixed: run_all.sh now reads game_parts/resolved_narration.py for _narrate_resolved_turn when present (game.py before T5/T6); narrate_resolved_final.txt regenerated from HEAD (8421 bytes, 140 lines, 52 blocks).
+- Finding 3 Ruling: t3/t6 cut reports not committed — reviewer reproduced T6 byte-identical (CHANGED 0) independently; rebuilding old reports adds no new evidence — if wrong, cost is one missing artefact, evidence stays in ledger and review. No code change, so no test run (docs/script only).
