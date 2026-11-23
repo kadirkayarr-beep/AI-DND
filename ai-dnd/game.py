@@ -442,6 +442,15 @@ from game_parts.turn_exits import _tx_enemy_turns
 from game_parts.turn_exits import _tx_player_down
 from game_parts.turn_exits import _tx_timed_sequence
 from game_parts.turn_exits import _tx_procedural_ids_before
+from game_parts.turn_exits import _tx_smalltalk_response
+from game_parts.turn_exits import _tx_lore_gate
+from game_parts.turn_exits import _tx_place_recommendation_safety_input
+from game_parts.turn_exits import _tx_npc_dialogue_route
+from game_parts.turn_exits import _tx_supported_lore_response
+from game_parts.turn_exits import _tx_work_answer
+from game_parts.turn_exits import _tx_quest_availability
+from game_parts.turn_exits import _tx_npc_query
+from game_parts.turn_exits import _tx_historical_name_query
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"

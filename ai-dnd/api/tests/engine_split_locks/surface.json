@@ -3113,17 +3113,47 @@
   "session_bound": true,
   "signature": "(*, combat, finish_turn, interaction_mode, player_input, resolve_intent, target_id)"
  },
+ "_tx_historical_name_query": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, npc_target, player_input)"
+ },
  "_tx_location_query": {
   "kind": "function",
   "module": "game_parts.turn_exits",
   "session_bound": true,
   "signature": "(*, finish_turn, interaction_mode, npc_target, player_input)"
  },
+ "_tx_lore_gate": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, lore_gate, npc_target, player_input)"
+ },
  "_tx_name_topic": {
   "kind": "function",
   "module": "game_parts.turn_exits",
   "session_bound": true,
   "signature": "(*, finish_turn, npc_target, player_input, topic_name)"
+ },
+ "_tx_npc_dialogue_route": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, answer_in_person, experimental_unverified_claim, interaction_mode, npc_place_recommendation, npc_target, player_input, spoken_reference)"
+ },
+ "_tx_npc_query": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, npc_target, player_input)"
+ },
+ "_tx_place_recommendation_safety_input": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, lore_safety_input, npc_place_recommendation, npc_target, player_input)"
  },
  "_tx_planned_direct": {
   "kind": "function",
@@ -3143,11 +3173,35 @@
   "session_bound": true,
   "signature": "(*, procedural_entity_ids, scene_plan)"
  },
+ "_tx_quest_availability": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, interaction_mode, player_input, world_state)"
+ },
+ "_tx_smalltalk_response": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, action_id, experimental_dialogue_session, finish_turn, front_talk, interaction_mode, npc_target, player_input, smalltalk_response)"
+ },
+ "_tx_supported_lore_response": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, lore_context, supported_lore_response)"
+ },
  "_tx_timed_sequence": {
   "kind": "function",
   "module": "game_parts.turn_exits",
   "session_bound": true,
   "signature": "(*, finish_turn, interaction_mode, player_input, scene_plan, sleeping, world_state)"
+ },
+ "_tx_work_answer": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, npc_target, work_answer, world_state)"
  },
  "_unarmed_save_text": {
   "kind": "function",

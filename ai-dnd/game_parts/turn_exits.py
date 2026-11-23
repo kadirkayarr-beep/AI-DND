@@ -1,3 +1,5 @@
+import re
+import talk_front
 import timed_gameplay
 import scheduled_events
 import copy
@@ -525,3 +527,265 @@ def _tx_procedural_ids_before(*, procedural_entity_ids, scene_plan):
     else:
         procedural_ids_before = procedural_entity_ids()
     return procedural_ids_before
+
+
+def _tx_smalltalk_response(*, action_id, experimental_dialogue_session, finish_turn, front_talk, interaction_mode, npc_target, player_input, smalltalk_response):
+    if (
+        smalltalk_response
+        and isinstance(npc_target, dict)
+        # BM Task 3: a plain-talk reading means the person answers by speech; these fixed lines are the fallback
+        and talk_front.old_owner_allowed(
+            front_talk, "personal" if local_dialogue.personal_answer(npc_target, player_input) else "small_talk")
+        and (
+            not experimental_dialogue_session
+            or (interaction_mode != "say" and not local_dialogue.has_multiple_dialogue_clauses(
+                player_input, npc_target
+            ))
+        )
+    ):
+        personal = (
+            local_dialogue.personal_answer(npc_target, player_input)
+            if isinstance(npc_target, dict)
+            else None
+        )
+        conversation_start = game._is_conversation_start_input(player_input)
+        action_result = {
+            "action": "dialogue",
+            "status": (
+                "answered_personal_question" if personal
+                else "conversation_started" if conversation_start
+                else "answered_smalltalk"
+            ),
+            "success": True,
+            "npc_id": npc_target["id"],
+            **({
+                "reality_category": personal[1]
+            } if personal else {}),
+            "state_changes": [],
+        }
+        game.record_npc_interaction(
+            npc_target, smalltalk_response, player_input, npc_target
+        )
+        game._remember_owner_locked_tavern_focus(
+            player_input, npc_target, action_id
+        )
+        if (
+            personal
+            or conversation_start
+            or living_world.is_tavern_search(player_input)
+            or game._is_local_place_question(player_input)
+        ):
+            return finish_turn(
+                action_result,
+                smalltalk_response,
+                safety_handling="python_scene_response",
+            )
+        return finish_turn(
+            action_result,
+            smalltalk_response,
+        )
+    return game._TURN_FALL_THROUGH
+
+
+def _tx_lore_gate(*, finish_turn, lore_gate, npc_target, player_input):
+    if lore_gate:
+        action_result = {
+            "action": "dialogue",
+            "status": "unverified",
+            "success": False,
+            "state_changes": [],
+        }
+        return finish_turn(
+            action_result,
+            game._unverified_lore_response(player_input, npc_target),
+            safety_reason_code="UNVERIFIED_LORE_CLAIM",
+            safety_handling="python_fallback",
+        )
+    return game._TURN_FALL_THROUGH
+
+
+def _tx_place_recommendation_safety_input(*, lore_safety_input, npc_place_recommendation, npc_target, player_input):
+    if npc_place_recommendation:
+        # A resolved, visible addressee is not an unsupported lore entity.
+        # Remove only that person/role from the lore scan; other named claims
+        # in the same request remain subject to the ordinary fail-closed gate.
+        lore_safety_input = game._lore_guard_text(player_input)
+        for reference in (
+            living_world.public_npc_name(npc_target),
+            living_world.public_npc_role(npc_target),
+        ):
+            normalized_reference = game._lore_guard_text(reference or "")
+            if normalized_reference:
+                lore_safety_input = re.sub(
+                    rf"(?<![a-z0-9]){re.escape(normalized_reference)}"
+                    rf"[a-z0-9]*(?![a-z0-9])",
+                    " ",
+                    lore_safety_input,
+                )
+    return lore_safety_input
+
+
+def _tx_npc_dialogue_route(*, answer_in_person, experimental_unverified_claim, interaction_mode, npc_place_recommendation, npc_target, player_input, spoken_reference):
+    # Resolve dialogue ownership once, before the topical gate. The UI's
+    # default do mode must not block a turn the speech owner would handle.
+    npc_dialogue_route = bool(npc_target and (
+        interaction_mode == "say"
+        or spoken_reference
+        or experimental_unverified_claim
+        or answer_in_person
+        or game._report_of_someone_else(player_input, npc_target)
+        or npc_place_recommendation
+        or game.is_npc_dialogue_input(player_input)
+        or local_dialogue.personal_question_kind(player_input) == "local_work"  # "burada ... var mı" also reads as a look
+        or game._is_short_conversation_continuation(player_input)
+        or game._is_spoken_to(player_input, npc_target)
+        or game._asked_of_the_one_at_hand(player_input, npc_target)
+    ))
+    return npc_dialogue_route
+
+
+def _tx_supported_lore_response(*, finish_turn, lore_context, supported_lore_response):
+    if supported_lore_response:
+        diagnostics = lore_context.get("diagnostics", {}) if isinstance(lore_context, dict) else {}
+        selected_ids = diagnostics.get("selected_fact_ids", []) if isinstance(diagnostics, dict) else []
+        action_result = {
+            "action": "dialogue",
+            "status": "answered_from_loaded_lore",
+            "success": True,
+            "state_changes": [],
+            "discovered_fact_ids": game._spoken_lore_fact_ids(
+                lore_context, supported_lore_response, selected_ids,
+            ),
+        }
+        return finish_turn(action_result, supported_lore_response)
+    return game._TURN_FALL_THROUGH
+
+
+def _tx_work_answer(*, finish_turn, npc_target, work_answer, world_state):
+    # A person who is here answers for themselves on the speech path.
+    if work_answer and not isinstance(npc_target, dict):
+        response = game._overheard_work(world_state) or work_answer[0]
+        action_result = {
+            "action": "local_inquiry",
+            "status": "answered_without_offer",
+            "success": True,
+            "reality_category": work_answer[1],
+            "state_changes": [],
+        }
+        return finish_turn(
+            action_result,
+            response,
+            safety_handling="python_scene_response",
+        )
+    return game._TURN_FALL_THROUGH
+
+
+def _tx_quest_availability(*, finish_turn, interaction_mode, player_input, world_state):
+    if (
+        interaction_mode not in {"say", "ask_dm"}
+        and local_dialogue.quest_availability_question(player_input)
+    ):
+        active_quests = [
+            quest for quest in world_state.get("quests", [])
+            if isinstance(quest, dict) and quest.get("status") == "accepted"
+        ]
+        offers = game._session().quest_offers()
+        titles = []
+        for quest in [*active_quests, *offers]:
+            title = quest.get("title") if isinstance(quest, dict) else None
+            if isinstance(title, str) and title.strip() and title.strip() not in titles:
+                titles.append(title.strip())
+        if titles:
+            message = "Üstlenebileceğin işler şunlar: " + ", ".join(titles) + "."
+        else:
+            message = "Bu bölgede sana sunulmuş etkin bir görev yok."
+        action_result = {
+            "action": "quest_inquiry",
+            "status": "answered_from_campaign_state",
+            "success": True,
+            "state_changes": [],
+        }
+        return finish_turn(action_result, message, is_final=True)
+    return game._TURN_FALL_THROUGH
+
+
+def _tx_npc_query(*, finish_turn, npc_target, player_input):
+    if isinstance(npc_target, dict) and isinstance(npc_target.get("id"), str):
+        query_type = game._detect_query_type(player_input, npc_target)
+        if query_type == "npc_identity" and local_dialogue.is_identity_only_question(player_input, npc_target):
+            query_response = game._handle_query(
+                player_input, query_type, npc_target
+            )
+            if query_response:
+                action_result = {
+                    "action": "query",
+                    "status": "answered_from_campaign_state",
+                    "success": True,
+                    "query_type": query_type,
+                    "npc_id": npc_target["id"],
+                    "state_changes": [],
+                    "direct_response": query_response,
+                }
+                game.record_npc_interaction(
+                    npc_target, query_response, player_input, npc_target
+                )
+                return finish_turn(
+                    action_result,
+                    query_response,
+                    safety_handling="python_scene_response",
+                )
+    return game._TURN_FALL_THROUGH
+
+
+def _tx_historical_name_query(*, finish_turn, npc_target, player_input):
+    if (
+        isinstance(npc_target, dict)
+        and game._is_historical_player_name_query(player_input)
+        and not game._explicit_player_name_disclosure(player_input)
+    ):
+        remembered_name = (
+            game._historical_player_name_from_npc_memory(npc_target, player_input)
+            or game._historical_player_name_from_claims(
+                npc_target,
+                player_input,
+                getattr(game._session(), "_supported_player_claims", None),
+            )
+        )
+        npc_name = living_world.public_npc_name(npc_target)
+        is_hitap = bool(re.search(r"\b(?:ad[ıi]mla|ismimle)\s+hitap\b", game._normalize_turkish_typos(str(player_input).casefold())))
+        if remembered_name:
+            if is_hitap:
+                response = f'{npc_name}, “Elbette, {remembered_name}. Sana adınla hitap edebilirim,” der.'
+            else:
+                response = f'{npc_name}, “Evet, adının {remembered_name} olduğunu hatırlıyorum,” der.'
+        else:
+            if is_hitap:
+                response = f'{npc_name}, “Bana henüz adını söylemedin; adını bilmeden sana adınla hitap edemem,” der.'
+            else:
+                response = f'{npc_name}, “Bana henüz adını söylemedin; adını bilmiyorum,” der.'
+        action_result = {
+            "action": "dialogue",
+            "status": "answered_from_npc_memory",
+            "success": True,
+            "npc_id": npc_target.get("id"),
+            "reality_category": (
+                local_dialogue.PROCEDURAL_PERSONAL_FACT
+                if remembered_name
+                else local_dialogue.CAMPAIGN_FACT
+            ),
+            "state_changes": [],
+        }
+        game.record_npc_interaction(
+            npc_target, response, player_input, npc_target
+        )
+        return finish_turn(
+            action_result,
+            response,
+            safety_reason_code=(
+                "NPC_MEMORY_SUPPORTED_PLAYER_NAME"
+                if remembered_name
+                else "NPC_MEMORY_UNSUPPORTED_CLAIM"
+            ),
+            safety_handling="python_memory_response",
+        )
+    return game._TURN_FALL_THROUGH

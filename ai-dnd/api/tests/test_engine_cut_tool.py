@@ -627,7 +627,12 @@ class TurnExitsLiftTests(unittest.TestCase):
                                       "_tx_attack_target_missing", "_tx_enemy_turns",
                                       "_tx_explicit_sword_drop", "_tx_location_query", "_tx_name_topic",
                                       "_tx_planned_direct", "_tx_player_down", "_tx_procedural_ids_before",
-                                      "_tx_timed_sequence"})
+                                      "_tx_timed_sequence",
+                                      # Task 9b cuts (turn exits, second half)
+                                      "_tx_historical_name_query", "_tx_lore_gate", "_tx_npc_dialogue_route",
+                                      "_tx_npc_query", "_tx_place_recommendation_safety_input",
+                                      "_tx_quest_availability", "_tx_smalltalk_response",
+                                      "_tx_supported_lore_response", "_tx_work_answer"})
         for fn in found.values():
             self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
 
