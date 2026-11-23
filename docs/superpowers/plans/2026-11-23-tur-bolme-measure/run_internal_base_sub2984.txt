@@ -1,0 +1,10 @@
+# turn.py@base :: _run_player_turn_internal.block@2984.body  lines 877-3617 (2741)  blocks=4
+idx | lines | n | kind | in(direct) | out | ret/raise | markers | outputs | late-closure | inputs | nonlocal
+  0 | 2985-2985 | 1 | raw_spoken = raw_intent.get("spoken_text") if isinstance(raw_intent, d | 1(1) | 1 | 0/0 |  | raw_spoken |  | raw_intent | 
+  1 | 2986-2986 | 1 | raw_stage = raw_intent.get("stage_direction") if isinstance(raw_intent | 1(1) | 1 | 0/0 |  | raw_stage |  | raw_intent | 
+  2 | 2989-3022 | 34 | valid_speech_packet = ( | 3(3) | 1 | 0/0 | money:3 | valid_speech_packet |  | raw_intent raw_spoken raw_stage | 
+  3 | 3023-3122 | 100 | if valid_speech_packet: | 12(12) | 5 | 0/0 | money:10,session_write:1 | attributed_speech invalid_spoken_stage_direction model_raw_narration raw_narration settled_money |  | action_result attributed_speech name_stance npc_target player_input raw_intent raw_spoken raw_stage recognised settled_money valid_speech_packet world_state | 
+SUMMARY {"target": "_run_player_turn_internal.block@2984.body", "label": "turn.py@base", "lines": 2741, "blocks": 4, "blocks_ge20_lines": 2, "blocks_ge20_out_le5": 2, "lines_in_ge20_out_le5": 134, "blocks_out_le5": 4, "blocks_with_return": 0, "returns": 0, "raises": 0, "nested_defs": ["finish_conversation_rejection", "finish_conversation_resolution", "finish_turn", "procedural_entity_ids", "resolve_intent", "told_intent_calls", "validate_interaction_conversation"], "blocks_touching": {"money": 2, "save": 0, "undo": 0, "session_write": 1, "model": 0, "locals()": 0}}
+CUT yes A 2989-3022 n=34 out=1 ret=0 hazard=- flags=money :: valid_speech_packet = (
+CUT yes A 3023-3122 n=100 out=5 ret=0 hazard=- flags=money,session_write :: if valid_speech_packet:
+CUTSUM {"rows_ge_min": 2, "cut_yes": 2, "cut_yes_lines": 134, "by_class": {"A": 2, "B": 0, "C": 0, "D": 0}, "hazard_blocks": 0}

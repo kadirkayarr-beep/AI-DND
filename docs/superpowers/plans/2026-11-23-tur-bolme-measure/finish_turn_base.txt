@@ -1,0 +1,40 @@
+# turn.py@base :: _run_player_turn_internal.finish_turn  lines 1013-1243 (231)  blocks=24
+idx | lines | n | kind | in(direct) | out | ret/raise | markers | outputs | late-closure | inputs | nonlocal
+  0 | 1023-1023 | 1 | interaction_adventure.get(world_state) | 0(0) | 0 | 0/0 |  |  |  |  | 
+  1 | 1024-1027 | 4 | if narration is None and isinstance(action_result, dict): | 2(2) | 2 | 0/0 |  | is_final narration |  | action_result narration | 
+  2 | 1028-1037 | 10 | if ( | 1(1) | 0 | 0/0 |  |  |  | action_result | 
+  3 | 1038-1047 | 10 | is_experimental = ( | 1(1) | 1 | 0/0 |  | is_experimental |  | action_result | 
+  4 | 1048-1048 | 1 | interaction_consumed = is_experimental | 1(1) | 1 | 0/0 |  | interaction_consumed |  | is_experimental | 
+  5 | 1049-1062 | 14 | if ( | 3(3) | 2 | 0/0 |  | interaction_consumed narration |  | action_result is_experimental narration | 
+  6 | 1063-1074 | 12 | if isinstance(action_result, dict) and action_result.get("action") in  | 1(1) | 0 | 0/0 |  |  |  | action_result | 
+  7 | 1075-1084 | 10 | if isinstance(action_result, dict) and "campaign_time" in world_state: | 1(1) | 0 | 0/0 |  |  |  | action_result | 
+  8 | 1085-1095 | 11 | if game._is_internal_player_facing_text(narration): | 2(2) | 1 | 0/0 |  | narration |  | action_result narration | 
+  9 | 1096-1104 | 9 | if record_safety: | 4(4) | 0 | 0/0 |  |  |  | action_result record_safety safety_handling safety_reason_code | 
+ 10 | 1105-1112 | 8 | if ( | 2(2) | 0 | 0/0 |  |  |  | action_result is_experimental | 
+ 11 | 1113-1119 | 7 | if ( | 1(1) | 0 | 0/0 |  |  |  | action_result | 
+ 12 | 1120-1124 | 5 | if isinstance(action_result, dict) and isinstance(scene_plan, dict): | 1(1) | 0 | 0/0 |  |  |  | action_result | 
+ 13 | 1125-1126 | 2 | result = {"action_result": action_result, "narration": narration, | 3(3) | 1 | 0/0 |  | result |  | action_result interaction_consumed narration | 
+ 14 | 1127-1136 | 10 | result["_engine_event_evidence"] = { | 2(2) | 0 | 0/0 |  |  |  | quest_outcomes result | 
+ 15 | 1138-1153 | 16 | def _incident_before_skipped_narration | 1(1) | 2 | 1/0 | model:3 | _incident_before_skipped_narration narration_model_calls |  | action_result | narration_model_calls
+ 16 | 1155-1172 | 18 | if is_final: | 7(7) | 0 | 1/0 | model:5 |  |  | _incident_before_skipped_narration action_result is_final narration_model_calls result safety_handling safety_reason_code | 
+ 17 | 1174-1174 | 1 | status = action_result.get("status") if isinstance(action_result, dict | 1(1) | 1 | 0/0 |  | status |  | action_result | 
+ 18 | 1175-1175 | 1 | action = action_result.get("action") if isinstance(action_result, dict | 1(1) | 1 | 0/0 |  | action |  | action_result | 
+ 19 | 1177-1177 | 1 | system_deterministic = False | 0(0) | 1 | 0/0 |  | system_deterministic |  |  | 
+ 20 | 1178-1198 | 21 | if status in ( | 4(4) | 1 | 0/0 | money:2 | system_deterministic |  | action action_result safety_handling status | 
+ 21 | 1200-1219 | 20 | if system_deterministic: | 7(6) | 0 | 1/0 | model:3 |  |  | _incident_before_skipped_narration action_result narration_model_calls result safety_handling safety_reason_code system_deterministic | 
+ 22 | 1221-1242 | 22 | resolved = game.ResolvedTurn( | 6(6) | 1 | 0/0 | money:2,model:1 | resolved |  | action_result narration quest_outcomes result safety_handling safety_reason_code | 
+ 23 | 1243-1243 | 1 | raise game.TurnResolved(result, resolved) | 2(2) | 0 | 0/1 |  |  |  | resolved result | 
+SUMMARY {"target": "_run_player_turn_internal.finish_turn", "label": "turn.py@base", "lines": 231, "blocks": 24, "blocks_ge20_lines": 3, "blocks_ge20_out_le5": 3, "lines_in_ge20_out_le5": 63, "blocks_out_le5": 24, "blocks_with_return": 3, "returns": 3, "raises": 1, "nested_defs": ["_incident_before_skipped_narration"], "blocks_touching": {"money": 2, "save": 0, "undo": 0, "session_write": 0, "model": 4, "locals()": 0}}
+CUT yes A 1028-1037 n=10 out=0 ret=0 hazard=- flags=- :: if (
+CUT yes A 1038-1047 n=10 out=1 ret=0 hazard=- flags=- :: is_experimental = (
+CUT yes A 1049-1062 n=14 out=2 ret=0 hazard=- flags=- :: if (
+CUT yes A 1063-1074 n=12 out=0 ret=0 hazard=- flags=- :: if isinstance(action_result, dict) and action_resu
+CUT yes A 1075-1084 n=10 out=0 ret=0 hazard=- flags=- :: if isinstance(action_result, dict) and "campaign_t
+CUT yes A 1085-1095 n=11 out=1 ret=0 hazard=- flags=- :: if game._is_internal_player_facing_text(narration)
+CUT yes A 1127-1136 n=10 out=0 ret=0 hazard=- flags=- :: result["_engine_event_evidence"] = {
+CUT no  D 1138-1153 n=16 out=2 ret=1 hazard=- flags=model :: def _incident_before_skipped_narration
+CUT yes B 1155-1172 n=18 out=0 ret=1 hazard=- flags=model :: if is_final:
+CUT yes A 1178-1198 n=21 out=1 ret=0 hazard=- flags=money :: if status in (
+CUT yes B 1200-1219 n=20 out=0 ret=1 hazard=- flags=model :: if system_deterministic:
+CUT yes A 1221-1242 n=22 out=1 ret=0 hazard=- flags=money,model :: resolved = game.ResolvedTurn(
+CUTSUM {"rows_ge_min": 12, "cut_yes": 11, "cut_yes_lines": 158, "by_class": {"A": 9, "B": 2, "C": 0, "D": 1}, "hazard_blocks": 0}
