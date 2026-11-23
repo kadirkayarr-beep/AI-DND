@@ -195,8 +195,11 @@ Rules:
 - Create: `docs/agents/kalite-kapisi.md`
 
 - [ ] **Step 1: Remove any leftover `continue-on-error`** from `python-gate`, `secrets-gate` and the knip step; remove the `measure` job; fallow and skylos stay report-only. Run the policy test (`qg9-green`).
+- [ ] **Step 1b: Add a `size_lock.json` shrink step** to `python-gate` (like the knip, whitelist and gitleaks shrink steps): fail if any budget rises or a file entry is added above its current size compared with origin/main. Acceptance: a CI step exists and a policy test names it.
 - [ ] **Step 2: Write `kalite-kapisi.md`** in short plain Turkish: which job guards what; how to read a red job; how to lower a baseline (`ratchet update` refuses growth); raising needs Kadir; real dead code goes only through a debt row, a test and a commit.
 - [ ] **Step 3: Run the final set** `slot.sh 9 <WT> test qg9-final 900 api.tests.test_quality_ratchet api.tests.test_quality_policy api.tests.test_quality_size_budget api.tests.test_engine_size_budget` plus the neighbor set; also the structural health check if it runs in the slot. Show the output before claiming done.
 - [ ] **Step 3b: Required check.** Ask Kadir to mark the three quality jobs as required status checks (repo setting, owner action); until then the gate warns but cannot block a merge.
 - [ ] **Step 4: Update `YOL_HARITASI.md` row 4b** status to "kod tamam, PR bekliyor" (no play needed: S9). Commit.
 - [ ] **Step 5: With Kadir's push approval**, push, open the PR, check `gh run list` for both workflows; no "done" before green. Copy the Task 4 answers on the spec's unverified items (postinstall, Python 3.13, telemetry) into the debt register.
+
+Not (Task 8, düzeltme turu 2): `size_lock.json` yalnız `part_max` üstündeki dosyaları ve uzun işlevleri tutar (motor kilidi gibi); diğer her dosya `part_max` ile sınırlıdır. Bu, Step 3'ün "her dosya bugünkü boyutunda" cümlesini daraltır; onay listesi §25'te "gevşetme olabilir" diye işaretli.
