@@ -71,6 +71,27 @@ class RatchetCompareTests(unittest.TestCase):
         self.assertEqual(parse_ruff("[]"), [])
 
 
+class RatchetAbsolutePathTests(unittest.TestCase):
+    def keys(self, path: str, root: str) -> list[str]:
+        return parse_ruff(ruff_report(1, path=path), root=root)
+
+    def test_absolute_windows_and_linux_paths_give_same_key(self):
+        win = self.keys("C:" + BS + "Work" + BS + "ai-dnd" + BS + "a" + BS + "b.py", "C:/Work/ai-dnd")
+        lin = self.keys("/home/runner/w/ai-dnd/a/b.py", "/home/runner/w/ai-dnd")
+        self.assertEqual(win, lin)
+        self.assertEqual(win, ["ruff|a/b.py|F401|os"])
+
+    def test_windows_root_is_case_insensitive(self):
+        self.assertEqual(self.keys("c:/work/AI-DND/a/b.py", "C:/Work/ai-dnd"), ["ruff|a/b.py|F401|os"])
+
+    def test_path_outside_root_stays_absolute(self):
+        self.assertEqual(self.keys("/other/x.py", "/home/r/ai-dnd"), ["ruff|/other/x.py|F401|os"])
+
+    def test_non_dict_item_is_tool_error(self):
+        with self.assertRaises(ToolOutputError):
+            parse_ruff("[1, 2]")
+
+
 class RatchetCliTests(unittest.TestCase):
     def run_cli(self, mode: str, tool: str, report: Path, base_dir: Path):
         """In-process: the test slot blocks child processes."""
@@ -109,6 +130,11 @@ class RatchetCliTests(unittest.TestCase):
             self.assertEqual(self.run_cli("check", "ruff", report, base_dir).returncode, 1)
             report.write_text("", encoding="utf-8")
             self.assertEqual(self.run_cli("check", "ruff", report, base_dir).returncode, 2)
+
+    def test_missing_report_file_is_exit_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            self.assertEqual(self.run_cli("check", "ruff", tmp / "nope.json", tmp).returncode, 2)
 
     def test_baseline_io_is_sorted_lf_utf8(self):
         with tempfile.TemporaryDirectory() as tmp:

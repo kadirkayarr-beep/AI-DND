@@ -27,6 +27,14 @@ def finding_key(tool: str, path: str, rule: str, name: str) -> str:
     return f"{tool}|{p}|{rule}|{name}"
 
 
+def _relativize(path: str, root: str) -> str:
+    p = path.replace("\\", "/")
+    r = root.replace("\\", "/").rstrip("/")
+    fold = re.match(r"^[A-Za-z]:", r) is not None
+    a, b = (p.lower(), r.lower()) if fold else (p, r)
+    return p[len(r) + 1:] if a.startswith(b + "/") else p
+
+
 def count_findings(keys: list[str]) -> Counts:
     counts: Counts = {}
     for k in keys:
@@ -66,12 +74,21 @@ def _symbol(message: str) -> str:
     return m.group(1) if m else message.strip()
 
 
-def parse_ruff(text: str) -> list[str]:
+def parse_ruff(text: str, root: str | None = None) -> list[str]:
+    """root: absolute checkout dir the report paths are relative to (default: the ai-dnd dir of this checkout)."""
+    root = root if root is not None else str(BASELINE_DIR.parents[2])
     data = _load_json(text, "ruff")
     if not isinstance(data, list):
         raise ToolOutputError("ruff: expected a JSON list")
+    if not all(isinstance(i, dict) for i in data):
+        raise ToolOutputError("ruff: list items must be objects")
     return [
-        finding_key("ruff", str(i.get("filename", "")), str(i.get("code", "")), _symbol(str(i.get("message", ""))))
+        finding_key(
+            "ruff",
+            _relativize(str(i.get("filename", "")), root),
+            str(i.get("code", "")),
+            _symbol(str(i.get("message", ""))),
+        )
         for i in data
     ]
 
@@ -133,6 +150,9 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     try:
         current = count_findings(PARSERS[args.tool](args.report.read_text(encoding="utf-8")))
+    except OSError as exc:
+        print(f"TOOL OUTPUT ERROR: cannot read report ({exc})", file=sys.stderr)
+        return 2
     except ToolOutputError as exc:
         print(f"TOOL OUTPUT ERROR: {exc}", file=sys.stderr)
         return 2
