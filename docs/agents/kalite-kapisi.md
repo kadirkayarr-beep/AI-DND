@@ -11,7 +11,7 @@ Yeni ölü kod, kullanılmayan import, sızan anahtar ve ayar dışı büyüme b
 | `ui-gate` | knip baseline'a karşı + baseline yalnız küçülür | Evet |
 | `ui-gate` içinde fallow ve skylos | yalnız rapor (`continue-on-error`) | Hayır |
 
-Boyut kilidi (satır sayısı) testle korunur: `test_quality_size_budget` ve `test_engine_size_budget`.
+Boyut kilidi (satır sayısı) testle korunur (`size_lock.json` yalnız `part_max` (2500) üstündeki dosyaları ve uzun işlevleri bugünkü boyutlarıyla dondurur; öteki dosyaların girişi yoktur, `part_max` ile sınırlıdır): `test_quality_size_budget` ve `test_engine_size_budget`.
 
 ## Kırmızı işi okumak
 
@@ -22,11 +22,11 @@ Boyut kilidi (satır sayısı) testle korunur: `test_quality_size_budget` ve `te
 
 ## Baseline nasıl düşürülür
 
-Bir bulguyu gerçekten düzelttiysen: aracın raporunu al, `python -m scripts.quality_gate.ratchet update <ruff|knip|fallow> <rapor.json>` çalıştır (`ai-dnd/` içinde). `update` büyümeyi reddeder; yalnız küçültür. Vulture listesi ve `size_lock.json` için de satırı silmek yeter. Düşürmek onay istemez.
+Bir bulguyu gerçekten düzelttiysen: aracın raporunu al, `python -m scripts.quality_gate.ratchet update <ruff|knip|fallow> <rapor.json>` çalıştır (`ai-dnd/` içinde). `update` büyümeyi reddeder; yalnız küçültür. Vulture listesi için satırı silmek yeter. `size_lock.json` için: `part_max` üstündeki bir dosya `part_max`'a inince girişi silinir; `part_max` altı bütçesi olan bir girişi silmek büyüme sayılır (`GREW`), çünkü o dosyanın tek sınırı o girişti. Düşürmek onay istemez.
 
 ## Yükseltmek
 
-Baseline ya da bütçe sayısını yükseltmek (yeni satır eklemek dahil) onay listesinde satır ve Kadir'in onayı ister. CI bunu `GREW` ile kırmızı yapar; onay verilirse `main`'deki dosya Kadir'in onayıyla güncellenir.
+Baseline ya da bütçe sayısını yükseltmek (yeni satır eklemek dahil) onay listesinde satır ve Kadir'in onayı ister. CI bunu `GREW` ile kırmızı yapar; onay verilirse yükseltme PR'ı Kadir'in tek seferlik yönetici birleştirmesiyle (admin merge) iner; PR gövdesine onay satırının kimliği (ör. `D-xxx`) yazılır. Zorunlu kontroller açıkken bunun başka yolu yoktur, bu yüzden yükseltme PR'ı yalnız baseline/kilit dosyasını değiştirir.
 
 ## Gerçek ölü kod
 

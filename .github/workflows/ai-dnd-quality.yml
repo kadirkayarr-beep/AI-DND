@@ -135,6 +135,6 @@ jobs:
         continue-on-error: true
         run: |
           PKG=$(python -c "import json;t=json.load(open('ai-dnd/scripts/quality_gate/tools.json'));print('skylos=='+t['skylos'])")
-          python -m pip install "$PKG"
+          python -m pip install --only-binary=:all: "$PKG"
           skylos ai-dnd --no-upload --json > "$RUNNER_TEMP/gate/skylos.json" || true
           python -c "import json,os;d=json.load(open(os.environ['RUNNER_TEMP']+'/gate/skylos.json'));print({k:len(v) for k,v in d.items() if isinstance(v,list)})"

@@ -49,9 +49,19 @@ class SizeLockShrinkTests(unittest.TestCase):
         self.assertEqual(self.run_cli(self.lock(ts_files={"artifacts/x/src/a.ts": 11}), self.base(ts_files={"artifacts/x/src/a.ts": 10}))[0], 1)
 
     def test_lowered_removed_and_equal_exit_0(self):
-        old = self.base(files={"a.py": 100, "b.py": 5}, ts_files={"t.ts": 9}, long_functions={"a.py::f": 200})
-        new = self.lock(files={"a.py": 90}, ts_files={"t.ts": 9}, long_functions={"a.py::f": 180})
+        old = self.base(files={"a.py": 3000, "b.py": 2600}, ts_files={"t.ts": 2501}, long_functions={"a.py::f": 200, "g.py::h": 160})
+        new = self.lock(files={"a.py": 2900}, ts_files={"t.ts": 2501}, long_functions={"a.py::f": 180})
         self.assertEqual(self.run_cli(new, old)[0], 0)
+
+    def test_removed_entry_at_or_below_part_max_exits_1(self):
+        # an entry at or below part_max is the only cap that file has; deleting it would free it to grow to part_max
+        old = self.base(files={"small.py": 100}, ts_files={"artifacts/x/src/s.ts": 2500})
+        self.assertEqual(self.run_cli(self.lock(ts_files={"artifacts/x/src/s.ts": 2500}), old)[0], 1)
+        self.assertEqual(self.run_cli(self.lock(files={"small.py": 100}), self.base(files={"small.py": 100}))[0], 0)
+        code, text = self.run_cli(self.lock(), old)
+        self.assertEqual(code, 1)
+        self.assertIn("small.py", text)
+        self.assertIn("artifacts/x/src/s.ts", text)
 
     def test_new_file_entry_above_part_max_exits_1(self):
         self.assertEqual(self.run_cli(self.lock(files={"n.py": 2501}), self.base())[0], 1)

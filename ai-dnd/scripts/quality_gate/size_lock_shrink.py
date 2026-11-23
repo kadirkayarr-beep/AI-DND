@@ -31,7 +31,8 @@ def _size_lock(text: str) -> dict:
 
 
 def size_lock_growth(old: dict, new: dict) -> list[str]:
-    """Ways `new` is looser than `old`: a raised budget, a new long function, a new file entry above part_max, a looser limit."""
+    """Ways `new` is looser than `old`: a raised budget, a new long function, a new file entry above part_max, a looser limit,
+    or a dropped file entry whose budget was at or below part_max (that entry was the file's only cap below part_max)."""
     out = []
     for k in ("part_max", "slack"):
         if new[k] > old[k]:
@@ -45,6 +46,10 @@ def size_lock_growth(old: dict, new: dict) -> list[str]:
                     out.append(f"{t}: {name} raised from {old[t][name]} to {v}")
             elif t == "long_functions" or v > new["part_max"]:
                 out.append(f"{t}: {name} is a new entry ({v})")
+        if t != "long_functions":
+            for name, v in sorted(old[t].items()):
+                if name not in new[t] and v <= old["part_max"]:
+                    out.append(f"{t}: {name} entry removed but its budget {v} was within part_max; a file above part_max loses its entry only by shrinking")
     return out
 
 

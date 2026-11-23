@@ -262,6 +262,7 @@ class QualityUiGateTest(unittest.TestCase):
         self.assertIn("--no-upload", skylos)
         self.assertNotIn("[llm]", skylos)
         self.assertNotIn("--trace", skylos)
+        self.assertIn("pip install --only-binary=:all: ", skylos)
 
     def test_nothing_in_ui_gate_pushes_or_uploads(self):
         job = _job_text("ui-gate")
