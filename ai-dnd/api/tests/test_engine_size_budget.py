@@ -97,6 +97,11 @@ class SizeBudgetTests(unittest.TestCase):
         self.assertTrue(lengths and all("::" in key for key in lengths))
         self.assertEqual(lengths["game_parts/terminal.py::run"], LOCK["long_functions"]["game_parts/terminal.py::run"])
 
+    def test_game_py_is_within_the_spec_cap(self):
+        # spec §2 "1 500 satırın altına" (strictly under); §5 and §11 say <= 1 500
+        self.assertLess(LOCK["files"]["game.py"], 1500)
+        self.assertLess(real_sizes()["game.py"], 1500)
+
     def test_the_lock_matches_the_spec_values(self):
         self.assertEqual((LOCK["part_max"], LOCK["slack"], LOCK["long_function_min"]), (2500, 50, 151))
 

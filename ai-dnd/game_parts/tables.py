@@ -368,6 +368,9 @@ CELESTIAL_REVELATION_FORMS = (
     "necrotic_shroud",
 )
 
+# K01: PHB 2024 (D&D 5e - Players Handbook 2024.pdf, PDF page 185, Aasimar > Celestial Revelation > Necrotic Shroud):
+# "Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw ... or have the Frightened condition".
+# K02: "each creature within 10 feet of you takes Radiant damage" (same page, Inner Radiance); allies are not excluded.
 INNER_RADIANCE_SPEC = effect_targeting.EffectSpec("inner_radiance", 10, "PHB 2024 p.185 (PDF) Aasimar: Inner Radiance")
 
 NECROTIC_SHROUD_SPEC = effect_targeting.EffectSpec(

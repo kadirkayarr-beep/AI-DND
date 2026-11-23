@@ -19,6 +19,7 @@ Kadir programcı değil: kısa, açık, dürüst ve sade Türkçe yaz; doğrulam
 - **En az kod:** istenmeyen özellik, tek kullanımlık soyutlama, istenmemiş ayar, imkânsız durum için hata işleme yok.
 - **Cerrahi değişiklik:** yalnız görevin gerektirdiği satırlara dokun; komşu kodu, yorumu, biçimi düzeltme; var olan stile uy. Yalnız kendi değişikliğinin boşa çıkardığı import/değişken/işlevi kaldır; eski ölü kodu bildir, silme.
 - **Doğrulanabilir hedef:** her işi teste çevir (önce kırmızı test, sonra düzeltme); çok adımlı işte her adımın yanına doğrulamasını yaz.
+- **Motor dosyası (karar 8):** game.py'ye yeni işlev eklenmez; yeni kod ilgili `game_parts` modülüne ya da kendi modülüne girer. `game_parts` içinde motor adları `game.X` diye çağrılır. Boyut bütçesi yalnız Kadir'in onayıyla yükseltilir.
 
 ## Agent skills
 
@@ -76,7 +77,7 @@ Bunlar Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esa
 - **[Güvenlik] Silme koruması:** silmeden önce hedefe bak (kirli dosya, uzak dalda olmayan commit); dallar silinmez (kayıp geri alınamaz).
 - **[Hız] Paralel çalışma:** güvenlik ve kaliteden ödün vermeden mümkünse bağımsız işler aynı anda yürütülür: ayrı worktree, tek yazıcı, ayrı test yuvası (bkz. Hız kuralı 1).
 - **[Hız] Tek durma koşulları:** liste "Belirsizlik ve karar" maddesindeki dört durumdur (geri alınamaz/yıkıcı, güvenlik açısından hassas, worktree dışı yan etki, bozuk plan); burada tekrarlanmaz, başka durma koşulu eklenmez.
-- **[Hız] Token tasarrufu ve model seçimi:** haftalık limit dar; ucuz model işlere, fable yalnız para/kayıt/Geri Al ve bütün-dal incelemesine; yeni numaralı iş için önce bütçe tahmini.
+- **[Hız] Token tasarrufu ve model seçimi:** haftalık limit dar; ucuz model işlere, güçlü incelemeler (para/kayıt/Geri Al ve bütün-dal) Opus ile; fable yalnız Kadir o iş için söylerse; yeni numaralı iş için önce bütçe tahmini.
 - **[Kalite] Sahibin dili:** kısa, açık, dürüst ve sade Türkçe; Kadir programcı değil, doğrulamadığını söyle (yanlış güven zarar verir); harcama/push/merge/silme için onay iste.
 - **[Kalite] Oynayış kapısı (Kadir, 2026-11-12):** Kadir en az 10 dakika oynamadan hiçbir dilim "bitti" sayılmaz; testlerin yeşil olması oynayışın yerini tutmaz. Oynayış yapılmadıysa ledger'a "oynayış bekliyor" yazılır ve sonraki dilim başlamaz.
 - **[Kalite] Sabah özeti (Kadir, 2026-11-12):** Kadir yokken yapılan her çalışmanın sonunda en çok beş satırlık sade Türkçe özet yazılır: ne değişti, neden, hangi dosyalarda, ne doğrulandı, Kadir'den ne bekleniyor.
