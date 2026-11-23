@@ -132,6 +132,9 @@
     "_player_state_for_save": [
       "save"
     ],
+    "_procedural_entity_ids": [
+      "money"
+    ],
     "_purchase_refused": [
       "money"
     ],

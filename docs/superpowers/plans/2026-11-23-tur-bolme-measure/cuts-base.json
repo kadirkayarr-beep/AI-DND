@@ -871,7 +871,8 @@
    "world_state"
   ],
   "flags": [],
-  "task": "T9a"
+  "task": "hand",
+  "note": "uncut/hand: cut_block REFUSED conditional input (name); no hand cut. Was T9a."
  },
  {
   "function": "_run_player_turn_internal",
@@ -1903,8 +1904,8 @@
    "scene_parent"
   ],
   "flags": [],
-  "task": "T10",
-  "note": "Sensitive.json caller without money flag; moved to T10 (Opus review)."
+  "task": "hand",
+  "note": "uncut/hand: cut_block REFUSED conditional input (raw_intent); no hand cut. Was T10."
  },
  {
   "function": "_run_player_turn_internal",

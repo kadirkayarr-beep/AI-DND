@@ -3083,6 +3083,72 @@
   "session_bound": true,
   "signature": "(player_input)"
  },
+ "_tx_attack_decision": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, held_plan, interaction_mode, npc_target, player_input, quest_world_before, resolve_intent, target_id)"
+ },
+ "_tx_attack_hint_no_target": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, combat, flags, interaction_mode, npc_target, player_input, selected_npc_target, world_state, world_subject_question)"
+ },
+ "_tx_attack_target_missing": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, target_id)"
+ },
+ "_tx_enemy_turns": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, combat, finish_turn, world_state)"
+ },
+ "_tx_explicit_sword_drop": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, combat, finish_turn, interaction_mode, player_input, resolve_intent, target_id)"
+ },
+ "_tx_location_query": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, interaction_mode, npc_target, player_input)"
+ },
+ "_tx_name_topic": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, npc_target, player_input, topic_name)"
+ },
+ "_tx_planned_direct": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, planned_direct, player_input, quest_world_before, scene_plan, world_state)"
+ },
+ "_tx_player_down": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, combat, finish_turn)"
+ },
+ "_tx_procedural_ids_before": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, procedural_entity_ids, scene_plan)"
+ },
+ "_tx_timed_sequence": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, interaction_mode, player_input, scene_plan, sleeping, world_state)"
+ },
  "_unarmed_save_text": {
   "kind": "function",
   "module": "game_parts.text_rules_a",

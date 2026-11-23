@@ -431,6 +431,17 @@ from game_parts.resolved_narration import _rn_lore_unsupported
 from game_parts.resolved_narration import _rn_not_narration_only
 from game_parts.resolved_narration import _rn_rejected_scene_detail
 from game_parts.resolved_narration import _rn_build_packet
+from game_parts.turn_exits import _tx_explicit_sword_drop
+from game_parts.turn_exits import _tx_attack_decision
+from game_parts.turn_exits import _tx_location_query
+from game_parts.turn_exits import _tx_name_topic
+from game_parts.turn_exits import _tx_attack_hint_no_target
+from game_parts.turn_exits import _tx_attack_target_missing
+from game_parts.turn_exits import _tx_planned_direct
+from game_parts.turn_exits import _tx_enemy_turns
+from game_parts.turn_exits import _tx_player_down
+from game_parts.turn_exits import _tx_timed_sequence
+from game_parts.turn_exits import _tx_procedural_ids_before
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"

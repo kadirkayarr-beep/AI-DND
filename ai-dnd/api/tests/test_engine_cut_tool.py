@@ -621,7 +621,13 @@ class TurnExitsLiftTests(unittest.TestCase):
         part = self._funcs("turn_exits.py")
         found = {n.name: n for n in part.body if isinstance(n, ast.FunctionDef)}
         self.assertEqual(set(found), {"_procedural_entity_ids", "_validate_interaction_conversation",
-                                      "_finish_conversation_rejection", "_finish_conversation_resolution"})
+                                      "_finish_conversation_rejection", "_finish_conversation_resolution",
+                                      # Task 9a cuts (turn exits, first half)
+                                      "_tx_attack_decision", "_tx_attack_hint_no_target",
+                                      "_tx_attack_target_missing", "_tx_enemy_turns",
+                                      "_tx_explicit_sword_drop", "_tx_location_query", "_tx_name_topic",
+                                      "_tx_planned_direct", "_tx_player_down", "_tx_procedural_ids_before",
+                                      "_tx_timed_sequence"})
         for fn in found.values():
             self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
 
