@@ -1,0 +1,6 @@
+# turn.py@final :: _run_player_turn_internal.finish_turn  lines 873-916 (44)  blocks=1
+idx | lines | n | kind | in(direct) | out | ret/raise | markers | outputs | late-closure | inputs | nonlocal
+  0 | 883-916 | 34 | return game._finish_turn( | 7(7) | 0 | 1/0 | money:2,model:2 |  |  | action_result is_final narration quest_outcomes record_safety safety_handling safety_reason_code | 
+SUMMARY {"target": "_run_player_turn_internal.finish_turn", "label": "turn.py@final", "lines": 44, "blocks": 1, "blocks_ge20_lines": 1, "blocks_ge20_out_le5": 1, "lines_in_ge20_out_le5": 34, "blocks_out_le5": 1, "blocks_with_return": 1, "returns": 1, "raises": 0, "nested_defs": [], "blocks_touching": {"money": 1, "save": 0, "undo": 0, "session_write": 0, "model": 1, "locals()": 0}}
+CUT yes B 883-916 n=34 out=0 ret=1 hazard=- flags=money,model :: return game._finish_turn(
+CUTSUM {"rows_ge_min": 1, "cut_yes": 1, "cut_yes_lines": 34, "by_class": {"A": 0, "B": 1, "C": 0, "D": 0}, "hazard_blocks": 0}

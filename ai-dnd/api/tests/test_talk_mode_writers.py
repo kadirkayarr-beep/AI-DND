@@ -96,7 +96,9 @@ class OnlyTalkModeWrites(unittest.TestCase):
                     calls.append((rel, reason))
         # the combat clear moved with _start_combat_with_initiative to game_parts/combat_flow.py (game.py split T5.1b)
         # the ended clear moved with _dispatch_player_turn to game_parts/turn.py (game.py split T6.1d)
-        self.assertEqual(sorted(calls), [("game_parts/combat_flow.py", "combat"), ("game_parts/turn.py", "ended"),
+        # and on to game_parts/turn_dispatch_steps.py when the dispatch steps were cut out (turn split T12)
+        self.assertEqual(sorted(calls), [("game_parts/combat_flow.py", "combat"),
+                                         ("game_parts/turn_dispatch_steps.py", "ended"),
                                          ("grounded_action.py", "walking")])
         self.assertTrue({reason for _, reason in calls} <= set(talk_mode.REASONS))
         with self.assertRaises(TypeError):

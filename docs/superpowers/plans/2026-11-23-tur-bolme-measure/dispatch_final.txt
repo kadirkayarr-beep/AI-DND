@@ -1,0 +1,88 @@
+# turn.py@final :: _dispatch_player_turn  lines 296-643 (348)  blocks=79
+idx | lines | n | kind | in(direct) | out | ret/raise | markers | outputs | late-closure | inputs | nonlocal
+  0 | 301-301 | 1 | interaction_mode = game._normalize_interaction_mode(interaction_mode) | 1(1) | 1 | 0/0 |  | interaction_mode |  | interaction_mode | 
+  1 | 302-303 | 2 | if not getattr(game._session(), "_thread_gate_done", False): | 0(0) | 0 | 0/0 | session_write:1 |  |  |  | 
+  2 | 304-305 | 2 | if game.ensure_death_state()["dead"]: | 0(0) | 0 | 0/1 |  |  |  |  | 
+  3 | 306-310 | 5 | if game._session().character.get("current_hp", 0) <= 0: | 5(5) | 0 | 1/0 |  |  |  | action_id messages player_input session_id target_id | 
+  4 | 311-311 | 1 | game._reopen_public_doors() | 0(0) | 0 | 0/0 |  |  |  |  | 
+  5 | 312-312 | 1 | player_input = combat_lifecycle.answered_attack_question(game._session | 1(1) | 1 | 0/0 |  | player_input |  | player_input | 
+  6 | 313-313 | 1 | player_input = game._answered_heavy_question(player_input)  # D-109 | 1(1) | 1 | 0/0 |  | player_input |  | player_input | 
+  7 | 314-314 | 1 | ahead = getattr(game._session(), "_front_read", None) if getattr(game. | 0(0) | 1 | 0/0 |  | ahead |  |  | 
+  8 | 315-316 | 2 | if isinstance(ahead, dict) and ahead.get("kind") == "heavy_asked": | 1(1) | 0 | 1/0 |  |  |  | ahead | 
+  9 | 317-318 | 2 | surrender_answer = (combat_lifecycle.answered_surrender_question(game. | 2(2) | 1 | 0/0 |  | surrender_answer |  | combat_action player_input | 
+ 10 | 319-320 | 2 | if surrender_answer is not None: | 1(1) | 3 | 0/0 |  | combat_action player_input target_id |  | surrender_answer | 
+ 11 | 321-322 | 2 | if getattr(game._session(), "_which_move", None): | 0(0) | 0 | 1/0 |  |  |  |  | 
+ 12 | 323-323 | 1 | owner_reply = game._owner_module_reply(player_input, interaction_mode) | 2(2) | 1 | 0/0 |  | owner_reply |  | interaction_mode player_input | 
+ 13 | 324-330 | 7 | if owner_reply is not None: | 1(1) | 0 | 1/0 | model:1 |  |  | owner_reply | 
+ 14 | 331-331 | 1 | interaction_mode, target_id = game._td_combat_mode(combat_action=comba | 4(4) | 2 | 0/0 |  | interaction_mode target_id |  | combat_action interaction_mode player_input target_id | 
+ 15 | 332-332 | 1 | _exit = game._td_end_conversation(combat_action=combat_action, interac | 3(3) | 1 | 0/0 |  | _exit |  | combat_action interaction_mode player_input | 
+ 16 | 333-334 | 2 | if _exit is not game._TURN_FALL_THROUGH: | 1(1) | 0 | 1/0 |  |  |  | _exit | 
+ 17 | 335-335 | 1 | read = getattr(game._session(), "_front_read", None) if getattr(game._ | 0(0) | 1 | 0/0 |  | read |  |  | 
+ 18 | 336-336 | 1 | import front_proposal | 0(0) | 1 | 0/0 |  | front_proposal |  |  | 
+ 19 | 337-341 | 5 | if (front_proposal.enabled() and not getattr(game._session(), "_front_ | 7(7) | 1 | 0/0 | session_write:2 | read |  | check_feature combat_action front_proposal interaction_mode player_input read target_id | 
+ 20 | 342-343 | 2 | if read is not None and read.get("kind") == "heavy_asked": | 1(1) | 0 | 1/0 |  |  |  | read | 
+ 21 | 344-352 | 9 | if getattr(game._session(), "_front_strike", None): | 3(3) | 3 | 0/0 |  | bold_acts interaction_mode target_id |  | combat_action player_input target_id | 
+ 22 | 353-353 | 1 | import spell_effects | 0(0) | 1 | 0/0 |  | spell_effects |  |  | 
+ 23 | 354-359 | 6 | if (combat_action is None and interaction_mode not in {"say", "ask_dm" | 11(11) | 0 | 1/0 | model:1 |  |  | action_id check_evidence check_feature combat_action interaction_mode messages player_input scene_plan session_id spell_effects target_id | 
+ 24 | 360-360 | 1 | _exit = game._td_fallen_address(combat_action=combat_action, player_in | 3(3) | 1 | 0/0 |  | _exit |  | combat_action player_input read | 
+ 25 | 361-362 | 2 | if _exit is not game._TURN_FALL_THROUGH: | 1(1) | 0 | 1/0 |  |  |  | _exit | 
+ 26 | 363-363 | 1 | confessed = False | 0(0) | 1 | 0/0 |  | confessed |  |  | 
+ 27 | 364-367 | 4 | if (combat_action is None and interaction_mode != "ask_dm" | 4(4) | 2 | 0/0 | model:1 | bold_acts confessed |  | bold_acts combat_action interaction_mode player_input | 
+ 28 | 368-377 | 10 | if read is not None and read.get("kind") == "economic": | 5(5) | 3 | 1/0 | money:1,session_write:1 | interaction_mode read target_id |  | action_id confessed player_input read session_id | 
+ 29 | 378-398 | 21 | if (combat_action is None and interaction_mode not in {"say", "ask_dm" | 8(8) | 2 | 2/0 | money:3,model:1 | bold_acts hearer |  | action_id bold_acts combat_action confessed interaction_mode player_input session_id target_id | 
+ 30 | 399-399 | 1 | _exit = game._td_strike_fallen(combat_action=combat_action, interactio | 4(4) | 1 | 0/0 |  | _exit |  | combat_action interaction_mode player_input target_id | 
+ 31 | 400-401 | 2 | if _exit is not game._TURN_FALL_THROUGH: | 1(1) | 0 | 1/0 |  |  |  | _exit | 
+ 32 | 403-408 | 6 | if read is not None and read["kind"] == "bag" and not game._SOMEONE_EL | 2(2) | 0 | 1/0 |  |  |  | player_input read | 
+ 33 | 409-409 | 1 | _exit = game._td_parcel_board(combat_action=combat_action, interaction | 4(4) | 1 | 0/0 |  | _exit |  | combat_action interaction_mode player_input read | 
+ 34 | 410-411 | 2 | if _exit is not game._TURN_FALL_THROUGH: | 1(1) | 0 | 1/0 |  |  |  | _exit | 
+ 35 | 412-413 | 2 | front = read if getattr(game._session(), "_front_ahead", False) else g | 6(6) | 1 | 0/0 |  | front |  | check_feature combat_action interaction_mode player_input read target_id | 
+ 36 | 414-415 | 2 | if front is not None and front["kind"] == "blow_asked": | 2(2) | 0 | 1/0 |  |  |  | front player_input | 
+ 37 | 416-417 | 2 | if front is not None and front["kind"] == "which_move": | 1(1) | 0 | 1/0 |  |  |  | front | 
+ 38 | 418-418 | 1 | held_for = getattr(game._session(), "_counter_held", None) | 0(0) | 1 | 0/0 |  | held_for |  |  | 
+ 39 | 419-419 | 1 | game._session()._counter_held = None | 0(0) | 0 | 0/0 | session_write:1 |  |  |  | 
+ 40 | 420-426 | 7 | if held_for is not None: | 4(4) | 1 | 1/0 | money:2,session_write:1 | bold_acts |  | action_id bold_acts held_for session_id | 
+ 41 | 427-430 | 4 | if front is not None and front["kind"] == "speak_to": | 4(4) | 2 | 0/0 |  | interaction_mode target_id |  | bold_acts front player_input target_id | 
+ 42 | 431-435 | 5 | if (combat_action is None and interaction_mode not in {"say", "ask_dm" | 6(6) | 2 | 0/0 | model:1 | interaction_mode target_id |  | combat_action front hearer interaction_mode player_input target_id | 
+ 43 | 436-436 | 1 | gate = None | 0(0) | 1 | 0/0 |  | gate |  |  | 
+ 44 | 437-477 | 41 | if (combat_action is None and not getattr(game._session(), "_thread_ga | 13(13) | 3 | 3/0 | money:1,session_write:5 | gate interaction_mode target_id |  | action_id check_evidence check_feature combat_action front front_proposal gate interaction_mode messages player_input scene_plan session_id target_id | 
+ 45 | 478-478 | 1 | routed = game._front_route_turn(front, gate, player_input, interaction | 6(6) | 1 | 0/0 |  | routed |  | action_id front gate interaction_mode player_input session_id | 
+ 46 | 479-480 | 2 | if routed is not None: | 1(1) | 0 | 1/0 |  |  |  | routed | 
+ 47 | 481-489 | 9 | if combat_action is None: | 6(6) | 0 | 1/0 |  |  |  | action_id combat_action interaction_mode player_input session_id target_id | 
+ 48 | 490-517 | 28 | if combat_action is None and interaction_mode in {"say", "ask_dm"}: | 10(10) | 1 | 5/0 | model:2 | equipment_result |  | action_id check_evidence check_feature combat_action interaction_mode messages player_input scene_plan session_id target_id | 
+ 49 | 519-559 | 41 | if ( | 8(8) | 0 | 5/0 | model:1 |  |  | action_id combat_action front interaction_mode messages player_input session_id target_id | 
+ 50 | 560-560 | 1 | import exploration | 0(0) | 1 | 0/0 |  | exploration |  |  | 
+ 51 | 561-566 | 6 | if (combat_action is None and game._session().character.get("current_h | 5(5) | 0 | 1/0 |  |  |  | action_id combat_action exploration player_input session_id | 
+ 52 | 567-567 | 1 | import authored_dungeon | 0(0) | 1 | 0/0 |  | authored_dungeon |  |  | 
+ 53 | 568-571 | 4 | if combat_action is None: | 3(3) | 0 | 1/0 |  |  |  | authored_dungeon combat_action player_input | 
+ 54 | 572-575 | 4 | planning = (combat_action is None | 2(2) | 1 | 0/0 |  | planning |  | combat_action player_input | 
+ 55 | 576-580 | 5 | if (combat_action is None and not planning | 4(4) | 0 | 1/0 |  |  |  | combat_action equipment_result planning player_input | 
+ 56 | 581-581 | 1 | import spell_scope | 0(0) | 1 | 0/0 |  | spell_scope |  |  | 
+ 57 | 582-583 | 2 | spell_command = (spell_scope.natural_command(player_input, target_id) | 5(5) | 1 | 0/0 |  | spell_command |  | combat_action planning player_input spell_scope target_id | 
+ 58 | 584-589 | 6 | if spell_command is not None: | 5(5) | 0 | 2/0 |  |  |  | action_id player_input session_id spell_command target_id | 
+ 59 | 590-590 | 1 | import bounded_encounter | 0(0) | 1 | 0/0 |  | bounded_encounter |  |  | 
+ 60 | 591-592 | 2 | if not planning: | 2(2) | 0 | 0/0 |  |  |  | bounded_encounter planning | 
+ 61 | 593-594 | 2 | native = (bounded_encounter.resolve_command(game._session(), player_in | 4(4) | 1 | 0/0 |  | native |  | bounded_encounter combat_action planning player_input | 
+ 62 | 595-596 | 2 | if native is not None: | 1(1) | 0 | 1/0 |  |  |  | native | 
+ 63 | 597-597 | 1 | import monster_combat | 0(0) | 1 | 0/0 |  | monster_combat |  |  | 
+ 64 | 598-602 | 5 | if combat_action is None and game._session().world_state.get("combat", | 4(4) | 0 | 1/0 |  |  |  | combat_action monster_combat player_input target_id | 
+ 65 | 603-607 | 5 | if combat_action is None and combat_lifecycle.is_standing_down(game._s | 4(4) | 0 | 1/0 |  |  |  | action_id combat_action player_input session_id | 
+ 66 | 608-612 | 5 | if combat_action is None and combat_lifecycle.is_flight(game._session( | 4(4) | 0 | 1/0 |  |  |  | action_id combat_action player_input session_id | 
+ 67 | 613-614 | 2 | command = combat_action or (None if planning else | 4(4) | 1 | 0/0 |  | command |  | combat_action planning player_input target_id | 
+ 68 | 615-615 | 1 | surrender_question = combat_lifecycle.surrendered_strike_question(game | 3(3) | 1 | 0/0 |  | surrender_question |  | command player_input target_id | 
+ 69 | 616-617 | 2 | if surrender_question is not None: | 1(1) | 0 | 1/0 |  |  |  | surrender_question | 
+ 70 | 618-619 | 2 | if command: | 3(3) | 0 | 1/0 |  |  |  | action_id command session_id | 
+ 71 | 620-621 | 2 | if action_economy.pending_reaction(game._session()): | 0(0) | 0 | 0/1 |  |  |  |  | 
+ 72 | 622-622 | 1 | _exit = game._td_scene_plan_direct(action_id=action_id, combat_action= | 9(9) | 1 | 0/0 |  | _exit |  | action_id combat_action front interaction_mode messages player_input scene_plan session_id target_id | 
+ 73 | 623-624 | 2 | if _exit is not game._TURN_FALL_THROUGH: | 1(1) | 0 | 1/0 |  |  |  | _exit | 
+ 74 | 625-625 | 1 | game._session()._walk_off = None | 0(0) | 0 | 0/0 | session_write:1 |  |  |  | 
+ 75 | 626-633 | 8 | try: | 2(2) | 0 | 0/1 | session_write:1 |  |  | player_input target_id | 
+ 76 | 634-640 | 7 | try: | 9(9) | 2 | 0/1 | session_write:2 | result walk |  | action_id check_evidence check_feature interaction_mode messages player_input scene_plan session_id target_id | 
+ 77 | 641-642 | 2 | if walk is not None: | 1(1) | 0 | 0/1 |  |  |  | walk | 
+ 78 | 643-643 | 1 | return result | 1(1) | 0 | 1/0 |  |  |  | result | 
+SUMMARY {"target": "_dispatch_player_turn", "label": "turn.py@final", "lines": 348, "blocks": 79, "blocks_ge20_lines": 4, "blocks_ge20_out_le5": 4, "lines_in_ge20_out_le5": 131, "blocks_out_le5": 79, "blocks_with_return": 33, "returns": 45, "raises": 5, "nested_defs": [], "blocks_touching": {"money": 4, "save": 0, "undo": 0, "session_write": 9, "model": 7, "locals()": 0}}
+CUT no  C 368-377 n=10 out=3 ret=1 hazard=- flags=money,session_write :: if read is not None and read.get("kind") == "econo
+CUT no  C 378-398 n=21 out=2 ret=2 hazard=- flags=money,model :: if (combat_action is None and interaction_mode not
+CUT no  C 437-477 n=41 out=3 ret=3 hazard=- flags=money,session_write :: if (combat_action is None and not getattr(game._se
+CUT no  C 490-517 n=28 out=1 ret=5 hazard=- flags=model :: if combat_action is None and interaction_mode in {
+CUT yes B 519-559 n=41 out=0 ret=5 hazard=- flags=model :: if (
+CUTSUM {"rows_ge_min": 5, "cut_yes": 1, "cut_yes_lines": 41, "by_class": {"A": 0, "B": 1, "C": 4, "D": 0}, "hazard_blocks": 0}
