@@ -205,3 +205,4 @@ Task 8: implemented (commits ab1f5221..e141629b)
 - Runs (slot 9, flags off/fon with gate_boot first): tb9a-2-off / tb9a-2-fon: 459 tests (neighbour + 6 engine locks + sensitivity, parts_pilot, cut_tool, narration_source_record) exit 0; tb9a-3-off / tb9a-3-fon: 969 tests (adds api, campaign_api, interaction_adventure, talk_front, combat, death, adventure, stage10a, query, scene, incident, d060/d061, travel_forfeit_pin) exit 0. routing_audit clean. First run tb9a-1-off had the 2 reds above (fixed).
 - Review: Step 5 Opus review is the controller's dispatch (T9a holds sensitive.json save callers; reviewer checks helpers _tx_timed_sequence, _tx_player_down, _tx_enemy_turns, _tx_planned_direct, _tx_procedural_ids_before against sensitive.json and Undo-before-save). Not run by this worker.
 - Play: oynayış bekliyor.
+Task 9a: implemented (commits 9fee3da8..ea8dfc2a)
