@@ -59,7 +59,8 @@ def workflow_violations(text: str, baseline_required: bool | None = None) -> lis
             where = line.strip()
             if re.search(r"\bskylos\b", line) and re.search(
                     r"(pip|pipx|uvx?)\s+(install|run)|skylos\s+\S", line):
-                if "--no-upload" not in line:
+                is_plain_pip_install = re.search(r"pip\s+install", line) and "[" not in line
+                if "--no-upload" not in line and not is_plain_pip_install:
                     bad.append("skylos without --no-upload: " + where)
             if re.search(r"\bvulture\s+(?!==)[^=\s]", line) \
                     and "--min-confidence 80" not in line:
@@ -107,6 +108,11 @@ class QualityWorkflowPolicyTest(unittest.TestCase):
         self.assertEqual(workflow_violations(measure, baseline_required=False), [])
         self.assertTrue(workflow_violations(measure, baseline_required=True))
         self.assertTrue(workflow_violations("      - run: gitleaks detect --no-banner", baseline_required=False))
+
+    def test_skylos_pip_install_needs_no_upload_flag_but_no_extra(self):
+        self.assertEqual(workflow_violations("      - run: python -m pip install skylos==4.1.0"), [])
+        self.assertTrue(workflow_violations("      - run: python -m pip install skylos[llm]==4.1.0"))
+        self.assertTrue(workflow_violations("      - run: skylos ai-dnd --json"))
 
     def test_step_names_are_not_commands(self):
         self.assertEqual(workflow_violations("      - name: skylos scan" + chr(10) + "      - name: fallow report"), [])

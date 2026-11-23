@@ -147,10 +147,22 @@ def _name_of(item) -> str:
 
 def _walk_issue(tool: str, file: str, issue: dict, keys: list[str]) -> None:
     for rule, items in issue.items():
-        if rule in ("file", "path") or not isinstance(items, list):
+        if rule in ("file", "path"):
+            continue
+        if isinstance(items, dict):  # e.g. enumMembers: {"Color": [..]}
+            for sub, sub_items in items.items():
+                if isinstance(sub_items, list):
+                    for it in sub_items:
+                        keys.append(finding_key(tool, file, f"{rule}.{sub}", _name_of(it)))
+            continue
+        if not isinstance(items, list):
             continue
         for it in items:
-            keys.append(finding_key(tool, file, rule, _name_of(it)))
+            if isinstance(it, list):  # e.g. duplicates: [[{name}, {name}]]
+                name = "+".join(sorted(_name_of(x) for x in it))
+            else:
+                name = _name_of(it)
+            keys.append(finding_key(tool, file, rule, name))
 
 
 def _parse_generic(tool: str, text: str) -> list[str]:

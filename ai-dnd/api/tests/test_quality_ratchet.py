@@ -270,6 +270,23 @@ class KnipFallowParserTests(unittest.TestCase):
             "knip|package.json|devDependencies|prettier",
         ]))
 
+    def test_knip_other_categories_have_stable_keys(self):
+        # Shapes from knip's documented JSON reporter, NOT from a real artifact (none had these categories).
+        report = json.dumps({"issues": [
+            {"file": "a.ts", "types": [{"name": "T", "line": 3}],
+             "unlisted": [{"name": "left-pad", "line": 1}],
+             "unresolved": [{"name": "./gone", "line": 2}],
+             "catalog": [{"name": "react", "line": 4}],
+             "duplicates": [[{"name": "foo", "line": 5}, {"name": "bar", "line": 6}]],
+             "enumMembers": {"Color": [{"name": "Red", "line": 7}]}},
+        ]})
+        moved = report.replace('"line": 3', '"line": 30').replace('"line": 5', '"line": 50').replace('"line": 7', '"line": 70')
+        self.assertEqual(sorted(ratchet.parse_knip(report)), sorted([
+            "knip|a.ts|types|T", "knip|a.ts|unlisted|left-pad", "knip|a.ts|unresolved|./gone",
+            "knip|a.ts|catalog|react", "knip|a.ts|duplicates|bar+foo", "knip|a.ts|enumMembers.Color|Red",
+        ]))
+        self.assertEqual(sorted(ratchet.parse_knip(moved)), sorted(ratchet.parse_knip(report)))
+
     def test_knip_moved_line_keeps_key(self):
         moved = KNIP_REAL.replace('"line": 47', '"line": 99').replace('"pos": 1246', '"pos": 5000')
         self.assertEqual(sorted(ratchet.parse_knip(moved)), sorted(ratchet.parse_knip(KNIP_REAL)))

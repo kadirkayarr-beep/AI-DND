@@ -40,7 +40,7 @@ jobs:
         run: |
           mkdir -p reports
           python -m pip install -r ai-dnd/scripts/engine_split/requirements-dev.txt
-          PKG=$(python -c "import json;t=json.load(open('ai-dnd/scripts/quality_gate/tools.json'));print('sky'+'los=='+t['sky'+'los'])")
+          PKG=$(python -c "import json;t=json.load(open('ai-dnd/scripts/quality_gate/tools.json'));print('skylos=='+t['skylos'])")
           python -m pip install "$PKG"
       - name: Install workspace dependencies without scripts
         run: pnpm install --frozen-lockfile --ignore-scripts
