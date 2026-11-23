@@ -136,6 +136,25 @@ class RatchetCliTests(unittest.TestCase):
             tmp = Path(tmp)
             self.assertEqual(self.run_cli("check", "ruff", tmp / "nope.json", tmp).returncode, 2)
 
+    def test_corrupt_baseline_is_exit_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / "ruff.json").write_text("{not json", encoding="utf-8")
+            rep = tmp / "r.json"
+            rep.write_text("[]", encoding="utf-8")
+            self.assertEqual(self.run_cli("check", "ruff", rep, tmp).returncode, 2)
+            self.assertEqual(self.run_cli("update", "ruff", rep, tmp).returncode, 2)
+
+    def test_ruff_key_ignores_line_numbers_in_message(self):
+        def key(msg):
+            rep = json.dumps([{"filename": "a.py", "code": "F811", "message": msg}])
+            return ratchet.parse_ruff(rep, root="/r")
+        self.assertEqual(
+            key("Redefinition of unused `x` from line 3"),
+            key("Redefinition of unused `x` from line 40"),
+        )
+        self.assertEqual(key("Unquoted thing at line 3"), key("Unquoted thing at line 40"))
+
     def test_baseline_io_is_sorted_lf_utf8(self):
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp) / "b.json"

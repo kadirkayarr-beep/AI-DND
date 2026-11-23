@@ -71,7 +71,7 @@ def _load_json(text: str, tool: str):
 
 def _symbol(message: str) -> str:
     m = re.search(r"[`'\"]([^`'\"]+)[`'\"]", message)
-    return m.group(1) if m else message.strip()
+    return m.group(1) if m else re.sub(r"\d+", "#", message.strip())
 
 
 def parse_ruff(text: str, root: str | None = None) -> list[str]:
@@ -157,14 +157,18 @@ def main(argv: list[str] | None = None) -> int:
         print(f"TOOL OUTPUT ERROR: {exc}", file=sys.stderr)
         return 2
     target = args.baseline_dir / f"{args.tool}.json"
+    try:
+        base = load_baseline(target) if target.exists() else None
+    except (OSError, ValueError) as exc:
+        print(f"BASELINE ERROR: cannot load {target} ({exc})", file=sys.stderr)
+        return 2
     if args.mode == "check":
-        base = load_baseline(target) if target.exists() else {}
-        problems = compare(base, current)
+        problems = compare(base or {}, current)
         for p in problems:
             print(f"NEW: {p}")
         return 1 if problems else 0
-    if target.exists():
-        grown = compare(load_baseline(target), current)
+    if base is not None:
+        grown = compare(base, current)
         if grown:
             for p in grown:
                 print(f"GREW: {p}", file=sys.stderr)
