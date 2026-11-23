@@ -345,6 +345,7 @@ The rule is applied to blocks of 10 or more lines, at the top level of a functio
 
 **Task 9a (≈ 14 rows):**
 - [ ] **Step 1: Cut** every `T9a` row from `cuts-base.json`, bottom up, into `_tx_<what>`. The rows are the top-level A/B rows before the `if held_plan is not None:` block plus the 2 rows of `--sub` `if target_id is not None:`. Rows whose block calls a `sensitive.json` function move to Task 10.
+  - **T9a note:** two T9a rows are flagged `undo` (lines 1002-1011) and `save` (lines 1433-1506) in `cuts-base.json`. They are not money, but they touch Undo and save order. Check the order (Undo before save) and use the strong reviewer (Opus) for T9a.
 - [ ] **Step 2: Check identity.** `cut_check.py` expected `CHANGED 0`.
 - [ ] **Step 3: Update the locks.** Lower them. Every helper is under 151 lines.
 - [ ] **Step 4: Run** the neighbour set and engine locks in both flags.
