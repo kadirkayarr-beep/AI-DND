@@ -169,3 +169,12 @@ RESULT: tests 261 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg8-green; size_bu
 ## Task 8 fix round 2
 - F1 (nothing stops a PR raising a size_lock.json budget): Ruling: no code change in Task 8. Added Task 9 Step 1b to the plan (size_lock.json shrink step in python-gate, with acceptance: CI step exists and a policy test names it). If wrong: a PR can raise a budget until Task 9; review and the approval-list rule still catch it.
 - No code or test changed, so no test run.
+
+Task 9: implemented (commit "Quality gate: flip to blocking, size lock shrink step, docs")
+- Ruling: measure job removed (fallow/skylos kept report-only inside ui-gate, the only 2 continue-on-error left); no leftover continue-on-error in python-gate/secrets-gate/knip step existed beyond measure.
+- Ruling: size_lock shrink lives in new module scripts/quality_gate/size_lock_shrink.py (not ratchet.py): ratchet.py is under the size lock and adding lines would need a budget raise. New tests in new file api/tests/test_quality_flip.py for the same reason (existing test files are locked at current size).
+- Ruling: growth = raised budget on existing entry, part_max/slack raised, long_function_min lowered, any new long_functions entry, new files/ts_files entry above part_max. A new small file entry is allowed (size test caps its slack anyway). If wrong: a new small file could carry up to part_max budget; the slack test bounds it to real size+50.
+- Ruling: Step 3 structural health check not run (not known to run in the slot). Step 3b (required status checks) and Step 5 (push, PR, CI, Task 4 answers into debt register) are owner/controller actions, not done by the worker.
+- Red-first: qg9-red (8 errors + 3 fails listed; also showed locked test files cannot grow). Real git check: size_lock_shrink vs HEAD exit 0.
+- ACCEPTANCE ITEMS for controller after push: first PR run of python-gate (incl. size lock shrink), secrets-gate, ui-gate (knip) must be green; read fallow and skylos outputs; ask Kadir to mark the 3 jobs required; copy Task 4 answers (postinstall, Python 3.13, telemetry) into the debt register; knip.json regenerate if spurious NEW.
+RESULT: tests 273 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg9-final; flip + ratchet + policy + size budgets + fixed neighbour set via slot.sh test, exit=0, Ran 273 OK)
