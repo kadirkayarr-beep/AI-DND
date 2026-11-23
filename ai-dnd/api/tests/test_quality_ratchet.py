@@ -237,5 +237,77 @@ class CheckShrinkCliTests(unittest.TestCase):
                 self.assertEqual(ratchet.main(["check-shrink", str(f), "origin/main"]), 2)
 
 
+# Excerpts of real reports (knip 6.48.0 `--reporter json`, fallow 3.45.0 `dead-code --format json`),
+# measured 2026-11-24 on this repo; verbose fields trimmed.
+KNIP_REAL = json.dumps({"issues": [
+    {"file": "artifacts/ai-dnd-experience/src/local-play-main.tsx",
+     "files": [{"name": "artifacts/ai-dnd-experience/src/local-play-main.tsx"}]},
+    {"file": "artifacts/ai-dnd-experience/src/lib/account-session.ts",
+     "exports": [{"namespace": "account", "name": "clearAccountStorage", "line": 47, "col": 17, "pos": 1246}]},
+    {"file": "package.json",
+     "dependencies": [{"name": "@replit/connectors-sdk", "line": 13, "col": 6, "pos": 419}],
+     "devDependencies": [{"name": "prettier", "line": 16, "col": 6, "pos": 486}]},
+]})
+FALLOW_REAL = json.dumps({
+    "kind": "dead-code", "schema_version": 11,
+    "unused_files": [{"path": "artifacts/ai-dnd-experience/src/components/ui/accordion.tsx",
+                      "effective_severity": "error"}],
+    "unused_exports": [{"path": "artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx",
+                        "export_name": "RageControl", "is_type_only": False, "line": 9}],
+    "unlisted_dependencies": [{"package_name": "@assets/generated_images",
+                               "imported_from": [{"path": "artifacts/ai-dnd-experience/src/components/character-creation-screen.tsx",
+                                                  "line": 59, "col": 7}]}],
+    "next_steps": [{"id": "setup", "command": "fallow agent install --dry-run"}],
+})
+
+
+class KnipFallowParserTests(unittest.TestCase):
+    def test_knip_real_shape_keys(self):
+        self.assertEqual(sorted(ratchet.parse_knip(KNIP_REAL)), sorted([
+            "knip|artifacts/ai-dnd-experience/src/local-play-main.tsx|files|artifacts/ai-dnd-experience/src/local-play-main.tsx",
+            "knip|artifacts/ai-dnd-experience/src/lib/account-session.ts|exports|clearAccountStorage",
+            "knip|package.json|dependencies|@replit/connectors-sdk",
+            "knip|package.json|devDependencies|prettier",
+        ]))
+
+    def test_knip_moved_line_keeps_key(self):
+        moved = KNIP_REAL.replace('"line": 47', '"line": 99').replace('"pos": 1246', '"pos": 5000')
+        self.assertEqual(sorted(ratchet.parse_knip(moved)), sorted(ratchet.parse_knip(KNIP_REAL)))
+
+    def test_knip_clean_run_is_empty_list_not_error(self):
+        self.assertEqual(ratchet.parse_knip('{"issues": []}'), [])
+
+    def test_knip_bad_output_is_error(self):
+        for bad in ("", "  ", "{}", "[]", "not json", '{"issues": 3}'):
+            with self.assertRaises(ToolOutputError, msg=repr(bad)):
+                ratchet.parse_knip(bad)
+
+    def test_fallow_real_shape_keys(self):
+        self.assertEqual(sorted(ratchet.parse_fallow(FALLOW_REAL)), sorted([
+            "fallow|artifacts/ai-dnd-experience/src/components/ui/accordion.tsx|unused_files|",
+            "fallow|artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx|unused_exports|RageControl",
+            "fallow||unlisted_dependencies|@assets/generated_images",
+        ]))
+
+    def test_fallow_moved_line_keeps_key(self):
+        moved = FALLOW_REAL.replace('"line": 9', '"line": 77')
+        self.assertEqual(sorted(ratchet.parse_fallow(moved)), sorted(ratchet.parse_fallow(FALLOW_REAL)))
+
+    def test_fallow_clean_run_is_empty_list_not_error(self):
+        self.assertEqual(ratchet.parse_fallow('{"kind": "dead-code", "next_steps": []}'), [])
+
+    def test_fallow_bad_output_is_error(self):
+        for bad in ("", "{}", "[]", "not json", '{"kind": "health"}', '{"kind": "dead-code", "unused_files": [1]}'):
+            with self.assertRaises(ToolOutputError, msg=repr(bad)):
+                ratchet.parse_fallow(bad)
+
+    def test_fallow_second_identical_finding_counts_twice(self):
+        doubled = json.loads(FALLOW_REAL)
+        doubled["unused_exports"] = doubled["unused_exports"] * 2
+        keys = ratchet.parse_fallow(json.dumps(doubled))
+        self.assertEqual(count_findings(keys)[
+            "fallow|artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx|unused_exports|RageControl"], 2)
+
+
 if __name__ == "__main__":
     unittest.main()

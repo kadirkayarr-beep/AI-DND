@@ -177,11 +177,39 @@ def _parse_generic(tool: str, text: str) -> list[str]:
 
 
 def parse_knip(text: str) -> list[str]:
+    """Real shape (knip 6, --reporter json): {"issues": [{"file", "files": [{"name"}], "exports": [{"name",...}], ...}]}."""
+    data = _load_json(text, "knip")
+    if not isinstance(data, dict) or not isinstance(data.get("issues"), list):
+        raise ToolOutputError("knip: expected an object with an 'issues' list")
     return _parse_generic("knip", text)
 
 
+_FALLOW_NOT_FINDINGS = {"next_steps", "workspace_diagnostics", "gate_outcomes"}
+
+
+def _fallow_name(item: dict) -> str:
+    for key in ("export_name", "package_name", "specifier", "raw_key", "name"):
+        if item.get(key):
+            return str(item[key])
+    parts = [str(item[k]) for k in ("component_name", "parent_name", "prop_name", "member_name") if item.get(k)]
+    return ".".join(parts)
+
+
 def parse_fallow(text: str) -> list[str]:
-    return _parse_generic("fallow", text)
+    """Real shape (fallow 3.45, `dead-code --format json`): top-level lists such as unused_files,
+    unused_exports, unused_dependencies; every list-of-objects key except the non-finding ones is a rule."""
+    data = _load_json(text, "fallow")
+    if not isinstance(data, dict) or data.get("kind") != "dead-code":
+        raise ToolOutputError("fallow: expected a dead-code report object")
+    keys: list[str] = []
+    for rule, items in data.items():
+        if rule in _FALLOW_NOT_FINDINGS or not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                raise ToolOutputError("fallow: unexpected finding shape")
+            keys.append(finding_key("fallow", str(item.get("path", "")), rule, _fallow_name(item)))
+    return keys
 
 
 PARSERS = {"ruff": parse_ruff, "knip": parse_knip, "fallow": parse_fallow}
