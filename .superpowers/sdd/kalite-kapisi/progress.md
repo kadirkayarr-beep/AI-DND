@@ -141,3 +141,9 @@ Task 7: implemented (commit "Quality gate: ui-gate job, knip blocking with basel
 - Step 4 done locally (copy with node_modules, planted unused file): knip exit 1, ratchet NEW exit 1; clean report exit 0. Real throwaway-branch CI proof not possible (no push).
 - Red-first note: baselines were generated before the tests (plan step order made them an input of the baseline test); the policy tests were red (qg7-red: ui-gate missing; qg7-red also showed a name clash `_steps` fixed by renaming to `_job_steps`).
 RESULT: tests 243 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg7-green3; ratchet + policy + fixed neighbour set via slot.sh test, exit=0, Ran 243 OK; skipped 0 inferred from OK line)
+
+## Task 7 fix round 1
+- F1 (knip baseline from Windows/pnpm 12, CI Linux/pnpm 10.26.1): Ruling: no code change, worker cannot push. TASK 9 ACCEPTANCE ITEM: first PR run ui-gate must be green; if red from spurious NEW, regenerate knip.json from that run's report (knip.json is a row-count baseline raise only with approval row). If wrong: one red first run, no false green.
+- F2 (shrink step passes when baseline absent on origin/main): Ruling: accepted, no change. One-time first-introduction hole, same design as the whitelist and gitleaks shrink checks (Task 5/6). Later task may require the file once it is on main. If wrong: deleting knip.json from main would skip the shrink check; main is PR-only so review sees the deletion.
+- F3 (fallow pin/flags unverified): checked what is checkable without CI. `npm view fallow@3.45.0` exists (bin fallow, fallow-lsp, fallow-mcp); tools.json pin 3.45.0 matches; flags `dead-code --format json --quiet` are the same ones Task 4 ran locally (302 findings, olcum.md fallow section). Step is report-only (`|| true`). TASK 9 ACCEPTANCE ITEM: check fallow step output on the first CI run; if empty or wrong flag, write KADIR_DOLDURACAK for the pin. Not verified on Linux CI.
+- No code or test changed this round, so no test run.
