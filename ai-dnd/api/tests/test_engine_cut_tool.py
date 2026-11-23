@@ -465,6 +465,12 @@ class ForbiddenTests(CutToolCase):
                "    if c:\n        bump()\n        seen = spent\n    else:\n        seen = 0\n    return seen\n")
         self.assert_refused(src, "nonlocal-written input spent", anchor="if c:")
 
+    def test_a_block_in_a_nested_def_calling_an_outer_nonlocal_writer_is_refused(self):  # Task 3 fix round 2
+        src = ("import game\n\n\ndef run(c):\n    spent = 0\n\n    def bump():\n        nonlocal spent\n        spent += 1\n\n"
+               "    def inner(c):\n        if c:\n            bump()\n            seen = spent\n        else:\n            seen = 0\n"
+               "        return seen\n\n    return inner(c)\n")
+        self.assert_refused(src, "nonlocal-written input spent", anchor="if c:", function="run.inner")
+
     def test_a_block_calling_a_nonlocal_writer_without_reading_its_name_is_cut(self):
         src = ("import game\n\n\ndef run(c):\n    spent = 0\n\n    def bump():\n        nonlocal spent\n        spent += 1\n\n"
                "    if c:\n        bump()\n    return spent\n")

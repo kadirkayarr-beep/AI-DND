@@ -409,11 +409,15 @@ def analyse(text: str, chain, st) -> dict:
     nested = scan.nested
     local = scan.stores | params_of(fn)
     outer: set[str] = set()
+    outer_nested: dict[str, set[str]] = {}  # defs of the enclosing functions, for the nonlocal check below
+    outer_writes: dict[str, set[str]] = {}
     for f in chain[:-1]:
         sc = Scan()
         for s in f.body:
             sc.visit(s)
         outer |= sc.stores | params_of(f)
+        outer_nested.update(sc.nested)
+        outer_writes.update(sc.nested_writes)
     outer -= local
     has_return = _has_return(st)
     block_scan = Scan()
@@ -448,13 +452,15 @@ def analyse(text: str, chain, st) -> dict:
     if hazard:
         raise MoveRefused(f"hazard {' '.join(hazard)}")
     # a called nested def that writes a name through `nonlocal` writes the enclosing cell; the helper would read a copy
-    pending, writers = list(called), set()
+    all_nested = {**outer_nested, **nested}
+    all_writes = {**outer_writes, **scan.nested_writes}
+    pending, writers = [k for k in block_scan.loads if k in all_nested], set()
     while pending:
         k = pending.pop()
         if k not in writers:
             writers.add(k)
-            pending.extend(f for f in nested.get(k, ()) if f in nested)
-    through_cell = sorted(set().union(*[scan.nested_writes.get(k, set()) for k in writers] or [set()]) & block_scan.loads)
+            pending.extend(f for f in all_nested.get(k, ()) if f in all_nested)
+    through_cell = sorted(set().union(*[all_writes.get(k, set()) for k in writers] or [set()]) & block_scan.loads)
     if through_cell:
         raise MoveRefused(f"nonlocal-written input {' '.join(through_cell)}")
     exposed, after = exposure([st], set())
