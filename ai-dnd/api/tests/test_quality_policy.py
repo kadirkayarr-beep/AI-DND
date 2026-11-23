@@ -76,13 +76,17 @@ def workflow_violations(text: str, baseline_required: bool | None = None) -> lis
             if re.search(r"\bfallow\b", line) and re.search(r"(dlx|npx|npm|pnpm|fallow\s+\S)", line):
                 if "DO_NOT_TRACK=1" not in line and 'DO_NOT_TRACK: "1"' not in step_text:
                     bad.append("fallow step without DO_NOT_TRACK: " + where)
+                if re.search(r"fallow(@\S+)?\"?\s+\S", line) \
+                        and not re.search(r"fallow(@\S+)?\"?\s+dead-code\b", line):
+                    bad.append("fallow must run only the dead-code subcommand: " + where)
+                if re.search(r"(similar-code|dupes|--coverage|health\b|mutation)", line):
+                    bad.append("fallow similar-code/duplication/coverage feature on: " + where)
     return bad
 
 
 class QualityWorkflowPolicyTest(unittest.TestCase):
     def test_workflow_forbids_upload_paths(self):
-        if not WORKFLOW.exists():
-            self.skipTest("ai-dnd-quality.yml not created yet (Task 4)")
+        self.assertTrue(WORKFLOW.exists(), "ai-dnd-quality.yml must exist")
         self.assertEqual(workflow_violations(WORKFLOW.read_text(encoding="utf-8")), [])
 
     def test_checker_catches_bad_lines(self):
@@ -106,6 +110,15 @@ class QualityWorkflowPolicyTest(unittest.TestCase):
 
     def test_step_names_are_not_commands(self):
         self.assertEqual(workflow_violations("      - name: skylos scan" + chr(10) + "      - name: fallow report"), [])
+
+    def test_fallow_only_dead_code(self):
+        env = "      - run: DO_NOT_TRACK=1 npm_config_ignore_scripts=true pnpm dlx "
+        for sub in ("similar-code", "dupes --format json", "health", "dead-code --coverage x.json", "--format json"):
+            self.assertTrue(workflow_violations(env + "fallow@3.45.0 " + sub), sub)
+        self.assertEqual(workflow_violations(env + "fallow@3.45.0 dead-code --format json --quiet"), [])
+        quoted = env + chr(34) + "fallow@${V}" + chr(34) + " dead-code --format json"
+        self.assertEqual(workflow_violations(quoted), [])
+        self.assertTrue(workflow_violations(env + chr(34) + "fallow@${V}" + chr(34) + " dupes"))
 
     def test_checker_passes_good_lines(self):
         good = chr(10).join([
