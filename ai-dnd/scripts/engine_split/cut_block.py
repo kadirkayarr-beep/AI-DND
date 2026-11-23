@@ -7,7 +7,7 @@ Class A (no return): `o1, o2 = game._NAME(i1=i1)`; class B (return, no outputs):
 a hazard (the block rebinds a name a nested helper it calls reads), a conditionally bound input, or a helper of
 151 lines or more is refused: `REFUSED <reason>` on stderr, exit 2, nothing written.
 Run: python scripts/engine_split/cut_block.py --file F --function NAME[.NESTED] --anchor TEXT [--occurrence N]
-     [--sub-anchor TEXT] --helper _NAME --part game_parts/X.py --census api/tests/engine_split_locks/patch_census.json
+     [--sub-anchor TEXT [--sub-occurrence N]] --helper _NAME --part game_parts/X.py --census api/tests/engine_split_locks/patch_census.json
      [--report out.json]
 F is a part file; game.py is found as F's folder's parent (or the working directory's game.py).
 """
@@ -305,7 +305,8 @@ def find_function(tree, dotted: str) -> list:
     return chain
 
 
-def locate_block(text: str, function: str, anchor: str, occurrence: int | None = None, sub_anchor: str | None = None):
+def locate_block(text: str, function: str, anchor: str, occurrence: int | None = None, sub_anchor: str | None = None,
+                 sub_occurrence: int | None = None):
     """(function chain, statement, first line, last line); the first line includes the comment block directly above."""
     lines = text.split("\n")
     chain = find_function(ast.parse(text), function)
@@ -313,6 +314,8 @@ def locate_block(text: str, function: str, anchor: str, occurrence: int | None =
     if sub_anchor:
         subs = [n for n in scope_walk(body) if isinstance(n, ast.stmt) and not isinstance(n, SCOPES)
                 and hasattr(n, "body") and lines[n.lineno - 1].strip().startswith(sub_anchor.strip())]
+        if sub_occurrence is not None and 1 <= sub_occurrence <= len(subs):
+            subs = [subs[sub_occurrence - 1]]
         if len(subs) != 1:
             raise MoveRefused(f"sub-anchor {sub_anchor!r} matches {len(subs)} statements; expected exactly one")
         body = subs[0].body
@@ -564,7 +567,7 @@ def _reexport_insert(game_text: str, module: str, names: str) -> str:
 
 
 def cut(file: Path, function: str, anchor: str, helper: str, part: Path, census: Path, occurrence=None,
-        sub_anchor=None) -> dict:
+        sub_anchor=None, sub_occurrence=None) -> dict:
     """Do the cut and write the files; returns the report row. Raises MoveRefused (nothing written)."""
     file, part = Path(file).resolve(), Path(part).resolve()
     if file.name == "game.py":
@@ -574,7 +577,7 @@ def cut(file: Path, function: str, anchor: str, helper: str, part: Path, census:
         game_py = Path("game.py").resolve()
     files: dict[Path, str] = {}
     text = _read(files, file)
-    chain, st, start, end = locate_block(text, function, anchor, occurrence, sub_anchor)
+    chain, st, start, end = locate_block(text, function, anchor, occurrence, sub_anchor, sub_occurrence)
     info = analyse(text, chain, st)
     cls, params, outputs = info["class"], info["params"], info["outputs"]
     lines = text.split("\n")
@@ -687,6 +690,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--anchor", required=True)
     ap.add_argument("--occurrence", type=int)
     ap.add_argument("--sub-anchor")
+    ap.add_argument("--sub-occurrence", type=int)
     ap.add_argument("--helper", required=True)
     ap.add_argument("--part", required=True, type=Path)
     ap.add_argument("--census", required=True, type=Path)
@@ -694,7 +698,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     try:
         row = cut(args.file, args.function, args.anchor, args.helper, args.part, args.census, args.occurrence,
-                  args.sub_anchor)
+                  args.sub_anchor, args.sub_occurrence)
     except (MoveRefused, SyntaxError) as exc:
         print(f"REFUSED {exc}", file=sys.stderr)
         return 2

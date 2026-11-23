@@ -39,6 +39,8 @@ def _run_cut(root: Path, **kw) -> tuple[int, str]:
         argv += ["--occurrence", str(kw["occurrence"])]
     if "sub_anchor" in kw:
         argv += ["--sub-anchor", kw["sub_anchor"]]
+    if "sub_occurrence" in kw:
+        argv += ["--sub-occurrence", str(kw["sub_occurrence"])]
     if "report" in kw:
         argv += ["--report", str(kw["report"])]
     err = io.StringIO()
@@ -288,6 +290,30 @@ class ClassATests(CutToolCase):
         '''
         code, err = self.cut(src, anchor="if i:", sub_anchor="for i in items:")
         self.assertEqual(code, 0, err)
+        self.assertIn("        total = game._cut(i=i, total=total)\n", self.turn())
+        self.same_behaviour("turn.run([0, 1, 2, 3])")
+
+    def test_a_repeated_sub_anchor_needs_a_sub_occurrence(self):
+        src = '''
+            import game
+
+
+            def run(items):
+                total = 0
+                for i in items:
+                    if i:
+                        total += 1
+                for i in items:
+                    if i:
+                        total += 10
+                return total
+        '''
+        code, err = self.cut(src, anchor="if i:", sub_anchor="for i in items:")
+        self.assertEqual(code, 2)
+        self.assertIn("sub-anchor", err)
+        code, err = self.cut(src, anchor="if i:", sub_anchor="for i in items:", sub_occurrence=2)
+        self.assertEqual(code, 0, err)
+        self.assertIn("total += 1\n", self.turn())
         self.assertIn("        total = game._cut(i=i, total=total)\n", self.turn())
         self.same_behaviour("turn.run([0, 1, 2, 3])")
 
@@ -643,6 +669,15 @@ class TurnExitsLiftTests(unittest.TestCase):
         self.assertEqual(set(found), {"_tg_attack_findings_exit", "_tg_findings_text_exit", "_tg_hint_intent",
                                       "_tg_scene_plan", "_tg_shop_action_result", "_tg_shop_exit_a",
                                       "_tg_shop_exit_b", "_tg_shop_presence_exit", "_tg_shop_request_exit"})
+        for fn in found.values():
+            self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
+
+    def test_the_speech_helpers_exist_and_are_short(self):
+        import ast
+        part = self._funcs("turn_speech.py")
+        found = {n.name: n for n in part.body if isinstance(n, ast.FunctionDef)}
+        self.assertEqual(set(found), {"_ts_conversation_check", "_ts_parse_intent", "_ts_personal_answer_exit",
+                                      "_ts_speech_money", "_ts_speech_packet", "_ts_witness_exit"})
         for fn in found.values():
             self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
 
