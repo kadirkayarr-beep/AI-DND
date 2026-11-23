@@ -318,3 +318,8 @@ Task 13 fix round 2
 - Finding 1 (minor, RESULT form T8/T9a): fixed as note. The T8 runs (tb8-3c/3d) and T9a runs (tb9a-2/3) only wrote "N tests exit 0", and T8 skipped test_engine_sensitivity (T9a found _procedural_entity_ids missing from sensitive.json). No code defect left: the T13 full suites tb13-gate-off2 and tb13-gate-fon (11289 tests, failing_ids 0 in both flags) cover T8/T9a code, so the T8/T9a evidence is those two runs. RESULT-form rule (`tests N skipped N failing_ids N PAR_EXIT=N`) added to docs/agents/implementer-preamble.md.
 - Finding 2 (minor, file-pinning tests): fixed as rule. d065e8b6 already fixed the red. Added to docs/agents/implementer-preamble.md: when a task moves a function or call, grep the tests for the old file path and call name; every test that pins them joins the targeted set. DILIM-END LIST: for future cut slices, add this grep step to every move task's targeted set (T12 missed test_talk_mode_writers; only the T13 full suite caught it).
 - Docs only, no code change, so no test run.
+
+## Stage 2 close (controller, 2026-11-23)
+- Ruling: T10 last-round 'important' (money modules not in the fon/off targeted run, regex double prefix) is closed by the T13 full suites tb13-gate-off2 / tb13-gate-fon at d065e8b6 (11289 tests, failing_ids 0, both flags; full suite includes all money_tests.txt modules); commits after d065e8b6 are docs/ledger/preamble only — if wrong: a money regression from T10 is unseen (low: full suite ran).
+- Ruling: stage 2 commits push to the same branch, updating PR #151 (stacked on #149) instead of a new PR — one stack, one play — if wrong: one bigger PR to read.
+- Stage 2 workflow: 37 agents, 3.84M subagent tokens, 4.4 h wall. Stage 1+2 total about 8.3M tokens (estimate 7.5M).
