@@ -342,7 +342,7 @@ def turn_call_cap(calls: list[str]) -> int:
     front = any(getattr(call, "front", False) for call in calls)
     repaired = any(getattr(call, "repair", False) for call in calls)
     plain = not any(getattr(call, "initiative", False) for call in calls)
-    repair = repaired or (in_repair_call() and plain)  # one repair after a failed check; never a fourth call
+    repair = (repaired and not in_repair_call()) or (in_repair_call() and plain and not repaired)  # one repair after a failed check, never a second or a fourth call
     return MAX_MODEL_CALLS_PER_TURN + (1 if (initiative and front) or repair else 0)
 
 

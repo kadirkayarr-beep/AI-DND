@@ -179,6 +179,15 @@ class TravelBeyondTheList(_ArrivalApi):
         self.assertIn(thread["place_id"], ids)
         self.assertLess(ids.index(thread["place_id"]), 6)
 
+    async def test_the_kind_walk_step_has_the_keys_the_old_chains_search_by_kind_step_has(self):
+        token = game._ACTIVE_SESSION.set(self.session())
+        try:
+            old = next(step for step in grounded_action.plan(self.session(), "hana gidiyorum")["steps"]
+                       if step.get("place_noun"))
+        finally:
+            game._ACTIVE_SESSION.reset(token)
+        self.assertEqual(set(grounded_action._kind_walk_step("han", "tavern")), set(old))
+
     async def test_a_kind_walk_spends_the_front_reading_and_no_more_than_two_calls(self):
         await self.turn("Köydeki tavernaya gidiyorum.", front={"kind": "go_to", "place_id": "kind:tavern"})
         self.assertLessEqual(len(self.client.kinds), 2, self.client.kinds)

@@ -177,6 +177,9 @@
     "_sleep_after_walk": [
       "money"
     ],
+    "_speech_after_check": [
+      "money"
+    ],
     "_speech_debug_trail": [
       "file_write"
     ],

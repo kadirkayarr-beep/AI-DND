@@ -33,6 +33,16 @@ class RepairBudgetTests(unittest.TestCase):
                 self.ask(adapter)
             self.assertEqual(len(calls), 3)
 
+    def test_one_plain_call_then_two_repairs_makes_only_one_repair(self):
+        adapter = self.adapter()
+        with adapter.capture_model_calls() as calls:
+            self.ask(adapter)
+            with model_phase.repair_call():
+                self.ask(adapter)
+            with model_phase.repair_call(), self.assertRaisesRegex(RuntimeError, "budget"):
+                self.ask(adapter)
+            self.assertEqual(len(calls), 2)
+
     def test_an_ordinary_third_call_is_still_refused(self):
         adapter = self.adapter()
         with adapter.capture_model_calls() as calls:

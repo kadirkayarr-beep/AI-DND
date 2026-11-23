@@ -1584,7 +1584,8 @@ def _repair_npc_speech(world, npc, player_input, rejected, reason_code, action_r
         stage = npc_speech_boundary.strip_player_quote(stage, player_input)
         stage = game._shown_stage_direction(stage, world)
         spoken = game._without_lines_already_said(spoken, npc, world, player_input)
-        if not spoken.strip() or not interaction_adventure.safe_narration(spoken):
+        if (not spoken.strip() or not interaction_adventure.safe_narration(game._compose_experimental_npc_speech(
+                {"spoken_text": spoken, "stage_direction": stage}))):
             return None
         backed = town_knowledge.money_backed_by(world, npc)  # the repair's own figures are never trusted
         payload = {
@@ -1601,7 +1602,9 @@ def _repair_npc_speech(world, npc, player_input, rejected, reason_code, action_r
                 or not game._dialogue_repair_has_attributed_answer(payload, npc, action_result)):
             return None
         return payload
-    except Exception:
+    except Exception as error:  # never the player's words: only the kind of failure
+        import logging
+        logging.getLogger("game_parts.dialogue").warning("speech repair failed: %s", type(error).__name__)
         return None
 
 
@@ -1614,11 +1617,19 @@ def _question_bound_answer(world, npc, player_input):
     if asks is None or asks in ("rumour", "work"):
         return game._person_fallback(world, npc, player_input)
     place = world.get("locations", {}).get(reading.get("place_id"))
-    if asks == "place" and isinstance(place, dict) and place.get("name"):
+    import local_places
+    known = (isinstance(place, dict) and place.get("name") and not place.get("hidden")
+             and local_places.settlement_of(world, reading.get("place_id")) == town_knowledge._settlement(world))
+    if asks == "place" and known:
         where = "Bu sokakta" if place.get("parent_location_id") == npc.get("location") else "Yakınlarda"
         last = next((ch for ch in reversed(place["name"].casefold()) if ch in "aıoueiöü"), "a")  # mı / mi / mu / mü
         particle = "mı" if last in "aı" else "mi" if last in "ei" else "mu" if last in "ou" else "mü"
         spoken = f"{place['name']} {particle}? {where}."
+    elif asks == "small_talk":  # a hal hatır question no answer could be used for: one short neutral word, no rumour
+        words = ("Fena sayılmaz; günler geçip gidiyor.", "İdare ediyoruz, sağ ol.", "Her zamanki gibi; işler yürüyor.")
+        spoken = words[int(hashlib.sha256(f"{npc.get('id')}|{player_input}".encode("utf-8")).hexdigest(), 16) % len(words)]
+    elif asks == "none":
+        return interaction_adventure.immersive_unknown(npc, "")
     else:
         ask_there = town_knowledge._brush_off_place(world, npc)
         spoken = (f"Onu bilmiyorum; {ask_there} tarafına sor." if ask_there
@@ -1648,18 +1659,27 @@ def _speech_after_check(text, *, world_state, npc_target, player_input, action_r
             and interaction_adventure._asks(player_input)):  # a greeting keeps the fallback's own answer
         # D-249 F1: a speech the safety check rejected is replaced by what the person has to say from Python
         # (job, town lead, place to ask), never by the stock "I don't know" the fallback wrote.
+        paid = game._session()  # coin already moved this turn: no repair is asked, the line must not talk about it
+        coin_moved = bool((getattr(paid, "_thread_turn", None) or {}).get("paid_cp")) or bool(getattr(paid, "_coin_paid", None))
         repaired = (game._repair_npc_speech(world_state, npc_target, player_input, attributed_speech,
                                             final_safety_reason_code, action_result)
                     if isinstance(attributed_speech, dict) and str(attributed_speech.get("spoken_text", "")).strip()
+                    and not coin_moved
                     else None)  # an empty line is no answer a safety check rejected
+        from api import ollama_adapter
+        game._session()._speech_repair_calls = sum(  # a repair call really made counts in the route log
+            1 for call in ollama_adapter._MODEL_CALLS.get() or () if getattr(call, "repair", False))
         if repaired is not None:
             text = game._render_experimental_npc_speech(repaired, npc_target)
             narration_source = "qwen"
             game._session()._speech_repair = "model_repair"
         else:
             text = game._question_bound_answer(world_state, npc_target, player_input)
-            game._session()._speech_repair = "model_repair_failed"
-            if text != interaction_adventure.immersive_unknown(npc_target, player_input):
-                python_town_response = text
+            game._session()._speech_repair = "model_repair_skipped" if coin_moved else "model_repair_failed"
+            reading = talk_front.current(game._session())
+            asks = reading.get("asks") if isinstance(reading, dict) else None
+            if (asks is None or asks in ("rumour", "work")) and text != interaction_adventure.immersive_unknown(
+                    npc_target, player_input):
+                python_town_response = text  # only a line that really is the town's lead is labelled one
     return {"text": text, "python_town_response": python_town_response, "narration_source": narration_source,
             "reason_code": final_safety_reason_code, "handling": final_safety_handling, "stock_swapped": stock_swapped}

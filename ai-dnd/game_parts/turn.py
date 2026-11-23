@@ -1162,7 +1162,7 @@ def _run_player_turn_internal(
                 result["_engine_event_evidence"]["telemetry"] = {
                     "intent_model_calls": told_intent_calls(),
                     "narration_model_calls": narration_model_calls,
-                    "total_model_calls": told_intent_calls() + narration_model_calls,
+                    "total_model_calls": told_intent_calls() + narration_model_calls + getattr(game._session(), "_speech_repair_calls", 0),
                     "intent_source": intent_source,
                     "narration_source": narration_source,
                     "fallback_reason": safety_reason_code,
