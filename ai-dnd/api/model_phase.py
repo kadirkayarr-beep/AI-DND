@@ -6,6 +6,7 @@ _PHASE = ContextVar("resolved_model_phase", default="unresolved")
 _CLASSIFIER = ContextVar("classifier_model_call", default=False)
 _FRONT = ContextVar("front_model_call", default=False)
 _INITIATIVE = ContextVar("initiative_model_call", default=False)
+_REPAIR = ContextVar("repair_model_call", default=False)
 _CAUSES = ContextVar("unusable_call_causes", default=None)
 MAX_CAUSES = 10
 
@@ -68,12 +69,27 @@ def in_initiative_call():
     return _INITIATIVE.get()
 
 
+@contextmanager
+def repair_call():
+    """The one repair of an answer a safety check rejected: it may pass the per-turn cap once (D-332)."""
+    token = _REPAIR.set(True)
+    try:
+        yield
+    finally:
+        _REPAIR.reset(token)
+
+
+def in_repair_call():
+    return _REPAIR.get()
+
+
 class ModelCall(str):
-    """One counted call's provider name, marked with whether it was the front reading or an initiative."""
+    """One counted call's provider name, marked with whether it was the front reading, an initiative or a repair."""
     def __new__(cls, provider):
         value = super().__new__(cls, provider)
         value.front = _FRONT.get()
         value.initiative = _INITIATIVE.get()
+        value.repair = _REPAIR.get()
         return value
 
 

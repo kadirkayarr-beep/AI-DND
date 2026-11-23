@@ -19,7 +19,7 @@ import game
 from api import model_chain
 from api.usage_ledger import UsageLedger
 from api import model_phase
-from api.model_phase import ModelCall, ModelFailure, in_classifier_call, in_front_call, in_initiative_call
+from api.model_phase import ModelCall, ModelFailure, in_classifier_call, in_front_call, in_initiative_call, in_repair_call
 from api.local_model_config import (
     DEFAULT_LOCAL_MODEL,
     LOCAL_FALLBACK_MODELS,
@@ -337,10 +337,13 @@ def usage_summary() -> dict[str, Any]:
 
 
 def turn_call_cap(calls: list[str]) -> int:
-    """The turn's call budget. An NPC's optional initiative may also use the one call a front reading took."""
+    """The turn's call budget. An NPC's optional initiative may also use the one call a front reading took; one repair may pass the cap."""
     initiative = in_initiative_call() or any(getattr(call, "initiative", False) for call in calls)
     front = any(getattr(call, "front", False) for call in calls)
-    return MAX_MODEL_CALLS_PER_TURN + (1 if initiative and front else 0)
+    repaired = any(getattr(call, "repair", False) for call in calls)
+    plain = not any(getattr(call, "initiative", False) for call in calls)
+    repair = repaired or (in_repair_call() and plain)  # one repair after a failed check; never a fourth call
+    return MAX_MODEL_CALLS_PER_TURN + (1 if (initiative and front) or repair else 0)
 
 
 def model_calls_left() -> int | None:
