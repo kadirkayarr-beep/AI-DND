@@ -1530,3 +1530,32 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
     return (game._speech_answer_rules() + " ".join(lines) + "\n" + card + "\n" + bold_acts.speech_note(world, npc) + game._town_note(world, npc)
             + town_knowledge.promise_note(world, npc)
             + town_knowledge.money_decided_note(getattr(game._session(), "_thread_turn", None)) + "\n")
+
+
+def _speech_after_check(text, *, world_state, npc_target, player_input, action_result, experimental_npc_dialogue,
+                        experimental_unverified_claim, narration_source, python_town_response):
+    narration_safety = getattr(game._session(), "last_narration_safety", None)
+    narration_safety = (
+        narration_safety if isinstance(narration_safety, dict) else {}
+    )
+    final_safety_reason_code = narration_safety.get("reason_code")
+    final_safety_handling = narration_safety.get("handling", "accepted")
+    if (
+        final_safety_reason_code
+        and final_safety_handling == "python_fallback"
+    ):
+        narration_source = "deterministic_fallback"
+    stock_swapped = experimental_npc_dialogue and game._is_stock(text)
+    if stock_swapped:
+        # A clear line never earns "say it again": the person answers from what Python has for them.
+        text = game._person_fallback(world_state, npc_target, player_input)
+    elif (experimental_npc_dialogue and final_safety_handling == "python_fallback"
+            and not experimental_unverified_claim and action_result.get("action") != "skill_check"
+            and interaction_adventure._asks(player_input)):  # a greeting keeps the fallback's own answer
+        # D-249 F1: a speech the safety check rejected is replaced by what the person has to say from Python
+        # (job, town lead, place to ask), never by the stock "I don't know" the fallback wrote.
+        text = game._person_fallback(world_state, npc_target, player_input)
+        if text != interaction_adventure.immersive_unknown(npc_target, player_input):
+            python_town_response = text
+    return {"text": text, "python_town_response": python_town_response, "narration_source": narration_source,
+            "reason_code": final_safety_reason_code, "handling": final_safety_handling, "stock_swapped": stock_swapped}

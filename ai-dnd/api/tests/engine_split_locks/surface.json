@@ -2725,6 +2725,12 @@
   "session_bound": true,
   "signature": "()"
  },
+ "_speech_after_check": {
+  "kind": "function",
+  "module": "game_parts.dialogue",
+  "session_bound": true,
+  "signature": "(text, *, world_state, npc_target, player_input, action_result, experimental_npc_dialogue, experimental_unverified_claim, narration_source, python_town_response)"
+ },
  "_speech_answer_rules": {
   "kind": "function",
   "module": "game_parts.dialogue",

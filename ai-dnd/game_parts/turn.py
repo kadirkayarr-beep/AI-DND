@@ -3199,29 +3199,14 @@ def _run_player_turn_internal(
                 attributed_speech=attributed_speech,
                 python_town_response=python_town_response,
             )
-            narration_safety = getattr(game._session(), "last_narration_safety", None)
-            narration_safety = (
-                narration_safety if isinstance(narration_safety, dict) else {}
+            after = game._speech_after_check(
+                text, world_state=world_state, npc_target=npc_target, player_input=player_input,
+                action_result=action_result, experimental_npc_dialogue=experimental_npc_dialogue,
+                experimental_unverified_claim=experimental_unverified_claim, narration_source=narration_source,
+                python_town_response=python_town_response,
             )
-            final_safety_reason_code = narration_safety.get("reason_code")
-            final_safety_handling = narration_safety.get("handling", "accepted")
-            if (
-                final_safety_reason_code
-                and final_safety_handling == "python_fallback"
-            ):
-                narration_source = "deterministic_fallback"
-            stock_swapped = experimental_npc_dialogue and game._is_stock(text)
-            if stock_swapped:
-                # A clear line never earns "say it again": the person answers from what Python has for them.
-                text = game._person_fallback(world_state, npc_target, player_input)
-            elif (experimental_npc_dialogue and final_safety_handling == "python_fallback"
-                    and not experimental_unverified_claim and action_result.get("action") != "skill_check"
-                    and interaction_adventure._asks(player_input)):  # a greeting keeps the fallback's own answer
-                # D-249 F1: a speech the safety check rejected is replaced by what the person has to say from Python
-                # (job, town lead, place to ask), never by the stock "I don't know" the fallback wrote.
-                text = game._person_fallback(world_state, npc_target, player_input)
-                if text != interaction_adventure.immersive_unknown(npc_target, player_input):
-                    python_town_response = text
+            text, python_town_response, narration_source = after["text"], after["python_town_response"], after["narration_source"]
+            final_safety_reason_code, final_safety_handling, stock_swapped = after["reason_code"], after["handling"], after["stock_swapped"]
             speech_checks = None
             if experimental_npc_dialogue:
                 # D-252: the names of the checks that changed or replaced this reply, for the route log. Never words.
