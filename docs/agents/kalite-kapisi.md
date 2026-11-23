@@ -7,7 +7,7 @@ Yeni ölü kod, kullanılmayan import, sızan anahtar ve ayar dışı büyüme b
 | İş | Ne yapar | Engeller mi |
 |---|---|---|
 | `python-gate` | ruff (F, E9) baseline'a karşı; vulture beyaz listeyle; üç "yalnız küçülür" kontrolü (ruff baseline, vulture listesi, `size_lock.json`) | Evet |
-| `secrets-gate` | gitleaks tüm geçmişte, baseline dışı bulgu kırar; çıktıda sır değeri yok (`--redact`) | Evet |
+| `secrets-gate` | gitleaks tüm geçmişte, baseline dışı bulgu kırar, baseline yalnız küçülür; çıktıda sır değeri yok (`--redact`) | Evet |
 | `ui-gate` | knip baseline'a karşı + baseline yalnız küçülür | Evet |
 | `ui-gate` içinde fallow ve skylos | yalnız rapor (`continue-on-error`) | Hayır |
 
