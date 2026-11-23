@@ -19,6 +19,9 @@ import time
 import unittest
 import uuid
 from unittest.mock import patch
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8330
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
@@ -221,7 +224,8 @@ class StageADiagnosticTests(unittest.IsolatedAsyncioTestCase):
         flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 8
 
     async def _plain_city_session(self):
-        created = await self.http.post("/api/game/campaigns", json=CAMPAIGN_START)
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json=CAMPAIGN_START)
         self.assertEqual(created.status_code, 200, created.text)
         session_id = created.json()["session_id"]
         session = self.manager.get(session_id).game_session

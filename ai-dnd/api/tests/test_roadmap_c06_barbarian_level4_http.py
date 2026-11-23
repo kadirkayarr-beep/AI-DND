@@ -9,6 +9,9 @@ import xp
 import equipment_economy
 from api.tests import test_roadmap_c10_berserker_http as three
 from api.tests import test_roadmap_c06_level4_http as sorcerer
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8400
 
 
 def digest(value):
@@ -130,7 +133,8 @@ class BarbarianFourHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code,409);self.assertEqual(self.snapshot(r),before)
         for level in (3,4):
             data=request(2);data['starting_level']=level
-            self.assertEqual((await self.http.post('/api/game/campaigns',json={'character':data})).status_code,422)
+            with default_town(self, TOWN_SEED):
+                self.assertEqual((await self.http.post('/api/game/campaigns',json={'character':data})).status_code,422)
         a,r=await self.earned(raw=5);p=await self.ready(a);old=r.game_session.character['max_hp']
         bad=self.command(a,self.pick(),p);bad['target_level']=5
         self.assertEqual((await self.http.post(self.url(a),json=bad)).status_code,422)
@@ -265,7 +269,8 @@ class BarbarianFourHttpTests(unittest.IsolatedAsyncioTestCase):
         from api.tests.test_roadmap_c06_barbarian_creation_http import request
         data=request(2);data.update(ability_score_method='manual',background_ability_bonuses={'constitution':2,'dexterity':1})
         data['ability_scores']['constitution']=18
-        response=await self.http.post('/api/game/campaigns',json={'character':data});self.assertEqual(response.status_code,200,response.text)
+        with default_town(self, TOWN_SEED):
+            response=await self.http.post('/api/game/campaigns',json={'character':data});self.assertEqual(response.status_code,200,response.text)
         a=response.json();r=self.manager.get(a['session_id']);s=r.game_session
         s._receive_xp_award(xp.apply_xp,s.character,s.world_state,600,'quest:synthetic-cap-three');self.manager.save_campaign(a['campaign_id'])
         response=await self.http.post(self.url(a),json=self.command(a,three.PICK,await self.preview(a)));self.assertEqual(response.status_code,200,response.text)

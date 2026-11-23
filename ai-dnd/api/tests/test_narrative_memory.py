@@ -11,6 +11,9 @@ import unittest
 from unittest.mock import patch
 
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8320
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
@@ -491,7 +494,8 @@ class NpcMemoryIsolationAndSpeakerBindingTests(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def _setup_two_npc_session(self):
-        campaign_id, session_id, record, _ = self.manager.create_campaign("Memory Isolation Test")
+        with default_town(self, TOWN_SEED):
+            campaign_id, session_id, record, _ = self.manager.create_campaign("Memory Isolation Test")
         session = record.game_session
         session.character["name"] = "Kaelen"
         session.character["race"] = "Human"

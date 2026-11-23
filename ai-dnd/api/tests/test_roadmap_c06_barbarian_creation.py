@@ -14,6 +14,9 @@ from api.persistence.campaign_validation import serialize_campaign_payload, rest
 from api.tests import test_campaign_api as campaigns
 from api.tests.test_roadmap_c06_barbarian import barbarian, spec
 from api.tests.test_roadmap_c06_starting_xp import create as create_sorcerer
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8370
 
 
 def create_two(session=None):
@@ -133,6 +136,7 @@ class BarbarianCreationHttpBoundaryTests(unittest.IsolatedAsyncioTestCase):
         # Public2 is now supported; retain a real unsupported higher-level boundary.
         request.update(mode='custom', starting_level=3, level_choices={'2': {}, '3': {}})
         with patch.object(self.store, 'create_campaign', wraps=self.store.create_campaign) as store:
-            response = await self.http.post('/api/game/campaigns', json={'character': request})
+            with default_town(self, TOWN_SEED):
+                response = await self.http.post('/api/game/campaigns', json={'character': request})
             self.assertEqual(response.status_code, 422, response.text)
             store.assert_not_called()

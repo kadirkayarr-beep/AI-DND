@@ -13,6 +13,9 @@ from api.tests import test_roadmap_c06_level4_http as prior
 from api.tests.test_roadmap_c06_barbarian import spec
 from api.tests.test_roadmap_c06_barbarian_creation45 import PICK, asi, bundle
 from api.dnd_2024_rules import get_character_creation_catalog
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8380
 
 ASI = asi({'strength': 2})['asi']
 
@@ -36,7 +39,8 @@ class BarbarianCreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_creation_stored_and_fresh_resumed_for_four_and_five(self):
         for level, hp, xp_value, version, pb in ((4, 41, 2700, 4, 2), (5, 50, 6500, 6, 3)):
             with self.subTest(level=level):
-                response = await self.http.post('/api/game/campaigns', json={'character': request(level)})
+                with default_town(self, TOWN_SEED):
+                    response = await self.http.post('/api/game/campaigns', json={'character': request(level)})
                 self.assertEqual(response.status_code, 200, response.text)
                 body = response.json()
                 saved = self.store.get_campaign(body['campaign_id']).payload['engine_save']
@@ -56,7 +60,8 @@ class BarbarianCreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_no_xp_award_or_level_up_offer_appears_after_creation(self):
         for level, reason in ((4, 'level_not_earned'), (5, 'target_not_above_applied_level')):
-            body = (await self.http.post('/api/game/campaigns', json={'character': request(level)})).json()
+            with default_town(self, TOWN_SEED):
+                body = (await self.http.post('/api/game/campaigns', json={'character': request(level)})).json()
             preview = await self.http.get(f"/api/game/sessions/{body['session_id']}/level-up")
             self.assertEqual(preview.status_code, 200, preview.text)
             self.assertEqual((preview.json()['status'], preview.json()['reason']), ('blocked', reason), preview.text)
@@ -147,7 +152,8 @@ class BarbarianCreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
         value = request(4); value['starting_level'] = 6; cases.append((6, value))
         before_rows, before_sessions = self.rows(), dict(self.manager._sessions)
         for level, value in cases:
-            response = await self.http.post('/api/game/campaigns', json={'character': value})
+            with default_town(self, TOWN_SEED):
+                response = await self.http.post('/api/game/campaigns', json={'character': value})
             self.assertIn(response.status_code, (400, 422), (level, response.text))
             self.assertEqual(self.rows(), before_rows)
             self.assertEqual(self.manager._sessions, before_sessions)
@@ -160,7 +166,8 @@ class BarbarianCreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
         real = cp._barbarian_asi_options
         with patch.object(cp, '_barbarian_asi_options', side_effect=lambda session: [
                 o for o in real(session) if o['increase'] != {'constitution': 2}]):
-            response = await self.http.post('/api/game/campaigns', json={'character': request(4, {'constitution': 2})})
+            with default_town(self, TOWN_SEED):
+                response = await self.http.post('/api/game/campaigns', json={'character': request(4, {'constitution': 2})})
         self.assertIn(response.status_code, (400, 422), response.text)
         self.assertIn('asi_choice_not_eligible', response.text)
         self.assertEqual(self.rows(), [])
@@ -186,7 +193,8 @@ class BarbarianCreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
                     raise sqlite3.OperationalError('synthetic after real Barbarian INSERT')
 
             with patch.object(self.store, '_transaction', side_effect=fail_after_insert):
-                response = await self.http.post('/api/game/campaigns', json={'character': request(level)})
+                with default_town(self, TOWN_SEED):
+                    response = await self.http.post('/api/game/campaigns', json={'character': request(level)})
             self.assertEqual(response.status_code, 503, response.text)
             self.assertEqual(reached, [level])
             self.assertEqual(self.rows(), before_rows)
