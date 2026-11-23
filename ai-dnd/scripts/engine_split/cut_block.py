@@ -357,6 +357,8 @@ def _forbidden(block) -> str | None:
     for n in ast.walk(block):
         if isinstance(n, (ast.Yield, ast.YieldFrom, ast.Await, ast.Global, ast.Nonlocal)):
             return type(n).__name__.lower()
+        if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Del):
+            return f"del {n.id}"
         if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in DYNAMIC:
             return f"{n.func.id}()"
     if _loose_jump(block):
@@ -413,6 +415,9 @@ def analyse(text: str, chain, st) -> dict:
                     todo.append(f)
     flow, _ = flow_stores([st])
     outputs = sorted(flow & later & (local | outer))
+    closures = sorted(set(outputs) & set(block_scan.nested))
+    if closures:
+        raise MoveRefused(f"closure output {' '.join(closures)}: a def/lambda made in the block and used after it")
     if has_return and outputs:
         raise MoveRefused(f"class C: the block has a return and {len(outputs)} outputs")
     if len(outputs) > MAX_OUTPUTS:

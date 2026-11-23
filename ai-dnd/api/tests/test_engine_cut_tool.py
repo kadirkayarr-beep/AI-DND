@@ -417,6 +417,18 @@ class ForbiddenTests(CutToolCase):
                 self.assert_refused(src, "forbidden construct", anchor="if c:")
 
 
+    def test_del_of_a_name_in_a_block_is_refused(self):  # fix round 1
+        src = "import game\n\n\ndef run(c):\n    seen = 1\n    if c:\n        del seen\n    return c\n"
+        self.assert_refused(src, "forbidden construct", anchor="if c:")
+
+    def test_a_def_or_lambda_output_is_refused(self):  # fix round 1: closure would bind the helper's locals
+        for label, body in (("def", "def add(n):\n            return n + base"), ("lambda", "add = lambda n: n + base")):
+            with self.subTest(label):
+                src = (f"import game\n\n\ndef run(c):\n    base = 1\n    if c:\n        {body}\n"
+                       "        base = 5\n    else:\n        add = None\n    return add(c) if add else base\n")
+                self.assert_refused(src, "closure output", anchor="if c:")
+
+
 class CutCheckTests(CutToolCase):
     SRC = '''
         import game
