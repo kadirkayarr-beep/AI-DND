@@ -1,0 +1,89 @@
+name: AI-DND quality gate
+
+# Task 4: report-only measurement. Nothing here blocks a merge yet.
+# Tool pins live in ai-dnd/scripts/quality_gate/tools.json (single source).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-dnd-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.26.1"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - name: Install Python tools at the pinned versions
+        run: |
+          mkdir -p reports
+          python -m pip install -r ai-dnd/scripts/engine_split/requirements-dev.txt
+          PKG=$(python -c "import json;t=json.load(open('ai-dnd/scripts/quality_gate/tools.json'));print('sky'+'los=='+t['sky'+'los'])")
+          python -m pip install "$PKG"
+      - name: Install workspace dependencies without scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Ruff (F, E9)
+        if: ${{ !cancelled() }}
+        run: ruff check ai-dnd --select F,E9 --output-format json > reports/ruff.json
+      - name: Vulture
+        if: ${{ !cancelled() }}
+        run: vulture ai-dnd --min-confidence 80 > reports/vulture.txt
+      - name: Skylos (no upload; no --trace, it would run the test suite)
+        if: ${{ !cancelled() }}
+        run: |
+          skylos ai-dnd --no-upload --json > "$RUNNER_TEMP/skylos-full.json"
+          python -c "import json,os;d=json.load(open(os.environ['RUNNER_TEMP']+'/skylos-full.json'));keep=('unused_functions','unused_imports','unused_classes','unused_variables','unused_parameters','unused_files','analysis_errors','circular_dependencies','analysis_summary');json.dump({k:d[k] for k in keep},open('reports/skylos.json','w'))"
+      - name: Gitleaks at the pinned version and checksum
+        if: ${{ !cancelled() }}
+        run: |
+          V=$(python -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['gitleaks']['version'])")
+          SUM=$(python -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['gitleaks']['sha256'])")
+          curl -sSL -o "$RUNNER_TEMP/gitleaks.tgz" "https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_linux_x64.tar.gz"
+          echo "${SUM}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" detect --redact --no-banner --report-format json --report-path reports/gitleaks.json
+      - name: Knip (JS and TS)
+        if: ${{ !cancelled() }}
+        env:
+          PORT: "3000"
+          BASE_PATH: "/"
+          DATABASE_URL: "postgres://localhost/unused"
+        run: |
+          V=$(python -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['knip'])")
+          npm_config_ignore_scripts=true pnpm dlx "knip@${V}" --reporter json > reports/knip-report.json
+      - name: Fallow dead-code (JS and TS, no duplication, no coverage)
+        if: ${{ !cancelled() }}
+        env:
+          DO_NOT_TRACK: "1"
+        run: |
+          V=$(python -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['fallow'])")
+          npm_config_ignore_scripts=true pnpm dlx "fallow@${V}" dead-code --format json --quiet > reports/fallow-report.json
+      - name: Upload raw reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports-${{ github.sha }}
+          path: reports/
+          if-no-files-found: warn
