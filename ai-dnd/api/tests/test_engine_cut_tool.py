@@ -381,8 +381,40 @@ class ClassBTests(CutToolCase):
         self.assertEqual(common.read_text(encoding="utf-8"), "_TURN_FALL_THROUGH = object()\n")
         game = (self.root / "game.py").read_text(encoding="utf-8")
         self.assertIn("from game_parts.turn_cuts_common import _TURN_FALL_THROUGH\n", game)
-        self.assertIn('"game_parts.turn_cuts_common"', game)
+        self.assertNotIn('"game_parts.turn_cuts_common"', game)  # no function in it: routing_audit R2
         self.same_behaviour("turn.run(0)", "turn.run(1)", "turn.run(2)")
+
+    def test_a_second_class_b_cut_in_one_function_reuses_the_tool_exit_name(self):
+        src = '''
+            import game
+
+
+            def run(c, d):
+                if c == 1:
+                    return "one"
+                if d == 2:
+                    return "two"
+                return "end"
+        '''
+        code, err = self.cut(src, anchor="if d == 2:", helper="_second")
+        self.assertEqual(code, 0, err)
+        code, err = _run_cut(self.root, anchor="if c == 1:", helper="_first")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.turn().count("_exit = game._"), 2)
+        self.same_behaviour("turn.run(1, 0)", "turn.run(0, 2)", "turn.run(0, 0)")
+
+    def test_a_user_exit_name_blocks_a_class_b_cut(self):
+        src = '''
+            import game
+
+
+            def run(c):
+                _exit = c
+                if c == 1:
+                    return "one"
+                return _exit
+        '''
+        self.assert_refused(src, "the function already uses the name _exit", anchor="if c == 1:")
 
     def test_bare_return_inside_a_b_block_is_not_fall_through(self):  # Review Focus 3
         src = '''

@@ -757,6 +757,18 @@ from game_parts.turn import _owner_module_reply
 
 
 from game_parts.turn import _run_player_turn_internal
+from game_parts.turn_finish import _tf_build_resolved_turn
+from game_parts.turn_finish import _tf_system_deterministic_exit
+from game_parts.turn_cuts_common import _TURN_FALL_THROUGH
+from game_parts.turn_finish import _tf_system_deterministic_flag
+from game_parts.turn_finish import _tf_engine_event_evidence
+from game_parts.turn_finish import _tf_internal_text_fallback
+from game_parts.turn_finish import _tf_campaign_time
+from game_parts.turn_finish import _tf_attack_events
+from game_parts.turn_finish import _tf_interaction_consumed
+from game_parts.turn_finish import _tf_is_experimental
+from game_parts.turn_finish import _tf_first_guard
+from game_parts.turn_finish import _tf_final_skipped_exit
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"
@@ -791,7 +803,7 @@ def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_P
 
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
-_PART_MODULES = ("game_parts.character_rules", "game_parts.coin", "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration", "game_parts.narration_safety", "game_parts.new_game", "game_parts.places", "game_parts.savefile", "game_parts.text_rules_a", "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_front")
+_PART_MODULES = ("game_parts.character_rules", "game_parts.coin", "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration", "game_parts.narration_safety", "game_parts.new_game", "game_parts.places", "game_parts.savefile", "game_parts.text_rules_a", "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_finish", "game_parts.turn_front")
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
                           if isinstance(value, types.FunctionType)
                           and (value.__module__ == __name__ or value.__module__ in _PART_MODULES))

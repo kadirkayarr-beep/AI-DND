@@ -333,6 +333,25 @@ def locate_block(text: str, function: str, anchor: str, occurrence: int | None =
     return chain, st, start, st.end_lineno
 
 
+def _foreign_exit(fn) -> bool:
+    """True if `_exit` is a parameter or is used outside this tool's own `_exit = game._X(...)` call pattern."""
+    if "_exit" in params_of(fn):
+        return True
+    ours: set[int] = set()
+    for n in ast.walk(fn):
+        for body in (getattr(n, f, None) for f in ("body", "orelse", "finalbody")):
+            if not isinstance(body, list):
+                continue
+            for a, b in zip(body, body[1:]):
+                if (isinstance(a, ast.Assign) and len(a.targets) == 1 and isinstance(a.targets[0], ast.Name)
+                        and a.targets[0].id == "_exit" and isinstance(b, ast.If)
+                        and isinstance(b.test, ast.Compare) and isinstance(b.test.left, ast.Name)
+                        and b.test.left.id == "_exit" and len(b.body) == 1 and isinstance(b.body[0], ast.Return)
+                        and isinstance(b.body[0].value, ast.Name) and b.body[0].value.id == "_exit"):
+                    ours |= {id(a.targets[0]), id(b.test.left), id(b.body[0].value)}
+    return any(isinstance(n, ast.Name) and n.id == "_exit" and id(n) not in ours for n in ast.walk(fn))
+
+
 def call_lines(indent: str, cls: str, helper: str, params: list[str], outputs: list[str]) -> list[str]:
     call = f"game.{helper}({', '.join(f'{p}={p}' for p in params)})"
     if cls == "B":
@@ -543,7 +562,7 @@ def cut(file: Path, function: str, anchor: str, helper: str, part: Path, census:
     lines = text.split("\n")
     indent_n = len(lines[st.lineno - 1]) - len(lines[st.lineno - 1].lstrip())
     indent = lines[st.lineno - 1][:indent_n]
-    if "_exit" in info["local"] and cls == "B":
+    if cls == "B" and any(_foreign_exit(f) for f in chain):
         raise MoveRefused("the function already uses the name _exit")
     if not helper.startswith("_") or not helper.isidentifier():
         raise MoveRefused(f"bad helper name {helper!r}")
@@ -613,7 +632,8 @@ def cut(file: Path, function: str, anchor: str, helper: str, part: Path, census:
         modules_needed.append((SENTINEL_PART, SENTINEL))
     for module, names in modules_needed:
         g = _reexport_insert(g, module, names)
-        g = _part_modules_insert(g, f"game_parts.{module}")
+        if module != SENTINEL_PART:  # a part with no function is not listed (routing_audit R2)
+            g = _part_modules_insert(g, f"game_parts.{module}")
     files[game_py] = g
     for path, content in files.items():
         path.write_bytes(content.encode("utf-8"))
