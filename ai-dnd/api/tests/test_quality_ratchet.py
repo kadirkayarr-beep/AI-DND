@@ -8,6 +8,7 @@ import sys
 import tempfile
 import types
 import unittest
+from unittest import mock
 from pathlib import Path
 
 BS = chr(92)
@@ -17,6 +18,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from quality_gate import ratchet  # noqa: E402
 from quality_gate.ratchet import (  # noqa: E402
     ToolOutputError,
+    baseline_growth,
     compare,
     count_findings,
     finding_key,
@@ -163,6 +165,68 @@ class RatchetCliTests(unittest.TestCase):
             self.assertNotIn(b"\r", raw)
             self.assertLess(raw.index(b'"a"'), raw.index(b'"b"'))
             self.assertEqual(ratchet.load_baseline(p), {"a": 2, "b": 1})
+
+
+class BaselineShrinkTests(unittest.TestCase):
+    def test_growth_is_listed(self):
+        out = baseline_growth({"a": 1, "b": 2}, {"a": 2, "b": 2, "c": 1})
+        self.assertEqual(len(out), 2)
+        self.assertIn("a", out[0])
+        self.assertIn("c", out[1])
+
+    def test_shrink_and_equal_pass(self):
+        self.assertEqual(baseline_growth({"a": 2, "b": 1}, {"a": 1, "b": 1}), [])
+        self.assertEqual(baseline_growth({"a": 2}, {}), [])
+
+    def test_first_introduction_passes(self):
+        self.assertEqual(baseline_growth({}, {}), [])
+
+
+class CheckShrinkCliTests(unittest.TestCase):
+    def run_cli(self, new_counts, git_result):
+        """git is mocked: the test slot blocks child processes."""
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "ruff.json"
+            f.write_text(json.dumps(new_counts), encoding="utf-8")
+            out, err = io.StringIO(), io.StringIO()
+            with mock.patch.object(ratchet.subprocess, "run", return_value=git_result) as run, \
+                    contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = ratchet.main(["check-shrink", str(f), "origin/main"])
+            return code, out.getvalue() + err.getvalue(), run
+
+    @staticmethod
+    def git(code, out="", err=""):
+        return types.SimpleNamespace(returncode=code, stdout=out, stderr=err)
+
+    def test_growth_exits_1(self):
+        code, text, run = self.run_cli({"a": 2}, self.git(0, '{"a": 1}'))
+        self.assertEqual(code, 1)
+        self.assertIn("a", text)
+        self.assertIn("origin/main:", " ".join(run.call_args[0][0]))
+
+    def test_shrink_exits_0(self):
+        self.assertEqual(self.run_cli({"a": 1}, self.git(0, '{"a": 2}'))[0], 0)
+
+    def test_file_absent_at_base_is_first_introduction(self):
+        err = "fatal: path 'x/ruff.json' exists on disk, but not in 'origin/main'"
+        self.assertEqual(self.run_cli({"a": 5}, self.git(128, "", err))[0], 0)
+        err2 = "fatal: path 'x/ruff.json' does not exist in 'origin/main'"
+        self.assertEqual(self.run_cli({"a": 5}, self.git(128, "", err2))[0], 0)
+
+    def test_other_git_error_exits_2(self):
+        err = "fatal: invalid object name 'origin/main'."
+        self.assertEqual(self.run_cli({"a": 1}, self.git(128, "", err))[0], 2)
+
+    def test_garbage_base_content_exits_2(self):
+        self.assertEqual(self.run_cli({"a": 1}, self.git(0, "{not json"))[0], 2)
+
+    def test_git_missing_exits_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "r.json"
+            f.write_text("{}", encoding="utf-8")
+            with mock.patch.object(ratchet.subprocess, "run", side_effect=OSError("no git")), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(ratchet.main(["check-shrink", str(f), "origin/main"]), 2)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,16 @@
 """Ratchet core: tool output -> line-free finding keys -> counts -> compare to a shrink-only baseline.
 
 CLI (run from ai-dnd/): python -m scripts.quality_gate.ratchet check|update <tool> <report-file>
+       python -m scripts.quality_gate.ratchet check-shrink <baseline-file> <base-ref>
 Exit codes: 0 ok, 1 new findings, 2 tool output unusable, 3 baseline may only shrink.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -58,6 +61,43 @@ def load_baseline(path: Path) -> Counts:
 def write_baseline(path: Path, counts: Counts) -> None:
     text = json.dumps(counts, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     path.write_bytes(text.encode("utf-8"))
+
+
+def baseline_growth(old: Counts, new: Counts) -> list[str]:
+    return [
+        f"{k}: baseline grew from {old.get(k, 0)} to {v}"
+        for k, v in sorted(new.items())
+        if v > old.get(k, 0)
+    ]
+
+
+def _base_counts(path: Path, ref: str) -> Counts | None:
+    """Counts of `path` at `ref`; None = file absent there (first introduction). Raises OSError/ValueError otherwise."""
+    rel = os.path.relpath(path)
+    res = subprocess.run(
+        ["git", "show", f"{ref}:./{Path(rel).as_posix()}"],
+        capture_output=True, text=True, encoding="utf-8", check=False,
+    )
+    if res.returncode != 0:
+        if "does not exist in" in res.stderr or "exists on disk, but not in" in res.stderr:
+            return None
+        raise OSError(f"git show failed: {res.stderr.strip()}")
+    return {k: int(v) for k, v in json.loads(res.stdout).items()}
+
+
+def _check_shrink(path: Path, ref: str) -> int:
+    try:
+        new = load_baseline(path)
+        old = _base_counts(path, ref)
+    except (OSError, ValueError) as exc:
+        print(f"BASELINE ERROR: {exc}", file=sys.stderr)
+        return 2
+    if old is None:
+        return 0
+    grown = baseline_growth(old, new)
+    for g in grown:
+        print(f"GREW: {g}")
+    return 1 if grown else 0
 
 
 def _load_json(text: str, tool: str):
@@ -142,6 +182,14 @@ PARSERS = {"ruff": parse_ruff, "knip": parse_knip, "fallow": parse_fallow}
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["check-shrink"]:
+        sp = argparse.ArgumentParser(prog="ratchet check-shrink")
+        sp.add_argument("mode")
+        sp.add_argument("baseline", type=Path)
+        sp.add_argument("base_ref")
+        a = sp.parse_args(argv)
+        return _check_shrink(a.baseline, a.base_ref)
     ap = argparse.ArgumentParser(prog="ratchet")
     ap.add_argument("mode", choices=["check", "update"])
     ap.add_argument("tool", choices=sorted(PARSERS))
