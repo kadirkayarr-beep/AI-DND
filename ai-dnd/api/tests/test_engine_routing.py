@@ -336,6 +336,14 @@ class EngineSourcesNeverReflectLocalsTests(unittest.TestCase):
                     hits.append(f"{Path(path).name}:{node.lineno}")
         self.assertEqual(hits, [])
 
+    def test_game_py_keeps_exactly_three_globals_calls(self):
+        import ast
+
+        tree = ast.parse(Path(engine_source_files()[0]).read_text(encoding="utf-8"))
+        names = sorted(n.func.id for n in ast.walk(tree)
+                       if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in {"locals", "globals", "vars"})
+        self.assertEqual(names, ["globals"] * 3)
+
 
 if __name__ == "__main__":
     unittest.main()
