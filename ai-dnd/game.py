@@ -768,7 +768,6 @@ from game_parts.turn_finish import _tf_attack_events
 from game_parts.turn_finish import _tf_interaction_consumed
 from game_parts.turn_finish import _tf_is_experimental
 from game_parts.turn_finish import _tf_first_guard
-from game_parts.turn_finish import _tf_final_skipped_exit
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"

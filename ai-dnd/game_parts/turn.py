@@ -1082,9 +1082,24 @@ def _run_player_turn_internal(
                 nonlocal narration_model_calls
                 narration_model_calls += spent
 
-        _exit = game._tf_final_skipped_exit(_incident_before_skipped_narration=_incident_before_skipped_narration, action_result=action_result, intent_source=intent_source, is_final=is_final, narration_model_calls=narration_model_calls, narration_source=narration_source, procedural_entity_ids=procedural_entity_ids, procedural_ids_before=procedural_ids_before, result=result, safety_handling=safety_handling, safety_reason_code=safety_reason_code, told_intent_calls=told_intent_calls)
-        if _exit is not game._TURN_FALL_THROUGH:
-            return _exit
+        if is_final:
+            _incident_before_skipped_narration()
+            result["_engine_event_evidence"]["procedural_entity_ids"] = sorted(
+                procedural_entity_ids() - procedural_ids_before
+            )
+            result["_engine_event_evidence"].pop("_procedural_ids_before", None)
+            if "telemetry" not in result["_engine_event_evidence"]:
+                result["_engine_event_evidence"]["telemetry"] = {
+                    "intent_model_calls": told_intent_calls(),
+                    "narration_model_calls": narration_model_calls,
+                    "total_model_calls": told_intent_calls() + narration_model_calls + getattr(game._session(), "_speech_repair_calls", 0),
+                    "intent_source": intent_source,
+                    "narration_source": narration_source,
+                    "fallback_reason": safety_reason_code,
+                    "narration_validation_result": safety_handling if safety_reason_code else "accepted",
+                    "resolved_action_type": action_result.get("action", "unknown") if isinstance(action_result, dict) else "unknown",
+                }
+            return result
 
         status = action_result.get("status") if isinstance(action_result, dict) else None
         action = action_result.get("action") if isinstance(action_result, dict) else None

@@ -180,25 +180,3 @@ def _tf_first_guard(*, action_result, active_conversation_before, conversation_r
         )
         talk_mode.restore(world_state, {key: value for key, value in active_conversation_before.items()
                                         if value is not None})
-
-
-def _tf_final_skipped_exit(*, _incident_before_skipped_narration, action_result, intent_source, is_final, narration_model_calls, narration_source, procedural_entity_ids, procedural_ids_before, result, safety_handling, safety_reason_code, told_intent_calls):
-    if is_final:
-        _incident_before_skipped_narration()
-        result["_engine_event_evidence"]["procedural_entity_ids"] = sorted(
-            procedural_entity_ids() - procedural_ids_before
-        )
-        result["_engine_event_evidence"].pop("_procedural_ids_before", None)
-        if "telemetry" not in result["_engine_event_evidence"]:
-            result["_engine_event_evidence"]["telemetry"] = {
-                "intent_model_calls": told_intent_calls(),
-                "narration_model_calls": narration_model_calls,
-                "total_model_calls": told_intent_calls() + narration_model_calls + getattr(game._session(), "_speech_repair_calls", 0),
-                "intent_source": intent_source,
-                "narration_source": narration_source,
-                "fallback_reason": safety_reason_code,
-                "narration_validation_result": safety_handling if safety_reason_code else "accepted",
-                "resolved_action_type": action_result.get("action", "unknown") if isinstance(action_result, dict) else "unknown",
-            }
-        return result
-    return game._TURN_FALL_THROUGH

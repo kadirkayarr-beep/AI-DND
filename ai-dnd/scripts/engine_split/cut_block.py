@@ -46,6 +46,7 @@ class Scan(ast.NodeVisitor):
         self.stores: set[str] = set()
         self.nested: dict[str, set[str]] = {}  # nested fn name -> free names
         self.nonlocal_writes: set[str] = set()
+        self.nested_writes: dict[str, set[str]] = {}  # nested def name -> names it writes through nonlocal
 
     def visit_Name(self, node):
         (self.loads if isinstance(node.ctx, ast.Load) else self.stores).add(node.id)
@@ -62,6 +63,7 @@ class Scan(ast.NodeVisitor):
         if name:
             self.stores.add(name)
             self.nested[name] = free
+            self.nested_writes[name] = nonlocals
 
     def visit_FunctionDef(self, node):
         self._function(node, node.name)
@@ -445,6 +447,16 @@ def analyse(text: str, chain, st) -> dict:
     hazard = sorted(block_scan.stores & set().union(*[nested[k] for k in called] or [set()]))
     if hazard:
         raise MoveRefused(f"hazard {' '.join(hazard)}")
+    # a called nested def that writes a name through `nonlocal` writes the enclosing cell; the helper would read a copy
+    pending, writers = list(called), set()
+    while pending:
+        k = pending.pop()
+        if k not in writers:
+            writers.add(k)
+            pending.extend(f for f in nested.get(k, ()) if f in nested)
+    through_cell = sorted(set().union(*[scan.nested_writes.get(k, set()) for k in writers] or [set()]) & block_scan.loads)
+    if through_cell:
+        raise MoveRefused(f"nonlocal-written input {' '.join(through_cell)}")
     exposed, after = exposure([st], set())
     needed = set(exposed)
     if after is not None:

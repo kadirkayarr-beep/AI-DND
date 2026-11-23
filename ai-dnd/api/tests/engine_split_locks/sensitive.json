@@ -190,6 +190,12 @@
     "_tell_the_coin": [
       "money"
     ],
+    "_tf_build_resolved_turn": [
+      "money"
+    ],
+    "_tf_system_deterministic_flag": [
+      "money"
+    ],
     "_the_rest_of_the_line": [
       "money"
     ],

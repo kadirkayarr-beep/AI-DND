@@ -460,6 +460,17 @@ class ForbiddenTests(CutToolCase):
                        "        base = 5\n    else:\n        add = None\n    return add(c) if add else base\n")
                 self.assert_refused(src, "closure output", anchor="if c:")
 
+    def test_a_block_calling_a_nonlocal_writer_is_refused(self):  # Task 3 fix round 1
+        src = ("import game\n\n\ndef run(c):\n    spent = 0\n\n    def bump():\n        nonlocal spent\n        spent += 1\n\n"
+               "    if c:\n        bump()\n        seen = spent\n    else:\n        seen = 0\n    return seen\n")
+        self.assert_refused(src, "nonlocal-written input spent", anchor="if c:")
+
+    def test_a_block_calling_a_nonlocal_writer_without_reading_its_name_is_cut(self):
+        src = ("import game\n\n\ndef run(c):\n    spent = 0\n\n    def bump():\n        nonlocal spent\n        spent += 1\n\n"
+               "    if c:\n        bump()\n    return spent\n")
+        code, err = self.cut(src, anchor="if c:", helper="_go")
+        self.assertEqual(code, 0, err)
+
 
 class CutCheckTests(CutToolCase):
     SRC = '''

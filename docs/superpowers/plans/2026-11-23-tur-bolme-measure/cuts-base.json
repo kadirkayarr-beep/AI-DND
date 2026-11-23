@@ -160,7 +160,8 @@
   "flags": [
    "model"
   ],
-  "task": "T3"
+  "task": "hand",
+  "note": "uncut/hand: calls a nested def that writes nonlocal narration_model_calls; cut loses the increment (Task 3 fix 1)"
  },
  {
   "function": "finish_turn",

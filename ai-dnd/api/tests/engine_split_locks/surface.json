@@ -2903,12 +2903,6 @@
   "signature": "(*, procedural_entity_ids, procedural_ids_before, quest_outcomes, result, turn_index)",
   "session_bound": true
  },
- "_tf_final_skipped_exit": {
-  "kind": "function",
-  "module": "game_parts.turn_finish",
-  "signature": "(*, _incident_before_skipped_narration, action_result, intent_source, is_final, narration_model_calls, narration_source, procedural_entity_ids, procedural_ids_before, result, safety_handling, safety_reason_code, told_intent_calls)",
-  "session_bound": true
- },
  "_tf_first_guard": {
   "kind": "function",
   "module": "game_parts.turn_finish",
