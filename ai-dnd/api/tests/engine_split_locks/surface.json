@@ -3125,6 +3125,42 @@
   "session_bound": true,
   "signature": "(text)"
  },
+ "_ts_conversation_check": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, experimental_npc_dialogue, interaction_mode, npc_target, player_input, raw_intent, world_state)"
+ },
+ "_ts_parse_intent": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, experimental_npc_dialogue, experimental_unverified_claim, name_stance, npc_target, player_input, world_state)"
+ },
+ "_ts_personal_answer_exit": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, conversation_resolution, experimental_npc_dialogue, finish_conversation_resolution, finish_turn, npc_target)"
+ },
+ "_ts_speech_money": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, action_result, attributed_speech, invalid_spoken_stage_direction, model_raw_narration, name_stance, npc_statements, npc_target, player_input, raw_intent, raw_spoken, raw_stage, recognised, settled_money, valid_speech_packet, world_state)"
+ },
+ "_ts_speech_packet": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, raw_intent, raw_spoken, raw_stage)"
+ },
+ "_ts_witness_exit": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, finish_turn, npc_target, player_input, raw_intent, witness_attempt, witness_recall, world_state)"
+ },
  "_turkish_genitive_form": {
   "kind": "function",
   "module": "game_parts.text_rules_b",

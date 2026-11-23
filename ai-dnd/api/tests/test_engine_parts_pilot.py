@@ -83,9 +83,9 @@ class WrapperFilter(unittest.TestCase):
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
                                               "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a",
                                               "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_exits", "game_parts.turn_finish",
-                                              "game_parts.turn_front", "game_parts.turn_shop_guards"))
+                                              "game_parts.turn_front", "game_parts.turn_shop_guards", "game_parts.turn_speech"))
         # Task 18 (pilot a), Task 19 (pilot b), Plan 2 Task 13, Plan 3 Tasks 8, 9, 10, 11, 12, 13, 14 and 15,
-        # Plan 4 Tasks 7, 8 and 9, Plan 5 Tasks 6 and 9, turn split Tasks 3, 5, 8 and 10
+        # Plan 4 Tasks 7, 8 and 9, Plan 5 Tasks 6 and 9, turn split Tasks 3, 5, 8, 10 and 11a
         tree = ast.parse(engine_source_files()[0].read_text(encoding="utf-8"))
         assign = next(n for n in tree.body if isinstance(n, ast.Assign)
                       and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_ENGINE_FUNCTIONS")

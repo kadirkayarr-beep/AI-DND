@@ -460,6 +460,12 @@ from game_parts.turn_shop_guards import _tg_shop_exit_a
 from game_parts.turn_shop_guards import _tg_shop_request_exit
 from game_parts.turn_shop_guards import _tg_hint_intent
 from game_parts.turn_shop_guards import _tg_scene_plan
+from game_parts.turn_speech import _ts_speech_money
+from game_parts.turn_speech import _ts_speech_packet
+from game_parts.turn_speech import _ts_witness_exit
+from game_parts.turn_speech import _ts_conversation_check
+from game_parts.turn_speech import _ts_parse_intent
+from game_parts.turn_speech import _ts_personal_answer_exit
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"
@@ -494,7 +500,7 @@ def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_P
 
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
-_PART_MODULES = ("game_parts.character_rules", "game_parts.coin", "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration", "game_parts.narration_safety", "game_parts.new_game", "game_parts.places", "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a", "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_exits", "game_parts.turn_finish", "game_parts.turn_front", "game_parts.turn_shop_guards")
+_PART_MODULES = ("game_parts.character_rules", "game_parts.coin", "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration", "game_parts.narration_safety", "game_parts.new_game", "game_parts.places", "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a", "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_exits", "game_parts.turn_finish", "game_parts.turn_front", "game_parts.turn_shop_guards", "game_parts.turn_speech")
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
                           if isinstance(value, types.FunctionType)
                           and (value.__module__ == __name__ or value.__module__ in _PART_MODULES))

@@ -233,6 +233,12 @@
       "money",
       "snapshot"
     ],
+    "_ts_speech_money": [
+      "money"
+    ],
+    "_ts_speech_packet": [
+      "money"
+    ],
     "_validate_combat_v3_payload": [
       "save"
     ],
