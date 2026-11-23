@@ -236,3 +236,9 @@ Task 10: implemented (commits f5636b8f..4d2b1716)
 - Code: none changed in this round (ledger only), so the targeted set was not re-run; last green run is tb10-3b-off / tb10-3b-fon at 4d2b1716.
 - Play: oynayış bekliyor.
 Task 10 fix round 1: done
+
+## Task 10 fix round 2 (2026-11-23)
+- Finding 1 (minor, evidence): the T10 slot logs (tb10-3b-off / tb10-3b-fon) were gone, so the targeted set was re-run in both flags with slot_gate (slot 9, 32 modules: journey neighbour set, test_engine_*, cut_tool, parts_pilot, api, campaign_api, interaction_adventure, talk_front, stage10a, 7 shop modules, money_tests.txt). tb10fr2-off: tests 965 skipped 2 failing_ids 0 PAR_EXIT=0 (EXIT 0). tb10fr2-fon (TOKENS fon, gate_boot first): tests 965 skipped 1 failing_ids 0 PAR_EXIT=0 (EXIT 0). Code unchanged since 4d2b1716.
+- Ruling: the count 965 differs from the old 1325 because the regex-selected module list here is narrower than the older hand-picked list (which also had extra modules not recoverable from the logs); the old 1325 stays recorded as exit 0 only — if wrong: some extra module of the old run is not covered in this re-run; the T11 targeted set and the full suite at dilim end still cover it.
+- Play: oynayış bekliyor.
+Task 10 fix round 2: done
