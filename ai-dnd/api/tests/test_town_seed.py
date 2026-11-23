@@ -175,7 +175,6 @@ class EveryNewCampaignHasAFixedTown(unittest.TestCase):
     def test_the_scan_still_sees_every_creation(self) -> None:
         self.assertGreaterEqual(unpinned_sites(ROOT)[1], 150)
 
-    @unittest.expectedFailure
     def test_no_new_campaign_in_the_tests_runs_on_a_random_town(self) -> None:
         unpinned, _ = unpinned_sites(ROOT)
         self.assertEqual(unpinned, [], "wrap each of these creations in default_town(self, TOWN_SEED):\n"

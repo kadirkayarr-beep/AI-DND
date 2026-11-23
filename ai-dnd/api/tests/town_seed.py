@@ -7,7 +7,6 @@ from contextlib import AbstractContextManager, nullcontext
 from typing import Any
 
 from api import session_manager
-from api.tests.journeys.runner import _campaign_seeded
 
 
 def fixed_town(test: Any, first_seed: int) -> AbstractContextManager[Any]:
@@ -16,6 +15,9 @@ def fixed_town(test: Any, first_seed: int) -> AbstractContextManager[Any]:
     Two campaigns of one test cannot share an id, so each creation in a test takes the next seed; the same test
     always sees the same towns in the same order.
     """
+    # Imported here: the journey runner imports test_campaign_api, which imports this module.
+    from api.tests.journeys.runner import _campaign_seeded
+
     seed = first_seed + getattr(test, "_town_creations", 0)
     test._town_creations = getattr(test, "_town_creations", 0) + 1
     return _campaign_seeded({"campaign_seed": seed})

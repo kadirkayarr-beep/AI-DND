@@ -23,6 +23,9 @@ import httpx
 
 import adventure.templates as adventure_templates
 import adventure.transitions as adventure_transitions
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8050
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
@@ -71,15 +74,16 @@ def unlock_venue_door(world_state, tavern_id):
 
 async def create_city_with_locked_tavern(test_case):
     city_id = "fr:city:neverwinter"
-    created = await test_case.http.post(
-        "/api/game/campaigns",
-        json={"campaign_start": {
-            "setting_id": "forgotten_realms",
-            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-            "region_id": "fr:region:the_north",
-            "starting_location_id": city_id,
-        }},
-    )
+    with default_town(test_case, TOWN_SEED):
+        created = await test_case.http.post(
+            "/api/game/campaigns",
+            json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": city_id,
+            }},
+        )
     test_case.assertEqual(created.status_code, 200, created.text)
     session_id = created.json()["session_id"]
     session = test_case.manager.get(session_id).game_session
@@ -561,7 +565,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def create_campaign(self):
         # These tests cover a stored old-mode campaign; the new default has its own test.
-        response = await self.http.post("/api/game/campaigns", json={"death_mode": "NORMAL"})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post("/api/game/campaigns", json={"death_mode": "NORMAL"})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
@@ -2915,15 +2920,17 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.kinds, read_first("intent") * 2)  # the replay reads nothing and asks nothing
 
     async def test_death_mode_selection_persists_and_a_request_without_one_dies_for_real(self):
-        unnamed = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            unnamed = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(unnamed.json()["state"]["death_state"]["mode"], "PERMADEATH")
 
         for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
             with self.subTest(mode=mode):
-                response = await self.http.post(
-                    "/api/game/campaigns",
-                    json={"death_mode": mode},
-                )
+                with default_town(self, TOWN_SEED):
+                    response = await self.http.post(
+                        "/api/game/campaigns",
+                        json={"death_mode": mode},
+                    )
                 self.assertEqual(response.status_code, 200, response.text)
                 created = response.json()
                 self.assertEqual(created["state"]["death_state"]["mode"], mode)
@@ -3185,20 +3192,21 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         return scene["ambient_event"]["instance_id"]
 
     async def test_game_session_bound_turn_uses_engine_signature_fallback(self):
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "name": "Session-bound engine signature regression",
-                # This is the release-gate start where city-look is deterministic
-                # and must not invoke the fake model adapter.
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": "fr:city:neverwinter",
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "name": "Session-bound engine signature regression",
+                    # This is the release-gate start where city-look is deterministic
+                    # and must not invoke the fake model adapter.
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": "fr:city:neverwinter",
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         session = self.manager.get(created["session_id"]).game_session
@@ -3216,18 +3224,19 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_city_observation_and_discovery_receipts_survive_resume(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "name": "City observation and discovery receipt regression",
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "name": "City observation and discovery receipt regression",
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         session = self.manager.get(created["session_id"]).game_session
@@ -3455,17 +3464,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_tavern_discovery_is_rolled_back_and_retry_commits_once(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -3710,17 +3720,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_tavern_discovery_retries_once_from_a_fresh_resume(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -3934,17 +3945,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reopened_declined_tavern_search_preserves_entities_and_history(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -4094,17 +4106,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reopened_tavern_distance_question_preserves_entities_and_history(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -4247,17 +4260,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_locked_venue_blocks_timed_travel_by_location_id(self):
         city_id = "fr:city:neverwinter"
-        created = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created.status_code, 200, created.text)
         session_id = created.json()["session_id"]
         session = self.manager.get(session_id).game_session
@@ -6802,17 +6816,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_discovered_tavern_visit_city_return_and_revisit_survive_resume(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -7685,18 +7700,19 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         npc_id = "npc_dead_ruler_local"
         for target_id in (None, npc_id):
             with self.subTest(target_id=target_id):
-                created_response = await self.http.post(
-                    "/api/game/campaigns",
-                    json={
-                        "death_mode": "PERMADEATH",
-                        "campaign_start": {
-                            "setting_id": "forgotten_realms",
-                            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                            "region_id": "fr:region:the_north",
-                            "starting_location_id": city_id,
+                with default_town(self, TOWN_SEED):
+                    created_response = await self.http.post(
+                        "/api/game/campaigns",
+                        json={
+                            "death_mode": "PERMADEATH",
+                            "campaign_start": {
+                                "setting_id": "forgotten_realms",
+                                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                                "region_id": "fr:region:the_north",
+                                "starting_location_id": city_id,
+                            },
                         },
-                    },
-                )
+                    )
                 self.assertEqual(created_response.status_code, 200, created_response.text)
                 created = created_response.json()
                 campaign_id = created["campaign_id"]
@@ -7795,18 +7811,19 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     with self.subTest(
                         mode=mode, death_marker=death_marker, target_id=target_id
                     ):
-                        created_response = await self.http.post(
-                            "/api/game/campaigns",
-                            json={
-                                "death_mode": mode,
-                                "campaign_start": {
-                                    "setting_id": "forgotten_realms",
-                                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                                    "region_id": "fr:region:the_north",
-                                    "starting_location_id": city_id,
+                        with default_town(self, TOWN_SEED):
+                            created_response = await self.http.post(
+                                "/api/game/campaigns",
+                                json={
+                                    "death_mode": mode,
+                                    "campaign_start": {
+                                        "setting_id": "forgotten_realms",
+                                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                                        "region_id": "fr:region:the_north",
+                                        "starting_location_id": city_id,
+                                    },
                                 },
-                            },
-                        )
+                            )
                         self.assertEqual(
                             created_response.status_code, 200, created_response.text
                         )
@@ -7990,18 +8007,19 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         npc_id = "npc_stable_ruler_local"
         for target_id in (None, npc_id):
             with self.subTest(target_id=target_id):
-                created_response = await self.http.post(
-                    "/api/game/campaigns",
-                    json={
-                        "death_mode": "PERMADEATH",
-                        "campaign_start": {
-                            "setting_id": "forgotten_realms",
-                            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                            "region_id": "fr:region:the_north",
-                            "starting_location_id": city_id,
+                with default_town(self, TOWN_SEED):
+                    created_response = await self.http.post(
+                        "/api/game/campaigns",
+                        json={
+                            "death_mode": "PERMADEATH",
+                            "campaign_start": {
+                                "setting_id": "forgotten_realms",
+                                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                                "region_id": "fr:region:the_north",
+                                "starting_location_id": city_id,
+                            },
                         },
-                    },
-                )
+                    )
                 self.assertEqual(created_response.status_code, 200, created_response.text)
                 created = created_response.json()
                 campaign_id = created["campaign_id"]
@@ -8111,17 +8129,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         # no test-authored ruler claim or production canon change is needed.
         city_id = "fr:city:neverwinter"
         ruler_fact_id = "fr:fact:dagult_neverember_current_lord"
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         campaign_id = created["campaign_id"]
@@ -8322,18 +8341,19 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
 
     async def test_selected_npc_identity_query_is_deterministic(self):
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "name": "Selected NPC identity target regression",
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": "fr:city:neverwinter",
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "name": "Selected NPC identity target regression",
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": "fr:city:neverwinter",
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         session = self.manager.get(created["session_id"]).game_session
@@ -8397,50 +8417,51 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(options.status_code, 200)
         self.assertEqual(options.json(), {"races": game.RACES, "classes": game.CLASSES})
 
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "character": {
-                    "mode": "custom",
-                    "name": "  Arven  ",
-                    "race": "Elf",
-                    "class": "Wizard",
-                    "background": "Sage",
-                    "alignment": "Neutral Good",
-                    "ability_score_method": "standard_array",
-                    "ability_scores": {
-                        "intelligence": 15,
-                        "dexterity": 14,
-                        "constitution": 13,
-                        "wisdom": 12,
-                        "charisma": 10,
-                        "strength": 8,
-                    },
-                    "background_ability_bonuses": {
-                        "intelligence": 2,
-                        "constitution": 1,
-                    },
-                    "proficient_skills": [
-                        "Arcana",
-                        "History",
-                        "Investigation",
-                        "Insight",
-                    ],
-                    "languages": ["Common", "Dwarvish", "Elvish"],
-                    "background_equipment_option": "A",
-                    "equipment_package": "A",
-                    "cantrips": ["Fire Bolt", "Mage Hand", "Light"],
-                    "spells": [
-                        "Magic Missile",
-                        "Shield",
-                        "Mage Armor",
-                        "Detect Magic",
-                        "Thunderwave",
-                        "Sleep",
-                    ],
-                }
-            },
-        )
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "character": {
+                        "mode": "custom",
+                        "name": "  Arven  ",
+                        "race": "Elf",
+                        "class": "Wizard",
+                        "background": "Sage",
+                        "alignment": "Neutral Good",
+                        "ability_score_method": "standard_array",
+                        "ability_scores": {
+                            "intelligence": 15,
+                            "dexterity": 14,
+                            "constitution": 13,
+                            "wisdom": 12,
+                            "charisma": 10,
+                            "strength": 8,
+                        },
+                        "background_ability_bonuses": {
+                            "intelligence": 2,
+                            "constitution": 1,
+                        },
+                        "proficient_skills": [
+                            "Arcana",
+                            "History",
+                            "Investigation",
+                            "Insight",
+                        ],
+                        "languages": ["Common", "Dwarvish", "Elvish"],
+                        "background_equipment_option": "A",
+                        "equipment_package": "A",
+                        "cantrips": ["Fire Bolt", "Mage Hand", "Light"],
+                        "spells": [
+                            "Magic Missile",
+                            "Shield",
+                            "Mage Armor",
+                            "Detect Magic",
+                            "Thunderwave",
+                            "Sleep",
+                        ],
+                    }
+                },
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         character = created["state"]["character"]
@@ -8513,10 +8534,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(resumed.json()["state"], created["state"])
 
     async def test_random_creation_and_invalid_character_choices(self):
-        random_response = await self.http.post(
-            "/api/game/campaigns",
-            json={"character": {"mode": "random"}},
-        )
+        with default_town(self, TOWN_SEED):
+            random_response = await self.http.post(
+                "/api/game/campaigns",
+                json={"character": {"mode": "random"}},
+            )
         self.assertEqual(random_response.status_code, 200, random_response.text)
         random_character = random_response.json()["state"]["character"]
         self.assertIn(random_character["name"], game.RANDOM_NAMES)
@@ -8541,35 +8563,37 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             <= set(valid_skills) | species_bonus_skills
         )
 
-        invalid_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "character": {
-                    "mode": "custom",
-                    "name": "Arven",
-                    "race": "Not a supported race",
-                    "class": "Wizard",
-                }
-            },
-        )
+        with default_town(self, TOWN_SEED):
+            invalid_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "character": {
+                        "mode": "custom",
+                        "name": "Arven",
+                        "race": "Not a supported race",
+                        "class": "Wizard",
+                    }
+                },
+            )
         self.assertEqual(invalid_response.status_code, 422)
         self.assertEqual(
             invalid_response.json()["detail"]["code"],
             "invalid_character",
         )
 
-        forged_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "character": {
-                    "mode": "custom",
-                    "name": "Arven",
-                    "race": "Elf",
-                    "class": "Wizard",
-                    "max_hp": 999,
-                }
-            },
-        )
+        with default_town(self, TOWN_SEED):
+            forged_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "character": {
+                        "mode": "custom",
+                        "name": "Arven",
+                        "race": "Elf",
+                        "class": "Wizard",
+                        "max_hp": 999,
+                    }
+                },
+            )
         self.assertEqual(forged_response.status_code, 422)
 
         listed = await self.http.get("/api/game/campaigns")
@@ -8641,7 +8665,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         ]
         for body in invalid_requests:
             with self.subTest(body=body):
-                response = await self.http.post("/api/game/campaigns", json=body)
+                with default_town(self, TOWN_SEED):
+                    response = await self.http.post("/api/game/campaigns", json=body)
                 self.assertEqual(response.status_code, 422, response.text)
 
         listed = await self.http.get("/api/game/campaigns")
@@ -8722,10 +8747,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     "cantrips": ["Light", "Sacred Flame", "Thaumaturgy"],
                     "spells": ["Bless", "Cure Wounds"],
                 }
-            response = await self.http.post(
-                "/api/game/campaigns",
-                json={"character": char_payload},
-            )
+            with default_town(self, TOWN_SEED):
+                response = await self.http.post(
+                    "/api/game/campaigns",
+                    json={"character": char_payload},
+                )
             self.assertEqual(response.status_code, 200, response.text)
             return response.json()
 
@@ -9279,15 +9305,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_create_rejects_client_supplied_canonical_state(self):
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "name": "Forged",
-                "current_hp": 0,
-                "inventory": ["forged"],
-                "location": "forest",
-            },
-        )
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "name": "Forged",
+                    "current_hp": 0,
+                    "inventory": ["forged"],
+                    "location": "forest",
+                },
+            )
         self.assertEqual(response.status_code, 422)
         listed = await self.http.get("/api/game/campaigns")
         self.assertEqual(listed.json(), [])
@@ -10109,17 +10136,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_tavern_exit_after_resume_rolls_back_and_retries_once(self):
         city_id = "fr:city:neverwinter"
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         campaign_id = created["campaign_id"]
@@ -10306,17 +10334,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_stale_resumed_tavern_cannot_overwrite_saved_exit_but_can_replay(self):
         city_id = "fr:city:neverwinter"
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         campaign_id = created["campaign_id"]
@@ -10481,17 +10510,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_stale_tavern_resume_refreshes_city_and_rejected_action_commits_once(self):
         city_id = "fr:city:neverwinter"
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         campaign_id = created["campaign_id"]
@@ -10703,17 +10733,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_stale_city_cannot_overwrite_merchant_discovery_but_can_replay(self):
         self._without_intent_guard()
         city_id = "fr:city:neverwinter"
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         campaign_id = created_response.json()["campaign_id"]
         setup_shop = await self.create_local_shop_via_api(
@@ -11261,15 +11292,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         if changed_payload:
             self.assertTrue(shared_action)
         city_id = "fr:city:neverwinter"
-        created = await self.http.post(
-            "/api/game/campaigns",
-            json={"campaign_start": {
-                "setting_id": "forgotten_realms",
-                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                "region_id": "fr:region:the_north",
-                "starting_location_id": city_id,
-            }},
-        )
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post(
+                "/api/game/campaigns",
+                json={"campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                }},
+            )
         self.assertEqual(created.status_code, 200, created.text)
         campaign_id = created.json()["campaign_id"]
         setup_shop = await self.create_local_shop_via_api(
@@ -12144,15 +12176,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     ):
         self._without_intent_guard()
         city_id = "fr:city:neverwinter"
-        created = await self.http.post(
-            "/api/game/campaigns",
-            json={"campaign_start": {
-                "setting_id": "forgotten_realms",
-                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                "region_id": "fr:region:the_north",
-                "starting_location_id": city_id,
-            }},
-        )
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post(
+                "/api/game/campaigns",
+                json={"campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                }},
+            )
         self.assertEqual(created.status_code, 200, created.text)
         campaign_id = created.json()["campaign_id"]
         setup_shop = await self.create_local_shop_via_api(
@@ -12793,17 +12826,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reopened_merchant_search_with_equivalent_wording_reuses_saved_identities(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -12981,17 +13015,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         self.enterContext(patch.object(living_world, "set_ambient_context",
                                       new=fixture_context))
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -13185,17 +13220,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_merchant_discovery_is_rolled_back_and_retry_commits_once(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -13536,17 +13572,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_merchant_discovery_retries_once_from_a_fresh_resume(self):
         city_id = "fr:city:neverwinter"
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
@@ -13779,17 +13816,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_altered_exit_retry_conflicts_before_stale_campaign_check(self):
         city_id = "fr:city:neverwinter"
-        created_response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                    "region_id": "fr:region:the_north",
-                    "starting_location_id": city_id,
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                        "region_id": "fr:region:the_north",
+                        "starting_location_id": city_id,
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         campaign_id = created["campaign_id"]
@@ -15131,15 +15169,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             resumed_read.json()["narration"],
         )
 
-        isolated = await self.http.post(
-            "/api/game/campaigns",
-            json={"campaign_start": {
-                "setting_id": "forgotten_realms",
-                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                "region_id": "fr:region:the_north",
-                "starting_location_id": city_id,
-            }},
-        )
+        with default_town(self, TOWN_SEED):
+            isolated = await self.http.post(
+                "/api/game/campaigns",
+                json={"campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                }},
+            )
         self.assertEqual(isolated.status_code, 200, isolated.text)
         isolated_session = resumed_manager.get(
             isolated.json()["session_id"]
