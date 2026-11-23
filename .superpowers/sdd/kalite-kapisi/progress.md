@@ -131,3 +131,13 @@ RESULT: tests 236 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg6f1-green; ratch
 - F2 (Match regex cannot see a leak hidden in the NAME part): Ruling: none needed. gitleaks --redact replaces only the secret; Secret field check still bites. If wrong: a leak inside a NAME would pass the Match test only.
 - F3 (no clean real-CI red run id; local bare-clone proof only): Ruling: no code change, worker cannot push. TASK 9 ACCEPTANCE ITEM: first PR run secrets-gate must be green, including the shrink step; check the CI run before saying done.
 - No code or test changed this round, so no test run.
+
+Task 7: implemented (commit "Quality gate: ui-gate job, knip blocking with baseline")
+- Ruling: baselines made from the Task 4 local reports (/tmp/qg4-node-20261124, commit 7d9f6dff; `git diff 7d9f6dff HEAD -- artifacts lib package.json pnpm-workspace.yaml` is empty so still valid): knip 370, fallow 302 findings. Not regenerated from a CI artifact (no push) — if wrong: pnpm 10.26.1/Linux knip differs from local pnpm 12/Windows run, spurious NEW on first PR run; regenerate knip.json from that run's report. ACCEPTANCE ITEM Task 9/controller: first PR run ui-gate must be green (knip, shrink step); fallow/skylos steps may be red/yellow, they only report.
+- Ruling: components/ui/** NOT excluded from knip (no config change); baselined as-is — a config exclusion would hide real unused files; noise only costs baseline rows. If wrong: new unused shadcn exports need a baseline row (needs approval row).
+- Ruling: spot check (>=20 read) done for knip before gating, recorded in kalite-kapisi-olcum.md: 0/20 false alarms by knip's definition, noise but real.
+- Ruling: skylos step prints finding counts only (--no-upload, no --trace, no [llm]); `--summary` flag avoided (unverified).
+- Ruling: policy checker fallow-subcommand rule skips lines that call our own ratchet (the line names fallow as a tool arg) — if wrong: a fallow command on a ratchet line is not checked; such a line cannot run fallow.
+- Step 4 done locally (copy with node_modules, planted unused file): knip exit 1, ratchet NEW exit 1; clean report exit 0. Real throwaway-branch CI proof not possible (no push).
+- Red-first note: baselines were generated before the tests (plan step order made them an input of the baseline test); the policy tests were red (qg7-red: ui-gate missing; qg7-red also showed a name clash `_steps` fixed by renaming to `_job_steps`).
+RESULT: tests 243 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg7-green3; ratchet + policy + fixed neighbour set via slot.sh test, exit=0, Ran 243 OK; skipped 0 inferred from OK line)

@@ -77,7 +77,8 @@ def workflow_violations(text: str, baseline_required: bool | None = None) -> lis
                 if "ignore_scripts=true" not in line and "--ignore-scripts" not in line \
                         and 'npm_config_ignore_scripts: "true"' not in step_text:
                     bad.append("npm/pnpm run without ignore-scripts: " + where)
-            if re.search(r"\bfallow\b", line) and re.search(r"(dlx|npx|npm|pnpm|fallow\s+\S)", line):
+            if re.search(r"\bfallow\b", line) and "scripts.quality_gate.ratchet" not in line \
+                    and re.search(r"(dlx|npx|npm|pnpm|fallow\s+\S)", line):
                 if "DO_NOT_TRACK=1" not in line and 'DO_NOT_TRACK: "1"' not in step_text:
                     bad.append("fallow step without DO_NOT_TRACK: " + where)
                 if re.search(r"fallow(@\S+)?\"?\s+\S", line) \
@@ -211,6 +212,61 @@ class QualitySecretGateTest(unittest.TestCase):
 
     def test_gitleaks_measure_step_moved_into_gate(self):
         self.assertNotIn("gitleaks detect", _job_text("measure"))
+
+
+def _job_steps(job: str) -> list[str]:
+    """Split a job's text into its steps (each starts with a '      - ' line)."""
+    steps: list[str] = []
+    for line in job.splitlines():
+        if line.startswith("      - "):
+            steps.append(line)
+        elif steps:
+            steps[-1] += chr(10) + line
+    return steps
+
+
+class QualityUiGateTest(unittest.TestCase):
+    def _step(self, needle: str) -> str:
+        job = _job_text("ui-gate")
+        self.assertTrue(job, "ui-gate job missing")
+        hits = [s for s in _job_steps(job) if needle in s]
+        self.assertEqual(len(hits), 1, needle)
+        return hits[0]
+
+    def test_job_is_blocking(self):
+        job = _job_text("ui-gate")
+        self.assertTrue(job, "ui-gate job missing")
+        self.assertNotIn("continue-on-error", job.split("steps:")[0])
+        self.assertIn("fetch-depth: 0", job)
+
+    def test_knip_step_is_blocking_and_ratcheted(self):
+        knip = self._step("dlx \"knip@")
+        self.assertNotIn("continue-on-error", knip)
+        self.assertIn("--reporter json", knip)
+        self.assertIn("ignore_scripts=true", knip)
+        self.assertIn("ratchet check knip", knip)
+        self.assertIn("exit 2", knip)  # a crashed knip is red, not zero findings
+
+    def test_knip_baseline_may_only_shrink_in_ci(self):
+        shrink = self._step("check-shrink")
+        self.assertNotIn("continue-on-error", shrink)
+        self.assertIn("scripts/quality_gate/baselines/knip.json origin/main", shrink)
+        self.assertIn("git fetch --no-tags origin main", shrink)
+
+    def test_report_only_steps_are_marked(self):
+        fallow = self._step("fallow@")
+        skylos = self._step("skylos ")
+        for step in (fallow, skylos):
+            self.assertIn("continue-on-error: true", step)
+        self.assertIn("ratchet check fallow", fallow)
+        self.assertIn("--no-upload", skylos)
+        self.assertNotIn("[llm]", skylos)
+        self.assertNotIn("--trace", skylos)
+
+    def test_nothing_in_ui_gate_pushes_or_uploads(self):
+        job = _job_text("ui-gate")
+        for bad in ("--upload", "skylos cloud", "upload-artifact"):
+            self.assertNotIn(bad, job)
 
 
 if __name__ == "__main__":

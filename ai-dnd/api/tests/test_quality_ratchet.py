@@ -326,6 +326,31 @@ class KnipFallowParserTests(unittest.TestCase):
             "fallow|artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx|unused_exports|RageControl"], 2)
 
 
+class UiGateBaselineTests(unittest.TestCase):
+    BASE = ROOT / "scripts" / "quality_gate" / "baselines"
+
+    def test_knip_new_unused_export_is_new(self):
+        baseline = count_findings(ratchet.parse_knip(KNIP_REAL))
+        doc = json.loads(KNIP_REAL)
+        doc["issues"].append({"file": "artifacts/ai-dnd-web/src/new.ts",
+                              "exports": [{"name": "brandNew", "line": 3}]})
+        new = compare(baseline, count_findings(ratchet.parse_knip(json.dumps(doc))))
+        self.assertEqual(len(new), 1)
+        self.assertIn("knip|artifacts/ai-dnd-web/src/new.ts|exports|brandNew", new[0])
+
+    def test_ui_baselines_exist_and_are_counts(self):
+        for tool, minimum in (("knip", 300), ("fallow", 250)):
+            path = self.BASE / (tool + ".json")
+            self.assertTrue(path.is_file(), tool + " baseline missing")
+            data = json.loads(path.read_text(encoding="utf-8"))
+            self.assertGreaterEqual(len(data), minimum)
+            for key, n in data.items():
+                self.assertTrue(key.startswith(tool + "|"), key)
+                self.assertNotRegex(key.split("|")[1], r"^(/|[A-Za-z]:|\.\./)", key)  # repo-relative, no machine paths
+                self.assertIsInstance(n, int)
+                self.assertGreaterEqual(n, 1)
+
+
 class WhitelistShrinkTests(unittest.TestCase):
     """Vulture whitelist: entry names may only shrink versus the base ref (grow-guard)."""
 
