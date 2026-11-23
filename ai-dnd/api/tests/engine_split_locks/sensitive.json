@@ -151,6 +151,15 @@
     "_restore_in_place": [
       "snapshot"
     ],
+    "_rn_build_packet": [
+      "money"
+    ],
+    "_rn_money_claim_guard": [
+      "money"
+    ],
+    "_rn_not_narration_only": [
+      "money"
+    ],
     "_run_player_turn_internal": [
       "money"
     ],

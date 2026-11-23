@@ -2531,6 +2531,54 @@
   "session_bound": false,
   "signature": "(live, saved)"
  },
+ "_rn_build_packet": {
+  "kind": "function",
+  "module": "game_parts.resolved_narration",
+  "session_bound": true,
+  "signature": "(*, lore_context, messages, narration_only, npc_target, player_input, proposes_place, resolved_narration_scope, resolved_turn)"
+ },
+ "_rn_engine_event_evidence": {
+  "kind": "function",
+  "module": "game_parts.resolved_narration",
+  "session_bound": true,
+  "signature": "(*, fallback_reason, final_dict, intent_calls, narration_model_calls, narration_source, resolved_turn, total_calls, validation_result)"
+ },
+ "_rn_finalize": {
+  "kind": "function",
+  "module": "game_parts.resolved_narration",
+  "session_bound": true,
+  "signature": "(*, fallback_code, narration_only, npc_target, packet, player_input, resolved_turn, target_id)"
+ },
+ "_rn_lore_unsupported": {
+  "kind": "function",
+  "module": "game_parts.resolved_narration",
+  "session_bound": true,
+  "signature": "(*, claims, lore_context, lore_unsupported, packet)"
+ },
+ "_rn_money_claim_guard": {
+  "kind": "function",
+  "module": "game_parts.resolved_narration",
+  "session_bound": true,
+  "signature": "(*, finalized_narration, npc_target, packet, player_input, resolved_turn)"
+ },
+ "_rn_not_narration_only": {
+  "kind": "function",
+  "module": "game_parts.resolved_narration",
+  "session_bound": true,
+  "signature": "(*, narration_only, packet, player_input, proposal_snapshot, proposes_place, resolved_turn)"
+ },
+ "_rn_rejected_scene_detail": {
+  "kind": "function",
+  "module": "game_parts.resolved_narration",
+  "session_bound": true,
+  "signature": "(*, packet, rejected_scene_detail_proposal, resolved_turn)"
+ },
+ "_rn_scene_detail_check": {
+  "kind": "function",
+  "module": "game_parts.resolved_narration",
+  "session_bound": true,
+  "signature": "(*, final_dict, packet, player_input, rejected_scene_detail_proposal, shown_player_line, validation_result)"
+ },
  "_rumour_lane_on": {
   "kind": "function",
   "module": "game_parts.text_rules_a",
@@ -2888,62 +2936,62 @@
  "_tf_attack_events": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, action_result, entry_actor, entry_identity)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, action_result, entry_actor, entry_identity)"
  },
  "_tf_build_resolved_turn": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, action_result, allow_new_features, allow_new_locations, allow_new_npcs, allow_new_shops, expected_location_change, intent_source, lore_context, messages, narration, npc_target, quest_outcomes, quest_world_before, result, safety_handling, safety_reason_code, scene_plan, target_id, told_intent_calls)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, action_result, allow_new_features, allow_new_locations, allow_new_npcs, allow_new_shops, expected_location_change, intent_source, lore_context, messages, narration, npc_target, quest_outcomes, quest_world_before, result, safety_handling, safety_reason_code, scene_plan, target_id, told_intent_calls)"
  },
  "_tf_campaign_time": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, action_result, quest_world_before, world_state)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, action_result, quest_world_before, world_state)"
  },
  "_tf_engine_event_evidence": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, procedural_entity_ids, procedural_ids_before, quest_outcomes, result, turn_index)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, procedural_entity_ids, procedural_ids_before, quest_outcomes, result, turn_index)"
  },
  "_tf_first_guard": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, action_result, active_conversation_before, conversation_resolution, conversation_state_before, world_state)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, action_result, active_conversation_before, conversation_resolution, conversation_state_before, world_state)"
  },
  "_tf_interaction_consumed": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, action_result, interaction_consumed, is_experimental, narration, player_input, quest_world_before, world_state)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, action_result, interaction_consumed, is_experimental, narration, player_input, quest_world_before, world_state)"
  },
  "_tf_internal_text_fallback": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, action_result, narration, player_input)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, action_result, narration, player_input)"
  },
  "_tf_is_experimental": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, action_result)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, action_result)"
  },
  "_tf_system_deterministic_exit": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, _incident_before_skipped_narration, action_result, intent_source, result, safety_handling, safety_reason_code, system_deterministic, told_intent_calls)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, _incident_before_skipped_narration, action_result, intent_source, result, safety_handling, safety_reason_code, system_deterministic, told_intent_calls)"
  },
  "_tf_system_deterministic_flag": {
   "kind": "function",
   "module": "game_parts.turn_finish",
-  "signature": "(*, action, action_result, safety_handling, status, system_deterministic)",
-  "session_bound": true
+  "session_bound": true,
+  "signature": "(*, action, action_result, safety_handling, status, system_deterministic)"
  },
  "_the_rest_of_the_line": {
   "kind": "function",

@@ -1,6 +1,6 @@
 {
   "files": {
-    "game.py": 1059,
+    "game.py": 1067,
     "game_parts/narration_safety.py": 1505,
     "game_parts/turn.py": 3429
   },
@@ -18,7 +18,6 @@
     "game_parts/narration.py::validate_world_updates": 155,
     "game_parts/narration_safety.py::_narration_safety_decision": 1054,
     "game_parts/new_game.py::initialize_game": 197,
-    "game_parts/resolved_narration.py::_narrate_resolved_turn": 351,
     "game_parts/savefile.py::_validate_save_payload": 367,
     "game_parts/savefile.py::load_game": 186,
     "game_parts/terminal.py::run": 184,

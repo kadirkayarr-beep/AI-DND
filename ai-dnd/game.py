@@ -419,6 +419,14 @@ from game_parts.turn_finish import _tf_interaction_consumed
 from game_parts.turn_finish import _tf_is_experimental
 from game_parts.turn_finish import _tf_first_guard
 from game_parts.turn_finish import _finish_turn
+from game_parts.resolved_narration import _rn_engine_event_evidence
+from game_parts.resolved_narration import _rn_scene_detail_check
+from game_parts.resolved_narration import _rn_money_claim_guard
+from game_parts.resolved_narration import _rn_finalize
+from game_parts.resolved_narration import _rn_lore_unsupported
+from game_parts.resolved_narration import _rn_not_narration_only
+from game_parts.resolved_narration import _rn_rejected_scene_detail
+from game_parts.resolved_narration import _rn_build_packet
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"
