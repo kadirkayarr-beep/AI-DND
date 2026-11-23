@@ -13,6 +13,10 @@ from pathlib import Path, PurePosixPath
 import re
 import stat
 from uuid import UUID
+from types import SimpleNamespace
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8020
 
 
 ENTRY_PATH = "/tests/r02-live-fixture/index.html"
@@ -426,8 +430,9 @@ def _seed_selected_level_five(manager, store, run_root):
     region = setting["regions"][0]
     campaign_start = {"setting_id": setting["setting_id"], "region_pack_id": region["region_pack_id"],
                       "region_id": region["region_id"], "starting_location_id": region["starting_locations"][0]["entity_id"]}
-    campaign_id, session_id, record, metadata = manager.create_campaign(
-        name="Synthetic earned level5 and slot3 acceptance", character=character, campaign_start=campaign_start)
+    with default_town(SimpleNamespace(), TOWN_SEED):
+        campaign_id, session_id, record, metadata = manager.create_campaign(
+            name="Synthetic earned level5 and slot3 acceptance", character=character, campaign_start=campaign_start)
     import xp, character_progression, bounded_encounter
     session = record.game_session
     def project():

@@ -3,6 +3,9 @@ import copy,importlib.util,json,unittest,uuid
 from unittest.mock import patch
 from api.tests import test_intent_response_consistency as base_fixture
 from api.tests.test_experimental_npc_dialogue import call_kinds,with_reading
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8150
 
 class FreeReplyClient:
  def __init__(self,spoken='Kapıyı akşam güvenlik için kilitli tutuyoruz.',stage=''):
@@ -84,7 +87,8 @@ class DialogueRuntimeTests(unittest.IsolatedAsyncioTestCase):
   import dialogue_runtime
   self.assertFalse(dialogue_runtime.is_enabled(self.world))
   with patch.dict(os.environ,{'AI_DND_DIALOGUE_MODE':'free_v1'}):
-   r=await self.http.post('/api/game/campaigns',json={})
+   with default_town(self, TOWN_SEED):
+       r=await self.http.post('/api/game/campaigns',json={})
   self.assertEqual(r.status_code,200,r.text)
   new=self.manager.get(r.json()['session_id']).game_session
   self.assertTrue(dialogue_runtime.is_enabled(new.world_state));self.assertFalse(dialogue_runtime.is_enabled(self.world))

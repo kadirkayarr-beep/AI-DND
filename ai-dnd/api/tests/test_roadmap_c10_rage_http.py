@@ -9,6 +9,9 @@ from api.persistence.campaign_store import CampaignStore
 from api.tests.auth_fixture import TEST_PLAYER, PLAYER_B
 from api.tests import test_roadmap_c19_quickened_http as prior
 from api.tests.test_roadmap_c06_barbarian_creation_http import request
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8480
 
 class RageHttpTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = prior.QuickenedHttpTests.asyncSetUp
@@ -18,7 +21,8 @@ class RageHttpTests(unittest.IsolatedAsyncioTestCase):
     reopen = prior.QuickenedHttpTests.reopen
 
     async def encounter(self, level=2):
-        response = await self.http.post('/api/game/campaigns', json={'character': request(level)})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post('/api/game/campaigns', json={'character': request(level)})
         self.assertEqual(response.status_code, 200, response.text)
         a = response.json(); r = self.manager.get(a['session_id']); s = r.game_session
         s.commit_location_change('tavern')
@@ -33,7 +37,8 @@ class RageHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_actual_canonical_creation_projects_pool_without_mutating_preview(self):
         for level in (1,2):
-            response = await self.http.post('/api/game/campaigns', json={'character': request(level)})
+            with default_town(self, TOWN_SEED):
+                response = await self.http.post('/api/game/campaigns', json={'character': request(level)})
             self.assertEqual(response.status_code, 200, response.text)
             a = response.json(); r = self.manager.get(a['session_id'])
             rage = a['state']['character'].get('rage')

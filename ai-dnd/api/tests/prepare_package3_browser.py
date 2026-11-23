@@ -4,6 +4,7 @@ Run from ai-dnd. Only this explicitly named campaign is created/seeded.
 """
 import json
 import random
+from types import SimpleNamespace
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -11,6 +12,9 @@ from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 import local_adventure_catalog as catalog
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8680
 
 
 def seed_for_walkthrough():
@@ -26,11 +30,12 @@ def prepare(store=None, *, complete=False):
     with TestClient(create_app(session_manager=manager, ollama_adapter=None)) as client:
         setting = client.get("/api/campaign-start-options").json()["settings"][0]
         region = setting["regions"][0]
-        response = client.post("/api/campaigns", json={
-            "name": "Package 3 deterministic browser — disposable",
-            "campaign_start": {"setting_id": setting["setting_id"], "region_pack_id": region["region_pack_id"],
-                              "region_id": region["region_id"], "starting_location_id": region["starting_locations"][0]["entity_id"]},
-        })
+        with default_town(SimpleNamespace(), TOWN_SEED):
+            response = client.post("/api/campaigns", json={
+                "name": "Package 3 deterministic browser — disposable",
+                "campaign_start": {"setting_id": setting["setting_id"], "region_pack_id": region["region_pack_id"],
+                                  "region_id": region["region_id"], "starting_location_id": region["starting_locations"][0]["entity_id"]},
+            })
         response.raise_for_status()
         campaign = response.json()
         sid = campaign["session_id"]

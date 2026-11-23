@@ -24,6 +24,9 @@ from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.journeys.runner import JourneyCase, ScriptedModel
 from api.tests.journeys.schema import Step
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8340
 
 START = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
          "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}
@@ -68,8 +71,9 @@ class TheOpening(unittest.TestCase):
         manager = SessionManager(campaign_store=CampaignStore(Path(self.directory.name) / f"c{self.stores}.sqlite3",
                                                               bound_principal=TEST_PLAYER))
         with seeded_ids(seed):
-            return manager.create_campaign(character=character, campaign_start=START,
-                                           death_mode="NORMAL")[2].game_session
+            with default_town(self, TOWN_SEED):
+                return manager.create_campaign(character=character, campaign_start=START,
+                                               death_mode="NORMAL")[2].game_session
 
     def new_campaign(self, seed):
         return self.new_session(seed).world_state

@@ -12,6 +12,9 @@ from uuid import uuid4
 
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8690
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -55,9 +58,10 @@ class NativeBase(unittest.TestCase):
         self.sid = self.campaign["session_id"]
 
     def create_campaign(self):
-        response = self.client.post("/api/campaigns", json={
-            "name": "Disposable bounded integration", "campaign_start": self.start,
-        })
+        with default_town(self, TOWN_SEED):
+            response = self.client.post("/api/campaigns", json={
+                "name": "Disposable bounded integration", "campaign_start": self.start,
+            })
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
@@ -395,21 +399,22 @@ class ReadiedMovementRegressionTests(MovementRegressionBase):
 class CloudJauntRegressionTests(MovementRegressionBase):
     def create_campaign(self):
         # Normal character choices, not injected species/resources/geometry.
-        response = self.client.post("/api/campaigns", json={
-            "name": "Disposable Cloud Goliath regression", "campaign_start": self.start,
-            "character": {
-                "mode": "custom", "name": "Cloud traveller", "species": "Goliath",
-                "giant_ancestry": "cloud", "class": "Fighter", "background": "Soldier",
-                "alignment": "Neutral Good", "ability_score_method": "standard_array",
-                "ability_scores": {"strength": 15, "dexterity": 14, "constitution": 13,
-                                   "wisdom": 12, "intelligence": 10, "charisma": 8},
-                "background_ability_bonuses": {"strength": 2, "constitution": 1},
-                "proficient_skills": ["Athletics", "Intimidation", "Perception", "Survival"],
-                "fighting_style": "Defense", "equipment_package": "A",
-                "background_equipment_option": "A",
-                "languages": ["Common", "Dwarvish", "Elvish"],
-            },
-        })
+        with default_town(self, TOWN_SEED):
+            response = self.client.post("/api/campaigns", json={
+                "name": "Disposable Cloud Goliath regression", "campaign_start": self.start,
+                "character": {
+                    "mode": "custom", "name": "Cloud traveller", "species": "Goliath",
+                    "giant_ancestry": "cloud", "class": "Fighter", "background": "Soldier",
+                    "alignment": "Neutral Good", "ability_score_method": "standard_array",
+                    "ability_scores": {"strength": 15, "dexterity": 14, "constitution": 13,
+                                       "wisdom": 12, "intelligence": 10, "charisma": 8},
+                    "background_ability_bonuses": {"strength": 2, "constitution": 1},
+                    "proficient_skills": ["Athletics", "Intimidation", "Perception", "Survival"],
+                    "fighting_style": "Defense", "equipment_package": "A",
+                    "background_equipment_option": "A",
+                    "languages": ["Common", "Dwarvish", "Elvish"],
+                },
+            })
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 

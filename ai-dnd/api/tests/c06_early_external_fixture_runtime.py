@@ -13,6 +13,10 @@ from pathlib import Path, PurePosixPath
 import re
 import stat
 from uuid import UUID
+from types import SimpleNamespace
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8010
 
 
 ENTRY_PATH = "/tests/r02-live-fixture/index.html"
@@ -402,14 +406,16 @@ def _seed_early_advancement(manager, store, run_root):
         "spells": ["Magic Missile", "Shield"], "starting_level": 1,
     }
     campaigns = []
+    town = SimpleNamespace()
     for class_name, amount, target, maximum in (("Sorcerer", 900, 3, 20), ("Barbarian", 300, 2, 23)):
         character = copy.deepcopy(base)
         if class_name == "Barbarian":
             character.update(name="C06 Early Barbarian", **{"class": "Barbarian"}, cantrips=[], spells=[],
                              proficient_skills=["Athletics", "Perception", "Persuasion", "Sleight of Hand", "Stealth"])
             character["ability_scores"] = {"strength": 15, "dexterity": 14, "constitution": 13, "intelligence": 10, "wisdom": 12, "charisma": 8}
-        campaign_id, session_id, record, metadata = manager.create_campaign(
-            name=f"Synthetic early {class_name} advancement", character=character, campaign_start=campaign_start)
+        with default_town(town, TOWN_SEED):
+            campaign_id, session_id, record, metadata = manager.create_campaign(
+                name=f"Synthetic early {class_name} advancement", character=character, campaign_start=campaign_start)
         session = record.game_session
         def project():
             return {"level": session.character["level"], "applied_level": session.character.get("progression_level", 1),

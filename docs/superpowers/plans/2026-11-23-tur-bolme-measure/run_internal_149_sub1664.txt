@@ -1,0 +1,10 @@
+# turn.py@149 :: _run_player_turn_internal.block@1664.body  lines 877-3617 (2741)  blocks=4
+idx | lines | n | kind | in(direct) | out | ret/raise | markers | outputs | late-closure | inputs | nonlocal
+  0 | 1665-1674 | 10 | if not isinstance(target_id, str) or not target_id: | 31(3) | 0 | 1/0 |  |  |  | active_conversation_before allow_new_features allow_new_locations allow_new_npcs allow_new_shops conversation_resolution conversation_state_before entry_actor entry_identity expected_location_change finish_turn held_reading intent_model_calls intent_source lore_context messages narration_model_calls narration_source npc_target player_input procedural_entity_ids procedural_ids_before quest_world_before reading_calls result scene_plan speech_intent_calls target_id told_intent_calls turn_index world_state | 
+  1 | 1675-1675 | 1 | npc_target = None | 0(0) | 1 | 0/0 |  | npc_target |  |  | 
+  2 | 1676-1679 | 4 | selected_npc_target = next( | 3(3) | 1 | 0/0 |  | selected_npc_target |  | combat interaction_mode target_id | 
+  3 | 1680-1690 | 11 | if not combat["active"] and ( | 8(8) | 1 | 0/0 |  | npc_target |  | combat flags interaction_mode npc_target player_input selected_npc_target world_state world_subject_question | 
+SUMMARY {"target": "_run_player_turn_internal.block@1664.body", "label": "turn.py@149", "lines": 2741, "blocks": 4, "blocks_ge20_lines": 0, "blocks_ge20_out_le5": 0, "lines_in_ge20_out_le5": 0, "blocks_out_le5": 4, "blocks_with_return": 1, "returns": 1, "raises": 0, "nested_defs": ["finish_conversation_rejection", "finish_conversation_resolution", "finish_turn", "procedural_entity_ids", "resolve_intent", "told_intent_calls", "validate_interaction_conversation"], "blocks_touching": {"money": 0, "save": 0, "undo": 0, "session_write": 0, "model": 0, "locals()": 0}}
+CUT yes B 1665-1674 n=10 out=0 ret=1 hazard=- flags=- :: if not isinstance(target_id, str) or not target_id
+CUT yes A 1680-1690 n=11 out=1 ret=0 hazard=- flags=- :: if not combat["active"] and (
+CUTSUM {"rows_ge_min": 2, "cut_yes": 2, "cut_yes_lines": 21, "by_class": {"A": 1, "B": 1, "C": 0, "D": 0}, "hazard_blocks": 0}

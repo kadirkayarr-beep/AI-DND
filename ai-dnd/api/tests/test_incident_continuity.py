@@ -19,6 +19,9 @@ from api.tests.test_incident_gate_a import _decisions, _proposal
 from incidents import bridge, commit, envelope, gate, generator, hooks, horizon, possibilities, profiles, projection, rewards, rng, triggers
 
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8250
 START = {
     "setting_id": "forgotten_realms",
     "region_pack_id": "fr:pack:the_north:neverwinter:v1",
@@ -63,9 +66,10 @@ class ContinuityTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "campaigns.sqlite3"
         self.manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
-        self.campaign_id, _, self.record, _ = self.manager.create_campaign(
-            "Continuity", campaign_start=START,
-        )
+        with default_town(self, TOWN_SEED):
+            self.campaign_id, _, self.record, _ = self.manager.create_campaign(
+                "Continuity", campaign_start=START,
+            )
         self.session = self.record.game_session
         self.world = self.session.world_state
         self.location = self.world["location"]

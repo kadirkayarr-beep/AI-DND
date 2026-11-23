@@ -27,6 +27,9 @@ from api.auth import (
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8710
 
 
 _SECRET = b"local-test-secret"
@@ -172,11 +175,12 @@ class OidcHttpTests(unittest.IsolatedAsyncioTestCase):
             listed = await client.get("/api/campaigns", cookies={"ai_dnd_session": token})
             self.assertEqual(listed.status_code, 200, listed.text)
             self.assertEqual(listed.json(), [])
-            missing_marker = await client.post(
-                "/api/campaigns",
-                json={},
-                cookies={"ai_dnd_session": token},
-            )
+            with default_town(self, TOWN_SEED):
+                missing_marker = await client.post(
+                    "/api/campaigns",
+                    json={},
+                    cookies={"ai_dnd_session": token},
+                )
             self.assertEqual(missing_marker.status_code, 401)
             logout = await client.post("/api/logout", headers={"X-AI-DND-Request": "1"})
             self.assertEqual(logout.status_code, 204)

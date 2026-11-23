@@ -27,6 +27,9 @@ from api.persistence.campaign_store import (
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8730
 
 
 _LIVE = (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
@@ -325,7 +328,8 @@ class StartupHttpIsolationTests(unittest.IsolatedAsyncioTestCase):
             transport=httpx.ASGITransport(app=app),
             base_url="http://isolated-testserver",
         ) as client:
-            created = await client.post("/api/campaigns", json={"name": "Owned"})
+            with default_town(self, TOWN_SEED):
+                created = await client.post("/api/campaigns", json={"name": "Owned"})
             self.assertEqual(created.status_code, 200, created.text)
             anonymous = create_app(
                 session_manager=SessionManager(campaign_store=store),

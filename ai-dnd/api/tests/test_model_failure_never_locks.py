@@ -31,6 +31,9 @@ from api.tests import test_front_proposal as front_tests
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.journeys.runner import call_kind
 from api.tests.town_seed import fixed_town
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8310
 
 START = {"campaign_start": {
     "setting_id": "forgotten_realms",
@@ -136,7 +139,8 @@ class PlayFixture(unittest.IsolatedAsyncioTestCase):
             base_url="http://testserver",
         )
         self.addAsyncCleanup(self.http.aclose)
-        created = await self.http.post("/api/game/campaigns", json=START)
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json=START)
         self.assertEqual(created.status_code, 200, created.text)
         self.campaign_id = created.json()["campaign_id"]
         self.session_id = created.json()["session_id"]
@@ -230,7 +234,8 @@ class EveryModelCallFailsSoftly(PlayFixture):
     """Each model call, each way it can go wrong, through the real route."""
 
     async def fresh_campaign(self):
-        created = await self.http.post("/api/game/campaigns", json=START)
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json=START)
         self.assertEqual(created.status_code, 200, created.text)
         self.campaign_id = created.json()["campaign_id"]
         self.session_id = created.json()["session_id"]
@@ -560,7 +565,8 @@ class IdentitySuggestionFailure(unittest.IsolatedAsyncioTestCase):
             base_url="http://testserver",
         )
         self.addAsyncCleanup(http.aclose)
-        created = await http.post("/api/game/campaigns", json=START)
+        with default_town(self, TOWN_SEED):
+            created = await http.post("/api/game/campaigns", json=START)
         session_id = created.json()["session_id"]
         job = await http.post("/api/game/character-identity-suggestions", json={
             "draft_id": "draft-1", "field": "personality", "request_id": "request-1",

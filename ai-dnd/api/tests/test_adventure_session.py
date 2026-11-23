@@ -19,6 +19,9 @@ from api.tests.test_phase7_package import bound_state
 
 
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8040
 def _session():
     session = game.create_session(seed=11)
     session.world_state["location"] = "tavern"
@@ -364,8 +367,10 @@ class AdventureSessionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
-            first_id, _first_session, first, _meta = manager.create_campaign("Bir")
-            second_id, _second_session, second, _meta = manager.create_campaign("İki")
+            with default_town(self, TOWN_SEED):
+                first_id, _first_session, first, _meta = manager.create_campaign("Bir")
+            with default_town(self, TOWN_SEED):
+                second_id, _second_session, second, _meta = manager.create_campaign("İki")
             first.game_session.world_state["location"] = "tavern"
             first.game_session.world_state["npcs"].extend([
                 {"id": "npc.source", "name": "Marek", "location": "tavern", "current_hp": 10, "combat_status": "active"},

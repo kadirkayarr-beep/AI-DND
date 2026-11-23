@@ -22,6 +22,8 @@ AI_DND_ROOT = Path(__file__).resolve().parents[2]
 if str(AI_DND_ROOT) not in sys.path:
     sys.path.insert(0, str(AI_DND_ROOT))
 
+from types import SimpleNamespace
+
 import httpx
 import game
 from api.main import create_app
@@ -31,6 +33,9 @@ from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.auth import FixedAuthenticator
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8110
 
 PROTECTED_DATABASES = {
     Path(r"C:\Users\Kadir\Desktop\AI - DND\ai-dnd\saves\campaigns.sqlite3").resolve(),
@@ -219,14 +224,15 @@ async def create_campaign(
             transport=httpx.ASGITransport(app=app),
             base_url="http://testserver",
         ) as client:
-            created = await client.post("/api/game/campaigns", json={
-                "name": name,
-                "character": character_body(
-                    include_identity=include_identity,
-                    name=name,
-                    identity=identity,
-                ),
-            })
+            with default_town(SimpleNamespace(), TOWN_SEED):
+                created = await client.post("/api/game/campaigns", json={
+                    "name": name,
+                    "character": character_body(
+                        include_identity=include_identity,
+                        name=name,
+                        identity=identity,
+                    ),
+                })
             created_body = created.json() if created.headers.get("content-type", "").startswith("application/json") else {"raw": created.text}
             if created.status_code != 200:
                 write_json(root / "create.json", {
@@ -347,20 +353,23 @@ async def clear_previous_identity(root: Path) -> None:
             transport=httpx.ASGITransport(app=app),
             base_url="http://testserver",
         ) as client:
-            identity = await client.post("/api/game/campaigns", json={
-                "name": "Kimlik Yolcu",
-                "character": character_body(
-                    include_identity=True,
-                    name="Kimlik Yolcu",
-                ),
-            })
-            legacy = await client.post("/api/game/campaigns", json={
-                "name": "Eski Kayit",
-                "character": character_body(
-                    include_identity=False,
-                    name="Eski Kayit",
-                ),
-            })
+            town = SimpleNamespace()
+            with default_town(town, TOWN_SEED):
+                identity = await client.post("/api/game/campaigns", json={
+                    "name": "Kimlik Yolcu",
+                    "character": character_body(
+                        include_identity=True,
+                        name="Kimlik Yolcu",
+                    ),
+                })
+            with default_town(town, TOWN_SEED):
+                legacy = await client.post("/api/game/campaigns", json={
+                    "name": "Eski Kayit",
+                    "character": character_body(
+                        include_identity=False,
+                        name="Eski Kayit",
+                    ),
+                })
             identity_body = identity.json()
             legacy_body = legacy.json()
             if identity.status_code != 200 or legacy.status_code != 200:

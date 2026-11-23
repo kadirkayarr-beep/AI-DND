@@ -17,6 +17,9 @@ from api.tests.live_neverwinter_canon_smoke import (
 )
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8290
 
 
 class NeverwinterSmokeDiagnosticsTests(unittest.TestCase):
@@ -106,7 +109,8 @@ class NeverwinterShopHttpTests(unittest.IsolatedAsyncioTestCase):
             app = create_app(session_manager=manager, ollama_adapter=adapter, authenticator=FixedAuthenticator(TEST_PLAYER))
             with adapter.engine_binding():
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as http:
-                    created = await http.post("/api/game/campaigns", json={"campaign_start": START_SELECTION})
+                    with default_town(self, TOWN_SEED):
+                        created = await http.post("/api/game/campaigns", json={"campaign_start": START_SELECTION})
                     self.assertEqual(created.status_code, 200, created.text)
                     session_id = created.json()["session_id"]
                     session = manager.get(session_id).game_session

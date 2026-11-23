@@ -28,6 +28,9 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_api import FakeOllamaClient
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8580
 
 
 def canonical(value):
@@ -112,7 +115,8 @@ class CommitBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.app = create_app(session_manager=self.manager, ollama_adapter=adapter,
                               authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://testserver")
-        created = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(created.status_code, 200, created.text)
         self.created = created.json()
         self.cid = self.created["campaign_id"]

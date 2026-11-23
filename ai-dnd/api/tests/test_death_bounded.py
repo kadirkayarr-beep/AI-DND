@@ -16,6 +16,9 @@ import campaign_time
 
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8130
 class DeathBoundedTests(unittest.TestCase):
     def unconscious(self):
         s = death_fixtures.make_session()
@@ -786,9 +789,10 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
 
         for mode in modes:
             with self.subTest(mode=mode, stale_field=stale_field):
-                created = await self.http.post(
-                    "/api/game/campaigns", json={"death_mode": mode},
-                )
+                with default_town(self, TOWN_SEED):
+                    created = await self.http.post(
+                        "/api/game/campaigns", json={"death_mode": mode},
+                    )
                 self.assertEqual(created.status_code, 200, created.text)
                 a = created.json()
                 record = self.manager.get(a["session_id"])
@@ -1065,9 +1069,10 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         import uuid
         import httpx
 
-        created = await self.http.post(
-            "/api/game/campaigns", json={"death_mode": mode},
-        )
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post(
+                "/api/game/campaigns", json={"death_mode": mode},
+            )
         self.assertEqual(created.status_code, 200, created.text)
         a = created.json()
         s = self.manager.get(a["session_id"]).game_session

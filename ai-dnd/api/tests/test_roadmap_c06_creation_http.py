@@ -23,6 +23,9 @@ from api.session_manager import SessionManager
 from api.persistence.campaign_store import CampaignStore
 from api.dnd_2024_rules import CharacterCreationError
 from api.serializers import serialize_session_state
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8420
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -48,7 +51,8 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
             return [tuple(row) for row in connection.execute('SELECT * FROM campaigns ORDER BY campaign_id')]
 
     async def post_character(self, data, path='/api/game/campaigns'):
-        return await self.http.post(path, json={'character': data})
+        with default_town(self, TOWN_SEED):
+            return await self.http.post(path, json={'character': data})
 
     def assert_three(self, body, identity):
         c = body['state']['character']
@@ -101,7 +105,8 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(c['progression_effects_pending'])
 
     async def test_default_random_and_explicit_levels_keep_legacy_shape(self):
-        default = await self.http.post('/api/game/campaigns', json={})
+        with default_town(self, TOWN_SEED):
+            default = await self.http.post('/api/game/campaigns', json={})
         self.assertEqual(default.status_code, 200, default.text)
         self.assertEqual(default.json()['state']['character']['level'], 1)
         for mode in ('omitted-level', 'explicit-one', 'empty-choices', 'level-two', 'random', 'random-one'):
@@ -170,11 +175,14 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
         alias_bad = character_request(); alias_bad['level_choices']['level_2'] = alias_bad['level_choices'].pop('2')
         null_bad = character_request(); null_bad['level_choices']['2'] = None
         for bad in (direct_bad, alias_bad, null_bad):
-            with self.assertRaises(CharacterCreationError): self.manager.create_campaign(character=bad)
+            with self.assertRaises(CharacterCreationError):
+                with default_town(self, TOWN_SEED):
+                    self.manager.create_campaign(character=bad)
         self.assertEqual(self.rows(), before); self.assertEqual(self.manager._sessions, registry)
 
     async def test_semantic_late_failure_restores_runtime_before_store_or_registry(self):
-        existing = await self.http.post('/api/game/campaigns', json={})
+        with default_town(self, TOWN_SEED):
+            existing = await self.http.post('/api/game/campaigns', json={})
         self.assertEqual(existing.status_code, 200, existing.text)
         sentinel = self.manager.get(existing.json()['session_id']).game_session
         sentinel_before = sentinel._capture_runtime_snapshot()
@@ -199,7 +207,8 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sentinel._capture_runtime_snapshot(), sentinel_before)
 
     async def test_real_insert_then_precommit_failure_rolls_back_and_does_not_register(self):
-        existing = await self.http.post('/api/game/campaigns', json={})
+        with default_town(self, TOWN_SEED):
+            existing = await self.http.post('/api/game/campaigns', json={})
         self.assertEqual(existing.status_code, 200, existing.text)
         sentinel = self.manager.get(existing.json()['session_id']).game_session
         sentinel_before = sentinel._capture_runtime_snapshot()

@@ -25,12 +25,16 @@ from api.tests.test_lore_engine_integration import bound_lore_state
 
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8620
 class LegacyDoorResumeTests(unittest.TestCase):
     def test_locked_legacy_door_resumes_without_inventing_an_identity_or_action(self):
         with tempfile.TemporaryDirectory() as directory:
             store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
-            cid, _, record, _ = manager.create_campaign("Legacy doors")
+            with default_town(self, TOWN_SEED):
+                cid, _, record, _ = manager.create_campaign("Legacy doors")
             session = record.game_session
             session.world_state["doors"] = [
                 {"name": "Legacy door", "description": "An old door.",
@@ -124,7 +128,8 @@ class CheckpointFailureRollbackTests(unittest.IsolatedAsyncioTestCase):
         })
 
     async def assert_checkpoint_failure_rolls_back(self, model_failure):
-        cid, sid, record, _ = self.manager.create_campaign("Checkpoint failure", death_mode="NORMAL")
+        with default_town(self, TOWN_SEED):
+            cid, sid, record, _ = self.manager.create_campaign("Checkpoint failure", death_mode="NORMAL")
         session = record.game_session
         game._capture_combat_death_checkpoint(session=session)
         session.world_state["inventory"].append("Pre-turn item")
