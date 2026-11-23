@@ -50,6 +50,32 @@ jobs:
       - name: Vulture with the whitelist
         run: vulture ai-dnd ai-dnd/scripts/quality_gate/vulture_whitelist.py --min-confidence 80
 
+  secrets-gate:
+    # Task 6: blocking. Full history; only findings outside the baseline fail. --redact keeps values out of logs.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install gitleaks at the pinned version and checksum
+        run: |
+          V=$(python3 -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['gitleaks']['version'])")
+          SUM=$(python3 -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['gitleaks']['sha256'])")
+          curl -sSL -o "$RUNNER_TEMP/gitleaks.tgz" "https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_linux_x64.tar.gz"
+          echo "${SUM}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+      - name: Scan the full history against the baseline
+        run: |
+          rc=0
+          "$RUNNER_TEMP/gitleaks" detect --redact --no-banner --no-color --baseline-path ai-dnd/scripts/quality_gate/gitleaks-baseline.json --report-format json --report-path "$RUNNER_TEMP/gitleaks.json" > "$RUNNER_TEMP/gitleaks.log" 2>&1 || rc=$?
+          cat "$RUNNER_TEMP/gitleaks.log"
+          # A scan that read no commits is not a pass (unreadable repo prints "0 commits scanned", exit 0).
+          if ! grep -Eq '[1-9][0-9]* commits scanned' "$RUNNER_TEMP/gitleaks.log"; then echo "gitleaks scanned no commits"; exit 2; fi
+          exit "$rc"
+
   measure:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -89,15 +115,6 @@ jobs:
         run: |
           skylos ai-dnd --no-upload --json > "$RUNNER_TEMP/skylos-full.json"
           python -c "import json,os;d=json.load(open(os.environ['RUNNER_TEMP']+'/skylos-full.json'));keep=('unused_functions','unused_imports','unused_classes','unused_variables','unused_parameters','unused_files','analysis_errors','circular_dependencies','analysis_summary');json.dump({k:d[k] for k in keep},open('reports/skylos.json','w'))"
-      - name: Gitleaks at the pinned version and checksum
-        if: ${{ !cancelled() }}
-        run: |
-          V=$(python -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['gitleaks']['version'])")
-          SUM=$(python -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['gitleaks']['sha256'])")
-          curl -sSL -o "$RUNNER_TEMP/gitleaks.tgz" "https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_linux_x64.tar.gz"
-          echo "${SUM}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
-          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
-          "$RUNNER_TEMP/gitleaks" detect --redact --no-banner --report-format json --report-path reports/gitleaks.json
       - name: Knip (JS and TS)
         if: ${{ !cancelled() }}
         env:

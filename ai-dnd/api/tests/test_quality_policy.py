@@ -158,5 +158,56 @@ class QualityWorkflowPolicyTest(unittest.TestCase):
         self.assertFalse((REPO / ".husky").exists())
 
 
+def _job_text(name: str) -> str:
+    """Text of one top-level job of the quality workflow ('' when absent)."""
+    out: list[str] = []
+    inside = False
+    for line in WORKFLOW.read_text(encoding="utf-8").splitlines():
+        if re.match(r"^  \S[^:]*:\s*$", line):
+            inside = line.strip() == name + ":"
+            continue
+        if re.match(r"^\S", line):
+            inside = False
+        if inside:
+            out.append(line)
+    return chr(10).join(out)
+
+
+class QualitySecretGateTest(unittest.TestCase):
+    def test_gitleaks_baseline_has_no_secret_values(self):
+        data = json.loads(GITLEAKS_BASELINE.read_text(encoding="utf-8"))
+        self.assertIsInstance(data, list)
+        for f in data:
+            self.assertIn(f.get("Secret", ""), ("REDACTED", ""))
+            match = f.get("Match", "")
+            self.assertTrue(match == "" or "REDACTED" in match, "Match not redacted")
+            # whatever stays around REDACTED in Match must hold no long token
+            self.assertNotRegex(match.replace("REDACTED", ""), r"[A-Za-z0-9+/_\-]{20,}")
+            self.assertIn(f.get("Line", ""), ("", None), "baseline carries the source line")
+
+    def test_gitleaks_step_pinned(self):
+        job = _job_text("secrets-gate")
+        self.assertTrue(job, "secrets-gate job missing")
+        pins = _tools()["gitleaks"]
+        self.assertIn("fetch-depth: 0", job)
+        self.assertNotIn("continue-on-error", job)
+        self.assertIn("tools.json", job)  # version is read from the single pin file
+        self.assertRegex(job, r"releases/download/v\$\{V\}/gitleaks_\$\{V\}_linux_x64\.tar\.gz")
+        self.assertIn("sha256sum -c", job)
+        self.assertLess(job.index("sha256sum -c"), re.search(r"/gitleaks\" detect ", job).start())
+        run = next(l for l in job.splitlines() if "/gitleaks" in l and " detect " in l)
+        for flag in ("--redact", "--no-banner", "--baseline-path ai-dnd/scripts/quality_gate/gitleaks-baseline.json"):
+            self.assertIn(flag, run)
+        self.assertTrue(pins["sha256"] and pins["version"])
+
+    def test_gitleaks_gate_rejects_zero_commits_scanned(self):
+        job = _job_text("secrets-gate")
+        self.assertRegex(job, r"commits scanned")
+        self.assertIn("exit 2", job)
+
+    def test_gitleaks_measure_step_moved_into_gate(self):
+        self.assertNotIn("gitleaks detect", _job_text("measure"))
+
+
 if __name__ == "__main__":
     unittest.main()
