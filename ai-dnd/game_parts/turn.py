@@ -20,7 +20,6 @@ from typing import Optional, List, Dict, Any
 import held_weapon
 import monster_sense
 import campaign_time
-import incidents.hooks as incident_hooks
 import json
 import scheduled_events
 import sys
