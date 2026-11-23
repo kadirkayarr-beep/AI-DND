@@ -253,3 +253,10 @@ Task 10 fix round 2: done
 - Review: Step 4 Opus independent review is the controller's dispatch (money rows, Review Focus 1 and 5). Reviewer: check _ts_speech_money (money_owner.read_answer then settled_money), _ts_speech_packet, _ts_witness_exit, the hand-routed row _ts_personal_answer_exit, and the 5 returned names of _ts_speech_money.
 - Play: oynayış bekliyor.
 Task 11a: implemented (commits d211ea3b..98cb7864)
+
+## Task 11a fix round 1 (2026-11-23)
+- Finding 1 (minor, tool): `_ts_personal_answer_exit` was cut with an uncommitted scratch wrapper because cut_block refused it as class C (`conversation_outcome`, false positive; the reviewer's cut_check re-run gave CHANGED 0, so the code on the branch is proven identical). The bypass cannot be reproduced and the tool still refuses that shape.
+- Ruling: no code change now (the finding says park) — the identity is already proven by cut_check CHANGED 0 and nothing on the branch depends on the wrapper — if wrong: a later task meets the same shape and has no tool path.
+- PARK (owner: the T11b implementer, before the first cut in T11b/T12): chosen fix = teach cut_block that an output bound only on fall-off paths and rebound before any later read is not an output (make the `later` read set flow-sensitive via `exposure()` over the code after the block, still counting reads inside enclosing loops and called nested defs). Do NOT commit the old wrapper (not reproducible, bypasses the refusal). Red test first in test_engine_cut_tool.py: a block with a return arm and an else arm that binds a name, whose only later read rebinds it first, must be class B with 0 outputs; a variant with a read before the rebind must still be refused as class C. If T11b/T12 have no such row, the park stays open for T13 and is listed in the end-of-slice handover list.
+- Run: none (ledger only, no code or test file touched since 98cb7864).
+Task 11a fix round 1: done
