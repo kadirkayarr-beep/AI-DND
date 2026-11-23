@@ -2043,7 +2043,7 @@
   "kind": "function",
   "module": "game",
   "session_bound": true,
-  "signature": "(resolved_turn: game_parts.turn.ResolvedTurn, player_input, messages, target_id)"
+  "signature": "(resolved_turn: 'ResolvedTurn', player_input, messages, target_id)"
  },
  "_narrated_money_can_lie": {
   "kind": "function",

@@ -400,7 +400,7 @@ from game_parts.turn_front import _tell_the_coin, _the_rest_of_the_line, _person
 from game_parts.turn_front import _front_wield, _coin_not_parcel, _names_no_parcel, _front_hand_over, _front_work, _take_names_a_job, _front_take, _sleep_after_walk, _front_route_turn
 
 
-def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, target_id):
+def _narrate_resolved_turn(resolved_turn: "ResolvedTurn", player_input, messages, target_id):
     if messages is None:
         messages = resolved_turn.messages or _session().messages
 
