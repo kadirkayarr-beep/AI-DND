@@ -50,7 +50,9 @@ class TravelTurnForfeitPin(unittest.TestCase):
         self.assertNotIn("quest:quest.travel-xp", session.world_state["xp_awarded_event_ids"])
         self.assertEqual(len(session._take_xp_unrecorded()), 1)
 
-    def test_narrate_resolved_turn_annotations_are_unchanged(self):
+    def test_narrate_resolved_turn_annotation_is_the_quoted_name(self):
+        # Changed on purpose (Ruling T5 Step 2): game.py has no future import, so the
+        # annotation was the class; it is now the quoted string. Introspection only.
         self.assertEqual(inspect.get_annotations(game._narrate_resolved_turn), {"resolved_turn": "ResolvedTurn"})
 
 
