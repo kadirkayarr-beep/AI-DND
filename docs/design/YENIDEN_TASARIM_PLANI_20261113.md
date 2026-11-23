@@ -2,6 +2,16 @@ Kısayol: (1) sayım (a) çıkış düzeyinde yapıldı; çıkışların çağı
 
 # YENİDEN TASARIM PLANI (2026-11-13): üst plan
 
+## Durum 2026-11-22
+
+- Sıra ve durum artık `docs/design/YOL_HARITASI.md`'de; çelişkide o dosya esastır. Motor yapısında bölme tasarımı (§11, §12) ve ADR 0001 geçerlidir.
+- TB (tur bölme) adımı eklendi: B2.x, B3b, B0c ve B4.4 TB'den sonra gelir (plan incelemesi I1). B1b ve B3c donmuş işlevlerde "önce taşı, sonra düzelt" ile yapılır.
+- KRİT-02 kapandı (D-166, fc671b7b; Kadir 2026-11-15): tutarı motor belirler; yeniden sorulmaz.
+- D-301 = K29: gidiş cümlesi anlatıcıya gider, iş B2.1'de; yeniden sorulmaz.
+- Eski kayıt soruları kaldırıldı: eski kayıtlar önemsizdir (Kadir; CLAUDE.md "Eski kayıtlar").
+- Bu belgede "en güçlü model" Opus demektir; fable yalnız Kadir o iş için söylerse. Tur bölme Kadir'in seçimiyle Fable ile yürür (2026-11-22).
+- B2 test bölünmesi yapıldı (B2 bölümündeki "Düzeltme 22 Kasım 2026").
+
 Durum: Kadir onayladı, 13 Kasım 2026.
 Onaylanan hâl: bağımsız incelemenin (`PLAN_INCELEMESI_20261113.md`) D1, D2, D4-D8 düzeltmeleri işlenmiş ikinci sürüm; D3 Kadir'in kararıyla uygulanmadı. Aynı gün Kadir K1 ve K3-K23'ü önerildiği gibi kapattı, K24'ü (harcama) verdi; O17 ve O18 eklendi. Açık karar kalmadı. Onay planın kendisinedir: her kalem başlamadan önce kendi planı yazılır; push, PR ve merge her seferinde Kadir'in taze onayını ister.
 İkinci sürümde değişenler: B0b'nin adı B0c oldu; B2.0 (çıkışta etiketleme) eklendi; Hat C (Kapı 1 sonrası) yazıldı ve 21 "havuz" satırı ona bağlandı; Kapı 1 artık Tur 1 ve Tur 2'den sonra; O11 Kapı 1'in sert ön koşulu ve Haiku sayacı okundu; K15 düzeltildi; A0'ın 18 sorusuna öneri yazıldı; O13-O16 ve B4.13 eklendi; K2 kapandı, K23 eklendi.
@@ -508,7 +518,6 @@ Ruling: B1c, B1a'nın hemen ardına kondu — iki para kalemi ve iki para incele
 - Dosya ve işlevler: `dialogue_commitments.py` (`render_cards`), `adventure/rewards.py` (ödül yazıcısı), ödül sayısını üreten görev ve macera tanımları. Aynı alanı bakır olarak kullanan kasaba işi yolu (`world_threads.py` içindeki `wage_due`) okunur ama değiştirilmez. Tam liste kalem planında çıkarılır; bu satırdaki adlar Codex doğrulama belgesinden alındı, koda yeniden bakılmadı.
 - Önce ayrılacak bölge: yok (`game.py`'ye dokunmaz; doğrulamadım, kalem planında bakılır).
 - Kırmızı testler (önerilen adlar): `test_offer_card_and_reward_read_one_field_with_its_unit` (kart ve ödeme aynı alanı, birimiyle okur); `test_dialogue_delivery_pays_the_gold_the_card_says` (kart 25 altın der, kese 25 altın artar); `test_adventure_quest_pays_the_gold_the_card_says`; `test_town_job_wage_is_unchanged` (kasaba işi aynı bakırı öder); `test_reward_survives_save_and_undo_once` (ödül bir kez yazılır, Geri Al tam geri alır).
-- Açık soru, kalem planında cevaplanır: eski kayıtlarda bekleyen bir ödül sayısı birimsiz duruyorsa nasıl okunur (doğrulamadım). Bugünkü ödemeyi (25 bakır) bekleyen test varsa (Codex `test_dialogue_quest_offer.py` dosyasını gösteriyor; doğrulamadım) eşit sıkılıkla yeniden yazılır ve onay listesine girer.
 - Etki notu: ödenen para 100 katına çıkar (25 bakır yerine 2500 bakır). Kasaba işi iki günde 46 bakır ödüyor; dükkân fiyatlarıyla dengesine Kapı 1 oynayışında bakılır.
 - Yolculuk: S-liman'a bir teslimat adımı ya da ayrı senaryo (kalem planında). Para: evet. İnceleme: bağımsız, en güçlü model. Geri alma: commit geri alınır.
 - Kadir'in kontrolü: bir teslimatı bitir; kartta yazan altın kadar kesen artıyor mu.
@@ -627,7 +636,7 @@ Sıra Kapı 1'in notlarından çıkar; B4 ile aynı kuyruktadır. Her bulgu önc
 |---|---|---|---|---|
 | B5.1 | Kayıt ve Geri Al bütünlüğü | YÜK-05, YÜK-09, YÜK-10, YÜK-18, ORTA-01, ORTA-02, ORTA-03, ORTA-04, ORTA-12, ORTA-20, ORTA-21 | Kayıt ve Geri Al | Bağımsız, en güçlü; bulgu başına ayrı kırmızı test |
 | B5.2 | İşlem kimliği ve eşzamanlı istekler | YÜK-01, YÜK-02, YÜK-06, ORTA-11, DÜŞ-02, DÜŞ-05 | Kayıt (çift işlem) | Bağımsız, en güçlü |
-| B5.3 | Para, ödül ve eşya muhasebesi | KRİT-04, YÜK-03, YÜK-14, ORTA-29; KRİT-02 yalnız Kadir açarsa (bu kaleme başlarken Kadir'e "KRİT-02'yi açalım mı" diye sorulur; önerilen yön: tutarı model değil motor belirler; Kadir, 14 Kasım 2026) | Para, XP, eşya | Bağımsız, en güçlü. YÜK-14'te beklentiyi sabitleyen test yeniden yazılır ve onay listesine girer |
+| B5.3 | Para, ödül ve eşya muhasebesi | KRİT-04, YÜK-03, YÜK-14, ORTA-29; KRİT-02 kapandı (D-166) | Para, XP, eşya | Bağımsız, en güçlü. YÜK-14'te beklentiyi sabitleyen test yeniden yazılır ve onay listesine girer |
 | B5.4 | Görev ve yolculuk akışı | YÜK-15, YÜK-21, YÜK-22, YÜK-23, ORTA-28, ORTA-30 | Kayıt (görev ve konum) | Bağımsız |
 | B5.5 | Yanlış model etiketi: YÜK-04'ün tehdit, yangın ve hırsızlık dalları | YÜK-04 (üç dal) | Kayıt (ilişki, suç kaydı) | Bağımsız |
 | B5.6 | Savaş ve kural doğruluğu; ilk iş başlangıç eşyası | YÜK-11, YÜK-13, YÜK-17, YÜK-19, YÜK-20, ORTA-19, ORTA-24, ORTA-25, ORTA-26, ORTA-27 | Kayıt (envanter, can, yuva) | Bağımsız; envantere dokunanlar en güçlü |
@@ -1311,7 +1320,7 @@ Doğrulama durumu `CODEX_NIHAI_DOGRULAMA_20261113.md` dosyasındandır: 10 bulgu
 | Kaynak | Ne | Sınıf | Karşılık |
 |---|---|---|---|
 | KRİT-01 | Ortam olayı kaydedildikten sonra Geri Al parmak izi hatası: eski dünya geri yüklenir, sonraki kayıt olayı siler, makbuz kalır. Doğrulandı | kalem | B3d (M-b'nin beşinci parçası; Ruling, bölüm 4 Sıra) |
-| KRİT-02 | Eski NPC konuşmasında modelin önerdiği tutar NPC kesesinden oyuncuya ödenir. Doğrulandı | donuk | Bilinçli C5 kararı; değiştirmek Kadir'in onayını ister. Açılırsa B5.3. Not (Kadir, 14 Kasım 2026): B5.3'e gelindiğinde Kadir'e "KRİT-02'yi açalım mı" diye sorulur; önerilen yön, ödenecek tutarı modelin değil motorun belirlemesi |
+| KRİT-02 | Eski NPC konuşmasında modelin önerdiği tutar NPC kesesinden oyuncuya ödenir. Doğrulandı | donuk | Bilinçli C5 kararı; değiştirmek Kadir'in onayını ister. Açılırsa B5.3. Not (Kadir, 14 Kasım 2026): önerilen yön, ödenecek tutarı modelin değil motorun belirlemesiydi. Kapandı: D-166 (Kadir 2026-11-15). |
 | KRİT-03 | Diyalog teslimatı kartta "25 altın" der, 25 bakır öder (kent soruşturması 20). Doğrulandı. Karar K27: ödül altın, kartın söylediği ödenir | kalem | B1c (ayrı parça; K25, K27) |
 | KRİT-04 | Tür yeteneğinin tur sonu hasarı ödül avı hedefini düşürürse görev ödülü (60 XP, 80 bakır, makbuz) yazılmaz (eski ORTA-23) | K1 sonrası | B5.3 |
 | YÜK-01 | Model hatasından sonra eski kimlikli gecikmiş istek ile yeni gönderim iki tur oluşturabilir. Doğrulandı | K1 sonrası | B5.2 |
@@ -1647,4 +1656,4 @@ Bunlar açık karar değildir; planın kapılarıdır ve kendi adımlarında sor
 - O17: Codex denetiminden doğrulanan bulguların motor sırasına yerleştirilmesi.
 - Her push, PR ve merge için işlem anında taze onay.
 - Kapı 1'den sonra: B4 ve Hat C'nin sırası (Kapı 1'in notlarından).
-- **KRİT-02 (Kadir, 14 Kasım 2026):** donuk kalır. B5.3'e gelindiğinde Kadir'e "KRİT-02'yi açalım mı" diye sorulur. Önerilen yön: ödenecek tutarı model değil motor belirler.
+- **KRİT-02:** kapandı (D-166, Kadir 2026-11-15): tutarı motor belirler; yeniden sorulmaz.
