@@ -1391,6 +1391,12 @@
   "session_bound": true,
   "signature": "()"
  },
+ "_finish_turn": {
+  "kind": "function",
+  "module": "game_parts.turn_finish",
+  "session_bound": true,
+  "signature": "(*, action_result, narration, quest_outcomes, safety_reason_code, safety_handling, record_safety, is_final, active_conversation_before, allow_new_features, allow_new_locations, allow_new_npcs, allow_new_shops, conversation_resolution, conversation_state_before, entry_actor, entry_identity, expected_location_change, intent_source, lore_context, messages, narration_model_calls, narration_source, npc_target, player_input, procedural_entity_ids, procedural_ids_before, quest_world_before, scene_plan, target_id, told_intent_calls, turn_index, world_state)"
+ },
  "_fold_keep_punctuation": {
   "kind": "function",
   "module": "game_parts.text_rules_a",

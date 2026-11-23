@@ -536,3 +536,49 @@ class CutCheckTests(CutToolCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ShimLateBindingTests(unittest.TestCase):
+    """Task 4: a lifted nested def stays a shim that reads the enclosing names at call time."""
+
+    SHIM_AT_CALL = textwrap.dedent('''
+        def _lifted(*, mode, flag):
+            return (mode, flag)
+
+        def run():
+            mode = "early"
+            def finish(flag):
+                return _lifted(mode=mode, flag=flag)
+            mode = "late"
+            return finish(1)
+    ''')
+    SHIM_AT_DEF = SHIM_AT_CALL.replace("def finish(flag):", "def finish(flag, mode=mode):")
+
+    def _result(self, source):
+        ns = {}
+        exec(source, ns)
+        return ns["run"]()
+
+    def test_shim_sees_names_rebound_after_its_def(self):
+        self.assertEqual(self._result(self.SHIM_AT_CALL), ("late", 1))
+
+    def test_a_shim_capturing_at_def_time_is_caught(self):
+        self.assertNotEqual(self._result(self.SHIM_AT_DEF), ("late", 1))
+
+    def test_real_finish_turn_is_a_shim_over_turn_finish(self):
+        import ast
+        turn = ast.parse((ROOT / "game_parts" / "turn.py").read_text(encoding="utf-8"))
+        outer = next(n for n in turn.body if isinstance(n, ast.FunctionDef) and n.name == "_run_player_turn_internal")
+        shim = next(n for n in ast.walk(outer) if isinstance(n, ast.FunctionDef) and n.name == "finish_turn")
+        self.assertEqual(len(shim.body), 1)
+        call = shim.body[0].value
+        self.assertIsInstance(shim.body[0], ast.Return)
+        self.assertEqual(ast.unparse(call.func), "game._finish_turn")
+        self.assertFalse(call.args)
+        self.assertTrue(all(isinstance(k.value, ast.Name) and k.value.id == k.arg for k in call.keywords))
+        part = ast.parse((ROOT / "game_parts" / "turn_finish.py").read_text(encoding="utf-8"))
+        lifted = next(n for n in part.body if isinstance(n, ast.FunctionDef) and n.name == "_finish_turn")
+        params = {a.arg for a in lifted.args.args + lifted.args.kwonlyargs}
+        self.assertEqual({k.arg for k in call.keywords}, params)
+        self.assertIn("narration_model_calls", params)
+        self.assertLess(lifted.end_lineno - lifted.lineno + 1, 151)

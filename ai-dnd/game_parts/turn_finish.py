@@ -3,6 +3,7 @@ import interaction_adventure
 import scheduled_events
 import campaign_time
 import copy
+import incidents.hooks as incident_hooks
 import game
 
 
@@ -180,3 +181,99 @@ def _tf_first_guard(*, action_result, active_conversation_before, conversation_r
         )
         talk_mode.restore(world_state, {key: value for key, value in active_conversation_before.items()
                                         if value is not None})
+
+
+def _finish_turn(*, action_result, narration, quest_outcomes, safety_reason_code, safety_handling, record_safety, is_final, active_conversation_before, allow_new_features, allow_new_locations, allow_new_npcs, allow_new_shops, conversation_resolution, conversation_state_before, entry_actor, entry_identity, expected_location_change, intent_source, lore_context, messages, narration_model_calls, narration_source, npc_target, player_input, procedural_entity_ids, procedural_ids_before, quest_world_before, scene_plan, target_id, told_intent_calls, turn_index, world_state):
+    interaction_adventure.get(world_state)
+    if narration is None and isinstance(action_result, dict):
+        # A recorded goal carries no sentence of its own: the narrator tells it, and this line stands only if it cannot.
+        narration = game._natural_unresolved_action_response(player_input, action_result)
+        is_final = False
+    game._tf_first_guard(action_result=action_result, active_conversation_before=active_conversation_before, conversation_resolution=conversation_resolution, conversation_state_before=conversation_state_before, world_state=world_state)
+    is_experimental = game._tf_is_experimental(action_result=action_result)
+    interaction_consumed = is_experimental
+    interaction_consumed, narration = game._tf_interaction_consumed(action_result=action_result, interaction_consumed=interaction_consumed, is_experimental=is_experimental, narration=narration, player_input=player_input, quest_world_before=quest_world_before, world_state=world_state)
+    game._tf_attack_events(action_result=action_result, entry_actor=entry_actor, entry_identity=entry_identity)
+    game._tf_campaign_time(action_result=action_result, quest_world_before=quest_world_before, world_state=world_state)
+    narration = game._tf_internal_text_fallback(action_result=action_result, narration=narration, player_input=player_input)
+    if record_safety:
+        game._record_narration_safety(
+            {
+                "reason_code": safety_reason_code,
+                "trigger_span": None,
+                "scene_type": game._narration_scene_type(action_result),
+            },
+            safety_handling,
+        )
+    if (
+        isinstance(conversation_resolution, dict)
+        and conversation_resolution.get("topic_relation") == "topic_change"
+        and not conversation_resolution.get("answer_field")
+        and isinstance(action_result, dict)
+        and not is_experimental
+    ):
+        interaction_adventure.retire_conversation_focus(world_state)
+    if (
+        isinstance(action_result, dict)
+        and isinstance(npc_target, dict)
+        and isinstance(npc_target.get("id"), str)
+        and action_result.get("action") != "character_query"
+    ):
+        action_result.setdefault("npc_id", npc_target["id"])
+    if isinstance(action_result, dict) and isinstance(scene_plan, dict):
+        action_result["state_changes"] = list(dict.fromkeys(
+            list(action_result.get("state_changes", []))
+            + list(scene_plan.get("state_changes", []))
+        ))
+    result = {"action_result": action_result, "narration": narration,
+              "_interaction_consumed": interaction_consumed}
+    game._tf_engine_event_evidence(procedural_entity_ids=procedural_entity_ids, procedural_ids_before=procedural_ids_before, quest_outcomes=quest_outcomes, result=result, turn_index=turn_index)
+
+    def _incident_before_skipped_narration():
+        # Look, rest, and a completed move can be answered without a narrator.
+        # The incident owner still sees that authoritative action. A later
+        # narrated turn uses the existing door in _narrate_resolved_turn.
+        if not isinstance(action_result, dict):
+            return
+        emergence = incident_hooks.before_narration(
+            game._session(),
+            action_result=action_result,
+            player_text=player_input,
+            location_changed=world_state.get("location") != quest_world_before.get("location"),
+        )
+        spent = emergence.get("model_calls") if isinstance(emergence, dict) else 0
+        if type(spent) is int and spent > 0:
+            nonlocal narration_model_calls
+            narration_model_calls += spent
+
+    if is_final:
+        _incident_before_skipped_narration()
+        result["_engine_event_evidence"]["procedural_entity_ids"] = sorted(
+            procedural_entity_ids() - procedural_ids_before
+        )
+        result["_engine_event_evidence"].pop("_procedural_ids_before", None)
+        if "telemetry" not in result["_engine_event_evidence"]:
+            result["_engine_event_evidence"]["telemetry"] = {
+                "intent_model_calls": told_intent_calls(),
+                "narration_model_calls": narration_model_calls,
+                "total_model_calls": told_intent_calls() + narration_model_calls + getattr(game._session(), "_speech_repair_calls", 0),
+                "intent_source": intent_source,
+                "narration_source": narration_source,
+                "fallback_reason": safety_reason_code,
+                "narration_validation_result": safety_handling if safety_reason_code else "accepted",
+                "resolved_action_type": action_result.get("action", "unknown") if isinstance(action_result, dict) else "unknown",
+            }
+        return result
+
+    status = action_result.get("status") if isinstance(action_result, dict) else None
+    action = action_result.get("action") if isinstance(action_result, dict) else None
+
+    system_deterministic = False
+    system_deterministic = game._tf_system_deterministic_flag(action=action, action_result=action_result, safety_handling=safety_handling, status=status, system_deterministic=system_deterministic)
+
+    _exit = game._tf_system_deterministic_exit(_incident_before_skipped_narration=_incident_before_skipped_narration, action_result=action_result, intent_source=intent_source, result=result, safety_handling=safety_handling, safety_reason_code=safety_reason_code, system_deterministic=system_deterministic, told_intent_calls=told_intent_calls)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
+
+    resolved = game._tf_build_resolved_turn(action_result=action_result, allow_new_features=allow_new_features, allow_new_locations=allow_new_locations, allow_new_npcs=allow_new_npcs, allow_new_shops=allow_new_shops, expected_location_change=expected_location_change, intent_source=intent_source, lore_context=lore_context, messages=messages, narration=narration, npc_target=npc_target, quest_outcomes=quest_outcomes, quest_world_before=quest_world_before, result=result, safety_handling=safety_handling, safety_reason_code=safety_reason_code, scene_plan=scene_plan, target_id=target_id, told_intent_calls=told_intent_calls)
+    raise game.TurnResolved(result, resolved)
