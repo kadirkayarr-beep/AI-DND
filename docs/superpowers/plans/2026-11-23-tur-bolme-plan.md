@@ -343,18 +343,20 @@ The rule is applied to blocks of 10 or more lines, at the top level of a functio
 - `ai-dnd/game_parts/turn_exits.py`
 - `turn.py`, `game.py`, the locks
 
-**Task 9a (≈ 14 rows):**
+**Task 9a (≈ 12 rows):**
 - [ ] **Step 1: Cut** every `T9a` row from `cuts-base.json`, bottom up, into `_tx_<what>`. The rows are the top-level A/B rows before the `if held_plan is not None:` block plus the 2 rows of `--sub` `if target_id is not None:`. Rows whose block calls a `sensitive.json` function move to Task 10.
   - **T9a note:** two T9a rows are flagged `undo` (lines 1002-1011) and `save` (lines 1433-1506) in `cuts-base.json`. They are not money, but they touch Undo and save order. Check the order (Undo before save) and use the strong reviewer (Opus) for T9a.
+  - **T9a note 2:** rows 27 and 29 (lines 1399-1430, 1508-1534) call `ensure_combat_state`, `_mark_combat_action_used`, `_resolve_player_death_turn`, which are `save` in `sensitive.json`. The whole of T9a gets the Opus review.
+  - **Moved to T10 (fix round 2):** three rows call `sensitive.json` functions with no money flag: `plan_living_world_turn` (lines 1388-1398), `parse_player_intent` (2195-2211), `validate_world_updates` (3585-3601). They are in T10 and get the Opus review.
 - [ ] **Step 2: Check identity.** `cut_check.py` expected `CHANGED 0`.
 - [ ] **Step 3: Update the locks.** Lower them. Every helper is under 151 lines.
 - [ ] **Step 4: Run** the neighbour set and engine locks in both flags.
-- [ ] **Step 5: Review.** Sonnet review with the `cut_check` report.
+- [ ] **Step 5: Review.** Opus review with the `cut_check` report (T9a holds `sensitive.json` save callers).
 - [ ] **Step 6: Commit:** `git commit -m "Turn split T9a: turn exits cut (first half)"`.
 
-**Task 9b (≈ 10 rows):** the same steps for the `T9b` rows. Commit message: `"Turn split T9b: turn exits cut (second half)"`.
+**Task 9b (≈ 9 rows):** the same steps for the `T9b` rows. Commit message: `"Turn split T9b: turn exits cut (second half)"`.
 
-### Task 10: Money-guard cuts in `_run_player_turn_internal` (≈ 8 rows)
+### Task 10: Money-guard cuts in `_run_player_turn_internal` (≈ 11 rows)
 
 **Files:** `ai-dnd/game_parts/turn_shop_guards.py` (create), `turn.py`, `game.py`, the locks.
 

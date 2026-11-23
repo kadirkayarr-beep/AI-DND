@@ -644,7 +644,8 @@
   "flags": [
    "model"
   ],
-  "task": "T9a"
+  "task": "T10",
+  "note": "Sensitive.json caller without money flag; moved to T10 (Opus review)."
  },
  {
   "function": "_run_player_turn_internal",
@@ -695,7 +696,8 @@
   "flags": [
    "model"
   ],
-  "task": "T9a"
+  "task": "T9a",
+  "note": "Calls sensitive.json save functions; T9a gets Opus review as a whole."
  },
  {
   "function": "_run_player_turn_internal",
@@ -797,7 +799,8 @@
    "world_state"
   ],
   "flags": [],
-  "task": "T9a"
+  "task": "T9a",
+  "note": "Calls sensitive.json save functions; T9a gets Opus review as a whole."
  },
  {
   "function": "_run_player_turn_internal",
@@ -1108,7 +1111,8 @@
   "flags": [
    "model"
   ],
-  "task": "T9a"
+  "task": "T10",
+  "note": "Sensitive.json caller without money flag; moved to T10 (Opus review)."
  },
  {
   "function": "_run_player_turn_internal",
@@ -1898,7 +1902,8 @@
    "scene_parent"
   ],
   "flags": [],
-  "task": "T9b"
+  "task": "T10",
+  "note": "Sensitive.json caller without money flag; moved to T10 (Opus review)."
  },
  {
   "function": "_run_player_turn_internal",
