@@ -289,3 +289,7 @@ Task 11b fix round 1: done
 - Review: Step 4 Sonnet review is the controller's dispatch (Opus if it judges _td_strike_fallen save-adjacent). T11a PARK (flow-sensitive cut_block) had no row in T12; stays open for T13 and the dilim-end list.
 - Play: oynayış bekliyor.
 Task 12: implemented (commits 66ed91c6..d7966c68)
+
+## Task 12 fix round 1 (2026-11-23)
+- Review had one minor finding (game.py budget 1110 -> 1116 = +6 R8 re-exports; turn.py and _dispatch_player_turn only down; _run_player_turn_internal unchanged). Finding's own fix: none; keep approval-list row.
+- Ruling: no code change — finding agrees with ledger, approval-list row stays — nothing to red-test — none; no tests re-run (no code touched).
