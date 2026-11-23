@@ -2,6 +2,7 @@ import game
 import action_economy
 import adventure.play as adventure_play
 import combat_lifecycle
+import contextlib
 import copy
 import held_weapon
 import interaction_adventure
@@ -17,6 +18,7 @@ import weapon_attack
 import equipment_economy
 import talk_mode
 import tr_case
+from api.core_resolution import resolution_action_scope
 
 
 def _has_session():
@@ -2254,3 +2256,45 @@ def _sleep_after_walk(walked, player_input, place_before, scene_plan=None):
         game._session()._front_rest = ""  # the line's sleep is slept here, once
         walked["narration"] = f"{walked.get('narration') or ''} {slept['direct_response']}".strip()
         talk_mode.close(world_state, "rest")
+
+
+def _front_route_turn(front, gate, player_input, interaction_mode, action_id, session_id):
+    if front is not None and front["kind"] == "wield" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            game._front_wield(front, player_input)  # the turn goes on to the narrator, who reads the hand and the note on the card
+    if front is not None and front["kind"] == "take" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            taken = game._front_take(front, player_input)
+        if taken is not None:
+            return taken
+    if front is not None and front["kind"] == "wait" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        passed = timed_gameplay.pass_time(game._session(), player_input)
+        if passed is not None:
+            flags = game._session().world_state.setdefault("flags", {})
+            flags["turn_index"] = flags.get("turn_index", 0) + 1
+            return {"messages": game._session().messages, "narration": passed["direct_response"], "model_calls": 0,
+                    "action_result": passed}
+    if front is not None and front["kind"] == "walk_failed" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        text = game._fallback_for_action_result(player_input, {"action": "travel", "status": "failed"})
+        flags = game._session().world_state.setdefault("flags", {})
+        flags["turn_index"] = flags.get("turn_index", 0) + 1
+        return {"messages": game._session().messages, "narration": text, "model_calls": 1,
+                "action_result": {"action": "travel", "status": "failed", "success": False,
+                                  "state_changes": [], "direct_response": text}}
+    if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        import front_proposal
+        import grounded_action
+        road_warning = None
+        if front["id"] == front_proposal.WAY_OUT:
+            refused = grounded_action.road_goes_on(game._session(), player_input)
+            road_warning = (refused or {}).get("road_warning")
+            if refused is not None and road_warning is None:
+                return refused
+        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+            walked = grounded_action.resolve_turn(game._session(), player_input, listed_place=front)
+        if walked is not None:
+            if road_warning:
+                walked["narration"] = f"{road_warning} {walked.get('narration') or ''}".strip()
+            return walked
+        front_proposal.note(game._session(), "fallback:no_walk")
+    return None

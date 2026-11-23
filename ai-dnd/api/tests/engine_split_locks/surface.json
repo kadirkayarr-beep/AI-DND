@@ -1435,6 +1435,12 @@
   "session_bound": true,
   "signature": "(player_input, listed)"
  },
+ "_front_route_turn": {
+  "kind": "function",
+  "module": "game_parts.turn_front",
+  "session_bound": true,
+  "signature": "(front, gate, player_input, interaction_mode, action_id, session_id)"
+ },
  "_front_step": {
   "kind": "function",
   "module": "game_parts.turn_front",
