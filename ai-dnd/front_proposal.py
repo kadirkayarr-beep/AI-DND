@@ -702,7 +702,7 @@ def begin(session, *, typed: bool = False) -> None:
     session._front_reached = False
     session._speech_checks = None  # D-252: set by a person's reply this turn, names only
     session._speech_repair_calls = 0  # D-332: the repair call really made, counted into model_calls
-    session._speech_repair = None  # D-332: "model_repair" or "model_repair_failed", this turn only
+    session._speech_repair = None  # D-332: "model_repair", "model_repair_failed" or "model_repair_skipped", this turn only
 
 
 def end(session) -> None:

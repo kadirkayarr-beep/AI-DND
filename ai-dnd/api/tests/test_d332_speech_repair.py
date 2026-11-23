@@ -60,11 +60,11 @@ class SpeechRepair(unittest.IsolatedAsyncioTestCase):
     say = cases.ThroughTheRealTurn.say
     TOWN_SEED = 7400
 
-    async def ready(self):
+    async def ready(self, front="1"):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         self.route_file = Path(folder.name) / "routes.jsonl"
-        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1",
+        self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": front,
                                                   "AI_DND_ROUTE_LOG": str(self.route_file)}))
         await self.start_plain()
         self.client = RepairClient()
@@ -285,6 +285,37 @@ class SpeechRepair(unittest.IsolatedAsyncioTestCase):
                                       json={"action_id": str(uuid.uuid4()), "target_action_id": action_id})
         self.assertEqual(undone.status_code, 200, undone.text)
         self.assertEqual(self.manager.get(self.session_id).game_session.world_state, before)
+
+    async def test_a_repair_is_not_counted_into_the_next_turns_model_calls_with_the_flag_off(self):
+        # With the flag off nothing but the turn's own end resets the count; total_model_calls adds it (turn.py), so a
+        # stale 1 would make every later turn's telemetry one call too many.
+        await self.ready(front="0")
+        self.client.repair = {"spoken_text": "Meydanın öbür ucunda.", "stage_direction": ""}
+        await self.say("Taverna nerede?", TAVERN)
+        self.assertEqual(self.client.repair_calls, 1)
+        await self.say("Selam.", "Selam.")
+        self.assertEqual(getattr(self.session, "_speech_repair_calls", 0), 0)
+
+    async def test_a_place_reading_in_the_wilderness_names_no_place_outside_a_town(self):
+        await self.ready()
+        self.world["locations"]["far_ruin"] = {"name": "Uzak Harabe", "parent_location_id": "nowhere_at_all"}
+        self.world["locations"]["wild_glade"] = {"name": "Sisli Vadi", "parent_location_id": "nowhere_at_all"}
+        self.world["location"] = "wild_glade"
+        self.npc["location"] = "wild_glade"
+        self.assertIsNone(town_knowledge._settlement(self.world))
+        text = await self.ask_rejected("Taverna nerede?", TAVERN, "place", "far_ruin",
+                                       repair={"spoken_text": BEER, "stage_direction": ""})
+        self.assertIn("model_repair_failed", self.last_route()["speech"], text)  # the repair route really ran
+        self.assertNotIn("Uzak Harabe", text)
+
+    async def test_a_place_reading_naming_the_town_itself_gets_no_nearby_answer(self):
+        await self.ready()
+        town = town_knowledge._settlement(self.world)
+        self.assertIsNotNone(town)
+        text = await self.ask_rejected("Taverna nerede?", TAVERN, "place", town,
+                                       repair={"spoken_text": BEER, "stage_direction": ""})
+        self.assertNotIn("Yakınlarda", text)
+        self.assertNotIn(self.world["locations"][town]["name"], text)
 
 
 if __name__ == "__main__":

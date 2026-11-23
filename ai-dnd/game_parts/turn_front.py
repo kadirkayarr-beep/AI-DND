@@ -1003,6 +1003,7 @@ def _clear_turn_transients(session) -> None:
     session._bribe_held_out = 0
     session._counter_held = None
     session._economic_turn_key = None
+    session._speech_repair_calls = 0  # D-332: the repair call counts into this turn's model calls only; a flag-off turn has no begin()
 
 def _tell_the_coin(result):
     """After the reply, the money owner opens the one card this turn's decision names; coin is never a silent gift.

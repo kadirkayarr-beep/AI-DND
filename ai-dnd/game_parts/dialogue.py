@@ -1618,8 +1618,10 @@ def _question_bound_answer(world, npc, player_input):
         return game._person_fallback(world, npc, player_input)
     place = world.get("locations", {}).get(reading.get("place_id"))
     import local_places
-    known = (isinstance(place, dict) and place.get("name") and not place.get("hidden")
-             and local_places.settlement_of(world, reading.get("place_id")) == town_knowledge._settlement(world))
+    town = town_knowledge._settlement(world)  # no town (the wilderness) answers no place; nor is the town its own street
+    known = (isinstance(place, dict) and place.get("name") and not place.get("hidden") and town is not None
+             and reading.get("place_id") != town
+             and local_places.settlement_of(world, reading.get("place_id")) == town)
     if asks == "place" and known:
         where = "Bu sokakta" if place.get("parent_location_id") == npc.get("location") else "Yakınlarda"
         last = next((ch for ch in reversed(place["name"].casefold()) if ch in "aıoueiöü"), "a")  # mı / mi / mu / mü
