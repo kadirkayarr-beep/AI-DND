@@ -3011,6 +3011,60 @@
   "session_bound": true,
   "signature": "(*, action, action_result, safety_handling, status, system_deterministic)"
  },
+ "_tg_attack_findings_exit": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, action_result, finish_turn, quest_world_before)"
+ },
+ "_tg_findings_text_exit": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, action_result, findings, finish_turn, quest_world_before)"
+ },
+ "_tg_hint_intent": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, check_feature, classifier_unusable, combat, intent_model_calls, intent_source, interaction_hint, npc_target, player_input, raw, scene_preparse_model_calls, world_state)"
+ },
+ "_tg_scene_plan": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, held_plan, interaction_mode, player_input, scene_plan, target_id)"
+ },
+ "_tg_shop_action_result": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, npc_target, player_input, resolve_intent, shop_request, target_id, validated_intent)"
+ },
+ "_tg_shop_exit_a": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, finish_turn, interaction_mode, player_input, world_state)"
+ },
+ "_tg_shop_exit_b": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, finish_turn, interaction_mode, player_input)"
+ },
+ "_tg_shop_presence_exit": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, finish_turn, npc_target, player_input, target_id, world_state)"
+ },
+ "_tg_shop_request_exit": {
+  "kind": "function",
+  "module": "game_parts.turn_shop_guards",
+  "session_bound": true,
+  "signature": "(*, current_shop_count, finish_turn, shop_request, world_state)"
+ },
  "_the_rest_of_the_line": {
   "kind": "function",
   "module": "game_parts.turn_front",

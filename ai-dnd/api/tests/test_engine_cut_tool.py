@@ -636,6 +636,16 @@ class TurnExitsLiftTests(unittest.TestCase):
         for fn in found.values():
             self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
 
+    def test_the_shop_guard_helpers_exist_and_are_short(self):
+        import ast
+        part = self._funcs("turn_shop_guards.py")
+        found = {n.name: n for n in part.body if isinstance(n, ast.FunctionDef)}
+        self.assertEqual(set(found), {"_tg_attack_findings_exit", "_tg_findings_text_exit", "_tg_hint_intent",
+                                      "_tg_scene_plan", "_tg_shop_action_result", "_tg_shop_exit_a",
+                                      "_tg_shop_exit_b", "_tg_shop_presence_exit", "_tg_shop_request_exit"})
+        for fn in found.values():
+            self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
+
     def test_procedural_entity_ids_reads_the_world_it_is_given(self):
         import game
         world = {"locations": {"a": {"id": "loc-a", "reality_layer": "PROCEDURAL_LOCAL_FICTION"},

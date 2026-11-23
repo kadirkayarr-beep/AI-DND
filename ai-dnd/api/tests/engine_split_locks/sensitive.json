@@ -211,6 +211,21 @@
     "_tf_system_deterministic_flag": [
       "money"
     ],
+    "_tg_shop_action_result": [
+      "money"
+    ],
+    "_tg_shop_exit_a": [
+      "money"
+    ],
+    "_tg_shop_exit_b": [
+      "money"
+    ],
+    "_tg_shop_presence_exit": [
+      "money"
+    ],
+    "_tg_shop_request_exit": [
+      "money"
+    ],
     "_the_rest_of_the_line": [
       "money"
     ],

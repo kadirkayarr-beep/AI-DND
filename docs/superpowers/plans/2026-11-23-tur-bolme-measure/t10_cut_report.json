@@ -1,0 +1,193 @@
+{
+  "helpers": [
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if isinstance(findings, dict) and isinstance(findings.get(\"text\"), str)",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_tg_findings_text_exit",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "B",
+      "params": [
+        "action_result",
+        "findings",
+        "finish_turn",
+        "quest_world_before"
+      ],
+      "outputs": [],
+      "block": "    if isinstance(findings, dict) and isinstance(findings.get(\"text\"), str) and findings[\"text\"].strip():\n        # LR00-P2: a target-bound finding IS the result. Live runs showed the\n        # narrator inventing a figure behind closed shutters; the receipt's\n        # own words are shown instead, with no second model call.\n        quest_transitions = game._session().evaluate_quest_events(\n            quest_world_before, action_result\n        )\n        if quest_transitions:\n            action_result[\"quest_outcomes\"] = quest_transitions\n        return finish_turn(\n            action_result,\n            findings[\"text\"],\n            quest_transitions,\n            is_final=True,\n            safety_handling=\"python_scene_response\",\n        )",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if action_result.get(\"action\") in {\"attack\", \"death_save\"}:",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_tg_attack_findings_exit",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "B",
+      "params": [
+        "action_result",
+        "finish_turn",
+        "quest_world_before"
+      ],
+      "outputs": [],
+      "block": "    if action_result.get(\"action\") in {\"attack\", \"death_save\"}:\n        # Reuse the existing mechanical renderer. Do not send a not-yet-saved\n        # combat outcome to a model before the API receipt transaction succeeds.\n        quest_transitions = game._session().evaluate_quest_events(\n            quest_world_before, action_result\n        )\n        if quest_transitions:\n            action_result[\"quest_outcomes\"] = quest_transitions\n        return finish_turn(\n            action_result,\n            game._combat_narration(action_result),\n            quest_transitions,\n            is_final=True,\n        )",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if shop_request:",
+      "occurrence": 3,
+      "sub_anchor": null,
+      "helper": "_tg_shop_action_result",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "A",
+      "params": [
+        "npc_target",
+        "player_input",
+        "resolve_intent",
+        "shop_request",
+        "target_id",
+        "validated_intent"
+      ],
+      "outputs": [
+        "action_result"
+      ],
+      "block": "    if shop_request:\n        action_result = {\n            \"action\": \"shop_setup\",\n            \"status\": \"requested\",\n            \"success\": True,\n            \"state_changes\": [],\n        }\n    elif target_id is None:\n        action_result = resolve_intent(validated_intent, player_input, npc_target)\n    else:\n        action_result = resolve_intent(\n            validated_intent,\n            player_input,\n            npc_target,\n            target_id=target_id,\n        )",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if (game._shop_presence_question(player_input)",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_tg_shop_presence_exit",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "B",
+      "params": [
+        "finish_turn",
+        "npc_target",
+        "player_input",
+        "target_id",
+        "world_state"
+      ],
+      "outputs": [],
+      "block": "    if (game._shop_presence_question(player_input)\n            and ((target_id is None and not isinstance(npc_target, dict)\n                  and (getattr(game._session(), \"_front_read\", None) or {}).get(\"kind\") != \"speak_to\")\n                 # asked of the one who keeps the shop here, the shop line is her answer (Review 11 A4)\n                 or (isinstance(npc_target, dict) and npc_target.get(\"location\") == world_state.get(\"location\")\n                     and game._runs_a_shop(world_state, npc_target)\n                     # BM Task 2: a plain-talk reading answers by speech; the list only when it asks for the shop\n                     and talk_front.old_owner_allowed(talk_front.current(game._session()), \"shop_presence\")))):\n        message = talk_front.shop_presence_reply(world_state, npc_target)\n        action_result = {\n            \"action\": \"shop_inquiry\",\n            \"status\": \"answered_from_campaign_state\",\n            \"success\": True,\n            \"state_changes\": [],\n        }\n        return finish_turn(action_result, message)",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if (interaction_mode not in {\"say\", \"ask_dm\"}",
+      "occurrence": 2,
+      "sub_anchor": null,
+      "helper": "_tg_shop_exit_b",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "B",
+      "params": [
+        "finish_turn",
+        "interaction_mode",
+        "player_input"
+      ],
+      "outputs": [],
+      "block": "    if (interaction_mode not in {\"say\", \"ask_dm\"}\n            and game._explicit_campaign_shop_negative_request(player_input)):\n        action_result = {\n            \"action\": \"shop_setup\",\n            \"status\": \"explicitly_declined\",\n            \"success\": True,\n            \"state_changes\": [],\n        }\n        message = (\n            \"Anla\u015f\u0131ld\u0131; yeni bir d\u00fckk\u00e2n ya da d\u00fckk\u00e2nc\u0131 aramadan yoluna devam edebilirsin.\"\n        )\n        return finish_turn(\n            action_result,\n            message,\n            safety_reason_code=\"SHOP_CREATION_EXPLICITLY_DECLINED\",\n            safety_handling=\"python_fallback\",\n        )",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if (interaction_mode not in {\"say\", \"ask_dm\"}",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_tg_shop_exit_a",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "B",
+      "params": [
+        "finish_turn",
+        "interaction_mode",
+        "player_input",
+        "world_state"
+      ],
+      "outputs": [],
+      "block": "    if (interaction_mode not in {\"say\", \"ask_dm\"}\n            and world_state.get(\"shops\") and game._shop_economy_request(player_input)):\n        action_result = {\n            \"action\": \"shop_economy\",\n            \"status\": \"unsupported\",\n            \"success\": False,\n            \"state_changes\": [],\n        }\n        message = (\n            \"D\u00fckk\u00e2nda sana sunulmu\u015f bir \u00fcr\u00fcn ya da fiyat yok; bu y\u00fczden al\u0131\u015fveri\u015f yapam\u0131yorsun.\"\n        )\n        return finish_turn(\n            action_result,\n            message,\n            safety_reason_code=\"SHOP_ECONOMY_NOT_SUPPORTED\",\n            safety_handling=\"python_fallback\",\n        )",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if shop_request and (",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_tg_shop_request_exit",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "B",
+      "params": [
+        "current_shop_count",
+        "finish_turn",
+        "shop_request",
+        "world_state"
+      ],
+      "outputs": [],
+      "block": "    if shop_request and (\n        game._campaign_has_shopkeeper()\n        or len(world_state.get(\"shops\", [])) >= 12\n        or current_shop_count >= 3\n        or len(world_state.get(\"npcs\", [])) >= 60\n        or len(game.active_npcs(world_state.get(\"location\"))) >= 6\n    ):\n        action_result = {\n            \"action\": \"shop_setup\",\n            \"status\": \"limit_reached\",\n            \"success\": False,\n            \"state_changes\": [],\n        }\n        message = \"Yeni bir d\u00fckk\u00e2nla kar\u015f\u0131la\u015fm\u0131yorsun; \u00e7evrendeki mevcut d\u00fckk\u00e2nlara bakabilirsin.\"\n        return finish_turn(action_result, message)",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if interaction_hint and not combat[\"active\"] and not classifier_unusable:",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_tg_hint_intent",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "A",
+      "params": [
+        "check_feature",
+        "classifier_unusable",
+        "combat",
+        "intent_model_calls",
+        "intent_source",
+        "interaction_hint",
+        "npc_target",
+        "player_input",
+        "raw",
+        "scene_preparse_model_calls",
+        "world_state"
+      ],
+      "outputs": [
+        "classifier_unusable",
+        "intent_model_calls",
+        "intent_source",
+        "raw"
+      ],
+      "block": "    if interaction_hint and not combat[\"active\"] and not classifier_unusable:\n        intent_model_calls = scene_preparse_model_calls + 1\n        intent_source = \"interaction_proposal\"\n        raw = game.parse_player_intent(\n            player_input,\n            interaction_context=interaction_adventure.context(\n                world_state, npc_target, player_input\n            ),\n            operation_hint=interaction_hint,\n            require_conversation=(\n                interaction_hint == \"information\" and npc_target is not None\n            ),\n            strict=check_feature is not None,\n        )\n        if raw.get(\"classifier_unusable\"):\n            classifier_unusable = True\n            raw = None",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if scene_plan is None and interaction_mode not in {\"say\", \"ask_dm\"} and held_plan is None:",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_tg_scene_plan",
+      "part": "game_parts/turn_shop_guards.py",
+      "class": "A",
+      "params": [
+        "held_plan",
+        "interaction_mode",
+        "player_input",
+        "scene_plan",
+        "target_id"
+      ],
+      "outputs": [
+        "scene_plan"
+      ],
+      "block": "    if scene_plan is None and interaction_mode not in {\"say\", \"ask_dm\"} and held_plan is None:\n        # The API plans first. Direct turns use the same local-entry owner. A held plan walks nowhere before its reading.\n        if (\n            living_world.classify_scene_action(player_input) == \"enter\"\n            or game._names_current_local_exit(player_input)\n        ):\n            scene_plan = game.plan_living_world_turn(\n                player_input,\n                target_id=target_id,\n                interaction_mode=interaction_mode,\n            )",
+      "indent": "    "
+    }
+  ]
+}
