@@ -17,6 +17,9 @@ from api.tests import test_roadmap_c06_level4_http as prior
 from api.tests import test_roadmap_c10_berserker_http as berserker
 from api.tests import test_roadmap_c19_quickened_http as quickened
 from api.tests.test_roadmap_c14_fighter import CHOICES, THRESHOLDS, bundle, spec
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8510
 
 
 def request(level, style="Defense"):
@@ -105,7 +108,8 @@ class FighterHttp(unittest.IsolatedAsyncioTestCase):
     post = quickened.QuickenedHttpTests.post
 
     async def create(self, level=1, style="Defense"):
-        response = await self.http.post("/api/game/campaigns", json={"character": request(level, style)})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post("/api/game/campaigns", json={"character": request(level, style)})
         self.assertEqual(response.status_code, 200, response.text)
         campaign = response.json()
         return campaign, self.manager.get(campaign["session_id"])
@@ -147,7 +151,8 @@ class FighterHttp(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(record.game_session.character["progression_level"] if level > 1 else 1, level)
 
     async def test_a_removed_style_is_refused_at_creation(self):
-        response = await self.http.post("/api/game/campaigns", json={"character": request(1, "Protection")})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post("/api/game/campaigns", json={"character": request(1, "Protection")})
         self.assertIn(response.status_code, (400, 422), response.text)
 
     async def test_earned_steps_one_to_five_through_the_public_route(self):

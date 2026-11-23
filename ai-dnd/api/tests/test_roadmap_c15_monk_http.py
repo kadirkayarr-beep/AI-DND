@@ -14,6 +14,9 @@ from api.dnd_2024_rules import get_character_creation_catalog
 from api.schemas import CharacterCreateInput, CharacterCreationCatalogResponse, EconomyStepInput, LevelUpApplyRequest
 from api.tests import test_roadmap_c14_fighter_http as fighter_http
 from api.tests.test_roadmap_c15_monk import CHOICES, THRESHOLDS, bundle, spec
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8520
 
 
 def request(level):
@@ -114,7 +117,8 @@ class MonkRoutes(unittest.IsolatedAsyncioTestCase):
     encounter = fighter_http.FighterHttp.encounter
 
     async def create(self, level=1):
-        response = await self.http.post("/api/game/campaigns", json={"character": request(level)})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post("/api/game/campaigns", json={"character": request(level)})
         self.assertEqual(response.status_code, 200, response.text)
         campaign = response.json()
         return campaign, self.manager.get(campaign["session_id"])

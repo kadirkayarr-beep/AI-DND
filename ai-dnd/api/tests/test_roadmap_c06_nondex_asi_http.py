@@ -19,6 +19,9 @@ from api.tests.test_roadmap_c06_creation45_http import request as creation_reque
 from api.schemas import LevelUpAsiChoice
 
 from api.tests.test_roadmap_c06_nondex_asi import PATTERNS
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8450
 FIXTURE = Path(__file__).parent/'fixtures/c06_checkpoint13_con_asi_receipt.json'
 
 def digest(value):
@@ -50,7 +53,8 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
         for level in (4,5):
             for increase in ({'charisma':2}, {'constitution':1,'charisma':1}):
                 request = creation_request(level); request['level_choices']['4']['asi']['increase'] = increase
-                response = await self.http.post('/api/game/campaigns', json={'character':request})
+                with default_town(self, TOWN_SEED):
+                    response = await self.http.post('/api/game/campaigns', json={'character':request})
                 self.assertEqual(response.status_code,200,response.text)
                 body=response.json(); s=self.manager.get(body['session_id']).game_session
                 self.assertEqual(s.character['charisma'],15+increase['charisma'])
@@ -102,7 +106,8 @@ class NonDexAsiHttpTests(unittest.IsolatedAsyncioTestCase):
         for con_bonus,increase in ((1,{'constitution':2}),(2,{'constitution':1,'charisma':1})):
             data=character_request(3);data['ability_score_method']='manual';data['ability_scores']['constitution']=18
             data['background_ability_bonuses']={'constitution':con_bonus,'dexterity':3-con_bonus}
-            response=await self.http.post('/api/game/campaigns',json={'character':data})
+            with default_town(self, TOWN_SEED):
+                response=await self.http.post('/api/game/campaigns',json={'character':data})
             self.assertEqual(response.status_code,200,response.text)
             body=response.json();r=self.manager.get(body['session_id'])
             self.assertEqual(r.game_session.character['constitution'],18+con_bonus)

@@ -13,6 +13,9 @@ from api.tests.test_roadmap_c06_barbarian import spec
 from api.tests.test_roadmap_c06_level3 import TWO, choices as THREE
 from api.tests.test_roadmap_c06_level4_con import PICK
 from api.tests.test_roadmap_c06_level5 import award, FIVE
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8430
 
 
 class EarlyHttpTests(unittest.IsolatedAsyncioTestCase):
@@ -25,7 +28,8 @@ class EarlyHttpTests(unittest.IsolatedAsyncioTestCase):
         data = character_request(1)
         if class_name == 'Barbarian':
             data = spec(); data['class'] = data.pop('character_class'); data.update(mode='custom', starting_level=1)
-        response = await self.http.post('/api/game/campaigns', json={'character': data})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post('/api/game/campaigns', json={'character': data})
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json(); s = self.manager.get(body['session_id']).game_session
         award(s, amount, 'quest:early-earned')
@@ -128,7 +132,8 @@ class EarlyHttpTests(unittest.IsolatedAsyncioTestCase):
         data = character_request(3)
         data['starting_level'] = 5
         data['level_choices'].update({'4': copy.deepcopy(PICK), '5': copy.deepcopy(FIVE)})
-        response = await self.http.post('/api/game/campaigns', json={'character': data})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post('/api/game/campaigns', json={'character': data})
         self.assertEqual(response.status_code, 200, response.text)
         response = await self.http.get(self.url(response.json()))
         self.assertEqual(response.status_code, 200, response.text)

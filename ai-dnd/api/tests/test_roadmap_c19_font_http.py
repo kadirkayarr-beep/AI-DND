@@ -11,6 +11,9 @@ import equipment_economy
 from api.persistence.campaign_store import CampaignStore
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests import test_roadmap_c19_quickened_http as quickened_fixtures
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8550
 
 FIXTURE = Path(__file__).parent / 'fixtures' / 'c19_checkpoint12_adopted_receipt.json'
 
@@ -288,8 +291,9 @@ class FontHttpTests(unittest.IsolatedAsyncioTestCase):
         start = {'setting_id': setting['setting_id'], 'region_pack_id':region['region_pack_id'],
                  'region_id':region['region_id'], 'starting_location_id':region['starting_locations'][0]['entity_id']}
         for stale_target in (False, True):
-            campaign_id, session_id, r, _ = self.manager.create_campaign(
-                character=character_request(2), campaign_start=start)
+            with default_town(self, TOWN_SEED):
+                campaign_id, session_id, r, _ = self.manager.create_campaign(
+                    character=character_request(2), campaign_start=start)
             a = {'campaign_id':campaign_id, 'session_id':session_id}; session = r.game_session
             bounded_encounter.resolve_command(session, bounded_encounter.ENTER)
             bounded_encounter.resolve_command(session, bounded_encounter.START)
