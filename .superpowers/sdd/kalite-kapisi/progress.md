@@ -125,3 +125,9 @@ RESULT: tests 230 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg6-green2; policy
 - F2 (Match check weak): fixed. Match must fullmatch NAME = REDACTED / NAME": "REDACTED" shapes (all 9 real rows pass). Removed the no-op Line check (gitleaks emits no Line field). Ruling: this replaces the earlier 20+ char token ruling — if wrong: a new baseline row with another Match shape fails the test and needs a regex update.
 - F3 (CI proof): no code change. Acceptance item for Task 9/controller: first PR run secrets-gate must be green, including the new shrink step; skipped 0 is inferred from the OK line (not read directly).
 RESULT: tests 236 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg6f1-green; ratchet + policy + fixed neighbour set via slot.sh test, exit=0, Ran 236 OK; skipped 0 inferred from OK line)
+
+## Task 6 fix round 2
+- F1 (shrink step compares main to itself on a push to main): Ruling: accepted, no code change. Main is PR-only (owner rules), so PRs are the protected path. If wrong: a direct push to main could grow the gitleaks baseline unnoticed; fix then = compare against github.event.before on push events. TASK 9 ACCEPTANCE ITEM: note this limit.
+- F2 (Match regex cannot see a leak hidden in the NAME part): Ruling: none needed. gitleaks --redact replaces only the secret; Secret field check still bites. If wrong: a leak inside a NAME would pass the Match test only.
+- F3 (no clean real-CI red run id; local bare-clone proof only): Ruling: no code change, worker cannot push. TASK 9 ACCEPTANCE ITEM: first PR run secrets-gate must be green, including the shrink step; check the CI run before saying done.
+- No code or test changed this round, so no test run.
