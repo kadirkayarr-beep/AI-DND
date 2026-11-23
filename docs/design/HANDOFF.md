@@ -22,7 +22,7 @@ Sıra ve durum için tek kaynak: [YOL_HARITASI.md](YOL_HARITASI.md). Belge dizin
 - Cevapladıkların (2026-11-22): PR #127 kapandı; CLAUDE.md model satırı evet; v0 B taslağı hayır; tur bölme Fable ile; ölü kod ve legacy_debug için "sil" (silme oynayıştan sonra, PR'ı sana sorulur). Yeniden sorulmaz.
 
 ## Telefon sayfası
-Telefon sayfası: TELEFON_SAYFASI_ADRESI
+Telefon sayfası: https://claude.ai/artifact/4TKWEkhQ763ydWqatNyK79 (özel; yalnız sen açabilirsin)
 
 ## Kullanımda olan worktree'ler
 - `C:/Users/Kadir/Desktop/AI - DND`: ana klasör, `dev/ai-dnd` dalı.
