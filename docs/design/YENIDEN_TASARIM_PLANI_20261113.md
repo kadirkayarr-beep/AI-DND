@@ -11,6 +11,7 @@ Kısayol: (1) sayım (a) çıkış düzeyinde yapıldı; çıkışların çağı
 - Eski kayıt soruları kaldırıldı: eski kayıtlar önemsizdir (Kadir; CLAUDE.md "Eski kayıtlar").
 - Bu belgede "en güçlü model" Opus demektir; fable yalnız Kadir o iş için söylerse. Tur bölme Kadir'in seçimiyle Fable ile yürür (2026-11-22).
 - B2 test bölünmesi yapıldı (B2 bölümündeki "Düzeltme 22 Kasım 2026").
+- Push, PR ve merge için "taze onay" diyen eski cümleler eskidi: geçerli kural CLAUDE.md "Push/merge/yayın" (Kadir 2026-11-22).
 
 Durum: Kadir onayladı, 13 Kasım 2026.
 Onaylanan hâl: bağımsız incelemenin (`PLAN_INCELEMESI_20261113.md`) D1, D2, D4-D8 düzeltmeleri işlenmiş ikinci sürüm; D3 Kadir'in kararıyla uygulanmadı. Aynı gün Kadir K1 ve K3-K23'ü önerildiği gibi kapattı, K24'ü (harcama) verdi; O17 ve O18 eklendi. Açık karar kalmadı. Onay planın kendisinedir: her kalem başlamadan önce kendi planı yazılır; push, PR ve merge her seferinde Kadir'in taze onayını ister.
@@ -518,6 +519,7 @@ Ruling: B1c, B1a'nın hemen ardına kondu — iki para kalemi ve iki para incele
 - Dosya ve işlevler: `dialogue_commitments.py` (`render_cards`), `adventure/rewards.py` (ödül yazıcısı), ödül sayısını üreten görev ve macera tanımları. Aynı alanı bakır olarak kullanan kasaba işi yolu (`world_threads.py` içindeki `wage_due`) okunur ama değiştirilmez. Tam liste kalem planında çıkarılır; bu satırdaki adlar Codex doğrulama belgesinden alındı, koda yeniden bakılmadı.
 - Önce ayrılacak bölge: yok (`game.py`'ye dokunmaz; doğrulamadım, kalem planında bakılır).
 - Kırmızı testler (önerilen adlar): `test_offer_card_and_reward_read_one_field_with_its_unit` (kart ve ödeme aynı alanı, birimiyle okur); `test_dialogue_delivery_pays_the_gold_the_card_says` (kart 25 altın der, kese 25 altın artar); `test_adventure_quest_pays_the_gold_the_card_says`; `test_town_job_wage_is_unchanged` (kasaba işi aynı bakırı öder); `test_reward_survives_save_and_undo_once` (ödül bir kez yazılır, Geri Al tam geri alır).
+- Bugünkü ödemeyi (25 bakır) bekleyen test varsa (Codex `test_dialogue_quest_offer.py` dosyasını gösteriyor; doğrulamadım) eşit sıkılıkla yeniden yazılır ve onay listesine girer.
 - Etki notu: ödenen para 100 katına çıkar (25 bakır yerine 2500 bakır). Kasaba işi iki günde 46 bakır ödüyor; dükkân fiyatlarıyla dengesine Kapı 1 oynayışında bakılır.
 - Yolculuk: S-liman'a bir teslimat adımı ya da ayrı senaryo (kalem planında). Para: evet. İnceleme: bağımsız, en güçlü model. Geri alma: commit geri alınır.
 - Kadir'in kontrolü: bir teslimatı bitir; kartta yazan altın kadar kesen artıyor mu.

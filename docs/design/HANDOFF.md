@@ -18,6 +18,7 @@ Sıra ve durum için tek kaynak: [YOL_HARITASI.md](YOL_HARITASI.md). Belge dizin
 
 ## Kadir'den beklenen
 - Plan 6 kapanış oynayışı (10 dakika: al-sat, kaydet-yükle, Geri Al, dövüş, yolculuk). Oynama klasörü `C:/Users/Kadir/Calisma/AI-DND/AI-DND-oynayis`, b76e7254'te.
+- Onay listesi geriye dönük bakışı: `docs/agents/onay-listesi-gevsetme-ozeti.md` içindeki 74 "tek tek" satıra evet/hayır; "hayır" dediğin satır için sıkılaştırma işi açılır.
 - Anthropic panelindeki aylık harcama sınırı: doğrulanmadı; panelden bakman gerek.
 - Cevapladıkların (2026-11-22): PR #127 kapandı; CLAUDE.md model satırı evet; v0 B taslağı hayır; tur bölme Fable ile; ölü kod ve legacy_debug için "sil" (silme oynayıştan sonra, PR'ı sana sorulur). Yeniden sorulmaz.
 
