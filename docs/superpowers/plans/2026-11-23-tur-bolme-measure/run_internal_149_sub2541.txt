@@ -1,0 +1,18 @@
+# turn.py@149 :: _run_player_turn_internal.block@2541.body  lines 877-3617 (2741)  blocks=13
+idx | lines | n | kind | in(direct) | out | ret/raise | markers | outputs | late-closure | inputs | nonlocal
+  0 | 2548-2548 | 1 | named_npc = game._resolve_campaign_npc_reference(player_input, world_s | 2(2) | 1 | 0/0 |  | named_npc |  | player_input world_state | 
+  1 | 2549-2550 | 2 | claimed_npc = (named_npc if isinstance(named_npc, dict) and named_npc. | 3(3) | 1 | 0/0 |  | claimed_npc |  | named_npc npc_target world_state | 
+  2 | 2551-2553 | 3 | if npc_target is None and game._has_spoken_to_player(claimed_npc) and  | 3(3) | 1 | 0/0 |  | npc_target |  | claimed_npc npc_target world_state | 
+  3 | 2554-2557 | 4 | supported_entry = ( | 2(2) | 1 | 0/0 |  | supported_entry |  | claimed_npc player_input | 
+  4 | 2561-2561 | 1 | import npc_statements | 0(0) | 1 | 0/0 |  | npc_statements |  |  | 
+  5 | 2562-2562 | 1 | ledger = npc_statements.claim_support(world_state, claimed_npc, player | 4(4) | 1 | 0/0 | money:1 | ledger |  | claimed_npc npc_statements player_input world_state | 
+  6 | 2563-2568 | 6 | if ledger["status"] == "supported": | 4(4) | 1 | 0/0 | money:3 | supported_entry |  | ledger npc_statements player_input supported_entry | 
+  7 | 2569-2569 | 1 | import npc_told | 0(0) | 1 | 0/0 |  | npc_told |  |  | 
+  8 | 2570-2570 | 1 | about = npc_statements.claim_about(player_input) | 2(2) | 1 | 0/0 |  | about |  | npc_statements player_input | 
+  9 | 2571-2575 | 5 | if about != "npc_words": | 6(6) | 2 | 0/0 |  | supported_entry told_support |  | about claimed_npc npc_target npc_told player_input world_state | 
+ 10 | 2579-2585 | 7 | spoken_reference = bool( | 6(6) | 1 | 0/0 | money:2 | spoken_reference |  | about claimed_npc ledger npc_target player_input world_state | 
+ 11 | 2586-2586 | 1 | recognised = spoken_reference and about == "memory" | 2(2) | 1 | 0/0 |  | recognised |  | about spoken_reference | 
+ 12 | 2589-2648 | 60 | if told_support: | 37(11) | 1 | 2/0 | model:1 | experimental_unverified_claim |  | action_result active_conversation_before allow_new_features allow_new_locations allow_new_npcs allow_new_shops claimed_npc conversation_resolution conversation_state_before entry_actor entry_identity expected_location_change finish_turn held_reading intent_model_calls intent_source interaction_mode lore_context messages narration_model_calls narration_source npc_target player_input procedural_entity_ids procedural_ids_before quest_world_before reading_calls response scene_plan speech_intent_calls spoken_reference supported_entry target_id told_intent_calls told_support turn_index world_state | 
+SUMMARY {"target": "_run_player_turn_internal.block@2541.body", "label": "turn.py@149", "lines": 2741, "blocks": 13, "blocks_ge20_lines": 1, "blocks_ge20_out_le5": 1, "lines_in_ge20_out_le5": 60, "blocks_out_le5": 13, "blocks_with_return": 1, "returns": 2, "raises": 0, "nested_defs": ["finish_conversation_rejection", "finish_conversation_resolution", "finish_turn", "procedural_entity_ids", "resolve_intent", "told_intent_calls", "validate_interaction_conversation"], "blocks_touching": {"money": 3, "save": 0, "undo": 0, "session_write": 0, "model": 1, "locals()": 0}}
+CUT no  C 2589-2648 n=60 out=1 ret=2 hazard=- flags=model :: if told_support:
+CUTSUM {"rows_ge_min": 1, "cut_yes": 0, "cut_yes_lines": 0, "by_class": {"A": 0, "B": 0, "C": 1, "D": 0}, "hazard_blocks": 0}
