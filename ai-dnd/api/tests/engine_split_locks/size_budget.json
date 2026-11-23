@@ -1,8 +1,8 @@
 {
   "files": {
-    "game.py": 1110,
+    "game.py": 1116,
     "game_parts/narration_safety.py": 1505,
-    "game_parts/turn.py": 2428
+    "game_parts/turn.py": 2318
   },
   "part_max": 2500,
   "slack": 50,
@@ -21,7 +21,7 @@
     "game_parts/savefile.py::_validate_save_payload": 367,
     "game_parts/savefile.py::load_game": 186,
     "game_parts/terminal.py::run": 184,
-    "game_parts/turn.py::_dispatch_player_turn": 458,
+    "game_parts/turn.py::_dispatch_player_turn": 348,
     "game_parts/turn.py::_run_player_turn_internal": 1553,
     "game_parts/turn_front.py::_execute_intent_internal": 548,
     "game_parts/turn_front.py::_front_step": 235

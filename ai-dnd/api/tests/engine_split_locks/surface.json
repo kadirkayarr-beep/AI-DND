@@ -2945,6 +2945,42 @@
   "session_bound": true,
   "signature": "(tavern_id)"
  },
+ "_td_combat_mode": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, combat_action, interaction_mode, player_input, target_id)"
+ },
+ "_td_end_conversation": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, combat_action, interaction_mode, player_input)"
+ },
+ "_td_fallen_address": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, combat_action, player_input, read)"
+ },
+ "_td_parcel_board": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, combat_action, interaction_mode, player_input, read)"
+ },
+ "_td_scene_plan_direct": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, action_id, combat_action, front, interaction_mode, messages, player_input, scene_plan, session_id, target_id)"
+ },
+ "_td_strike_fallen": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, combat_action, interaction_mode, player_input, target_id)"
+ },
  "_tell_the_coin": {
   "kind": "function",
   "module": "game_parts.turn_front",

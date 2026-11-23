@@ -1,0 +1,124 @@
+{
+  "helpers": [
+    {
+      "file": "game_parts/turn.py",
+      "function": "_dispatch_player_turn",
+      "anchor": "if (",
+      "occurrence": 11,
+      "sub_anchor": null,
+      "helper": "_td_scene_plan_direct",
+      "part": "game_parts/turn_dispatch_steps.py",
+      "class": "B",
+      "params": [
+        "action_id",
+        "combat_action",
+        "front",
+        "interaction_mode",
+        "messages",
+        "player_input",
+        "scene_plan",
+        "session_id",
+        "target_id"
+      ],
+      "outputs": [],
+      "block": "    if (\n        combat_action is None\n        and interaction_mode not in {\"say\", \"ask_dm\"}\n        and not game._session().world_state.get(\"combat\", {}).get(\"active\")\n        # Only when the scene planner already ran and had no answer of its own.\n        and isinstance(scene_plan, dict)\n        and scene_plan.get(\"direct_result\") is None\n    ):\n        # LR00 fix, second pass: no older owner took the turn. A local act whose\n        # target the words alone could not bind gets one bounded model call that\n        # may only pick listed candidate IDs; otherwise the full pipeline runs.\n        import grounded_action\n        if not (front is not None and front[\"kind\"] in {\"talk_around\", \"look\", \"sit\"}) and not game._scene_observation_proposal_turn(\n            player_input, game._session().world_state, interaction_mode\n        ):\n            with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):\n                grounded = grounded_action.resolve_turn(\n                    game._session(), player_input, interaction_mode=interaction_mode,\n                    target_id=target_id, phase=\"fallback\",\n                )\n            if grounded is not None:\n                return game._spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_dispatch_player_turn",
+      "anchor": "if combat_action is None and interaction_mode not in {\"say\", \"ask_dm\"}:",
+      "occurrence": 2,
+      "sub_anchor": null,
+      "helper": "_td_parcel_board",
+      "part": "game_parts/turn_dispatch_steps.py",
+      "class": "B",
+      "params": [
+        "combat_action",
+        "interaction_mode",
+        "player_input",
+        "read"
+      ],
+      "outputs": [],
+      "block": "    if combat_action is None and interaction_mode not in {\"say\", \"ask_dm\"}:\n        from adventure import dialogue_jobs\n        parcel_read = dialogue_jobs.read_parcel(game._session(), player_input)\n        if parcel_read is not None:\n            return parcel_read\n        import town_knowledge\n        # A line the reading gave to a person is said to them, whatever board it mentions.\n        board = None if (read or {}).get(\"kind\") == \"speak_to\" else town_knowledge.board_turn(game._session(), player_input)\n        if board is not None:\n            return board\n        import bound_text\n        if (read or {}).get(\"kind\") != \"take\":  # 'al\u0131p okuyorum': the taking owns it and reads on\n            looked_at = (getattr(game._session(), \"_front_found\", None) or (\"\", \"\"))[1] if (read or {}).get(\"kind\") == \"look\" else \"\"\n            paper_read = bound_text.read_turn(game._session(), player_input, looked_at,\n                                              to_someone=(read or {}).get(\"kind\") == \"speak_to\")\n            if paper_read is not None:\n                return paper_read\n        import pocket\n        pocketed = pocket.resolve(game._session(), player_input)\n        if pocketed is not None:\n            return pocketed\n        if equipment_economy._natural_inventory_query(player_input) and not game._has_explicit_attack_verb(player_input):\n            listed = equipment_economy.execute(game._session(), player_input)  # the bag answers for itself, whoever stands near\n            if listed is not None:\n                return listed",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_dispatch_player_turn",
+      "anchor": "if combat_action is None and interaction_mode not in {\"say\", \"ask_dm\"}:",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_td_strike_fallen",
+      "part": "game_parts/turn_dispatch_steps.py",
+      "class": "B",
+      "params": [
+        "combat_action",
+        "interaction_mode",
+        "player_input",
+        "target_id"
+      ],
+      "outputs": [],
+      "block": "    if combat_action is None and interaction_mode not in {\"say\", \"ask_dm\"}:\n        struck = combat_lifecycle.strike_the_fallen(game._session(), player_input, target_id)\n        if struck:\n            return {\n                \"messages\": game._session().messages,\n                \"narration\": struck,\n                \"model_calls\": 0,\n                \"action_result\": {\"action\": \"narrative\", \"status\": \"resolved\", \"success\": True,\n                                  \"state_changes\": [\"npcs\"], \"direct_response\": struck},\n            }\n        question = combat_lifecycle.unbound_attack_reply(game._session(), player_input, target_id)\n        if question:\n            game._session()._attack_asked = True  # for this sitting only; never saved\n            return {\n                \"messages\": game._session().messages,\n                \"narration\": question,\n                \"model_calls\": 0,\n                \"action_result\": {\n                    \"action\": \"attack\", \"status\": \"clarification\", \"success\": False,\n                    \"outcome\": \"missing_target\", \"state_changes\": [],\n                    \"direct_response\": question,\n                },\n            }",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_dispatch_player_turn",
+      "anchor": "if combat_action is None:",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_td_fallen_address",
+      "part": "game_parts/turn_dispatch_steps.py",
+      "class": "B",
+      "params": [
+        "combat_action",
+        "player_input",
+        "read"
+      ],
+      "outputs": [],
+      "block": "    if combat_action is None:\n        import fallen\n        body = fallen.addressed_body(game._session(), player_input) if not combat_lifecycle.is_attack_decision(game._session(), player_input) else None\n        if (body is not None and game._reads_as_address(player_input)\n                and (read is None or read[\"kind\"] == \"speak_to\" or (read[\"kind\"] == \"economic\" and read.get(\"valid\")))):  # a line read as an act is no word to them\n            line = fallen.silence(body)\n            return {\n                \"messages\": game._session().messages, \"narration\": line, \"model_calls\": 0,\n                \"action_result\": {\"action\": \"narrative\", \"status\": \"body_silent\", \"success\": True,\n                                  \"state_changes\": [], \"direct_response\": line},\n            }",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_dispatch_player_turn",
+      "anchor": "if (",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_td_end_conversation",
+      "part": "game_parts/turn_dispatch_steps.py",
+      "class": "B",
+      "params": [
+        "combat_action",
+        "interaction_mode",
+        "player_input"
+      ],
+      "outputs": [],
+      "block": "    if (\n        combat_action is None\n        and interaction_mode not in {\"say\", \"ask_dm\"}\n        and not game._session().world_state.get(\"combat\", {}).get(\"active\")\n        and game._is_end_conversation_request(player_input)\n    ):\n        game.require_player_can_act()\n        active = game._active_interlocutor()\n        game._clear_active_interlocutor(\"ended\")\n        interaction_adventure.retire_conversation_focus(game._session().world_state)\n        if active is None:\n            narration = \"\u015eu anda s\u00fcrd\u00fcrd\u00fc\u011f\u00fcn bir konu\u015fma yok.\"\n            status = \"no_effect\"\n        else:\n            narration = f\"{living_world.public_npc_name(active)} ile konu\u015fmay\u0131 bitiriyorsun.\"\n            status = \"conversation_ended\"\n        return {\n            \"messages\": game._session().messages,\n            \"narration\": narration,\n            \"model_calls\": 0,\n            \"action_result\": {\n                \"action\": \"dialogue\",\n                \"status\": status,\n                \"success\": True,\n                \"npc_id\": active.get(\"id\") if isinstance(active, dict) else None,\n                \"state_changes\": [\"conversation\"] if active is not None else [],\n            },\n        }",
+      "indent": "    "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_dispatch_player_turn",
+      "anchor": "if combat_action is not None:",
+      "occurrence": 1,
+      "sub_anchor": null,
+      "helper": "_td_combat_mode",
+      "part": "game_parts/turn_dispatch_steps.py",
+      "class": "A",
+      "params": [
+        "combat_action",
+        "interaction_mode",
+        "player_input",
+        "target_id"
+      ],
+      "outputs": [
+        "interaction_mode",
+        "target_id"
+      ],
+      "block": "    if combat_action is not None:\n        interaction_mode = \"do\"\n    elif interaction_mode in {\"say\", \"ask_dm\"}:\n        if game._session().world_state.get(\"combat\", {}).get(\"active\"):\n            raise combat_lifecycle.CombatRequestError(\n                \"unsupported_interaction_mode\", \"Use an action during active combat.\", 400\n            )\n        game.require_player_can_act()\n        if interaction_mode == \"ask_dm\":\n            target_id = None\n        elif target_id is not None and isinstance(player_input, str) and not player_input.lstrip().startswith(\"/\"):\n            # Said to someone, a line that names another person standing here is said to them; the talk turns to them.\n            named = game._addressed_in(player_input, or_the_talk=False)\n            if (isinstance(named, dict) and named.get(\"id\") not in {None, target_id}\n                    and named.get(\"id\") in {npc.get(\"id\") for npc in game._conversation_npcs()}\n                    and game._line_addresses(player_input, named)):\n                target_id = named[\"id\"]",
+      "indent": "    "
+    }
+  ]
+}
