@@ -229,3 +229,10 @@ Task 9b: implemented (commits 086b6e50..c3154dc3)
 - Review: Step 4 Opus independent review is the controller's dispatch (money-marked rows; Review Focus 5). Reviewer: check _tg_shop_* against sensitive.json, _tg_hint_intent (parse_player_intent), _tg_scene_plan (plan_living_world_turn), refused row 3521.
 - Play: oynayış bekliyor.
 Task 10: implemented (commits f5636b8f..4d2b1716)
+
+## Task 10 fix round 1 (2026-11-23)
+- Finding 1 (minor, game.py budget 1091 -> 1100): Ruling: game.py size_budget +9 (1091 -> 1100) is the 9 new R8 re-export lines for the _tg_* helpers, equal to the real file size — the plan names only T4 +1 and T6 +8 as R8 rises, so this is an unplanned rise — if wrong: the budget lock is 9 lines looser than the plan, so 9 lines of real growth could pass unnoticed until the dilim-end review. APPROVAL LIST row stays: game.py files budget +9 = real size (R8), "gevşetme olabilir". Dilim-end list note: the plan projection "game.py ≈ 1 065 after full" is stale (already passed at 1091 in T9b and 1100 in T10); recompute it at dilim end.
+- Finding 2 (minor, rows 3521 and 3585 uncut): no change in T10. Park kept as written in Task 10 step 1 Ruling: plain-name fix for raw_intent first, own commit, red test first; then cut both rows in a later task. Owner: dilim-end list.
+- Code: none changed in this round (ledger only), so the targeted set was not re-run; last green run is tb10-3b-off / tb10-3b-fon at 4d2b1716.
+- Play: oynayış bekliyor.
+Task 10 fix round 1: done
