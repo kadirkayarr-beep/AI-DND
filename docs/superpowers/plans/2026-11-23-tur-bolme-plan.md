@@ -122,6 +122,7 @@ The rule is applied to blocks of 10 or more lines, at the top level of a functio
 
 **Size:**
 - Size budgets only go down. Frozen functions never grow.
+- Exception (R8): each new part helper needs one re-export line in game.py, so the game.py `files` budget rises by one line per new helper (T4 +1, T6 +8). Budget = real size, written as a Ruling and an approval-list row. T8-T12 do the same; do not re-raise it as a finding.
 - No new `long_functions` key ever appears.
 - Every helper is under 151 lines. Each task lowers `files` and `long_functions` in the same commit so that no budget sits more than 50 above its real size.
 - `_narrate_resolved_turn` keeps a count of 351 or less under its new key until Task 6 removes the key (ADR Q4).
