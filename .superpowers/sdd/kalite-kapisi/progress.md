@@ -153,3 +153,11 @@ RESULT: tests 243 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg7-green3; ratche
 - F2 (fallow and skylos flags/pins unverified on Linux CI): Ruling: no code change. Pins exact (skylos 5.8.0, knip 6.48.0, fallow 3.45.0), no upload, no [llm], scripts disabled; both steps continue-on-error, report only. TASK 9 ACCEPTANCE ITEM: read both step outputs on the first CI run; a wrong flag or pin becomes KADIR_DOLDURACAK in its place. If wrong: empty report only.
 - F3 (knip shrink step passes when knip.json is absent on origin/main): Ruling: cannot require the file yet, because it is not on main until this branch merges; requiring it now would turn the first PR run red by design. FOLLOW-UP (owner: Task 9/controller, after merge): change the step to fail when origin/main lacks the file. Same one-time hole as whitelist and gitleaks shrink checks. If wrong: deleting knip.json from main skips the shrink check; main is PR-only, so review sees it.
 - No code or test changed this round, so no test run.
+
+Task 8: implemented (commit 6998f52f)
+- Ruling: lock lists EVERY non-engine ai-dnd/**/*.py (1039 files, budget = current size) and every artifacts/*/src ts/tsx (340), 40 long functions; walk skips __pycache__, node_modules, venv, batches, dist. Filesystem walk, not git ls-files (slot copy has no .git); local and slot file sets agreed (test green in both). If wrong: an untracked local file could fail a local run only.
+- Ruling: top_level_index SyntaxError (BOM file reports/wave3-local-live-20261006/local_dev_proxy.py) skips function lengths for that file, its line count is still locked. If wrong: a long function in an unparsable file goes unseen.
+- Ruling: only top-level functions measured (reused helper, per plan); methods in classes not counted. If wrong: long methods can grow unseen.
+- Ruling: lock covers files over part_max too (e.g. one 15508-line file, one 2514-line ts) at current size; no raise.
+- Red-first: qg8-red (10 tests, lock missing: 1 fail 8 errors listed). Lock made by a throwaway script in /tmp/qg8-gen-20261124, not committed.
+RESULT: tests 261 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg8-green; size_budget + engine_size_budget + ratchet + policy + fixed neighbour set via slot.sh test, exit=0, Ran 261 OK; skipped 0 inferred from OK line)
