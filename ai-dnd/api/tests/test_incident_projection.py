@@ -26,6 +26,9 @@ from api.serializers import serialize_session_state
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_incident_models import _incident
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8270
 
 
 class _SilentModel:
@@ -90,7 +93,8 @@ class HiddenCauseProjectionTests(unittest.IsolatedAsyncioTestCase):
         self.temporary_directory.cleanup()
 
     async def test_trace_projection_excludes_hidden_cause_and_persona_secrets(self):
-        created_response = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            created_response = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         session_id = created["session_id"]

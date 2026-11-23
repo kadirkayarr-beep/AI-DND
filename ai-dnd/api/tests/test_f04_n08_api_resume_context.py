@@ -7,6 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8200
 
 # Do not initialize the default application or its persistent campaign store.
 os.environ["AI_DND_DISABLE_DEFAULT_APP"] = "1"
@@ -63,7 +66,8 @@ class N08ApiPersistenceContext(unittest.IsolatedAsyncioTestCase):
                     transport=httpx.ASGITransport(app=app),
                     base_url="http://testserver",
                 ) as client:
-                    created = await client.post("/api/game/campaigns", json={})
+                    with default_town(self, TOWN_SEED):
+                        created = await client.post("/api/game/campaigns", json={})
                     self.assertEqual(created.status_code, 200, created.text)
                     cid = created.json()["campaign_id"]
                     sid = created.json()["session_id"]

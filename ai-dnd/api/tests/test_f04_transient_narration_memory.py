@@ -11,6 +11,9 @@ import unittest
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8220
 
 # This module is run alone so the default application cannot open its startup
 # campaign store during api.main import.
@@ -248,7 +251,8 @@ class TransientNarrationMemoryAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     transport=httpx.ASGITransport(app=app),
                     base_url="http://testserver",
                 ) as client:
-                    created = await client.post("/api/game/campaigns", json={})
+                    with default_town(self, TOWN_SEED):
+                        created = await client.post("/api/game/campaigns", json={})
                     self.assertEqual(created.status_code, 200, created.text)
                     campaign_id = created.json()["campaign_id"]
                     session_id = created.json()["session_id"]

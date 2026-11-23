@@ -22,6 +22,9 @@ from incidents import state as emergence_state
 from incidents.proposal import MAX_PROPOSAL_BYTES
 
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8260
 PROFILE = {
     "profile_id": "test.tavern",
     "tier_ceiling": 3,
@@ -385,7 +388,8 @@ class SqliteClaimTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "campaigns.sqlite3"
         self.manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
-        self.campaign_id, _, record, _ = self.manager.create_campaign("Claim race")
+        with default_town(self, TOWN_SEED):
+            self.campaign_id, _, record, _ = self.manager.create_campaign("Claim race")
         self.world = record.game_session.world_state
         self.world["location"] = "tavern"
         self.world["npcs"].append(

@@ -13,6 +13,9 @@ from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import PLAYER_A, PLAYER_B
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8230
 
 
 _LIVE = (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
@@ -46,9 +49,10 @@ class HttpAuthGateTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.directory.cleanup)
         self.store = CampaignStore(_path(self.directory.name))
         self.manager = SessionManager(campaign_store=self.store)
-        campaign_id, session_id, record, _ = self.manager.create_campaign(
-            name="Owned", principal=PLAYER_A,
-        )
+        with default_town(self, TOWN_SEED):
+            campaign_id, session_id, record, _ = self.manager.create_campaign(
+                name="Owned", principal=PLAYER_A,
+            )
         self.campaign_id = campaign_id
         self.session_id = session_id
         self.hp = record.game_session.character["current_hp"]

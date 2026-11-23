@@ -21,6 +21,9 @@ from api.tests.journeys.runner import call_kind
 
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8170
 REQUEST = "Bu kampanya için burada küçük bir yerel dükkân ve onu işleten tek bir dükkâncı oluştur."
 
 
@@ -112,7 +115,8 @@ class ShopTransactionTests(unittest.IsolatedAsyncioTestCase):
         adapter = AuthenticatedOllamaAdapter(self.model)
         self.enterContext(adapter.engine_binding())
         self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(session_manager=self.manager, ollama_adapter=adapter, authenticator=FixedAuthenticator(TEST_PLAYER))), base_url="http://testserver")
-        response = await self.http.post("/api/game/campaigns", json={"campaign_start": START_SELECTION})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post("/api/game/campaigns", json={"campaign_start": START_SELECTION})
         self.assertEqual(response.status_code, 200, response.text)
         self.created = response.json()
         self.record = self.manager.get(self.created["session_id"])
@@ -123,7 +127,8 @@ class ShopTransactionTests(unittest.IsolatedAsyncioTestCase):
         self.temp.cleanup()
 
     async def test_creation_replay_duplicate_resume_and_session_isolation(self):
-        other = await self.http.post("/api/game/campaigns", json={"campaign_start": START_SELECTION})
+        with default_town(self, TOWN_SEED):
+            other = await self.http.post("/api/game/campaigns", json={"campaign_start": START_SELECTION})
         other_session = self.manager.get(other.json()["session_id"]).game_session
         other_before = copy.deepcopy(other_session.serialize_game_state())
         before = protected(self.record.game_session.world_state)
