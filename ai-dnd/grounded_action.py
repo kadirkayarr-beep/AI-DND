@@ -3331,7 +3331,8 @@ def _line_names_place(world: dict[str, Any], player_input: str, record: dict[str
     if record.get("inner_of") and local_places.goes_further_in(world, record["inner_of"], player_input):
         return True  # "içeri" at a house is the room behind its door
     place_id = record.get("id")
-    if place_id and any(t in _THERE for t in tokens) and place_id in _trail_places(world):
+    if place_id and any(t in _THERE for t in tokens) and (
+            place_id in _trail_places(world) or place_id == _memory(world).get("last_target_id")):
         return True  # "ilk izin peşinden oraya gidiyorum": the trail the player holds points there
     npcs = world.get("npcs") if isinstance(world.get("npcs"), list) else []
     return bool(place_id) and any(
@@ -3367,6 +3368,48 @@ def _a_better_named_place(session, player_input: str, target: dict[str, Any]) ->
     return False
 
 
+def _town_places(world: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """The settlement's own places the player can walk to: not hidden, not outdoors, not a room behind a door."""
+    settlement = _settlement(world)
+    return {key: rec for key, rec in (world.get("locations") or {}).items()
+            if isinstance(rec, dict) and settlement and rec.get("parent_location_id") == settlement
+            and not rec.get("hidden") and not rec.get("outdoors") and not rec.get("inner_of")}
+
+
+def searchable_kinds(session) -> list[dict[str, str]]:
+    """D-331: the place kinds a player can walk to by their name that the town has not shown yet, as world knowledge
+    for the front list (``kind:<kind>``). A kind the town already holds is a real place on the list instead."""
+    import local_places
+    world = session.world_state
+    held = {value for rec in (world.get("locations") or {}).values()
+            if isinstance(rec, dict) and rec.get("parent_location_id") == _settlement(world)
+            for value in (rec.get("scene_kind"), rec.get("place_kind"))}
+    kinds = [("tavern", "han"), *((key, spec["noun"]) for key, spec in local_places.PLACE_KINDS.items()
+                                 if spec.get("stems") and not spec.get("outdoors"))]
+    return [{"id": f"kind:{kind}", "name": f"{noun} (kasabada henüz görmediğin bir {noun})"}
+            for kind, noun in kinds if kind not in held] if _settlement(world) else []
+
+
+def known_places_question(session) -> str | None:
+    """D-331: a walk that names nothing the town has asks which of the places the player can see."""
+    names = [rec.get("name") for rec in _town_places(session.world_state).values() if rec.get("name")][:4]
+    if not names:
+        return None
+    joined = names[0] if len(names) == 1 else f"{', '.join(names[:-1])} ve {names[-1]}"
+    return f"Nereye gitmek istediğin belli değil. Bildiğin yerler: {joined}. Hangisine gidiyorsun?"
+
+
+def _kind_walk_step(noun: str, kind: str) -> dict[str, Any]:
+    """The step the old chain makes of "<noun>a gidiyorum" when no place of that kind is named (probe, seed 4401)."""
+    word = fold(noun)
+    return {"verb": "go", "to_talk": False, "method": None, "negated": False, "attempt": False, "question": False,
+            "reported": False, "condition": None, "condition_target": None, "manner_negated": [],
+            "tokens": [word, "gidiyorum"], "goal_tokens": [word], "target": None, "named": False,
+            "via_pronoun": False, "part": None, "ambiguous": [], "other": False, "detail": None,
+            "place_noun": (noun, kind), "requires_open_place": False, "not_now": False, "outside": False,
+            "foreign_object": None}
+
+
 def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool, *, whole_line: bool = False):
     """The front step chose a listed place; the walk itself is the one a named place gets."""
     import front_proposal
@@ -3387,6 +3430,15 @@ def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool,
         return defer  # "hana gitmiyorum": the words themselves say this is no walk
     if not whole_line and (len(steps) > 1 or spoken_request(player_input)):
         return defer  # "hana gidip bira istiyorum": the chain that keeps the rest of the line takes it
+    if place_id.startswith(front_proposal.KIND_PREFIX):
+        # D-331: a kind the town has not shown yet; the old chain's search-by-kind walks to one that exists or makes one.
+        known = next((row for row in searchable_kinds(session) if row["id"] == place_id), None)
+        if known is None:
+            return defer
+        step = _kind_walk_step(known["name"].split(" (")[0], place_id[len(front_proposal.KIND_PREFIX):])
+        run = _Run(session, player_input)
+        run.model_calls = 1  # the front reading chose this walk
+        return "execute", (run, [step], {"steps": [step]})
     target = next((c for c in candidates(session) if c["id"] == place_id and c["kind"] in {"place", "reference", "outside"}),
                   None)
     if target is None or (target["record"].get("inner_of") and any(s.get("outside") or (s.get("target") or {}).get("kind") == "outside" for s in steps)):

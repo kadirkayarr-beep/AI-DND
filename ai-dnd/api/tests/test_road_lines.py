@@ -7,6 +7,12 @@ from api.tests.test_arrival_wiring import START, _ArrivalApi  # noqa: F401  (STA
 CITY = "fr:city:neverwinter"
 
 
+def local_places_name(world):
+    """A town place by its saved name: the walk's question names the places the player can see."""
+    return next(rec["name"] for rec in world["locations"].values()
+                if isinstance(rec, dict) and rec.get("parent_location_id") == CITY and rec.get("place_kind"))
+
+
 class RoadLines(_ArrivalApi):
     TOWN_SEED = 4401  # a smithy is already in this town
 
@@ -70,4 +76,6 @@ class RoadLines(_ArrivalApi):
         self.assertEqual(reply.status_code, 200, reply.text)
         text = reply.json()["narration"]
         self.assertNotIn("Yol burada bitiyor", text)
-        self.assertIn("Birkaç sokak dolaşıyorsun", text)
+        self.assertNotIn("yolu bulamıyorsun", text)  # D-331: a failed street walk asks which known place
+        self.assertIn("Hangisine gidiyorsun?", text)
+        self.assertIn(local_places_name(self.session().world_state), text)

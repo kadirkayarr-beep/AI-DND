@@ -1472,7 +1472,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         if (isinstance(raw_front, dict) and raw_front.get("kind") == "go_to"
                 and interaction_mode not in {"say", "ask_dm"}
                 and not timed_gameplay.names_a_route(world, player_input)):  # a timed road is walked by its owner
-            return {"kind": "walk_failed"}  # E5: a walk to nowhere listed is a failed walk, never a person to follow
+            return front_proposal.beyond_list(raw_front, listed)  # E5: a walk to nowhere listed fails; one after a person follows
         return None
     import grounded_action
     import npc_speech_boundary
@@ -2281,6 +2281,24 @@ def _front_route_turn(front, gate, player_input, interaction_mode, action_id, se
         return {"messages": game._session().messages, "narration": text, "model_calls": 1,
                 "action_result": {"action": "travel", "status": "failed", "success": False,
                                   "state_changes": [], "direct_response": text}}
+    if front is not None and front["kind"] == "follow" and gate is None and interaction_mode not in {"say", "ask_dm"}:
+        import everyday_actions
+        import front_proposal
+        import grounded_action
+        front_proposal.note(game._session(), "front:follow", reached=True)
+        world = game._session().world_state
+        flags = world.setdefault("flags", {})
+        outcome = everyday_actions.follow_route(world, front, turn=int(flags.get("turn_index", 0)) + 1)
+        if outcome["place_id"]:
+            grounded_action.note_last(world, outcome["place_id"])  # "oraya" now means the door the figure went in by
+        flags["turn_index"] = flags.get("turn_index", 0) + 1
+        game._session().messages.extend([{"role": "user", "content": player_input},
+                                         {"role": "assistant", "content": outcome["text"]}])
+        return {"messages": game._session().messages, "narration": outcome["text"], "model_calls": 1,
+                "action_result": {"action": "everyday_action", "kind": "follow", "status": "resolved",
+                                  "success": True, "state_changes": [], "direct_response": outcome["text"],
+                                  **({"npc_id": outcome["npc_id"]} if outcome["npc_id"] else {}),
+                                  **({"place_id": outcome["place_id"]} if outcome["place_id"] else {})}}
     if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         import front_proposal
         import grounded_action
