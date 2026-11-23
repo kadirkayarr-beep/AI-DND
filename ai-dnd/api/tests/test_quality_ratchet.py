@@ -326,6 +326,41 @@ class KnipFallowParserTests(unittest.TestCase):
             "fallow|artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx|unused_exports|RageControl"], 2)
 
 
+class WhitelistShrinkTests(unittest.TestCase):
+    """Vulture whitelist: entry names may only shrink versus the base ref (grow-guard)."""
+
+    @staticmethod
+    def git(code, out="", err=""):
+        return types.SimpleNamespace(returncode=code, stdout=out, stderr=err)
+
+    def run_cli(self, new_text, git_result):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "vulture_whitelist.py"
+            f.write_text(new_text, encoding="utf-8")
+            out, err = io.StringIO(), io.StringIO()
+            with mock.patch.object(ratchet.subprocess, "run", return_value=git_result), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = ratchet.main(["check-names-shrink", str(f), "origin/main"])
+            return code, out.getvalue() + err.getvalue()
+
+    OLD = "# head\na  # unused variable (x.py:1)\nb  # unused import (y.py:2)\n"
+
+    def test_added_name_exits_1(self):
+        code, text = self.run_cli(self.OLD + "c  # unused variable (z.py:3)\n", self.git(0, self.OLD))
+        self.assertEqual(code, 1)
+        self.assertIn("'c'", text)
+
+    def test_removed_and_equal_exit_0(self):
+        self.assertEqual(self.run_cli("# head\na  # unused variable (x.py:1)\n", self.git(0, self.OLD))[0], 0)
+        self.assertEqual(self.run_cli(self.OLD, self.git(0, self.OLD))[0], 0)
+
+    def test_absent_at_base_is_first_introduction(self):
+        err = "fatal: path 'x' exists on disk, but not in 'origin/main'"
+        self.assertEqual(self.run_cli(self.OLD, self.git(128, "", err))[0], 0)
+
+    def test_git_failure_exits_2(self):
+        self.assertEqual(self.run_cli(self.OLD, self.git(128, "", "fatal: bad ref"))[0], 2)
+
+
 class PythonGateTests(unittest.TestCase):
     WHITELIST = ROOT / "scripts" / "quality_gate" / "vulture_whitelist.py"
 

@@ -227,6 +227,38 @@ def parse_fallow(text: str) -> list[str]:
 PARSERS = {"ruff": parse_ruff, "knip": parse_knip, "fallow": parse_fallow}
 
 
+def _whitelist_names(text: str) -> set[str]:
+    names = set()
+    for line in text.splitlines():
+        code = line.split("#", 1)[0].strip()
+        if code:
+            names.add(code)
+    return names
+
+
+def _check_names_shrink(path: Path, ref: str) -> int:
+    """Vulture whitelist: entry names may only shrink versus `ref` (a new name hides future findings)."""
+    try:
+        new = _whitelist_names(path.read_text(encoding="utf-8"))
+        rel = os.path.relpath(path)
+        res = subprocess.run(
+            ["git", "show", f"{ref}:./{Path(rel).as_posix()}"],
+            capture_output=True, text=True, encoding="utf-8", check=False,
+        )
+    except OSError as exc:
+        print(f"BASELINE ERROR: {exc}", file=sys.stderr)
+        return 2
+    if res.returncode != 0:
+        if "does not exist in" in res.stderr or "exists on disk, but not in" in res.stderr:
+            return 0
+        print(f"BASELINE ERROR: git show failed: {res.stderr.strip()}", file=sys.stderr)
+        return 2
+    grown = sorted(new - _whitelist_names(res.stdout))
+    for g in grown:
+        print(f"GREW: whitelist name {g!r} is new")
+    return 1 if grown else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["check-shrink"]:
@@ -236,6 +268,13 @@ def main(argv: list[str] | None = None) -> int:
         sp.add_argument("base_ref")
         a = sp.parse_args(argv)
         return _check_shrink(a.baseline, a.base_ref)
+    if argv[:1] == ["check-names-shrink"]:
+        sp = argparse.ArgumentParser(prog="ratchet check-names-shrink")
+        sp.add_argument("mode")
+        sp.add_argument("whitelist", type=Path)
+        sp.add_argument("base_ref")
+        a = sp.parse_args(argv)
+        return _check_names_shrink(a.whitelist, a.base_ref)
     ap = argparse.ArgumentParser(prog="ratchet")
     ap.add_argument("mode", choices=["check", "update"])
     ap.add_argument("tool", choices=sorted(PARSERS))

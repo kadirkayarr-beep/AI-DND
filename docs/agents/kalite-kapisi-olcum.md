@@ -53,3 +53,9 @@ False-alarm sayimi: elle okuma degil, metin aramasidir (`game.X`, `"game.X"` ya 
 
 ## Postinstall ve telemetri
 - `pnpm install --ignore-scripts` ve `npm_config_ignore_scripts=true` ile hicbir betik calistirilmadi. Ag trafigini izlemedim: telemetri kapali oldugu yalniz `DO_NOT_TRACK=1` ayarina dayaniyor.
+
+## Okuma tabanli ornek kontrol (Task 5 fix 2, 2026-11-24)
+Bulgular alıntı satirlarda elle okundu (ruff 0.17.5 / vulture 2.14, yerel Windows venv). Metin aramasi degil; "game.X ile baska yerde kullaniliyor mu" icin ek grep yapildi.
+- **ruff: 22 bulgu okundu** (8 game.py + 14 diger, tohum 11). Yanlis alarm 7/22 = %32. Yedisi de game.py yeniden-disa-acma importu (`game.X` ile kullaniliyor). game.py disindaki 14 bulgunun 14'u gercek (kullanilmayan import/degisken, tekrar tanimlanan fonksiyon, tanimsiz isim; cogu legacy_debug, test ve evidence betikleri). Orneklem game.py'yi bilerek fazla temsil etti; game.py payina (688/1066) gore agirlikli tahmin ~%56 yanlis alarm, hepsi game.py'de ve baseline'da. Yeni kodda (game.py disinda) 0/14 yanlis alarm.
+- **vulture: 13 bulgunun 13'u okundu** (en az 20 bulgu yok; toplam 13). Yanlis alarm 5/13 = %38: `tz`, `exc_type`, `exc_value`, `fmt` (imza zorunlu parametre) ve `roll_initiative_npc` (testler `patch('game.roll_initiative_npc')`). Gercek: `generate_random_2024_character` ve game.py'nin 4 importu (whitelist Section A yorumu "dinamik kullanim" diyordu, 4'u yanlis; duzeltildi), `expected_failure` ve `resume_campaign_id` (kullanilmayan varsayilan parametre), `barbarian.py:206` (try'dan sonra ulasilamayan `return None`).
+- Karar: ikisi de yeni bulguya karsi baseline ile gate kalir (yeni kodda ruff yanlis alarmi 0/14; vulture kucuk ve %38). Risk: game.py'ye yeni bir yeniden-disa-acma importu eklenirse ruff F401 yanlis NEW verir; o zaman import `game.X` olarak kullanilir ya da onay listesine yazilir.

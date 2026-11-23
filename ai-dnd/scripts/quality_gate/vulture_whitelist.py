@@ -4,9 +4,10 @@
 # Run by the gate as:
 #   vulture ai-dnd ai-dnd/scripts/quality_gate/vulture_whitelist.py --min-confidence 80
 # Only entries that MATCH a finding may stay. Removing an entry is always allowed; ADDING one needs an approval-list row and Kadir.
+# Grow-guard: CI step 'Vulture whitelist may only shrink' (ratchet check-names-shrink) fails when a name is new versus origin/main.
 # Dead-code deletion is NOT done here (debt row, test and commit; that is 4c).
 #
-# --- Section A: dynamic use (game.X re-exports; tests patch them as game.X) ---
+# --- Section A: game.py imports. Spot check 2026-11-24: only roll_initiative_npc has dynamic use (tests patch game.X); the other 4 are real unused imports. Owner = 4c. ---
 adventure_director  # unused import (ai-dnd/game.py:28)
 roll_initiative_npc  # unused import (ai-dnd/game.py:79)
 _SHOP_CREATION_ACTION_PATTERN  # unused import (ai-dnd/game.py:175)

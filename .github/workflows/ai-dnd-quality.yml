@@ -44,6 +44,9 @@ jobs:
         run: |
           git fetch --no-tags origin main
           python -m scripts.quality_gate.ratchet check-shrink scripts/quality_gate/baselines/ruff.json origin/main
+      - name: Vulture whitelist may only shrink
+        working-directory: ai-dnd
+        run: python -m scripts.quality_gate.ratchet check-names-shrink scripts/quality_gate/vulture_whitelist.py origin/main
       - name: Vulture with the whitelist
         run: vulture ai-dnd ai-dnd/scripts/quality_gate/vulture_whitelist.py --min-confidence 80
 
