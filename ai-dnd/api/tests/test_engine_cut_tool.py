@@ -582,3 +582,68 @@ class ShimLateBindingTests(unittest.TestCase):
         self.assertEqual({k.arg for k in call.keywords}, params)
         self.assertIn("narration_model_calls", params)
         self.assertLess(lifted.end_lineno - lifted.lineno + 1, 151)
+
+
+class TurnExitsLiftTests(unittest.TestCase):
+    """Task 8: the four nested defs of _run_player_turn_internal live in game_parts/turn_exits.py."""
+
+    @staticmethod
+    def _funcs(path):
+        import ast
+        return ast.parse((ROOT / "game_parts" / path).read_text(encoding="utf-8"))
+
+    def _outer_nested(self):
+        import ast
+        turn = self._funcs("turn.py")
+        outer = next(n for n in turn.body if isinstance(n, ast.FunctionDef) and n.name == "_run_player_turn_internal")
+        return {n.name: n for n in ast.walk(outer) if isinstance(n, ast.FunctionDef)}
+
+    def test_the_validator_def_is_gone_from_the_turn(self):
+        self.assertNotIn("validate_interaction_conversation", self._outer_nested())
+
+    def test_the_remaining_nested_defs_are_one_line_shims(self):
+        import ast
+        nested = self._outer_nested()
+        for name in ("procedural_entity_ids", "finish_conversation_rejection", "finish_conversation_resolution"):
+            shim = nested[name]
+            self.assertEqual(len(shim.body), 1, name)
+            self.assertIsInstance(shim.body[0], ast.Return)
+            call = shim.body[0].value
+            self.assertEqual(ast.unparse(call.func), "game._" + name)
+            if name == "procedural_entity_ids":  # the finish_turn shim passes this def on as a callable
+                self.assertEqual([ast.unparse(a) for a in call.args], ["world_state"])
+                continue
+            self.assertFalse(call.args)
+            self.assertTrue(all(isinstance(k.value, ast.Name) and k.value.id == k.arg for k in call.keywords))
+
+    def test_the_lifted_helpers_exist_and_are_short(self):
+        import ast
+        part = self._funcs("turn_exits.py")
+        found = {n.name: n for n in part.body if isinstance(n, ast.FunctionDef)}
+        self.assertEqual(set(found), {"_procedural_entity_ids", "_validate_interaction_conversation",
+                                      "_finish_conversation_rejection", "_finish_conversation_resolution"})
+        for fn in found.values():
+            self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
+
+    def test_procedural_entity_ids_reads_the_world_it_is_given(self):
+        import game
+        world = {"locations": {"a": {"id": "loc-a", "reality_layer": "PROCEDURAL_LOCAL_FICTION"},
+                               "b": {"id": "loc-b", "reality_layer": "SRD"}},
+                 "npcs": [{"id": "n1", "reality_layer": "PROCEDURAL_LOCAL_FICTION"}, {"id": "n2"}],
+                 "shops": []}
+        self.assertEqual(game._procedural_entity_ids(world), {"loc-a", "n1"})
+
+    def test_a_rejection_finishes_through_the_given_finish_turn(self):
+        import game
+        seen = {}
+
+        def finish_turn(result, narration, **kwargs):
+            seen.update(result=result, kwargs=kwargs)
+            return "done"
+
+        out = game._finish_conversation_rejection(
+            target={"id": "n1", "name": "Marek"}, finish_turn=finish_turn, player_input="merhaba")
+        self.assertEqual(out, "done")
+        self.assertEqual(seen["result"]["status"], "proposal_rejected")
+        self.assertTrue(seen["kwargs"]["is_final"])
+        self.assertEqual(seen["kwargs"]["safety_reason_code"], "INVALID_CONVERSATION_PROPOSAL")

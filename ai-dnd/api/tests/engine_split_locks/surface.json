@@ -1385,6 +1385,18 @@
   "session_bound": true,
   "signature": "(result, before)"
  },
+ "_finish_conversation_rejection": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, finish_turn, player_input, target)"
+ },
+ "_finish_conversation_resolution": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(*, action_id, finish_turn, player_input, resolution, target)"
+ },
  "_finish_species_player_turn": {
   "kind": "function",
   "module": "game_parts.combat_flow",
@@ -2303,6 +2315,12 @@
   "session_bound": true,
   "signature": "(result, difficulty)"
  },
+ "_procedural_entity_ids": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(world_state)"
+ },
  "_promote_scene_referent": {
   "kind": "function",
   "module": "game_parts.places",
@@ -3154,6 +3172,12 @@
   "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(combat)"
+ },
+ "_validate_interaction_conversation": {
+  "kind": "function",
+  "module": "game_parts.turn_exits",
+  "session_bound": true,
+  "signature": "(player_input, world_state, raw, target, required)"
  },
  "_validate_long_rest_history": {
   "kind": "function",
