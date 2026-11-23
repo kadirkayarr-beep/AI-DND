@@ -1556,7 +1556,7 @@ def _repair_npc_speech(world, npc, player_input, rejected, reason_code, action_r
                   "required": ["spoken_text", "stage_direction"], "additionalProperties": False}
         system = ("Aynı NPC olarak oyuncunun son sorusuna yeniden cevap ver; aşağıdaki sorunu düzelt, başka hiçbir şeyi "
                   "değiştirme. Yalnız JSON yaz.\n" + game._speech_answer_rules())
-        with model_phase.repair_call():
+        with model_phase.resolved_narration_scope(True), model_phase.repair_call():  # an optional call: its outage never refuses the turn
             response = game.ollama.chat(
                 model="qwen3:8b",
                 messages=[{"role": "system", "content": system},
@@ -1565,13 +1565,33 @@ def _repair_npc_speech(world, npc, player_input, rejected, reason_code, action_r
         packet = game._extract_json_object(game.ollama_response_content(response))
         if not isinstance(packet, dict) or not isinstance(packet.get("spoken_text"), str):
             return None
+        import npc_speech_boundary
+        # The repaired line passes every cleaner a first answer passes (_run_player_turn_internal), then the money cut.
+        spoken = game._clean_npc_speech(npc_speech_boundary.normalize_bound_speech_label(
+            packet["spoken_text"].strip(), npc,
+            visible=any(n.get("id") == npc.get("id") for n in game._conversation_npcs())))
+        if spoken.strip():
+            spoken = game._ground_local_place_recommendation_reply(spoken, npc, world, player_input)
+        stage = game._ground_local_place_recommendation_stage(
+            game._clean_npc_stage_direction(packet.get("stage_direction")), npc, world, player_input)
+        spoken = npc_speech_boundary.strip_player_echo(spoken, player_input)
+        spoken = npc_speech_boundary.drop_ungrounded_prop_sentences(
+            spoken, [{"name": feature.get("name"), "description": feature.get("description"),
+                      "aliases": feature.get("aliases") or []}
+                     for feature in living_world.visible_features(world) if isinstance(feature, dict)])
+        spoken = npc_speech_boundary.without_no_name_claim(spoken)
+        spoken = npc_speech_boundary.without_false_presence(world, spoken, world.get("location"))
+        stage = npc_speech_boundary.strip_player_quote(stage, player_input)
+        stage = game._shown_stage_direction(stage, world)
+        spoken = game._without_lines_already_said(spoken, npc, world, player_input)
+        if not spoken.strip() or not interaction_adventure.safe_narration(spoken):
+            return None
         backed = town_knowledge.money_backed_by(world, npc)  # the repair's own figures are never trusted
         payload = {
             "source": "experimental_attributed_speech",  # stamped by Python, as the speech call's own payload
             "speaker_id": npc["id"],
-            "spoken_text": town_knowledge.without_unbacked_money(packet["spoken_text"].strip(), allowed=backed),
-            "stage_direction": town_knowledge.without_unbacked_money(
-                game._clean_npc_stage_direction(packet.get("stage_direction")), allowed=backed),
+            "spoken_text": town_knowledge.without_unbacked_money(spoken.strip(), allowed=backed),
+            "stage_direction": town_knowledge.without_unbacked_money(stage, allowed=backed),
         }
         if not payload["spoken_text"].strip() or len(payload["spoken_text"]) > 600:
             return None

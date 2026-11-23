@@ -11,6 +11,8 @@ import uuid
 from pathlib import Path
 from unittest.mock import patch
 
+import httpx
+
 import interaction_adventure
 import living_world
 import shop_trade
@@ -30,6 +32,7 @@ class RepairClient(FrontClient):
     def __init__(self):
         super().__init__()
         self.repair = None
+        self.repair_error = None
         self.repair_calls = 0
         self.repair_schemas = []
 
@@ -40,6 +43,8 @@ class RepairClient(FrontClient):
             self.repair_calls += 1
             self.repair_schemas.append(schema)
             self.message_batches.append(kwargs.get("messages", []))
+            if self.repair_error is not None:
+                raise self.repair_error
             return {"message": {"content": json.dumps(self.repair, ensure_ascii=False)}}
         return super().chat(*args, **kwargs)
 
@@ -170,6 +175,41 @@ class SpeechRepair(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.client.chat_calls, 2)
         self.assertEqual(self.client.repair_calls, 0)
         self.assertEqual(self.last_route()["speech"], [])
+
+    async def test_a_repair_whose_provider_fails_ends_on_the_bound_answer(self):
+        await self.ready()
+        self.client.repair_error = httpx.ConnectError("repair provider down")
+        place = self.a_town_place()
+        text = await self.ask_rejected("Taverna nerede?", TAVERN, "place", place)
+        self.assertIn(self.world["locations"][place]["name"], text)
+        self.assertNotIn("Duyduğuma göre", text)
+        self.assertEqual(self.client.repair_calls, 1)
+        self.assertEqual(self.client.chat_calls, 3)
+        self.assertIn("model_repair_failed", self.last_route()["speech"])
+
+    async def test_a_repair_with_a_spill_is_cut_like_a_first_answer(self):
+        await self.ready()
+        text = await self.ask_rejected("Taverna nerede?", TAVERN, "place", repair={
+            "spoken_text": "Meydanın öbür ucunda. </think> {\"x\": 1}", "stage_direction": ""})
+        self.assertIn("Meydanın öbür ucunda", text)
+        self.assertNotIn("think", text)
+        self.assertNotIn("{", text)
+
+    async def test_a_repair_that_talks_about_the_model_is_not_shown(self):
+        await self.ready()
+        text = await self.ask_rejected("Taverna nerede?", TAVERN, "place", repair={
+            "spoken_text": "Bir yapay zeka model olarak bilmiyorum.", "stage_direction": ""})
+        self.assertNotIn("yapay zeka", text)
+        self.assertNotIn("model", text.casefold())
+        self.assertIn("model_repair_failed", self.last_route()["speech"])
+
+    async def test_a_repair_never_names_a_hidden_place(self):
+        await self.ready()
+        self.world["locations"]["hidden_meyhane"] = {
+            "name": "Gölge Meyhanesi", "hidden": True, "parent_location_id": town_knowledge._settlement(self.world)}
+        text = await self.ask_rejected("Taverna nerede?", TAVERN, "place", repair={
+            "spoken_text": "Gölge Meyhanesi'ne git, orada bulursun.", "stage_direction": ""})
+        self.assertNotIn("Gölge Meyhanesi", text)
 
     async def test_a_repaired_turn_is_undone_like_any_turn(self):
         await self.ready()
