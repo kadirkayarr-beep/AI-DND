@@ -95,3 +95,8 @@ Task 5: implemented (commit see git log: "Quality gate: ruff and vulture blockin
 - Ruling: check-shrink step does `git fetch origin main` then runs real check-shrink (closes the Task 2 F3 park for ruff only); first run on main push compares to itself. Controller must see it green on the PR.
 - Ruling: F2 spot check (>=20 findings read per gated tool) not done this task (token budget); gated tools sit behind a ratchet baseline so only new findings fail — if wrong: false NEW alarms on new code; owner stays Task 7/controller.
 RESULT: tests 222 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg5-green; ratchet + policy + fixed neighbour set; red run qg5-red failed only on missing whitelist, exit=1)
+
+## Task 5 fix round 1
+- F1 (vulture whitelist matches bare names: tz, fmt, exc_type, exc_value hide future unused variables of the same name anywhere in ai-dnd; vulture ratchet weaker than ruff): Ruling: accepted, no code change. Plan prescribes a --make-whitelist baseline. KNOWN LIMIT. Owner: Slice 4c — shrink Section B entries when the dead code is deleted. If wrong: a new unused variable with one of those names passes unnoticed.
+- F2 (python-gate not run in real CI; local Windows Python 3.14 vs CI 3.13; ruff baseline made on Windows; check-shrink compares main to itself on a main push): Ruling: no code change. Owner: controller/Task 9: check the first PR run is green. If ruff output differs on Linux, regenerate the ruff baseline from the CI artifact. If wrong: spurious NEW/missing keys, CI-only failure.
+- No code or test changed this round, so no test run.
