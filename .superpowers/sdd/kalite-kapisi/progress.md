@@ -161,3 +161,11 @@ Task 8: implemented (commit 6998f52f)
 - Ruling: lock covers files over part_max too (e.g. one 15508-line file, one 2514-line ts) at current size; no raise.
 - Red-first: qg8-red (10 tests, lock missing: 1 fail 8 errors listed). Lock made by a throwaway script in /tmp/qg8-gen-20261124, not committed.
 RESULT: tests 261 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg8-green; size_budget + engine_size_budget + ratchet + policy + fixed neighbour set via slot.sh test, exit=0, Ran 261 OK; skipped 0 inferred from OK line)
+
+## Task 8 fix round 1
+- F1 (size_lock.json shrink check vs origin/main, minor/optional): Ruling: no code change. Plan does not ask for it in Task 8; the ratchet check-shrink step (Task 2) already has the mechanism, and wiring it for size_lock.json needs the CI step (real git, fetch origin/main), which is Task 9. PARK, owner = Task 9/controller: add a size_lock.json shrink step like knip/whitelist/gitleaks (fail if any budget rises or file added above its size). If wrong: a PR can raise a budget; review and the approval-list rule still catch it.
+- No code or test changed this round, so no test run.
+
+## Task 8 fix round 2
+- F1 (nothing stops a PR raising a size_lock.json budget): Ruling: no code change in Task 8. Added Task 9 Step 1b to the plan (size_lock.json shrink step in python-gate, with acceptance: CI step exists and a policy test names it). If wrong: a PR can raise a budget until Task 9; review and the approval-list rule still catch it.
+- No code or test changed, so no test run.
