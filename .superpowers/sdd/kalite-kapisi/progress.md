@@ -178,3 +178,8 @@ Task 9: implemented (commit "Quality gate: flip to blocking, size lock shrink st
 - Red-first: qg9-red (8 errors + 3 fails listed; also showed locked test files cannot grow). Real git check: size_lock_shrink vs HEAD exit 0.
 - ACCEPTANCE ITEMS for controller after push: first PR run of python-gate (incl. size lock shrink), secrets-gate, ui-gate (knip) must be green; read fallow and skylos outputs; ask Kadir to mark the 3 jobs required; copy Task 4 answers (postinstall, Python 3.13, telemetry) into the debt register; knip.json regenerate if spurious NEW.
 RESULT: tests 273 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg9-final; flip + ratchet + policy + size budgets + fixed neighbour set via slot.sh test, exit=0, Ran 273 OK)
+
+## Task 9 fix round 1
+- F1 (new file entry <= part_max gets a fresh budget): Ruling: no code change. Check would need real file sizes (filesystem + root), but size_lock_growth compares two JSON dicts and runs in CI against git blobs; the existing slack test already caps any entry at real size + 50. If wrong: a renamed file can hold up to part_max budget, bounded by the slack test; review sees the lock diff.
+- F2 (doc secrets-gate row): fixed, added "baseline yalnız küçülür" to docs/agents/kalite-kapisi.md. Text-only, no test run.
+- F3 (Step 3 health check, Step 3b required checks, Step 5 push/PR/CI/debt-register): controller/owner items, worker cannot do them (no push, no repo settings). Slice is NOT done until controller: pushes, first PR CI green (python-gate incl. size lock shrink, secrets-gate, ui-gate), asks Kadir to mark the 3 jobs required, copies Task 4 answers into the debt register, checks gh run list.
