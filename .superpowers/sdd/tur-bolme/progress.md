@@ -313,3 +313,8 @@ Task 13 fix round 1
 - Finding 1 fixed: approval-list row rewritten with all nine game.py budget rises (+58 total), marked gevşetme olabilir.
 - Finding 2 fixed: run_all.sh now reads game_parts/resolved_narration.py for _narrate_resolved_turn when present (game.py before T5/T6); narrate_resolved_final.txt regenerated from HEAD (8421 bytes, 140 lines, 52 blocks).
 - Finding 3 Ruling: t3/t6 cut reports not committed — reviewer reproduced T6 byte-identical (CHANGED 0) independently; rebuilding old reports adds no new evidence — if wrong, cost is one missing artefact, evidence stays in ledger and review. No code change, so no test run (docs/script only).
+
+Task 13 fix round 2
+- Finding 1 (minor, RESULT form T8/T9a): fixed as note. The T8 runs (tb8-3c/3d) and T9a runs (tb9a-2/3) only wrote "N tests exit 0", and T8 skipped test_engine_sensitivity (T9a found _procedural_entity_ids missing from sensitive.json). No code defect left: the T13 full suites tb13-gate-off2 and tb13-gate-fon (11289 tests, failing_ids 0 in both flags) cover T8/T9a code, so the T8/T9a evidence is those two runs. RESULT-form rule (`tests N skipped N failing_ids N PAR_EXIT=N`) added to docs/agents/implementer-preamble.md.
+- Finding 2 (minor, file-pinning tests): fixed as rule. d065e8b6 already fixed the red. Added to docs/agents/implementer-preamble.md: when a task moves a function or call, grep the tests for the old file path and call name; every test that pins them joins the targeted set. DILIM-END LIST: for future cut slices, add this grep step to every move task's targeted set (T12 missed test_talk_mode_writers; only the T13 full suite caught it).
+- Docs only, no code change, so no test run.

@@ -20,3 +20,7 @@ Ana ilke: kalite ve güvenlik kaybına müsamaha göstermeden hız. Çelişkide 
 
 ## Karar
 Belirsizlikte dur ve sorma: karar ver, raporda `Ruling: <karar> — <neden> — <yanlışsa maliyeti>` yaz. Yalnız geri alınamaz işlem, güvenlik açısından hassas işlem, worktree dışı yan etki ya da bozuk plan durdurur.
+
+## Kesim dilimleri için ek kurallar
+- Her koşunun RESULT satırı deftere şu biçimde yazılır: `tests N skipped N failing_ids N PAR_EXIT=N`. "N tests exit 0" yetmez.
+- Bir işlev ya da çağrı başka dosyaya taşınıyorsa, testlerde taşınan işlevin dosya yolunu ve çağrı adını ara (grep); dosya yolunu sabitleyen her test o görevin hedefli setine girer.
