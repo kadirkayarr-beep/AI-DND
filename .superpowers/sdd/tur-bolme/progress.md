@@ -206,3 +206,14 @@ Task 8: implemented (commits ab1f5221..e141629b)
 - Review: Step 5 Opus review is the controller's dispatch (T9a holds sensitive.json save callers; reviewer checks helpers _tx_timed_sequence, _tx_player_down, _tx_enemy_turns, _tx_planned_direct, _tx_procedural_ids_before against sensitive.json and Undo-before-save). Not run by this worker.
 - Play: oynayış bekliyor.
 Task 9a: implemented (commits 9fee3da8..ea8dfc2a)
+
+## Task 9b (2026-11-23)
+- Step 1 cuts: 9 rows (T9b of cuts-base.json) bottom-up into game_parts/turn_exits.py: _tx_smalltalk_response (B, 54), _tx_lore_gate (B), _tx_place_recommendation_safety_input (A), _tx_npc_dialogue_route (A), _tx_supported_lore_response (B), _tx_work_answer (B), _tx_quest_availability (B), _tx_npc_query (B), _tx_historical_name_query (B, 50). Class A: 2, class B: 7. _run_player_turn_internal 2133 -> 1930, turn.py 3008 -> 2805, game.py 1082 -> 1091.
+- Ruling: occurrence numbers recounted on the current file by first-3-lines match against TBBASE text (T9a rule): rows 41/43/49 are occ 12/14/17 (cuts-base says 10/12/14); the other 6 anchors are unique (occ 1). Cut bottom-up so earlier counts stay valid — if wrong: a different block is cut; cut_check CHANGED 0 against HEAD~ archive proves the right 9 blocks moved.
+- Ruling: sensitive.json scan (word match of all 98 function keys on base text of the 9 rows): 0 hits, so no row goes to Opus review — if wrong: a helper reaching a sensitive function by a name the scan misses stays on Sonnet review.
+- Step 2: cut_check.py --base-root (git archive of pre-task HEAD 086b6e50) -> CHANGED 0. Evidence: docs/superpowers/plans/2026-11-23-tur-bolme-measure/t9b_cut_report.json, t9b_cut_check.txt.
+- Step 3 locks: size_budget game.py 1091 (+9 R8 re-exports = real size), turn.py 2805, _run_player_turn_internal 1930; surface.json +9 entries (pure add, session_bound true); test_the_lifted_helpers_exist_and_are_short expected set +9 names. APPROVAL LIST (gevşetme olabilir): game.py files budget +9 = real size (R8); expected-set extension (strict, same sharpness).
+- Runs (slot 9 via slot_gate, 80 modules: neighbour set, engine_* locks incl. sensitivity and cut_tool, narration_source_record, travel_forfeit_pin, turn_final_incident_calls, d060/d061, api, campaign_api, interaction_adventure, talk_front, combat, death, adventure, stage10a, query, scene, incident, money, lore_authority, npc_dialogue_stage_a_diagnostic, quest): tb9b-3-off tests 1649 skipped 2 failing_ids 0 PAR_EXIT=0; tb9b-3-fon tests 1649 skipped 1 failing_ids 0 PAR_EXIT=0. routing_audit clean.
+- Review: Step 5 Sonnet review is the controller's dispatch (no sensitive.json hit, no money marker in the 9 rows; reviewer gets the cut_check verdict).
+- Play: oynayış bekliyor.
+Task 9b: implemented (commits 086b6e50..c3154dc3)
