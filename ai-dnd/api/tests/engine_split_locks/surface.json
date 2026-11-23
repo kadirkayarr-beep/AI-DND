@@ -2041,7 +2041,7 @@
  },
  "_narrate_resolved_turn": {
   "kind": "function",
-  "module": "game",
+  "module": "game_parts.resolved_narration",
   "session_bound": true,
   "signature": "(resolved_turn: 'ResolvedTurn', player_input, messages, target_id)"
  },
