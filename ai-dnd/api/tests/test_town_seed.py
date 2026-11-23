@@ -12,7 +12,7 @@ from api import session_manager
 from api.tests.town_seed import default_town, fixed_town
 
 ROOT = Path(__file__).resolve().parents[2]
-CAMPAIGNS_PATH = "/api/game/campaigns"
+CAMPAIGN_PATHS = {"/api/game/campaigns", "/api/campaigns"}
 PIN_CALLS = {"fixed_town", "default_town", "_campaign_seeded"}
 
 # (file, function) pairs whose creation is pinned by every caller, not at the site itself.
@@ -46,7 +46,7 @@ def _path_parameters(function: ast.AST) -> set[str]:
     positional = args.posonlyargs + args.args
     named = list(zip(positional[len(positional) - len(args.defaults):], args.defaults))
     named += list(zip(args.kwonlyargs, args.kw_defaults))
-    return {arg.arg for arg, default in named if isinstance(default, ast.Constant) and default.value == CAMPAIGNS_PATH}
+    return {arg.arg for arg, default in named if isinstance(default, ast.Constant) and default.value in CAMPAIGN_PATHS}
 
 
 def _is_site(call: ast.Call, functions: list[ast.AST]) -> bool:
@@ -56,7 +56,7 @@ def _is_site(call: ast.Call, functions: list[ast.AST]) -> bool:
     if func.attr == "post" and call.args:
         first = call.args[0]
         if isinstance(first, ast.Constant):
-            return first.value == CAMPAIGNS_PATH
+            return first.value in CAMPAIGN_PATHS
         return isinstance(first, ast.Name) and any(first.id in _path_parameters(f) for f in functions)
     if func.attr == "create_campaign":
         receiver = ast.unparse(func.value)
@@ -138,6 +138,8 @@ class EveryNewCampaignHasAFixedTown(unittest.TestCase):
             "class A:\n"
             "    async def bare_post(self):\n"
             "        await self.client.post('/api/game/campaigns', json={})\n"
+            "    async def alias(self):\n"
+            "        await self.client.post('/api/campaigns', json={})\n"
             "    async def manager(self):\n"
             "        await self.manager.create_campaign(1)\n"
             "def post_character(client, path='/api/game/campaigns'):\n"
@@ -158,7 +160,8 @@ class EveryNewCampaignHasAFixedTown(unittest.TestCase):
             "        await self.create_campaign()\n"
             "    async def resume(self, cid):\n"
             "        await self.client.post(f'/api/game/campaigns/{cid}/resume')\n")
-        self.assertEqual(planted, ["api/tests/test_planted.py:bare_post", "api/tests/test_planted.py:manager",
+        self.assertEqual(planted, ["api/tests/test_planted.py:bare_post", "api/tests/test_planted.py:alias",
+                                   "api/tests/test_planted.py:manager",
                                    "api/tests/test_planted.py:post_character"])
 
     def test_every_caller_pinned_entry_still_creates_a_campaign(self) -> None:

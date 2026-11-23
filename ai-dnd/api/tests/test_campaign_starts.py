@@ -17,6 +17,9 @@ from api.tests.auth_fixture import TEST_PLAYER
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8080
 
 
 class CampaignStartPackTests(unittest.TestCase):
@@ -146,14 +149,15 @@ class CampaignStartApiTests(unittest.IsolatedAsyncioTestCase):
             "background_equipment_option": "A",
             "equipment_package": "A",
         }
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "name": "First steps in Neverwinter",
-                "character": valid_character,
-                "campaign_start": campaign_start,
-            },
-        )
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "name": "First steps in Neverwinter",
+                    "character": valid_character,
+                    "campaign_start": campaign_start,
+                },
+            )
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         self.assertEqual(created["state"]["location"], "fr:city:neverwinter")
@@ -213,18 +217,19 @@ class CampaignStartApiTests(unittest.IsolatedAsyncioTestCase):
             "background_equipment_option": "A",
             "equipment_package": "A",
         }
-        response = await self.http.post(
-            "/api/game/campaigns",
-            json={
-                "character": valid_character,
-                "campaign_start": {
-                    "setting_id": "forgotten_realms",
-                    "region_pack_id": option["region_pack_id"],
-                    "region_id": "fr:region:sword_coast",
-                    "starting_location_id": "fr:city:neverwinter",
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post(
+                "/api/game/campaigns",
+                json={
+                    "character": valid_character,
+                    "campaign_start": {
+                        "setting_id": "forgotten_realms",
+                        "region_pack_id": option["region_pack_id"],
+                        "region_id": "fr:region:sword_coast",
+                        "starting_location_id": "fr:city:neverwinter",
+                    },
                 },
-            },
-        )
+            )
         self.assertEqual(response.status_code, 422)
         self.assertEqual(
             response.json()["detail"]["code"],

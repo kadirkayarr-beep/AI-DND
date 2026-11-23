@@ -33,6 +33,9 @@ from api.tests.test_clerk_jwks import (
 )
 from api.tests.test_clerk_session_verifier import ISSUER, PARTY, _claims, _sign
 from cryptography.hazmat.primitives.asymmetric import rsa
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8120
 
 
 OTHER_ISSUER = "https://other.clerk.accounts.dev"
@@ -180,7 +183,8 @@ class ClerkHttpTests(unittest.IsolatedAsyncioTestCase):
         return {"Authorization": f"Bearer {token}"}
 
     async def test_anonymous_requests_are_401_and_do_not_mutate(self) -> None:
-        created = self.manager.create_campaign("Owned", principal=Principal(ISSUER, "user_a"))
+        with default_town(self, TOWN_SEED):
+            created = self.manager.create_campaign("Owned", principal=Principal(ISSUER, "user_a"))
         campaign_id, session_id, record, _metadata = created
         hp = record.game_session.character["current_hp"]
         async with self._client(self.app) as client:
@@ -244,12 +248,14 @@ class ClerkHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_two_users_are_isolated_on_both_route_aliases(self) -> None:
         async with self._client(self.app) as client, self._client(self.other_app) as other_client:
-            created_a = await client.post("/api/campaigns", json={"name": "A"}, headers=self._bearer(self.token_a))
-            created_b = await client.post(
-                "/api/game/campaigns",
-                json={"name": "B"},
-                headers=self._bearer(self.token_b),
-            )
+            with default_town(self, TOWN_SEED):
+                created_a = await client.post("/api/campaigns", json={"name": "A"}, headers=self._bearer(self.token_a))
+            with default_town(self, TOWN_SEED):
+                created_b = await client.post(
+                    "/api/game/campaigns",
+                    json={"name": "B"},
+                    headers=self._bearer(self.token_b),
+                )
             self.assertEqual(created_a.status_code, 200, created_a.text)
             self.assertEqual(created_b.status_code, 200, created_b.text)
             campaign_a = created_a.json()["campaign_id"]
@@ -309,7 +315,8 @@ class ClerkHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_logout_does_not_revoke_a_bearer_token(self) -> None:
         async with self._client(self.app) as client:
-            created = await client.post("/api/campaigns", json={}, headers=self._bearer(self.token_a))
+            with default_town(self, TOWN_SEED):
+                created = await client.post("/api/campaigns", json={}, headers=self._bearer(self.token_a))
             self.assertEqual(created.status_code, 200, created.text)
             logout = await client.post("/api/logout", headers={"X-AI-DND-Request": "1"})
             self.assertEqual(logout.status_code, 204)

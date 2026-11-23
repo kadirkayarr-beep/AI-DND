@@ -21,6 +21,9 @@ from api.tests.test_campaign_api import (
     create_city_with_locked_tavern,
     unlock_venue_door,
 )
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8140
 
 
 class DescriptorTargetClient(test_campaign_api.FakeOllamaClient):
@@ -883,15 +886,16 @@ class DefaultNpcTargetingTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_investigation_http_keeps_result_and_rejects_player_agency_claims(self):
         city_id = "fr:city:neverwinter"
-        created = await self.http.post(
-            "/api/game/campaigns",
-            json={"campaign_start": {
-                "setting_id": "forgotten_realms",
-                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                "region_id": "fr:region:the_north",
-                "starting_location_id": city_id,
-            }},
-        )
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post(
+                "/api/game/campaigns",
+                json={"campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                }},
+            )
         self.assertEqual(created.status_code, 200, created.text)
         session_id = created.json()["session_id"]
         record = self.manager.get(session_id)

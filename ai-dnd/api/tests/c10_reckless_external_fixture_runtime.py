@@ -13,6 +13,10 @@ from pathlib import Path, PurePosixPath
 import re
 import stat
 from uuid import UUID
+from types import SimpleNamespace
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8030
 
 
 ENTRY_PATH = "/tests/r02-live-fixture/index.html"
@@ -417,8 +421,9 @@ def _seed_reckless_attack(manager, store, run_root):
         "equipment_package": "A", "background_equipment_option": "A", "languages": ["Common", "Dwarvish", "Giant"],
         "cantrips": [], "spells": [], "starting_level": 1,
     }
-    campaign_id, session_id, record, metadata = manager.create_campaign(
-        name="Synthetic natural Reckless Attack acceptance", character=character, campaign_start=campaign_start)
+    with default_town(SimpleNamespace(), TOWN_SEED):
+        campaign_id, session_id, record, metadata = manager.create_campaign(
+            name="Synthetic natural Reckless Attack acceptance", character=character, campaign_start=campaign_start)
     session = record.game_session
     core_spec = {key: value for key, value in character.items() if key not in {"mode", "class", "starting_level"}}
     core_spec["character_class"] = character["class"]

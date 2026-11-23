@@ -30,6 +30,9 @@ from api.persistence.campaign_validation import (
     serialize_campaign_payload,
 )
 from api.serializers import serialize_session_state
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8100
 
 
 class MockSession:
@@ -1614,11 +1617,12 @@ class CharacterCreation2024Tests(unittest.TestCase):
                 "starting_location_id": location["entity_id"],
             }
 
-            campaign_id, session_id, record, metadata = manager.create_campaign(
-                name="Bruenor's Campaign",
-                character=char_input,
-                campaign_start=start_input,
-            )
+            with default_town(self, TOWN_SEED):
+                campaign_id, session_id, record, metadata = manager.create_campaign(
+                    name="Bruenor's Campaign",
+                    character=char_input,
+                    campaign_start=start_input,
+                )
 
             # Check starting inventory in active session
             active_inv = record.game_session.world_state.get("inventory", [])
