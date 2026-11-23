@@ -1,0 +1,165 @@
+# SDD ledger — plan: C:/Users/Kadir/Desktop/AI-DND-k2-tur-bolme-x/docs/superpowers/plans/2026-11-23-tur-bolme-plan.md
+
+## Task 0 (2026-11-23)
+- Ruling: TBBASE = 54835935 (PR #149 tip, ancestor of this branch HEAD) instead of origin/main after #149 — owner 2026-11-23: #149 not merged this week; Task 0 Step 1 must not stop — if wrong: re-run run_all.sh on the real main after #149 merges and compare (about 5 minutes); stage PRs stack on task/d331-d332-20261123.
+- Measured with `run_all.sh HEAD base 1664 2541 2824 2958 2984`. game.py and game_parts/ are byte-identical to 54835935, so every inventory file equals the `149` files (diff with tag label ignored: identical). Every CUTSUM equals the plan numbers: no number changed, no per-number Ruling needed, plan tables unchanged. Total 72 cuts = 47 + 11 + 8 + 6.
+- cuts-base.json: 72 rows. Tasks: T3 11, T6 8, T12 6, T9a 14, T9b 10, T10 8, T11a 6 (subs `elif npc_dialogue_route:` and `if experimental_npc_dialogue:`), T11b 9 (sub `if experimental_npc_dialogue or isinstance(raw_intent.get("narration"), str):`). Sub 1664 rows (2) go to T9a. T9a/T9b boundary: rows starting before the `if held_plan is not None:` block.
+- Note: the plan text calls sub 2824 "else arm of if shop_request"; the source anchor is `elif npc_dialogue_route:`. Same block, name fixed in cuts-base.json (sub_anchor).
+- money_tests.txt: 22 modules found by grep for `_settle_spoken_commitment`, `money_owner.haggle`, `money_owner.read_answer`, coin_answer, price_negotiation, haggle (includes test_journey_runner, already in the fixed set).
+- Ruling: baselines run in background (slot_gate timeout 4500 s > 9 min foreground cap); waits are bounded loops of at most 9 min — if wrong: none.
+- Play steps: oynayış bekliyor (no play this week). 
+- Review step for Task 0: none needed (measure only); controller dispatches reviewer.
+- Baselines: tb0-base-off: tests 11245 skipped 188 failing_ids 0, PAR_EXIT=0 (about 30 min). tb0-base-fon: tests 11245 skipped 186 failing_ids 0, PAR_EXIT=0. No failure to trace.
+Task 0: implemented (commits 6cd4ba77..6cd4ba77; ledger is gitignored, stays local)
+
+## Task 0 fix round 1 (2026-11-23)
+- Finding (minor): T9a rows with flags undo (row 25) and save (row 28) touch Undo and save order. Fixed: "note" field added to both rows in cuts-base.json; T9a note added under Step 1 in the plan (check Undo before save, strong reviewer).
+- Ruling: docs/data-only change, no behaviour bug, so no red test; targeted set not re-run (no test reads cuts-base.json: grep found none) — if wrong: a consumer script rejects the extra "note" key; rerun run_all.sh.
+
+## Task 0 fix round 2 (2026-11-23)
+- Finding 1 (important): rows 26 (plan_living_world_turn), 36 (parse_player_intent), 54 (validate_world_updates) call sensitive.json functions without a money flag. Fixed: moved to T10 in cuts-base.json (note field added). Counts now T9a 12, T9b 9, T10 11 (total still 72); plan headings and T9a note updated.
+- Finding 2 (minor): rows 27 and 29 call save functions in sensitive.json. Fixed: note on both rows; plan T9a Step 5 changed from Sonnet to Opus for the whole task.
+- Ruling: data/docs-only change, no red test; targeted set not re-run (no test reads cuts-base.json) — if wrong: a consumer script rejects the changed task fields; rerun run_all.sh.
+- Ruling: other T9b/T12 rows may also call sensitive.json functions that block_io misses; T9b keeps Sonnet review but the reviewer must check each helper against sensitive.json (cut_check does not) — if wrong: escalate T9b to Opus.
+
+## Task 1 (2026-11-23)
+- Step 2 red: run locally with the two tools moved away (import error, 1 error); slot red twin not run (the guarded slot has no subprocess, local red was enough) — Ruling: red shown locally — if wrong: none, the green slot runs below are the gate.
+- Ruling: tests run `_call` by exec of the fixture parts in-process (slot launcher denies subprocess; first slot run had 9 errors from it) — if wrong: behaviour tests become vacuous; they compare cut vs base output and two assert exact values.
+- Ruling: cut_block adds exact definite-assignment analysis beyond block_io: a name read in the block (or an output only conditionally bound in it) must be definitely bound before the block, else REFUSED "conditional input NAME". Safer than the plan text; costs some cuts — if wrong: a cut that block_io counted is refused; do by hand.
+- Ruling: B-class helper returns game._TURN_FALL_THROUGH (not a bare name); tool creates game_parts/turn_cuts_common.py + game.py re-export + _PART_MODULES entry on first B cut; every cut adds one re-export line and a _PART_MODULES entry for its part — if wrong: routing_audit R8 red, fix the line.
+- Ruling: report rows carry the cut block text; cut_check finds it in the base file, folds game.X, compares ast.dump, comment tokens, the helper signature/return, and the whole function with call sites in place of blocks, plus total comment count — if wrong: false CHANGED, never a false CHANGED 0 that I know of.
+- Smoke on a copy of real turn.py (each block cut alone, compiled, cut_check): _run_player_turn_internal top level 27 cut / 8 class C / 4 class D / 1 six outputs / 1 hazard / 1 locals / 1 nonlocal / 3 conditional input (name, raw_intent x2); finish_turn 11 cut (+1 nonlocal def); _dispatch_player_turn 6 cut / 5 class C. cut_check 0 findings on all cuts. Plan expected 30 / 11 / 6: the 3 conditional-input blocks are the only gap — T9a/T9b controller: those rows may need hand work or stay uncut.
+- Runs: tb1-5b-off 277 tests exit 0; tb1-5b-fon (gate_boot first) 277 tests exit 0 (neighbour set + engine locks + cut tool tests). Earlier tb1-5-off failed 9 (subprocess denied), fixed.
+- Review step: Sonnet reviewer, controller dispatches (brief: five Review Focus items, missing refusal cases). Known unreviewed edges: walrus handling is conservative; Try/Match flow is conservative; tabs refused; part==file untested.
+- Play: oynayış bekliyor.
+Task 1: implemented (commits 0bedba0e..8d4df9d5)
+
+## Task 1 fix round 1 (2026-11-23)
+- Finding 1 (del): red test first (3 red on old tool), then fixed: cut_block `_forbidden` refuses `del NAME` ("forbidden construct: del NAME"). grep of game_parts/turn.py found no `del` statement, so no Task 3-12 row is affected.
+- Finding 2 (closure output): red test (def and lambda), fixed: analyse() refuses a def/lambda made in the block whose name is an output ("closure output NAME"). Closures not used after the block (inline lambdas, helpers called inside the block) are still cut. Ruling: the "caller rebinds free names later" case is covered only through the output rule (a def not used after the block cannot see rebinding) — if wrong: Tasks 9-11 runners meet a false CUT; cut_check's call-site compare would still show the block moved, so hand-check any block that defines a def/lambda.
+- Finding 3 (ledger): the fixed neighbour set (journey_runner, journey_report, journey_schema, journeys) and all engine locks (test_engine_*) were in the Task 1 run. Round-1 runs, regex `^test_(journey_runner|journey_report|journey_schema|journeys|engine_.*)$`, 21 modules: tb1f1-off tests 600 skipped 2 failing_ids 0 PAR_EXIT=0; tb1f1-fon (gate_boot first, TOKENS fon) tests 600 skipped 1 failing_ids 0 PAR_EXIT=0. Local: test_engine_cut_tool 21 passed. The earlier tb1-5b runs (277 tests) did not print failing_ids in this ledger; exit 0 only.
+- Finding 4 (park): 3 rows of `_run_player_turn_internal` are refused as "conditional input" (name, raw_intent x2), so T9a/T9b expected cuts are about 3 fewer (72 -> about 69). Park PARK-T1-1: before Task 9 the controller marks those three rows in cuts-base.json "uncut/hand" (hand work or leave uncut). Owner: T9 controller. Not done in this round (data edit outside the fix list; no consumer reads cuts-base.json yet).
+- Play: oynayış bekliyor.
+
+## Task 1 fix round 2 (2026-11-23)
+- Finding 1 (minor, closure rule fires only when the def/lambda name is an output): no code change. Ruling: reviewer's own fix is "none needed now"; the gap is already a recorded Ruling (round 1) — hand-check every Task 9-11 cut whose block defines a def or lambda; cut_check's call-site compare still shows a moved block — if wrong: a runner meets a false CUT on such a block; fix then with a red test.
+- Finding 2 (minor, PARK-T1-1: 3 conditional-input rows not marked in cuts-base.json): no change now. Ruling: owned by the T9 controller, who marks name and raw_intent x2 as "uncut/hand" before T9a starts; no consumer reads cuts-base.json yet, plan count 72 -> about 69 is accepted — if wrong: a runner tries the 3 rows and gets REFUSED conditional input; mark them then.
+- No code changed, so no red test and no targeted re-run in either flag; round-1 runs (tb1f1-off/fon, failing_ids 0) stand. Nothing to commit (ledger is gitignored); HEAD stays 6a65bff2.
+- Play: oynayış bekliyor.
+
+## Task 2 (2026-11-23)
+- Red: test_no_engine_file_calls_locals_globals_or_vars failed (tb2-1-off, only that test); characterization test_preparsed_local_person_still_materializes (test_local_person_persistence, fixed_town 9401) green before the change.
+- Ruling: the scan covers game_parts/*.py only, not game.py — plan said one hit in turn.py, but game.py has 3 globals() calls (lines ~795, 811, 1391: module-namespace identity, not turn-block reads) — if wrong: cut tools on game.py blocks would meet globals(); none are cut targets.
+- Ruling: removed the identity_allowlist.json row (turn.py, _run_player_turn_internal, locals) — R6 flagged "matches nothing" after the fix; tightening only — if wrong: R6 red, re-add.
+- Change: one line, isinstance(preparsed_scene_intent, dict); line count of _run_player_turn_internal unchanged, no budget edit.
+- Runs: tb2-4-off 263 tests exit 0; tb2-4-fon (gate_boot first) 263 tests exit 0 (persistence + neighbour set + engine locks).
+- Review: cheap Sonnet re-review, controller dispatches (one-line change, red-green test).
+- Play: oynayış bekliyor.
+Task 2: implemented (commits 6a65bff2..HEAD)
+
+## Task 2 fix round 1 (2026-11-23)
+- Finding 1 (minor, scan covers game_parts only): accepted the scope (existing Ruling stands: game.py's 3 globals() are module-namespace identity). Added test_game_py_keeps_exactly_three_globals_calls so the count cannot grow; green at once (pin, not a behaviour bug, no red step) — if wrong: a legit 4th globals() in game.py needs the pin raised.
+- Runs: test_engine_routing 28 tests OK with flag off and with AI_DND_FRONT_PROPOSAL=1 (local unittest, not the guarded launcher; tests are static AST, flag-independent). Neighbour set not re-run: only a test file changed, no product code.
+- Play: oynayış bekliyor.
+
+## Task 2 fix round 2 (2026-11-23)
+- Finding 1 (minor, scan covers game_parts only): accepted, no change; game.py pinned at 3 globals() in round 1 (static AST, flag-independent).
+- Finding 2 (minor, dialogue result not asserted): added assertions turn_outcome.action == "dialogue" and status == "created_local_person" in test_preparsed_local_person_still_materializes. Green at once (characterization test, no red step). Ruling: not confirmed that the test hits the preparsed branch (cannot tell from the response) — if wrong: the test still guards the end result, branch coverage is by test_engine_routing static checks.
+- Runs: persistence + engine_routing + journey_runner/report/schema/journeys, flag off and AI_DND_FRONT_PROPOSAL=1 (local unittest): see commit; journeys line "105 passed, 1 known, 0 new broken" both flags.
+- Play: oynayış bekliyor.
+
+## Task 3 (2026-11-23)
+- Cuts: 11 of 11 rows done bottom-up into game_parts/turn_finish.py (helpers _tf_*), cut_check CHANGED 0 against git archive of the pre-task HEAD c9a0dc16 (Ruling: base = HEAD not TBBASE, because Task 2's one-line change is already in HEAD — if wrong: cut_check shows the Task 2 line as a finding). finish_turn 231 -> 88 lines; _run_player_turn_internal 2741 -> 2598; turn.py 3474; game.py 1409 (size_budget lowered to real size).
+- Tool bug 1 (found live): second class-B cut in one function REFUSED "already uses the name _exit" (the tool's own name). Fixed in cut_block (_foreign_exit: only a foreign _exit refuses); red first seen live (refusal), tests test_a_second_class_b_cut_in_one_function_reuses_the_tool_exit_name and test_a_user_exit_name_blocks_a_class_b_cut added. Ruling: tool fix in the Task 3 commit, not parked — Task 9-11 have many B cuts and would have been blocked — if wrong: revert the cut_block hunk, park the row.
+- Tool bug 2: first B cut listed game_parts.turn_cuts_common (constant only) in _PART_MODULES -> routing_audit R2 red. Fixed in cut_block (sentinel part not listed). Test change FLAGGED (tightening direction, corrects a wrong pin, may count as loosening): test_class_b_block_returns_through_the_sentinel assertIn -> assertNotIn for '"game_parts.turn_cuts_common"' in game.py. For the approval list.
+- Test update (equal strictness): test_engine_parts_pilot WrapperFilter pins _PART_MODULES; added game_parts.turn_finish (every new part does this).
+- Locks: surface.json added the 12 new names (11 _tf_* + _TURN_FALL_THROUGH) by hand from a live snapshot; Windows-only noise (PosixPath etc.) in surface test is pre-existing, the slot is clean. routing_audit clean.
+- Runs (slot 9, 990 tests: neighbour set, engine locks, cut tool, money_tests.txt, 5 modules patching ResolvedTurn/_natural_unresolved_action_response, parts pilot): tb3-4-off had 1 fail (parts pilot list pin, fixed); tb3-5-off exit 0, tb3-5-fon (gate_boot first) exit 0. failing_ids not printed by slot.sh test; exit 0 only.
+- Review: Opus independent review, controller dispatches (two money-marked blocks: system_deterministic flag, ResolvedTurn build; brief: diff, cut_check report, Review Focus 1-4; also the two cut_block fixes).
+- Play: oynayış bekliyor.
+Task 3: implemented (commits c9a0dc16..1149a152)
+
+## Task 3 fix round 1 (2026-11-23)
+- Finding 1 (critical, is_final cut dropped the nonlocal narration_model_calls bump): confirmed. Red first: new api/tests/test_turn_final_incident_calls.py (final "Uyuyorum." turn, incident before_narration returns model_calls 2 vs 0; telemetry narration/total must differ by 2) fails on 1149a152 ("0 != 2"), green after the fix. Fix: `if is_final:` block put back inline in finish_turn (text copied from base c9a0dc16), _tf_final_skipped_exit removed from turn_finish.py, game.py import and surface.json row removed, size_budget set to real size (game.py 1408, turn.py 3489, _run_player_turn_internal 2613), cuts-base.json row marked task "hand" with note "uncut/hand". Now 10 cuts of 11 in Task 3. Other 10 cuts checked: _tf_system_deterministic_exit calls the same nested def but hardcodes narration_model_calls 0 and the later code reads the enclosing cell, so it is safe; no other nested def in turn.py writes nonlocal (only line 1082).
+- Finding 2 (important, tool gap): cut_block now refuses a block that loads a name written through `nonlocal` by a nested def the block calls (transitively): "REFUSED nonlocal-written input NAME". Red first (test_a_block_calling_a_nonlocal_writer_is_refused failed on the old tool), plus test that a block calling such a def without reading the name still cuts. Ruling: refusal fires on any load of the name in the block (not only on inputs) — safer, false refusals are hand-cut — if wrong: a Task 9-11 runner meets a false REFUSED; hand-cut that row. Task 9-11 controller: still hand-check every cut whose block defines or calls a nested def.
+- Finding 3 (minor, evidence): re-ran both flags with slot_gate (47 modules: neighbour set, engine locks, cut tool, money_tests.txt, ai_freedom_resolution_boundary, incident_continuity, explicit_shop_creation, new test). fx2-off: tests 1158 skipped 2 failing_ids 0 PAR_EXIT=0. fx2-fon (TOKENS fon, gate_boot first): tests 1158 skipped 1 failing_ids 0 PAR_EXIT=0. The first fix runs found 3 more reds that the Task 3 run had not shown, all fixed: sensitive.json lacked _tf_build_resolved_turn and _tf_system_deterministic_flag (both money; added by hand, sensitivity --write refuses with game_parts present); patch_census lock + routing audit R3 reacted to my first test patching via the game module (test now patches the string "incidents.hooks.before_narration", lock unchanged, docs/engine-split/patch-census.md regenerated, counts only). Honest note: the Task 3 ledger said "exit 0" for its run, yet test_engine_sensitivity should have failed then; the module set of that run did not include it or the lock check was missed — cause not found.
+- cut_check report was not kept at Task 3 time and cannot be rebuilt (it comes from the cut runs); the reverted block was copied byte-for-byte from c9a0dc16. Not re-run: no CHANGED line for this round. Ruling: accepted — if wrong: Task 3 re-review sees no CHANGED 0 evidence; the base-vs-HEAD equality of the 10 other cuts stands from the Task 3 run.
+- Finding 4 (minor, assertNotIn): stays on the approval list (test_class_b_block_returns_through_the_sentinel, justified by routing_audit R2).
+- Play: oynayış bekliyor.
+Task 3 fix round 1: done (commit after 1149a152)
+
+## Task 3 fix round 2 (2026-11-23)
+- Finding 1 (minor, nonlocal check missed writers defined in an enclosing function): confirmed. Red first: test_a_block_in_a_nested_def_calling_an_outer_nonlocal_writer_is_refused (cut in run.inner, writer bump in run) returned 0 not 2 on f97dd0c4. Fix: cut_block.analyse() now takes the nested defs and their nonlocal writes from the enclosing chain too (outer_nested/outer_writes) and walks every def the block loads (not only the directly called ones in the cut function). Test green, all 26 cut-tool tests green. Ruling: the "hand-check every block that defines or calls a nested def" Ruling for Tasks 9-11 stays (closure outputs, hazards) — if wrong: a false REFUSED, hand-cut that row.
+- Finding 2 (minor, lost cut_check evidence): rebuilt. Fresh git archive of c9a0dc16 (base) and a copy; ran cut_block (--report) for the 10 T3 rows in bottom-up order on function _run_player_turn_internal.finish_turn (helpers and params match HEAD); merged the 10 reports; cut_check.py --base-root base --root copy --report all.json printed `CHANGED 0`. The copy's game_parts/turn.py and game_parts/turn_finish.py are byte-identical to HEAD (diff empty, CR stripped). So the 10 T3 cuts at HEAD = tool output on base, and cut_check shows no change of behaviour text. The is_final block is inline at HEAD and identical to base (fix round 1).
+- Re-ran both flags with slot_gate (slot 4, 47 modules: neighbour set, engine_*, money_tests.txt, ai_freedom_resolution_boundary, incident_continuity, explicit_shop_creation, turn_final_incident_calls). fx3-off: tests 1159 skipped 2 failing_ids 0 PAR_EXIT=0. fx3-fon (TOKENS fon, gate_boot first): tests 1159 skipped 1 failing_ids 0 PAR_EXIT=0.
+- Play: oynayış bekliyor.
+Task 3 fix round 2: done
+
+## Task 4 (2026-11-23)
+- Hand edit (no --lift-nested tool; one-off lift, Ruling: hand edit with an AST identity check instead of extending cut_block — if wrong: Task 8's 4 nested lifts want the tool). finish_turn body (93 lines, 25 statements) moved byte-for-byte (dedent only) to turn_finish._finish_turn(*, 7 own params + 25 captured names sorted, incl. narration_model_calls). Shim = one return game._finish_turn(<all 32 by keyword>), no defaults captured, so late-bound names (allow_new_*, expected_location_change) are read at call time. Added import incidents.hooks as incident_hooks in turn_finish. _finish_turn 94 lines.
+- Red first: ShimLateBindingTests (3 tests) in test_engine_cut_tool; test_real_finish_turn_is_a_shim_over_turn_finish failed before the lift (tb4-1-off). First green run had my own test bug (asserted no defaults on the shim, but the shim keeps finish_turn's signature defaults); assertion removed, not a gevşetme of product check.
+- Identity: AST compare of old finish_turn body vs new _finish_turn body: CHANGED 0 (25 stmts), stripped text identical. cut_check.py has no nested mode.
+- Locks: surface.json (+_finish_turn), size_budget (game.py 1409, turn.py 3430, _run_player_turn_internal 2554), sensitive.json (+_finish_turn money; engine sensitivity test demanded it). routing_audit clean. Budgets: game.py went UP by 1 (see fix round 1 Ruling); turn.py down.
+- Runs (slot_gate slot 4, 53 modules: neighbour set, engine_*, money_tests, ResolvedTurn patchers, turn_final_incident_calls etc.): tb4-5-off tests 1268 failing_ids 0 PAR_EXIT=0; tb4-5-fon same 0 PAR_EXIT=0. The first off run had 2 reds (my test line, sensitive.json) both fixed.
+- Review: Opus independent review, controller dispatches (money-marked, Review Focus 2 late binding; nonlocal narration_model_calls now a param, no write-back, 55 of 55 callers return at once).
+- Play: oynayış bekliyor.
+Task 4: implemented (commits 0bb03923..dfa34b2c)
+
+## Task 4 fix round 1 (2026-11-23)
+- Finding 1 (minor): Ruling: game.py budget +1 (1408 -> 1409) for the required R8 re-export `from game_parts.turn_finish import _finish_turn` — the budget equals the real size; tightening resumes at Task 5 when _narrate_resolved_turn leaves game.py — if wrong: budget is one line loose until Task 5. The line "Lowered budgets only" in Task 4 was wrong and is corrected.
+- Finding 2 (minor): removed dead `import incidents.hooks as incident_hooks` from game_parts/turn.py (its only user moved to turn_finish); turn.py budget 3430 -> 3429. No test patched game_parts.turn.incident_hooks (grep). No red test (dead import, no behaviour).
+- Runs (slot_gate slot 4, 46 modules: engine_*, journey neighbour set, money_tests, incident/shop/final-incident): tb4f1-off tests 1150 skipped 2 failing_ids 0 PAR_EXIT=0; tb4f1-fon tests 1150 skipped 1 failing_ids 0 PAR_EXIT=0. Routing audit and engine locks are inside engine_*.
+- Play: oynayış bekliyor.
+Task 4 fix round 1: done
+
+## Task 5 (2026-11-23)
+- Step 1 (P5T5-8 pin): none of test_campaign_api, test_step0_commit_failures, test_stage10a_gameplay_repairs, test_adventure_session drives travel -> evaluate_quest_events -> _forfeit_unrecordable_xp through _narrate_resolved_turn (greps only hit quest set-up; test_d060 calls evaluate_quest_events directly). New api/tests/test_travel_forfeit_pin.py::test_travel_turn_forfeits_a_refused_quest_award (session.create_session(seed=7101), no campaign start, so no fixed_town needed — Ruling: create_session(seed) is deterministic — if wrong: a campaign-based pin would need fixed_town). Red proof: with GameSession.evaluate_quest_events stubbed to [] the test errors (RED_OK); green on base.
+- Step 2: base move_block refuses (`name 'ResolvedTurn' missing from the symtable`, wording differs from the plan's "in a annotation"). FALSE PREMISE in plan/D-478: game.py has NO `from __future__ import annotations` (grep 0 on HEAD and 54835935), so the annotation was the class, not a string. Quoting changes `inspect.get_annotations` from the class to the string 'ResolvedTurn' (introspection only; no get_type_hints/__annotations__ use in engine code). Ruling: quote anyway, pin the new value in test_narrate_resolved_turn_annotations_are_unchanged (red on base: class != string; green after), update surface.json signature of this one name `game_parts.turn.ResolvedTurn` -> `'ResolvedTurn'` — CI is Python 3.13 (eager annotations) so `game.ResolvedTurn` in a part would be eager at import; quote is the safe form — if wrong: the other D-478 option (future import in parts) as its own task. APPROVAL LIST: surface.json signature change (gevşetme olabilir, introspection-only).
+- Found: test_narration_source_record.test_no_other_engine_module_reports_a_source was red since T4 (turn_finish.py mentions narration_source; the set of T3/T4 runs did not include this module). Origin: dfa34b2c (T4). Fixed in T5a by adding game_parts/turn_finish.py to ENGINE_PART_REPORTERS.
+- Step 3 move: move_block MOVED names=1; part header added by hand (`import re`, `import talk_mode`, `import incidents.hooks as incident_hooks` — routing_audit R7 demanded them), `game_parts.resolved_narration` added to _PART_MODULES (alphabetical). move_check --tier strong with 2 --manual rows for the _PART_MODULES line (base 806 / new 456): `CHANGED 0 names=1`. routing_audit clean.
+- Step 4 locks: size_budget files game.py 1409 -> 1059 (real size), long_functions key game.py::_narrate_resolved_turn 351 replaced by game_parts/resolved_narration.py::_narrate_resolved_turn 351 (equal, "gevşetme olabilir", ADR Q4); new part 356 lines needs no files entry (< part_max). surface.json: module of the one name. test_engine_parts_pilot list pin += resolved_narration. test_narration_source_record: game.py no longer names the source, so expected set = ENGINE_REPORTERS minus game.py + parts (APPROVAL LIST, gevşetme olabilir: game.py not required to mention it; every other file still pinned exactly) + resolved_narration.py in ENGINE_PART_REPORTERS. blank_runs: 0. game.py 1059 lines.
+- Runs (slot 9, 52 modules: journey neighbour set, test_engine_*, money_tests.txt, the pin, the ResolvedTurn/narration modules, d060/d061): tb5-2 (T5a state) 1 red (source record, fixed); tb5-4 (move) 2 reds (source record, parts pilot list pin, fixed); tb5-5-off exit 0 tests 1239; tb5-5-fon (gate_boot first) exit 0 tests 1239. Full suite not run (Task 7 mid gate).
+- Review: Opus independent review (save-writer path), controller dispatches. Focus: annotation value change, source-record loosening, header imports of the part.
+- Play: oynayış bekliyor.
+Task 5: implemented (commits ff9defe0..HEAD)
+
+## Task 5 fix round 1 (2026-11-23)
+- Finding 1 (minor, misleading test name): confirmed. Renamed test_narrate_resolved_turn_annotations_are_unchanged -> test_narrate_resolved_turn_annotation_is_the_quoted_name; added a comment that the value changed on purpose (Ruling T5 Step 2). Behaviour unchanged, so no red test. Approval-list row (surface.json signature) stays.
+- Finding 2 (minor, no code change): accepted. test_narration_source_record joins the standing targeted set for every later task that moves code naming narration_source (T6 onward), so the T4-style gap does not repeat. Approval-list row (gevşetme olabilir) stays.
+- Runs (slot_gate slot 9, 25 modules: journey neighbour set, engine_*, narration_source_record, travel_forfeit_pin, d060/d061): tb5f1-off tests 659 skipped 2 failing_ids 0 PAR_EXIT=0; tb5f1-fon (TOKENS fon, gate_boot first) tests 659 skipped 1 failing_ids 0 PAR_EXIT=0.
+- Play: oynayış bekliyor.
+Task 5 fix round 1: done
+
+## Task 6 (2026-11-23)
+- Step 1: 8 T6 rows cut bottom-up with cut_block.py into _rn_* helpers in game_parts/resolved_narration.py (_rn_engine_event_evidence, _rn_scene_detail_check, _rn_money_claim_guard, _rn_finalize, _rn_lore_unsupported, _rn_not_narration_only, _rn_rejected_scene_detail, _rn_build_packet), all class A. _narrate_resolved_turn 351 -> 140 lines (< 151), so no extra small cuts needed. Row 7's `if (` anchor is occurrence 5 in the moved function, not 2 (cuts-base.json occurrence is counted on base game.py; the first try with 2 hit a different block, reverted with git checkout before any commit). Ruling: occurrence by counting top-level `if (` in the part file — if wrong: cut_check would show CHANGED.
+- Step 2: cut_check.py --base-root (git archive of pre-task HEAD eba95e60) -> `CHANGED 0`. routing_audit clean.
+- Step 3: size_budget: long_functions key game_parts/resolved_narration.py::_narrate_resolved_turn removed (gevşetme olabilir for the lock, the function is no longer long); files game.py 1059 -> 1067 = real size (8 re-export lines, R8 needs them; Ruling: budget equals real size, same as T4 — if wrong: 8 lines loose). The part (393 lines) needs no files entry. APPROVAL LIST: key removal.
+- Locks: surface.json +8 names (json content of old names unchanged; only key order/format of file shifted by re-dump); sensitive.json +3 (_rn_money_claim_guard, _rn_not_narration_only, _rn_build_packet; money by content, added by hand because sensitivity --write refuses with game_parts/).
+- Runs (slot_gate slot 9, 48 modules: test_engine_*, journey neighbour set, money_tests.txt, narration_source_record, travel_forfeit_pin, d060/d061, turn_final_incident_calls): tb6-4-off tests 1190 skipped 2 failing_ids 0 PAR_EXIT=0; tb6-4-fon tests 1190 skipped 1 failing_ids 0 PAR_EXIT=0. Full suite not run (Task 7).
+- Review: Opus independent review (if not narration_only block: money, Undo-adjacent, session writes), controller dispatches. Focus: _rn_not_narration_only (119 lines) order of writes; _rn_money_claim_guard; params passed by keyword, packet mutated in place.
+- Play: oynayış bekliyor.
+Task 6: implemented (commits eba95e60..6f967050)
+
+## Task 6 fix round 1
+- Finding 1 (minor, game.py budget 1059 -> 1067): accepted, no code change. Cause: R8 needs one re-export line per new _rn_* helper; budget equals real size. Approval-list row: "game.py budget +8 (R8 re-exports, T6)", like T4 +1.
+- Plan note added under Global Constraints > Size: each new part helper raises the game.py budget by one line (R8), so T8-T12 write the Ruling and the approval-list row at once and this is not a finding again.
+- Tests: no code change, so no new run; the T6 targeted runs in both flags (tb6-4-off, tb6-4-fon, failing_ids 0) stand.
+
+## Task 6 fix round 2
+- Finding 1 (minor, plan R8 exception wording): fixed. Plan Global Constraints > Size line now narrow: only R8-required re-export lines may raise the game.py budget, budget = real size (1067), each rise is a Ruling plus an approval-list row "gevşetme olabilir" kept in the dilim-end list for owner sign-off. "Do not re-raise" clause dropped; other growth is a finding.
+- Approval-list row (gevşetme olabilir): game.py budget +8 (R8 re-exports, T6), +1 (T4). Owner sign-off at dilim end.
+- Docs-only change; no code touched, so no new test run. T6 targeted runs in both flags stand (tb6-4-off, tb6-4-fon, failing_ids 0).
+
+## Task 7 (2026-11-23)
+- Ruling: OLD tree for the speed A/B = existing worktree AI-DND-k2-d331 at 54835935 (= TBBASE, clean), NEW = this worktree HEAD 05dc2f74 — no new worktree needed — if wrong: none.
+- Step 1 full suites (slot_gate slot 4, 683 modules, shards 3): tb7-gate-off tests 11280 skipped 188 failing_ids 0 PAR_EXIT=0 (EXIT 0). tb7-gate-fon (TOKENS fon, gate_boot first) tests 11280 skipped 186 failing_ids 0 PAR_EXIT=0 (EXIT 0). Logs: tb7-off.log, tb7-fon.log. Base had 11245 tests; +35 = new tests from T1-T5.
+- Step 2 speed (Plan 5 Ruling B fair A/B, flag off, slot 4, warm-ups discarded (OLD warm-up raw line was not saved; only its run time 1.64s was noted; NEW warm-up raw line is the first line of tb7-bench.txt, 24.64 ms); order O,N,N,O,O,N,N,O,O,N). OLD ms/turn: 24.12 23.57 24.36 22.99 24.62 -> median 24.12. NEW: 23.17 23.53 24.12 23.41 23.34 -> median 23.41. Ratio 0.971 (limit 1.10) PASS. Raw lines in tb7-bench.txt. NEW tree = HEAD 05dc2f74 (no uncommitted code).
+- Step 3 stage review: Opus review on `git diff TBBASE...HEAD` — controller dispatches (not done here).
+- Step 4 PR: skipped (workers never push/open PRs this week; owner ruling 2026-11-23). Stage PR stacks on task/d331-d332-20261123 when the controller pushes.
+- Steps 5-6 play and merge: oynayış bekliyor (no play this week); no merge. Minimum version ends here only after play; graphify update and morning summary left for the controller.
+Task 7: implemented (commits none new; HEAD 05dc2f74, gate on 05dc2f74)
+
+## Task 7 fix round 1 (2026-11-23)
+- Finding 2 (missing OLD warm-up line): fixed by ledger wording only. The OLD warm-up raw line was never saved and cannot be recreated honestly; it was discarded anyway, so medians (OLD 24.12, NEW 23.41, ratio 0.971) are unchanged and match the 10 raw lines in tb7-bench.txt. No code touched.
+- Finding 1 (Opus stage review on 54835935...05dc2f74 not done): Ruling: not done by this worker — the review is the controller's dispatch (worker has no Fable/Opus dispatch and no code change to make) — Task 7 has NO gate verdict until the controller runs it and writes the verdict here before Task 8 — if wrong: Task 8 starts without a stage review. Status: OPEN, controller-owned.
+- Targeted tests: not re-run; no code or test file changed in this round (docs/ledger only).
