@@ -252,4 +252,4 @@ Task 10 fix round 2: done
 - Runs (slot_gate slot 9, 94 modules: neighbour set, test_engine_*, money_tests.txt, api, campaign_api, interaction_adventure, talk_front, stage10a, speech/dialogue/witness/npc_* modules, lore_authority, quest): tb11a-3-off tests 1947 skipped 2 failing_ids 0 PAR_EXIT=0; tb11a-3-fon (gate_boot first) tests 1947 skipped 1 failing_ids 0 PAR_EXIT=0. routing_audit is inside test_engine_routing (green).
 - Review: Step 4 Opus independent review is the controller's dispatch (money rows, Review Focus 1 and 5). Reviewer: check _ts_speech_money (money_owner.read_answer then settled_money), _ts_speech_packet, _ts_witness_exit, the hand-routed row _ts_personal_answer_exit, and the 5 returned names of _ts_speech_money.
 - Play: oynayış bekliyor.
-Task 11a: implemented (commits d211ea3b..HEAD)
+Task 11a: implemented (commits d211ea3b..98cb7864)
