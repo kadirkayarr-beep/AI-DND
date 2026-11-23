@@ -11,7 +11,7 @@ Rules:
 
 # CLAUDE.md — AI-DND
 
-Kadir programcı değil: kısa, açık, dürüst ve sade Türkçe yaz; doğrulamadığın şeye "doğrulamadım" de.
+Kadir programcı değil: kısa, açık, dürüst ve sade Türkçe yaz; doğrulamadığın şeye "doğrulamadım" de; harcama ve silme için onay iste.
 
 ## Kodlama ilkeleri
 
@@ -35,60 +35,47 @@ Varsayılan beş etiket: needs-triage, needs-info, ready-for-agent, ready-for-hu
 
 Tek bağlam (single-context): kökte `GLOSSARY.md` ve `docs/adr/`. Bkz. `docs/agents/domain.md`.
 
-Tasarım ve plan belgeleri: `docs/design/INDEX.md`
+Tasarım ve plan belgeleri: `docs/design/INDEX.md`; sıra ve durum: `docs/design/YOL_HARITASI.md`.
 
-## Çalışma ve test disiplini (Dilim 3 dersleri)
+## Çalışma ve test disiplini
 
-**Ana ilke:** kalite ve güvenlik kaybına müsamaha göstermeden işi hızlandırmak. Bir kural hız için kaliteyi ya da güvenliği zayıflatıyorsa uygulanmaz ve kullanıcıya bildirilir; kaliteye ya da güvenliğe katkısı olmayan bir adım hızı yavaşlatıyorsa budanır. Çelişkide kalite ve güvenlik kazanır.
+**Ana ilke:** işi hızlandır ama kalite ve güvenlikten ödün verme: hız için kaliteyi ya da güvenliği zayıflatan kural uygulanmaz ve Kadir'e bildirilir; çelişkide kalite ve güvenlik kazanır. Ledger = çalışan planın `.superpowers/sdd/<plan>/progress.md` dosyası.
 
-- **[Güvenlik] İzolasyon:** her iş kendi worktree'sinde yapılır, aynı worktree'de tek yazıcı çalışır. main/dev'e push veya merge yalnızca kullanıcının onayıyla yapılır.
-- **[Kalite] Sabit kasaba:** yeni kampanya başlatan her test kampanya tohumunu sabitler (`api/tests/town_seed.py` → `fixed_town`; yolculuk senaryolarında `campaign_seed`). Kasaba kampanya kimliğinden üretilir; rastgele kimlik rastgele kırıklara yol açar.
-- **[Kalite] Sabit komşu seti (atlanamaz; hızlı katman da bunu içerir):** her görevin hedefli testlerine ayrıca şunlar girer: `api.tests.test_journey_runner`, `test_journey_report`, `test_journey_schema`, `test_journeys`. Yeni numaralı senaryo eklenirse rapor tablosuna türü de eklenir.
-- **[Hız] Tam paket:** yalnız dilim sonunda ve planda ara kapı olarak işaretlenen kilometre taşlarında; her görevde değil.
-- **[Güvenlik] İnceleme seviyesi:** para, kayıt ve Geri Al'a dokunan iş için bağımsız inceleme ve en güçlü model; yalnız test düzeltmesi ya da küçük kırmızı-yeşil düzeltme için ucuz kapsamlı yeniden inceleme. Önce kırmızı test, sonra düzeltme. Para/kayıt/Geri Al'a dokunmayan, tek satırlık ya da yalnız metin/ek düzeltmede ve kırmızı-yeşil testi olduğunda yeniden inceleme atlanabilir; bu ledger'a "Ruling" olarak yazılır ve dilim sonu bütün dal incelemesi kapsar.
-- **[Kalite] Bilinen kırıklar:** bir görevin hedefli koşusu başka yerde kırık gösterirse kökeni commit'e kadar izlenir (hangi Dilim commit'i getirdi); "zaten kırıktı" kabul edilmez. Gerçekten eskiyse deftere yazılır. Kırık rastgele (flake) ise bisect yapılmaz, tohum sabitlenir; aynı kodda yinelenen koşuda sonuç değişiyorsa flake sayılır. Köken bulunamazsa deftere "kökeni bilinmiyor" yazılır ve kapıya etkisi değerlendirilir.
-- **[Hız] Belirsizlik ve karar:** çalışan bir plan insan beklemez. Dur ve sor yalnız dört durumda: geri alınamaz/yıkıcı işlem; güvenlik açısından hassas işlem (anahtar, harcama dahil); worktree dışı yan etki (main/dev'e push veya merge, yayın); her yolu tahmine bırakan bozuk plan. Diğer her belirsizlikte karar ver ve ledger'a `Ruling: <karar> — <neden> — <yanlışsa maliyeti>` yaz; yanlış karar geri alınabilir, bekleyen oturum geri alınamaz.
-- **[Hız] Park etme:** küçük bulgular deftere "park" olarak yazılır, çekirdek işi durdurmaz; kapıyı (ara kapı, dilim sonu) etkileyen kırık durdurur. Parklar dilim sonu karar/devir listesinde toplanır; sahipsiz park bırakılmaz.
-- **[Kalite] Yeniden kullanım:** yeni kod yazmadan önce repoda ve standart kütüphanede hazır olanı ara (`docs/agents/implementer-preamble.md` madde h); bu kural para/kayıt/Geri Al kodunda doğrulamayı, hata işlemeyi, makbuzu, kayıt ve Geri Al denetimini ve testleri ASLA azaltmaz.
-- **[Kalite] Test yeniden yazımı:** eski davranışı sabitleyen testler ancak eşit sıkılıkla yeniden yazılır ve onay listesine girer (sınırı yeniden tanımlayan her değişiklik açıkça "gevşetme olabilir" diye işaretlenir); işaretli değişiklik işi durdurmaz ama onay listesine girer; işaretsiz gevşetme, atlama ya da silme işi durdurur.
+- **[Güvenlik] İzolasyon:** her iş kendi worktree'sinde, worktree başına tek yazıcı. Bağımsız işler ayrı worktree ve ayrı test yuvasıyla aynı anda yürüyebilir.
+- **[Kalite] Sabit kasaba:** yeni kampanya başlatan her test kampanya tohumunu sabitler (`api/tests/town_seed.py` → `fixed_town`; yolculuk senaryolarında `campaign_seed`); rastgele kimlik rastgele kırık getirir.
+- **[Kalite] Sabit komşu seti (atlanamaz; hızlı katman da içerir):** her görevin hedefli testlerine `api.tests.test_journey_runner`, `test_journey_report`, `test_journey_schema`, `test_journeys` girer. Yeni numaralı senaryonun türü rapor tablosuna eklenir.
+- **[Hız] Tam paket:** yalnız dilim sonunda ve planın ara kapılarında.
+- **[Güvenlik] İnceleme seviyesi:** para, kayıt ve Geri Al'a dokunan işte önce kırmızı test, sonra düzeltme; inceleme bağımsız ve Opus ile. Küçük kırmızı-yeşil ya da yalnız test düzeltmesine ucuz yeniden inceleme yeter; para/kayıt/Geri Al'a dokunmayan tek satırlık ya da yalnız metin düzeltmede, kırmızı-yeşil testi varsa atlanabilir (ledger'a Ruling; dilim sonu bütün dal incelemesi kapsar).
+- **[Kalite] Bilinen kırıklar:** başka yerde görülen kırığın kökeni commit'e kadar izlenir; "zaten kırıktı" kabul edilmez, gerçekten eskiyse deftere yazılır. Aynı kodda yinelenen koşuda sonuç değişiyorsa flake'tir: bisect yok, tohum sabitlenir. Köken bulunamazsa deftere "kökeni bilinmiyor" yazılır, kapıya etkisi değerlendirilir.
+- **[Hız] Belirsizlik ve karar:** çalışan plan insan beklemez. Dur ve sor yalnız dört durumda (başka durma koşulu yok): geri alınamaz/yıkıcı işlem; güvenlik açısından hassas işlem (anahtar, harcama dahil); worktree dışı yan etki (yeşil CI olmadan push veya merge, ölü kod silme işinin push/PR/merge'ü, herkese açık yayın); her yolu tahmine bırakan bozuk plan. Diğer her belirsizlikte karar ver, ledger'a `Ruling: <karar> — <neden> — <yanlışsa maliyeti>` yaz.
+- **[Hız] Park etme:** küçük bulgu deftere "park" olarak yazılır, işi durdurmaz; kapıyı etkileyen kırık durdurur. Sahipsiz park bırakılmaz.
+- **[Kalite] Yeniden kullanım:** yeni kod yazmadan önce repoda ve standart kütüphanede hazır olanı ara (`docs/agents/implementer-preamble.md` madde h); para/kayıt/Geri Al kodunda doğrulama, hata işleme, makbuz, denetim ve testler ASLA azalmaz.
+- **[Kalite] Test yeniden yazımı:** eski davranışı sabitleyen test ancak eşit sıkılıkla yeniden yazılır ve onay listesine girer; sınırı değiştiren her değişiklik "gevşetme olabilir" diye işaretlenir ve işi durdurmaz. İşaretsiz gevşetme, atlama ya da silme işi durdurur.
+- **[Hız] Hız kuralları:** tam metin `docs/agents/hiz-kurallari.md` (uygulamadan önce okunur): çakışan inceleme, her implementer istemine `docs/agents/implementer-preamble.md`, brifte satır numarası değil işlev/dosya adı, hızlı katman, paketleme, süreli bekleme döngüleri. Tur bölmede kalite önde gelir; hız kuralları belge ve arayüz yazısı işlerinde tam uygulanır (Kadir, 2026-11-22).
 
-### Hız kuralları (güvenlik ve kaliteden ödün vermeden)
-
-*Ledger = çalışmakta olan planın `.superpowers/sdd/<plan>/progress.md` dosyası. 1. ve 2. maddeler pilottur: dilim sonunda ledger'daki ölçümle tutulur, budanır ya da değiştirilir.* Tam metin: `docs/agents/hiz-kurallari.md`; bir maddeyi uygulamadan önce oradaki tam hâlini oku.
-
-1. **[Hız] Çakışan inceleme (pilot):** görev N incelenirken N+1'in implementer'ı başlayabilir; yalnız N+1, N'nin çıktısını tüketmiyorsa ve dosya listeleri çakışmıyorsa. İnceleme `git archive <sha>` kopyasında ayrı slotta koşar; iki implementer asla aynı anda yazmaz.
-2. **[Kalite] İmplementer kontrol listesi (pilot):** her implementer istemine `docs/agents/implementer-preamble.md` konur; her madde cevaplanır.
-3. **[Hız] Brifler:** satır numarası değil işlev/dosya adı verilir.
-4. **[Hız] Hızlı katman:** görev içinde hızlı set (yeni testler + komşu geçit seti), uzun set görev sonunda bir kez; süre ölçülür, tahmin edilmez.
-5. **[Hız] Paketleme:** küçük, aynı şekilli, bağımsız işler tek brif ve tek diff; kendi karar, test ya da inceleme yüzeyi olan iş paketlenmez.
-6. **[Hız] Bekleme döngüleri:** her bekleme döngüsünün üst süresi olur; oturum ve dilim sonunda açık `bash`/`sleep` süreçleri kontrol edilir.
-
-**[Güvenlik] Dokunulmaz:** para/kayıt/Geri Al için bağımsız inceleme, sıfır tolerans yolculukları, dilim sonu tam paket ve bütün dal incelemesi (en güçlü model), main/dev'e yalnız kullanıcı onayıyla merge.
+**[Güvenlik] Dokunulmaz:** para/kayıt/Geri Al için Opus ile bağımsız inceleme, sıfır tolerans yolculukları, dilim sonu tam paket ve Opus ile bütün dal incelemesi, main'e yalnız yeşil CI ile merge.
 
 ## Sahibin kuralları (tek kaynak)
 
-Bunlar Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esastır. Yukarıdaki "Çalışma ve test disiplini" ile çelişirse güvenlik ve kalite kazanır.
+Kadir'in kalıcı kurallarıdır; bellek dosyaları değil bu bölüm esastır. Çelişkide güvenlik ve kalite kazanır.
 
-- **[Güvenlik] Push/merge/yayın:** yalnız Kadir'in o işlem için taze onayıyla; force push yok (geri alınamaz, başkasının işini siler).
-- **[Güvenlik] CI kontrolü:** her push/merge sonrası `gh run list --repo kadirkayarr-beep/AI-DND` ile 'AI-DND bounded verification' bakılır (CI yalnız main push ve pull_request'te çalışır); kırmızıyı hemen bildir, sonra düzelt, yeşil olmadan "bitti" deme (yerel yeşil CI'ın yerini tutmaz). Merge'den hemen önce main'in son koşusuna yeniden bakılır; kırmızıysa ya da sürüyorsa merge edilmez, Kadir'e yazılır (Kadir, 2026-11-13). Dar istisna (Kadir, 2026-11-14): main kırmızıyken merge yalnız şu üç koşul birlikte sağlanırsa olur: (a) PR'ın son koşusu yeşil ve kaydında "Merge <PR ucu> into <main'in şu anki ucu>" yazıyor; (b) main'in her kırmızı denemesinin düşen satırı okunmuş ve borç defterinde kayıtlı rastgele kırık; (c) o merge için Kadir'in taze onayı.
-- **[Güvenlik] Commit kaybı:** birleştirmeden/push'tan önce dal ve commitlerin başka yerde olup olmadığına bak (hedef uç atası mı); eski Ekim dallarına dokunulmaz (iş kaybı geri alınamaz).
+- **[Güvenlik] Push/merge/yayın (Kadir, 2026-11-22; Kadir geri alana kadar):** yeşil CI'dan sonra push, PR ve main'e merge için kalıcı onay var. Ölü kod silme işinin push/PR/merge'ü, her silme ve herkese açık yayın ayrıca sorulur. Force push yok, dal silinmez (geri alınamaz).
+- **[Güvenlik] CI kontrolü:** her push/merge sonrası `gh run list --repo kadirkayarr-beep/AI-DND` ile 'AI-DND bounded verification' bakılır (CI yalnız main push ve pull_request'te çalışır); kırmızı hemen bildirilir, sonra düzeltilir; yeşil olmadan "bitti" denmez (yerel yeşil CI'ın yerini tutmaz). Merge'den hemen önce main'in son koşusuna bakılır; kırmızıysa ya da sürüyorsa merge edilmez, Kadir'e yazılır. Dar istisna (Kadir, 2026-11-14): main kırmızıyken merge yalnız üç koşul birlikte sağlanırsa olur: (a) PR'ın son koşusu yeşil ve kaydında "Merge <PR ucu> into <main'in şu anki ucu>" yazıyor; (b) main'in her kırmızı denemesinin düşen satırı okunmuş ve borç defterinde kayıtlı rastgele kırık; (c) o merge için Kadir'in taze onayı.
+- **[Güvenlik] Commit kaybı:** birleştirmeden/push'tan önce dal ve commitlerin başka yerde olup olmadığına bak (hedef uç atası mı); eski Ekim dallarına dokunulmaz.
 - **[Güvenlik] Anahtarlar:** anahtar/API dosyaları okunmaz, yazdırılmaz, commit edilmez; anahtarları yalnız sahibi girer (sızıntı geri alınamaz).
-- **[Güvenlik] Dış kod ve veri:** doğrulanmamış skill, hook, npx kurulmaz; önce repo okunur, yalnız markdown içerenler kurulur; ekran görüntüsü ya da veri dış servise sorulmadan gönderilmez (gizlilik, gizli hook riski).
-- **[Güvenlik] Silme koruması:** silmeden önce hedefe bak (kirli dosya, uzak dalda olmayan commit); dallar silinmez (kayıp geri alınamaz).
-- **[Hız] Paralel çalışma:** güvenlik ve kaliteden ödün vermeden mümkünse bağımsız işler aynı anda yürütülür: ayrı worktree, tek yazıcı, ayrı test yuvası (bkz. Hız kuralı 1).
-- **[Hız] Tek durma koşulları:** liste "Belirsizlik ve karar" maddesindeki dört durumdur (geri alınamaz/yıkıcı, güvenlik açısından hassas, worktree dışı yan etki, bozuk plan); burada tekrarlanmaz, başka durma koşulu eklenmez.
-- **[Hız] Token tasarrufu ve model seçimi:** haftalık limit dar; ucuz model işlere, güçlü incelemeler (para/kayıt/Geri Al ve bütün-dal) Opus ile; fable yalnız Kadir o iş için söylerse; yeni numaralı iş için önce bütçe tahmini.
-- **[Kalite] Sahibin dili:** kısa, açık, dürüst ve sade Türkçe; Kadir programcı değil, doğrulamadığını söyle (yanlış güven zarar verir); harcama/push/merge/silme için onay iste.
-- **[Kalite] Oynayış kapısı (Kadir, 2026-11-12):** Kadir en az 10 dakika oynamadan hiçbir dilim "bitti" sayılmaz; testlerin yeşil olması oynayışın yerini tutmaz. Oynayış yapılmadıysa ledger'a "oynayış bekliyor" yazılır ve sonraki dilim başlamaz.
-- **[Kalite] Sabah özeti (Kadir, 2026-11-12):** Kadir yokken yapılan her çalışmanın sonunda en çok beş satırlık sade Türkçe özet yazılır: ne değişti, neden, hangi dosyalarda, ne doğrulandı, Kadir'den ne bekleniyor.
-- **[Hız] Kısa yazım ve az okuma (Kadir, 2026-11-14):** Yazarken: önce sonuç, sonra kanıt, sonra Kadir'den beklenen. Araç çağrıları arasında anlatım yok; raporda adım adım "şunu yaptım" dökümü yok. Bir cümle bir fikir. Sayılar, komutlar, dosya yolları ve hata metinleri birebir yazılır; "değil", "yalnız", "hiç" gibi anlamı çeviren sözcükler atılmaz. Güvenlik uyarısı, geri alınamaz işlem ve Kadir'in anlamadığını söylediği konu tam cümleyle yazılır. Okurken: test ve CI çıktısının tamamı okunmaz; önce düşen satır aranır, yalnız o bölüm açılır. Aynı dosya aynı oturumda ikinci kez baştan okunmaz. Rapor üst sınırı 25 satır; sığmayan ayrıntı dosyaya yazılır, raporda yalnız yolu verilir.
-- **[Kalite] Hata önceliği (Kadir, 2026-11-14):** bulunan her hata borç defterine KRİTİK/YÜKSEK/ORTA/DÜŞÜK ile yazılır; hiçbiri göz ardı edilmez; çözüm bu sırayla yapılır.
-- **[Kalite] Zar kuralları (Kadir, 2026-11-14):** oyundaki her zar, beceri testi, kurtarma ve saldırı `docs/design/ZAR_KURALLARI_DND2024_20261114.md` (D&D 2024 / SRD 5.2.1) rehberine uyar. Zar işine başlamadan önce rehberin karar ağacı (bölüm 2) ve ilgili bölüm okunur; zar yalnız sonuç belirsizse atılır, zar çözülmeden durum (para, eşya, can, sahiplik) değişmez; rehberin test kataloğu (D01–V02) zar işlerinin test listesidir.
-- **[Hız] Eski kayıtlar (Kadir, 2026-11-16, defalarca söyledi):** eski kayıtların hiçbir önemi yok, silinebilir; yalnız yeni kayıtlar önemli. Eski kayıt uyumluluğu için iş yapılmaz, Kadir'e eski kayıt sorusu sorulmaz.
+- **[Güvenlik] Dış kod ve veri:** doğrulanmamış skill, hook, npx kurulmaz; önce repo okunur, yalnız markdown içerenler kurulur; ekran görüntüsü ya da veri dış servise sorulmadan gönderilmez.
+- **[Güvenlik] Silme koruması:** silmeden önce hedefe bak (kirli dosya, uzak dalda olmayan commit); her silme Kadir'e sorulur; dallar silinmez.
+- **[Hız] Model ve tahmin (Kadir, 2026-11-22):** haftalık limit dar: işlere ucuz model; para/kayıt/Geri Al ve bütün-dal incelemesi Opus; fable yalnız Kadir o iş için söylerse. Tur bölme Kadir'in seçimiyle Fable ile yürür; Fable'ın haftalık limiti biterse kalan parça Opus ile sürer (ledger'a Ruling). Her dilimden önce Kadir'e tahmini gün, model başına token, tam paket ve oynayış sayısı yazılır (geçmiş ledger'lardan); tahmin bilgidir, iş beklemez; yalnız tur bölmenin planı ve tahmini Kadir'in onayını bekler. Tahmini aşan dilim durmaz; aşım nedeniyle `docs/design/YOL_HARITASI.md`'ye yazılır. Dilim sonunda gerçek gün ve token aynı PR'da yol haritasına yazılır; ölçülmeyen sayıya "ölçülmedi" denir.
+- **[Kalite] Oynayış kapısı (Kadir, 2026-11-12; 2026-11-22):** oyun koduna (motor, API, arayüz, içerik JSON'ları) dokunan dilim, Kadir en az 10 dakika oynamadan "bitti" sayılmaz ve main'e girmez; yeşil test oynayışın yerini tutmaz. Oynayış beklerken sonraki dilim kendi worktree'sinde, öncekinin üstünde başlayabilir; oynayış bekleyen en çok üç dilim olur, dördüncüsü başlamaz ve Kadir'e haber verilir. Bekleyen dilimler en üstteki sürümde tek oynayışla, birleşik kontrol listesiyle oynanır; sorun çıkan dilim ve üstündekiler bekler, gerisi main'e girer. Yalnız test, belge ya da CI dosyasına dokunan iş oynayış beklemez ve üç dilim sınırına sayılmaz. Oynanmadıysa ledger'a "oynayış bekliyor" yazılır.
+- **[Kalite] Sabah özeti (Kadir, 2026-11-12):** Kadir yokken yapılan her çalışmanın sonunda en çok beş satırlık sade Türkçe özet: ne değişti, neden, hangi dosyalarda, ne doğrulandı, Kadir'den ne bekleniyor.
+- **[Hız] Kısa yazım ve az okuma (Kadir, 2026-11-14):** önce sonuç, sonra kanıt, sonra Kadir'den beklenen; araç çağrıları arasında anlatım yok. Sayılar, komutlar, yollar ve hata metinleri birebir; "değil", "yalnız", "hiç" atılmaz. Güvenlik uyarısı, geri alınamaz işlem ve Kadir'in anlamadığı konu tam cümleyle. Test/CI çıktısında önce düşen satır aranır; aynı dosya aynı oturumda iki kez baştan okunmaz. Rapor en çok 25 satır; fazlası dosyaya.
+- **[Kalite] Hata önceliği (Kadir, 2026-11-14):** her hata borç defterine KRİTİK/YÜKSEK/ORTA/DÜŞÜK ile yazılır; hiçbiri göz ardı edilmez; çözüm bu sırayla.
+- **[Kalite] Zar kuralları (Kadir, 2026-11-14):** her zar, beceri testi, kurtarma ve saldırı `docs/design/ZAR_KURALLARI_DND2024_20261114.md` (D&D 2024 / SRD 5.2.1) rehberine uyar: önce karar ağacı (bölüm 2) okunur; zar yalnız sonuç belirsizse atılır; zar çözülmeden durum (para, eşya, can, sahiplik) değişmez; test kataloğu (D01–V02) zar işlerinin test listesidir.
+- **[Hız] Eski kayıtlar (Kadir, 2026-11-16):** eski kayıtların önemi yok; uyumluluk işi yapılmaz, eski kayıt sorusu sorulmaz.
 
 ## Otonom çalışma ve izinler
 
-- İzinler `.claude/settings.json` dosyasındadır: dosya düzenleme onaysızdır; push, merge, PR ve silme her seferinde Kadir'e sorulur; main/dev'e doğrudan push, force push ve dal silme kapalıdır.
+- İzinler `.claude/settings.json` dosyasındadır: dosya düzenleme onaysızdır; silme komutları her seferinde sorulur; force push, main/dev'e doğrudan push ve dal silme kapalıdır.
 - Bir komut reddedilirse aynı işi başka yazımla (ör. `git -C`, `bash -c`) deneme; ne yapmak istediğini Kadir'e yaz.
 - "Bitti" demeden önce koşunun çıktısını göster; koşmadığın testi geçti sayma.
 - **[Hız] Eski kanıt:** `attached_assets/`, `docs/design/arsiv/`, `docs/acceptance/`, `.local/evidence/` toplu okunmaz; yalnız adı verilen tek kayıt açılır.
@@ -103,7 +90,7 @@ Bu bölüm `artifacts/ai-dnd-experience` altındaki her görsel değişiklik iç
 - **[Kalite] Kısayolu söyle:** bir şey basit yoldan yapıldıysa ya da bırakıldıysa raporun ilk satırına "Kısayol: <ne, neden>" yazılır. Söylenmemiş kısayol, işaretsiz gevşetme sayılır ve işi durdurur.
 - **[Kalite] Tek ekran, tek oturum:** bir oturum bir ekranı (ya da bir paneli) bitirir. Sıradaki ekran yeni oturumda başlar.
 - **[Kalite] Ayrı göz:** ekran görüntüleri, kodu yazmamış ayrı bir oturumda `ui-design-review:review` ile incelenir. Bulgular önem sırasıyla Kadir'e gider; hangilerinin düzeltileceğine Kadir karar verir.
-- **[Kalite] Model:** tasarım dilini kuran iş (ilk ekran, ortak görsel kurallar, yeni gösterge) en güçlü modelle yapılır. O kurallara uyan tekrar işleri ucuz modelle yapılabilir. Bu, "Token tasarrufu ve model seçimi" kuralının arayüz istisnasıdır.
+- **[Kalite] Model:** tasarım dilini kuran iş (ilk ekran, ortak görsel kurallar, yeni gösterge) en güçlü modelle yapılır. O kurallara uyan tekrar işleri ucuz modelle yapılabilir. Bu, "Model ve tahmin" kuralının arayüz istisnasıdır.
 - **[Kalite] Kabul:** bir ekranı yalnız Kadir kabul eder. Test yeşili ve inceleme raporu kabul değildir.
 
 ## İçerik kapsamı ve açık kapı
