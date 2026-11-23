@@ -361,6 +361,47 @@ class WhitelistShrinkTests(unittest.TestCase):
         self.assertEqual(self.run_cli(self.OLD, self.git(128, "", "fatal: bad ref"))[0], 2)
 
 
+class FingerprintShrinkTests(unittest.TestCase):
+    """Gitleaks baseline: Fingerprint set may only shrink versus the base ref."""
+
+    @staticmethod
+    def git(code, out="", err=""):
+        return types.SimpleNamespace(returncode=code, stdout=out, stderr=err)
+
+    @staticmethod
+    def doc(*fps):
+        return json.dumps([{"Fingerprint": f} for f in fps])
+
+    def run_cli(self, new_text, git_result):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "gitleaks-baseline.json"
+            f.write_text(new_text, encoding="utf-8")
+            out, err = io.StringIO(), io.StringIO()
+            with mock.patch.object(ratchet.subprocess, "run", return_value=git_result), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = ratchet.main(["check-fingerprints-shrink", str(f), "origin/main"])
+            return code, out.getvalue() + err.getvalue()
+
+    def test_added_fingerprint_exits_1(self):
+        code, text = self.run_cli(self.doc("a:1", "b:2", "c:3"), self.git(0, self.doc("a:1", "b:2")))
+        self.assertEqual(code, 1)
+        self.assertIn("c:3", text)
+
+    def test_removed_and_equal_exit_0(self):
+        self.assertEqual(self.run_cli(self.doc("a:1"), self.git(0, self.doc("a:1", "b:2")))[0], 0)
+        self.assertEqual(self.run_cli(self.doc("a:1"), self.git(0, self.doc("a:1")))[0], 0)
+
+    def test_absent_at_base_is_first_introduction(self):
+        err = "fatal: path 'x' exists on disk, but not in 'origin/main'"
+        self.assertEqual(self.run_cli(self.doc("a:1"), self.git(128, "", err))[0], 0)
+
+    def test_git_failure_exits_2(self):
+        self.assertEqual(self.run_cli(self.doc("a:1"), self.git(128, "", "fatal: bad ref"))[0], 2)
+
+    def test_unusable_json_or_missing_fingerprint_exits_2(self):
+        self.assertEqual(self.run_cli("not json", self.git(0, self.doc("a:1")))[0], 2)
+        self.assertEqual(self.run_cli(json.dumps([{"RuleID": "x"}]), self.git(0, self.doc("a:1")))[0], 2)
+
+
 class PythonGateTests(unittest.TestCase):
     WHITELIST = ROOT / "scripts" / "quality_gate" / "vulture_whitelist.py"
 

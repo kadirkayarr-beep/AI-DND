@@ -259,6 +259,43 @@ def _check_names_shrink(path: Path, ref: str) -> int:
     return 1 if grown else 0
 
 
+def _fingerprints(text: str) -> set[str]:
+    data = json.loads(text)
+    if not isinstance(data, list):
+        raise ValueError("gitleaks baseline is not a JSON list")
+    out = set()
+    for f in data:
+        fp = f.get("Fingerprint") if isinstance(f, dict) else None
+        if not isinstance(fp, str) or not fp:
+            raise ValueError("gitleaks baseline entry has no Fingerprint")
+        out.add(fp)
+    return out
+
+
+def _check_fingerprints_shrink(path: Path, ref: str) -> int:
+    """Gitleaks baseline: the Fingerprint set may only shrink versus `ref`."""
+    try:
+        new = _fingerprints(path.read_text(encoding="utf-8"))
+        rel = os.path.relpath(path)
+        res = subprocess.run(
+            ["git", "show", f"{ref}:./{Path(rel).as_posix()}"],
+            capture_output=True, text=True, encoding="utf-8", check=False,
+        )
+        if res.returncode != 0:
+            if "does not exist in" in res.stderr or "exists on disk, but not in" in res.stderr:
+                return 0
+            print(f"BASELINE ERROR: git show failed: {res.stderr.strip()}", file=sys.stderr)
+            return 2
+        old = _fingerprints(res.stdout)
+    except (OSError, ValueError) as exc:
+        print(f"BASELINE ERROR: {exc}", file=sys.stderr)
+        return 2
+    grown = sorted(new - old)
+    for g in grown:
+        print(f"GREW: gitleaks fingerprint {g} is new")
+    return 1 if grown else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["check-shrink"]:
@@ -268,6 +305,13 @@ def main(argv: list[str] | None = None) -> int:
         sp.add_argument("base_ref")
         a = sp.parse_args(argv)
         return _check_shrink(a.baseline, a.base_ref)
+    if argv[:1] == ["check-fingerprints-shrink"]:
+        sp = argparse.ArgumentParser(prog="ratchet check-fingerprints-shrink")
+        sp.add_argument("mode")
+        sp.add_argument("baseline", type=Path)
+        sp.add_argument("base_ref")
+        a = sp.parse_args(argv)
+        return _check_fingerprints_shrink(a.baseline, a.base_ref)
     if argv[:1] == ["check-names-shrink"]:
         sp = argparse.ArgumentParser(prog="ratchet check-names-shrink")
         sp.add_argument("mode")

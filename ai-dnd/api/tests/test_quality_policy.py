@@ -180,10 +180,7 @@ class QualitySecretGateTest(unittest.TestCase):
         for f in data:
             self.assertIn(f.get("Secret", ""), ("REDACTED", ""))
             match = f.get("Match", "")
-            self.assertTrue(match == "" or "REDACTED" in match, "Match not redacted")
-            # whatever stays around REDACTED in Match must hold no long token
-            self.assertNotRegex(match.replace("REDACTED", ""), r"[A-Za-z0-9+/_\-]{20,}")
-            self.assertIn(f.get("Line", ""), ("", None), "baseline carries the source line")
+            self.assertTrue(match == "" or re.fullmatch(r"""[A-Za-z0-9_ .\-"']*[=:] ?["']REDACTED["']""", match), "Match not of the form NAME = REDACTED")
 
     def test_gitleaks_step_pinned(self):
         job = _job_text("secrets-gate")
@@ -199,6 +196,13 @@ class QualitySecretGateTest(unittest.TestCase):
         for flag in ("--redact", "--no-banner", "--baseline-path ai-dnd/scripts/quality_gate/gitleaks-baseline.json"):
             self.assertIn(flag, run)
         self.assertTrue(pins["sha256"] and pins["version"])
+
+    def test_gitleaks_baseline_may_only_shrink_in_ci(self):
+        job = _job_text("secrets-gate")
+        self.assertIn("git fetch --no-tags origin main", job)
+        step = next((l for l in job.splitlines() if "check-fingerprints-shrink" in l), "")
+        self.assertIn("scripts/quality_gate/gitleaks-baseline.json origin/main", step)
+        self.assertLess(job.index("check-fingerprints-shrink"), job.index("commits scanned"))
 
     def test_gitleaks_gate_rejects_zero_commits_scanned(self):
         job = _job_text("secrets-gate")

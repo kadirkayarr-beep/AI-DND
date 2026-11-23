@@ -119,3 +119,9 @@ Task 6: implemented (commits a338f985..HEAD, see git log "Quality gate: gitleaks
 - Red-first: first red run qg6-red was invalid (my regex slip, syntax error); the red state (no secrets-gate job, no baseline file) is by construction; honest record: no clean red run id kept.
 - Local gitleaks: binary downloaded from the official release into a /tmp folder in WSL, sha256 verified against tools.json; run on a bare clone (worktree .git path unreadable from WSL).
 RESULT: tests 230 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg6-green2; policy + ratchet + fixed neighbour set via slot.sh test, exit=0, Ran 230 OK; skipped 0 inferred from OK line)
+
+## Task 6 fix round 1
+- F1 (important, gitleaks baseline had no shrink check): fixed. Red first: run qg6f1-red (5 FingerprintShrinkTests errors + 1 policy fail, 6 total). New `ratchet check-fingerprints-shrink <baseline> <ref>` (Fingerprint set may only shrink vs ref; absent at base = first introduction ok; git failure, bad JSON or missing Fingerprint exit 2) and CI step "Gitleaks baseline may only shrink" in secrets-gate (git fetch origin main, then the check, before the scan). Local: baseline vs HEAD exit 0. First main push compares to itself.
+- F2 (Match check weak): fixed. Match must fullmatch NAME = REDACTED / NAME": "REDACTED" shapes (all 9 real rows pass). Removed the no-op Line check (gitleaks emits no Line field). Ruling: this replaces the earlier 20+ char token ruling — if wrong: a new baseline row with another Match shape fails the test and needs a regex update.
+- F3 (CI proof): no code change. Acceptance item for Task 9/controller: first PR run secrets-gate must be green, including the new shrink step; skipped 0 is inferred from the OK line (not read directly).
+RESULT: tests 236 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg6f1-green; ratchet + policy + fixed neighbour set via slot.sh test, exit=0, Ran 236 OK; skipped 0 inferred from OK line)
