@@ -376,7 +376,7 @@ class TextB1Part(unittest.TestCase):
             ("düz metin", False, "düz metin"),
         )
         for raw, expected, after in salvage:
-            with self.subTest(helper="_salvage_plain_speech", raw=after):
+            with self.subTest(helper="_salvage_plain_speech", after=after):
                 self.assertIs(game._salvage_plain_speech(raw), expected)
                 self.assertEqual(raw, after)
 
@@ -1686,6 +1686,26 @@ NEVERWINTER = {"campaign_start": {
     "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}}
 
 
+class _UnclearFrontReading:
+    """Answers the flag-on front reading (the turn's classifier call) with a valid "unclear" reading, so the old chain
+    stays in charge without the "Classifier unavailable" warning; every other call goes to the client the test uses."""
+
+    def __init__(self, inner):
+        self.inner = inner
+
+    def chat(self, *args, **kwargs):
+        if "front" not in ((kwargs.get("format") or {}).get("properties") or {}):
+            return self.inner.chat(*args, **kwargs)
+        front = {"kind": "unclear", "person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none",
+                 "answer": "none", "inside": False, "timing": "now"}
+        packet = {"intent": "narrative", "action": "narrative", "target": {"type": "none", "reference": ""},
+                  "completion": "unclear", "confidence": 0.9, "front": front}
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
+
 class TurnIdentityNames(unittest.IsolatedAsyncioTestCase):
     """Plan 5 Task 2 (Ruling J): turn code hands the engine module, not its own module, to arrival and heard rumours.
 
@@ -1713,7 +1733,10 @@ class TurnIdentityNames(unittest.IsolatedAsyncioTestCase):
     async def test_a_local_place_turn_hands_the_game_module_to_arrival(self):
         import arrival_narration
         session_id = await self._session_id(20261401)
-        with patch.object(arrival_narration, "arrive", wraps=arrival_narration.arrive) as arrive:
+        adapter = self.app.state.ollama_adapter
+        with patch.object(adapter, "_client", _UnclearFrontReading(adapter._client)), \
+                patch.object(arrival_narration, "arrive", wraps=arrival_narration.arrive) as arrive, \
+                self.assertNoLogs("ai_dnd.api.ollama", level="WARNING"):
             await self._turn(session_id, message="Arşive gidiyorum.")
         arrive.assert_called_once()
         self.assertIs(arrive.call_args.args[0], game)
@@ -1726,8 +1749,10 @@ class TurnIdentityNames(unittest.IsolatedAsyncioTestCase):
                "reality_layer": "PROCEDURAL_LOCAL_FICTION"}
         local_dialogue.ensure_personal_profile(npc)
         world["npcs"].append(npc)
-        with patch.object(self.app.state.ollama_adapter, "_client", rumour_turn._Client(rumour_turn.MENTION)), \
-                patch.object(heard_rumours, "record_mention", wraps=heard_rumours.record_mention) as record:
+        with patch.object(self.app.state.ollama_adapter, "_client",
+                          _UnclearFrontReading(rumour_turn._Client(rumour_turn.MENTION))), \
+                patch.object(heard_rumours, "record_mention", wraps=heard_rumours.record_mention) as record, \
+                self.assertNoLogs("ai_dnd.api.ollama", level="WARNING"):
             await self._turn(session_id, message="Buralarda duyduğun bir şey var mı?", target_id="npc_t2_edric",
                              interaction_mode="say")
         record.assert_called_once()
