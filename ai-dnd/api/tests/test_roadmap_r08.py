@@ -29,6 +29,9 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_api import FakeOllamaClient
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8610
 
 
 class CompactionTests(unittest.IsolatedAsyncioTestCase):
@@ -36,7 +39,8 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.db_path = Path(self.temporary_directory.name) / "campaigns.sqlite3"
         self.build()
-        created = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(created.status_code, 200, created.text)
         self.created = created.json()
         self.cid, self.sid = self.created["campaign_id"], self.created["session_id"]
@@ -167,7 +171,8 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
         measurements = []
         for count in (10, 100, 1000, 10000):
             with self.subTest(actions=count):
-                created = await self.http.post("/api/game/campaigns", json={})
+                with default_town(self, TOWN_SEED):
+                    created = await self.http.post("/api/game/campaigns", json={})
                 cid = created.json()["campaign_id"]
                 self.insert_synthetic(cid, count, reply)
                 size_before = self.vacuumed_size()

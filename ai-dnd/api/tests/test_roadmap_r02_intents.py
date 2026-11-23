@@ -41,6 +41,9 @@ from api.persistence.campaign_store import CampaignNotFoundError, CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import PLAYER_B, TEST_PLAYER
 from api.tests.test_campaign_api import FakeOllamaClient
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8570
 
 OK_TURN = {"narration": "Kapıdan hafif bir ses geliyor.",
            "action_result": {"action": "world_interaction", "status": "resolved", "success": True, "state_changes": []}}
@@ -62,7 +65,8 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
         http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver")
         self.clients.append(http)
         if create:
-            created = await http.post("/api/game/campaigns", json={})
+            with default_town(self, TOWN_SEED):
+                created = await http.post("/api/game/campaigns", json={})
             self.assertEqual(created.status_code, 200, created.text)
             self.campaign_id = created.json()["campaign_id"]
             session_id = created.json()["session_id"]
@@ -156,7 +160,8 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_other_campaigns_are_never_blocked(self):
         await self.leave_open_by_outage(self.body())
-        other = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            other = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(other.status_code, 200, other.text)
         other_session = other.json()["session_id"]
         self.manager.get(other_session).game_session.run_player_turn = self.counted_turn
@@ -477,7 +482,8 @@ class RoadmapR02IntentTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("schema", str(caught.exception).lower())
 
     async def test_deleting_a_campaign_removes_its_intents_and_refusals_and_only_its_own(self):
-        other = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            other = await self.http.post("/api/game/campaigns", json={})
         other_id, other_session = other.json()["campaign_id"], other.json()["session_id"]
         self.manager.get(other_session).game_session.run_player_turn = self.counted_turn
         await self.leave_open_by_outage(self.body())

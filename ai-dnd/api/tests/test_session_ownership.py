@@ -13,6 +13,9 @@ from api.persistence.campaign_models import CampaignNotFoundError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager, UnknownSessionError
 from api.tests.auth_fixture import PLAYER_A, PLAYER_B, SAME_SUBJECT
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8630
 
 
 _LIVE = (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
@@ -34,9 +37,10 @@ class SessionOwnershipTests(unittest.TestCase):
         self.manager = SessionManager(campaign_store=self.store)
 
     def _create(self, principal, name: str):
-        campaign_id, session_id, record, _ = self.manager.create_campaign(
-            name=name, principal=principal,
-        )
+        with default_town(self, TOWN_SEED):
+            campaign_id, session_id, record, _ = self.manager.create_campaign(
+                name=name, principal=principal,
+            )
         return campaign_id, session_id, record
 
     def test_session_id_without_principal_is_not_access(self):
@@ -116,7 +120,8 @@ class SessionOwnershipTests(unittest.TestCase):
         def create(principal, name):
             token = bind_principal(principal)
             try:
-                campaign_id, session_id, record, _ = self.manager.create_campaign(name=name)
+                with default_town(self, TOWN_SEED):
+                    campaign_id, session_id, record, _ = self.manager.create_campaign(name=name)
                 created[name] = (campaign_id, session_id, record)
             except Exception as error:
                 errors.append(error)
