@@ -228,4 +228,4 @@ Task 9b: implemented (commits 086b6e50..c3154dc3)
 - Runs (slot 9): tb10-3-off first run had reds (sensitivity, parts_pilot, a non-existing test_shops module) all fixed. tb10-3b-off exit 0, 1325 tests (neighbour set, 6 engine locks + sensitivity, cut_tool, parts_pilot, 22 money tests, api, campaign_api, interaction_adventure, talk_front, stage10a, 7 shop modules); tb10-3b-fon (gate_boot first, which sets the flag) exit 0, 1325 tests. routing_audit clean.
 - Review: Step 4 Opus independent review is the controller's dispatch (money-marked rows; Review Focus 5). Reviewer: check _tg_shop_* against sensitive.json, _tg_hint_intent (parse_player_intent), _tg_scene_plan (plan_living_world_turn), refused row 3521.
 - Play: oynayış bekliyor.
-Task 10: implemented (commits f5636b8f..COMMIT)
+Task 10: implemented (commits f5636b8f..4d2b1716)
