@@ -1,6 +1,6 @@
 # Hız kuralları (tam metin)
 
-`CLAUDE.md` içindeki "Hız kuralları" bölümünün kısaltılmamış hâlidir; özet orada, uygulanacak tam kural buradadır. Çelişkide güvenlik ve kalite kazanır.
+`CLAUDE.md` içindeki "Hız kuralları" maddesinin kısaltılmamış hâlidir; özet orada, uygulanacak tam kural buradadır. Çelişkide güvenlik ve kalite kazanır.
 
 *Ledger = çalışmakta olan planın `.superpowers/sdd/<plan>/progress.md` dosyası. 1. ve 2. maddeler pilottur: dilim sonunda (devir görevinde) ledger'daki ölçümle tutulur, budanır ya da değiştirilir.*
 

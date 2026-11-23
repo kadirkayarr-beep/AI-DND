@@ -63,10 +63,6 @@
       "Bash(bash /c/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh *)"
     ],
     "ask": [
-      "Bash(git push *)",
-      "Bash(git merge *)",
-      "Bash(gh pr create *)",
-      "Bash(gh pr merge *)",
       "Bash(git reset --hard*)",
       "Bash(git clean *)",
       "Bash(git worktree remove *)",
@@ -85,6 +81,11 @@
       "Bash(git push -u origin dev/ai-dnd*)",
       "Bash(git push * HEAD:dev/ai-dnd*)",
       "Bash(git push * --delete *)",
+      "Bash(git push * +*)",
+      "Bash(git push * --mirror*)",
+      "Bash(git push * --prune*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --delete-branch*)",
       "Bash(git branch -D *)",
       "Bash(git branch -d *)",
       "Read(//c/Users/Kadir/Desktop/apikeys.txt)",

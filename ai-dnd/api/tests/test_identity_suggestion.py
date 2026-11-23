@@ -8,6 +8,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from queue import Empty
 
 os.environ["AI_DND_DISABLE_DEFAULT_APP"] = "1"
 
@@ -32,6 +33,25 @@ class OwnedService(IdentitySuggestionService):
 
     def prompt_for(self, request_id, owner=TEST_PLAYER):
         return super().prompt_for(request_id, owner)
+
+
+class SteppedService(OwnedService):
+    """No background worker: the test runs the queued jobs itself, so no read races a late worker."""
+
+    def _ensure_worker(self):
+        pass
+
+    def run_queued(self):
+        while True:
+            try:
+                owner_key, request_id = self._queue.get_nowait()
+            except Empty:
+                return
+            with self._lock:
+                job = self._jobs.get((owner_key, request_id))
+                if job is not None:
+                    self._release_queue_slot(job)
+            self._execute(owner_key, request_id)
 
 
 PROTECTED_DATABASES = {
@@ -278,7 +298,8 @@ class IdentitySuggestionIsolationTests(unittest.TestCase):
         from api.tests.auth_fixture import PLAYER_A, PLAYER_B
 
         provider = CrossUserProvider()
-        suggestions = OwnedService(provider, budget=1, timeout_seconds=2)
+        # The provider answers at once; 30 s is only a ceiling, so a loaded box cannot time it out.
+        suggestions = SteppedService(provider, budget=1, timeout_seconds=30)
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             database = Path(directory) / "campaigns.sqlite3"
             self.assertNotIn(database.resolve(), PROTECTED_DATABASES)
@@ -310,6 +331,7 @@ class IdentitySuggestionIsolationTests(unittest.TestCase):
                         "current_text": "MARKER-A",
                     })
                     self.assertEqual(created.status_code, 200, created.text)
+                    suggestions.run_queued()
                     for path in (
                         "/api/game/character-identity-suggestions/shared-request",
                         "/api/character-identity-suggestions/shared-request",
@@ -326,6 +348,10 @@ class IdentitySuggestionIsolationTests(unittest.TestCase):
                     })
                     self.assertEqual(stolen.status_code, 200, stolen.text)
                     self.assertNotEqual(stolen.json()["suggestion"], "SUGGESTION-A")
+                    suggestions.run_queued()
+                    own = await client_b.get("/api/character-identity-suggestions/shared-request")
+                    self.assertEqual(own.status_code, 200, own.text)
+                    self.assertEqual(own.json()["suggestion"], "SUGGESTION-B")
                     exhausted = await client_a.post("/api/character-identity-suggestions", json={
                         "draft_id": "other-draft",
                         "field": "origin",

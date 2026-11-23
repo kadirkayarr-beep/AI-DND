@@ -1,0 +1,297 @@
+{
+ "today": {
+  "lines": 11920,
+  "blank": 1468,
+  "comment_only": 503,
+  "code": 9949
+ },
+ "today_top_level_blank_runs": {
+  "1": 7,
+  "2": 87,
+  "3": 12,
+  "4": 20,
+  "5": 2,
+  "6": 8,
+  "8": 4,
+  "10": 2,
+  "12": 4,
+  "14": 3,
+  "15": 1,
+  "16": 4,
+  "18": 2,
+  "19": 1,
+  "20": 3,
+  "22": 3,
+  "26": 1,
+  "28": 1,
+  "30": 2,
+  "36": 1,
+  "49": 1,
+  "54": 1,
+  "56": 1,
+  "60": 1,
+  "62": 1,
+  "74": 1
+ },
+ "projection": {
+  "batches_still_to_move": {
+   "cr-s": 1,
+   "dialogue-s": 8,
+   "intent-s": 6,
+   "lore-s": 1,
+   "lwt-s": 2,
+   "narration-s-1": 8,
+   "narration-s-2": 6,
+   "places-s": 10,
+   "p5:front-1": 13,
+   "p5:front-2": 30,
+   "p5:front-3": 8,
+   "p5:turn-1": 13,
+   "p5:turn-2": 2,
+   "p5:turn-3": 1
+  },
+  "names_still_to_move": 109,
+  "after_plan_5": {
+   "lines": 2158,
+   "blank": 1292,
+   "comment_only": 92,
+   "code": 774
+  },
+  "top_level_blank_runs": {
+   "1": 5,
+   "2": 18,
+   "3": 13,
+   "4": 5,
+   "5": 2,
+   "6": 1,
+   "8": 1,
+   "16": 2,
+   "20": 1,
+   "22": 2,
+   "24": 1,
+   "28": 1,
+   "30": 2,
+   "31": 1,
+   "33": 1,
+   "38": 1,
+   "44": 1,
+   "54": 1,
+   "56": 1,
+   "69": 1,
+   "109": 1,
+   "130": 1,
+   "156": 1,
+   "210": 1
+  },
+  "after_blank_rule_keep_2": {
+   "lines": 1021,
+   "blank": 155,
+   "comment_only": 92,
+   "code": 774
+  },
+  "after_blank_rule_keep_1": {
+   "lines": 961,
+   "blank": 95,
+   "comment_only": 92,
+   "code": 774
+  },
+  "remaining_top_level_names": 658,
+  "remaining_kinds": {
+   "other": 7,
+   "import": 630,
+   "assign": 13,
+   "function": 7,
+   "class": 1
+  }
+ },
+ "today_after_blank_rule_keep_2": {
+  "lines": 10999,
+  "blank": 547,
+  "comment_only": 503,
+  "code": 9949
+ },
+ "parts": {
+  "__init__.py": {
+   "lines": 1,
+   "blank": 0,
+   "comment_only": 0,
+   "code": 1
+  },
+  "character_rules.py": {
+   "lines": 458,
+   "blank": 97,
+   "comment_only": 6,
+   "code": 355
+  },
+  "coin.py": {
+   "lines": 238,
+   "blank": 24,
+   "comment_only": 2,
+   "code": 212
+  },
+  "combat_flow.py": {
+   "lines": 2206,
+   "blank": 104,
+   "comment_only": 33,
+   "code": 2069
+  },
+  "dialogue.py": {
+   "lines": 1305,
+   "blank": 118,
+   "comment_only": 53,
+   "code": 1134
+  },
+  "intent.py": {
+   "lines": 1176,
+   "blank": 66,
+   "comment_only": 39,
+   "code": 1071
+  },
+  "living_world_turn.py": {
+   "lines": 226,
+   "blank": 6,
+   "comment_only": 0,
+   "code": 220
+  },
+  "lore.py": {
+   "lines": 1021,
+   "blank": 46,
+   "comment_only": 4,
+   "code": 971
+  },
+  "narration.py": {
+   "lines": 510,
+   "blank": 26,
+   "comment_only": 13,
+   "code": 471
+  },
+  "narration_safety.py": {
+   "lines": 1505,
+   "blank": 68,
+   "comment_only": 54,
+   "code": 1383
+  },
+  "new_game.py": {
+   "lines": 200,
+   "blank": 7,
+   "comment_only": 1,
+   "code": 192
+  },
+  "places.py": {
+   "lines": 1283,
+   "blank": 72,
+   "comment_only": 25,
+   "code": 1186
+  },
+  "savefile.py": {
+   "lines": 1089,
+   "blank": 30,
+   "comment_only": 12,
+   "code": 1047
+  },
+  "schemas.py": {
+   "lines": 301,
+   "blank": 17,
+   "comment_only": 22,
+   "code": 262
+  },
+  "tables.py": {
+   "lines": 388,
+   "blank": 60,
+   "comment_only": 0,
+   "code": 328
+  },
+  "terminal.py": {
+   "lines": 187,
+   "blank": 63,
+   "comment_only": 16,
+   "code": 108
+  },
+  "text_rules_a.py": {
+   "lines": 923,
+   "blank": 131,
+   "comment_only": 27,
+   "code": 765
+  },
+  "text_rules_b.py": {
+   "lines": 982,
+   "blank": 96,
+   "comment_only": 26,
+   "code": 860
+  }
+ },
+ "dead_name_scan": {
+  "count": 3,
+  "lines": 31,
+  "candidates": [
+   {
+    "name": "update_world_state_from_player",
+    "file": "game.py",
+    "lines": 5,
+    "count_outside_bookkeeping": 1,
+    "count_everywhere": 25
+   },
+   {
+    "name": "_filter_unsupported_lore_paragraphs",
+    "file": "game_parts/lore.py",
+    "lines": 13,
+    "count_outside_bookkeeping": 2,
+    "count_everywhere": 9
+   },
+   {
+    "name": "_existing_local_tavern",
+    "file": "game_parts/places.py",
+    "lines": 13,
+    "count_outside_bookkeeping": 2,
+    "count_everywhere": 8
+   }
+  ]
+ },
+ "spec_candidates": [
+  {
+   "name": "_filter_unsupported_lore_paragraphs",
+   "where": [
+    "game_parts/lore.py",
+    13
+   ],
+   "count_outside_bookkeeping": 2,
+   "count_everywhere": 9
+  },
+  {
+   "name": "_existing_local_tavern",
+   "where": [
+    "game_parts/places.py",
+    13
+   ],
+   "count_outside_bookkeeping": 2,
+   "count_everywhere": 8
+  },
+  {
+   "name": "analyze_player_action",
+   "where": [
+    "game_parts/intent.py",
+    10
+   ],
+   "count_outside_bookkeeping": 4,
+   "count_everywhere": 16
+  },
+  {
+   "name": "update_world_state_from_player",
+   "where": [
+    "game.py",
+    5
+   ],
+   "count_outside_bookkeeping": 1,
+   "count_everywhere": 25
+  },
+  {
+   "name": "is_dialogue_or_emotion",
+   "where": [
+    "game_parts/intent.py",
+    3
+   ],
+   "count_outside_bookkeeping": 4,
+   "count_everywhere": 12
+  }
+ ]
+}
