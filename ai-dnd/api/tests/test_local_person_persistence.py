@@ -158,6 +158,8 @@ class LocalPersonPersistenceTests(unittest.IsolatedAsyncioTestCase):
             },
         )
         self.assertEqual(turn.status_code, 200, turn.text)
+        self.assertEqual(turn.json()["turn_outcome"]["action"], "dialogue")
+        self.assertEqual(turn.json()["turn_outcome"]["status"], "created_local_person")
         session = self.manager.get(campaign["session_id"]).game_session
         made = [n for n in session.world_state["npcs"] if n.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"]
         self.assertEqual([n["name"] for n in made], ["Neris"])
