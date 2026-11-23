@@ -293,3 +293,9 @@ Task 12: implemented (commits 66ed91c6..d7966c68)
 ## Task 12 fix round 1 (2026-11-23)
 - Review had one minor finding (game.py budget 1110 -> 1116 = +6 R8 re-exports; turn.py and _dispatch_player_turn only down; _run_player_turn_internal unchanged). Finding's own fix: none; keep approval-list row.
 - Ruling: no code change — finding agrees with ledger, approval-list row stays — nothing to red-test — none; no tests re-run (no code touched).
+
+## Task 12 fix round 2 (2026-11-23)
+- Finding 1 (minor, sensitive.json has no _td_* keys): Ruling: no code change — the 6 _td_* helpers are item/save-adjacent, not coin; cut_check CHANGED 0 shows statement order and text equal the original, and both flags ran green (failing_ids 0). DILIM-END LIST: _td_parcel_board (pocket.resolve, equipment_economy.execute) and _td_strike_fallen (combat_lifecycle.strike_the_fallen) were checked by hand against the original only via cut_check, reviewer was Sonnet-level — if wrong: a save-adjacent block got Sonnet review only; whole-branch review (Opus) at dilim end covers it.
+- Finding 2 (minor, game.py budget 1110 -> 1116): Ruling: no change — equals the 6 R8 re-export lines and the real size; turn.py 2428 -> 2318 and _dispatch_player_turn 458 -> 348 only fell, no frozen function grew. APPROVAL LIST row kept (R8, "gevşetme olabilir").
+- Run: none (ledger only, no code or test file touched since d7966c68).
+Task 12 fix round 2: done
