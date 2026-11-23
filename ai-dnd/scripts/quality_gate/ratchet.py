@@ -2,7 +2,7 @@
 
 CLI (run from ai-dnd/): python -m scripts.quality_gate.ratchet check|update <tool> <report-file>
        python -m scripts.quality_gate.ratchet check-shrink <baseline-file> <base-ref>
-Exit codes: 0 ok, 1 new findings, 2 tool output unusable, 3 baseline may only shrink.
+Exit codes: 0 ok, 1 new findings (check) or baseline grew (check-shrink), 2 tool output or baseline unusable.
 """
 from __future__ import annotations
 
@@ -85,10 +85,10 @@ def _base_counts(path: Path, ref: str) -> Counts | None:
     data = json.loads(res.stdout)
     if not isinstance(data, dict):
         raise ValueError("base baseline is not a JSON object")
-    try:
-        return {k: int(v) for k, v in data.items()}
-    except TypeError as exc:
-        raise ValueError(f"base baseline has a non-number count: {exc}") from exc
+    for k, v in data.items():
+        if type(v) is not int or v < 0:
+            raise ValueError(f"base baseline count for {k!r} is not a non-negative integer")
+    return dict(data)
 
 
 def _check_shrink(path: Path, ref: str) -> int:

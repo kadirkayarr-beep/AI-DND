@@ -224,6 +224,10 @@ class CheckShrinkCliTests(unittest.TestCase):
         for body in ("[1, 2]", "null", '{"a": null}', '{"a": [1]}'):
             self.assertEqual(self.run_cli({"a": 1}, self.git(0, body))[0], 2, body)
 
+    def test_non_int_or_negative_base_counts_exit_2(self):
+        for body in ('{"a": 1.9}', '{"a": true}', '{"a": "3"}', '{"a": -1}'):
+            self.assertEqual(self.run_cli({"a": 1}, self.git(0, body))[0], 2, body)
+
     def test_git_missing_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:
             f = Path(tmp) / "r.json"
