@@ -8,6 +8,7 @@ long yes still answers the question. Real app, real engine; only the model clien
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -153,7 +154,7 @@ class AskedBlowsAreTheAskedMove(unittest.IsolatedAsyncioTestCase):
         reply = await self.line("Evet, şu adamı sertçe itiyorum.")
         shove = self.players_last_attack()
         self.assertEqual(shove["unarmed_option"], "shove")
-        self.assertNotIn("0 hasar", reply["narration"])
+        self.assertIsNone(re.search(r"(?<!\d)0 hasar", reply["narration"]))  # "10 hasar" (a counter-blow) is no zero-damage shove
         save = shove["resolution"]
         self.assertIn(f"DC {save['dc']}", reply["narration"])
         self.assertIn(str(save["total"]), reply["narration"])
