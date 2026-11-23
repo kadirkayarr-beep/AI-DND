@@ -183,3 +183,8 @@ RESULT: tests 273 skipped 0 failing_ids 0 PAR_EXIT=0 (slot 9, qg9-final; flip + 
 - F1 (new file entry <= part_max gets a fresh budget): Ruling: no code change. Check would need real file sizes (filesystem + root), but size_lock_growth compares two JSON dicts and runs in CI against git blobs; the existing slack test already caps any entry at real size + 50. If wrong: a renamed file can hold up to part_max budget, bounded by the slack test; review sees the lock diff.
 - F2 (doc secrets-gate row): fixed, added "baseline yalnız küçülür" to docs/agents/kalite-kapisi.md. Text-only, no test run.
 - F3 (Step 3 health check, Step 3b required checks, Step 5 push/PR/CI/debt-register): controller/owner items, worker cannot do them (no push, no repo settings). Slice is NOT done until controller: pushes, first PR CI green (python-gate incl. size lock shrink, secrets-gate, ui-gate), asks Kadir to mark the 3 jobs required, copies Task 4 answers into the debt register, checks gh run list.
+
+## Task 9 fix round 2
+- F1 (new small file entry in size_lock.json may carry budget up to part_max): Ruling: accepted, no code change. Check cannot see real sizes; slack test caps entry at real size +50. Optional CI step comparing budgets with real sizes for new entries: parked, owner controller. If wrong: bounded by slack test, review sees lock diff.
+- F2 (Step 3 health check not run; slice not done): Ruling: no worker action possible (no push, no repo settings). Controller acceptance items stay open: push, first PR CI green (python-gate incl. size lock shrink, secrets-gate, ui-gate), Kadir marks 3 jobs required, Task 4 answers into debt register, gh run list. NOT done until CI green.
+- No code or test changed, so no test run.
