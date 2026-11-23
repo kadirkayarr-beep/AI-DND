@@ -1953,7 +1953,7 @@ def _run_player_turn_internal(
                 preparsed_scene_intent or {}
             )
         )
-        and isinstance(locals().get("preparsed_scene_intent"), dict)
+        and isinstance(preparsed_scene_intent, dict)
     ):
         local_proposal = game._validated_local_person_proposal(
             preparsed_scene_intent
