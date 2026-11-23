@@ -442,6 +442,7 @@ What each buys:
 - **Stage boundary:** Kadir picks the minimum version, or the weekly token limit runs out during Stage 2. The slice ends after Task 7. Stage 2 rows go to the ledger as parks with their `cuts-base.json` rows, and nothing is half-cut. Each task is self-contained.
 - **Refusals:** `cut_block.py` refuses more than 30 % of a task's rows. Park them and finish the task with the rest. If the minimum set cannot reach "under 151" for `_finish_turn` or `_narrate_resolved_turn`, stop and report: then B2 needs the context-object design (a new spec).
 - **Identity:** `cut_check.py` shows `CHANGED` above 0. Redo the cut from scratch; never patch it forward.
+- **Evidence:** from Task 8 on, save every `cut_block --report` and the `cut_check` output under `docs/superpowers/plans/2026-11-23-tur-bolme-measure/` next to the RESULT line in the ledger.
 - **Speed:** a speed ratio above 1.10 at Task 7 or Task 13 stops the slice and is reported.
 - **New failures:** a targeted run shows a failure that `TBBASE` did not have. Trace it to its commit and fix or revert that cut. Never accept it as "zaten kırıktı".
 - **Overrun:** an estimate overrun does not stop the slice (S3). It is written to the roadmap with its reason.
