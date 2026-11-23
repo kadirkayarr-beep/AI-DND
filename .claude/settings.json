@@ -63,10 +63,6 @@
       "Bash(bash /c/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh *)"
     ],
     "ask": [
-      "Bash(git push *)",
-      "Bash(git merge *)",
-      "Bash(gh pr create *)",
-      "Bash(gh pr merge *)",
       "Bash(git reset --hard*)",
       "Bash(git clean *)",
       "Bash(git worktree remove *)",
