@@ -326,5 +326,24 @@ class KnipFallowParserTests(unittest.TestCase):
             "fallow|artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx|unused_exports|RageControl"], 2)
 
 
+class PythonGateTests(unittest.TestCase):
+    WHITELIST = ROOT / "scripts" / "quality_gate" / "vulture_whitelist.py"
+
+    def test_planted_unused_import_is_new(self):
+        baseline = count_findings(parse_ruff(ruff_report(1, "known.py"), root="/r"))
+        planted = count_findings(parse_ruff(ruff_report(1, "/r/scratch_new.py"), root="/r"))
+        self.assertTrue(compare(baseline, planted))
+
+    def test_vulture_whitelist_has_no_string_literals(self):
+        self.assertTrue(self.WHITELIST.is_file(), "whitelist missing")
+        lines = [ln for ln in self.WHITELIST.read_text(encoding="utf-8").splitlines() if ln.strip()]
+        code = [ln for ln in lines if not ln.lstrip().startswith("#")]
+        self.assertTrue(code, "whitelist has no entries")
+        for ln in code:
+            self.assertRegex(ln, r"^[A-Za-z_][\w.]*  # unused .+$", ln)
+            self.assertNotIn('"', ln.split("#", 1)[0])
+            self.assertNotIn("'", ln.split("#", 1)[0])
+
+
 if __name__ == "__main__":
     unittest.main()
