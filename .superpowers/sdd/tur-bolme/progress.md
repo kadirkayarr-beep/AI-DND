@@ -278,3 +278,14 @@ Task 11b: implemented (commits b18c535e..7bceb323)
 - Finding 2 (minor, 5 refused T11b rows): Ruling: no change — refusal is correct, no hand cut; cut_check CHANGED 0 proves the rows are untouched. Dilim-end list owners (both open): (a) PARK plain-name fix first (own commit, red test first), then cut the 5 refused T11b rows (valid_speech_packet/raw_spoken, heard_rumours, about; ~130 lines) together with T10 rows 3521/3585; (b) T11a PARK flow-sensitive cut_block (fall-off-path output, red test first) still open for T12/T13.
 - Run: none (ledger only, no code or test file touched since 7bceb323).
 Task 11b fix round 1: done
+
+## Task 12 (2026-11-23)
+- Step 1 (red first): test_the_dispatch_step_helpers_exist_and_are_short failed on tb12-red (no part file). 6 T12 rows cut bottom-up with cut_block.py from `_dispatch_player_turn` into game_parts/turn_dispatch_steps.py: _td_scene_plan_direct, _td_parcel_board, _td_strike_fallen, _td_fallen_address, _td_end_conversation (all B, 0 outputs), _td_combat_mode (A, 2 outputs: interaction_mode, target_id). Largest helper < 151. _dispatch_player_turn 458 -> 348, turn.py 2428 -> 2318, game.py 1110 -> 1116.
+- Ruling: occurrences recounted by startswith on the current file (T9a rule): `if (` rows are occ 1 and occ 11, the two `if combat_action is None and interaction_mode not in {"say", "ask_dm"}:` rows occ 2 and 1 — if wrong: cut_check would show CHANGED.
+- Ruling: sensitive.json word scan on the helpers: 0 hits, so no sensitive.json edit and Sonnet review suffices. The row-4 helper _td_strike_fallen carries save/session_write flags (combat_lifecycle.strike_the_fallen, not a sensitive.json key); reviewer may upgrade it to Opus — if wrong: a save-adjacent block gets Sonnet only.
+- Step 2: cut_check.py --base-root (git archive HEAD 66ed91c6 in /tmp/tb-t12-base) -> CHANGED 0. Evidence: docs/superpowers/plans/2026-11-23-tur-bolme-measure/t12_cut_report.json, t12_cut_check.txt.
+- Step 3 locks: size_budget game.py 1116 (+6 R8 re-exports = real size), turn.py 2318, _dispatch_player_turn 348; surface.json +6 (pure add); test_engine_parts_pilot list +turn_dispatch_steps; new strict helper-set test. APPROVAL LIST (gevşetme olabilir): game.py files budget +6 = real size (R8, unplanned rise as T10/T11); new strict helper-set test; pilot list pure addition.
+- Runs (slot_gate slot 9, 69 modules: neighbour set, test_engine_*, money_tests.txt, api, campaign_api, interaction_adventure, talk_front, stage10a, fallen/parcel/board/end_conversation/dialogue/scene/combat/conversation): tb12-3-off tests 1488 skipped 2 failing_ids 0 PAR_EXIT=0; tb12-3-fon (gate_boot first) tests 1488 skipped 1 failing_ids 0 PAR_EXIT=0.
+- Review: Step 4 Sonnet review is the controller's dispatch (Opus if it judges _td_strike_fallen save-adjacent). T11a PARK (flow-sensitive cut_block) had no row in T12; stays open for T13 and the dilim-end list.
+- Play: oynayış bekliyor.
+Task 12: implemented (commits 66ed91c6..d7966c68)
