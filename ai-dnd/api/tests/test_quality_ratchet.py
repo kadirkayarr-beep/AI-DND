@@ -220,6 +220,10 @@ class CheckShrinkCliTests(unittest.TestCase):
     def test_garbage_base_content_exits_2(self):
         self.assertEqual(self.run_cli({"a": 1}, self.git(0, "{not json"))[0], 2)
 
+    def test_non_object_base_content_exits_2(self):
+        for body in ("[1, 2]", "null", '{"a": null}', '{"a": [1]}'):
+            self.assertEqual(self.run_cli({"a": 1}, self.git(0, body))[0], 2, body)
+
     def test_git_missing_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:
             f = Path(tmp) / "r.json"

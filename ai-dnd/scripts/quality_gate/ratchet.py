@@ -82,7 +82,13 @@ def _base_counts(path: Path, ref: str) -> Counts | None:
         if "does not exist in" in res.stderr or "exists on disk, but not in" in res.stderr:
             return None
         raise OSError(f"git show failed: {res.stderr.strip()}")
-    return {k: int(v) for k, v in json.loads(res.stdout).items()}
+    data = json.loads(res.stdout)
+    if not isinstance(data, dict):
+        raise ValueError("base baseline is not a JSON object")
+    try:
+        return {k: int(v) for k, v in data.items()}
+    except TypeError as exc:
+        raise ValueError(f"base baseline has a non-number count: {exc}") from exc
 
 
 def _check_shrink(path: Path, ref: str) -> int:
