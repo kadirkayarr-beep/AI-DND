@@ -701,6 +701,7 @@ def begin(session, *, typed: bool = False) -> None:
                             else "skipped:typed" if typed else "owner_first")
     session._front_reached = False
     session._speech_checks = None  # D-252: set by a person's reply this turn, names only
+    session._speech_repair = None  # D-332: "model_repair" or "model_repair_failed", this turn only
 
 
 def end(session) -> None:
@@ -758,6 +759,9 @@ def log_turn(session, result: Any) -> None:
     checks = getattr(session, "_speech_checks", None)
     if isinstance(checks, list):
         entry["speech"] = list(checks)  # D-252: which speech checks changed or replaced the reply
+    repair = getattr(session, "_speech_repair", None)
+    if repair:
+        entry["speech"] = [*entry.get("speech", []), repair]  # D-332: the model's one repair, or its failure
     _logger.info("Turn route %s", json.dumps(entry, ensure_ascii=False))
     path = os.environ.get(ROUTE_LOG, "").strip()
     if not path:

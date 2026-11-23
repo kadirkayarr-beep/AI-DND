@@ -3203,7 +3203,7 @@ def _run_player_turn_internal(
                 text, world_state=world_state, npc_target=npc_target, player_input=player_input,
                 action_result=action_result, experimental_npc_dialogue=experimental_npc_dialogue,
                 experimental_unverified_claim=experimental_unverified_claim, narration_source=narration_source,
-                python_town_response=python_town_response,
+                python_town_response=python_town_response, attributed_speech=attributed_speech,
             )
             text, python_town_response, narration_source = after["text"], after["python_town_response"], after["narration_source"]
             final_safety_reason_code, final_safety_handling, stock_swapped = after["reason_code"], after["handling"], after["stock_swapped"]

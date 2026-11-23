@@ -1532,8 +1532,82 @@ def _experimental_speech_note(world, npc, name_stance, player_input):
             + town_knowledge.money_decided_note(getattr(game._session(), "_thread_turn", None)) + "\n")
 
 
+def _repair_npc_speech(world, npc, player_input, rejected, reason_code, action_result):
+    """D-332: the one repair of an answer the safety check rejected. Two fields come back and nothing else is read."""
+    import json
+    import town_knowledge
+    from api import model_phase
+    problems = {
+        "INVENTED_PLAYER_ACTION": "Oyuncunun yaptığı bir şeyi anlattın; yalnız kendi sözünü ve jestini yaz.",
+        "UNSUPPORTED_ITEM_TRANSFER": "Oyuncuya eşya ya da ikram verdiğini söyledin; verilmeyen bir şeyi anlatma.",
+    }
+    try:
+        user = {
+            "context": game._experimental_npc_dialogue_context(world, npc),
+            "player_message": player_input,
+            "rejected": {key: rejected.get(key, "") for key in ("spoken_text", "stage_direction")},
+            "known": [item.get("text") for item in town_knowledge.public_knowledge(world, npc)],
+            "problem": problems.get(
+                reason_code, "Cevabın denetimden geçmedi; aynı soruya kısa ve kendi sözünle yeniden cevap ver."),
+        }
+        schema = {"type": "object",
+                  "properties": {"spoken_text": {"type": "string", "maxLength": 600},
+                                 "stage_direction": {"type": "string", "maxLength": 600}},
+                  "required": ["spoken_text", "stage_direction"], "additionalProperties": False}
+        system = ("Aynı NPC olarak oyuncunun son sorusuna yeniden cevap ver; aşağıdaki sorunu düzelt, başka hiçbir şeyi "
+                  "değiştirme. Yalnız JSON yaz.\n" + game._speech_answer_rules())
+        with model_phase.repair_call():
+            response = game.ollama.chat(
+                model="qwen3:8b",
+                messages=[{"role": "system", "content": system},
+                          {"role": "user", "content": json.dumps(user, ensure_ascii=False)}],
+                format=schema, think=False, options=game._EXPERIMENTAL_NPC_SPEECH_OPTIONS)
+        packet = game._extract_json_object(game.ollama_response_content(response))
+        if not isinstance(packet, dict) or not isinstance(packet.get("spoken_text"), str):
+            return None
+        backed = town_knowledge.money_backed_by(world, npc)  # the repair's own figures are never trusted
+        payload = {
+            "source": "experimental_attributed_speech",  # stamped by Python, as the speech call's own payload
+            "speaker_id": npc["id"],
+            "spoken_text": town_knowledge.without_unbacked_money(packet["spoken_text"].strip(), allowed=backed),
+            "stage_direction": town_knowledge.without_unbacked_money(
+                game._clean_npc_stage_direction(packet.get("stage_direction")), allowed=backed),
+        }
+        if not payload["spoken_text"].strip() or len(payload["spoken_text"]) > 600:
+            return None
+        decision = game._narration_safety_decision(
+            game._compose_experimental_npc_speech(payload), player_input, npc, action_result, attributed_speech=payload)
+        if (decision.get("unsafe") or game._is_explicit_name_led_gesture_line(payload["spoken_text"], npc)
+                or not game._dialogue_repair_has_attributed_answer(payload, npc, action_result)):
+            return None
+        return payload
+    except Exception:
+        return None
+
+
+def _question_bound_answer(world, npc, player_input):
+    """D-332: what this person says when no model answer could be used: bound to their question, never a rumour
+    that does not answer it. Without a reading there is nothing to bind to: today's lead."""
+    import town_knowledge
+    reading = talk_front.current(game._session())
+    asks = reading.get("asks") if isinstance(reading, dict) else None
+    if asks is None or asks in ("rumour", "work"):
+        return game._person_fallback(world, npc, player_input)
+    place = world.get("locations", {}).get(reading.get("place_id"))
+    if asks == "place" and isinstance(place, dict) and place.get("name"):
+        where = "Bu sokakta" if place.get("parent_location_id") == npc.get("location") else "Yakınlarda"
+        last = next((ch for ch in reversed(place["name"].casefold()) if ch in "aıoueiöü"), "a")  # mı / mi / mu / mü
+        particle = "mı" if last in "aı" else "mi" if last in "ei" else "mu" if last in "ou" else "mü"
+        spoken = f"{place['name']} {particle}? {where}."
+    else:
+        ask_there = town_knowledge._brush_off_place(world, npc)
+        spoken = (f"Onu bilmiyorum; {ask_there} tarafına sor." if ask_there
+                  else interaction_adventure.immersive_unknown(npc, player_input))
+    return game._compose_experimental_npc_speech({"spoken_text": spoken, "stage_direction": ""})
+
+
 def _speech_after_check(text, *, world_state, npc_target, player_input, action_result, experimental_npc_dialogue,
-                        experimental_unverified_claim, narration_source, python_town_response):
+                        experimental_unverified_claim, narration_source, python_town_response, attributed_speech=None):
     narration_safety = getattr(game._session(), "last_narration_safety", None)
     narration_safety = (
         narration_safety if isinstance(narration_safety, dict) else {}
@@ -1548,14 +1622,24 @@ def _speech_after_check(text, *, world_state, npc_target, player_input, action_r
     stock_swapped = experimental_npc_dialogue and game._is_stock(text)
     if stock_swapped:
         # A clear line never earns "say it again": the person answers from what Python has for them.
-        text = game._person_fallback(world_state, npc_target, player_input)
+        text = game._question_bound_answer(world_state, npc_target, player_input)
     elif (experimental_npc_dialogue and final_safety_handling == "python_fallback"
             and not experimental_unverified_claim and action_result.get("action") != "skill_check"
             and interaction_adventure._asks(player_input)):  # a greeting keeps the fallback's own answer
         # D-249 F1: a speech the safety check rejected is replaced by what the person has to say from Python
         # (job, town lead, place to ask), never by the stock "I don't know" the fallback wrote.
-        text = game._person_fallback(world_state, npc_target, player_input)
-        if text != interaction_adventure.immersive_unknown(npc_target, player_input):
-            python_town_response = text
+        repaired = (game._repair_npc_speech(world_state, npc_target, player_input, attributed_speech,
+                                            final_safety_reason_code, action_result)
+                    if isinstance(attributed_speech, dict) and str(attributed_speech.get("spoken_text", "")).strip()
+                    else None)  # an empty line is no answer a safety check rejected
+        if repaired is not None:
+            text = game._render_experimental_npc_speech(repaired, npc_target)
+            narration_source = "qwen"
+            game._session()._speech_repair = "model_repair"
+        else:
+            text = game._question_bound_answer(world_state, npc_target, player_input)
+            game._session()._speech_repair = "model_repair_failed"
+            if text != interaction_adventure.immersive_unknown(npc_target, player_input):
+                python_town_response = text
     return {"text": text, "python_town_response": python_town_response, "narration_source": narration_source,
             "reason_code": final_safety_reason_code, "handling": final_safety_handling, "stock_swapped": stock_swapped}
