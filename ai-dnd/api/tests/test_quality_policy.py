@@ -62,6 +62,9 @@ def workflow_violations(text: str, baseline_required: bool | None = None) -> lis
                 is_plain_pip_install = re.search(r"pip\s+install", line) and "[" not in line
                 if "--no-upload" not in line and not is_plain_pip_install:
                     bad.append("skylos without --no-upload: " + where)
+            if "skylos==" in line and not re.search(
+                    r"skylos==\d[\d.]*(\s|$)|print\('skylos=='\+t\['skylos'\]\)", line):
+                bad.append("skylos pin line not plain: " + where)
             if re.search(r"\bvulture\s+(?!==)[^=\s]", line) \
                     and "--min-confidence 80" not in line:
                 bad.append("vulture without --min-confidence 80: " + where)
@@ -113,6 +116,15 @@ class QualityWorkflowPolicyTest(unittest.TestCase):
         self.assertEqual(workflow_violations("      - run: python -m pip install skylos==4.1.0"), [])
         self.assertTrue(workflow_violations("      - run: python -m pip install skylos[llm]==4.1.0"))
         self.assertTrue(workflow_violations("      - run: skylos ai-dnd --json"))
+
+    def test_skylos_pkg_one_liner_has_no_extra(self):
+        good = "          PKG=$(python -c \"import json;t=json.load(open('x.json'));print('skylos=='+t['skylos'])\")"
+        self.assertEqual(workflow_violations(good), [])
+        for bad in (good.replace("'skylos=='", "'skylos[llm]=='"),
+                    good.replace("'skylos=='+", "'skylos[llm]=='+"),
+                    good.replace("+t['skylos']", "+t['skylos']+'[llm]'"),
+                    good.replace("print('skylos=='+t['skylos'])", "print('skylos==' + t['x'])")):
+            self.assertTrue(workflow_violations(bad), bad)
 
     def test_step_names_are_not_commands(self):
         self.assertEqual(workflow_violations("      - name: skylos scan" + chr(10) + "      - name: fallow report"), [])
