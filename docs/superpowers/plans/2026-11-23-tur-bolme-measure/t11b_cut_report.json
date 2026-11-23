@@ -1,0 +1,107 @@
+{
+  "helpers": [
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if not invalid_or_empty and (",
+      "occurrence": null,
+      "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):",
+      "helper": "_ts_town_response",
+      "part": "game_parts/turn_speech.py",
+      "class": "A",
+      "params": [
+        "experimental_unverified_claim",
+        "invalid_or_empty",
+        "npc_target",
+        "player_input",
+        "python_town_response",
+        "raw_intent",
+        "text",
+        "unverified_history_echo",
+        "world_state"
+      ],
+      "outputs": [
+        "python_town_response",
+        "text"
+      ],
+      "block": "            if not invalid_or_empty and (\n                unverified_history_echo\n                or raw_intent.get(\"world_updates\")\n                or raw_intent.get(\"lore_claims\")\n                or not interaction_adventure.safe_narration(text)\n            ):\n                if experimental_unverified_claim:\n                    text = game.historical_claim_denial(npc_target, player_input)\n                else:\n                    # D-249 F1: the person passes on a lead (job, town, place to ask) before any bare \"I don't know\".\n                    text = game._person_fallback(world_state, npc_target, player_input)\n                    if text != interaction_adventure.immersive_unknown(npc_target, player_input):\n                        python_town_response = text",
+      "indent": "            "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "text = game.finalize_narration(",
+      "occurrence": null,
+      "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):",
+      "helper": "_ts_finalize_text",
+      "part": "game_parts/turn_speech.py",
+      "class": "A",
+      "params": [
+        "action_result",
+        "attributed_speech",
+        "invalid_spoken_stage_direction",
+        "npc_target",
+        "player_input",
+        "python_town_response",
+        "text",
+        "unverified_history_echo"
+      ],
+      "outputs": [
+        "text"
+      ],
+      "block": "            text = game.finalize_narration(\n                text, player_input, npc_target, action_result,\n                fallback_reason_code=(\n                    \"INVALID_NARRATION\"\n                    if invalid_spoken_stage_direction\n                    else \"UNVERIFIED_PLAYER_CLAIM_ECHO\"\n                    if unverified_history_echo else None\n                ),\n                attributed_speech=attributed_speech,\n                python_town_response=python_town_response,\n            )",
+      "indent": "            "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if experimental_npc_dialogue:",
+      "occurrence": 4,
+      "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):",
+      "helper": "_ts_accepted_text",
+      "part": "game_parts/turn_speech.py",
+      "class": "A",
+      "params": [
+        "accepted_model_speech",
+        "action_result",
+        "attributed_speech",
+        "experimental_npc_dialogue",
+        "final_safety_handling",
+        "npc_target",
+        "player_input",
+        "profile_focus",
+        "stock_swapped",
+        "text",
+        "text_before_finalize",
+        "world_state"
+      ],
+      "outputs": [
+        "text"
+      ],
+      "block": "            if experimental_npc_dialogue:\n                if accepted_model_speech:\n                    if not (game._is_short_followup(player_input) and profile_focus):\n                        interaction_adventure.retire_conversation_focus(world_state)\n                    text = game._render_experimental_npc_speech(\n                        attributed_speech, npc_target\n                    )\n                else:\n                    name = living_world.public_npc_name(npc_target)\n                    if (action_result.get(\"action\") == \"skill_check\" and final_safety_handling == \"python_fallback\"\n                            and not stock_swapped and text != text_before_finalize and not text.casefold().startswith(name.casefold())):\n                        # The safety put the check's own narration in place of the reply (\"\u0130ncelemen sonu\u00e7\n                        # vermedi\"): that is the narrator's, not theirs. It stays as narration, outside any quote,\n                        # and the person answers in their own words (Task 34, review M3).\n                        own = game._person_fallback(world_state, npc_target, player_input)\n                        text = f\"{text} {own if own.casefold().startswith(name.casefold()) else f'{name}, \u201c{own}\u201d'}\"\n                    elif not text.casefold().startswith(name.casefold()):\n                        text = f'{name}, \u201c{text}\u201d'",
+      "indent": "            "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if (price_reply_accepted and negotiation is not None",
+      "occurrence": null,
+      "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):",
+      "helper": "_ts_price_reply_commit",
+      "part": "game_parts/turn_speech.py",
+      "class": "A",
+      "params": [
+        "action_result",
+        "negotiation",
+        "npc_target",
+        "player_input",
+        "price_reply_accepted",
+        "resolve_intent",
+        "target_id"
+      ],
+      "outputs": [],
+      "block": "            if (price_reply_accepted and negotiation is not None\n                    and negotiation[\"npc_id\"] == npc_target.get(\"id\")):\n                if action_result.get(\"action\") == \"skill_check\":\n                    # A statement may already have rolled through deterministic social routing.\n                    # Reuse that authoritative outcome; never reroll or reapply its world effects.\n                    check = {\"skill\": action_result.get(\"skill\"),\n                             \"result\": \"BA\u015eARILI\" if action_result.get(\"outcome\") == \"success\" else \"BA\u015eARISIZ\"}\n                    note = money_owner.haggle(game._session(), npc_target, check,\n                                               negotiation=negotiation, player_input=player_input)\n                    if note:\n                        action_result[\"haggle_note\"] = note\n                else:\n                    price_result = resolve_intent({\"intent\": \"persuasion\", \"price_negotiation\": negotiation},\n                                                  player_input, npc_target=npc_target, target_id=target_id)\n                    if price_result.get(\"action\") == \"skill_check\":\n                        action_result.update(price_result)",
+      "indent": "            "
+    }
+  ]
+}

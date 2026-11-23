@@ -466,6 +466,10 @@ from game_parts.turn_speech import _ts_witness_exit
 from game_parts.turn_speech import _ts_conversation_check
 from game_parts.turn_speech import _ts_parse_intent
 from game_parts.turn_speech import _ts_personal_answer_exit
+from game_parts.turn_speech import _ts_price_reply_commit
+from game_parts.turn_speech import _ts_accepted_text
+from game_parts.turn_speech import _ts_finalize_text
+from game_parts.turn_speech import _ts_town_response
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"

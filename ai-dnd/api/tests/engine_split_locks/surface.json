@@ -3125,11 +3125,23 @@
   "session_bound": true,
   "signature": "(text)"
  },
+ "_ts_accepted_text": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, accepted_model_speech, action_result, attributed_speech, experimental_npc_dialogue, final_safety_handling, npc_target, player_input, profile_focus, stock_swapped, text, text_before_finalize, world_state)"
+ },
  "_ts_conversation_check": {
   "kind": "function",
   "module": "game_parts.turn_speech",
   "session_bound": true,
   "signature": "(*, experimental_npc_dialogue, interaction_mode, npc_target, player_input, raw_intent, world_state)"
+ },
+ "_ts_finalize_text": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, action_result, attributed_speech, invalid_spoken_stage_direction, npc_target, player_input, python_town_response, text, unverified_history_echo)"
  },
  "_ts_parse_intent": {
   "kind": "function",
@@ -3143,6 +3155,12 @@
   "session_bound": true,
   "signature": "(*, conversation_resolution, experimental_npc_dialogue, finish_conversation_resolution, finish_turn, npc_target)"
  },
+ "_ts_price_reply_commit": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, action_result, negotiation, npc_target, player_input, price_reply_accepted, resolve_intent, target_id)"
+ },
  "_ts_speech_money": {
   "kind": "function",
   "module": "game_parts.turn_speech",
@@ -3154,6 +3172,12 @@
   "module": "game_parts.turn_speech",
   "session_bound": true,
   "signature": "(*, raw_intent, raw_spoken, raw_stage)"
+ },
+ "_ts_town_response": {
+  "kind": "function",
+  "module": "game_parts.turn_speech",
+  "session_bound": true,
+  "signature": "(*, experimental_unverified_claim, invalid_or_empty, npc_target, player_input, python_town_response, raw_intent, text, unverified_history_echo, world_state)"
  },
  "_ts_witness_exit": {
   "kind": "function",

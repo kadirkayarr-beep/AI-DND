@@ -233,6 +233,9 @@
       "money",
       "snapshot"
     ],
+    "_ts_price_reply_commit": [
+      "money"
+    ],
     "_ts_speech_money": [
       "money"
     ],

@@ -242,3 +242,76 @@ def _ts_personal_answer_exit(*, conversation_resolution, experimental_npc_dialog
         if conversation_outcome is not None:
             return conversation_outcome
     return game._TURN_FALL_THROUGH
+
+
+def _ts_price_reply_commit(*, action_result, negotiation, npc_target, player_input, price_reply_accepted, resolve_intent, target_id):
+    if (price_reply_accepted and negotiation is not None
+            and negotiation["npc_id"] == npc_target.get("id")):
+        if action_result.get("action") == "skill_check":
+            # A statement may already have rolled through deterministic social routing.
+            # Reuse that authoritative outcome; never reroll or reapply its world effects.
+            check = {"skill": action_result.get("skill"),
+                     "result": "BAŞARILI" if action_result.get("outcome") == "success" else "BAŞARISIZ"}
+            note = money_owner.haggle(game._session(), npc_target, check,
+                                       negotiation=negotiation, player_input=player_input)
+            if note:
+                action_result["haggle_note"] = note
+        else:
+            price_result = resolve_intent({"intent": "persuasion", "price_negotiation": negotiation},
+                                          player_input, npc_target=npc_target, target_id=target_id)
+            if price_result.get("action") == "skill_check":
+                action_result.update(price_result)
+
+
+def _ts_accepted_text(*, accepted_model_speech, action_result, attributed_speech, experimental_npc_dialogue, final_safety_handling, npc_target, player_input, profile_focus, stock_swapped, text, text_before_finalize, world_state):
+    if experimental_npc_dialogue:
+        if accepted_model_speech:
+            if not (game._is_short_followup(player_input) and profile_focus):
+                interaction_adventure.retire_conversation_focus(world_state)
+            text = game._render_experimental_npc_speech(
+                attributed_speech, npc_target
+            )
+        else:
+            name = living_world.public_npc_name(npc_target)
+            if (action_result.get("action") == "skill_check" and final_safety_handling == "python_fallback"
+                    and not stock_swapped and text != text_before_finalize and not text.casefold().startswith(name.casefold())):
+                # The safety put the check's own narration in place of the reply ("İncelemen sonuç
+                # vermedi"): that is the narrator's, not theirs. It stays as narration, outside any quote,
+                # and the person answers in their own words (Task 34, review M3).
+                own = game._person_fallback(world_state, npc_target, player_input)
+                text = f"{text} {own if own.casefold().startswith(name.casefold()) else f'{name}, “{own}”'}"
+            elif not text.casefold().startswith(name.casefold()):
+                text = f'{name}, “{text}”'
+    return text
+
+
+def _ts_finalize_text(*, action_result, attributed_speech, invalid_spoken_stage_direction, npc_target, player_input, python_town_response, text, unverified_history_echo):
+    text = game.finalize_narration(
+        text, player_input, npc_target, action_result,
+        fallback_reason_code=(
+            "INVALID_NARRATION"
+            if invalid_spoken_stage_direction
+            else "UNVERIFIED_PLAYER_CLAIM_ECHO"
+            if unverified_history_echo else None
+        ),
+        attributed_speech=attributed_speech,
+        python_town_response=python_town_response,
+    )
+    return text
+
+
+def _ts_town_response(*, experimental_unverified_claim, invalid_or_empty, npc_target, player_input, python_town_response, raw_intent, text, unverified_history_echo, world_state):
+    if not invalid_or_empty and (
+        unverified_history_echo
+        or raw_intent.get("world_updates")
+        or raw_intent.get("lore_claims")
+        or not interaction_adventure.safe_narration(text)
+    ):
+        if experimental_unverified_claim:
+            text = game.historical_claim_denial(npc_target, player_input)
+        else:
+            # D-249 F1: the person passes on a lead (job, town, place to ask) before any bare "I don't know".
+            text = game._person_fallback(world_state, npc_target, player_input)
+            if text != interaction_adventure.immersive_unknown(npc_target, player_input):
+                python_town_response = text
+    return python_town_response, text

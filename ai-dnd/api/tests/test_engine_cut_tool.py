@@ -676,8 +676,10 @@ class TurnExitsLiftTests(unittest.TestCase):
         import ast
         part = self._funcs("turn_speech.py")
         found = {n.name: n for n in part.body if isinstance(n, ast.FunctionDef)}
-        self.assertEqual(set(found), {"_ts_conversation_check", "_ts_parse_intent", "_ts_personal_answer_exit",
-                                      "_ts_speech_money", "_ts_speech_packet", "_ts_witness_exit"})
+        self.assertEqual(set(found), {"_ts_accepted_text", "_ts_conversation_check", "_ts_finalize_text",
+                                      "_ts_parse_intent", "_ts_personal_answer_exit", "_ts_price_reply_commit",
+                                      "_ts_speech_money", "_ts_speech_packet", "_ts_town_response",
+                                      "_ts_witness_exit"})
         for fn in found.values():
             self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
 

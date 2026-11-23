@@ -2075,32 +2075,10 @@ def _run_player_turn_internal(
                     and game._unverified_past_event_assertion(player_input)
                     and bool(game._claim_keywords(text) & game._claim_keywords(player_input))
                 )
-            if not invalid_or_empty and (
-                unverified_history_echo
-                or raw_intent.get("world_updates")
-                or raw_intent.get("lore_claims")
-                or not interaction_adventure.safe_narration(text)
-            ):
-                if experimental_unverified_claim:
-                    text = game.historical_claim_denial(npc_target, player_input)
-                else:
-                    # D-249 F1: the person passes on a lead (job, town, place to ask) before any bare "I don't know".
-                    text = game._person_fallback(world_state, npc_target, player_input)
-                    if text != interaction_adventure.immersive_unknown(npc_target, player_input):
-                        python_town_response = text
+            python_town_response, text = game._ts_town_response(experimental_unverified_claim=experimental_unverified_claim, invalid_or_empty=invalid_or_empty, npc_target=npc_target, player_input=player_input, python_town_response=python_town_response, raw_intent=raw_intent, text=text, unverified_history_echo=unverified_history_echo, world_state=world_state)
 
             text_before_finalize = text
-            text = game.finalize_narration(
-                text, player_input, npc_target, action_result,
-                fallback_reason_code=(
-                    "INVALID_NARRATION"
-                    if invalid_spoken_stage_direction
-                    else "UNVERIFIED_PLAYER_CLAIM_ECHO"
-                    if unverified_history_echo else None
-                ),
-                attributed_speech=attributed_speech,
-                python_town_response=python_town_response,
-            )
+            text = game._ts_finalize_text(action_result=action_result, attributed_speech=attributed_speech, invalid_spoken_stage_direction=invalid_spoken_stage_direction, npc_target=npc_target, player_input=player_input, python_town_response=python_town_response, text=text, unverified_history_echo=unverified_history_echo)
             after = game._speech_after_check(
                 text, world_state=world_state, npc_target=npc_target, player_input=player_input,
                 action_result=action_result, experimental_npc_dialogue=experimental_npc_dialogue,
@@ -2173,24 +2151,7 @@ def _run_player_turn_internal(
                 game._session()._speech_checks = speech_checks
             if experimental_unverified_claim:
                 action_result.update(status="unverified", success=False)
-            if experimental_npc_dialogue:
-                if accepted_model_speech:
-                    if not (game._is_short_followup(player_input) and profile_focus):
-                        interaction_adventure.retire_conversation_focus(world_state)
-                    text = game._render_experimental_npc_speech(
-                        attributed_speech, npc_target
-                    )
-                else:
-                    name = living_world.public_npc_name(npc_target)
-                    if (action_result.get("action") == "skill_check" and final_safety_handling == "python_fallback"
-                            and not stock_swapped and text != text_before_finalize and not text.casefold().startswith(name.casefold())):
-                        # The safety put the check's own narration in place of the reply ("İncelemen sonuç
-                        # vermedi"): that is the narrator's, not theirs. It stays as narration, outside any quote,
-                        # and the person answers in their own words (Task 34, review M3).
-                        own = game._person_fallback(world_state, npc_target, player_input)
-                        text = f"{text} {own if own.casefold().startswith(name.casefold()) else f'{name}, “{own}”'}"
-                    elif not text.casefold().startswith(name.casefold()):
-                        text = f'{name}, “{text}”'
+            text = game._ts_accepted_text(accepted_model_speech=accepted_model_speech, action_result=action_result, attributed_speech=attributed_speech, experimental_npc_dialogue=experimental_npc_dialogue, final_safety_handling=final_safety_handling, npc_target=npc_target, player_input=player_input, profile_focus=profile_focus, stock_swapped=stock_swapped, text=text, text_before_finalize=text_before_finalize, world_state=world_state)
 
             if experimental_npc_dialogue:
                 # The person's own spoken answer about the coin (`coin_answer`, read for every accepted speech) is also
@@ -2245,22 +2206,7 @@ def _run_player_turn_internal(
             negotiation = money_owner.price_negotiation(world_state, raw_intent.get("price_negotiation"), player_input)
             price_reply_accepted = (accepted_model_speech if experimental_npc_dialogue else
                                     not invalid_or_empty and not unverified_history_echo and text == raw_narration)
-            if (price_reply_accepted and negotiation is not None
-                    and negotiation["npc_id"] == npc_target.get("id")):
-                if action_result.get("action") == "skill_check":
-                    # A statement may already have rolled through deterministic social routing.
-                    # Reuse that authoritative outcome; never reroll or reapply its world effects.
-                    check = {"skill": action_result.get("skill"),
-                             "result": "BAŞARILI" if action_result.get("outcome") == "success" else "BAŞARISIZ"}
-                    note = money_owner.haggle(game._session(), npc_target, check,
-                                               negotiation=negotiation, player_input=player_input)
-                    if note:
-                        action_result["haggle_note"] = note
-                else:
-                    price_result = resolve_intent({"intent": "persuasion", "price_negotiation": negotiation},
-                                                  player_input, npc_target=npc_target, target_id=target_id)
-                    if price_result.get("action") == "skill_check":
-                        action_result.update(price_result)
+            game._ts_price_reply_commit(action_result=action_result, negotiation=negotiation, npc_target=npc_target, player_input=player_input, price_reply_accepted=price_reply_accepted, resolve_intent=resolve_intent, target_id=target_id)
             game._show_coin_roll(action_result, settled_money.get("check"))  # D-166: the coin ask's own roll shows
             if experimental_npc_dialogue:
                 spoken = attributed_speech["spoken_text"] if accepted_model_speech else text
