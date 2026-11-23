@@ -201,3 +201,5 @@ Rules:
 - [ ] **Step 3b: Required check.** Ask Kadir to mark the three quality jobs as required status checks (repo setting, owner action); until then the gate warns but cannot block a merge.
 - [ ] **Step 4: Update `YOL_HARITASI.md` row 4b** status to "kod tamam, PR bekliyor" (no play needed: S9). Commit.
 - [ ] **Step 5: With Kadir's push approval**, push, open the PR, check `gh run list` for both workflows; no "done" before green. Copy the Task 4 answers on the spec's unverified items (postinstall, Python 3.13, telemetry) into the debt register.
+
+Not (Task 8, düzeltme turu 2): `size_lock.json` yalnız `part_max` üstündeki dosyaları ve uzun işlevleri tutar (motor kilidi gibi); diğer her dosya `part_max` ile sınırlıdır. Bu, Step 3'ün "her dosya bugünkü boyutunda" cümlesini daraltır; onay listesi §25'te "gevşetme olabilir" diye işaretli.
