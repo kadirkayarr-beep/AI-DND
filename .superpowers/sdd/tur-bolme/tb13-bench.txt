@@ -1,0 +1,14 @@
+tb13-bench-warmold-off | RESULT exit=0 Ran 1 test in 1.566s run=runs/20261123T224626-tb13-bench-warmold-off 
+tb13-bench-warmnew-off | RESULT exit=0 Ran 1 test in 2.073s run=runs/20261123T224633-tb13-bench-warmnew-off 
+tb13-bench-old1-off | RESULT exit=0 Ran 1 test in 1.588s run=runs/20261123T224640-tb13-bench-old1-off 
+tb13-bench-new2-off | RESULT exit=0 Ran 1 test in 2.235s run=runs/20261123T224647-tb13-bench-new2-off 
+tb13-bench-new3-off | RESULT exit=0 Ran 1 test in 2.078s run=runs/20261123T224655-tb13-bench-new3-off 
+tb13-bench-old4-off | RESULT exit=0 Ran 1 test in 1.563s run=runs/20261123T224702-tb13-bench-old4-off 
+tb13-bench-old5-off | RESULT exit=0 Ran 1 test in 1.578s run=runs/20261123T224709-tb13-bench-old5-off 
+tb13-bench-new6-off | RESULT exit=0 Ran 1 test in 2.072s run=runs/20261123T224716-tb13-bench-new6-off 
+tb13-bench-new7-off | RESULT exit=0 Ran 1 test in 2.107s run=runs/20261123T224723-tb13-bench-new7-off 
+tb13-bench-old8-off | RESULT exit=0 Ran 1 test in 1.565s run=runs/20261123T224730-tb13-bench-old8-off 
+tb13-bench-old9-off | RESULT exit=0 Ran 1 test in 1.592s run=runs/20261123T224737-tb13-bench-old9-off 
+tb13-bench-new10-off | RESULT exit=0 Ran 1 test in 2.216s run=runs/20261123T224745-tb13-bench-new10-off 
+DONE
+TURN_BENCH ms/turn from the slot run logs (not captured by the loop above): warmold 22.79 warmnew 23.20 | old1 23.36 new2 24.65 new3 22.92 old4 22.47 old5 23.23 new6 22.90 new7 23.32 old8 22.25 old9 22.97 new10 25.07
