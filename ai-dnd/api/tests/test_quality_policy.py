@@ -11,6 +11,7 @@ REPO = AI_DND.parent
 TOOLS = AI_DND / "scripts" / "quality_gate" / "tools.json"
 REQ_DEV = AI_DND / "scripts" / "engine_split" / "requirements-dev.txt"
 WORKFLOW = REPO / ".github" / "workflows" / "ai-dnd-quality.yml"
+GITLEAKS_BASELINE = AI_DND / "scripts" / "quality_gate" / "gitleaks-baseline.json"
 EXACT = re.compile(r"^\d+\.\d+(\.\d+)?$")  # vulture is pinned as 2.14 (two parts)
 
 
@@ -39,8 +40,13 @@ def _steps(lines: list[str]) -> list[list[str]]:
     return steps
 
 
-def workflow_violations(text: str) -> list[str]:
-    """Per-line / per-step policy checks; returns one message per violation."""
+def workflow_violations(text: str, baseline_required: bool | None = None) -> list[str]:
+    """Per-line / per-step policy checks; returns one message per violation.
+
+    --baseline-path is required on gitleaks lines only once the baseline file
+    exists (Task 6); --redact is always required."""
+    if baseline_required is None:
+        baseline_required = GITLEAKS_BASELINE.exists()
     bad: list[str] = []
     for word in ("skylos cloud", "--upload", "skylos[", "jsgoldman"):
         if word in text:
@@ -48,7 +54,7 @@ def workflow_violations(text: str) -> list[str]:
     for step in _steps(text.splitlines()):
         step_text = chr(10).join(step)
         for line in step:
-            if line.lstrip().startswith("#"):
+            if line.lstrip().startswith("#") or re.match(r"^\s*(-\s+)?name:", line):
                 continue
             where = line.strip()
             if re.search(r"\bskylos\b", line) and re.search(
@@ -59,7 +65,8 @@ def workflow_violations(text: str) -> list[str]:
                     and "--min-confidence 80" not in line:
                 bad.append("vulture without --min-confidence 80: " + where)
             if re.search(r"\bgitleaks\s+(detect|git|dir)\b", line):
-                for flag in ("--redact", "--baseline-path"):
+                flags = ("--redact", "--baseline-path") if baseline_required else ("--redact",)
+                for flag in flags:
                     if flag not in line:
                         bad.append("gitleaks without " + flag + ": " + where)
             if re.search(r"\b(pnpm\s+(dlx|add|install|i)|npx|npm\s+(install|i|ci|exec))\b", line):
@@ -82,7 +89,7 @@ class QualityWorkflowPolicyTest(unittest.TestCase):
         cases = {
             "skylos": "      - run: skylos .",
             "vulture": "      - run: pip install vulture==2.14 && vulture src",
-            "gitleaks git": "      - run: gitleaks git --redact",
+            "gitleaks git": "      - run: gitleaks git --no-banner",
             "gitleaks dir": "      - run: gitleaks dir --baseline-path b.json",
             "pnpm": "      - run: pnpm dlx knip@6.48.0",
             "npx": "      - run: npx knip@6.48.0",
@@ -90,6 +97,15 @@ class QualityWorkflowPolicyTest(unittest.TestCase):
         }
         for name, text in cases.items():
             self.assertTrue(workflow_violations(text), name)
+
+    def test_gitleaks_baseline_only_when_required(self):
+        measure = "      - run: gitleaks detect --redact --no-banner --report-format json"
+        self.assertEqual(workflow_violations(measure, baseline_required=False), [])
+        self.assertTrue(workflow_violations(measure, baseline_required=True))
+        self.assertTrue(workflow_violations("      - run: gitleaks detect --no-banner", baseline_required=False))
+
+    def test_step_names_are_not_commands(self):
+        self.assertEqual(workflow_violations("      - name: skylos scan" + chr(10) + "      - name: fallow report"), [])
 
     def test_checker_passes_good_lines(self):
         good = chr(10).join([
@@ -103,7 +119,7 @@ class QualityWorkflowPolicyTest(unittest.TestCase):
             "          DO_NOT_TRACK: \"1\"",
             "        run: npm_config_ignore_scripts=true pnpm dlx fallow@3.47.0",
         ])
-        self.assertEqual(workflow_violations(good), [])
+        self.assertEqual(workflow_violations(good, baseline_required=True), [])
 
     def test_no_hooks_added(self):
         for name in (".pre-commit-config.yaml", "lefthook.yml"):
