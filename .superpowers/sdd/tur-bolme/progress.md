@@ -272,3 +272,9 @@ Task 11a fix round 1: done
 - Review: Step 4 Opus independent review is the controller's dispatch (Review Focus 1 and 5). Reviewer: check _ts_price_reply_commit (money_owner price negotiation, order with _show_coin_roll), the 4 helpers' returned names, and that the 5 refused rows are untouched.
 - Play: oynayış bekliyor.
 Task 11b: implemented (commits b18c535e..7bceb323)
+
+## Task 11b fix round 1 (2026-11-23)
+- Finding 1 (minor, game.py budget 1106 -> 1110): Ruling: no change — the +4 is the 4 R8 re-export lines for the _ts_* helpers, budget equals real size (1110), narrow R8 exception holds; no other budget rose (turn.py 2482 -> 2428, _run_player_turn_internal 1607 -> 1553, no new long_functions key) — if wrong: budget is 4 lines looser than plan until dilim-end review. APPROVAL LIST row kept: game.py files budget +4 = real size (R8), "gevşetme olabilir", for owner sign-off.
+- Finding 2 (minor, 5 refused T11b rows): Ruling: no change — refusal is correct, no hand cut; cut_check CHANGED 0 proves the rows are untouched. Dilim-end list owners (both open): (a) PARK plain-name fix first (own commit, red test first), then cut the 5 refused T11b rows (valid_speech_packet/raw_spoken, heard_rumours, about; ~130 lines) together with T10 rows 3521/3585; (b) T11a PARK flow-sensitive cut_block (fall-off-path output, red test first) still open for T12/T13.
+- Run: none (ledger only, no code or test file touched since 7bceb323).
+Task 11b fix round 1: done
