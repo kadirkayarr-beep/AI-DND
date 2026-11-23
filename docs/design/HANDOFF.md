@@ -18,9 +18,8 @@ Sıra ve durum için tek kaynak: [YOL_HARITASI.md](YOL_HARITASI.md). Belge dizin
 
 ## Kadir'den beklenen
 - Plan 6 kapanış oynayışı (10 dakika: al-sat, kaydet-yükle, Geri Al, dövüş, yolculuk). Oynama klasörü `C:/Users/Kadir/Calisma/AI-DND/AI-DND-oynayis`, b76e7254'te.
-- Onay listesi geriye dönük bakışı: `docs/agents/onay-listesi-gevsetme-ozeti.md` içindeki 74 "tek tek" satıra evet/hayır; "hayır" dediğin satır için sıkılaştırma işi açılır.
 - Anthropic panelindeki aylık harcama sınırı: doğrulanmadı; panelden bakman gerek.
-- Cevapladıkların (2026-11-22): PR #127 kapandı; CLAUDE.md model satırı evet; v0 B taslağı hayır; tur bölme Fable ile; ölü kod ve legacy_debug için "sil" (silme oynayıştan sonra, PR'ı sana sorulur). Yeniden sorulmaz.
+- Cevapladıkların (2026-11-22): PR #127 kapandı; CLAUDE.md model satırı evet; v0 B taslağı hayır; tur bölme Fable ile; ölü kod ve legacy_debug için "sil" (silme oynayıştan sonra yapılır); onay listesi geriye dönük bakışı: her satır önerisi gibi (`docs/agents/onay-listesi-gevsetme-ozeti.md`). Yeniden sorulmaz; Kadir'e onay sorulmaz (2026-11-23).
 
 ## Telefon sayfası
 Telefon sayfası: https://claude.ai/artifact/4TKWEkhQ763ydWqatNyK79 (özel; yalnız sen açabilirsin)
@@ -30,7 +29,7 @@ Telefon sayfası: https://claude.ai/artifact/4TKWEkhQ763ydWqatNyK79 (özel; yaln
 - `C:/Users/Kadir/Desktop/AI-DND-k2-belge-pr`: bu PR (`task/belge-pr-20261122`).
 - `C:/Users/Kadir/Desktop/AI-DND-k2-tohum-tarama`: rastgele kırık taraması planı (`task/tohum-taramasi-20261122`).
 - `C:/Users/Kadir/Calisma/AI-DND/AI-DND-oynayis`: oynama klasörü (b76e7254).
-- Diğer worktree'ler eski ve bitmiş işlerin kalıntısıdır; silmek Kadir'e sorulur.
+- Diğer worktree'ler eski ve bitmiş işlerin kalıntısıdır; silinmez.
 
 ## Eski belgeler
 `AI-DND-b01-isolated` klasöründeki kopyalar yerinde durur, dokunulmadı; depodaki kopya esastır.
