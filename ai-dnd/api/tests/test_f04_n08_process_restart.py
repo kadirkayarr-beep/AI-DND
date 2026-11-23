@@ -25,6 +25,9 @@ from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_f04_n08_npc_memory import CLAIM
 from api.tests.guard_bound import CHILD_PROCESS, guard_bound
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8210
 
 
 class FakeProvider:
@@ -64,7 +67,8 @@ async def worker(phase: str, root: Path):
                 transport=httpx.ASGITransport(app=app),
                 base_url="http://testserver",
             ) as client:
-                created = await client.post("/api/game/campaigns", json={})
+                with default_town(SimpleNamespace(), TOWN_SEED):
+                    created = await client.post("/api/game/campaigns", json={})
                 assert created.status_code == 200, created.text
                 cid, sid = created.json()["campaign_id"], created.json()["session_id"]
                 session = manager.get(sid).game_session

@@ -11,6 +11,9 @@ from api.main import create_app
 from api.session_manager import SessionManager
 from api.persistence.campaign_store import CampaignStore
 from api.dnd_2024_rules import get_character_creation_catalog
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8410
 
 
 def request(level):
@@ -25,7 +28,8 @@ class CreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_real_http_creation_stored_and_fresh_resumed(self):
         for level,hp,xp,version in ((4,30,2700,4),(5,37,6500,6)):
-            response = await self.http.post('/api/game/campaigns', json={'character':request(level)})
+            with default_town(self, TOWN_SEED):
+                response = await self.http.post('/api/game/campaigns', json={'character':request(level)})
             self.assertEqual(response.status_code,200,response.text)
             body=response.json(); saved=self.store.get_campaign(body['campaign_id']).payload['engine_save']
             self.assertEqual((saved['version'],saved['player']['xp'],saved['player']['current_hp'],saved['player']['max_hp']),(version,xp,hp,hp))
@@ -87,7 +91,8 @@ class CreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
                 cases.append(value)
         before_rows=rows();before_sessions=dict(self.manager._sessions)
         for value in cases:
-            response=await self.http.post('/api/game/campaigns',json={'character':value})
+            with default_town(self, TOWN_SEED):
+                response=await self.http.post('/api/game/campaigns',json={'character':value})
             self.assertEqual(response.status_code,422,response.text)
             self.assertEqual(rows(),before_rows)
             self.assertEqual(self.manager._sessions,before_sessions)
@@ -113,7 +118,8 @@ class CreationFourFiveHttpTests(unittest.IsolatedAsyncioTestCase):
                     inserted.append(level)
                     raise sqlite3.OperationalError('synthetic fault after real creation INSERT')
             with patch.object(self.store,'_transaction',side_effect=fail_after_real_insert):
-                response=await self.http.post('/api/game/campaigns',json={'character':request(level)})
+                with default_town(self, TOWN_SEED):
+                    response=await self.http.post('/api/game/campaigns',json={'character':request(level)})
             self.assertEqual(response.status_code,503,response.text)
             self.assertEqual(inserted,[level]);self.assertEqual(rows(),before_rows)
             self.assertEqual(self.manager._sessions,before_sessions)

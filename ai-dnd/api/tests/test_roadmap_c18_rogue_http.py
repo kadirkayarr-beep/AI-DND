@@ -16,6 +16,9 @@ from api.tests import test_roadmap_c06_level4_http as prior
 from api.tests import test_roadmap_c10_berserker_http as berserker
 from api.tests import test_roadmap_c19_quickened_http as quickened
 from api.tests.test_roadmap_c18_rogue import CHOICES, THRESHOLDS, bundle, spec
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8540
 
 
 def request(level):
@@ -79,7 +82,8 @@ class RogueHttp(unittest.IsolatedAsyncioTestCase):
     post = quickened.QuickenedHttpTests.post
 
     async def create(self, level=1):
-        response = await self.http.post("/api/game/campaigns", json={"character": request(level)})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post("/api/game/campaigns", json={"character": request(level)})
         self.assertEqual(response.status_code, 200, response.text)
         campaign = response.json()
         return campaign, self.manager.get(campaign["session_id"])

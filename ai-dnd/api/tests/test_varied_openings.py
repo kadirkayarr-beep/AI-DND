@@ -11,6 +11,9 @@ from api.tests import test_campaign_api as api
 from api.tests.test_narration_evidence_acceptance import ask
 from api.tests.test_natural_addressing import TownClient
 from api.tests.test_stage10a_gameplay_repairs import city_session
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8650
 
 CITY = "fr:city:neverwinter"
 SEEDS = [f"tohum{index}" for index in range(16)]
@@ -120,12 +123,13 @@ class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
     async def test_stored_metadata_and_opening_follow_the_seeded_hour(self):
         times = set()
         for _ in range(12):
-            created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
-                "setting_id": "forgotten_realms",
-                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                "region_id": "fr:region:the_north",
-                "starting_location_id": CITY,
-            }})
+            with default_town(self, TOWN_SEED):
+                created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": CITY,
+                }})
             self.assertEqual(created.status_code, 200, created.text)
             session = self.manager.get(created.json()["session_id"]).game_session
             clock = campaign_time.public_time(session.world_state)
@@ -134,12 +138,13 @@ class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(len(times), 1)
 
     async def test_first_look_shows_the_seeded_people_to_the_narrator(self):
-        created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
-            "setting_id": "forgotten_realms",
-            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-            "region_id": "fr:region:the_north",
-            "starting_location_id": CITY,
-        }})
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": CITY,
+            }})
         self.assertEqual(created.status_code, 200, created.text)
         sid = created.json()["session_id"]
         session = self.manager.get(sid).game_session
@@ -157,12 +162,13 @@ class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
 
 
     async def start(self):
-        created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
-            "setting_id": "forgotten_realms",
-            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-            "region_id": "fr:region:the_north",
-            "starting_location_id": CITY,
-        }})
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": CITY,
+            }})
         self.assertEqual(created.status_code, 200, created.text)
         return created.json()["session_id"], self.manager.get(created.json()["session_id"]).game_session
 

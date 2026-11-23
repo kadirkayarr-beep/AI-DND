@@ -23,6 +23,9 @@ from functools import wraps
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8190
 
 os.environ["AI_DND_DISABLE_DEFAULT_APP"] = "1"
 ROOT = Path(__file__).resolve().parents[2]
@@ -149,7 +152,8 @@ class Fixture:
                           authenticator=FixedAuthenticator(TEST_PLAYER))
 
     async def create(self, client):
-        response = await client.post("/api/game/campaigns", json={"name": "Synthetic frozen F04"})
+        with default_town(self, TOWN_SEED):
+            response = await client.post("/api/game/campaigns", json={"name": "Synthetic frozen F04"})
         if response.status_code != 200:
             raise AssertionError((response.status_code, response.text))
         self.cid, self.sid = response.json()["campaign_id"], response.json()["session_id"]

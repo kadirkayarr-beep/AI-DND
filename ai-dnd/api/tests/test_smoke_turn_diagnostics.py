@@ -17,6 +17,9 @@ from api.campaign_journal import empty_campaign_journal
 from api.lore_authority.models import CampaignLoreState
 from api.narrative_memory import empty_narrative_memory
 from api.tests import live_playable_living_world_v1_smoke as telemetry
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8720
 
 
 class _Engine:
@@ -476,10 +479,11 @@ class HarnessServerWiringTests(unittest.TestCase):
             with TestClient(app) as client:
                 settings = client.get("/api/campaign-start-options").json()["settings"][0]
                 region = settings["regions"][0]
-                created = client.post("/api/campaigns", json={"name": "Synthetic audit wiring", "campaign_start": {
-                    "setting_id": settings["setting_id"], "region_pack_id": region["region_pack_id"],
-                    "region_id": region["region_id"], "starting_location_id": region["starting_locations"][0]["entity_id"],
-                }})
+                with default_town(self, TOWN_SEED):
+                    created = client.post("/api/campaigns", json={"name": "Synthetic audit wiring", "campaign_start": {
+                        "setting_id": settings["setting_id"], "region_pack_id": region["region_pack_id"],
+                        "region_id": region["region_id"], "starting_location_id": region["starting_locations"][0]["entity_id"],
+                    }})
                 self.assertEqual(created.status_code, 200)
                 sid = created.json()["session_id"]
                 response = client.post(f"/api/sessions/{sid}/turn", json={"action_id": str(uuid4()), "message": bounded_encounter.ENTER},

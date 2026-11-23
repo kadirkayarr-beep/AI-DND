@@ -13,6 +13,9 @@ from api.main import create_app
 from api.tests.auth_fixture import PLAYER_B
 from api.session_manager import SessionManager
 from api.persistence.campaign_models import CampaignStorageError
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8360
 
 
 class RestFailureTests(unittest.IsolatedAsyncioTestCase):
@@ -153,7 +156,8 @@ class RestFailureTests(unittest.IsolatedAsyncioTestCase):
             for action in ('short_rest', 'long_rest'):
                 with self.subTest(action=action):
                     created, failed_record = await self.prepare()
-                    response = await other_http.post('/api/game/campaigns', json={})
+                    with default_town(self, TOWN_SEED):
+                        response = await other_http.post('/api/game/campaigns', json={})
                     self.assertEqual(response.status_code, 200, response.text)
                     other = response.json()
                     other_record = self.manager.get(other['session_id'], principal=PLAYER_B)

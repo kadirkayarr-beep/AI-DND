@@ -6,6 +6,9 @@ from unittest.mock import patch
 import xp
 from api.tests import test_roadmap_c10_rage_http as helpers
 from api.tests.test_roadmap_c06_barbarian_creation_http import request as creation_request
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8470
 
 PICK={'subclass_id':'berserker','primal_knowledge_skill':'Survival'}
 class BerserkerHttpTests(unittest.IsolatedAsyncioTestCase):
@@ -15,7 +18,8 @@ class BerserkerHttpTests(unittest.IsolatedAsyncioTestCase):
     snapshot=helpers.RageHttpTests.snapshot
 
     async def earned(self,level=2,award=600):
-        response=await self.http.post('/api/game/campaigns',json={'character':creation_request(level)})
+        with default_town(self, TOWN_SEED):
+            response=await self.http.post('/api/game/campaigns',json={'character':creation_request(level)})
         self.assertEqual(response.status_code,200,response.text)
         a=response.json();r=self.manager.get(a['session_id'])
         xp.apply_xp(r.game_session.character,r.game_session.world_state,award,'quest:synthetic-earned-berserker')
@@ -59,7 +63,8 @@ class BerserkerHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_public_creation_three_without_the_level_three_bundle_is_refused(self):
         # Selected start 3 is public since the Barbarian start-3 slice; the bundle for level 3 stays mandatory.
         data=creation_request();data['starting_level']=3;data['level_choices'].pop('3',None)
-        response=await self.http.post('/api/game/campaigns',json={'character':data})
+        with default_town(self, TOWN_SEED):
+            response=await self.http.post('/api/game/campaigns',json={'character':data})
         self.assertEqual(response.status_code,422,response.text)
 
     async def test_strict_invalid_choice_and_wrong_class_shape_never_mutate(self):

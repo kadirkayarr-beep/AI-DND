@@ -31,6 +31,9 @@ from api.world_metadata import (
     world_metadata_for_state,
 )
 from pydantic import ValidationError
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8670
 
 
 def _location_state(location_id: str, name: str, location_type: str) -> dict:
@@ -171,10 +174,11 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
                 (await client.get(f"/api/game/sessions/{session_id}/state")).json()["world"],
                 created.json()["state"]["world"],
             )
-            forged_campaign = await client.post(
-                "/api/game/campaigns",
-                json={"world": {"environment": "forest"}},
-            )
+            with default_town(self, TOWN_SEED):
+                forged_campaign = await client.post(
+                    "/api/game/campaigns",
+                    json={"world": {"environment": "forest"}},
+                )
             forged_turn = await client.post(
                 f"/api/game/sessions/{session_id}/turn",
                 json={"action_id": str(uuid4()), "message": "Ormana gidiyorum", "weather": "storm"},
@@ -232,7 +236,8 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             database_path = Path(directory) / "campaigns.sqlite3"
             store = CampaignStore(database_path, bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
-            campaign_id, _, record, _ = manager.create_campaign("Metadata test")
+            with default_town(self, TOWN_SEED):
+                campaign_id, _, record, _ = manager.create_campaign("Metadata test")
             record.game_session.world_state["location"] = "forest"
             record.game_session.world_metadata = {
                 "environment": "forest",
@@ -257,8 +262,10 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             database_path = Path(directory) / "campaigns.sqlite3"
             store = CampaignStore(database_path, bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
-            first_id, _, first, _ = manager.create_campaign("First")
-            second_id, _, second, _ = manager.create_campaign("Second")
+            with default_town(self, TOWN_SEED):
+                first_id, _, first, _ = manager.create_campaign("First")
+            with default_town(self, TOWN_SEED):
+                second_id, _, second, _ = manager.create_campaign("Second")
             first.game_session.world_state["location"] = "tavern"
             first.game_session.world_metadata = {
                 "environment": "tavern",
@@ -288,7 +295,8 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             database_path = Path(directory) / "campaigns.sqlite3"
             store = CampaignStore(database_path, bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
-            campaign_id, _, record, _ = manager.create_campaign("Legacy")
+            with default_town(self, TOWN_SEED):
+                campaign_id, _, record, _ = manager.create_campaign("Legacy")
             record.game_session.world_state["location"] = "tavern"
             set_session_world_metadata(record.game_session)
             manager.save_campaign(campaign_id)

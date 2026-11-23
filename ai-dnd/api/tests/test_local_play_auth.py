@@ -31,6 +31,9 @@ import api.main as main_module
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8300
 
 
 _LIVE = (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
@@ -402,7 +405,8 @@ class HttpBoundary(unittest.IsolatedAsyncioTestCase):
 
     async def test_the_owner_can_play_without_a_token(self) -> None:
         async with self._client() as client:
-            created = await client.post("/api/campaigns", json={"name": "Yerel"}, headers=_MARKER)
+            with default_town(self, TOWN_SEED):
+                created = await client.post("/api/campaigns", json={"name": "Yerel"}, headers=_MARKER)
             self.assertEqual(created.status_code, 200, created.text)
             listed = await client.get("/api/game/campaigns")
         self.assertEqual(
@@ -427,7 +431,8 @@ class HttpBoundary(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_lan_client_is_401_and_cannot_write(self) -> None:
         async with self._client(peer=("192.168.1.20", 50000)) as client:
-            response = await client.post("/api/campaigns", json={"name": "LAN"}, headers=_MARKER)
+            with default_town(self, TOWN_SEED):
+                response = await client.post("/api/campaigns", json={"name": "LAN"}, headers=_MARKER)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(self.store.list_campaigns(principal=LOCAL_PRINCIPAL), [])
 
@@ -438,29 +443,32 @@ class HttpBoundary(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_browser_csrf_write_is_401(self) -> None:
         async with self._client() as client:
-            no_marker = await client.post("/api/campaigns", json={"name": "CSRF"})
-            evil_origin = await client.post(
-                "/api/campaigns",
-                json={"name": "CSRF"},
-                headers={**_MARKER, "Origin": "https://evil.example"},
-            )
+            with default_town(self, TOWN_SEED):
+                no_marker = await client.post("/api/campaigns", json={"name": "CSRF"})
+            with default_town(self, TOWN_SEED):
+                evil_origin = await client.post(
+                    "/api/campaigns",
+                    json={"name": "CSRF"},
+                    headers={**_MARKER, "Origin": "https://evil.example"},
+                )
         self.assertEqual(no_marker.status_code, 401)
         self.assertEqual(evil_origin.status_code, 401)
         self.assertEqual(self.store.list_campaigns(principal=LOCAL_PRINCIPAL), [])
 
     async def test_client_supplied_identity_never_changes_the_owner(self) -> None:
         async with self._client() as client:
-            created = await client.post(
-                "/api/campaigns",
-                json={"name": "Yerel"},
-                headers={
-                    **_MARKER,
-                    "Authorization": "Bearer forged",
-                    "X-Replit-User-Id": "someone-else",
-                    "X-Forwarded-User": "someone-else",
-                },
-                cookies={"ai_dnd_session": "forged"},
-            )
+            with default_town(self, TOWN_SEED):
+                created = await client.post(
+                    "/api/campaigns",
+                    json={"name": "Yerel"},
+                    headers={
+                        **_MARKER,
+                        "Authorization": "Bearer forged",
+                        "X-Replit-User-Id": "someone-else",
+                        "X-Forwarded-User": "someone-else",
+                    },
+                    cookies={"ai_dnd_session": "forged"},
+                )
         self.assertEqual(created.status_code, 200, created.text)
         self.assertTrue(
             self.store.campaign_exists(created.json()["campaign_id"], principal=LOCAL_PRINCIPAL)
@@ -474,10 +482,11 @@ class HttpBoundary(unittest.IsolatedAsyncioTestCase):
 
     async def test_campaign_ownership_is_not_bypassed_in_either_direction(self) -> None:
         clerk_user = Principal("https://clerk.example", "user_a")
-        campaign_a, session_a, record, _metadata = self.manager.create_campaign(
-            "Clerk",
-            principal=clerk_user,
-        )
+        with default_town(self, TOWN_SEED):
+            campaign_a, session_a, record, _metadata = self.manager.create_campaign(
+                "Clerk",
+                principal=clerk_user,
+            )
         hp = record.game_session.character["current_hp"]
         clerk_app = create_app(
             session_manager=self.manager,
@@ -497,7 +506,8 @@ class HttpBoundary(unittest.IsolatedAsyncioTestCase):
             deleted = await local.delete(f"/api/campaigns/{campaign_a}", headers=_MARKER)
             self.assertEqual(deleted.json()["deleted"], False)
 
-            own = await local.post("/api/campaigns", json={"name": "Yerel"}, headers=_MARKER)
+            with default_town(self, TOWN_SEED):
+                own = await local.post("/api/campaigns", json={"name": "Yerel"}, headers=_MARKER)
             self.assertEqual(own.status_code, 200, own.text)
             own_id = own.json()["campaign_id"]
             self.assertEqual((await clerk.get(f"/api/campaigns/{own_id}")).status_code, 404)

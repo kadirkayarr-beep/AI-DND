@@ -6,6 +6,9 @@ from api.schemas import CharacterCreateInput
 from api.tests import test_campaign_api as campaigns
 from api.tests import test_roadmap_c06_level4_http as prior
 from api.tests.test_roadmap_c06_barbarian import spec
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8390
 
 
 def request(level=2):
@@ -22,7 +25,8 @@ class BarbarianCreationHttpTests(unittest.IsolatedAsyncioTestCase):
     reopen = prior.LevelFourHttpTests.reopen
 
     async def test_actual_custom_two_full_hp_noncasting_store_and_fresh_restore(self):
-        response = await self.http.post('/api/game/campaigns', json={'character': request()})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post('/api/game/campaigns', json={'character': request()})
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json(); session = self.manager.get(body['session_id']).game_session
         player = session.character
@@ -64,7 +68,8 @@ class BarbarianCreationHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(value['sorcerer_starting_creation']['supported_starting_levels'], [1, 2, 3, 4, 5])
 
     async def test_actual_custom_three_berserker_public_creation_store_and_fresh_restore(self):
-        response = await self.http.post('/api/game/campaigns', json={'character': request(3)})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post('/api/game/campaigns', json={'character': request(3)})
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json(); session = self.manager.get(body['session_id']).game_session
         player = session.character
@@ -90,7 +95,8 @@ class BarbarianCreationHttpTests(unittest.IsolatedAsyncioTestCase):
                      lambda x: x.update(starting_level=4), lambda x: x.update({'class': 'Sorcerer'}),
                      lambda x: x.update(level_choices={'2': {}, '3': {**pick, 'primal_knowledge_skill': 'Athletics'}})]:
             value = request(3); edit(value)
-            response = await self.http.post('/api/game/campaigns', json={'character': value})
+            with default_town(self, TOWN_SEED):
+                response = await self.http.post('/api/game/campaigns', json={'character': value})
             self.assertIn(response.status_code, (422, 400), response.text)
         with self.store._connect() as connection:
             self.assertEqual(connection.execute('SELECT count(*) FROM campaigns').fetchone()[0], 0)
@@ -101,7 +107,8 @@ class BarbarianCreationHttpTests(unittest.IsolatedAsyncioTestCase):
                      lambda x:x.update(level_choices={'2':{},'3':{}}),lambda x:x.update(starting_level=3),
                      lambda x:x.update(mode='random'), lambda x:x.update({'class':'Wizard'}),lambda x:x.update({'class':'Sorcerer'})]:
             value=request();edit(value)
-            response=await self.http.post('/api/game/campaigns',json={'character':value})
+            with default_town(self, TOWN_SEED):
+                response=await self.http.post('/api/game/campaigns',json={'character':value})
             self.assertEqual(response.status_code,422,response.text)
         with self.store._connect() as connection:
             self.assertEqual(connection.execute('SELECT count(*) FROM campaigns').fetchone()[0],0)
@@ -140,7 +147,8 @@ class BarbarianCreationHttpTests(unittest.IsolatedAsyncioTestCase):
                     reached.append(True)
                     raise sqlite3.OperationalError('synthetic after real Barbarian INSERT')
         with patch.object(self.store,'_transaction',side_effect=fail_after_insert):
-            response=await self.http.post('/api/game/campaigns',json={'character':request()})
+            with default_town(self, TOWN_SEED):
+                response=await self.http.post('/api/game/campaigns',json={'character':request()})
         self.assertEqual(response.status_code,503,response.text)
         self.assertTrue(reached)
         self.assertEqual(self.manager._sessions,before_sessions)
