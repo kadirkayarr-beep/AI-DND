@@ -216,7 +216,7 @@ class PairedHistoryTests(unittest.IsolatedAsyncioTestCase):
                 response = await self.post(url, client, self.request(npc))
                 self.assertNotIn(bad, response.json()["narration"])
                 self.assertNotIn(bad, str(self.pairs(session, npc)))
-                self.assertEqual(speech.call_kinds(client.schemas), speech.with_reading("speech"))
+                self.assertEqual(speech.call_kinds(client.schemas), speech.with_reading("speech", "speech"))  # D-332: one repair call
 
     def test_pair_limits_do_not_promote_speech_or_increase_memory(self):
         world = {"npcs": [{"id": "a"}], "locations": {}, "lore": {}}

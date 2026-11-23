@@ -19,10 +19,10 @@ class Client:
 class StageContractTests(unittest.TestCase):
  setUp=nr.TestNarrativeRebalance.setUp
  tearDown=nr.TestNarrativeRebalance.tearDown
- def turn(self,spoken,stage):
+ def turn(self,spoken,stage,repaired=False):  # D-332: a rejected answer costs one repair call (the stub says the same again)
   client=Client(spoken,stage);before=copy.deepcopy(self.session.world_state['npcs']);inventory=copy.deepcopy(self.session.world_state['inventory']);rng=self.session.rng.getstate()
   with patch('game.ollama.chat',side_effect=client.chat):r=self.session.run_player_turn('Hancı, buralarda neler dönüyor?')
-  self.assertEqual(self.session.world_state['npcs'],before);self.assertEqual(self.session.world_state['inventory'],inventory);self.assertEqual(self.session.rng.getstate(),rng);self.assertEqual(client.kinds(),read_first('speech'))
+  self.assertEqual(self.session.world_state['npcs'],before);self.assertEqual(self.session.world_state['inventory'],inventory);self.assertEqual(self.session.rng.getstate(),rng);self.assertEqual(client.kinds(),read_first('speech','speech') if repaired else read_first('speech'))
   return r
  def test_spoken_rumor_retained_stage_removed_and_history_single(self):
   r=self.turn(KING,KING);self.assertIn('“'+KING+'”',r['narration']);self.assertNotIn('('+KING.rstrip('.')+')',r['narration'])
@@ -33,12 +33,12 @@ class StageContractTests(unittest.TestCase):
  def test_visible_gesture_and_current_scene_retained(self):
   r=self.turn('Burada seni dinliyorum.','Hancı tezgaha yaslanıp kısık sesle konuşur.');self.assertIn('tezgaha yaslanıp',r['narration']);self.assertEqual(self.session.last_narration_safety['handling'],'accepted')
  def test_relationship_claim_still_rejected(self):
-  text='Hancı artık sana tamamen güveniyor ve seni en iyi dostu ilan ediyor.';r=self.turn(text,text);self.assertNotIn('en iyi dostu',r['narration']);self.assertEqual(self.session.last_narration_safety['reason_code'],'CANONICAL_RELATIONSHIP_CONTRADICTION')
+  text='Hancı artık sana tamamen güveniyor ve seni en iyi dostu ilan ediyor.';r=self.turn(text,text,repaired=True);self.assertNotIn('en iyi dostu',r['narration']);self.assertEqual(self.session.last_narration_safety['reason_code'],'CANONICAL_RELATIONSHIP_CONTRADICTION')
  def test_player_action_and_transfer_still_rejected(self):
-  r=self.turn('Kapıyı açıp içeri giriyorsun.','Hancı sana hanın anahtarını veriyor.');self.assertNotIn('Kapıyı açıp içeri giriyorsun',r['narration']);self.assertNotIn('anahtarını veriyor',r['narration'])
+  r=self.turn('Kapıyı açıp içeri giriyorsun.','Hancı sana hanın anahtarını veriyor.',repaired=True);self.assertNotIn('Kapıyı açıp içeri giriyorsun',r['narration']);self.assertNotIn('anahtarını veriyor',r['narration'])
  def test_private_stage_not_repaired_into_acceptance(self):
   self.session.world_state['npcs'][0]['personal_profile']={'private_secret':'Mahzenin altında mor mühür saklıdır.'}
-  r=self.turn('Burada seni dinliyorum.','Mahzenin altında mor mühür saklıdır.');self.assertNotIn('mor mühür',r['narration']);self.assertEqual(self.session.last_narration_safety['reason_code'],'NPC_PRIVATE_PROFILE_DISCLOSURE')
+  r=self.turn('Burada seni dinliyorum.','Mahzenin altında mor mühür saklıdır.',repaired=True);self.assertNotIn('mor mühür',r['narration']);self.assertEqual(self.session.last_narration_safety['reason_code'],'NPC_PRIVATE_PROFILE_DISCLOSURE')
 
 class PublicDetailHttpTests(unittest.IsolatedAsyncioTestCase):
  asyncSetUp=route.RouteFocusRegressionTests.asyncSetUp

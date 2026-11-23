@@ -132,7 +132,7 @@ class FollowTheName(unittest.IsolatedAsyncioTestCase):
         result = await self.go(TravellingClient({"create_locations": [PLACE]}, reference=NAME))
         self.assertEqual(self.new_places(), [])
         self.assertEqual(self.world["location"], self.start)
-        self.assertIn("olduğun yerdesin", result["narration"])
+        self.assertIn("Hangisine gidiyorsun?", result["narration"])  # D-331: a failed walk asks which known place
 
     async def test_speech_in_another_settlement_does_not_count(self):
         await self.scene()

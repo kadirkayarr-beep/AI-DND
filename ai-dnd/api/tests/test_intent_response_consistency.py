@@ -571,7 +571,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         })
         with patch.dict("os.environ", {"AI_DND_NPC_SPEECH": "1"}), patch.object(self.app.state.ollama_adapter, "_client", client):
             result = await self.turn(npc["name"] + ", vergi hakkında ne düşünüyorsun?", interaction_mode="say", target_id=npc["id"])
-        self.assertEqual(kinds(client), read_first("speech"))
+        self.assertEqual(kinds(client), read_first("speech", "speech"))  # D-332: one repair call
         self.assertNotIn(unsafe, result["narration"])
         self.assertEqual(json.dumps(self.world["inventory"], sort_keys=True), before)
         # The narrator path is still authoritative, not attributed NPC speech.
@@ -775,7 +775,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
         client = ScriptedNpcSpeechClient('Birlikte oturduk.')
         with patch.dict('os.environ', {'AI_DND_NPC_SPEECH': '1'}), patch.object(self.app.state.ollama_adapter, '_client', client):
             result = await self.turn('Oturmak istemiyorum. Biraz konuşabilir miyiz?', interaction_mode='say', target_id=npc['id'])
-        self.assertEqual(kinds(client), read_first("speech"))
+        self.assertEqual(kinds(client), read_first("speech", "speech"))  # D-332: one repair call
         self.assertNotIn('Birlikte oturduk.', result['narration'])
         self.assertEqual(self.session.last_narration_safety['reason_code'], 'INVENTED_PLAYER_ACTION')
 

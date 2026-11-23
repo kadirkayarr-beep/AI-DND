@@ -158,8 +158,8 @@ def follow_route(world: dict[str, Any], route: dict[str, Any], *, turn: int) -> 
         if person is not None:
             return {"text": _followed(person, seed), "npc_id": person.get("id"), "place_id": None}
         return {"text": _LOST_TRAIL, "npc_id": None, "place_id": None}
-    here = (world.get("locations") or {}).get(world.get("location")) or {}
-    settlement = here.get("parent_location_id") or world.get("location")
+    import local_places
+    settlement = local_places.settlement_of(world, world.get("location")) or world.get("location")
     places = sorted(key for key, rec in (world.get("locations") or {}).items()
                     if isinstance(rec, dict) and rec.get("parent_location_id") == settlement
                     and key != world.get("location") and not rec.get("hidden") and not rec.get("outdoors")
