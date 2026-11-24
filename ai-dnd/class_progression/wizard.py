@@ -3,6 +3,7 @@
 Spellbook (PDF 164): it starts with six level-1 Wizard spells (the creation selections) and, whenever you gain a Wizard level after
 1, you add two Wizard spells of your choice of a level for which you have spell slots. Prepared spells are chosen from the book in
 the preparation window (`spell_preparation`). Level 3: Evoker is the one subclass offered (approved decision 5); its features are pending.
+Prepared caster: ClassProgression and the character_progression helpers reach this class through prepared_caster, so this module does not import them itself.
 """
 from __future__ import annotations
 
