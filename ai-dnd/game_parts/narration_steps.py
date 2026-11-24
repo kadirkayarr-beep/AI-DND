@@ -1,3 +1,4 @@
+import re
 import living_world
 import json
 import game
@@ -253,3 +254,251 @@ def _dm_travel_guidance(*, action_result, narration_only, travel_guidance):
                 "özelliği, yoksa kısa bir duyusal ayrıntıyı ekle. Oyuncuya yeni eylem yükleme."
             )
     return travel_guidance
+
+
+def _fn_npc_target_check(*, action_result, narration, npc_target, player_input):
+    if (
+        npc_target
+        and (action_result or {}).get("action") not in {"attack", "interaction"}
+        and (action_result or {}).get("status") not in {
+            "experimental_attributed_speech",
+            "unaccepted_experimental_action",
+        }
+        and not (action_result or {}).get("experimental")
+    ):
+        game.record_npc_interaction(npc_target, narration, player_input, npc_target)
+
+
+def _fn_history_target(*, action_result, decision, handling, historical_claim, history_target, narration, player_input, supported_player_claims):
+    if historical_claim and history_target:
+        supported_name = None
+        if game._is_historical_player_name_query(player_input):
+            supported_name = (
+                game._historical_player_name_from_npc_memory(
+                    history_target, player_input
+                )
+                or game._historical_player_name_from_claims(
+                    history_target, player_input, supported_player_claims
+                )
+            )
+        if supported_name:
+            safe_name = re.sub(
+                r"[^A-Za-zÇĞİÖŞÜçğıöşü'’-]", "", supported_name
+            ).strip("'’-")
+            if safe_name:
+                npc_name = living_world.public_npc_name(history_target)
+                narration = (
+                    f'{npc_name}, “Evet, adının {safe_name} olduğunu '
+                    "söylemiştin,” diye yanıt verir."
+                )
+                reason_code = "NPC_MEMORY_SUPPORTED_PLAYER_NAME"
+            else:
+                narration = game.historical_claim_denial(history_target)
+                reason_code = "NPC_MEMORY_UNSUPPORTED_CLAIM"
+            decision = {
+                "reason_code": reason_code,
+                "trigger_span": None,
+                "scene_type": game._narration_scene_type(action_result),
+            }
+            handling = "python_memory_response"
+        elif not game.npc_memory_supports_claim(history_target, player_input):
+            # The first-person speech path already verified that this line
+            # refuses the unrecorded claim (an accepting line is replaced before
+            # it gets here). Keep the NPC's own in-character words instead of
+            # overwriting them with a stock denial.
+            keep_in_character_refusal = (
+                (action_result or {}).get("status") == "experimental_attributed_speech"
+                and game._npc_speech_is_claim_refusal(narration, history_target)
+            )
+            if not keep_in_character_refusal:
+                if history_target.get("location") == game._session().world_state.get("location"):
+                    narration = game.historical_claim_denial(history_target)
+                else:
+                    narration = f"{history_target['name']} şu anda burada değil; ne dediğini ona sormadan öğrenemezsin."
+                decision = {
+                    "reason_code": "NPC_MEMORY_UNSUPPORTED_CLAIM",
+                    "trigger_span": None,
+                    "scene_type": game._narration_scene_type(action_result),
+                }
+                handling = "python_memory_response"
+        else:
+            contradiction = game._narration_contradicts_supported_name_memory(
+                history_target, player_input, narration
+            )
+            if contradiction:
+                narration = game._fallback_for_action_result(player_input, action_result)
+                decision = {
+                    "reason_code": "NPC_MEMORY_CONTRADICTION",
+                    "trigger_span": contradiction,
+                    "scene_type": game._narration_scene_type(action_result),
+                }
+                handling = "python_memory_fallback"
+    return decision, handling, narration
+
+
+def _fn_history_claim_gate(*, action_result, decision, handling, historical_claim, history_target, narration):
+    if historical_claim and (
+        not isinstance(history_target, dict)
+        or not isinstance(history_target.get("id"), str)
+        or not any(
+            isinstance(npc, dict) and npc.get("id") == history_target.get("id")
+            for npc in game._session().world_state.get("npcs", [])
+        )
+    ):
+        narration = (
+            "Çevrendeki yüzlerin hiçbiri bu konuşmayı hatırlıyor gibi görünmüyor; "
+            "kiminle konuştuğunu çıkaramıyorsun."
+        )
+        decision = {
+            "reason_code": "NPC_MEMORY_UNVERIFIED_NO_STABLE_ID",
+            "trigger_span": None,
+            "scene_type": game._narration_scene_type(action_result),
+        }
+        handling = "python_memory_response"
+        history_target = None
+    return decision, handling, history_target, narration
+
+
+def _fn_speech_guard(*, accepted_bound_speech, action_result, decision, fallback_for_turn, handling, narration, normalized, npc_target, player_input, recent_dm_narrations, resolved_fallback_response):
+    if (
+        handling != "python_fallback"
+        and not accepted_bound_speech
+        and any(normalized == old for old in recent_dm_narrations)
+    ):
+        replaced = True
+        if (
+            isinstance(action_result, dict)
+            and action_result.get("status") == "experimental_attributed_speech"
+            and isinstance(npc_target, dict)
+        ):
+            narration = game.speech_repeat_line(
+                npc_target, player_input, salt=len(recent_dm_narrations)
+            )
+        else:
+            has_resolved_outcome = (
+                isinstance(resolved_fallback_response, str)
+                and bool(resolved_fallback_response.strip())
+            )
+            replacement = fallback_for_turn() if has_resolved_outcome else None
+            if replacement == narration:
+                # A safe answer identical to the resolved receipt was not
+                # replaced. Keep its original safety/repair decision.
+                replaced = False
+            elif replacement is None or replacement in game._GENERIC_NO_CHANGE_RESPONSES:
+                # Without a Python-resolved outcome the only substitutes are a
+                # "nothing happens" line or an "I don't know" line; a repeated
+                # real reply beats both.
+                replaced = False
+            else:
+                narration = replacement
+        if replaced:
+            decision = {
+                "reason_code": "REPEATED_NARRATION",
+                "trigger_span": None,
+                "scene_type": game._narration_scene_type(action_result),
+            }
+            handling = "python_fallback"
+    return decision, handling, narration
+
+
+def _fn_unsafe_repair(*, action_result, attributed_speech, decision, fallback_for_turn, handling, narration, npc_target, player_input, safety):
+    if safety["unsafe"]:
+        repaired_payload = (
+            game._repair_attributed_speech(attributed_speech, safety)
+            if isinstance(attributed_speech, dict) else None
+        )
+        repaired = (
+            game._compose_experimental_npc_speech(repaired_payload)
+            if repaired_payload is not None
+            else game._remove_trigger_sentence(narration, safety, action_result)
+        )
+        repaired_safety = (
+            game._narration_safety_decision(
+                repaired, player_input, npc_target, action_result,
+                attributed_speech=repaired_payload,
+            )
+            if repaired else None
+        )
+        for _ in range(3):
+            if repaired_payload is not None or not (repaired_safety and repaired_safety["unsafe"]):
+                break
+            shorter = game._remove_trigger_sentence(repaired, repaired_safety, action_result)
+            if not shorter:
+                break
+            repaired = shorter
+            repaired_safety = game._narration_safety_decision(
+                repaired, player_input, npc_target, action_result, attributed_speech=None,
+            )
+        if safety.get("reason_code") in (
+            "WRONG_NPC_SPEAKER_ATTRIBUTION",
+            "NPC_MEMORY_DISCLOSURE_LEAK",
+            "REPORTED_NON_ATTACK",
+        ):
+            narration = fallback_for_turn(npc_target=npc_target)
+            decision = safety
+            handling = "python_fallback"
+        elif (
+            repaired and repaired_safety and not repaired_safety["unsafe"]
+            and not (
+                isinstance(action_result, dict)
+                and (
+                    action_result.get("action") == "dialogue"
+                    or action_result.get("status") == "experimental_attributed_speech"
+                )
+                and not game._dialogue_repair_has_attributed_answer(
+                    repaired_payload if repaired_payload is not None else repaired,
+                    npc_target,
+                    action_result,
+                )
+            )
+        ):
+            # A safe remainder is still not an answer if it has no speech
+            # payload bound to the resolved dialogue target.
+            narration = repaired
+            if repaired_payload is not None:
+                attributed_speech.update(repaired_payload)
+            decision = safety
+            handling = "repaired"
+        else:
+            narration = fallback_for_turn(npc_target=npc_target)
+            decision = safety
+            handling = "python_fallback"
+    return decision, handling, narration
+
+
+def _fn_lore_rejected(*, action_result, fallback_for_turn, fallback_reason_code, handling, narration, npc_target, player_input):
+    if fallback_reason_code == "UNVERIFIED_LORE_CLAIM":
+        import resolved_presentation
+        narration = resolved_presentation.lore_rejected_action(
+            action_result, getattr(game._session(), "lore_authority_context", None)
+        )
+        if not narration and (
+            isinstance(action_result, dict)
+            and action_result.get("action") == "skill_check"
+            and action_result.get("status") == "resolved"
+        ):
+            # Reject unsupported lore, not the Python-verified check outcome.
+            # Existing door resolution already owns its specific outcome.
+            narration = game._fallback_for_action_result(player_input, action_result, npc_target)
+        if not narration and (
+            isinstance(action_result, dict)
+            and action_result.get("action") == "dialogue"
+            and action_result.get("status") == "answered_smalltalk"
+            and re.fullmatch(
+                r"(?:merhaba|selam|selamlar|gunaydin|iyi gunler|iyi aksamlar)",
+                game._normalize_turkish_typos(player_input),
+            )
+        ):
+            # Reject invented lore, not the player's valid greeting intent.
+            # Use only the resolved, present NPC; do not infer an NPC reply.
+            narration = (
+                f"{living_world.public_npc_name(npc_target)} selamına karşılık verir."
+                if isinstance(npc_target, dict)
+                else "Selam veriyorsun."
+            )
+        if not narration:
+            narration = game._rejected_lore_narration(player_input, npc_target)
+        handling = "python_fallback"
+    elif fallback_reason_code:
+        narration = fallback_for_turn(default_response=narration)
+    return handling, narration

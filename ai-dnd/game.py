@@ -519,6 +519,12 @@ from game_parts.narration_steps import _dm_anchored_inquiry  # noqa: F401
 from game_parts.narration_steps import _dm_shop_creation  # noqa: F401
 from game_parts.narration_steps import _dm_direct_query  # noqa: F401
 from game_parts.narration_steps import _dm_travel_guidance  # noqa: F401
+from game_parts.narration_steps import _fn_npc_target_check  # noqa: F401
+from game_parts.narration_steps import _fn_history_target  # noqa: F401
+from game_parts.narration_steps import _fn_history_claim_gate  # noqa: F401
+from game_parts.narration_steps import _fn_speech_guard  # noqa: F401
+from game_parts.narration_steps import _fn_unsafe_repair  # noqa: F401
+from game_parts.narration_steps import _fn_lore_rejected  # noqa: F401
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"

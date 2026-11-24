@@ -1457,6 +1457,42 @@
   "session_bound": true,
   "signature": "(*, action_result, narration, quest_outcomes, safety_reason_code, safety_handling, record_safety, is_final, active_conversation_before, allow_new_features, allow_new_locations, allow_new_npcs, allow_new_shops, conversation_resolution, conversation_state_before, entry_actor, entry_identity, expected_location_change, intent_source, lore_context, messages, narration_model_calls, narration_source, npc_target, player_input, procedural_entity_ids, procedural_ids_before, quest_world_before, scene_plan, target_id, told_intent_calls, turn_index, world_state)"
  },
+ "_fn_history_claim_gate": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, decision, handling, historical_claim, history_target, narration)"
+ },
+ "_fn_history_target": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, decision, handling, historical_claim, history_target, narration, player_input, supported_player_claims)"
+ },
+ "_fn_lore_rejected": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, fallback_for_turn, fallback_reason_code, handling, narration, npc_target, player_input)"
+ },
+ "_fn_npc_target_check": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, narration, npc_target, player_input)"
+ },
+ "_fn_speech_guard": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, accepted_bound_speech, action_result, decision, fallback_for_turn, handling, narration, normalized, npc_target, player_input, recent_dm_narrations, resolved_fallback_response)"
+ },
+ "_fn_unsafe_repair": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, attributed_speech, decision, fallback_for_turn, handling, narration, npc_target, player_input, safety)"
+ },
  "_fold_keep_punctuation": {
   "kind": "function",
   "module": "game_parts.text_rules_a",
