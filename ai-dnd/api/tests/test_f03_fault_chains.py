@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 import unittest
+from types import SimpleNamespace
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +23,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 import httpx
 from api.tests.guard_bound import LISTENER, guard_bound
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8180
 
 
 def read(path):
@@ -63,7 +67,8 @@ def serve(folder, port):
         cid = read(folder / "campaign.json")["campaign_id"]
         sid, record, *_ = manager.resume_campaign(cid)
     else:
-        cid, sid, record, *_ = manager.create_campaign(name="Synthetic F03 fault chain")
+        with default_town(SimpleNamespace(), TOWN_SEED):
+            cid, sid, record, *_ = manager.create_campaign(name="Synthetic F03 fault chain")
         session = record.game_session
         session.commit_location_change("tavern")
         session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)

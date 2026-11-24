@@ -17,6 +17,9 @@ from api.tests.auth_fixture import TEST_PLAYER
 from api.tests import test_campaign_api as campaigns
 from api.tests.test_roadmap_c06_creation_http import character_request
 from api.tests.test_roadmap_c06_level4_con import PICK
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8440
 
 
 class LevelFourHttpTests(unittest.IsolatedAsyncioTestCase):
@@ -24,7 +27,8 @@ class LevelFourHttpTests(unittest.IsolatedAsyncioTestCase):
     asyncTearDown = campaigns.CampaignApiTests.asyncTearDown
 
     async def earned(self, award=1800):
-        response = await self.http.post('/api/game/campaigns', json={'character': character_request(3)})
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post('/api/game/campaigns', json={'character': character_request(3)})
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json(); record = self.manager.get(body['session_id'])
         if award: xp.apply_xp(record.game_session.character, record.game_session.world_state, award, 'quest:synthetic-earned-four')

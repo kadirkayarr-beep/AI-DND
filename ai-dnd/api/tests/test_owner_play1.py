@@ -23,6 +23,9 @@ from api.tests import test_living_world_v2_foundation as foundation
 from api.tests import test_lr00_grounded_human as human
 from api.tests.test_lr00_p1_intent import ProbeShapedClient
 from api.tests.test_lr00_grounded_human import CITY, GARRICK, GARRICK_DOOR
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8350
 
 
 class SpokenPlaceNames(unittest.TestCase):
@@ -248,7 +251,8 @@ class NewCampaign(unittest.IsolatedAsyncioTestCase):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
         self.client = ProbeShapedClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
-        created = await self.http.post("/api/game/campaigns", json=START)
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json=START)
         self.assertEqual(created.status_code, 200, created.text)
         self.body = created.json()
         self.session_id = self.body["session_id"]

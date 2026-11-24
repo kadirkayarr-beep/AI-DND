@@ -14,6 +14,9 @@ import uuid
 from unittest.mock import patch
 
 from api.auth import Principal
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8070
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
@@ -63,7 +66,8 @@ class CampaignPersistenceTests(unittest.TestCase):
         self.temporary_directory.cleanup()
 
     def create_campaign(self, name="Test campaign"):
-        return self.manager.create_campaign(name)
+        with default_town(self, TOWN_SEED):
+            return self.manager.create_campaign(name)
 
     def test_campaign_save_and_runtime_rng_survive_manager_restart(self):
         campaign_id, original_session_id, record, metadata = self.create_campaign()

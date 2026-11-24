@@ -12,6 +12,9 @@ import tempfile
 import unittest
 
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8280
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
@@ -25,7 +28,8 @@ class HistoricalV5SaveCompatibilityTests(unittest.TestCase):
     def test_legacy_v5_fields_survive_engine_round_trip(self):
         with tempfile.TemporaryDirectory() as td:
             manager = SessionManager(campaign_store=CampaignStore(Path(td) / "test.sqlite3", bound_principal=TEST_PLAYER))
-            _, _, record, _ = manager.create_campaign("Legacy fixture")
+            with default_town(self, TOWN_SEED):
+                _, _, record, _ = manager.create_campaign("Legacy fixture")
             session = record.game_session
             initial = session.serialize_game_state()
             self.assertEqual(initial["version"], 4)
@@ -57,13 +61,15 @@ class HistoricalV5SaveCompatibilityTests(unittest.TestCase):
                     self.assertEqual(after["world_state"][key], value, key)
 
             # Session-local version provenance; no leak into fresh campaigns.
-            _, _, fresh, _ = manager.create_campaign("New fixture")
+            with default_town(self, TOWN_SEED):
+                _, _, fresh, _ = manager.create_campaign("New fixture")
             self.assertEqual(fresh.game_session.serialize_game_state()["version"], 4)
 
     def test_invalid_v5_spell_record_rejected(self):
         with tempfile.TemporaryDirectory() as td:
             manager = SessionManager(campaign_store=CampaignStore(Path(td) / "test.sqlite3", bound_principal=TEST_PLAYER))
-            _, _, record, _ = manager.create_campaign("Corrupt fixture")
+            with default_town(self, TOWN_SEED):
+                _, _, record, _ = manager.create_campaign("Corrupt fixture")
             legacy = copy.deepcopy(record.game_session.serialize_game_state())
             legacy["version"] = 5
             legacy["player"]["cantrips"] = ["Fire Bolt", "Fire Bolt"]

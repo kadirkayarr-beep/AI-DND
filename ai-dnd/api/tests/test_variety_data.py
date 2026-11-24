@@ -17,6 +17,9 @@ import town_knowledge
 from api import opening_narrative
 from api.tests import test_campaign_api as api
 from api.tests.test_natural_addressing import TownClient
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8660
 
 CITY = "fr:city:neverwinter"
 START = {"campaign_start": {
@@ -279,7 +282,8 @@ class NewCampaignOpeningTests(unittest.IsolatedAsyncioTestCase):
     async def test_campaigns_no_longer_open_on_the_same_fixed_words_and_a_reload_keeps_theirs(self):
         openings = set()
         for _ in range(10):
-            created = await self.http.post("/api/game/campaigns", json=START)
+            with default_town(self, TOWN_SEED):
+                created = await self.http.post("/api/game/campaigns", json=START)
             self.assertEqual(created.status_code, 200, created.text)
             world = self.manager.get(created.json()["session_id"]).game_session.world_state
             text = living_world.public_scene_projection(copy.deepcopy(world), 0)["opening"]
@@ -297,7 +301,8 @@ class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
     asyncTearDown = api.CampaignApiTests.asyncTearDown
 
     async def start(self):
-        created = await self.http.post("/api/game/campaigns", json=START)
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json=START)
         self.assertEqual(created.status_code, 200, created.text)
         return created.json()["session_id"], self.manager.get(created.json()["session_id"]).game_session
 

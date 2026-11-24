@@ -9,6 +9,9 @@ import interaction_adventure
 from api.character_creation import configure_character
 from api.tests import test_equipment_economy_http as contracts
 from api.tests.test_experimental_npc_dialogue import with_reading
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8160
 
 
 class NativeEquipmentTests(unittest.TestCase):
@@ -217,14 +220,15 @@ class NativeEquipmentTests(unittest.TestCase):
 
 class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
     async def create_campaign(self):
-        response = await self.http.post("/api/game/campaigns", json={
-            "campaign_start": {
-                "setting_id": "forgotten_realms",
-                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
-                "region_id": "fr:region:the_north",
-                "starting_location_id": "fr:city:neverwinter",
-            },
-        })
+        with default_town(self, TOWN_SEED):
+            response = await self.http.post("/api/game/campaigns", json={
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": "fr:city:neverwinter",
+                },
+            })
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 

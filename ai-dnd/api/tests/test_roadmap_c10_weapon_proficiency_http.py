@@ -5,6 +5,9 @@ from unittest.mock import patch
 from uuid import uuid4
 from api.tests import test_roadmap_c10_rage_http as rage_fixtures
 from api.tests.test_roadmap_c06_barbarian_creation_http import request
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8500
 
 class WeaponProficiencyHttpTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = rage_fixtures.RageHttpTests.asyncSetUp
@@ -17,7 +20,8 @@ class WeaponProficiencyHttpTests(unittest.IsolatedAsyncioTestCase):
         data=request(level)
         data['ability_scores']['strength']=14
         data['ability_scores']['dexterity']=8
-        response=await self.http.post('/api/game/campaigns',json={'character':data})
+        with default_town(self, TOWN_SEED):
+            response=await self.http.post('/api/game/campaigns',json={'character':data})
         self.assertEqual(response.status_code,200,response.text)
         a=response.json();r=self.manager.get(a['session_id']);s=r.game_session
         s.commit_location_change('tavern')
@@ -68,7 +72,8 @@ class WeaponProficiencyHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_no_request_controlled_grant_or_ambiguous_legacy_adoption(self):
         data=request();data['weapon_proficiencies']=['simple','martial']
-        response=await self.http.post('/api/game/campaigns',json={'character':data})
+        with default_town(self, TOWN_SEED):
+            response=await self.http.post('/api/game/campaigns',json={'character':data})
         self.assertEqual(response.status_code,422,response.text)
         a,r,command=await self.encounter()
         r.game_session.character.pop('weapon_proficiencies',None)

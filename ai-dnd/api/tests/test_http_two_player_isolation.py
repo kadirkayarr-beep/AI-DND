@@ -22,6 +22,9 @@ from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import PLAYER_A, PLAYER_B, SAME_SUBJECT
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8240
 
 _LIVE = (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
 
@@ -44,12 +47,14 @@ class TwoPlayerIsolationTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.directory.cleanup)
         self.store = CampaignStore(_path(self.directory.name))
         self.manager = SessionManager(campaign_store=self.store)
-        self.a_campaign, self.a_session, a_record, _ = self.manager.create_campaign(
-            name="Aya ait", principal=PLAYER_A,
-        )
-        self.b_campaign, self.b_session, _, _ = self.manager.create_campaign(
-            name="Bora ait", principal=PLAYER_B,
-        )
+        with default_town(self, TOWN_SEED):
+            self.a_campaign, self.a_session, a_record, _ = self.manager.create_campaign(
+                name="Aya ait", principal=PLAYER_A,
+            )
+        with default_town(self, TOWN_SEED):
+            self.b_campaign, self.b_session, _, _ = self.manager.create_campaign(
+                name="Bora ait", principal=PLAYER_B,
+            )
         self.a_hp = a_record.game_session.character["current_hp"]
         self.apps = {
             "a": create_app(
@@ -92,7 +97,8 @@ class TwoPlayerIsolationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_campaign_created_over_http_never_shows_up_for_the_other_player(self):
         async with self.client("b") as b, self.client("a") as a:
-            created = await b.post("/api/game/campaigns", json={"name": "Bora ikinci"})
+            with default_town(self, TOWN_SEED):
+                created = await b.post("/api/game/campaigns", json={"name": "Bora ikinci"})
             self.assertEqual(created.status_code, 200, created.text)
             new_id = created.json()["campaign_id"]
             self.assertEqual(_ids((await a.get("/api/game/campaigns")).json()), {self.a_campaign})

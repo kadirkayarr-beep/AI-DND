@@ -1,0 +1,140 @@
+name: AI-DND quality gate
+
+# Blocking gate (Task 9): python-gate, secrets-gate and ui-gate (knip) fail a PR; fallow and skylos only report.
+# Tool pins live in ai-dnd/scripts/quality_gate/tools.json (single source).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-dnd-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-gate:
+    # Task 5: blocking. Ruff (F, E9) goes through the ratchet; vulture must exit 0 with the whitelist.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install Python tools at the pinned versions
+        run: python -m pip install -r ai-dnd/scripts/engine_split/requirements-dev.txt
+      - name: Ruff (F, E9) against the baseline
+        working-directory: ai-dnd
+        run: |
+          mkdir -p "$RUNNER_TEMP/gate"
+          rc=0
+          ruff check . --select F,E9 --output-format json > "$RUNNER_TEMP/gate/ruff.json" || rc=$?
+          if [ "$rc" -gt 1 ]; then echo "ruff crashed (exit $rc)"; exit 2; fi
+          python -m scripts.quality_gate.ratchet check ruff "$RUNNER_TEMP/gate/ruff.json"
+      - name: Ruff baseline may only shrink
+        working-directory: ai-dnd
+        run: |
+          git fetch --no-tags origin main
+          python -m scripts.quality_gate.ratchet check-shrink scripts/quality_gate/baselines/ruff.json origin/main
+      - name: Vulture whitelist may only shrink
+        working-directory: ai-dnd
+        run: python -m scripts.quality_gate.ratchet check-names-shrink scripts/quality_gate/vulture_whitelist.py origin/main
+      - name: Size lock may only shrink
+        working-directory: ai-dnd
+        run: |
+          git fetch --no-tags origin main
+          python -m scripts.quality_gate.size_lock_shrink scripts/quality_gate/size_lock.json origin/main
+      - name: Vulture with the whitelist
+        run: vulture ai-dnd ai-dnd/scripts/quality_gate/vulture_whitelist.py --min-confidence 80
+
+  secrets-gate:
+    # Task 6: blocking. Full history; only findings outside the baseline fail. --redact keeps values out of logs.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install gitleaks at the pinned version and checksum
+        run: |
+          V=$(python3 -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['gitleaks']['version'])")
+          SUM=$(python3 -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['gitleaks']['sha256'])")
+          curl -sSL -o "$RUNNER_TEMP/gitleaks.tgz" "https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_linux_x64.tar.gz"
+          echo "${SUM}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+      - name: Gitleaks baseline may only shrink
+        run: |
+          git fetch --no-tags origin main
+          cd ai-dnd && python3 -m scripts.quality_gate.ratchet check-fingerprints-shrink scripts/quality_gate/gitleaks-baseline.json origin/main
+      - name: Scan the full history against the baseline
+        run: |
+          rc=0
+          "$RUNNER_TEMP/gitleaks" detect --redact --no-banner --no-color --baseline-path ai-dnd/scripts/quality_gate/gitleaks-baseline.json --report-format json --report-path "$RUNNER_TEMP/gitleaks.json" > "$RUNNER_TEMP/gitleaks.log" 2>&1 || rc=$?
+          cat "$RUNNER_TEMP/gitleaks.log"
+          # A scan that read no commits is not a pass (unreadable repo prints "0 commits scanned", exit 0).
+          if ! grep -Eq '[1-9][0-9]* commits scanned' "$RUNNER_TEMP/gitleaks.log"; then echo "gitleaks scanned no commits"; exit 2; fi
+          exit "$rc"
+
+  ui-gate:
+    # Task 7: knip is blocking (ratchet + shrink check); fallow and skylos only report.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.26.1"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - name: Install workspace dependencies without scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Knip against the baseline
+        env:
+          PORT: "3000"
+          BASE_PATH: "/"
+          DATABASE_URL: "postgres://localhost/unused"
+        run: |
+          mkdir -p "$RUNNER_TEMP/gate"
+          V=$(python -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['knip'])")
+          rc=0
+          npm_config_ignore_scripts=true pnpm dlx "knip@${V}" --reporter json > "$RUNNER_TEMP/gate/knip.json" || rc=$?
+          if [ "$rc" -gt 1 ]; then echo "knip crashed (exit $rc)"; exit 2; fi
+          cd ai-dnd && python -m scripts.quality_gate.ratchet check knip "$RUNNER_TEMP/gate/knip.json"
+      - name: Knip baseline may only shrink
+        run: |
+          git fetch --no-tags origin main
+          cd ai-dnd && python -m scripts.quality_gate.ratchet check-shrink scripts/quality_gate/baselines/knip.json origin/main
+      - name: Fallow dead-code against its own baseline (report only)
+        continue-on-error: true
+        env:
+          DO_NOT_TRACK: "1"
+        run: |
+          V=$(python -c "import json;print(json.load(open('ai-dnd/scripts/quality_gate/tools.json'))['fallow'])")
+          npm_config_ignore_scripts=true pnpm dlx "fallow@${V}" dead-code --format json --quiet > "$RUNNER_TEMP/gate/fallow.json" || true
+          cd ai-dnd && python -m scripts.quality_gate.ratchet check fallow "$RUNNER_TEMP/gate/fallow.json"
+      - name: Skylos (report only, no upload)
+        continue-on-error: true
+        run: |
+          PKG=$(python -c "import json;t=json.load(open('ai-dnd/scripts/quality_gate/tools.json'));print('skylos=='+t['skylos'])")
+          python -m pip install --only-binary=:all: "$PKG"
+          skylos ai-dnd --no-upload --json > "$RUNNER_TEMP/gate/skylos.json" || true
+          python -c "import json,os;d=json.load(open(os.environ['RUNNER_TEMP']+'/gate/skylos.json'));print({k:len(v) for k,v in d.items() if isinstance(v,list)})"

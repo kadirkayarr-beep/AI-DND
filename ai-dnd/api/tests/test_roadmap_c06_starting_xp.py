@@ -20,6 +20,9 @@ from api.tests import test_campaign_api as campaigns
 from api.tests.test_roadmap_c06 import SPEC
 from api.tests.test_roadmap_c06_level3 import TWO, choices
 from api.tests.test_roadmap_c06_creation_http import character_request
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8460
 
 
 def create(level):
@@ -111,7 +114,8 @@ class StartingXpHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_http_create_store_and_fresh_resume_preserve_starting_xp(self):
         for level, expected_xp in ((1, 0), (2, 300), (3, 900)):
             with self.subTest(level=level):
-                response = await self.http.post('/api/game/campaigns', json={'character': character_request(level)})
+                with default_town(self, TOWN_SEED):
+                    response = await self.http.post('/api/game/campaigns', json={'character': character_request(level)})
                 self.assertEqual(response.status_code, 200, response.text)
                 body = response.json()
                 saved = self.store.get_campaign(body['campaign_id'])

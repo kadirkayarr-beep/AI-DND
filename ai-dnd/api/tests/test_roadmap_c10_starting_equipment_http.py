@@ -5,6 +5,9 @@ from unittest.mock import patch
 from uuid import uuid4
 from api.tests import test_roadmap_c10_rage_http as helpers
 from api.tests.test_roadmap_c06_barbarian_creation_http import request
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8490
 
 class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp=helpers.RageHttpTests.asyncSetUp
@@ -16,7 +19,8 @@ class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
     async def create(self,package='A',level=2,background_option='B',edit=None):
         data=request(level);data.update(equipment_package=package,background_equipment_option=background_option)
         if edit:edit(data)
-        response=await self.http.post('/api/game/campaigns',json={'character':data})
+        with default_town(self, TOWN_SEED):
+            response=await self.http.post('/api/game/campaigns',json={'character':data})
         self.assertEqual(response.status_code,200,response.text)
         a=response.json();return a,self.manager.get(a['session_id'])
 
@@ -67,7 +71,8 @@ class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_random_selected_barbarian_uses_source_package_without_guessing(self):
         # Existing random route supports level1 only; force source class, not final character state.
         with patch('game.CLASSES',['Barbarian']),patch('game.RACES',['Human']):
-            response=await self.http.post('/api/game/campaigns',json={'character':{'mode':'random'}})
+            with default_town(self, TOWN_SEED):
+                response=await self.http.post('/api/game/campaigns',json={'character':{'mode':'random'}})
         self.assertEqual(response.status_code,200,response.text)
         a=response.json();r=self.manager.get(a['session_id']);w=r.game_session.world_state
         self.assertEqual(r.game_session.character['class'],'Barbarian')
@@ -116,7 +121,8 @@ class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
         for extra in ({'equipment_choices':['4 Cirit']},{'equipment_choices':['2 El Baltası (Handaxe)']},
                       {'starting_gold':999},{'currency_cp':999},{'quantity':99}):
             data=request();data.update(extra)
-            response=await self.http.post('/api/game/campaigns',json={'character':data})
+            with default_town(self, TOWN_SEED):
+                response=await self.http.post('/api/game/campaigns',json={'character':data})
             self.assertEqual(response.status_code,422,response.text)
         with self.store._connect() as connection:
             self.assertEqual(connection.execute('SELECT count(*) FROM campaigns').fetchone()[0],0)
@@ -136,12 +142,14 @@ class StartingEquipmentHttpTests(unittest.IsolatedAsyncioTestCase):
                     raise sqlite3.OperationalError('synthetic new cash-only package INSERT precommit')
         data=request();data.update(equipment_package='B',background_equipment_option='B')
         with patch.object(self.store,'_transaction',side_effect=failing_transaction):
-            response=await self.http.post('/api/game/campaigns',json={'character':data})
+            with default_town(self, TOWN_SEED):
+                response=await self.http.post('/api/game/campaigns',json={'character':data})
         self.assertGreaterEqual(response.status_code,500,response.text)
         self.assertEqual(reached,[True]);self.assertEqual(self.manager._sessions,before)
         with self.store._connect() as connection:self.assertEqual(connection.execute('SELECT count(*) FROM campaigns').fetchone()[0],0)
         # Creation has no action receipt/idempotency promise: this is a fresh successful attempt.
-        response=await self.http.post('/api/game/campaigns',json={'character':data})
+        with default_town(self, TOWN_SEED):
+            response=await self.http.post('/api/game/campaigns',json={'character':data})
         self.assertEqual(response.status_code,200,response.text)
         r=self.manager.get(response.json()['session_id'])
         self.assertEqual(r.game_session.world_state['currency']['player'],12500)

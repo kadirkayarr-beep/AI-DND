@@ -34,6 +34,9 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_api import FakeOllamaClient
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8640
 
 _TRANSIENTS = ("_handed_note", "_given_now", "_coin_paid", "_front_coin", "_bribe_held_out", "_counter_held")
 _FRONT_ON = {front_proposal.FLAG: "1", front_proposal.ROUTE_LOG: ""}
@@ -81,7 +84,8 @@ class Step0CommitFailureTests(unittest.IsolatedAsyncioTestCase):
         self.temporary_directory.cleanup()
 
     async def new_campaign(self):
-        created = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(created.status_code, 200, created.text)
         body = created.json()
         self.cid, self.sid = body["campaign_id"], body["session_id"]

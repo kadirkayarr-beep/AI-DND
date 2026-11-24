@@ -29,6 +29,9 @@ from api.session_manager import SessionManager
 
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8090
 def scene():
     session = game.create_session(seed=11)
     session.commit_location_change("tavern")
@@ -270,7 +273,8 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
         self.enterContext(adapter.engine_binding())
         self.app = create_app(session_manager=self.manager, ollama_adapter=adapter, authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://test")
-        created = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(created.status_code, 200, created.text)
         self.created = created.json()
         self.sid = self.created["session_id"]

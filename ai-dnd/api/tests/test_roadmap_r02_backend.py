@@ -24,6 +24,9 @@ from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_campaign_api import FakeOllamaClient
 from dialogue_runtime import DialogueProviderError
+from api.tests.town_seed import default_town
+
+TOWN_SEED = 8560
 
 
 class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
@@ -36,7 +39,8 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
         self.app = create_app(session_manager=self.manager, ollama_adapter=adapter,
                               authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://testserver")
-        created = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            created = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(created.status_code, 200, created.text)
         self.created = created.json()
         self.session = self.manager.get(self.created["session_id"]).game_session
@@ -478,7 +482,8 @@ class RoadmapR02BackendTests(unittest.IsolatedAsyncioTestCase):
         self.session.run_player_turn = boom
         body = self.fresh_body()
         self.assertEqual((await self.turn(body)).status_code, 500)
-        other = await self.http.post("/api/game/campaigns", json={})
+        with default_town(self, TOWN_SEED):
+            other = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(other.status_code, 200, other.text)
         other_session = self.manager.get(other.json()["session_id"]).game_session
         other_calls = []
