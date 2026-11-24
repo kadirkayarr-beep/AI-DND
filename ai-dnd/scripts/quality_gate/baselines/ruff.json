@@ -6,7 +6,6 @@
   "ruff|api/character_creation.py|F401|api.dnd_2024_rules.STANDARD_ARRAY": 1,
   "ruff|api/lore_authority/__init__.py|F401|.models.FactionStanding": 1,
   "ruff|api/lore_authority/__init__.py|F401|.player_knowledge.read_public_npc_label": 1,
-  "ruff|api/lore_authority/freeze_mapping.py|F841|city": 1,
   "ruff|api/lore_authority/registry.py|F401|.models.BindingStatus": 1,
   "ruff|api/main.py|F401|api.auth.FailClosedAuthenticator": 1,
   "ruff|api/schemas.py|F811|DEFAULT_LOCAL_MODEL": 1,
