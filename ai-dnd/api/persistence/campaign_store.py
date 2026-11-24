@@ -214,7 +214,13 @@ def _engine_digest(game_file: Path) -> str:
 
 
 class CampaignStore:
-    """Stores canonical engine saves and safe campaign metadata transactionally."""
+    """Stores canonical engine saves and safe campaign metadata transactionally.
+
+    Missing-record convention: a lookup of the campaign itself (get_campaign and every write) raises
+    CampaignNotFoundError when it does not exist; a lookup of an optional audit row of an existing campaign
+    (get_turn_action, get_turn_action_receipt, get_refused_action, get_emergence_attempt) returns None when there is
+    no such row. A malformed campaign id raises CampaignNotFoundError; a malformed action id CampaignValidationError.
+    """
 
     def __init__(
         self,

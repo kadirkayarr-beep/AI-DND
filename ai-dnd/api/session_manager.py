@@ -108,7 +108,11 @@ class ManagedSession:
 
 
 class SessionManager:
-    """Owns session objects; callers receive records, never client-controlled state."""
+    """Owns session objects; callers receive records, never client-controlled state.
+
+    Missing-record convention (as in CampaignStore): an unknown session or campaign raises (UnknownSessionError,
+    CampaignNotFoundError); an optional audit row (get_turn_action, get_refused_action) is None when absent.
+    """
 
     def __init__(
         self,
