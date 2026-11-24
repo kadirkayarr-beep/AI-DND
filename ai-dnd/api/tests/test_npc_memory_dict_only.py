@@ -42,5 +42,22 @@ class StringEntriesAreIgnored(unittest.TestCase):
         self.assertIsNone(game.npc_memory_supporting_entry(npc, "Sen bana beş altın vereceğini söylemiştin."))
 
 
+class SaveValidationRejectsStringMemory(unittest.TestCase):
+    def _save(self, memory):
+        return {"world_state": {"location": "Town", "flags": {}, "combat": {},
+                                "npcs": [{"memory": memory}]}}
+
+    def test_a_plain_string_memory_entry_is_rejected(self):
+        from api.persistence.campaign_validation import _validate_engine_save
+        with patch.object(game, "_validate_save_payload"):
+            with self.assertRaises(ValueError):
+                _validate_engine_save(self._save(["eski satır"]), ValueError)
+
+    def test_a_dict_memory_entry_is_accepted(self):
+        from api.persistence.campaign_validation import _validate_engine_save
+        with patch.object(game, "_validate_save_payload"):
+            _validate_engine_save(self._save([{"speaker": "npc", "text": "Merhaba."}]), ValueError)
+
+
 if __name__ == "__main__":
     unittest.main()

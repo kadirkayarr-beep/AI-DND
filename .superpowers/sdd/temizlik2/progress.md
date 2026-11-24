@@ -86,3 +86,8 @@ Branch task/temizlik-2-20261124, stacked on 5f3fb391. Input: 51 rows round 1 ski
 - G1 fix round 1: the two deleted is_dialogue_or_emotion asserts rewritten against live is_npc_dialogue_input; onay-listesi section 27 added (3 test changes, gevsetme olabilir).
 - G2 RESULT: slot 9 label g2fix: exit=0, Ran 192 tests (lore_1501_integration, admission_boundary, roadmap_w08/w10, incident_wave8_9, 4 journey modules); independent g2rev exit=0, 188 tests; ruff ratchet=0; vulture=0.
 - G2 fix round 1: onay-listesi section 27 has 16 G2 rows (gevsetme olabilir); tautological assert removed from test_staged_fact_cannot_become_player_knowledge; D-580 park row for orphaned admit_public_batch/projection_is_transform_ready.
+- G2 fix round 2: freeze_mapping F841 satiri ruff.json'dan silindi (G1+G2 bu dalda birlesik; supurme yapildi). Ratchet + vulture exit 0.
+
+## G3 fix 1
+Fixed: campaign_validation no longer accepts plain-string NPC memory entries (red test SaveValidationRejectsStringMemory in test_npc_memory_dict_only; stricter, no check reduced). Ran 382 tests green + ruff ratchet + vulture exit 0.
+Ruling: no new debt row - branch removed instead - new games write dicts only, old saves do not matter - cost if wrong: an old save with string memory is rejected at load.
