@@ -503,7 +503,7 @@ class LoreRegistry:
                 resolution.conflicting_fact_ids,
                 (),
             )
-        selected = self._facts[resolution.selected_fact_id]  # type: ignore[index]
+        selected = self._facts[resolution.selected_fact_id]  # type: ignore[index]  # selected_fact_id is Optional in the type; candidates is non-empty here, so the resolver picked one
         status = (
             ResolutionStatus.RESOLVED
             if selected.object_id_or_value == object_id_or_value

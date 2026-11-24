@@ -3706,7 +3706,9 @@ def _bookkeeping(run: _Run, narration: str, action_result: dict[str, Any]) -> di
         try:
             session.evaluate_quest_events(run.before, action_result)
         except Exception:
-            pass
+            # A failed quest evaluation must not fail the turn; the narration is already written. Log it so stale quest state leaves a trace.
+            import logging
+            logging.getLogger(__name__).exception("quest events failed after a location change; turn continues")
     session.messages.extend([
         {"role": "user", "content": run.text},
         {"role": "assistant", "content": narration},

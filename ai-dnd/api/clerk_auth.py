@@ -480,7 +480,7 @@ def clerk_authenticator_from_environ(environ: Mapping[str, str]) -> ClerkAuthent
     verifier_arguments: dict[str, object] = {
         "issuer": issuer,
         "authorized_parties": _split_parties(parties_text),
-        "jwks": ClerkJwksCache(**cache_arguments),  # type: ignore[arg-type]
+        "jwks": ClerkJwksCache(**cache_arguments),  # type: ignore[arg-type]  # kwargs dict is built conditionally, so its value types are not tracked
         "environment": environment,
     }
     if audience is not None:
@@ -488,7 +488,7 @@ def clerk_authenticator_from_environ(environ: Mapping[str, str]) -> ClerkAuthent
     skew = _optional_digits(environ, "AI_DND_CLERK_CLOCK_SKEW_SECONDS")
     if skew is not None:
         verifier_arguments["clock_skew_seconds"] = skew
-    return ClerkAuthenticator(ClerkSessionVerifier(**verifier_arguments))  # type: ignore[arg-type]
+    return ClerkAuthenticator(ClerkSessionVerifier(**verifier_arguments))  # type: ignore[arg-type]  # kwargs dict is built conditionally, so its value types are not tracked
 
 
 def _split_parties(value: str) -> tuple[str, ...]:

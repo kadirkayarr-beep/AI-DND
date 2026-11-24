@@ -1,4 +1,7 @@
 """Request-local evidence for the engine's resolved, read-only narrator boundary."""
+from __future__ import annotations
+
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 
@@ -12,14 +15,14 @@ MAX_CAUSES = 10
 
 
 class ModelFailure(str):
-    def __new__(cls, error_type):
+    def __new__(cls, error_type: str):
         value = super().__new__(cls, error_type)
         value.phase = _PHASE.get()
         return value
 
 
 @contextmanager
-def resolved_narration_scope(enabled):
+def resolved_narration_scope(enabled: bool) -> Iterator[None]:
     token = _PHASE.set("resolved_narration" if enabled else "unresolved")
     try:
         yield
@@ -28,7 +31,7 @@ def resolved_narration_scope(enabled):
 
 
 @contextmanager
-def classifier_call():
+def classifier_call() -> Iterator[None]:
     """The engine answers a failed intent classifier with its own unknown intent."""
     token = _CLASSIFIER.set(True)
     try:
@@ -37,12 +40,12 @@ def classifier_call():
         _CLASSIFIER.reset(token)
 
 
-def in_classifier_call():
+def in_classifier_call() -> bool:
     return _CLASSIFIER.get()
 
 
 @contextmanager
-def front_call():
+def front_call() -> Iterator[None]:
     """The front reading: an unusable reply leaves the old chain, on any provider; an outage refuses the turn (G6)."""
     token = _FRONT.set(True)
     try:
@@ -51,12 +54,12 @@ def front_call():
         _FRONT.reset(token)
 
 
-def in_front_call():
+def in_front_call() -> bool:
     return _FRONT.get()
 
 
 @contextmanager
-def initiative_call():
+def initiative_call() -> Iterator[None]:
     """An NPC's optional initiative: it may use the call a front reading took from the turn's budget."""
     token = _INITIATIVE.set(True)
     try:
@@ -65,12 +68,12 @@ def initiative_call():
         _INITIATIVE.reset(token)
 
 
-def in_initiative_call():
+def in_initiative_call() -> bool:
     return _INITIATIVE.get()
 
 
 @contextmanager
-def repair_call():
+def repair_call() -> Iterator[None]:
     """The one repair of an answer a safety check rejected: it may pass the per-turn cap once (D-332)."""
     token = _REPAIR.set(True)
     try:
@@ -79,13 +82,13 @@ def repair_call():
         _REPAIR.reset(token)
 
 
-def in_repair_call():
+def in_repair_call() -> bool:
     return _REPAIR.get()
 
 
 class ModelCall(str):
     """One counted call's provider name, marked with whether it was the front reading, an initiative or a repair."""
-    def __new__(cls, provider):
+    def __new__(cls, provider: str):
         value = super().__new__(cls, provider)
         value.front = _FRONT.get()
         value.initiative = _INITIATIVE.get()
@@ -93,24 +96,24 @@ class ModelCall(str):
         return value
 
 
-def only_resolved_narration_failures(failures):
+def only_resolved_narration_failures(failures: list | tuple | None) -> bool:
     return bool(failures) and all(
         isinstance(failure, ModelFailure) and failure.phase == "resolved_narration"
         for failure in failures
     )
 
 
-def begin_causes():
+def begin_causes() -> None:
     """A new turn's list of why a model call came back unusable. Names only, never text from the player or the model."""
     _CAUSES.set([])
 
 
-def note_cause(source, cause):
+def note_cause(source: str, cause: str) -> None:
     """One line: which kind of call (front or other), who answered, and which check failed."""
     rows = _CAUSES.get()
     if rows is not None and len(rows) < MAX_CAUSES:
         rows.append(f"{'front' if in_front_call() else 'call'}:{source}:{cause}")
 
 
-def causes():
+def causes() -> list[str]:
     return list(_CAUSES.get() or [])
