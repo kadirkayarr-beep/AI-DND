@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 
@@ -40,6 +41,14 @@ class CampaignIdConflictError(CampaignError):
 
 class InvalidDeathModeError(CampaignError, ValueError):
     """A new campaign asked for a death mode the game does not have (still a ValueError for older callers)."""
+
+
+class SaveLanded(Enum):
+    """What a read-back says about a campaign save that raised."""
+
+    LANDED = "landed"  # storage holds exactly this result: the live game stays on it
+    NOT_LANDED = "not_landed"  # storage is still on the old revision: a rollback is safe
+    UNKNOWN = "unknown"  # it cannot be told: nobody may guess, the session closes
 
 
 @dataclass(frozen=True)
