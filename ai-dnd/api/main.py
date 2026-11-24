@@ -188,7 +188,10 @@ def _commit_already_durable(
     """
     try:
         stored = manager.get_turn_action(record, action_id)
+    except CampaignError:
+        return None
     except Exception:
+        _logger.error("Could not read back the action receipt after a failed save; answering unknown.", exc_info=True)
         return None
     return (
         stored is not None

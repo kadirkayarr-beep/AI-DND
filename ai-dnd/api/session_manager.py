@@ -9,6 +9,7 @@ import copy
 import hashlib
 import itertools
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -40,6 +41,7 @@ from api.lore_authority.models import CampaignLoreState, EntityType
 from api.lore_authority.registry import LoreRegistry
 from api.persistence.campaign_models import (
     CampaignCorruptError,
+    CampaignError,
     CampaignNotActiveError,
     CampaignNotFoundError,
     CampaignStaleError,
@@ -74,6 +76,7 @@ MAX_TRANSIENT_REFUSED_ACTIONS = 256
 # replies; an older reply keeps only its request hash, so its action id is still "applied" and never runs twice.
 MAX_TRANSIENT_SESSIONS_PER_OWNER = 16
 MAX_TRANSIENT_TURN_RECEIPTS = 256
+_logger = logging.getLogger("ai_dnd.api.session_manager")
 
 
 class TransientReplyDroppedError(CampaignStaleError):
@@ -680,7 +683,10 @@ class SessionManager:
                 return None
             record.game_session._campaign_persistence_version = (record.campaign_id, revision)
             return True
+        except CampaignError:
+            return None
         except Exception:
+            _logger.error("Could not tell whether the failed campaign save landed; answering unknown.", exc_info=True)
             return None
 
     def autosave_turn(
