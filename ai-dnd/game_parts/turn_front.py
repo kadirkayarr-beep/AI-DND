@@ -1653,9 +1653,7 @@ def _front_economic_offer(route, player_input):
         return result
     if purpose in {"room", "room_quote"}:
         if not bold_acts._SERVER.search(bold_acts.fold(session, str(person.get("role", "")))):
-            result = bold_acts._reply(session, economic_actions._CLARIFY["npc_unknown"], "narrative", "clarification", None, [], reason_code="npc_unknown")
-            result["action_result"]["success"] = False
-            return result
+            return None  # no room to give or quote here: the line goes on to speak_to, not to the GIVE clarification
         if purpose == "room_quote":
             result = bold_acts.room_quote(session, person)
             action = result["action_result"]

@@ -232,3 +232,20 @@ class TheRollIsShown(__import__("unittest").TestCase):
         for enemy in enemies:
             self.assertIn(f"Zar {enemy['attack_roll']}, toplam {enemy['attack_total']}; senin Zırh Sınıfın {enemy['target_ac']}.",
                           result["narration"])
+
+
+from api.tests.test_economic_room import Counter as _Counter
+
+
+class AskWaresOfANonServer(_Counter):
+    def test_a_room_reading_on_someone_who_does_not_serve_goes_on_to_speech(self):
+        self.w['npcs'].append({'id': 'walker', 'name': 'Rolan', 'role': 'Yolcu', 'location': self.here, 'current_hp': 10})
+        for purpose in ('room_quote', 'room'):
+            with self.subTest(purpose=purpose):
+                before, turn = self.money(), self.w['flags']['turn_index']
+                result = self.s._front_economic_offer(
+                    {'kind': 'economic', 'id': 'walker', 'purpose': purpose, 'valid': True}, 'Neler satıyorsun?')
+                self.assertIsNone(result)
+                self.assertEqual(self.prepared(), [])
+                self.assertEqual(self.money(), before)
+                self.assertEqual(self.w['flags']['turn_index'], turn)
