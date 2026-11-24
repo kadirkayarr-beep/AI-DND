@@ -15,6 +15,7 @@ import everyday_actions
 import front_proposal
 import game
 import grounded_action
+import grounded_places
 import living_world
 import town_knowledge
 import world_threads
@@ -186,7 +187,7 @@ class TravelBeyondTheList(_ArrivalApi):
                        if step.get("place_noun"))
         finally:
             game._ACTIVE_SESSION.reset(token)
-        self.assertEqual(set(grounded_action._kind_walk_step("han", "tavern")), set(old))
+        self.assertEqual(set(grounded_places._kind_walk_step("han", "tavern")), set(old))
 
     async def test_a_kind_walk_spends_the_front_reading_and_no_more_than_two_calls(self):
         await self.turn("Köydeki tavernaya gidiyorum.", front={"kind": "go_to", "place_id": "kind:tavern"})
