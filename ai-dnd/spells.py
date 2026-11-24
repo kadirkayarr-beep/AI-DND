@@ -74,6 +74,8 @@ _FOLD = str.maketrans({
 _CAST_VERB = re.compile(
     r"\b(?:cast|buyu\s+yap\w*|buyusu\w*)\b",
 )
+
+
 def fold_text(value: str) -> str:
     text = str(value).casefold().replace("\u0307", "")
     return text.translate(_FOLD)
@@ -228,5 +230,3 @@ def legality(character: dict[str, Any], spell_id: str) -> str | None:
     if spell["uses_slot"] and remaining_slots(character) < 1:
         return "no_slot"
     return None
-
-
