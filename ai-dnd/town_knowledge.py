@@ -172,7 +172,7 @@ def read_board(world: dict[str, Any]) -> str | None:
     jobs = posted_work(world)[:BOARD_LINES]
     for thread in reversed(jobs):  # the first of them is the newest thing heard, so 'oraya' means it
         hear_of(world, thread)
-    notice = bound_text.notice_of(world, _settlement(world))
+    notice = bound_text.post_notice_once(world, _settlement(world))
     lines = [*(thread["public_line"] for thread in jobs), *([notice] if notice else [])]
     return world_threads._fill(world_threads.job_lines("text", "board") or "{lines}", lines=" / ".join(lines)) if lines else None
 

@@ -49,8 +49,8 @@ def _td_parcel_board(*, combat_action, interaction_mode, player_input, read):
         import bound_text
         if (read or {}).get("kind") != "take":  # 'alıp okuyorum': the taking owns it and reads on
             looked_at = (getattr(game._session(), "_front_found", None) or ("", ""))[1] if (read or {}).get("kind") == "look" else ""
-            paper_read = bound_text.read_turn(game._session(), player_input, looked_at,
-                                              to_someone=(read or {}).get("kind") == "speak_to")
+            paper_read = bound_text.take_reading_turn(game._session(), player_input, looked_at,
+                                                      to_someone=(read or {}).get("kind") == "speak_to")
             if paper_read is not None:
                 return paper_read
         import pocket

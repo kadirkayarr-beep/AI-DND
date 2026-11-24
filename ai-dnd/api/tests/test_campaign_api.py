@@ -50,7 +50,7 @@ from api.dnd_2024_rules import SPECIES_DEFINITIONS
 from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignStaleError,
-    CampaignStorageError,
+    CampaignStorageError, SaveLanded,
 )
 from api.persistence.campaign_store import CampaignStore
 from api.persistence.campaign_validation import serialize_campaign_payload
@@ -9904,7 +9904,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         event_instance_id = self.install_test_ambient_event(record.game_session)
         with patch.object(self.manager, "save_campaign_locked",
                           side_effect=CampaignStorageError("private storage detail")), \
-             patch.object(self.manager, "campaign_save_landed", return_value=None):
+             patch.object(self.manager, "campaign_save_landed", return_value=SaveLanded.UNKNOWN):
             response = await self.http.post(
                 f"/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
                 json={"action_id": "00000000-0000-4000-8000-000000010303", "action": "interact"},

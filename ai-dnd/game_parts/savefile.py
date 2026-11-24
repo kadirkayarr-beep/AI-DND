@@ -449,7 +449,8 @@ def _validate_saved_multilevel_slots(player, saved_world):
                    for key, count in slots.items())):
         raise ValueError("Saved multi-level spell slots require supported applied-level capacity.")
 
-def _validate_save_payload(payload):
+def _validate_save_header(payload):
+    """Format, version, and the player and world objects; returns (version, player, saved_world)."""
     if not isinstance(payload, dict):
         raise ValueError("Kayıt dosyası bir JSON nesnesi olmalı.")
     if payload.get("format") != "ai-dnd-save":
@@ -462,6 +463,11 @@ def _validate_save_payload(payload):
     saved_world = payload.get("world_state")
     if not isinstance(player, dict) or not isinstance(saved_world, dict):
         raise ValueError("Kayıt oyuncu veya dünya verisini içermiyor.")
+    return version, player, saved_world
+
+
+def _validate_save_subsystems(player, saved_world, version):
+    """The clock, rest history and the subsystems that own their own saved state."""
     if "campaign_time" in saved_world:
         campaign_time.validate_clock(saved_world["campaign_time"])
     game._validate_long_rest_history(saved_world)
@@ -491,12 +497,17 @@ def _validate_save_payload(payload):
     held_weapon.validate_saved(saved_world)
     monster_sense.validate_saved(saved_world)
 
-    required_player = {
-        "name", "race", "class", "strength", "dexterity", "constitution",
-        "intelligence", "wisdom", "charisma", "proficient_skills", "level",
-        "proficiency_bonus", "max_hp", "current_hp", "armor_class",
-    }
-    if not required_player.issubset(player):
+
+_REQUIRED_PLAYER = {
+    "name", "race", "class", "strength", "dexterity", "constitution",
+    "intelligence", "wisdom", "charisma", "proficient_skills", "level",
+    "proficiency_bonus", "max_hp", "current_hp", "armor_class",
+}
+
+
+def _validate_saved_player_fields(player):
+    """Required player fields and the optional advancement fields."""
+    if not _REQUIRED_PLAYER.issubset(player):
         raise ValueError("Kayıt oyuncu alanları eksik.")
     if "xp" in player and (type(player["xp"]) is not int or player["xp"] < 0):
         raise ValueError("Kayıt deneyim alanı geçersiz.")
@@ -512,6 +523,9 @@ def _validate_save_payload(payload):
     import hit_dice
     hit_dice.validate_saved(player)
 
+
+def _validate_saved_world_sections(player, saved_world, version):
+    """Required world fields, receipts, and the versioned world sections."""
     required_world = {
         "location", "locations", "npcs", "inventory", "doors", "features",
         "events", "flags", "combat", "player_combat_status",
@@ -564,6 +578,10 @@ def _validate_save_payload(payload):
     if version >= 5:
         import xp
         xp.validate_saved_advancement(player, saved_world, policy=6 if version >= 6 else 5)
+
+
+def _validate_saved_character(player, saved_world, version):
+    """Skills, class and species rules, spells, hit points and stats of the saved character."""
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
     species_bonus_skills = player.get("species_bonus_skills", [])
@@ -578,7 +596,7 @@ def _validate_save_payload(payload):
         or len(species_bonus_skills) != len(set(species_bonus_skills))
     ):
         raise ValueError("Kayıt tür becerileri geçersiz.")
-    for field in required_player - {"name", "race", "class", "proficient_skills"}:
+    for field in _REQUIRED_PLAYER - {"name", "race", "class", "proficient_skills"}:
         if type(player[field]) is not int:
             raise ValueError(f"Kayıt sayısal alanı geçersiz: {field}")
     if not isinstance(player["name"], str) or not player["name"].strip():
@@ -656,6 +674,10 @@ def _validate_save_payload(payload):
     for stat in game.SKILLS.values():
         if not 1 <= player[stat] <= 30:
             raise ValueError("Karakter stat değeri geçersiz.")
+
+
+def _validate_saved_world_fields(saved_world):
+    """Saved world fields keep the type of their initial value; the scene state still builds."""
     for key, default in game.INITIAL_WORLD_STATE.items():
         if key not in saved_world:
             continue
@@ -675,6 +697,10 @@ def _validate_save_payload(payload):
             living_world.ensure_scene_state(copy.deepcopy(saved_world))
         except (TypeError, ValueError):
             raise ValueError("Kayıt sahne verisi geçersiz.") from None
+
+
+def _validate_saved_quests(saved_world):
+    """Quest rows (dynamic rows by adventure, legacy rows here) and processed quest event ids."""
     quests = saved_world.get("quests", [])
     processed = saved_world.get("quest_processed_event_ids", [])
     if not isinstance(quests, list) or not isinstance(processed, list):
@@ -801,6 +827,10 @@ def _validate_save_payload(payload):
             and ("active" in statuses or statuses == {"completed"})
         ):
             raise ValueError("Kayıt görev durumu hedeflerle tutarsız.")
+
+
+def _validate_saved_world_lists(payload, saved_world):
+    """Equipment, world lists and objects, and the narration history."""
     equipment_economy.validate_world(saved_world)
     for key in ("player_knowledge",):
         if any(not isinstance(item, str) for item in saved_world.get(key, [])):
@@ -816,6 +846,18 @@ def _validate_save_payload(payload):
     narrations = payload.get("recent_dm_narrations", [])
     if not isinstance(narrations, list) or any(not isinstance(item, str) for item in narrations):
         raise ValueError("Anlatı geçmişi geçersiz.")
+
+
+def _validate_save_payload(payload):
+    """Refuse a save any section finds invalid; the sections run in this fixed order (first error wins)."""
+    version, player, saved_world = game._validate_save_header(payload)
+    game._validate_save_subsystems(player, saved_world, version)
+    game._validate_saved_player_fields(player)
+    game._validate_saved_world_sections(player, saved_world, version)
+    game._validate_saved_character(player, saved_world, version)
+    game._validate_saved_world_fields(saved_world)
+    game._validate_saved_quests(saved_world)
+    game._validate_saved_world_lists(payload, saved_world)
 
 def save_game(path):
     """Atomically save a validated JSON snapshot to *path*."""

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from game_errors import GameInputError
 from weapon_catalog import lookup
 
 COIN_VALUES = {"cp": 1, "sp": 10, "ep": 50, "gp": 100, "pp": 1000}
@@ -22,7 +23,7 @@ _COUNTER_REFUSALS = {
 }
 
 
-class EquipmentError(ValueError):
+class EquipmentError(GameInputError):
     pass
 
 

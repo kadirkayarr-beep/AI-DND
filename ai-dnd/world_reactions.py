@@ -313,7 +313,7 @@ def promise_broken(world: dict[str, Any], thread: dict[str, Any], owner: Any, st
             or not isinstance(owner, dict) or not isinstance(owner.get("id"), str)
             or owner.get("combat_status") == "dead"):
         return
-    ledger = bold_acts.deeds(world)
+    ledger = bold_acts.ensure_deeds(world)
     ledger.append({
         "kind": "broken_promise", "text": f"{living_world.public_npc_name(owner)} işini üstlenip yarım bıraktı",
         "location": owner.get("location"), "victim_id": owner["id"], "witnesses": [owner["id"]],

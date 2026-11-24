@@ -36,6 +36,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
+from game_errors import GameError
+
 logger = logging.getLogger(__name__)
 
 MAX_CP = 999_999_999
@@ -953,7 +955,7 @@ _REFUSED_SUMMARY = {
 }
 
 
-class EconomicReceiptError(Exception):
+class EconomicReceiptError(GameError):
     """A resolution that does not match its offer or the real before/after state; nothing was written."""
 
     def __init__(self, reason: str):

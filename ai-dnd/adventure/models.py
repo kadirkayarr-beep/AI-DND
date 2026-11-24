@@ -2,6 +2,14 @@
 
 Legacy catalog rows keep their exact field set. This module never adds
 template, binding, graph, or reward fields to them.
+
+Who writes the legacy shape: game.accept_quest/_quest_record for
+quest_catalog.CATALOG rows (empty in the shipped game; tests fill it), and
+old saves. Sunset: LEGACY_QUEST_FIELDS, LEGACY_STATE_VIEW, is_legacy_quest,
+their branches in runtime_state/transition and savefile's legacy quest
+check go together with the catalog-quest path (accept/cancel/_quest_record
+and its tests) when that path is retired, not before
+(api/tests/test_legacy_quest_sunset.py).
 """
 
 from __future__ import annotations

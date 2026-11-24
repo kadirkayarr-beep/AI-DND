@@ -532,3 +532,14 @@ Bayrak açık (AI_DND_FRONT_PROPOSAL=1, yerel oyunun varsayılanı) kırık test
 | `test_knowledge_layers_never_promote_note_to_fact` gözlemi `unwitnessed_npc_learned_event` (test_roadmap_w01) | gözlem ve docstring özelliği ('tanık olmayan NPC öğrenmez') silindi: yalnız silinen `record_witness`i sınıyordu. Canlı kapsam: dinleyici denetimi `test_interaction_adventure.test_private_and_public_speech_have_explicit_nontelepathic_listeners` ve farkındalık testleri `test_incident_gate_b`, `test_killing_witness` | GEVŞETME OLABİLİR |
 | `test_a_vendor_is_one_who_serves` (test_shop_trade) | `is_priced` assertleri `priced_in` ile aynı sıkılıkta yeniden yazıldı (`is_priced` silindi) | GEVŞETME OLABİLİR |
 | `PROTECTED_ENV_NAME_COUNT` 37 -> 36 (test_game_name) | `AI_DND_PHASE8_LIVE_AUTHORIZED` kayboldu: tek okuyucusu `lore_authority/live_gate.py` G2 temizliğinde silindi (ölü modül); başka AI_DND_ adı kalkmadı, sayım eşit sıkılıkta pinli | GEVŞETME OLABİLİR |
+
+## 28. desloppify 2. tur: para/kayıt/Geri Al maddeleri (dal `task/desloppify-2-20261124`)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_ambient_event_unreconcilable_save_failure_closes_session` (test_campaign_api) | yamalanan dönüş değeri `None` yerine `SaveLanded.UNKNOWN`; aynı dal, aynı assertler (Opus incelemesi: eşit sıkılık) | eşit sıkılık |
+| `test_thread_close_atomic` | `bold_acts.deeds` çağrısı `ensure_deeds` olarak yeniden adlandırıldı; aynı assert | eşit sıkılık |
+| `api/tests/engine_split_locks/size_budget.json` | `_validate_save_payload` satırı kaldırıldı (işlev sekiz bölüm doğrulayıcısına bölündü, AST ile aynı 104 deyim); kilit sıkılaştı | sıkılaşma |
+| `surface.json`, `sensitive.json`, `allowed_imports.json` | yeni motor adları (+9), iki yeni "save" işaretli bölüm, yeni `game_errors` modülü; hiçbir şey gevşemedi | sıkılaşma / ekleme |
+
+Not (Opus, Minor): `InvalidDeathModeError` artık `CampaignError` olduğu için kampanya oluşturma rotasında 500 yerine `campaign_http_exception` cevabına gider; şemadaki `Literal` kötü değeri zaten engellediği için HTTP'den ulaşılamaz.

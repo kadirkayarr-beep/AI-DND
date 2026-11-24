@@ -248,7 +248,13 @@
     "_validate_save_payload": [
       "save"
     ],
+    "_validate_saved_character": [
+      "save"
+    ],
     "_validate_saved_multilevel_slots": [
+      "save"
+    ],
+    "_validate_saved_world_sections": [
       "save"
     ],
     "_with_only_backed_money": [

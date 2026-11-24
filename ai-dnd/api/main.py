@@ -88,6 +88,7 @@ from api.persistence.campaign_models import (
     CampaignNotFoundError,
     CampaignStorageError,
     CampaignStaleError,
+    SaveLanded,
 )
 from api.local_play import LocalPlayAuthenticator
 from api.persistence.campaign_store import CampaignStore, StartupCampaignStore
@@ -164,25 +165,38 @@ def _restore_session(session: Any, snapshot: dict[str, Any]) -> None:
     session._restore_runtime_snapshot(snapshot["runtime"])
 
 
+def _store_refusal(
+    manager: Any, record: Any, action_id: str, request_hash: str, status_code: int, detail: dict[str, Any],
+    what: str = "Refusal record",
+) -> bool:
+    """True only when the refusal is durably stored; a failed store is logged and makes no never-applied claim."""
+    try:
+        return manager.record_refused_action(record, action_id, request_hash, status_code, detail)
+    except Exception:
+        _logger.error(f"{what} could not be saved; no never-applied claim is made.", exc_info=True)
+        return False
+
+
 def _commit_already_durable(
     manager: Any, record: Any, action_id: str, request_hash: str, response_payload: dict[str, Any],
-) -> bool | None:
-    """After a failed autosave: True only if THIS action's receipt is durably stored with this exact result.
+) -> SaveLanded:
+    """After a failed autosave: LANDED only if THIS action's receipt is durably stored with this exact result.
 
     A lost commit acknowledgement leaves the database on the new revision. Rolling the live runtime back then would
     split memory from storage, so the runtime stays on the committed state and the caller answers "unconfirmed",
-    never success and never "not applied". If the lookup itself fails the answer is UNKNOWN (None): the caller must not
+    never success and never "not applied". If the lookup itself fails the answer is UNKNOWN: the caller must not
     guess in either direction.
     """
     try:
         stored = manager.get_turn_action(record, action_id)
+    except CampaignError:
+        return SaveLanded.UNKNOWN
     except Exception:
-        return None
-    return (
-        stored is not None
-        and stored["request_hash"] == request_hash
-        and action_contract.result_digest(stored["response"]) == action_contract.result_digest(response_payload)
-    )
+        _logger.error("Could not read back the action receipt after a failed save; answering unknown.", exc_info=True)
+        return SaveLanded.UNKNOWN
+    landed = stored is not None and stored["request_hash"] == request_hash and (
+        action_contract.result_digest(stored["response"]) == action_contract.result_digest(response_payload))
+    return SaveLanded.LANDED if landed else SaveLanded.NOT_LANDED
 
 
 def _raise_if_commit_unconfirmed(
@@ -196,14 +210,14 @@ def _raise_if_commit_unconfirmed(
     if response_payload is None or isinstance(error, CampaignStaleError):
         return  # Stale: the check runs inside the transaction before anything is written, provably not committed.
     durable = _commit_already_durable(manager, record, action_id, request_hash, response_payload)
-    if durable is None:
+    if durable is SaveLanded.UNKNOWN:
         # Neither "committed" nor "rolled back" can be claimed, and rolling the runtime back could split it from storage.
         # The safe stance is the quarantine: the session closes, durable truth is what a restart resumes (R05/R06).
         record.usable = False
         _logger.critical("Campaign autosave failed and its receipt could not be reconciled; session closed")
         decision = failure_policy.classify_failure(failure_policy.ActionPhase.RECONCILIATION, "unknown", error)
         raise HTTPException(status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown")) from None
-    if not durable:
+    if durable is SaveLanded.NOT_LANDED:
         return
     if adopt is not None:
         adopt()
@@ -1277,11 +1291,7 @@ def create_app(
                     "unresolved_action_id": claim["unresolved_action_id"],
                     "not_applied": True,
                 }
-                try:
-                    durable = manager.record_refused_action(record, action_id, request_hash, 409, detail)
-                except Exception:
-                    _logger.error("Refusal record could not be saved; no never-applied claim is made.", exc_info=True)
-                    durable = False
+                durable = _store_refusal(manager, record, action_id, request_hash, 409, detail)
                 if not durable:
                     detail.pop("not_applied")
                 raise HTTPException(status_code=409, detail=detail)
@@ -1339,11 +1349,7 @@ def create_app(
                 public_message = refusals.REFUSAL_TEXT.get(code) if status_code == 400 or code == "engine_error" else None
                 if public_message:
                     detail["public_message"] = refusals.text_for(code)  # the player's Turkish line; `message` stays
-                try:
-                    durable = manager.record_refused_action(record, action_id, request_hash, status_code, detail)
-                except Exception:
-                    _logger.error("Refusal record could not be saved; no never-applied claim is made.", exc_info=True)
-                    durable = False
+                durable = _store_refusal(manager, record, action_id, request_hash, status_code, detail)
                 if not durable:
                     detail = {"code": code, "message": message}
                     if public_message:
@@ -1360,13 +1366,9 @@ def create_app(
                 """
                 take_back_opening()
                 detail = {"code": code, "message": message, "not_applied": True}
-                try:
-                    durable = getattr(record, "usable", True) and manager.record_refused_action(
-                        record, action_id, request_hash, 503, detail,
-                    )
-                except Exception:
-                    _logger.error("Model-failure refusal could not be saved; no never-applied claim is made.", exc_info=True)
-                    durable = False
+                durable = getattr(record, "usable", True) and _store_refusal(
+                    manager, record, action_id, request_hash, 503, detail, what="Model-failure refusal",
+                )
                 if not durable:
                     detail = {"code": code, "message": message}
                 return HTTPException(status_code=503, detail=detail)
@@ -2305,8 +2307,8 @@ def create_app(
             except Exception as error:
                 # Stale, unknown and closed campaigns are refused inside the transaction before anything is written.
                 certain = isinstance(error, (CampaignStaleError, CampaignNotFoundError, CampaignNotActiveError))
-                landed = False if certain else manager.campaign_save_landed(record, token_before)
-                if landed is None:
+                landed = SaveLanded.NOT_LANDED if certain else manager.campaign_save_landed(record, token_before)
+                if landed is SaveLanded.UNKNOWN:
                     # Committed or not cannot be told; rolling back could split memory from storage (R05/R06).
                     record.usable = False
                     _logger.critical("Quest save failed and could not be reconciled; session closed")
@@ -2316,7 +2318,7 @@ def create_app(
                     raise HTTPException(
                         status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown"),
                     ) from None
-                if landed:
+                if landed is SaveLanded.LANDED:
                     # The database holds exactly this result: the live game stays on it and the answer is the truth.
                     _logger.error("Quest save committed but was not acknowledged (error_type=%s)", type(error).__name__)
                     return payload
@@ -2883,8 +2885,8 @@ def create_app(
                 # D-103: as in the quest route, a save that raised may still have committed. Rolling back under a
                 # stored receipt and history row would split the live game from storage, so ask storage first.
                 certain = isinstance(error, (CampaignStaleError, CampaignNotFoundError, CampaignNotActiveError))
-                landed = False if certain else manager.campaign_save_landed(record, token_before)
-                if landed is None:
+                landed = SaveLanded.NOT_LANDED if certain else manager.campaign_save_landed(record, token_before)
+                if landed is SaveLanded.UNKNOWN:
                     record.usable = False
                     _logger.critical("Ambient-event save failed and could not be reconciled; session closed")
                     decision = failure_policy.classify_failure(
@@ -2893,7 +2895,7 @@ def create_app(
                     raise HTTPException(
                         status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown"),
                     ) from None
-                if not landed:
+                if landed is SaveLanded.NOT_LANDED:
                     refuse_unsaved(error)
                 _logger.error(
                     "Ambient-event save committed but was not acknowledged (error_type=%s)", type(error).__name__,
@@ -2932,10 +2934,7 @@ def create_app(
 
         def refusal(status_code: int, code: str) -> HTTPException:
             detail = {"code": code, "message": "Seviye seçimi uygulanmadı.", "not_applied": True}
-            try:
-                durable = manager.record_refused_action(record, action_id, request_hash, status_code, detail)
-            except Exception:
-                durable = False
+            durable = _store_refusal(manager, record, action_id, request_hash, status_code, detail)
             if not durable:
                 detail.pop("not_applied")
             return HTTPException(status_code=status_code, detail=detail)

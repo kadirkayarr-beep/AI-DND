@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import hashlib
 
+from game_errors import GameInfrastructureError
 from incidents import awareness
 from incidents import envelope as envelope_owner
 from incidents import state as emergence_state
@@ -20,7 +21,7 @@ MAX_CLOSED_EPHEMERAL = 32
 MAX_RECENT_CATEGORIES = 12
 
 
-class StaleCommit(RuntimeError):
+class StaleCommit(GameInfrastructureError, RuntimeError):
     """The canon stamp moved. Nothing was written."""
 
 
