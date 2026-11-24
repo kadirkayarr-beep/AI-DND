@@ -909,7 +909,7 @@ def _scope_key(speaker_id: str, recipient_id: str, scope: dict[str, Any]) -> str
     content = ",".join(sorted({
         _strip_case(str(item)) for item in scope.get("objects") or [] if str(item) not in _FILLER}))
     parts = [str(speaker_id), str(recipient_id), str(scope.get("kind")), content, where]
-    return hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()[:16]
+    return hashlib.sha1("\x1f".join(parts).encode("utf-8"), usedforsecurity=False).hexdigest()[:16]
 
 
 def _commitment_scope_key(commitment: dict[str, Any]) -> str:
@@ -923,7 +923,8 @@ def _commitment_scope_key(commitment: dict[str, Any]) -> str:
 def commitment_identity(speaker_id: str, recipient_id: str, scope: dict[str, Any], origin_event_id: str) -> str:
     """Stable id of one promise: who promised whom, what scope, and from which origin event."""
     return "promise:" + hashlib.sha1(
-        f"{_scope_key(speaker_id, recipient_id, scope)}\x1f{origin_event_id}".encode("utf-8")).hexdigest()[:16]
+        f"{_scope_key(speaker_id, recipient_id, scope)}\x1f{origin_event_id}".encode("utf-8"),
+        usedforsecurity=False).hexdigest()[:16]
 
 
 def entry_supports_claim(entry_text: str, claim: str) -> bool:

@@ -747,8 +747,8 @@ def build_narrative_context(
     # Conservative UTF-8-byte estimate for Turkish/Qwen prompts; this is not
     # a tokenizer count.  Keep both the product budget and observed window
     # assertions explicit so future packet changes fail closed.
-    assert estimated_total_tokens <= max_estimated_total_tokens
-    assert estimated_total_tokens <= model_context_window_tokens
+    if estimated_total_tokens > max_estimated_total_tokens or estimated_total_tokens > model_context_window_tokens:
+        raise AssertionError("The narrative packet is over its token budget.")
     diagnostics = {
         "scene_type": _scene_type(action),
         "estimated_tokens": estimated_tokens,
