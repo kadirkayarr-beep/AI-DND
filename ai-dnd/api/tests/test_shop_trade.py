@@ -38,7 +38,7 @@ class CounterTrade(unittest.TestCase):
         listed = {line["key"]: line["unit_cp"] for line in shop_trade.goods(self.w, self.w["npcs"][0])}
         self.assertEqual(listed, {key: price for key, _, price in shop_trade.MENUS["tavern"]})
         told = bold_acts.price_note(self.w["npcs"][0], "bira ne kadar")
-        for key, label, price in shop_trade.MENUS["tavern"]:
+        for _, label, price in shop_trade.MENUS["tavern"]:
             self.assertIn(f"{label} {price} bakır", told)
 
     def test_a_quote_reads_and_writes_nothing(self):
