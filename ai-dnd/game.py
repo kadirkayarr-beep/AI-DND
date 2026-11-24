@@ -5,7 +5,7 @@ if __name__ == "__main__":
 import ollama
 import random
 import json
-import re
+import re  # noqa: F401
 import unicodedata
 import collections
 import copy
@@ -63,7 +63,7 @@ from api.core_resolution import (
     resolve_skill_check,
 )
 
-from game_parts.turn import ResolvedTurn, DEBUG_MODE, TurnResolved, turn_source_key, run_player_turn, _run_player_turn_owned, _run_player_turn, _run_player_turn_keyed, _dispatch_player_turn, _dispatch_turn_body, _spoken_rest_of_turn, _current_procedural_entity_ids, _keep_town_portrait
+from game_parts.turn import ResolvedTurn, DEBUG_MODE, TurnResolved, turn_source_key, run_player_turn, _run_player_turn_owned, _run_player_turn, _run_player_turn_keyed, _dispatch_player_turn, _dispatch_turn_body, _spoken_rest_of_turn, _current_procedural_entity_ids, _keep_town_portrait  # noqa: F401
 
 
 from game_parts.text_rules_a import ollama_response_content, ollama_reply_was_cut, _ASKS_SOMETHING, _just_served, _THIRD_PERSON_REPORT, _SECOND_PERSON_SAID, _SAID_IT_AGAIN, _ENDS_IN_SPEECH, is_ordinary_environment_look, npc_ambiguity_response, _NEGATED_VERB_SUFFIX, _affirmative_door_verb, _SKILL_CHECK_WORD, _SKILL_ENDING, _ABILITY_WORD, _OPEN_SCARE, _COVER_WORD, _COVER, _OWN_THING_HIDDEN, _READING_CHECKS, _COMMON_SENTENCE_OPENERS, _QUESTION_CUE_RE, clean_dm_response, _hand_names_something, _ARMED_ROLE, _STRONG_ROLE, _PERSON_FIGHT, _clean_world_text, _scene_texts_for_referents, _ENGLISH_STOP_WORDS, _reads_english, _SAVE_ABILITY_TR, _unarmed_save_text, _FALL_LINE, _REWOUND_LINE, _PROPOSAL_MARKER_RE, _INTERNAL_MARK_RE, _strip_proposal_markers, _normalize_interaction_mode, _GUARD_ROLE, _GUARD_WORD, _GENERIC_PERSON, _is_guard, _serves_at_a_counter, _topic_place_name, _LOCATED_PERSON, _IN_REACH_WORDS, _COUNTER_WORDS, _COUNTER_ROLE, _drop_repeated_sentences
@@ -275,10 +275,10 @@ from game_parts.savefile import load_game
 from game_parts.places import _tavern_door_notice, _venue_door_id, _venue_door_for, _venue_entry_door, _locked_door_refusal, _mark_lock_seen, _lock_known_to_player, _current_door, _normalize_ground_items, location_features, feature_descriptions, active_npcs, _clean_world_text_list, _has_unregistered_person_name, validate_npc_proposal, create_local_feature, _valid_local_feature_parent_id, _legacy_hidden_feature_name_collision, _local_detail_claims_unsupported_mechanics, _feature_proposal_conflicts_with_canonical_door, location_display_name, _location_alias_values, _reference_token_matches, _entity_reference_in_text, resolve_location_reference, _location_reference_in_text, normalize_location_id, validate_location_proposal, _local_place_recommendation_options, _local_place_access, _attributed_place_note, _ground_local_place_recommendation_reply, _ground_local_place_recommendation_stage, _explicit_sword_drop, update_inventory_from_player, apply_check_outcome_to_world_state, _names_current_local_exit, _engine_location_parent, _existing_local_tavern, _resolve_explicit_local_scene_parent, _scene_detail_parent, _anchored_structure_features, _ensure_local_tavern
 
 
-from game_parts.narration import _narration_fact_packet, _repair_internal_marks, _filter_unaccepted_proposal_mentions, _drop_absent_counter_sentences, _narrator_fact_view, create_location_from_proposal, _current_npc_name, _quiet_place_line, _generic_no_change_response, _natural_unresolved_action_response, _unseen_speaker_repaired, should_generate_npcs, should_generate_features, _rejected_lore_narration, _feature_refs_are_visible, _ensure_venue_window, _bound_on_a_named_word, _found_on_a_pass, _inspection_findings, _repair_attributed_speech, _narration_contradicts_supported_name_memory
+from game_parts.narration import _narration_fact_packet, _repair_internal_marks, _filter_unaccepted_proposal_mentions, _drop_absent_counter_sentences, _narrator_fact_view, create_location_from_proposal, _current_npc_name, _quiet_place_line, _generic_no_change_response, _natural_unresolved_action_response, _unseen_speaker_repaired, should_generate_npcs, should_generate_features, _rejected_lore_narration, _feature_refs_are_visible, _ensure_venue_window, _bound_on_a_named_word, _found_on_a_pass, _inspection_findings, _repair_attributed_speech, _narration_contradicts_supported_name_memory  # noqa: F401
 
 
-from game_parts.places import generate_npc_id, create_npc_from_ai, clean_location_description, commit_location_change, _ensure_location_entities, _commit_travel_action, _ensure_local_merchant, _scene_presence_text, _promote_scene_referent, _adventure_travel_reply
+from game_parts.places import generate_npc_id, create_npc_from_ai, clean_location_description, commit_location_change, _ensure_location_entities, _commit_travel_action, _ensure_local_merchant, _scene_presence_text, _promote_scene_referent, _adventure_travel_reply  # noqa: F401
 
 
 from game_parts.combat_flow import resolve_species_trait_action, resolve_attack, register_attack_hook, _combat_participant_can_act, _mark_combat_action_used, _resolve_player_death_turn, _spares_the_fallen, _combat_end_if_decided, _resolve_enemy_turns_until_player, find_weapon_in_inventory, start_combat, _start_combat_with_initiative, resolve_enemy_attack, _reduce_attack_damage_to_player, _storm_thunder_reaction, _apply_attack_damage_to_player, end_combat, _begin_combat_actor_turn, join_combat_participants, remove_combat_participant, register_initiative_hook, advance_combat_turn, _combat_snapshot, _finish_combat_result
@@ -287,13 +287,13 @@ from game_parts.combat_flow import resolve_species_trait_action, resolve_attack,
 from game_parts.combat_flow import _public_combatant_label, _combat_narration, _enemy_exchange_text, _death_closing, _death_save_line, _down_outside_combat_turn, _death_resolution_from_actions
 
 
-from game_parts.narration import validate_world_updates, _bind_world_update_mentions, merge_world_updates, _narrator_shop_record, build_world_context, _stands_by_their_words, _fallback_narration, _dm_response_schema_for_turn
+from game_parts.narration import validate_world_updates, _bind_world_update_mentions, merge_world_updates, _narrator_shop_record, build_world_context, _stands_by_their_words, _fallback_narration, _dm_response_schema_for_turn  # noqa: F401
 
 
-from game_parts.lore import _filter_unsupported_lore_paragraphs, _empty_lore_authority_context, _prepare_lore_authority_context, _is_registered_lore_name, _has_unregistered_narrative_entity, _stage_within_the_street, _shown_stage_direction, _unverified_lore_response, _names_the_district_here, _narration_has_unsupported_lore_claim, _repair_unsupported_lore_narration, _scene_has_registered_craft_role, _supported_lore_question_response, _player_question_has_unverified_lore_claim
+from game_parts.lore import _filter_unsupported_lore_paragraphs, _empty_lore_authority_context, _prepare_lore_authority_context, _is_registered_lore_name, _has_unregistered_narrative_entity, _stage_within_the_street, _shown_stage_direction, _unverified_lore_response, _names_the_district_here, _narration_has_unsupported_lore_claim, _repair_unsupported_lore_narration, _scene_has_registered_craft_role, _supported_lore_question_response, _player_question_has_unverified_lore_claim  # noqa: F401
 
 
-from game_parts.text_rules_a import _is_plain_person_reference, _ADDRESSEE_OPERATIONS, _OFFER_OPERATIONS, _OFFER_MARKER, _fold_keep_punctuation, _ADDRESS_VERB, _SPEAKING_VERB, _CONTINUATION_TERMS, _OBJECT_INSPECTION, _claim_keywords, _format_npc_memory, _CLAIM_DENIAL_LINES, _SPEECH_REPEAT_LINES, _lines_already_said, speech_repeat_line, _NARRATOR_PROFILE_FIELDS, _narrator_visible_profile, _bodies_here_context, _untrusted_player_block, _extract_json_object, _NPC_SPEECH_LOG_KEY, _NPC_SPEECH_KEEP, _MENTIONS_PROMPT_RULE, _VOICED_PROMPT_RULE, _rumour_lane_on, _voiced_keys, _CLAIM_REJECTION_RE, _CLAIM_ACCEPTANCE_RE, _SPEECH_CUT_RE, _SPEECH_META_RE, _strip_pictographs, _REAL_WORLD_FAITH, _without_real_world_faith, _is_explicit_name_led_gesture_line, _clean_npc_stage_direction, _compose_experimental_npc_speech, _without_label_variant, _npc_speech_rejects_claim, _CLAIM_PLAIN_DENIAL_RE, _npc_speech_grants_claim, _spoken_name_answer, _SPEECH_ANSWER_RULES, _job_news_line, _turns_to_someone_else, _elsewhere_line, _overheard_work, _ASKS_WHO_YOU_ARE, _accept_named_job, _REFUSED_MOVE_RULE, _bag_note, _dm_prompt_note, _claim_denial_quotes, _has_private_profile_value, _FOLLOWUP_WORDS, _is_short_followup, _experimental_speech_recap, _normalize_turkish_typos, _mechanical_outcome, _GENERIC_NO_CHANGE_RESPONSE, _GENERIC_NO_CHANGE_RESPONSES, _INTERNAL_PLAYER_FACING_RE, _is_internal_player_facing_text, _narration_scene_type
+from game_parts.text_rules_a import _is_plain_person_reference, _ADDRESSEE_OPERATIONS, _OFFER_OPERATIONS, _OFFER_MARKER, _fold_keep_punctuation, _ADDRESS_VERB, _SPEAKING_VERB, _CONTINUATION_TERMS, _OBJECT_INSPECTION, _claim_keywords, _format_npc_memory, _CLAIM_DENIAL_LINES, _SPEECH_REPEAT_LINES, _lines_already_said, speech_repeat_line, _NARRATOR_PROFILE_FIELDS, _narrator_visible_profile, _bodies_here_context, _untrusted_player_block, _extract_json_object, _NPC_SPEECH_LOG_KEY, _NPC_SPEECH_KEEP, _MENTIONS_PROMPT_RULE, _VOICED_PROMPT_RULE, _rumour_lane_on, _voiced_keys, _CLAIM_REJECTION_RE, _CLAIM_ACCEPTANCE_RE, _SPEECH_CUT_RE, _SPEECH_META_RE, _strip_pictographs, _REAL_WORLD_FAITH, _without_real_world_faith, _is_explicit_name_led_gesture_line, _clean_npc_stage_direction, _compose_experimental_npc_speech, _without_label_variant, _npc_speech_rejects_claim, _CLAIM_PLAIN_DENIAL_RE, _npc_speech_grants_claim, _spoken_name_answer, _SPEECH_ANSWER_RULES, _job_news_line, _turns_to_someone_else, _elsewhere_line, _overheard_work, _ASKS_WHO_YOU_ARE, _accept_named_job, _REFUSED_MOVE_RULE, _bag_note, _dm_prompt_note, _claim_denial_quotes, _has_private_profile_value, _FOLLOWUP_WORDS, _is_short_followup, _experimental_speech_recap, _normalize_turkish_typos, _mechanical_outcome, _GENERIC_NO_CHANGE_RESPONSE, _GENERIC_NO_CHANGE_RESPONSES, _INTERNAL_PLAYER_FACING_RE, _is_internal_player_facing_text, _narration_scene_type  # noqa: F401
 
 
 from game_parts.dialogue import _npc_answers_to, _offer_talk_with, _job_fallback, _coin_persuasion, _show_coin_roll, _settle_spoken_commitment, _with_only_backed_money, _experimental_speech_note, _speech_after_check, _repair_npc_speech, _question_bound_answer  # noqa: F401
@@ -341,16 +341,16 @@ def _speech_debug_trail(record):
         return
 
 
-from game_parts.turn_front import _has_session, _carry_out_thread_turn, _thread_gate, _world_snapshot, _changed_state_fields, _execute_intent_internal, _hideout_check, _adventure_scene_turn, _adventure_check_reply, _everyday_action_turn, _local_place_turn, _intent_infrastructure_result, _clear_turn_transients
+from game_parts.turn_front import _has_session, _carry_out_thread_turn, _thread_gate, _world_snapshot, _changed_state_fields, _execute_intent_internal, _hideout_check, _adventure_scene_turn, _adventure_check_reply, _everyday_action_turn, _local_place_turn, _intent_infrastructure_result, _clear_turn_transients  # noqa: F401
 
 
 from game_parts.intent import validate_intent, _names_present_creature, _has_explicit_attack_verb, _is_explicitly_negated_attack, primal_knowledge_check_admission
 
 
-from game_parts.text_rules_b import _NARRATION_PERSISTENT_OBJECT_HEADS, _NARRATION_PERSISTENT_OBJECT_STATE, _registered_persistent_object_names, _HELD_SKIP, _PLAYER_MENTAL_STATE_PREFIXES, _PLAYER_MENTAL_STATE_CONTEXT_RE, _PLAYER_MENTAL_STATE_COPULA_RE, _PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE, _PLAYER_MENTAL_STATE_AFFECT_RE, _PLAYER_FEELING_RE, _is_figurative_key_transfer, _NARRATED_NAME_PATTERNS, _unseen_registered_names, _SPEAKING_NAME_PATTERNS, _unseen_speakers, _lore_claims_are_supported, _lore_guard_text, _lore_fact_records, _LORE_ENTITY_TITLE_RE, _LORE_PROPER_NAME_RE, _LORE_ENTITY_FOLLOWING_CUE_RE, _LORE_SENTENCE_START_WORDS, _GENERIC_SPEAKER_LABEL_RE, _is_generic_speaker_label, _LORE_UNSUPPORTED_DETAIL_PATTERNS, _LORE_RULER_TITLE_RE, _LORE_ENTITY_RELATION_RE, _LORE_ROUTE_DISTANCE_QUERY_RE, _UNVERIFIED_LORE_RESPONSE, _UNVERIFIED_DISTANCE_RESPONSE, _UNVERIFIED_RULER_RESPONSE, _INDOOR_DETAIL, _ASKS_DISTANCE, _salvage_plain_speech, _TERMINATOR_MASK, _split_sentences_keep_speech, _spoken_lore_fact_ids, _has_active_local_npc_focus_for_place_request
+from game_parts.text_rules_b import _NARRATION_PERSISTENT_OBJECT_HEADS, _NARRATION_PERSISTENT_OBJECT_STATE, _registered_persistent_object_names, _HELD_SKIP, _PLAYER_MENTAL_STATE_PREFIXES, _PLAYER_MENTAL_STATE_CONTEXT_RE, _PLAYER_MENTAL_STATE_COPULA_RE, _PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE, _PLAYER_MENTAL_STATE_AFFECT_RE, _PLAYER_FEELING_RE, _is_figurative_key_transfer, _NARRATED_NAME_PATTERNS, _unseen_registered_names, _SPEAKING_NAME_PATTERNS, _unseen_speakers, _lore_claims_are_supported, _lore_guard_text, _lore_fact_records, _LORE_ENTITY_TITLE_RE, _LORE_PROPER_NAME_RE, _LORE_ENTITY_FOLLOWING_CUE_RE, _LORE_SENTENCE_START_WORDS, _GENERIC_SPEAKER_LABEL_RE, _is_generic_speaker_label, _LORE_UNSUPPORTED_DETAIL_PATTERNS, _LORE_RULER_TITLE_RE, _LORE_ENTITY_RELATION_RE, _LORE_ROUTE_DISTANCE_QUERY_RE, _UNVERIFIED_LORE_RESPONSE, _UNVERIFIED_DISTANCE_RESPONSE, _UNVERIFIED_RULER_RESPONSE, _INDOOR_DETAIL, _ASKS_DISTANCE, _salvage_plain_speech, _TERMINATOR_MASK, _split_sentences_keep_speech, _spoken_lore_fact_ids, _has_active_local_npc_focus_for_place_request  # noqa: F401
 
 
-from game_parts.narration_safety import _unregistered_persistent_object_claim, _unregistered_held_object, _resolve_campaign_npc_reference, _unsupported_npc_history_or_relationship_claim, _unverified_player_mental_state_trigger, _authorized_item_transfer_matches, _is_explicitly_negated_transfer, _experimental_private_npc_disclosure, _unseen_self_introductions, _narration_is_unsafe, is_player_world_assertion, _record_narration_safety, _remove_trigger_sentence, _unsupported_available_quest_claim
+from game_parts.narration_safety import _unregistered_persistent_object_claim, _unregistered_held_object, _resolve_campaign_npc_reference, _unsupported_npc_history_or_relationship_claim, _unverified_player_mental_state_trigger, _authorized_item_transfer_matches, _is_explicitly_negated_transfer, _experimental_private_npc_disclosure, _unseen_self_introductions, _narration_is_unsafe, is_player_world_assertion, _record_narration_safety, _remove_trigger_sentence, _unsupported_available_quest_claim  # noqa: F401
 
 
 from game_parts.text_rules_a import _inside_speech, _SPEECH_SPAN_RE
@@ -362,10 +362,10 @@ from game_parts.narration_safety import _narration_safety_decision
 from game_parts.lore import _lore_entity_names
 
 
-from game_parts.text_rules_b import _validated_player_line, _WINDOW_WORDS, _LOCK_WORDS, _TRACK_WORDS, _resolved_skill_result_narration, _TELLS_FAILURE, _UNMOVED, _QUOTE_CLOSER_RE, _QUOTE_OPENER_RE, _trim_dangling_quote, _dialogue_repair_has_attributed_answer, _skill_result_category, _print_skill_result, _ATTACK_VERB_PATTERN, _ATTACK_BLOW_PHRASE, _CHARGING_IN, _ATTACK_LOOKALIKE_TOKEN, _ATTACK_INSTRUMENT_TOKENS, _INANIMATE_HIT_OBJECT, _CREATURE_REFERENCE, _attack_verb_tokens, _immediate_check_refusal, _turkish_genitive_form, _asks_what_is_going_on, _is_bare_greeting, _is_scene_referent_activity_observation, _public_scene_person_text, _LOOK_OPENINGS, _CONVERSATION_OPENINGS, _OWN_ACTS, _WALKED_UP, _said_after_approach, _SAY_VERBS, _SAY_ENGLISH, _HAIL_FILLERS, _line_addresses, _PLANNER_STAYS_OUT, _NO_BLOW_NOW, _BLOW_WORDS, _word_root, _NOT_A_LOCAL_PLACE, _NARRATOR_PRONOUNS, _NARRATOR_PLURAL, _singular_narrator
+from game_parts.text_rules_b import _validated_player_line, _WINDOW_WORDS, _LOCK_WORDS, _TRACK_WORDS, _resolved_skill_result_narration, _TELLS_FAILURE, _UNMOVED, _QUOTE_CLOSER_RE, _QUOTE_OPENER_RE, _trim_dangling_quote, _dialogue_repair_has_attributed_answer, _skill_result_category, _print_skill_result, _ATTACK_VERB_PATTERN, _ATTACK_BLOW_PHRASE, _CHARGING_IN, _ATTACK_LOOKALIKE_TOKEN, _ATTACK_INSTRUMENT_TOKENS, _INANIMATE_HIT_OBJECT, _CREATURE_REFERENCE, _attack_verb_tokens, _immediate_check_refusal, _turkish_genitive_form, _asks_what_is_going_on, _is_bare_greeting, _is_scene_referent_activity_observation, _public_scene_person_text, _LOOK_OPENINGS, _CONVERSATION_OPENINGS, _OWN_ACTS, _WALKED_UP, _said_after_approach, _SAY_VERBS, _SAY_ENGLISH, _HAIL_FILLERS, _line_addresses, _PLANNER_STAYS_OUT, _NO_BLOW_NOW, _BLOW_WORDS, _word_root, _NOT_A_LOCAL_PLACE, _NARRATOR_PRONOUNS, _NARRATOR_PLURAL, _singular_narrator  # noqa: F401
 
 
-from game_parts.narration import ask_dungeon_master, _finding_says_too_much, _states_the_failed_check, _fallback_for_action_result, _narrated_money_can_lie, finalize_narration
+from game_parts.narration import ask_dungeon_master, _finding_says_too_much, _states_the_failed_check, _fallback_for_action_result, _narrated_money_can_lie, finalize_narration  # noqa: F401
 
 
 from game_parts.dialogue import _is_player_name_inquiry_to_npc, _is_historical_player_name_query, _hero_first_name, _explicit_player_name_disclosure, _known_player_name, _historical_player_name_from_npc_memory, _historical_player_name_from_claims, _direct_npc_smalltalk_response, _conversation_opening_line, _stock_hearer, _said_to_someone_here
@@ -391,7 +391,7 @@ messages = [
 ]
 
 
-from game_parts.places import _scene_feature_match, _scene_names, _variation_index, _look_opening, _scene_look_text, _look_scene_changed, _keep_people_in_look, _set_scene_active_npc, _reopen_public_doors, _a_walk, _walked_there, _may_propose_local_place, _accepted_local_place, _settle_local_place, _is_canonical_city_id
+from game_parts.places import _scene_feature_match, _scene_names, _variation_index, _look_opening, _scene_look_text, _look_scene_changed, _keep_people_in_look, _set_scene_active_npc, _reopen_public_doors, _a_walk, _walked_there, _may_propose_local_place, _accepted_local_place, _settle_local_place, _is_canonical_city_id  # noqa: F401
 
 
 from game_parts.turn_front import _tell_the_coin, _the_rest_of_the_line, _person_answers_stock, _last_call, combat_refusal_turn, _approach_turn, player_cannot_act_turn, _reads_as_address, _addressed_in, _front_recovery, _front_step, _defer_spoken_coin_offer, _record_spoken_coin_response, _economic_listing, _front_economic_offer, _purchase_refused, _hand_over_coin, _coin_without_a_reading, _blow_stands, _blow_in_the_words, _ask_about_the_blow, _heavy_allowed, _ask_before_the_heavy, _answered_heavy_question, _ask_which_move, _narrated_person, front_read_ahead, _front_offer_gate, _line_gives, _front_consume
@@ -400,82 +400,82 @@ from game_parts.turn_front import _tell_the_coin, _the_rest_of_the_line, _person
 from game_parts.turn_front import _front_wield, _coin_not_parcel, _names_no_parcel, _front_hand_over, _front_work, _take_names_a_job, _front_take, _sleep_after_walk, _front_route_turn  # noqa: F401
 
 
-from game_parts.resolved_narration import _narrate_resolved_turn
+from game_parts.resolved_narration import _narrate_resolved_turn  # noqa: F401
 
 
 from game_parts.turn import _owner_module_reply
 
 
 from game_parts.turn import _run_player_turn_internal
-from game_parts.turn_finish import _tf_build_resolved_turn
-from game_parts.turn_finish import _tf_system_deterministic_exit
-from game_parts.turn_cuts_common import _TURN_FALL_THROUGH
-from game_parts.turn_finish import _tf_system_deterministic_flag
-from game_parts.turn_finish import _tf_engine_event_evidence
-from game_parts.turn_finish import _tf_internal_text_fallback
-from game_parts.turn_finish import _tf_campaign_time
-from game_parts.turn_finish import _tf_attack_events
-from game_parts.turn_finish import _tf_interaction_consumed
-from game_parts.turn_finish import _tf_is_experimental
-from game_parts.turn_finish import _tf_first_guard
-from game_parts.turn_finish import _finish_turn
-from game_parts.turn_exits import _procedural_entity_ids
-from game_parts.turn_exits import _validate_interaction_conversation
-from game_parts.turn_exits import _finish_conversation_rejection
-from game_parts.turn_exits import _finish_conversation_resolution
-from game_parts.resolved_narration import _rn_engine_event_evidence
-from game_parts.resolved_narration import _rn_scene_detail_check
-from game_parts.resolved_narration import _rn_money_claim_guard
-from game_parts.resolved_narration import _rn_finalize
-from game_parts.resolved_narration import _rn_lore_unsupported
-from game_parts.resolved_narration import _rn_not_narration_only
-from game_parts.resolved_narration import _rn_rejected_scene_detail
-from game_parts.resolved_narration import _rn_build_packet
-from game_parts.turn_exits import _tx_explicit_sword_drop
-from game_parts.turn_exits import _tx_attack_decision
-from game_parts.turn_exits import _tx_location_query
-from game_parts.turn_exits import _tx_name_topic
-from game_parts.turn_exits import _tx_attack_hint_no_target
-from game_parts.turn_exits import _tx_attack_target_missing
-from game_parts.turn_exits import _tx_planned_direct
-from game_parts.turn_exits import _tx_enemy_turns
-from game_parts.turn_exits import _tx_player_down
-from game_parts.turn_exits import _tx_timed_sequence
-from game_parts.turn_exits import _tx_procedural_ids_before
-from game_parts.turn_exits import _tx_smalltalk_response
-from game_parts.turn_exits import _tx_lore_gate
-from game_parts.turn_exits import _tx_place_recommendation_safety_input
-from game_parts.turn_exits import _tx_npc_dialogue_route
-from game_parts.turn_exits import _tx_supported_lore_response
-from game_parts.turn_exits import _tx_work_answer
-from game_parts.turn_exits import _tx_quest_availability
-from game_parts.turn_exits import _tx_npc_query
-from game_parts.turn_exits import _tx_historical_name_query
-from game_parts.turn_shop_guards import _tg_findings_text_exit
-from game_parts.turn_shop_guards import _tg_attack_findings_exit
-from game_parts.turn_shop_guards import _tg_shop_action_result
-from game_parts.turn_shop_guards import _tg_shop_presence_exit
-from game_parts.turn_shop_guards import _tg_shop_exit_b
-from game_parts.turn_shop_guards import _tg_shop_exit_a
-from game_parts.turn_shop_guards import _tg_shop_request_exit
-from game_parts.turn_shop_guards import _tg_hint_intent
-from game_parts.turn_shop_guards import _tg_scene_plan
-from game_parts.turn_speech import _ts_speech_money
-from game_parts.turn_speech import _ts_speech_packet
-from game_parts.turn_speech import _ts_witness_exit
-from game_parts.turn_speech import _ts_conversation_check
-from game_parts.turn_speech import _ts_parse_intent
-from game_parts.turn_speech import _ts_personal_answer_exit
-from game_parts.turn_speech import _ts_price_reply_commit
-from game_parts.turn_speech import _ts_accepted_text
-from game_parts.turn_speech import _ts_finalize_text
-from game_parts.turn_speech import _ts_town_response
-from game_parts.turn_dispatch_steps import _td_scene_plan_direct
-from game_parts.turn_dispatch_steps import _td_parcel_board
-from game_parts.turn_dispatch_steps import _td_strike_fallen
-from game_parts.turn_dispatch_steps import _td_fallen_address
-from game_parts.turn_dispatch_steps import _td_end_conversation
-from game_parts.turn_dispatch_steps import _td_combat_mode
+from game_parts.turn_finish import _tf_build_resolved_turn  # noqa: F401
+from game_parts.turn_finish import _tf_system_deterministic_exit  # noqa: F401
+from game_parts.turn_cuts_common import _TURN_FALL_THROUGH  # noqa: F401
+from game_parts.turn_finish import _tf_system_deterministic_flag  # noqa: F401
+from game_parts.turn_finish import _tf_engine_event_evidence  # noqa: F401
+from game_parts.turn_finish import _tf_internal_text_fallback  # noqa: F401
+from game_parts.turn_finish import _tf_campaign_time  # noqa: F401
+from game_parts.turn_finish import _tf_attack_events  # noqa: F401
+from game_parts.turn_finish import _tf_interaction_consumed  # noqa: F401
+from game_parts.turn_finish import _tf_is_experimental  # noqa: F401
+from game_parts.turn_finish import _tf_first_guard  # noqa: F401
+from game_parts.turn_finish import _finish_turn  # noqa: F401
+from game_parts.turn_exits import _procedural_entity_ids  # noqa: F401
+from game_parts.turn_exits import _validate_interaction_conversation  # noqa: F401
+from game_parts.turn_exits import _finish_conversation_rejection  # noqa: F401
+from game_parts.turn_exits import _finish_conversation_resolution  # noqa: F401
+from game_parts.resolved_narration import _rn_engine_event_evidence  # noqa: F401
+from game_parts.resolved_narration import _rn_scene_detail_check  # noqa: F401
+from game_parts.resolved_narration import _rn_money_claim_guard  # noqa: F401
+from game_parts.resolved_narration import _rn_finalize  # noqa: F401
+from game_parts.resolved_narration import _rn_lore_unsupported  # noqa: F401
+from game_parts.resolved_narration import _rn_not_narration_only  # noqa: F401
+from game_parts.resolved_narration import _rn_rejected_scene_detail  # noqa: F401
+from game_parts.resolved_narration import _rn_build_packet  # noqa: F401
+from game_parts.turn_exits import _tx_explicit_sword_drop  # noqa: F401
+from game_parts.turn_exits import _tx_attack_decision  # noqa: F401
+from game_parts.turn_exits import _tx_location_query  # noqa: F401
+from game_parts.turn_exits import _tx_name_topic  # noqa: F401
+from game_parts.turn_exits import _tx_attack_hint_no_target  # noqa: F401
+from game_parts.turn_exits import _tx_attack_target_missing  # noqa: F401
+from game_parts.turn_exits import _tx_planned_direct  # noqa: F401
+from game_parts.turn_exits import _tx_enemy_turns  # noqa: F401
+from game_parts.turn_exits import _tx_player_down  # noqa: F401
+from game_parts.turn_exits import _tx_timed_sequence  # noqa: F401
+from game_parts.turn_exits import _tx_procedural_ids_before  # noqa: F401
+from game_parts.turn_exits import _tx_smalltalk_response  # noqa: F401
+from game_parts.turn_exits import _tx_lore_gate  # noqa: F401
+from game_parts.turn_exits import _tx_place_recommendation_safety_input  # noqa: F401
+from game_parts.turn_exits import _tx_npc_dialogue_route  # noqa: F401
+from game_parts.turn_exits import _tx_supported_lore_response  # noqa: F401
+from game_parts.turn_exits import _tx_work_answer  # noqa: F401
+from game_parts.turn_exits import _tx_quest_availability  # noqa: F401
+from game_parts.turn_exits import _tx_npc_query  # noqa: F401
+from game_parts.turn_exits import _tx_historical_name_query  # noqa: F401
+from game_parts.turn_shop_guards import _tg_findings_text_exit  # noqa: F401
+from game_parts.turn_shop_guards import _tg_attack_findings_exit  # noqa: F401
+from game_parts.turn_shop_guards import _tg_shop_action_result  # noqa: F401
+from game_parts.turn_shop_guards import _tg_shop_presence_exit  # noqa: F401
+from game_parts.turn_shop_guards import _tg_shop_exit_b  # noqa: F401
+from game_parts.turn_shop_guards import _tg_shop_exit_a  # noqa: F401
+from game_parts.turn_shop_guards import _tg_shop_request_exit  # noqa: F401
+from game_parts.turn_shop_guards import _tg_hint_intent  # noqa: F401
+from game_parts.turn_shop_guards import _tg_scene_plan  # noqa: F401
+from game_parts.turn_speech import _ts_speech_money  # noqa: F401
+from game_parts.turn_speech import _ts_speech_packet  # noqa: F401
+from game_parts.turn_speech import _ts_witness_exit  # noqa: F401
+from game_parts.turn_speech import _ts_conversation_check  # noqa: F401
+from game_parts.turn_speech import _ts_parse_intent  # noqa: F401
+from game_parts.turn_speech import _ts_personal_answer_exit  # noqa: F401
+from game_parts.turn_speech import _ts_price_reply_commit  # noqa: F401
+from game_parts.turn_speech import _ts_accepted_text  # noqa: F401
+from game_parts.turn_speech import _ts_finalize_text  # noqa: F401
+from game_parts.turn_speech import _ts_town_response  # noqa: F401
+from game_parts.turn_dispatch_steps import _td_scene_plan_direct  # noqa: F401
+from game_parts.turn_dispatch_steps import _td_parcel_board  # noqa: F401
+from game_parts.turn_dispatch_steps import _td_strike_fallen  # noqa: F401
+from game_parts.turn_dispatch_steps import _td_fallen_address  # noqa: F401
+from game_parts.turn_dispatch_steps import _td_end_conversation  # noqa: F401
+from game_parts.turn_dispatch_steps import _td_combat_mode  # noqa: F401
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"

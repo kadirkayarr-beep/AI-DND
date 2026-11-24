@@ -19,9 +19,7 @@ import timed_gameplay
 from typing import Optional, List, Dict, Any
 import held_weapon
 import monster_sense
-import campaign_time
 import json
-import scheduled_events
 import sys
 import talk_front
 import talk_mode
@@ -1519,7 +1517,6 @@ def _run_player_turn_internal(
 
     shop_request = (interaction_mode not in {"say", "ask_dm"}
                     and target_id is None and game._explicit_campaign_shop_request(player_input))
-    shop_count_before = len(world_state.get("shops", []))
     current_shop_count = sum(
         1 for shop in world_state.get("shops", [])
         if isinstance(shop, dict) and shop.get("location") == world_state.get("location")

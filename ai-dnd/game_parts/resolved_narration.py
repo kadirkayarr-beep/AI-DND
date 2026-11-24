@@ -3,7 +3,7 @@ import talk_mode
 import incidents.hooks as incident_hooks
 import game
 
-def _narrate_resolved_turn(resolved_turn: "ResolvedTurn", player_input, messages, target_id):
+def _narrate_resolved_turn(resolved_turn, player_input, messages, target_id):
     if messages is None:
         messages = resolved_turn.messages or game._session().messages
 
