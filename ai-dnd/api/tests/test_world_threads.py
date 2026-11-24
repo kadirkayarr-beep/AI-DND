@@ -528,10 +528,11 @@ class TheJobMachine(unittest.TestCase):
         world_threads.tick(world, HOUR)
         world_threads.validate(world[world_threads.KEY])
 
-    def test_pay_basis_of_an_old_save_comes_from_its_kind(self):
-        self.assertEqual(world_threads.pay_basis({"type": "hiring", "template_id": "hand_wanted", "terms": {}}), "daily")
-        self.assertEqual(world_threads.pay_basis({"type": "hiring", "template_id": "gone", "terms": {}}), "total")
-        self.assertEqual(world_threads.pay_basis({"type": "errand", "terms": {}}), "per_trip")
+    def test_pay_basis_is_only_the_stored_one(self):
+        self.assertIsNone(world_threads.pay_basis({"type": "hiring", "template_id": "hand_wanted", "terms": {}}))
+        self.assertIsNone(world_threads.pay_basis({"type": "hiring", "template_id": "gone", "terms": {}}))
+        self.assertIsNone(world_threads.pay_basis({"type": "errand", "terms": {}}))
+        self.assertEqual(world_threads.pay_basis({"type": "errand", "terms": {"pay_basis": "per_trip"}}), "per_trip")
 
     def test_the_journal_closing_a_job_closes_the_thread_with_no_clock(self):
         world, _ = walled()

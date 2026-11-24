@@ -11,6 +11,7 @@ import action_economy
 import campaign_time
 import living_world
 import weapon_attack
+from authored_dungeon import _reply  # the one turn reply: counts the turn, keeps both lines
 from combat_lifecycle import CombatRequestError
 
 SCENARIO_ID = "open_courtyard_commoner_v1"
@@ -211,14 +212,6 @@ def visible_dash_narration(session, enemy):
         return ""
     npc = next((npc for npc in session.world_state["npcs"] if npc.get("id") == actor_id), None)
     return f" {living_world.public_npc_name(npc)} koşarak yer değiştirir; artık senden {distance} fit uzakta."
-
-
-def _reply(session, message, narration, action, **details):
-    session.world_state["flags"]["turn_index"] = session.world_state["flags"].get("turn_index", 0) + 1
-    session.messages.extend([{"role": "user", "content": message},
-                             {"role": "assistant", "content": narration}])
-    return {"messages": session.messages, "narration": narration, "model_calls": 0,
-            "action_result": {"action": action, "status": "resolved", "success": True, **details}}
 
 
 def resolve_command(session, message, *, player_message=None):

@@ -37,6 +37,37 @@ def apply_plain_step(session, preview):
     return {"status": "applied", "reason": None, "changes": changes, "effects_pending": list(preview["effects_pending"])}
 
 
+def apply_subclass_step(session, preview, level, subclass_id, *, extra=None):
+    """Atomic subclass level: unpaid Hit Points, the level and the subclass; `extra(session)` adds a class's own grants.
+
+    Any failure restores the whole runtime snapshot, so a refusal changes nothing.
+    """
+    snapshot = session._capture_runtime_snapshot()
+    gain = 0 if preview["hit_points"]["already_applied"] else preview["hit_points"]["gain"]
+    try:
+        character = copy.deepcopy(session.character)
+        character["max_hp"] += gain
+        if character["current_hp"] > 0:
+            character["current_hp"] += gain
+        character.update(level=max(level, character["level"]), progression_level=level, subclass_id=subclass_id)
+        character["proficiency_bonus"] = core.proficiency_bonus_for_level(character["level"])
+        session.character.clear()
+        session.character.update(character)
+        if extra is not None:
+            extra(session)
+        combat = session.world_state.get("combat", {})
+        if combat.get("active"):
+            session._sync_combat_participant_records(combat)
+        core.validate_saved(session.character, session.world_state)
+        session._player_state_for_save()
+    except Exception:
+        session._restore_runtime_snapshot(snapshot)
+        return core._reject("resulting_state_invalid")
+    return {"status": "applied", "reason": None, "changes": [
+        {"kind": "level", "from": level - 1, "to": level}, {"kind": "hit_points", "gain": gain}, {"kind": "subclass", "id": subclass_id}],
+        "effects_pending": list(preview["effects_pending"])}
+
+
 def _capture_format(session):
     return "_persisted_engine_format" in session.__dict__, copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
 

@@ -194,16 +194,8 @@ def job_lines(*path: str) -> Any:
 
 
 def pay_basis(thread: dict[str, Any]) -> str | None:
-    """How the spoken pay is counted; an old save read it from the kind of work."""
-    terms = thread.get("terms") or {}
-    if terms.get("pay_basis"):
-        return terms["pay_basis"]
-    if thread.get("type") == "errand":
-        return "per_trip"
-    if thread.get("type") != "hiring":
-        return None
-    template = next((t for t in catalog().get("templates", []) if t["id"] == thread.get("template_id")), None)
-    return (template or {}).get("pay_basis", "total")
+    """How the spoken pay is counted: stored on the thread's terms when it opens."""
+    return (thread.get("terms") or {}).get("pay_basis") or None
 
 
 def _reserve_resident(world: dict[str, Any], record: dict[str, Any]) -> str:
