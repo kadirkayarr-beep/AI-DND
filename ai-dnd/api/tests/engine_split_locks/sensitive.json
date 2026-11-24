@@ -42,6 +42,12 @@
     "_dm_response_schema_for_turn": [
       "money"
     ],
+    "_dm_shop_creation": [
+      "money"
+    ],
+    "_dm_user_prompt": [
+      "money"
+    ],
     "_economic_listing": [
       "money"
     ],
@@ -81,6 +87,9 @@
     "_front_step": [
       "money"
     ],
+    "_fx_skill_check": [
+      "money"
+    ],
     "_hand_over_coin": [
       "money"
     ],
@@ -97,6 +106,18 @@
       "money"
     ],
     "_lore_entity_names": [
+      "money"
+    ],
+    "_lw_attention_direct": [
+      "money"
+    ],
+    "_lw_merchant_direct": [
+      "money"
+    ],
+    "_lw_scene_attention": [
+      "money"
+    ],
+    "_lw_tavern_search": [
       "money"
     ],
     "_mark_combat_action_used": [
@@ -128,6 +149,15 @@
     ],
     "_person_answers_stock": [
       "snapshot"
+    ],
+    "_pi_npc_dialogue_schema": [
+      "money"
+    ],
+    "_pi_npc_speech_schema": [
+      "money"
+    ],
+    "_pi_price_schema": [
+      "money"
     ],
     "_player_state_for_save": [
       "save"

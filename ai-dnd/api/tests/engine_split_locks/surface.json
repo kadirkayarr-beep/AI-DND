@@ -1145,6 +1145,30 @@
   "session_bound": true,
   "signature": "(player_input, messages, target_id, scene_plan, interaction_mode, action_id, session_id, check_feature, check_evidence)"
  },
+ "_dm_anchored_inquiry": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, allow_new_features, player_input, update_permissions)"
+ },
+ "_dm_direct_query": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, scene_guidance, scene_type)"
+ },
+ "_dm_json_candidate": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, candidate, data)"
+ },
+ "_dm_npc_dialogue": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, npc_dialogue_guidance, npc_target)"
+ },
  "_dm_prompt_note": {
   "kind": "function",
   "module": "game_parts.text_rules_a",
@@ -1156,6 +1180,30 @@
   "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(allow_new_shops=False, narration_only=False)"
+ },
+ "_dm_return_details": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, claims_supported, data, lore_claims, narration, player_line, refs_supported, return_details, updates)"
+ },
+ "_dm_shop_creation": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, allow_new_shops)"
+ },
+ "_dm_travel_guidance": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, narration_only, travel_guidance)"
+ },
+ "_dm_user_prompt": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, context, living_scene_context, lore_claim_guidance, lore_context_json, npc_dialogue_guidance, npc_target, outcome_guidance, player_input, pocket, recent_narration_context, scene_guidance, shop_creation_guidance, travel_guidance, travel_status, truth_card, update_permissions, walking_away, world_state)"
  },
  "_down_outside_combat_turn": {
   "kind": "function",
@@ -1409,6 +1457,42 @@
   "session_bound": true,
   "signature": "(*, action_result, narration, quest_outcomes, safety_reason_code, safety_handling, record_safety, is_final, active_conversation_before, allow_new_features, allow_new_locations, allow_new_npcs, allow_new_shops, conversation_resolution, conversation_state_before, entry_actor, entry_identity, expected_location_change, intent_source, lore_context, messages, narration_model_calls, narration_source, npc_target, player_input, procedural_entity_ids, procedural_ids_before, quest_world_before, scene_plan, target_id, told_intent_calls, turn_index, world_state)"
  },
+ "_fn_history_claim_gate": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, decision, handling, historical_claim, history_target, narration)"
+ },
+ "_fn_history_target": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, decision, handling, historical_claim, history_target, narration, player_input, supported_player_claims)"
+ },
+ "_fn_lore_rejected": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, fallback_for_turn, fallback_reason_code, handling, narration, npc_target, player_input)"
+ },
+ "_fn_npc_target_check": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, narration, npc_target, player_input)"
+ },
+ "_fn_speech_guard": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, accepted_bound_speech, action_result, decision, fallback_for_turn, handling, narration, normalized, npc_target, player_input, recent_dm_narrations, resolved_fallback_response)"
+ },
+ "_fn_unsafe_repair": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, attributed_speech, decision, fallback_for_turn, handling, narration, npc_target, player_input, safety)"
+ },
  "_fold_keep_punctuation": {
   "kind": "function",
   "module": "game_parts.text_rules_a",
@@ -1486,6 +1570,78 @@
   "module": "game_parts.turn_front",
   "session_bound": true,
   "signature": "(route, player_input)"
+ },
+ "_fx_attack_ambiguous_target": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, result, target_npc)"
+ },
+ "_fx_attack_combat_end": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, enemy_actions, result)"
+ },
+ "_fx_attack_no_target": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, npc_target, result, target_id, target_npc)"
+ },
+ "_fx_attack_out_of_turn": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, combat, result)"
+ },
+ "_fx_attack_started": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, enemy_actions, result, started, target_npc, world_state)"
+ },
+ "_fx_check_skill": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, deterministic, explore_type, intent_type, player_input, skill)"
+ },
+ "_fx_door_inspection": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, player_input, result)"
+ },
+ "_fx_inventory_reply": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, inventory_reply, result)"
+ },
+ "_fx_negated_attack": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, intent_type, player_input, result)"
+ },
+ "_fx_query": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, npc_target, player_input, query_type, result)"
+ },
+ "_fx_skill_check": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, check_evidence, check_feature, difficulty, intent, intent_type, npc_target, player_input, result, skill)"
+ },
+ "_fx_travel": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, combat_was_active, intent, intent_type, result, world_state)"
  },
  "_generic_no_change_response": {
   "kind": "function",
@@ -1979,6 +2135,78 @@
   "session_bound": true,
   "signature": "(value)"
  },
+ "_lw_addressed_dialogue": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, explicit_local_npc_reference, interaction_mode, normalized_input, player_input, target_id)"
+ },
+ "_lw_anchored_exit": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, affirmative_anchored_inspection, anchored_structure, exploratory_structure_question, interaction_mode)"
+ },
+ "_lw_attention_direct": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, combat, current, interaction_mode, merchant_search, scene_attention, scene_intent, targetless_entry_reference, turn_index, world_state)"
+ },
+ "_lw_explicit_npc_ref": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, current, player_input)"
+ },
+ "_lw_merchant_direct": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, combat, current, direct, merchant_search, turn_index, world_state)"
+ },
+ "_lw_presence_look": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, action_input, combat, current, direct, player_input, resolved_npc, target_id, turn_index, world_state)"
+ },
+ "_lw_scene_answer": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, action_input, combat, deferred_referent_id, direct, interaction_mode, resolved_npc, scene_exploration_question, target_id, world_subject_question)"
+ },
+ "_lw_scene_attention": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, merchant_search, player_input, tavern_search)"
+ },
+ "_lw_scene_referent": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, action_input, combat, current, deferred_referent_id, direct, resolved_npc, scene_intent, turn_index, world_state)"
+ },
+ "_lw_targetless_entry": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, current, entry_text, target_id, targetless_entry_reference, turn_index, world_state)"
+ },
+ "_lw_tavern_search": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, addressed_local_dialogue, current, interaction_mode, normalized_input, player_input, shop_request)"
+ },
+ "_lw_time_gate": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, current, player_input, procedural_before, world_state)"
+ },
  "_mark_combat_action_used": {
   "kind": "function",
   "module": "game_parts.combat_flow",
@@ -2290,6 +2518,66 @@
   "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(player_input)"
+ },
+ "_pi_base_prompt": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, locations, nearby_npcs, player_input, visible_features)"
+ },
+ "_pi_dialogue_narration": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, dialogue_narration, interaction_context, player_input, prompt, schema, world_state)"
+ },
+ "_pi_local_person_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, allow_local_person_proposal, prompt, schema)"
+ },
+ "_pi_npc_dialogue_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, dialogue_narration, experimental_npc_dialogue, interaction_context, player_input, prompt, speech_note, world_state)"
+ },
+ "_pi_npc_speech_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, experimental_npc_dialogue, interaction_context, schema, world_state)"
+ },
+ "_pi_operation_hint": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, interaction_context, operation_hint, prompt, schema)"
+ },
+ "_pi_price_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, price_targets, prompt, schema)"
+ },
+ "_pi_recent_scene": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, player_input, prompt, recent_scene_narration)"
+ },
+ "_pi_require_conversation": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, prompt, require_conversation)"
+ },
+ "_pi_scene_detail_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, allow_scene_detail_proposals, player_input, prompt, schema, world_state)"
  },
  "_player_question_has_unverified_lore_claim": {
   "kind": "function",

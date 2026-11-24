@@ -1,6 +1,6 @@
 {
   "files": {
-    "game.py": 1116,
+    "game.py": 1164,
     "game_parts/narration_safety.py": 1505,
     "game_parts/turn.py": 2318
   },
@@ -9,12 +9,10 @@
   "long_function_min": 151,
   "long_functions": {
     "game_parts/combat_flow.py::resolve_species_trait_action": 361,
-    "game_parts/intent.py::parse_player_intent": 420,
-    "game_parts/living_world_turn.py::plan_living_world_turn": 725,
+    "game_parts/living_world_turn.py::plan_living_world_turn": 308,
     "game_parts/lore.py::_player_question_has_unverified_lore_claim": 196,
     "game_parts/lore.py::_supported_lore_question_response": 479,
-    "game_parts/narration.py::ask_dungeon_master": 509,
-    "game_parts/narration.py::finalize_narration": 350,
+    "game_parts/narration.py::ask_dungeon_master": 299,
     "game_parts/narration.py::validate_world_updates": 155,
     "game_parts/narration_safety.py::_narration_safety_decision": 1054,
     "game_parts/new_game.py::initialize_game": 197,
@@ -22,7 +20,7 @@
     "game_parts/terminal.py::run": 184,
     "game_parts/turn.py::_dispatch_player_turn": 348,
     "game_parts/turn.py::_run_player_turn_internal": 1553,
-    "game_parts/turn_front.py::_execute_intent_internal": 548,
+    "game_parts/turn_front.py::_execute_intent_internal": 308,
     "game_parts/turn_front.py::_front_step": 235
   }
 }
