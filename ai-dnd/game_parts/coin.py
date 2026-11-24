@@ -30,12 +30,6 @@ _SHOP_ENTITY_QUERY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-_SHOP_CREATION_ACTION_PATTERN = re.compile(
-    r"\b(?:create|open|set\s+up|establish|build|add|start|make|"
-    r"kur\w*|aç\w*|oluştur\w*|ekle\w*)\b",
-    re.IGNORECASE,
-)
-
 def _is_shopkeeper_role(role):
     if not isinstance(role, str):
         return False

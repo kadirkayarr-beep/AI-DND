@@ -630,27 +630,6 @@ def perspective(world, npc):
     }
 
 
-def record_witness(world, event_id, text, npc_ids):
-    """Narrow later-owner interface: require an existing accepted visible event."""
-    state = get(world)
-    event = next((e for e in state["events"] if e["event_id"] == event_id), None)
-    if not event or event["kind"] not in {"objective_progress", "witnessed_fact"}:
-        raise ValueError("Witness facts require accepted engine event provenance.")
-    if not text or len(text) > 400 or set(npc_ids) - set(event["listeners"]):
-        raise ValueError("Unjustified witness knowledge.")
-    for npc_id in npc_ids:
-        entries = state["perspectives"].setdefault(npc_id, [])
-        if any(e["source_id"] == event_id and e["kind"] == "witnessed" for e in entries):
-            continue
-        entries.append(PerspectiveEntry(
-            entry_id=f"perspective:{uuid4().hex}", kind="witnessed",
-            text=text, source_id=event_id,
-        ).model_dump())
-        state["perspectives"][npc_id] = entries[-24:]
-    validate(state, {**world, KEY: state})
-    world[KEY] = state
-
-
 def bind_deadline(world, thread_id, scheduled_event_id):
     """Consume a registered schedule boundary; never invent/advance time here."""
     state = get(world)

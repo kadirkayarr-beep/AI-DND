@@ -1,5 +1,5 @@
 /** The fields of an element that decide whether the browser gives it its own Tab stop. */
-export type TabCandidate = { type?: string; name?: string; checked?: boolean };
+type TabCandidate = { type?: string; name?: string; checked?: boolean };
 
 /**
  * Browsers visit a radio group once: the checked radio, or the first when none is checked.

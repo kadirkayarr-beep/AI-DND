@@ -65,10 +65,6 @@ def sword_record(item: Any) -> dict[str, str]:
     return {"item_id": "sword-" + _fold(name).replace(" ", "-"), "weapon_id": "longsword", "name": name}
 
 
-def has_sword(items: Any) -> bool:
-    return isinstance(items, list) and any(_is_sword(item) for item in items)
-
-
 def held_sword(world: dict[str, Any]) -> Any:
     """The sword in hand, or the first sword when no hand record exists."""
     inventory = world.get("inventory") if isinstance(world, dict) else None

@@ -13,8 +13,6 @@ from typing import Any, Mapping
 
 OBJECTIVE_TYPES = frozenset({"visit_location", "defeat_entity", "acquire_item"})
 OFFER_CONDITION_TYPES = frozenset({"location_is", "npc_present"})
-QUEST_STATUSES = frozenset({"accepted", "completed", "cancelled"})
-
 # Keep this empty in production.  A tuple also prevents accidental append.
 CATALOG: tuple[Mapping[str, Any], ...] = ()
 

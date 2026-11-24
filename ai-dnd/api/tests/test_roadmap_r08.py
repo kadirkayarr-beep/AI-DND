@@ -46,7 +46,7 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
         self.cid, self.sid = self.created["campaign_id"], self.created["session_id"]
         self.install_turn()
 
-    def build(self, resume_campaign_id=None):
+    def build(self, _resume_campaign_id=None):
         self.store = CampaignStore(self.db_path, bound_principal=TEST_PLAYER)
         self.manager = SessionManager(campaign_store=self.store)
         adapter = AuthenticatedOllamaAdapter(FakeOllamaClient())

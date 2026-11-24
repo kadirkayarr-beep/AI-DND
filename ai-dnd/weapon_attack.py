@@ -35,6 +35,32 @@ CHOICES = frozenset({
 })
 
 
+def roll_note(attack, armour_words):
+    """The d20 an attack already rolled, told as it fell: the roll, the total and the armour class it had to meet.
+    Nothing is rolled here; an attack with no attack roll (a save, a spell) tells none."""
+    roll, total, armour = attack.get("attack_roll"), attack.get("attack_total"), attack.get("target_ac")
+    if type(roll) is not int or type(total) is not int or type(armour) is not int:
+        return ""
+    return f" Zar {roll}, toplam {total}; {armour_words} {armour}."
+
+
+def without_roll_note(text, action_result):
+    """The text with this turn's own roll notes taken out, each exactly as roll_note built it from a result in
+    action_result: Python's roll is no number a safety check should weigh, a note of any other numbers is."""
+    stack = [action_result]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            for words in ("hedefin Zırh Sınıfı", "senin Zırh Sınıfın"):
+                note = roll_note(item, words)
+                if note:
+                    text = text.replace(note, "")
+            stack.extend(item.values())
+        elif isinstance(item, list):
+            stack.extend(item)
+    return text
+
+
 def fail(code, message):
     raise CombatRequestError(code, message, 400)
 

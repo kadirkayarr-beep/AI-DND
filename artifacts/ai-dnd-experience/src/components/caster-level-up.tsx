@@ -27,10 +27,6 @@ function shapeOf(preview: LevelUpPreviewResponse): Shape | null {
   return null;
 }
 
-export function casterLevelUpSupported(preview: LevelUpPreviewResponse): boolean {
-  return shapeOf(preview) !== null;
-}
-
 /** The request body when every pick is one the server listed and the player confirmed; null keeps the button off. */
 export function casterLevelUpRequest(preview: LevelUpPreviewResponse, draft: CasterDraft): LevelUpRequest | null {
   const shape = shapeOf(preview);

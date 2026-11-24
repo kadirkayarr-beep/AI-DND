@@ -12,6 +12,7 @@ import scheduled_events
 import timed_gameplay
 import json
 import talk_mode
+import weapon_attack
 
 
 def _narration_fact_packet(action_result):
@@ -986,7 +987,6 @@ def _fallback_narration(player_input, npc_target=None):
     npc_name = game._current_npc_name()
     stealth_action = "gizlen" in text or "saklan" in text
     door_action = "kapı" in text or "kapıyı" in text or "kilit" in text
-    known_npcs = [npc for npc in world_state["npcs"] if npc.get("location") == world_state["location"]]
 
     if ("kılıc" in text or "kılıç" in text or "silah" in text) and re.search(
         r"\b(?:nerede|nerde|var mı|yanımda|envanter\w*|duruyor mu)\b", text
@@ -1674,7 +1674,7 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
         import grounded_action
         import grounded_places
         return (grounded_action.road_ends_line(game._session())
-                or grounded_places.known_places_question(game._session())
+                or grounded_places.known_places_question(game._session(), player_input)
                 or "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin.")
     if action == "explore" and isinstance(result.get("inspection"), dict):
         return str(result["inspection"].get("text") or "")
@@ -1769,7 +1769,7 @@ def finalize_narration(
         ):
             candidate = game.clean_dm_response(resolved_fallback_response)
             if candidate.strip() and not game._narration_safety_decision(
-                candidate, player_input, npc_target, action_result
+                weapon_attack.without_roll_note(candidate, action_result), player_input, npc_target, action_result
             )["unsafe"]:
                 return candidate
         if default_response is not None:

@@ -231,18 +231,7 @@ _CONDITIONAL = re.compile(r"\b(?:eger|sayet|\w+(?:irsem|irsen|ersem|ersen|arsam|
 _QUESTION = re.compile(r"\?|\b(?:nasil|nerede|nereden|ne kadar)\b")
 
 
-def _fold(value: Any) -> str:
-    return living_world.normalize_text(value)
-
-
-def place_kind_in(text: Any) -> str | None:
-    """Return the place kind named in the player's words, or None."""
-    words = _fold(text).split()
-    for kind, spec in PLACE_KINDS.items():
-        for stem in spec["stems"]:
-            if any(word.startswith(stem) for word in words):
-                return kind
-    return None
+_fold = living_world.normalize_text
 
 
 def _is_going(text: str) -> bool:

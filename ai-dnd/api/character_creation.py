@@ -23,7 +23,6 @@ from api.dnd_2024_rules import (
     canonical_origin_feat_name,
     calculate_derived_stats,
     get_equipment_armor_and_shield,
-    generate_random_2024_character,
     get_expertise_choice_count,
     roll_4d6_drop_lowest,
     validate_ability_scores,

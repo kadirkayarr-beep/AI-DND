@@ -654,11 +654,6 @@ def affirmative_scene_intent(value: Any, interaction_mode: str | None = None) ->
     return None
 
 
-def affirmative_scene_action(value: Any, interaction_mode: str | None = None) -> str | None:
-    intent = affirmative_scene_intent(value, interaction_mode)
-    return intent[0] if intent else None
-
-
 def _text_outside_quotes(value: str) -> str:
     """Drop complete quoted spans. A lone apostrophe is not a quote."""
     pairs = {'"': '"', "“": "”", "‘": "’", "'": "'"}
@@ -1838,32 +1833,6 @@ def set_player_position(
         "kind": kind,
         "target_id": target_id if kind == "seated" else None,
     }
-
-
-def add_proposal_references(
-    world_state: dict[str, Any],
-    turn_index: int,
-    references: list[dict[str, Any]],
-) -> None:
-    state = ensure_scene_state(world_state)
-    clean = []
-    for reference in references[:8]:
-        if (
-            isinstance(reference, dict)
-            and isinstance(reference.get("key"), str)
-            and isinstance(reference.get("entity_id"), str)
-            and isinstance(reference.get("kind"), str)
-        ):
-            clean.append({
-                "key": reference["key"][:16],
-                "entity_id": reference["entity_id"][:128],
-                "kind": reference["kind"][:24],
-                "location_id": str(reference.get("location_id", ""))[:128],
-                "source_turn": max(0, turn_index),
-            })
-    state["proposal_references"] = (
-        state["proposal_references"] + clean
-    )[-24:]
 
 
 def _canonical_local_entry_door(

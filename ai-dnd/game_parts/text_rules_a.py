@@ -439,9 +439,6 @@ def _format_npc_memory(memory_entries):
             text = entry.get("text", "")
             if text:
                 formatted.append(f"[{speaker}] {text}")
-        elif isinstance(entry, str):
-            # Legacy format
-            formatted.append(f"[legacy] {entry}")
     return formatted
 
 _CLAIM_DENIAL_LINES = (

@@ -16,10 +16,8 @@ import living_world
 import npc_statements
 
 
-VERIFIED_SETTING_FACT = "VERIFIED_SETTING_FACT"
 CAMPAIGN_FACT = "CAMPAIGN_FACT"
 PROCEDURAL_PERSONAL_FACT = "PROCEDURAL_PERSONAL_FACT"
-EPHEMERAL_SCENE_TEXTURE = "EPHEMERAL_SCENE_TEXTURE"
 PERSONAL_PROFILE_SCHEMA_VERSION = 1
 
 
@@ -75,21 +73,6 @@ def normalize_text(value: Any) -> str:
     text = unicodedata.normalize("NFKD", text)
     text = "".join(char for char in text if not unicodedata.combining(char))
     return re.sub(r"[^\w]+", " ", text, flags=re.UNICODE).strip()
-
-
-def reality_category_for_entity(
-    entity: Any, *, personal_fact: bool = False
-) -> str:
-    if not isinstance(entity, dict):
-        return EPHEMERAL_SCENE_TEXTURE
-    layer = entity.get("reality_layer")
-    if layer == VERIFIED_SETTING_FACT or entity.get("lore_fact_id"):
-        return VERIFIED_SETTING_FACT
-    if layer == "EPHEMERAL_SCENE_TEXTURE" or entity.get("kind") == "scene_referent":
-        return EPHEMERAL_SCENE_TEXTURE
-    if layer == "PROCEDURAL_LOCAL_FICTION" and personal_fact:
-        return PROCEDURAL_PERSONAL_FACT
-    return CAMPAIGN_FACT
 
 
 _PROFILE_BANKS: dict[str, tuple[dict[str, str], ...]] = {

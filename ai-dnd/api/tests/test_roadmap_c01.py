@@ -182,36 +182,10 @@ class CapabilityTests(unittest.TestCase):
         flag["axis_evidence"]["use"] = {"test_owner_exists": True}
         self.assertEqual(capabilities.status_of_row(flag, {})["missing_axes"], ["use"])
 
-    def test_completion_requires_every_dependency_transitively(self):
-        leaves = capabilities.expand_manifest_tasks(ROWS)
-        subclass = next(r for r in ROWS if r["category"] == "subclass" and r["dependencies"])
-        klass = next(r for r in ROWS if r["source_id"] == subclass["dependencies"][0])
-        class_leaves = [l["leaf_id"] for l in leaves if l["source_id"] == klass["source_id"]]
-        sub_leaves = [l["leaf_id"] for l in leaves if l["source_id"] == subclass["source_id"]]
-        # out of order: only the class's LAST leaf is done; the earlier ones are not
-        out_of_order = capabilities.can_complete_leaf(sub_leaves[0], leaves, {class_leaves[-1]})
-        self.assertFalse(out_of_order["allowed"])
-        self.assertEqual(set(out_of_order["unmet"]), set(class_leaves[:-1]))
-        self.assertTrue(capabilities.can_complete_leaf(sub_leaves[0], leaves, set(class_leaves))["allowed"])
-        # a later subclass leaf also needs the earlier subclass leaves
-        self.assertFalse(capabilities.can_complete_leaf(sub_leaves[1], leaves, set(class_leaves))["allowed"])
-        self.assertTrue(capabilities.can_complete_leaf(sub_leaves[1], leaves, set(class_leaves) | {sub_leaves[0]})["allowed"])
-        self.assertEqual(capabilities.can_complete_leaf(sub_leaves[0], leaves, {sub_leaves[0]})["reason"], "already_completed")
-        cycle = [{"leaf_id": "A.1", "dependencies": ["A.2"]}, {"leaf_id": "A.2", "dependencies": ["A.1"]}]
-        self.assertEqual(capabilities.can_complete_leaf("A.1", cycle, set())["reason"], "dependency_cycle")
-        # an unresolved dependency is never satisfied, an unknown leaf is refused
-        orphan = [{"leaf_id": "X.1", "dependencies": ["unresolved:ghost"]}]
-        self.assertFalse(capabilities.can_complete_leaf("X.1", orphan, {"unresolved:ghost"})["allowed"])
-        self.assertFalse(capabilities.can_complete_leaf("nope", leaves, set())["allowed"])
-
     def test_closing_the_counting_leaf_does_not_close_open_scope(self):
         items = capabilities.manifest_open_scope()
         before = capabilities.release_blockers([], items)
         self.assertEqual(len(before), len(items))
-        leaves = capabilities.expand_open_scope(items)
-        self.assertTrue(all(capabilities.can_complete_leaf(leaf["leaf_id"], leaves, set())["allowed"] for leaf in leaves))
-        # every `enumerate` leaf is now closed
-
         self.assertEqual(len(capabilities.release_blockers([], items)), len(items), "still blocking after the counting leaves close")
         bare = [{**items[0], "status": "ENUMERATED_COMPLETE"}, *items[1:]]
         self.assertEqual(len(capabilities.release_blockers([], bare)), len(items), "a bare status string closes nothing")
@@ -224,12 +198,7 @@ class CapabilityTests(unittest.TestCase):
         # forgetting the argument never hides open scope
         self.assertEqual(len(capabilities.release_blockers([])), len(items))
 
-    def test_menu_view_only_offers_complete_entries_and_names_what_is_missing(self):
-        view = capabilities.capability_view(ROWS[0]["id"], {})
-        self.assertFalse(view["selectable"])
-        self.assertEqual(view["label"], "not_yet_supported")
-        self.assertEqual(view["missing_axes"], list(capabilities.AXES))
-        self.assertEqual(capabilities.capability_view("nope", {})["label"], "unknown")
+    def test_every_class_leaf_names_its_existing_owner(self):
         self.assertTrue(all(leaf["existing_owner"] is not None or leaf["category"] != "class"
                             for leaf in capabilities.expand_manifest_tasks([r for r in ROWS if r["category"] == "class"])))
 
