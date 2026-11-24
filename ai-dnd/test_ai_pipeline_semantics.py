@@ -186,9 +186,9 @@ world["npcs"] = [
      "appearance": "", "personality": "", "backstory": "", "knowledge": [], "memory": []},
 ]
 world["features"] = [
-    {"location": "tavern", "name": "Gölgeli Masalar", "description": "Alçak ışıkta duran masalar."},
-    {"location": "tavern", "name": "Kemerli Pencereler", "description": "Pencerelerden süzülen ışık."},
-    {"location": "forest", "name": "Yabanıl Ağaçlı Yol", "description": "Ormanda uzanan dar yol."},
+    {"id": "feature_1", "location": "tavern", "name": "Gölgeli Masalar", "description": "Alçak ışıkta duran masalar."},
+    {"id": "feature_2", "location": "tavern", "name": "Kemerli Pencereler", "description": "Pencerelerden süzülen ışık."},
+    {"id": "feature_3", "location": "forest", "name": "Yabanıl Ağaçlı Yol", "description": "Ormanda uzanan dar yol."},
 ]
 unsafe = G["_narration_is_unsafe"]
 check(not unsafe("Kasım, gölgeli masaların yanında sessizce durur.", "random ne var etrafımda"), "registered NPC rejected")
