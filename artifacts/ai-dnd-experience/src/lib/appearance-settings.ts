@@ -1,8 +1,8 @@
 import type { UnwThemeChoice } from './unw-theme.ts';
 
-export type DiceSet = 'bone' | 'obsidian' | 'gilded';
-export type HpGauge = 'seal' | 'ink';
-export type SpellSlotStyle = 'candles' | 'inkwells';
+type DiceSet = 'bone' | 'obsidian' | 'gilded';
+type HpGauge = 'seal' | 'ink';
+type SpellSlotStyle = 'candles' | 'inkwells';
 export type EffectsLevel = 'off' | 'low' | 'full';
 export type InkRevealSpeed = 'slow' | 'normal' | 'fast' | 'instant';
 
@@ -35,8 +35,8 @@ export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
   menuMusic: true,
 };
 
-export const FONT_SCALE_MIN = 0.85;
-export const FONT_SCALE_MAX = 1.5;
+const FONT_SCALE_MIN = 0.85;
+const FONT_SCALE_MAX = 1.5;
 
 const STORAGE_KEY = 'ai-dnd-appearance-settings-v1';
 

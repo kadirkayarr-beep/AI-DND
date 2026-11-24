@@ -15,7 +15,7 @@ export type IdentitySuggestionJob = {
   code: string | null;
 };
 
-export const DISMISS_NOTICE = 'Öneri görünümü kapatıldı.';
+const DISMISS_NOTICE = 'Öneri görünümü kapatıldı.';
 
 const LIMITS: Record<IdentityField, number> = {
   origin: 240,
