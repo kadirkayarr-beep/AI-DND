@@ -12,7 +12,7 @@ import sorcery_points
 import spell_scope
 import action_economy
 from combat_lifecycle import CombatRequestError
-from api.tests.test_roadmap_c19_quickened import created, combat
+from api.tests.test_roadmap_c19_quickened import combat
 from api.persistence.campaign_validation import serialize_campaign_payload, restore_campaign_session
 
 

@@ -132,7 +132,6 @@ def end_player_turn(session,combat_id,turn):
 
 
 def _reason(session,extend=False):
-    import action_economy as economy
     state=_state(session)
     if state is None:return 'rage_not_adopted'
     c=session.world_state.get('combat',{})

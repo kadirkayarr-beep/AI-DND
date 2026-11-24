@@ -4,7 +4,6 @@ PHB 2024 Barbarian features table: Extra Attack at level 5 = two attacks instead
 turn. Only the APPLIED level-5 selected Berserker gets it; XP-earned numeric level 5 alone does not. Dice are deterministic
 (natural 1 misses); synthetic NPCs are labeled unit fixtures, not native campaign evidence.
 """
-import copy
 import unittest
 from unittest.mock import patch
 

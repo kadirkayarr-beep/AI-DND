@@ -8,7 +8,7 @@ import world_happenings
 import world_threads
 
 from api.tests.test_said_is_real import ClassifiedClient, Table
-from api.tests.test_story_links import resident, town
+from api.tests.test_story_links import town
 from unittest.mock import patch
 
 

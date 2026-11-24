@@ -5,7 +5,6 @@ import uuid
 from unittest.mock import patch
 
 import game
-import living_world
 import local_dialogue
 from api.tests import test_campaign_api as api
 from api.tests import test_dialogue_runtime as free

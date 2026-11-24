@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from api.lore_authority.campaign_state import (
-    EngineActionEvidence,
     adventure_possibility_id,
     record_adventure_possibility,
 )

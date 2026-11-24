@@ -1,6 +1,5 @@
 """Actual existing HTTP owner, selected5 and XP-ahead prior4 choices."""
 import copy
-import unittest
 from uuid import uuid4
 from api.tests import test_roadmap_c06_level4_http as previous
 from api.tests.test_roadmap_c06_level5 import award, FIVE

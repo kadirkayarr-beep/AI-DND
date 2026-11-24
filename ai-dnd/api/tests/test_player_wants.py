@@ -1,6 +1,5 @@
 """What the character is after can make a matching thread likelier. It is a tilt in the odds, never a story laid out for them."""
 import unittest
-from unittest.mock import patch
 
 import front_proposal
 import world_threads

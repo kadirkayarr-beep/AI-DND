@@ -11,8 +11,6 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-import front_proposal
-import game
 import living_world
 import talk_front
 import town_knowledge

@@ -5,11 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import game
 import initiative as init
 import action_economy as ae
 from api.tests.test_campaign_time import scene
-from api.tests.test_combat_lifecycle import ready, CombatLifecycleApiTests
+from api.tests.test_combat_lifecycle import CombatLifecycleApiTests
 from api.persistence.campaign_store import CampaignStore
 from api.persistence.campaign_models import CampaignStorageError
 from api.session_manager import SessionManager

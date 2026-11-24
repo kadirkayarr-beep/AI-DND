@@ -12,7 +12,6 @@ import front_proposal
 import game
 import world_happenings
 import world_threads
-from adventure import dialogue_jobs
 from api.persistence.campaign_store import CampaignStore
 from api.tests.journeys.runner import (SCENARIO_DIR, _NOT_STATE, JourneyCase, ScriptedModel, _front_setting,
                                        _inventory_counts, _Reader, apply_setup, read_observed)

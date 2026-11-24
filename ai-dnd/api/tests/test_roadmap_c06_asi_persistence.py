@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 import character_progression as cp
 import feat_rules
-import game
 from api.character_creation import configure_character
 from api.tests.test_roadmap_c06 import SPEC
 from api.tests.test_roadmap_c06_starting_xp import create

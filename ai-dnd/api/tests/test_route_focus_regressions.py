@@ -1,6 +1,5 @@
 """Task-only schema-aware HTTP diagnostics; no product assertions replaced."""
-import copy,json,uuid,unittest,sys
-from pathlib import Path
+import copy,json,uuid,unittest
 from unittest.mock import patch
 from api.tests import test_campaign_api as api
 from api.tests.test_local_person_persistence import LocalPersonModel

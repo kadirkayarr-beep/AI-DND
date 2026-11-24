@@ -12,7 +12,6 @@ import uuid
 from unittest.mock import patch
 
 import everyday_actions
-import game
 from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as harness
 

@@ -15,7 +15,6 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, Validation
 
 import living_world
 import equipment_economy
-import local_dialogue
 
 KEY = "interaction_adventure_v1"
 ACTIVE = {"discovered", "offered", "active", "progressing", "reframed"}

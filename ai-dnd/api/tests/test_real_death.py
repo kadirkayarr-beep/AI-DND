@@ -10,7 +10,7 @@ from unittest.mock import patch
 import front_proposal
 import local_places
 from api.tests.journeys.runner import call_kind
-from api.tests.test_three_plays import BARBARIAN, FIGHTER, PlayClient, ThreePlaysTests
+from api.tests.test_three_plays import FIGHTER, PlayClient, ThreePlaysTests
 
 
 def watched(client):

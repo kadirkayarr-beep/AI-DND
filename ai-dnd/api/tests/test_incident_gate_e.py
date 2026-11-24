@@ -3,7 +3,6 @@
 import unittest
 from unittest.mock import patch
 
-import equipment_economy
 import relationships
 from api.tests.test_incident_gate_a import _envelope, _proposal, _world
 from incidents import budgets, commit, faction, gate, knowledge, rewards

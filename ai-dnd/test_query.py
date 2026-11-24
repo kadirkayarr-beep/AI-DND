@@ -1,5 +1,4 @@
 import sys
-import io
 from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parent
 GAME_FILE = PROJECT_DIR / "game.py"

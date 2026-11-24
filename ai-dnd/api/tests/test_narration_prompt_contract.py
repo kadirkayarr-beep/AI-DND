@@ -3,7 +3,6 @@ import copy
 import json
 import unittest
 from unittest.mock import patch
-import game
 import living_world
 from api.tests import test_lore_authority as fixture
 from api.tests.test_narration_evidence_acceptance import ask

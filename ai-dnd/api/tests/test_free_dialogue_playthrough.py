@@ -1,6 +1,5 @@
 """Integrated synthetic acceptance; this is not real Qwen quality evidence."""
-import copy,json,unittest,uuid
-from unittest.mock import patch
+import copy,json,unittest
 from api.tests import test_dialogue_runtime as base
 class FreePlaythroughTests(unittest.IsolatedAsyncioTestCase):
  asyncSetUp=base.DialogueRuntimeTests.asyncSetUp

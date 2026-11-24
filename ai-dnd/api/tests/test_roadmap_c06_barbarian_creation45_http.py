@@ -5,7 +5,6 @@ Refusals are pinned by status AND by absence of any published campaign/session.
 """
 import copy
 import unittest
-import httpx
 from pydantic import ValidationError
 from api.schemas import CharacterCreateInput
 from api.tests import test_campaign_api as campaigns

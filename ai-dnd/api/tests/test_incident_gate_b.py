@@ -4,10 +4,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-import game
 from api import ollama_adapter
 from api.serializers import serialize_session_state
-from api.tests.test_incident_gate_a import PROFILE, _decisions, _envelope, _proposal, _world
+from api.tests.test_incident_gate_a import PROFILE, _envelope, _proposal, _world
 from api.tests.test_incident_models import _incident
 from incidents import awareness, commit, gate, hooks, projection, triggers
 from incidents.attempts import MemoryAttemptStore

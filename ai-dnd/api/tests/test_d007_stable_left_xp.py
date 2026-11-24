@@ -2,7 +2,6 @@
 `player_stable` or `participants_left` (before this, only target_defeated / parley / relocated paid)."""
 from __future__ import annotations
 
-import copy
 import unittest
 
 import game

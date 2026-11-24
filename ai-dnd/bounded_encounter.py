@@ -7,7 +7,6 @@ inferences. Mutable positions stay with the existing NPC/scene owners.
 import copy
 from contextlib import nullcontext
 
-import action_economy
 import campaign_time
 import living_world
 import weapon_attack

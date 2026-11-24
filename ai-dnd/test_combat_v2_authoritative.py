@@ -1,7 +1,6 @@
 """Authoritative Combat V3 scheduler contract; no Ollama service is required."""
 import copy
 import contextlib
-import io
 import json
 import game
 from combat_lifecycle import CombatRequestError

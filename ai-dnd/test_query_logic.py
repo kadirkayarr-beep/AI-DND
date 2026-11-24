@@ -1,5 +1,4 @@
 import sys
-import io
 
 # Test the logic directly without importing the full game
 # Copy the relevant functions here

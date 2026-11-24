@@ -12,7 +12,7 @@ import item_transfers
 import living_world
 import local_places
 import world_threads
-from adventure import deadlines, dialogue_jobs, director, play, templates
+from adventure import deadlines, director, play, templates
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.town_seed import fixed_town
 

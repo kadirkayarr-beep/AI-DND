@@ -10,7 +10,6 @@ from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Sequence
 
 from .models import (
-    BindingStatus,
     CampaignLoreState,
     ClaimType,
     EntityType,

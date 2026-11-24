@@ -1,6 +1,5 @@
 """B01 source-identity contract; synthetic git repos only, no game/model/server calls."""
 import hashlib
-import json
 import os
 from pathlib import Path
 import subprocess

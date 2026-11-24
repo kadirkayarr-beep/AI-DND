@@ -5,7 +5,6 @@ Tests run without Ollama - they verify Python-side logic only.
 import sys
 import io
 import json
-import re
 from copy import deepcopy
 from functools import wraps
 from pathlib import Path

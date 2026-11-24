@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test validate_intent function"""
 import sys
-import io
 from pathlib import Path
 
 

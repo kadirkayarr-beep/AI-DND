@@ -31,7 +31,6 @@ class HaggleProbe(JourneyCase):
         self.assertEqual(checks.call_args_list[-1].args[1]["skill"], "Persuasion")
 import copy
 import bold_acts
-import economic_actions as ea
 import money_owner
 import shop_trade
 from api.tests.test_spoken_decline import Spoken

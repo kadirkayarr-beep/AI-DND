@@ -1,12 +1,10 @@
 """R2 review regressions: a witness selection cannot bypass a veto or change the question."""
 import copy
 import json
-import unittest
 import uuid
 
 import economic_actions as ea
 import front_proposal
-import witness_recall
 from api.tests import test_campaign_api as fixtures
 from api.tests.journeys.runner import call_kind
 from api.tests.test_economic_action_http import EconomicHttpFixture

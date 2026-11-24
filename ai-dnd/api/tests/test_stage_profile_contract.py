@@ -1,7 +1,7 @@
 """Scoped stage authority and native-public personal-detail contracts."""
 import copy,json,unittest,uuid
 from unittest.mock import patch
-import game,local_dialogue
+import local_dialogue
 import test_narrative_rebalance as nr
 from api.tests import test_route_focus_regressions as route
 from api.tests.journeys.runner import call_kind

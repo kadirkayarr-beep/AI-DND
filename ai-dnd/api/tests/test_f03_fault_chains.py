@@ -39,7 +39,6 @@ def write(path, value):
 
 
 def serve(folder, port):
-    import game
     import uvicorn
     from api.auth import FixedAuthenticator
     from api.tests.auth_fixture import TEST_PLAYER
@@ -200,7 +199,6 @@ class F03FaultChains(unittest.TestCase):
     def evidence(self, name, result):
         destination = os.environ.get("F03_EVIDENCE_DIR")
         if destination:
-            import hashlib
             result.update(synthetic=True, auth="FixedAuthenticator(TEST_PLAYER), not real auth",
                           api_port=self.port, real_model_calls=0)
             write(Path(destination) / (name + ".json"), result)

@@ -4,8 +4,6 @@ import unittest
 from unittest.mock import patch
 
 import action_economy as economy
-import game
-import hit_dice
 import paladin_features
 import spell_registry
 import spell_scope

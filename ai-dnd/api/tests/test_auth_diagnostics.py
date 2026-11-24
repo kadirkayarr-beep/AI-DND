@@ -2,7 +2,7 @@ import unittest
 
 from api.auth import AuthenticationError
 from api.auth_diagnostics import enabled_for_request, safe_failure_category
-from api.clerk_auth import ClerkAuthenticator, _bearer_token, _require_session_claims
+from api.clerk_auth import ClerkAuthenticator, _require_session_claims
 
 
 class AuthDiagnosticsTests(unittest.TestCase):

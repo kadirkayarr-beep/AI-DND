@@ -1,6 +1,5 @@
 """Wave 7: optional and secret objectives, fail-forward, RECOVERY and sibling graphs."""
 
-import copy
 import unittest
 
 import adventure.completion as completion

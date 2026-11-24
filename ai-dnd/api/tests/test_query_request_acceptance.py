@@ -3,8 +3,6 @@ import copy
 import json
 import unittest
 import uuid
-from unittest.mock import patch
-import game
 from api.tests import test_campaign_api as api
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.test_npc_transcript_replay_baseline import QwenShapedModel

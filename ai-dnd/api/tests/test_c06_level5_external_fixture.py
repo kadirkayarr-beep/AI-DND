@@ -1,5 +1,4 @@
 """Synthetic external factory preflight: real owners, SQLite and in-process HTTP; no socket/model."""
-import json
 from pathlib import Path
 import tempfile
 import unittest

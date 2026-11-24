@@ -2,7 +2,6 @@
 import copy
 import unittest
 from unittest.mock import patch
-import game
 import weapon_attack
 from api.persistence.campaign_models import CampaignCorruptError
 from api.tests.test_roadmap_c10_rage import created, combat

@@ -6,7 +6,6 @@ import unittest
 from unittest.mock import patch
 import game
 import character_progression as cp
-import spell_scope
 import xp
 from api.tests.test_roadmap_c06 import created_sorcerer, SPEC
 from api.dnd_2024_rules import SPELLS_CATALOG

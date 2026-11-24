@@ -1,6 +1,5 @@
 """F04 N08: nonempty model prose must not promote unverified past claims."""
 import copy
-import json
 import unittest
 from unittest.mock import patch
 

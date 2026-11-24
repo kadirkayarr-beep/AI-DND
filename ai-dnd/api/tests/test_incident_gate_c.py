@@ -3,7 +3,6 @@
 import json
 import unittest
 
-import game
 from api.tests.test_incident_gate_a import _envelope, _proposal, _world
 from incidents import commit, gate, hooks, npcs, props, sublocations
 

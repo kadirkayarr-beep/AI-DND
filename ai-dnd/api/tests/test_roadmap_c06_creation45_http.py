@@ -1,5 +1,4 @@
 """Same creation endpoint and persisted campaign owner, selected starts4/5."""
-import copy
 import unittest
 import httpx
 from api.tests import test_campaign_api as campaigns

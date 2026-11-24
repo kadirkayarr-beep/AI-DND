@@ -10,7 +10,6 @@ from unittest.mock import patch
 
 import game
 import grounded_action
-import local_places
 from api.tests.journeys.runner import _campaign_seeded
 from api.tests.test_three_plays import ThreePlaysTests
 

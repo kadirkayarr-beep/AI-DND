@@ -3,7 +3,6 @@ import copy
 import json
 import unittest
 from unittest.mock import patch
-import game
 import living_world
 from api.tests.test_stage10a_gameplay_repairs import city_session as _city_session, DISCLOSURE
 from api.tests import test_explicit_shop_creation as shop_tests
@@ -13,7 +12,6 @@ from api.tests.test_intent_response_consistency import read_first
 import uuid
 
 def city_session():
-    import scheduled_events
     s=_city_session()
     s.world_state.setdefault('scheduled_events', [])
     return s
@@ -183,7 +181,6 @@ class CreationAuthorityTests(unittest.TestCase):
 
 class SearchTransactionTests(shop_tests.ShopTransactionTests):
     async def test_empty_find_receipt_resume_and_no_downstream_quest(self):
-        import scheduled_events
         session=self.record.game_session
         session.world_state.setdefault('scheduled_events', [])
         before=stable(session)

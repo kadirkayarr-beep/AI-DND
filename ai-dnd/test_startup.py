@@ -1,5 +1,4 @@
 """Startup resume choices without a live narration service."""
-import json
 from pathlib import Path
 import tempfile
 import unittest

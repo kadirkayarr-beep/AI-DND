@@ -18,7 +18,6 @@ from api.tests import test_death_system as encounter
 from api.tests.test_roadmap_c06 import SPEC
 from api.tests.test_roadmap_c06_level3 import TWO, choices, IDS
 from api.main import create_app
-from api.schemas import CharacterCreateInput
 from api.session_manager import SessionManager
 from api.persistence.campaign_store import CampaignStore
 from api.dnd_2024_rules import CharacterCreationError

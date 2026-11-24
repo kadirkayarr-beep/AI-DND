@@ -102,7 +102,6 @@ def _death_saves_temp_hp_at_zero(case):
 
 def _death_saves_core(case):
     from unittest.mock import patch
-    import game
     from api.tests.test_death_system import make_session, start_test_combat
     given = case["input"]
     session = make_session()
