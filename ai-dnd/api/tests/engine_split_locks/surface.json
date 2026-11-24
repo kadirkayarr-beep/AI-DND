@@ -1979,6 +1979,78 @@
   "session_bound": true,
   "signature": "(value)"
  },
+ "_lw_addressed_dialogue": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, explicit_local_npc_reference, interaction_mode, normalized_input, player_input, target_id)"
+ },
+ "_lw_anchored_exit": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, affirmative_anchored_inspection, anchored_structure, exploratory_structure_question, interaction_mode)"
+ },
+ "_lw_attention_direct": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, combat, current, interaction_mode, merchant_search, scene_attention, scene_intent, targetless_entry_reference, turn_index, world_state)"
+ },
+ "_lw_explicit_npc_ref": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, current, player_input)"
+ },
+ "_lw_merchant_direct": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, combat, current, direct, merchant_search, turn_index, world_state)"
+ },
+ "_lw_presence_look": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, action_input, combat, current, direct, player_input, resolved_npc, target_id, turn_index, world_state)"
+ },
+ "_lw_scene_answer": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, action_input, combat, deferred_referent_id, direct, interaction_mode, resolved_npc, scene_exploration_question, target_id, world_subject_question)"
+ },
+ "_lw_scene_attention": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, merchant_search, player_input, tavern_search)"
+ },
+ "_lw_scene_referent": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, action_input, combat, current, deferred_referent_id, direct, resolved_npc, scene_intent, turn_index, world_state)"
+ },
+ "_lw_targetless_entry": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, action, current, entry_text, target_id, targetless_entry_reference, turn_index, world_state)"
+ },
+ "_lw_tavern_search": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, addressed_local_dialogue, current, interaction_mode, normalized_input, player_input, shop_request)"
+ },
+ "_lw_time_gate": {
+  "kind": "function",
+  "module": "game_parts.living_world_steps",
+  "session_bound": true,
+  "signature": "(*, current, player_input, procedural_before, world_state)"
+ },
  "_mark_combat_action_used": {
   "kind": "function",
   "module": "game_parts.combat_flow",

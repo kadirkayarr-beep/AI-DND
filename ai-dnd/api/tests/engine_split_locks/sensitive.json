@@ -99,6 +99,18 @@
     "_lore_entity_names": [
       "money"
     ],
+    "_lw_attention_direct": [
+      "money"
+    ],
+    "_lw_merchant_direct": [
+      "money"
+    ],
+    "_lw_scene_attention": [
+      "money"
+    ],
+    "_lw_tavern_search": [
+      "money"
+    ],
     "_mark_combat_action_used": [
       "save"
     ],
