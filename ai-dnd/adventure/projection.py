@@ -96,7 +96,7 @@ def command_view(quest):
     }
 
 
-def _heard_rumors(world, lore_state):
+def heard_rumors(world, lore_state):
     if lore_state is None:
         return []
     from api.lore_authority.player_knowledge import read_player_knowledge

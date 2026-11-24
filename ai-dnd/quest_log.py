@@ -136,9 +136,9 @@ def api_quest_records(world: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _rumors(world: dict[str, Any], lore_state: Any) -> list[dict[str, str]]:
-    from adventure.projection import _heard_rumors
+    from adventure.projection import heard_rumors
 
-    found = [{"label": "Söylenti", "text": text} for text in _heard_rumors(world, lore_state)]
+    found = [{"label": "Söylenti", "text": text} for text in heard_rumors(world, lore_state)]
     for _row, quest in dynamic_records(world):
         for objective in quest.get("objectives", []):
             if (objective.get("type") == "discover_clue" and objective.get("graph_state") == "COMPLETE"
