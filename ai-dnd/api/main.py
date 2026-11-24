@@ -92,7 +92,11 @@ from api.persistence.campaign_models import (
 from api.local_play import LocalPlayAuthenticator
 from api.persistence.campaign_store import CampaignStore, StartupCampaignStore
 from api.routes_catalog import register_catalog_routes
-from api.routes_level_up import level_up_projection, register_level_up_read_routes
+from api.routes_quests import register_quest_routes
+from api.routes_species import register_species_routes
+from api.routes_spells_write import register_spell_prepare_routes
+from api.routes_level_up_apply import register_level_up_apply_routes
+from api.routes_level_up import register_level_up_read_routes
 from api.routes_spells_read import register_spell_read_routes
 from api.schemas import (
     AmbientEventActionRequest,
@@ -111,14 +115,6 @@ from api.schemas import (
     TurnResponse,
     TurnUndoRequest,
     TurnUndoResponse,
-    QuestCommandResult,
-    QuestState,
-    SpeciesTraitActionRequest,
-    SpeciesTraitActionResult,
-    SpeciesTraitCommandResult,
-    SpellPrepareCommandResult,
-    SpellPrepareRequest,
-    SpellPrepareResult,
 )
 from api.serializers import (
     CombatResultSerializationError,
@@ -129,7 +125,6 @@ from api.serializers import (
     serialize_skill_check_result,
     serialize_session_state,
 )
-from api.schemas import LevelUpApplyRequest, LevelUpCommandResult
 from api.schemas import ActionIdPath
 from api.session_manager import SessionManager, TransientReplyDroppedError, UnknownSessionError
 from api.world_metadata import (
@@ -2231,412 +2226,47 @@ def create_app(
             record.undo_checkpoint = None
             return payload
 
-    def _quest_command(session_id: str, quest_id: str, command: str) -> dict[str, Any]:
-        record = get_record(session_id)
-        with record.turn_lock:
-            record = get_record(session_id)
-            refuse_while_action_open(record)
-            require_current(record)
-            session = record.game_session
-            snapshot = _capture_session(session)
-            lore_before = record.lore_authority
-            token_before = getattr(session, "_campaign_persistence_version", None)
-            if getattr(session, "campaign_lore_state", None) is not None:
-                # D-189: a committed turn moves only the record's lore and a resume reloads it, so a copy left on the
-                # session can be older; the command starts it from the record, like play_turn, before reading it below.
-                session.campaign_lore_state = record.lore_authority
-
-            def put_back() -> None:
-                record.lore_authority = lore_before
-                _rollback_session(record, session, snapshot)
-
-            try:
-                result = getattr(session, f"{command}_quest")(quest_id)
-            except ValueError as error:
-                put_back()
-                raise HTTPException(
-                    status_code=404,
-                    detail={"code": "quest_unavailable", "message": str(error)},
-                ) from None
-            try:
-                lore_for_view = getattr(session, "campaign_lore_state", None) or record.lore_authority
-                if lore_for_view is not None:
-                    record.lore_authority = lore_for_view
-                state = serialize_session_state(session, record.journal, record.lore_authority)
-                quest_payload = result["quest"]
-                if quest_payload.get("record_kind") == "dynamic":
-                    quest_payload = adventure_projection.command_view(quest_payload)
-                public_quest = QuestState.model_validate(
-                    {
-                    "quest_id": quest_payload["quest_id"],
-                    "title": quest_payload["title"],
-                    "description": quest_payload["description"],
-                    "status": quest_payload["status"],
-                    "giver_npc_id": quest_payload.get("giver_npc_id"),
-                    "objectives": [
-                        {
-                            "objective_id": item["objective_id"],
-                            "description": item["description"],
-                            "status": item["status"],
-                            "progress": item.get("progress", 0),
-                            "required_count": item.get("required_count", 1),
-                        }
-                        for item in quest_payload["objectives"]
-                    ],
-                    }
-                )
-                response = QuestCommandResult(
-                    session_id=session_id,
-                    state=state,
-                    quest=public_quest,
-                    outcome=result["transition"],
-                )
-                # Built before the save, so nothing after a commit can fail and put the live game back.
-                payload = redact_sensitive_values(response.model_dump())
-            except CampaignError as error:
-                put_back()
-                raise campaign_http_exception(error) from None
-            except Exception:
-                put_back()
-                raise
-            if record.campaign_id is None:
-                return payload
-            try:
-                manager.save_campaign_locked(record)
-            except Exception as error:
-                # Stale, unknown and closed campaigns are refused inside the transaction before anything is written.
-                certain = isinstance(error, (CampaignStaleError, CampaignNotFoundError, CampaignNotActiveError))
-                landed = SaveLanded.NOT_LANDED if certain else manager.campaign_save_landed(record, token_before)
-                if landed is SaveLanded.UNKNOWN:
-                    # Committed or not cannot be told; rolling back could split memory from storage (R05/R06).
-                    record.usable = False
-                    _logger.critical("Quest save failed and could not be reconciled; session closed")
-                    decision = failure_policy.classify_failure(
-                        failure_policy.ActionPhase.RECONCILIATION, "unknown", error,
-                    )
-                    raise HTTPException(
-                        status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown"),
-                    ) from None
-                if landed is SaveLanded.LANDED:
-                    # The database holds exactly this result: the live game stays on it and the answer is the truth.
-                    _logger.error("Quest save committed but was not acknowledged (error_type=%s)", type(error).__name__)
-                    return payload
-                put_back()
-                if isinstance(error, CampaignError):
-                    raise campaign_http_exception(error) from None
-                raise
-            return payload
-
-    @application.post(
-        "/api/game/sessions/{session_id}/quests/{quest_id}/accept",
-        response_model=QuestCommandResult,
+    register_quest_routes(
+        application,
+        get_record=get_record,
+        require_current=require_current,
+        refuse_while_action_open=refuse_while_action_open,
+        campaign_http_exception=campaign_http_exception,
+        manager=manager,
+        _capture_session=_capture_session,
+        _rollback_session=_rollback_session,
+        _logger=_logger,
     )
-    @application.post(
-        "/api/sessions/{session_id}/quests/{quest_id}/accept",
-        response_model=QuestCommandResult,
-    )
-    def accept_quest(session_id: str, quest_id: str) -> dict[str, Any]:
-        return _quest_command(session_id, quest_id, "accept")
 
-    @application.post(
-        "/api/game/sessions/{session_id}/quests/{quest_id}/cancel",
-        response_model=QuestCommandResult,
+    register_species_routes(
+        application,
+        get_record=get_record,
+        require_current=require_current,
+        ensure_usable=ensure_usable,
+        refuse_while_action_open=refuse_while_action_open,
+        replay_action_response=replay_action_response,
+        campaign_http_exception=campaign_http_exception,
+        manager=manager,
+        _capture_session=_capture_session,
+        _rollback_session=_rollback_session,
+        _raise_if_commit_unconfirmed=_raise_if_commit_unconfirmed,
     )
-    @application.post(
-        "/api/sessions/{session_id}/quests/{quest_id}/cancel",
-        response_model=QuestCommandResult,
-    )
-    def cancel_quest(session_id: str, quest_id: str) -> dict[str, Any]:
-        return _quest_command(session_id, quest_id, "cancel")
-
-    @application.post(
-        "/api/game/sessions/{session_id}/species-actions",
-        response_model=SpeciesTraitCommandResult,
-    )
-    def resolve_species_trait_action(
-        session_id: str,
-        request: SpeciesTraitActionRequest,
-    ) -> dict[str, Any]:
-        record = get_record(session_id)
-        action_id = str(request.action_id)
-        request_hash = hashlib.sha256(json.dumps(
-            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"} | {
-                field for field in ("draconic_ancestry", "shape", "target_id") if getattr(request, field) is None})},
-            sort_keys=True, ensure_ascii=False, separators=(",", ":"),
-        ).encode("utf-8")).hexdigest()
-        with record.turn_lock:
-            ensure_usable(record)
-            session = record.game_session
-            try:
-                previous = manager.get_turn_action(record, action_id)
-            except CampaignError as error:
-                raise campaign_http_exception(error) from None
-            get_record(session_id)
-            if previous is not None:
-                if previous["request_hash"] != request_hash:
-                    raise HTTPException(status_code=409, detail={
-                        "code": "action_id_conflict",
-                        "message": "This action ID was already used for a different action.",
-                    })
-                return replay_action_response(
-                    previous["response"], SpeciesTraitCommandResult, session_id,
-                )
-            # Same contract as play_turn, after receipt replay and before any engine work: a stored refusal (the
-            # player's abandon writes one for any request body) answers instead of the engine; another body is a conflict.
-            try:
-                refused = manager.get_refused_action(record, action_id)
-            except CampaignError as error:
-                raise campaign_http_exception(error) from None
-            if refused is not None:
-                if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
-                    raise HTTPException(status_code=409, detail={
-                        "code": "action_id_conflict",
-                        "message": "This action ID was already used for a different action.",
-                    })
-                raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
-            refuse_while_action_open(record)
-            require_current(record)
-            snapshot = _capture_session(session)
-            metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
-            journal_snapshot = copy.deepcopy(record.journal)
-            memory_snapshot = copy.deepcopy(record.narrative_memory)
-            lore_snapshot = record.lore_authority
-            session_lore_snapshot = getattr(session, "campaign_lore_state", None)
-
-            def restore_command():
-                _rollback_session(record, session, snapshot)
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = memory_snapshot
-                record.lore_authority = lore_snapshot
-                session.campaign_lore_state = session_lore_snapshot
-
-            response_payload = None
-            try:
-                quest_before = copy.deepcopy(session.world_state)
-                result = session.resolve_species_trait_action(
-                    request.action,
-                    form=request.form,
-                    ancestry=request.ancestry,
-                    armed=request.armed,
-                    **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
-                       if request.action == "lay_on_hands" else {}),
-                    **({"draconic_ancestry": request.draconic_ancestry} if request.action == "choose_draconic_ancestry"
-                       else {"shape": request.shape, "target_id": request.target_id} if request.action == "breath_weapon"
-                       else {}),
-                )
-                # D-105: a combat species action can end the turn and its damage (Inner Radiance) can drop a quest
-                # target; like the play turn, the quest owner reads this command's own before/after world. The
-                # panel command carries no player words, so last turn's text must not ask for work here.
-                if (quest_before.get("combat") or {}).get("active") and isinstance(result.get("effects"), dict):
-                    session._adventure_player_text = ""
-                    # A reward's faction standing is written onto the session's lore copy; that copy can be missing
-                    # or older than the record's, so it starts from the record and the record takes the result.
-                    session.campaign_lore_state = record.lore_authority
-                    # D-187: a fight this command ended reaches the adventure hooks (aftermath offer, combat count).
-                    ended = ({"combat_ended": True, "end_reason": session.world_state["combat"].get("end_reason")}
-                             if not session.world_state["combat"].get("active") else {})
-                    transitions = session.evaluate_quest_events(
-                        quest_before, {"action": "species_action", "species_action": request.action,
-                                       "status": "resolved", **ended},
-                    )
-                    record.lore_authority = session.campaign_lore_state
-                    # A session without a copy stays without one: a later turn moves only the record's lore, so a copy
-                    # left here would turn stale. A copy that was already there (hear, a paid reward, Undo, a rolled-back
-                    # turn) takes the new record lore: a quest command or the next turn reads it before the record.
-                    session.campaign_lore_state = None if session_lore_snapshot is None else record.lore_authority
-                    if transitions:
-                        result["effects"]["quest_outcomes"] = transitions
-                # D-003: an award this command paid (a fight it ended, a bounty it closed) is announced by this
-                # command and its history entry, not one turn late by the next play turn (whose Undo would repeat it).
-                paid = session._publish_level_up({}).get("level_up")
-                import xp
-                lines = [xp.award_line(paid)] if paid is not None else []
-                lines += session._take_xp_unrecorded()  # D-061: a forfeited award's line goes the same way
-                if lines:
-                    result["message"] = f"{result['message']} {' '.join(lines)}"
-                response = SpeciesTraitCommandResult(
-                    session_id=session_id,
-                    action_id=action_id,
-                    state=serialize_session_state(session, record.journal, record.lore_authority),
-                    result=SpeciesTraitActionResult.model_validate(result),
-                )
-                response_payload = redact_sensitive_values(response.model_dump(mode="json"))
-                manager.autosave_turn(
-                    record, request.action, result["message"],
-                    turn_action_receipt={
-                        "action_id": action_id, "request_hash": request_hash,
-                        "response": response_payload,
-                    },
-                    narration_source="deterministic_system",  # the engine's own result message
-                )
-                return response_payload
-            except ValueError as error:
-                restore_command()
-                raise HTTPException(
-                    status_code=409,
-                    detail={
-                        "code": "species_action_unavailable",
-                        "message": str(error),
-                    },
-                ) from None
-            except CampaignError as error:
-                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
-                restore_command()
-                if isinstance(error, CampaignStaleError):
-                    # The winning receipt may only become visible at save time.
-                    # Classify changed commands after rolling back speculative
-                    # mechanics; identical requests retain stale-save recovery.
-                    try:
-                        previous = manager.get_turn_action(record, action_id)
-                    except CampaignError as receipt_error:
-                        raise campaign_http_exception(receipt_error) from None
-                    if previous is not None and previous["request_hash"] != request_hash:
-                        raise HTTPException(status_code=409, detail={
-                            "code": "action_id_conflict",
-                            "message": "This action ID was already used for a different action.",
-                        }) from None
-                raise campaign_http_exception(error) from None
-            except Exception as error:
-                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
-                restore_command()
-                raise
-
-    @application.post(
-        "/api/sessions/{session_id}/species-actions",
-        response_model=SpeciesTraitCommandResult,
-    )
-    def resolve_species_trait_action_compat(
-        session_id: str,
-        request: SpeciesTraitActionRequest,
-    ) -> dict[str, Any]:
-        return resolve_species_trait_action(session_id, request)
 
     register_spell_read_routes(application, get_record=get_record, require_current=require_current)
 
-    @application.post("/api/game/sessions/{session_id}/spellcasting/prepare", response_model=SpellPrepareCommandResult,
-                      operation_id="prepareGameSessionSpells")
-    def prepare_spells(session_id: str, request: SpellPrepareRequest) -> dict[str, Any]:
-        """4C.2: save the player's preparation list (same receipt, replay and rollback contract as species actions)."""
-        import spell_preparation
-        record = get_record(session_id)
-        action_id = str(request.action_id)
-        # D-039: an absent spellbook stays out of the hash, so receipts saved before the field existed still replay.
-        request_hash = hashlib.sha256(json.dumps(
-            {"command": "spell_prepare", **request.model_dump(
-                mode="json", exclude={"action_id", *(("spellbook",) if request.spellbook is None else ())})},
-            sort_keys=True, ensure_ascii=False, separators=(",", ":"),
-        ).encode("utf-8")).hexdigest()
-        with record.turn_lock:
-            ensure_usable(record)
-            session = record.game_session
-            try:
-                previous = manager.get_turn_action(record, action_id)
-            except CampaignError as error:
-                raise campaign_http_exception(error) from None
-            get_record(session_id)
-            if previous is not None:
-                if previous["request_hash"] != request_hash:
-                    raise HTTPException(status_code=409, detail={
-                        "code": "action_id_conflict",
-                        "message": "This action ID was already used for a different action.",
-                    })
-                return replay_action_response(previous["response"], SpellPrepareCommandResult, session_id)
-            try:
-                refused = manager.get_refused_action(record, action_id)
-            except CampaignError as error:
-                raise campaign_http_exception(error) from None
-            if refused is not None:
-                if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
-                    raise HTTPException(status_code=409, detail={
-                        "code": "action_id_conflict",
-                        "message": "This action ID was already used for a different action.",
-                    })
-                raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
-            refuse_while_action_open(record)
-            require_current(record)
-            snapshot = _capture_session(session)
-            metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
-            journal_snapshot = copy.deepcopy(record.journal)
-            memory_snapshot = copy.deepcopy(record.narrative_memory)
-            lore_snapshot = record.lore_authority
-
-            def restore_command():
-                _rollback_session(record, session, snapshot)
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = memory_snapshot
-                record.lore_authority = lore_snapshot
-
-            response_payload = None
-            try:
-                try:
-                    window = spell_preparation.view(session)
-                except (ValueError, KeyError, TypeError):
-                    raise HTTPException(status_code=409, detail={
-                        "code": "prepare_unavailable", "message": "Kayıtlı büyü durumu okunamadı."}) from None
-                if request.spellbook is not None:
-                    # D-039: the one-time spellbook choice of an old save's Wizard, on its own (never with a list or close).
-                    if request.prepared is not None or request.close:
-                        raise HTTPException(status_code=409, detail={
-                            "code": "prepare_request_mixed",
-                            "message": "Büyü kitabı seçimi tek başına gönderilir; hazırlık listesi ondan sonra kaydedilir."})
-                    result = spell_preparation.choose_spellbook(session, list(request.spellbook))
-                elif window["blocked_reason"] == "spellbook_missing":
-                    raise HTTPException(status_code=409, detail={
-                        "code": "prepare_spellbook_missing",
-                        "message": "Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor."})
-                elif not window["supported"]:
-                    raise HTTPException(status_code=409, detail={
-                        "code": "prepare_not_supported", "message": "Bu sınıf büyü hazırlamaz."})
-                elif not window["open"]:
-                    raise HTTPException(status_code=409, detail={
-                        "code": "prepare_window_closed",
-                        "message": "Büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş ya da yeni bir seviyeye geçmiş olmalısın."})
-                else:
-                    prepared = None if request.prepared is None else list(request.prepared)
-                    result = spell_preparation.prepare(session, prepared, close=request.close)
-                response = SpellPrepareCommandResult(
-                    session_id=session_id, action_id=action_id,
-                    state=serialize_session_state(session, record.journal, record.lore_authority),
-                    result=SpellPrepareResult.model_validate(result),
-                )
-                response_payload = redact_sensitive_values(response.model_dump(mode="json"))
-                if result["status"] == "too_many":
-                    return response_payload  # a question: nothing changed, so nothing is saved and no receipt is kept
-                manager.autosave_turn(
-                    record, "spell_prepare", result["message"],
-                    turn_action_receipt={"action_id": action_id, "request_hash": request_hash,
-                                         "response": response_payload},
-                    narration_source="deterministic_system",  # spell_preparation's own result message
-                )
-                return response_payload
-            except HTTPException:
-                restore_command()
-                raise
-            except ValueError as error:
-                restore_command()
-                raise HTTPException(status_code=409, detail={
-                    "code": getattr(error, "code", "prepare_unavailable"), "message": str(error)}) from None
-            except CampaignError as error:
-                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
-                restore_command()
-                if isinstance(error, CampaignStaleError):
-                    # Same as species actions: the winning receipt may only become visible at save time.
-                    try:
-                        previous = manager.get_turn_action(record, action_id)
-                    except CampaignError as receipt_error:
-                        raise campaign_http_exception(receipt_error) from None
-                    if previous is not None and previous["request_hash"] != request_hash:
-                        raise HTTPException(status_code=409, detail={
-                            "code": "action_id_conflict",
-                            "message": "This action ID was already used for a different action.",
-                        }) from None
-                raise campaign_http_exception(error) from None
-            except Exception as error:
-                _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
-                restore_command()
-                raise
+    register_spell_prepare_routes(
+        application,
+        get_record=get_record,
+        require_current=require_current,
+        ensure_usable=ensure_usable,
+        refuse_while_action_open=refuse_while_action_open,
+        replay_action_response=replay_action_response,
+        campaign_http_exception=campaign_http_exception,
+        manager=manager,
+        _capture_session=_capture_session,
+        _rollback_session=_rollback_session,
+        _raise_if_commit_unconfirmed=_raise_if_commit_unconfirmed,
+    )
 
     @application.post(
         "/api/game/sessions/{session_id}/ambient-events/"
@@ -2916,118 +2546,20 @@ def create_app(
 
     register_level_up_read_routes(application, get_record=get_record, require_current=require_current)
 
-    @application.post("/api/game/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
-                      operation_id="applyGameSessionLevelUp")
-    @application.post("/api/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
-                      include_in_schema=False)
-    def apply_earned_level_up(session_id: str, request: LevelUpApplyRequest) -> dict[str, Any]:
-        import character_progression as progression
-        record = get_record(session_id)
-        if record.campaign_id is None:
-            raise HTTPException(status_code=409, detail={"code": "campaign_persistence_required"})
-        action_id = str(request.action_id)
-        request_hash = hashlib.sha256(json.dumps(
-            {"command": "level_up", **request.model_dump(mode="json", exclude={"action_id"})},
-            sort_keys=True, ensure_ascii=False, separators=(",", ":"),
-        ).encode("utf-8")).hexdigest()
-
-        def refusal(status_code: int, code: str) -> HTTPException:
-            detail = {"code": code, "message": "Seviye seçimi uygulanmadı.", "not_applied": True}
-            durable = _store_refusal(manager, record, action_id, request_hash, status_code, detail)
-            if not durable:
-                detail.pop("not_applied")
-            return HTTPException(status_code=status_code, detail=detail)
-
-        try:
-            claim = manager.claim_action_intent(record, action_id, request_hash)
-        except CampaignError as error:
-            raise campaign_http_exception(error) from None
-        if claim["outcome"] == "hash_conflict":
-            raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
-        if claim["outcome"] == "conflict":
-            error = refusal(409, "unresolved_action")
-            error.detail["unresolved_action_id"] = claim["unresolved_action_id"]
-            raise error
-        with record.turn_lock:
-            if record.revoked:
-                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
-            ensure_usable(record)
-            try:
-                previous = manager.get_turn_action(record, action_id)
-                if previous is not None:
-                    if previous["request_hash"] != request_hash:
-                        raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
-                    return replay_action_response(previous["response"], LevelUpCommandResult, session_id)
-                refused = manager.get_refused_action(record, action_id)
-                if refused is not None:
-                    if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
-                        raise HTTPException(status_code=409, detail={"code": "action_id_conflict"})
-                    raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
-                manager.assert_current(record)
-            except CampaignError as error:
-                raise campaign_http_exception(error) from None
-            if str(request.campaign_id) != record.campaign_id:
-                raise refusal(409, "level_up_campaign_mismatch")
-            public = level_up_projection(record, session_id)
-            if request.expected_revision != public["revision"]:
-                raise refusal(409, "level_up_preview_stale")
-            if public["status"] != "ready":
-                raise refusal(409, public["reason"] or "level_up_unavailable")
-            if request.target_level != public["target_level"]:
-                raise refusal(409, "level_up_preview_stale")
-            session = record.game_session
-            preview = progression.preview_level_up(session, request.target_level)
-            choices = request.choices.model_dump(mode="json")
-            if request.target_level in (3, 4, 5):
-                from api.schemas import (BarbarianLevel2Choices, BarbarianLevel3Choices, FighterLevel3Choices, MonkLevel3Choices, PaladinLevel3Choices, RogueLevel3Choices, SorcererLevel3Choices,
-                                         BarbarianLevel4Choices, LevelUpChoices, LevelUpFiveChoices, PaladinLevel4Choices, PaladinLevel5Choices,
-                                         ClericLevel3Choices, ClericLevel4Choices, WizardLevel3Choices, WizardLevel4Choices, WizardSpellbookChoices)
-                expected_choices = {
-                    3: {"Barbarian": BarbarianLevel3Choices, "Fighter": FighterLevel3Choices, "Monk": MonkLevel3Choices, "Paladin": PaladinLevel3Choices, "Rogue": RogueLevel3Choices, "Sorcerer": SorcererLevel3Choices,
-                        "Wizard": WizardLevel3Choices, "Cleric": ClericLevel3Choices},
-                    4: {"Barbarian": BarbarianLevel4Choices, "Fighter": BarbarianLevel4Choices, "Monk": BarbarianLevel4Choices, "Paladin": PaladinLevel4Choices, "Rogue": BarbarianLevel4Choices, "Sorcerer": LevelUpChoices,
-                        "Wizard": WizardLevel4Choices, "Cleric": ClericLevel4Choices},
-                    # Barbarian 5 has no choices: the same empty strict object as Barbarian 2 (no new schema).
-                    5: {"Barbarian": BarbarianLevel2Choices, "Fighter": BarbarianLevel2Choices, "Monk": BarbarianLevel2Choices, "Paladin": PaladinLevel5Choices, "Rogue": BarbarianLevel2Choices, "Sorcerer": LevelUpFiveChoices,
-                        "Wizard": WizardSpellbookChoices, "Cleric": BarbarianLevel2Choices},
-                }[request.target_level][session.character["class"]]
-                if not isinstance(request.choices, expected_choices):
-                    raise refusal(409, "level_up_choice_class_mismatch")
-            # Validate before entering the mutation transaction; failures are durable refusals.
-            problem = progression._check_choices(session, preview, choices)
-            if problem:
-                raise refusal(409, problem)
-            snapshot = _capture_session(session)
-            had_format = "_persisted_engine_format" in session.__dict__
-            previous_format = copy.deepcopy(session.__dict__.get("_persisted_engine_format"))
-            response_payload = None
-            try:
-                result = progression.apply_level_choices(session, preview, choices)
-                if result["status"] != "applied":
-                    raise ValueError("Validated level choices could not be applied.")
-                response_payload = redact_sensitive_values(LevelUpCommandResult(
-                    session_id=session_id, action_id=action_id,
-                    state=serialize_session_state(session, record.journal, record.lore_authority), result=result,
-                ).model_dump(mode="json"))
-                manager.save_campaign_locked(record, turn_action_receipt={
-                    "action_id": action_id, "request_hash": request_hash, "response": response_payload,
-                    "public_state": serialize_session_state(session, record.journal, record.lore_authority),
-                })
-            except Exception as error:
-                _raise_if_commit_unconfirmed(
-                    manager, record, action_id, request_hash, response_payload, error,
-                    adopt=lambda: setattr(record, "undo_checkpoint", None),
-                )
-                if had_format:
-                    session._persisted_engine_format = previous_format
-                else:
-                    session.__dict__.pop("_persisted_engine_format", None)
-                _rollback_session(record, session, snapshot)
-                if isinstance(error, CampaignError):
-                    raise campaign_http_exception(error) from None
-                raise HTTPException(status_code=500, detail={"code": "level_up_failed", "message": "Seviye seçimi güvenle kaydedilemedi."}) from None
-            record.undo_checkpoint = None
-            return response_payload
+    register_level_up_apply_routes(
+        application,
+        get_record=get_record,
+        require_current=require_current,
+        ensure_usable=ensure_usable,
+        refuse_while_action_open=refuse_while_action_open,
+        replay_action_response=replay_action_response,
+        campaign_http_exception=campaign_http_exception,
+        manager=manager,
+        _capture_session=_capture_session,
+        _rollback_session=_rollback_session,
+        _raise_if_commit_unconfirmed=_raise_if_commit_unconfirmed,
+        _store_refusal=_store_refusal,
+    )
 
     return application
 
