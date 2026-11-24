@@ -11,6 +11,7 @@ from api.persistence.campaign_models import CampaignError, InvalidDeathModeError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.town_seed import fixed_town
 
 
 class CreateCampaignDeathModeError(unittest.TestCase):
@@ -18,7 +19,7 @@ class CreateCampaignDeathModeError(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
-            with self.assertRaises(InvalidDeathModeError) as raised:
+            with fixed_town(self, 16301), self.assertRaises(InvalidDeathModeError) as raised:
                 manager.create_campaign("Bad mode", death_mode="BOGUS")
             self.assertIsInstance(raised.exception, CampaignError)
             self.assertIsInstance(raised.exception, ValueError)
