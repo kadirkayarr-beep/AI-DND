@@ -78,7 +78,7 @@ def value_digest(names) -> str:
 class WrapperFilter(unittest.TestCase):
     def test_the_wrapper_filter_reads_an_explicit_part_list(self):
         self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.coin",
-                                              "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent",
+                                              "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.intent_steps",
                                               "game_parts.living_world_steps", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
                                               "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
                                               "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a",

@@ -144,6 +144,15 @@
     "_person_answers_stock": [
       "snapshot"
     ],
+    "_pi_npc_dialogue_schema": [
+      "money"
+    ],
+    "_pi_npc_speech_schema": [
+      "money"
+    ],
+    "_pi_price_schema": [
+      "money"
+    ],
     "_player_state_for_save": [
       "save"
     ],

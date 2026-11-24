@@ -1,6 +1,6 @@
 {
   "files": {
-    "game.py": 1141,
+    "game.py": 1151,
     "game_parts/narration_safety.py": 1505,
     "game_parts/turn.py": 2318
   },
@@ -9,7 +9,6 @@
   "long_function_min": 151,
   "long_functions": {
     "game_parts/combat_flow.py::resolve_species_trait_action": 361,
-    "game_parts/intent.py::parse_player_intent": 420,
     "game_parts/living_world_turn.py::plan_living_world_turn": 308,
     "game_parts/lore.py::_player_question_has_unverified_lore_claim": 196,
     "game_parts/lore.py::_supported_lore_question_response": 479,

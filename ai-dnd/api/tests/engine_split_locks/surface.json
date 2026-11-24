@@ -2441,6 +2441,66 @@
   "session_bound": true,
   "signature": "(player_input)"
  },
+ "_pi_base_prompt": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, locations, nearby_npcs, player_input, visible_features)"
+ },
+ "_pi_dialogue_narration": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, dialogue_narration, interaction_context, player_input, prompt, schema, world_state)"
+ },
+ "_pi_local_person_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, allow_local_person_proposal, prompt, schema)"
+ },
+ "_pi_npc_dialogue_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, dialogue_narration, experimental_npc_dialogue, interaction_context, player_input, prompt, speech_note, world_state)"
+ },
+ "_pi_npc_speech_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, experimental_npc_dialogue, interaction_context, schema, world_state)"
+ },
+ "_pi_operation_hint": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, interaction_context, operation_hint, prompt, schema)"
+ },
+ "_pi_price_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, price_targets, prompt, schema)"
+ },
+ "_pi_recent_scene": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, player_input, prompt, recent_scene_narration)"
+ },
+ "_pi_require_conversation": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, prompt, require_conversation)"
+ },
+ "_pi_scene_detail_schema": {
+  "kind": "function",
+  "module": "game_parts.intent_steps",
+  "session_bound": true,
+  "signature": "(*, allow_scene_detail_proposals, player_input, prompt, schema, world_state)"
+ },
  "_player_question_has_unverified_lore_claim": {
   "kind": "function",
   "module": "game_parts.lore",
