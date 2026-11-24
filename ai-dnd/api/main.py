@@ -164,6 +164,18 @@ def _restore_session(session: Any, snapshot: dict[str, Any]) -> None:
     session._restore_runtime_snapshot(snapshot["runtime"])
 
 
+def _store_refusal(
+    manager: Any, record: Any, action_id: str, request_hash: str, status_code: int, detail: dict[str, Any],
+    what: str = "Refusal record",
+) -> bool:
+    """True only when the refusal is durably stored; a failed store is logged and makes no never-applied claim."""
+    try:
+        return manager.record_refused_action(record, action_id, request_hash, status_code, detail)
+    except Exception:
+        _logger.error(f"{what} could not be saved; no never-applied claim is made.", exc_info=True)
+        return False
+
+
 def _commit_already_durable(
     manager: Any, record: Any, action_id: str, request_hash: str, response_payload: dict[str, Any],
 ) -> bool | None:
@@ -1277,11 +1289,7 @@ def create_app(
                     "unresolved_action_id": claim["unresolved_action_id"],
                     "not_applied": True,
                 }
-                try:
-                    durable = manager.record_refused_action(record, action_id, request_hash, 409, detail)
-                except Exception:
-                    _logger.error("Refusal record could not be saved; no never-applied claim is made.", exc_info=True)
-                    durable = False
+                durable = _store_refusal(manager, record, action_id, request_hash, 409, detail)
                 if not durable:
                     detail.pop("not_applied")
                 raise HTTPException(status_code=409, detail=detail)
@@ -1339,11 +1347,7 @@ def create_app(
                 public_message = refusals.REFUSAL_TEXT.get(code) if status_code == 400 or code == "engine_error" else None
                 if public_message:
                     detail["public_message"] = refusals.text_for(code)  # the player's Turkish line; `message` stays
-                try:
-                    durable = manager.record_refused_action(record, action_id, request_hash, status_code, detail)
-                except Exception:
-                    _logger.error("Refusal record could not be saved; no never-applied claim is made.", exc_info=True)
-                    durable = False
+                durable = _store_refusal(manager, record, action_id, request_hash, status_code, detail)
                 if not durable:
                     detail = {"code": code, "message": message}
                     if public_message:
@@ -1360,13 +1364,9 @@ def create_app(
                 """
                 take_back_opening()
                 detail = {"code": code, "message": message, "not_applied": True}
-                try:
-                    durable = getattr(record, "usable", True) and manager.record_refused_action(
-                        record, action_id, request_hash, 503, detail,
-                    )
-                except Exception:
-                    _logger.error("Model-failure refusal could not be saved; no never-applied claim is made.", exc_info=True)
-                    durable = False
+                durable = getattr(record, "usable", True) and _store_refusal(
+                    manager, record, action_id, request_hash, 503, detail, what="Model-failure refusal",
+                )
                 if not durable:
                     detail = {"code": code, "message": message}
                 return HTTPException(status_code=503, detail=detail)
@@ -2932,10 +2932,7 @@ def create_app(
 
         def refusal(status_code: int, code: str) -> HTTPException:
             detail = {"code": code, "message": "Seviye seçimi uygulanmadı.", "not_applied": True}
-            try:
-                durable = manager.record_refused_action(record, action_id, request_hash, status_code, detail)
-            except Exception:
-                durable = False
+            durable = _store_refusal(manager, record, action_id, request_hash, status_code, detail)
             if not durable:
                 detail.pop("not_applied")
             return HTTPException(status_code=status_code, detail=detail)
