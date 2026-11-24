@@ -986,7 +986,6 @@ def _fallback_narration(player_input, npc_target=None):
     npc_name = game._current_npc_name()
     stealth_action = "gizlen" in text or "saklan" in text
     door_action = "kapı" in text or "kapıyı" in text or "kilit" in text
-    known_npcs = [npc for npc in world_state["npcs"] if npc.get("location") == world_state["location"]]
 
     if ("kılıc" in text or "kılıç" in text or "silah" in text) and re.search(
         r"\b(?:nerede|nerde|var mı|yanımda|envanter\w*|duruyor mu)\b", text

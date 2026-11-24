@@ -1,6 +1,6 @@
 import { readMediaMatch, subscribeMediaMatch, type ReducedMotionWindow } from './reduced-motion.ts';
 
-export const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
+const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 
 /** True when the system asks for a dark scheme; false (so 'system' falls to day) when the browser cannot tell. */
 export function readPrefersDark(win: ReducedMotionWindow | null | undefined): boolean {

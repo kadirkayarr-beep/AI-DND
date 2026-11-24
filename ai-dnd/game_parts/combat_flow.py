@@ -733,8 +733,6 @@ def ensure_npc_enemy_stats(npc):
         npc["damage_dice"] = 1
     if "damage_modifier" not in npc:
         npc["damage_modifier"] = 0
-    # Ensure base combat stats
-    game.ensure_npc_combat_stats(npc)
     return npc
 
 def ensure_npc_combat_stats(npc):
@@ -911,7 +909,7 @@ def _finish_species_player_turn():
         and state.get("celestial_revelation_turns_remaining", 0) > 0
     ):
         amount = character.get("proficiency_bonus", 2)
-        combat = game.ensure_combat_state()
+        game.ensure_combat_state()
         reachable = effect_targeting.eligible_effect_targets(game._session(), "player", game.INNER_RADIANCE_SPEC)
         for npc in game._session().world_state.get("npcs", []):
             if not isinstance(npc, dict) or npc.get("id") not in reachable:

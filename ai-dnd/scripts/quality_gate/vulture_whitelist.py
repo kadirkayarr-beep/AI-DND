@@ -16,10 +16,7 @@ _filter_unsupported_lore_paragraphs  # unused import (ai-dnd/game.py:293)
 #
 # --- Section B: frozen real findings (not deleted here; owner = 4c) ---
 expected_failure  # unused variable (ai-dnd/acceptance_test.py:104)
-generate_random_2024_character  # unused import (ai-dnd/api/character_creation.py:10)
 tz  # unused variable (ai-dnd/api/tests/test_http_acceptance_evidence.py:385)
 exc_type  # unused variable (ai-dnd/api/tests/test_persistence_idempotency.py:3762)
 exc_value  # unused variable (ai-dnd/api/tests/test_persistence_idempotency.py:3762)
 resume_campaign_id  # unused variable (ai-dnd/api/tests/test_roadmap_r08.py:49)
-fmt  # unused variable (ai-dnd/reports/wave3-local-live-20261006/local_dev_proxy.py:45)
-# Not whitelistable (no name): unreachable code after 'try' (ai-dnd/class_progression/barbarian.py:206)

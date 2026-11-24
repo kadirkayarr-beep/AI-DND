@@ -76,7 +76,7 @@ from game_parts.text_rules_a import ollama_response_content, ollama_reply_was_cu
 from game_parts.character_rules import roll_d20
 
 
-from game_parts.character_rules import get_modifier, roll_stat, choose_option, create_random_character, assign_stats, choose_skill_proficiencies, calculate_hp, calculate_ac, _perform_skill_check, _new_species_trait_state, _new_persisted_species_trait_state, initialize_species_trait_state, calculate_attack_bonus, roll_attack, roll_damage, _species_trait_state, roll_initiative, roll_initiative_npc, roll_initiative_player
+from game_parts.character_rules import get_modifier, roll_stat, choose_option, create_random_character, assign_stats, choose_skill_proficiencies, calculate_hp, calculate_ac, _perform_skill_check, _new_species_trait_state, _new_persisted_species_trait_state, initialize_species_trait_state, calculate_attack_bonus, roll_attack, roll_damage, _species_trait_state, roll_initiative, roll_initiative_npc, roll_initiative_player  # noqa: F401
 
 
 # ---------------------------------------------------------

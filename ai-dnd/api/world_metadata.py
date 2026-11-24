@@ -168,10 +168,3 @@ def set_session_world_metadata(
     resolved = world_metadata_for_state(session.world_state, metadata)
     session.world_metadata = resolved
     return resolved
-
-
-def session_world_metadata(session: Any) -> dict[str, str]:
-    return world_metadata_for_state(
-        session.world_state,
-        getattr(session, "world_metadata", None),
-    )

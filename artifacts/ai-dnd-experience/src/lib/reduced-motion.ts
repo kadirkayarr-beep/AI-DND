@@ -1,7 +1,7 @@
-export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 /** The slice of MediaQueryList this module needs; lets tests pass a fake. Old Safari only has the legacy pair. */
-export type ReducedMotionQuery = {
+type ReducedMotionQuery = {
   matches: boolean;
   addEventListener?: (type: 'change', listener: () => void) => void;
   removeEventListener?: (type: 'change', listener: () => void) => void;

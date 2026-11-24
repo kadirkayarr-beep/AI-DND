@@ -333,16 +333,3 @@ def _close(world, quest, state, outcome):
     closed = transition(quest, state, turn, outcome=outcome)
     quest.clear()
     quest.update(closed)
-
-
-def public_objectives(quest):
-    """Known nodes only. Hidden nodes are omitted, not shown as locked."""
-    visible = []
-    for objective in quest.get("objectives", []):
-        if objective.get("visibility") != "known" or objective.get("graph_state") == "HIDDEN":
-            continue
-        visible.append({
-            "text": objective.get("description"),
-            "done": objective.get("graph_state") == "COMPLETE",
-        })
-    return visible

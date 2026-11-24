@@ -12,7 +12,7 @@ from typing import Any
 
 import character_progression as core
 from api.dnd_2024_rules import CharacterCreationError, get_equipment_armor_and_shield
-from combat_lifecycle import CombatRequestError, player_incapacitated
+from combat_lifecycle import CombatRequestError
 
 logger = logging.getLogger(__name__)
 
@@ -372,14 +372,8 @@ def redirect(session: Any, context: dict[str, Any], record: dict[str, Any] | Non
 
 
 def _turn_reason(session: Any, prefix: str) -> str | None:
-    combat = session.world_state.get("combat", {})
-    if not combat.get("active") or combat.get("current_actor_id") != "player":
-        return f"{prefix}_current_combat_turn_required"
-    if player_incapacitated(session.character, session.world_state):
-        return f"{prefix}_incapacitated"
-    if combat.get("turn_resources", {}).get("player", {}).get("opportunity"):
-        return "reaction_pending"
-    return None
+    import fighter_features
+    return fighter_features.turn_reason(session, prefix)
 
 
 def _bonus_spent(session: Any) -> bool:

@@ -3004,13 +3004,6 @@ def spoken_request(text: Any) -> str | None:
     return None
 
 
-def _looks_like_speech(session, player_input: str) -> bool:
-    try:
-        return bool(session.is_npc_dialogue_input(player_input))
-    except Exception:
-        return False
-
-
 _SAID_AT_THE_END = re.compile(r"\b(?:diyorum|dedim|soyluyorum|soyledim|bagiriyorum|sesleniyorum)\s*$")
 
 

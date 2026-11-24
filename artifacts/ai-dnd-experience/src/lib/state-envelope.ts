@@ -8,7 +8,6 @@ import { replaceEqualDeep } from "@tanstack/react-query";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
 export type ViewIdentity = { ownerId: string; campaignId: string; epoch: number; revision: number };
-export type StateEnvelope<T> = ViewIdentity & { state: T };
 type ViewScope = Omit<ViewIdentity, "revision">;
 
 let clock = 0;

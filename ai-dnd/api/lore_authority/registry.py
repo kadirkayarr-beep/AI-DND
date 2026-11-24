@@ -206,10 +206,6 @@ def _query_terms(value: str | None) -> set[str]:
     return terms
 
 
-def _is_broad_lore_query(value: str | None) -> bool:
-    return "overview" in _query_intents(value)
-
-
 def _overview_fact_priority(fact: LoreFact) -> int:
     return _OVERVIEW_PREDICATE_PRIORITY.get(
         fact.predicate.casefold(),
@@ -430,19 +426,6 @@ class LoreRegistry:
                     continue
                 mentioned.add(entity_id)
         return tuple(sorted(mentioned))
-
-    def related_edges(
-        self,
-        entity_id: str,
-        *,
-        predicates: set[Relationship] | None = None,
-    ) -> tuple[LoreEdge, ...]:
-        if entity_id not in self._entities:
-            return ()
-        edges = self._outgoing_edges.get(entity_id, ())
-        return tuple(
-            edge for edge in edges if predicates is None or edge.predicate in predicates
-        )
 
     def geography_ancestors(self, entity_ids: Iterable[str]) -> frozenset[str]:
         """Return only explicitly sourced parent/location relations."""

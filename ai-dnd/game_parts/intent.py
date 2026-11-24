@@ -370,7 +370,6 @@ def known_player_action_narration(player_input):
     """Narrate common explicit actions without asking the model to control the hero."""
     world_state = game._session().world_state
     text = player_input.casefold().strip()
-    npc_name = game._current_npc_name()
     location = game.location_display_name()
 
     if re.search(r"\b(masaya oturuyorum|oturuyorum)\b", text):
@@ -1697,7 +1696,6 @@ def normalize_intent(raw_intent, player_input):
         confidence = 0.0
 
     # Normalize only for matching; preserve the player's original wording.
-    normalized_input = game._normalize_turkish_typos(player_input)
     unquoted_input = game._normalize_turkish_typos(
         living_world._text_outside_quotes(str(player_input))
     )

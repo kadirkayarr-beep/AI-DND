@@ -3,7 +3,7 @@ import type { EffectsLevel } from './appearance-settings.ts';
 /** Most effects that may be alive at once; starting another finishes the oldest first. */
 export const MAX_ACTIVE_EFFECTS = 14;
 /** Extra time past durationMs before the failsafe timer disposes an effect on its own. */
-export const FAILSAFE_MARGIN_MS = 400;
+const FAILSAFE_MARGIN_MS = 400;
 
 export type EffectSpec = {
   id?: string;
@@ -11,7 +11,7 @@ export type EffectSpec = {
   dispose: () => void;
 };
 
-export type EffectHandle = {
+type EffectHandle = {
   readonly id: string;
   readonly finished: boolean;
 };
