@@ -5,7 +5,6 @@ Uses REAL Ollama qwen3:8b - NO MOCKS
 """
 import sys
 import io
-import json
 import hashlib
 from pathlib import Path
 

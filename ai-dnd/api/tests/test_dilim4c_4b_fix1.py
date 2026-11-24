@@ -6,14 +6,10 @@ from __future__ import annotations
 
 import copy
 import unittest
-from unittest.mock import patch
 
-import combat_lifecycle
 import spell_concentration
-import spell_registry
 import spell_scope
-import weapon_attack
-from api.tests.test_dilim4c_spell_resolvers import cleric, held, magic, next_turn, turn, typed, wizard
+from api.tests.test_dilim4c_spell_resolvers import cleric, magic, turn, typed
 
 NEGATED = ("Konsantrasyonumu bırakmıyorum, bekliyorum", "Konsantrasyonumu bırakmadan geri çekiliyorum",
            "I will not drop my concentration", "don't break concentration")

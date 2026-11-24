@@ -11,11 +11,9 @@ from __future__ import annotations
 import copy
 import unittest
 import uuid
-from unittest.mock import patch
 
 import httpx
 
-import game
 import local_places
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter

@@ -22,7 +22,6 @@ import httpx
 from api.tests.live_neverwinter_canon_smoke import (
     MODEL_NAME,
     START_SELECTION,
-    SmokeFailure,
     _free_port,
     _latest_audit,
     _post_turn,

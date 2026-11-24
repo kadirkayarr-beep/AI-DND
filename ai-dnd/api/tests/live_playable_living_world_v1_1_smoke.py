@@ -15,7 +15,6 @@ from __future__ import annotations
 import copy
 from datetime import datetime, timezone
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -29,7 +28,6 @@ import httpx
 from api.tests import live_playable_living_world_v1_smoke as telemetry
 from api.tests.playable_living_world_v1_review import (
     NARRATION_REVIEW_FILENAME,
-    EXPECTED_PENDING_ERROR,
     ReviewFinalizationError,
     finalize_review,
 )

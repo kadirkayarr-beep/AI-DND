@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import monster_combat as ai
 from api.tests import test_dilim4b_combat_xp as t1
-from api.tests.test_monster_combat import activate, fixture, run
+from api.tests.test_monster_combat import fixture, run
 
 
 def prepared(**data):

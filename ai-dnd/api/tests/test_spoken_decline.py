@@ -13,7 +13,6 @@ from __future__ import annotations
 import copy
 import json
 import unittest
-import uuid
 from unittest.mock import patch
 
 import bold_acts

@@ -10,7 +10,6 @@ from unittest.mock import patch
 import game
 import local_dialogue
 from api import ollama_adapter
-from api.tests import test_campaign_api
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests.town_seed import fixed_town
 

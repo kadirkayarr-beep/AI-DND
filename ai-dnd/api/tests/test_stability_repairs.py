@@ -21,7 +21,6 @@ from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_models import CampaignCorruptError
 from api.persistence.campaign_validation import _validate_engine_save
-from api.session_manager import SessionManager
 from api.tests.live_playable_living_world_v1_1_smoke import (
     EXPECTED_LABELS,
     SmokeFailure,

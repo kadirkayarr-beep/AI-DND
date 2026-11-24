@@ -12,7 +12,6 @@ import unittest
 from unittest.mock import patch
 
 import bold_acts
-import equipment_economy
 from api.tests.test_front_proposal import FrontClient
 from api.tests.test_world_keeps_its_word import FrontScene
 

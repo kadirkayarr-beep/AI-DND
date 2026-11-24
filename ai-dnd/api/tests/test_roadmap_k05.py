@@ -16,7 +16,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import action_economy as ae
-import game
 from api.serializers import serialize_session_state
 from api.tests.test_action_economy_reactions import interrupted
 from api.tests.test_campaign_time import scene

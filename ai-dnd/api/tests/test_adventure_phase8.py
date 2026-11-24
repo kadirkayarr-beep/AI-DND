@@ -469,7 +469,6 @@ class AdventurePhase8Tests(unittest.TestCase):
         self.assertNotEqual(encounters.select(1, [])["threat_band"], "high")
 
     def test_rumor_is_not_a_fact_until_heard_and_clue_is_labeled(self):
-        from api.lore_authority.models import CampaignLoreState
         from api.lore_authority.player_knowledge import read_player_knowledge
         from api.lore_authority.registry import LoreRegistry
 

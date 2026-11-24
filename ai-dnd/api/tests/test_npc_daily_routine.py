@@ -56,7 +56,7 @@ class RoutineTests(unittest.TestCase):
   result=campaign_time.advance(w,9*3600,'wait','e1');self.assertFalse(result['player_known_events'])
 
 from api.tests import test_dialogue_runtime as base
-import uuid,json,httpx
+import uuid,httpx
 class RoutineHttpTests(unittest.IsolatedAsyncioTestCase):
  asyncSetUp=base.DialogueRuntimeTests.asyncSetUp
  asyncTearDown=base.DialogueRuntimeTests.asyncTearDown

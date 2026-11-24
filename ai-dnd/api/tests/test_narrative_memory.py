@@ -19,7 +19,6 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import tempfile
-import game
 from game import build_world_context
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager

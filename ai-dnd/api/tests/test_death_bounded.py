@@ -2,7 +2,6 @@
 import copy
 from contextlib import closing
 import unittest
-import uuid
 from unittest.mock import patch
 
 from api.tests import test_death_system as death_fixtures

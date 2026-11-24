@@ -1,10 +1,8 @@
 """Red/green: genuine API history, receipt and final rejected-narration skill result."""
 import unittest
-from pathlib import Path
 from uuid import uuid4
 from unittest.mock import patch
 
-import game
 from api.tests.test_bounded_encounter import NativeBase
 from api.tests.test_stage10a_gameplay_repairs import city_session
 

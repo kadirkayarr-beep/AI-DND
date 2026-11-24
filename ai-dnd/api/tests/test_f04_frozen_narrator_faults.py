@@ -1,10 +1,8 @@
 """Frozen D02-D05: real resolver outcomes plus injected narrator failures."""
 from __future__ import annotations
 import copy
-import json
 import os
 from pathlib import Path
-import random
 import tempfile
 import unittest
 from uuid import uuid4
@@ -15,7 +13,7 @@ import front_proposal
 import game
 from api.tests.journeys.runner import call_kind
 from api.tests.test_f04_frozen_faults import (
-    Fixture, ScriptedProvider, evidence, narration, no_network, plain,
+    Fixture, ScriptedProvider, evidence, narration, no_network,
 )
 
 

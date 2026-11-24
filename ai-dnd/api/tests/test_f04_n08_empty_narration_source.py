@@ -1,8 +1,6 @@
 """N08 empty narration source regression; synthetic provider only."""
-import json
 import unittest
 from unittest.mock import patch
-import game
 from api.tests.speech_double import reply, routed_chat, speech_packet
 from api.tests.test_f04_n08_npc_memory import call_kinds, with_reading
 from api.tests.test_stage10a_gameplay_repairs import city_session, place_npc

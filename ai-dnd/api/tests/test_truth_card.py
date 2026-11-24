@@ -101,7 +101,6 @@ from dataclasses import replace
 import json
 from unittest.mock import patch
 import game
-import bold_acts
 import npc_statements
 from api.tests.journeys.runner import JourneyCase, SCENARIO_DIR
 from api.tests.journeys.schema import load_scenario
@@ -231,7 +230,6 @@ class ScopedSpeechJourney(JourneyCase):
 
 # --- Dilim 2, Task 15: the card's hand line, the quests and trails that fit, and the budget's one contract ---------
 import economic_actions
-import quest_log
 import refusals
 import world_happenings
 import world_threads

@@ -16,7 +16,6 @@ import campaign_time
 import game
 import talk_front
 import town_knowledge
-import world_threads
 from api.tests import test_arrival_wiring as arrival_tests
 from api.tests import test_experimental_npc_dialogue as speech
 from api.tests import test_front_proposal as fp

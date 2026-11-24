@@ -23,7 +23,6 @@ from fastapi.testclient import TestClient
 import action_economy
 import bounded_encounter as owner
 import living_world
-import monster_perception
 import weapon_attack
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore

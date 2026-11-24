@@ -11,12 +11,11 @@ from unittest.mock import patch
 
 import action_economy as economy
 import character_progression as cp
-import game
 import monk_features as features
 import weapon_attack as attacks
 from combat_lifecycle import CombatRequestError
-from api.tests.test_roadmap_c15_monk import created, earn, earned, roundtrip, spec
-from api.tests.test_roadmap_c10_extra_attack import attack, follow, start_combat
+from api.tests.test_roadmap_c15_monk import created, earn, roundtrip, spec
+from api.tests.test_roadmap_c10_extra_attack import attack, start_combat
 
 
 def fight(level=1, **kwargs):

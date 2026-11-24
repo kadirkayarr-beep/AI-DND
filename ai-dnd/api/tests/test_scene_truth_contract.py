@@ -13,7 +13,6 @@ from unittest.mock import patch
 
 import grounded_action
 import living_world
-from api.tests import test_campaign_api
 from api.tests import test_intent_response_consistency as base
 
 VENUE_NAME = "Kanıt Hanı"

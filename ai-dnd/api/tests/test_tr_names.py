@@ -5,7 +5,6 @@ import unittest
 import spell_scope
 import spells
 import tr_names
-from api.dnd_2024_rules import SPELLS_CATALOG
 
 RULES = json.loads((tr_names.TABLE_PATH.parents[1] / "rules" / "phb2024" / "spells.json").read_text(encoding="utf-8"))
 WEAPONS_ARMOR = json.loads((tr_names.TABLE_PATH.parents[1] / "rules" / "phb2024" / "weapons_armor.json").read_text(encoding="utf-8"))

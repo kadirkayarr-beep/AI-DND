@@ -9,7 +9,6 @@ handling, component/material rules, spell lists per class level (C10-C21), UI. A
 from __future__ import annotations
 
 import json
-import re
 import unittest
 from pathlib import Path
 

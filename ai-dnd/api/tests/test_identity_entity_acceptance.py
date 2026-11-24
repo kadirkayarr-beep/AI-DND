@@ -4,7 +4,6 @@ import json
 import unittest
 from unittest.mock import patch
 import game
-import living_world
 from api.tests import test_job6_compound_trace as trace
 from api.tests import test_campaign_api as api
 from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient

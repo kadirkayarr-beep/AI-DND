@@ -22,7 +22,7 @@ from api.serializers import serialize_session_state
 from class_progression.paladin import CATALOG_ONLY_NOTE, Paladin
 from combat_lifecycle import CombatRequestError
 from api.tests.test_roadmap_c10_extra_attack import attack, follow, start_combat
-from api.tests.test_roadmap_c16_paladin import created, earn, earned, roundtrip, spells, step
+from api.tests.test_roadmap_c16_paladin import created, earn, earned, roundtrip, spells
 
 
 def fight(level=2, **two):

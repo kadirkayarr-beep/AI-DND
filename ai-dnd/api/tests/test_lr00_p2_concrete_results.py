@@ -9,7 +9,6 @@ or is rejected, the fallback carries the same concrete finding instead of
 from __future__ import annotations
 
 import copy
-import json
 import unittest
 import uuid
 from unittest.mock import patch

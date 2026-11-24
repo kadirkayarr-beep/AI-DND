@@ -19,7 +19,6 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import combat_lifecycle
-import game
 import living_world
 import monster_combat
 from api.tests import rule_oracles

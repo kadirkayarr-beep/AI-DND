@@ -12,7 +12,6 @@ from unittest.mock import patch
 import action_economy as economy
 import character_progression as cp
 import fighter_features as features
-import game
 import initiative
 import weapon_attack as attacks
 from api.core_resolution import resolution_action_scope

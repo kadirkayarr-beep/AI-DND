@@ -3,7 +3,6 @@ import copy
 import unittest
 from unittest.mock import patch
 
-import campaign_time
 import local_places
 import relationships
 import town_knowledge
@@ -14,7 +13,6 @@ import world_threads
 from api.tests.test_said_is_real import ClassifiedClient, Table
 from api.tests.test_story_links import resident, town
 from api.tests.test_town_knowledge import ThroughTheRealTurn
-from api.tests.test_world_threads import DAY
 
 
 def stub_npc(world):

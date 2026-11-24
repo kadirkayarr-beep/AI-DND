@@ -1,6 +1,5 @@
 """Task 21: optional-field repair and atomic memory through the existing save/undo owners."""
 import copy
-import json
 import os
 import unittest
 from uuid import uuid4
@@ -9,7 +8,6 @@ from unittest.mock import patch
 import httpx
 from api.main import create_app
 from api.auth import FixedAuthenticator
-import game
 import front_proposal
 import npc_told
 from api.session_manager import SessionManager

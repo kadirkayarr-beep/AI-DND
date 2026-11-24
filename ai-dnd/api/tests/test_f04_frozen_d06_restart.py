@@ -6,7 +6,6 @@ real production API, persistence, narrator safety and continuity builders.
 from __future__ import annotations
 
 import asyncio
-import copy
 import json
 import os
 from pathlib import Path

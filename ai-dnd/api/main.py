@@ -25,7 +25,6 @@ from pydantic import BaseModel, ValidationError
 from api import action_contract, failure_policy, runtime_recovery
 from api.auth import (
     AuthenticationError,
-    FailClosedAuthenticator,
     OidcAuthenticator,
     Principal,
     current_principal,

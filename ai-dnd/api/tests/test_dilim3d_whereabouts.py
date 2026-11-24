@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import unittest
 
 import npc_speech_boundary
 from api.tests.test_quest_log import QuestLogCase
-from api.tests.town_seed import fixed_town
 
 Q155_SPEECH = ("“Organizatörlerden birini mi? Tuna masada oturuyor, onu bulamamak için bir sebep yok; "
                "ben gidip kimseyi zorla getiremem, ama parmağımla gösterebilirim.”")       # QA #155

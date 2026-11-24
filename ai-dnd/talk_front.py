@@ -6,7 +6,6 @@ Nothing here writes game state."""
 
 from __future__ import annotations
 
-from typing import Any
 
 # The word owners that answer a say-mode line when the model gave no reading (or a reading that is not plain talk).
 OWNERS = ("shop_presence", "unknown_name", "place_name", "name_disclosure", "personal", "small_talk",

@@ -19,7 +19,6 @@ from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.schemas import QuestOutcome, TurnResponse
 from api.serializers import serialize_session_state
-from api.session_manager import SessionManager
 
 
 from api.auth import FixedAuthenticator

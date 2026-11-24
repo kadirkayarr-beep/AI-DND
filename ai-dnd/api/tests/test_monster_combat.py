@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import game
-import initiative
 import action_economy as ae
 import weapon_attack as attack
 import monster_combat as ai

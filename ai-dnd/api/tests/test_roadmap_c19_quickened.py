@@ -16,7 +16,7 @@ from api.tests.test_roadmap_c06 import SPEC
 from api.tests.test_roadmap_c06_level3 import choices
 from api.tests.test_spell_scope import caster
 from api.persistence.campaign_validation import serialize_campaign_payload, restore_campaign_session
-from api.persistence.campaign_models import CampaignValidationError, CampaignCorruptError
+from api.persistence.campaign_models import CampaignValidationError
 from combat_lifecycle import CombatRequestError
 from unittest.mock import patch
 import sorcery_points
