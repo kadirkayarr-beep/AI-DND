@@ -40,6 +40,8 @@ NONE = "none"
 WAY_OUT = "way_out"  # the list's one word for leaving town: Python decides where that really leads
 MAX_PEOPLE = 12
 MAX_PLACES = 20
+KIND_PREFIX = "kind:"  # D-331: a place kind the town has not shown yet, listed as world knowledge, never as a word filter
+MAX_KINDS = 8
 MAX_THINGS = 12
 MAX_BAG = 16
 MIN_FOUND_WORDS = 5  # a real sentence: "kesesinde bir şeyler var" says nothing
@@ -74,6 +76,7 @@ def listing(session) -> dict[str, Any]:
     """The real lists for this turn: who is here, where one can walk, what was really offered, what is in the bag."""
     import game
     import grounded_action
+    import grounded_places
     import world_threads
     from adventure import dialogue_jobs
 
@@ -108,7 +111,8 @@ def listing(session) -> dict[str, Any]:
         "people": [{"id": c["id"], "name": c["label"]} for c in people],
         "places": [*({"id": WAY_OUT, "name": way_out} for _ in (way_out,) if way_out),
                    *({"id": c["id"], "name": f"dışarı: {c['label']}" if c["kind"] == "outside" else c["label"]}
-                     for c in found if c["kind"] in _PLACE_KINDS)][:MAX_PLACES],
+                     for c in _heard_first(world, [c for c in found if c["kind"] in _PLACE_KINDS]))][:MAX_PLACES]
+                  + grounded_places.searchable_kinds(session)[:MAX_KINDS],
         "things": [{"id": c["id"], "name": c["label"]} for c in found if c["kind"] in _THING_KINDS][:MAX_THINGS],
         "offers": offers,
         "bag": _bag(world),
@@ -117,6 +121,32 @@ def listing(session) -> dict[str, Any]:
         "goods": goods,
         "speaking_with": active.get("id") if isinstance(active, dict) else None,
     }
+
+
+def _heard_first(world: Mapping[str, Any], places: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """D-331: places the player heard of first, then visited ones, then the rest (each group keeps its order)."""
+    import grounded_action
+    import world_threads
+    heard = set(grounded_action._trail_places(world))
+    for thread in world_threads.active(world, grounded_action._settlement(world)):
+        if thread.get("heard_turn") is not None and thread.get("place_id"):
+            heard.add(thread["place_id"])
+
+    def rank(place: dict[str, Any]) -> int:
+        record = place.get("record") if isinstance(place.get("record"), dict) else {}
+        return 0 if place["id"] in heard or place["kind"] == "reference" else 1 if record.get("visited") else 2
+    return sorted(places, key=rank)
+
+
+def beyond_list(raw_front: Mapping[str, Any], listed: Mapping[str, Any]) -> dict[str, Any]:
+    """D-331: a go_to reading that names no listed place. After a person it follows them; else the walk fails."""
+    person = raw_front.get("person_id")
+    if isinstance(person, str) and person in [row["id"] for row in listed["people"]]:
+        return {"kind": "follow", "id": person}
+    word = raw_front.get("person_word")
+    if isinstance(word, str) and word.strip() not in ("", NONE):
+        return {"kind": "follow", "word": word.strip()}
+    return {"kind": "walk_failed"}
 
 
 def _goods_here(world: Mapping[str, Any], active: Any, here: list[Any]) -> list[dict[str, str]]:
@@ -280,6 +310,7 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "bakıyor, ne olup bittiğini görmek istiyor; bag = cümlede kendi çantası, kesesi, cebi ya da parası geçiyor ve orada ne olduğunu "
         "soruyor, kontrol ediyor, bir şeyi koyup koymadığını yokluyor (attempt değil); sit = şu anda bir yere oturuyor; wait = uyumadan vakit geçiriyor: bekliyor, oyalanıyor, takılıyor, zamanın geçmesini istiyor; grab = listedeki birine vurmadan el koyuyor: yakasına yapışıyor, itiyor, sıkıştırıyor, bir yere bastırıyor (person_id kim; bastırdığı masa ya da tezgâh thing_id değildir); attempt = bedeniyle bir şey deniyor veya listede olmayan bir "
         "yere gidiyor (listedeki bir kapıya veya ayrıntıya yöneliyorsa thing_id ile söyle); unclear = emin değilsin. Soru, olumsuz cümle veya 'yaparsam' gibi bir koşul go_to değildir. "
+        "places listesinde kind: ile başlayan kimlik, kasabada henüz görmediğin ama sorup bulabileceğin bir yer türüdür; oyuncu bir yere türüyle gidiyorsa ve listede o türden adlı bir yer yoksa onu seç. Oyuncu birinin peşinden ya da arkasından gidiyorsa kind go_to, place_id none, person_id o kişi; listede yoksa person_word. "
         f"Teklif hakkında soru sormak offer_answer değil speak_to olur. {_at_hand(listed)} "
         "deal: oyuncunun bu satırda parası ya da isteği ne için: goods = goods listesindeki bir malı istiyor ya da onun "
         "parasını veriyor; room = geceyi geçirecek bir oda istiyor ya da onun parasını veriyor; tip = bahşiş veriyor; "
@@ -671,6 +702,8 @@ def begin(session, *, typed: bool = False) -> None:
                             else "skipped:typed" if typed else "owner_first")
     session._front_reached = False
     session._speech_checks = None  # D-252: set by a person's reply this turn, names only
+    session._speech_repair_calls = 0  # D-332: the repair call really made, counted into model_calls
+    session._speech_repair = None  # D-332: "model_repair", "model_repair_failed" or "model_repair_skipped", this turn only
 
 
 def end(session) -> None:
@@ -728,6 +761,9 @@ def log_turn(session, result: Any) -> None:
     checks = getattr(session, "_speech_checks", None)
     if isinstance(checks, list):
         entry["speech"] = list(checks)  # D-252: which speech checks changed or replaced the reply
+    repair = getattr(session, "_speech_repair", None)
+    if repair:
+        entry["speech"] = [*entry.get("speech", []), repair]  # D-332: the model's one repair, or its failure
     _logger.info("Turn route %s", json.dumps(entry, ensure_ascii=False))
     path = os.environ.get(ROUTE_LOG, "").strip()
     if not path:

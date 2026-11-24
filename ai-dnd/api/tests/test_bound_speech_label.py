@@ -124,7 +124,7 @@ class BoundSpeechLabelTests(unittest.IsolatedAsyncioTestCase):
  async def test_inner_wrong_identity_not_hidden_by_self_label(self):
   await self.prepare();client=ScriptedNpcSpeechClient('Marek: “Benim adım Sera.”')
   with patch.object(self.app.state.ollama_adapter,'_client',client):r=await self.http.post(self.url,json={'message':'Bugün keyfin nasıl?','target_id':self.npc['id'],'interaction_mode':'say','action_id':str(uuid.uuid4())})
-  self.assertEqual(r.status_code,200);self.assertNotIn('Benim adım Sera',r.json()['narration']);self.assertEqual(kinds(client),read_first('speech'))
+  self.assertEqual(r.status_code,200);self.assertNotIn('Benim adım Sera',r.json()['narration']);self.assertEqual(kinds(client),read_first('speech','speech'))  # D-332: one repair call
 
  async def test_stage_and_internal_names_not_cleaned(self):
   await self.prepare();client=ScriptedNpcSpeechClient('Marek: “Sera diye birini tanımıyorum.”',stage_direction='Marek başını sallar.')

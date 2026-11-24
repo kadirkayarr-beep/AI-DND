@@ -17,11 +17,11 @@ class NpcPlayerAddressTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):await fixture.IntentResponseConsistencyTests.asyncTearDown(self)
     async def turn(self,message,**fields):return await fixture.IntentResponseConsistencyTests.turn(self,message,**fields)
     def protected(self):return copy.deepcopy((self.session.character,self.world['inventory'],self.world['location'],self.world['doors']))
-    async def spoken(self,message,speech,stage=''):
+    async def spoken(self,message,speech,stage='',repaired=False):  # D-332: a rejected answer costs one repair call
         client=ScriptedNpcSpeechClient(speech,stage_direction=stage)
         with patch.object(self.app.state.ollama_adapter,'_client',client):
             out=await self.turn(message,target_id=self.npc['id'],interaction_mode='say')
-        self.assertEqual(call_kinds(client.schemas),with_reading('speech'))
+        self.assertEqual(call_kinds(client.schemas),with_reading('speech','speech') if repaired else with_reading('speech'))
         return out
     async def introduce(self):
         seen=[];chat=self.client.chat
@@ -56,14 +56,14 @@ class NpcPlayerAddressTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(speech,out['narration'])
 
     async def test_unknown_name_cannot_be_guessed_from_character_state(self):
-        out=await self.spoken('Nasıl hissediyorsun, günün nasıl geçiyor?','Bugün iyiyim, Riven.')
+        out=await self.spoken('Nasıl hissediyorsun, günün nasıl geçiyor?','Bugün iyiyim, Riven.',repaired=True)
         self.assertNotIn('Riven',out['narration'])
         self.assertTrue(any(d.get('reason_code')=='PLAYER_NAME_IN_NARRATION' for d in self.session.narration_safety_history))
 
     async def test_other_npc_memory_does_not_authorize_address(self):
         other=self.session.create_npc_from_ai({'name':'Darin','role':'Yolcu','location':self.world['location'],'appearance':'Yol kenarında duran bir yolcu.'})
         self.session.record_npc_interaction(other,'Memnun oldum.','Benim adım Riven.',other)
-        out=await self.spoken('Nasıl hissediyorsun, günün nasıl geçiyor?','Bugün iyiyim, Riven.')
+        out=await self.spoken('Nasıl hissediyorsun, günün nasıl geçiyor?','Bugün iyiyim, Riven.',repaired=True)
         self.assertNotIn('Riven',out['narration'])
         self.assertTrue(any(d.get('reason_code')=='NPC_MEMORY_DISCLOSURE_LEAK' for d in self.session.narration_safety_history))
 
@@ -75,7 +75,7 @@ class NpcPlayerAddressTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_name_address_does_not_authorize_player_movement(self):
         await self.introduce();before=self.protected()
-        out=await self.spoken('Nasıl hissediyorsun, günün nasıl geçiyor?','Riven, masaya oturuyorsun.')
+        out=await self.spoken('Nasıl hissediyorsun, günün nasıl geçiyor?','Riven, masaya oturuyorsun.',repaired=True)
         self.assertNotIn('masaya oturuyorsun',out['narration']);self.assertEqual(before,self.protected())
 
     async def test_known_name_in_stage_does_not_gain_speech_exemption(self):

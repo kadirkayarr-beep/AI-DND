@@ -567,44 +567,9 @@ def _dispatch_player_turn(
             return walked
         if gate is not None:
             interaction_mode, target_id = "say", gate["npc_id"]
-    if front is not None and front["kind"] == "wield" and gate is None and interaction_mode not in {"say", "ask_dm"}:
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            game._front_wield(front, player_input)  # the turn goes on to the narrator, who reads the hand and the note on the card
-    if front is not None and front["kind"] == "take" and gate is None and interaction_mode not in {"say", "ask_dm"}:
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            taken = game._front_take(front, player_input)
-        if taken is not None:
-            return taken
-    if front is not None and front["kind"] == "wait" and gate is None and interaction_mode not in {"say", "ask_dm"}:
-        passed = timed_gameplay.pass_time(game._session(), player_input)
-        if passed is not None:
-            flags = game._session().world_state.setdefault("flags", {})
-            flags["turn_index"] = flags.get("turn_index", 0) + 1
-            return {"messages": game._session().messages, "narration": passed["direct_response"], "model_calls": 0,
-                    "action_result": passed}
-    if front is not None and front["kind"] == "walk_failed" and gate is None and interaction_mode not in {"say", "ask_dm"}:
-        text = game._fallback_for_action_result(player_input, {"action": "travel", "status": "failed"})
-        flags = game._session().world_state.setdefault("flags", {})
-        flags["turn_index"] = flags.get("turn_index", 0) + 1
-        return {"messages": game._session().messages, "narration": text, "model_calls": 1,
-                "action_result": {"action": "travel", "status": "failed", "success": False,
-                                  "state_changes": [], "direct_response": text}}
-    if front is not None and front["kind"] == "go_to" and gate is None and interaction_mode not in {"say", "ask_dm"}:
-        import front_proposal
-        import grounded_action
-        road_warning = None
-        if front["id"] == front_proposal.WAY_OUT:
-            refused = grounded_action.road_goes_on(game._session(), player_input)
-            road_warning = (refused or {}).get("road_warning")
-            if refused is not None and road_warning is None:
-                return refused
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            walked = grounded_action.resolve_turn(game._session(), player_input, listed_place=front)
-        if walked is not None:
-            if road_warning:
-                walked["narration"] = f"{road_warning} {walked.get('narration') or ''}".strip()
-            return walked
-        front_proposal.note(game._session(), "fallback:no_walk")
+    routed = game._front_route_turn(front, gate, player_input, interaction_mode, action_id, session_id)
+    if routed is not None:
+        return routed
     if combat_action is None:
         import dialogue_runtime
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
@@ -1197,7 +1162,7 @@ def _run_player_turn_internal(
                 result["_engine_event_evidence"]["telemetry"] = {
                     "intent_model_calls": told_intent_calls(),
                     "narration_model_calls": narration_model_calls,
-                    "total_model_calls": told_intent_calls() + narration_model_calls,
+                    "total_model_calls": told_intent_calls() + narration_model_calls + getattr(game._session(), "_speech_repair_calls", 0),
                     "intent_source": intent_source,
                     "narration_source": narration_source,
                     "fallback_reason": safety_reason_code,
@@ -3234,29 +3199,14 @@ def _run_player_turn_internal(
                 attributed_speech=attributed_speech,
                 python_town_response=python_town_response,
             )
-            narration_safety = getattr(game._session(), "last_narration_safety", None)
-            narration_safety = (
-                narration_safety if isinstance(narration_safety, dict) else {}
+            after = game._speech_after_check(
+                text, world_state=world_state, npc_target=npc_target, player_input=player_input,
+                action_result=action_result, experimental_npc_dialogue=experimental_npc_dialogue,
+                experimental_unverified_claim=experimental_unverified_claim, narration_source=narration_source,
+                python_town_response=python_town_response, attributed_speech=attributed_speech,
             )
-            final_safety_reason_code = narration_safety.get("reason_code")
-            final_safety_handling = narration_safety.get("handling", "accepted")
-            if (
-                final_safety_reason_code
-                and final_safety_handling == "python_fallback"
-            ):
-                narration_source = "deterministic_fallback"
-            stock_swapped = experimental_npc_dialogue and game._is_stock(text)
-            if stock_swapped:
-                # A clear line never earns "say it again": the person answers from what Python has for them.
-                text = game._person_fallback(world_state, npc_target, player_input)
-            elif (experimental_npc_dialogue and final_safety_handling == "python_fallback"
-                    and not experimental_unverified_claim and action_result.get("action") != "skill_check"
-                    and interaction_adventure._asks(player_input)):  # a greeting keeps the fallback's own answer
-                # D-249 F1: a speech the safety check rejected is replaced by what the person has to say from Python
-                # (job, town lead, place to ask), never by the stock "I don't know" the fallback wrote.
-                text = game._person_fallback(world_state, npc_target, player_input)
-                if text != interaction_adventure.immersive_unknown(npc_target, player_input):
-                    python_town_response = text
+            text, python_town_response, narration_source = after["text"], after["python_town_response"], after["narration_source"]
+            final_safety_reason_code, final_safety_handling, stock_swapped = after["reason_code"], after["handling"], after["stock_swapped"]
             speech_checks = None
             if experimental_npc_dialogue:
                 # D-252: the names of the checks that changed or replaced this reply, for the route log. Never words.

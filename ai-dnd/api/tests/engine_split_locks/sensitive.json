@@ -135,6 +135,9 @@
     "_record_spoken_coin_response": [
       "money"
     ],
+    "_repair_npc_speech": [
+      "money"
+    ],
     "_resolve_player_death_turn": [
       "save"
     ],
@@ -172,6 +175,9 @@
       "money"
     ],
     "_sleep_after_walk": [
+      "money"
+    ],
+    "_speech_after_check": [
       "money"
     ],
     "_speech_debug_trail": [

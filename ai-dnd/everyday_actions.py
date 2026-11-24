@@ -17,6 +17,7 @@ from typing import Any, Callable
 
 import equipment_economy
 import living_world
+import tr_case
 
 _NEGATED = re.compile(r"\b\w+(?:miyorum|muyorum|mayacagim|meyecegim|mayi|meyi)\b|\bistemiyorum\b")
 _CONDITIONAL = re.compile(r"\b(?:eger|sayet)\b|\b\w+(?:sam|sem|rsa|rse)\b")
@@ -133,12 +134,41 @@ def resolve(world: dict[str, Any], text: str, *, door: dict[str, Any] | None,
     if kind == "follow":
         person = _named_person(world, text, reference) or _person_by_sight(people, text)
         if person is not None:
-            who = living_world.public_npc_name(person)
-            return {"kind": kind, "npc_id": person.get("id"), "text": _pick(seed, (
-                f"{who} birkaç adım ötede işine devam ediyor; arkasından yürüyorsun. Uzağa gitmiyor, çevrede dolaşıp yine aynı yere dönüyor. Seni fark edip etmediği belli değil.",
-                f"Mesafeni koruyarak {who} arkasından yürüyorsun. Biraz dolaşıp tanıdık yüzlerle selamlaşıyor, sonra olduğu yere dönüyor.",
-            ))}
-        return {"kind": kind, "npc_id": None, "text": (
-            "Kalabalığın içinde gözünü bir an ayırınca izini kaybediyorsun; kimin peşinde olduğunu artık seçemiyorsun."
-        )}
+            return {"kind": kind, "npc_id": person.get("id"), "text": _followed(person, seed)}
+        return {"kind": kind, "npc_id": None, "text": _LOST_TRAIL}
     return None
+
+
+_LOST_TRAIL = "Kalabalığın içinde gözünü bir an ayırınca izini kaybediyorsun; kimin peşinde olduğunu artık seçemiyorsun."
+
+
+def _followed(person: dict[str, Any], seed: str) -> str:
+    who = living_world.public_npc_name(person)
+    return _pick(seed, (
+        f"{who} birkaç adım ötede işine devam ediyor; arkasından yürüyorsun. Uzağa gitmiyor, çevrede dolaşıp yine aynı yere dönüyor. Seni fark edip etmediği belli değil.",
+        f"Mesafeni koruyarak {who} arkasından yürüyorsun. Biraz dolaşıp tanıdık yüzlerle selamlaşıyor, sonra olduğu yere dönüyor.",
+    ))
+
+
+def follow_route(world: dict[str, Any], route: dict[str, Any], *, turn: int) -> dict[str, Any]:
+    """D-331: the front reading's follow (a listed person by id, or a figure by the word the line used)."""
+    seed = f"{world.get('location')}|{turn}|follow"
+    if route.get("id"):
+        person = next((npc for npc in _present_people(world) if npc.get("id") == route["id"]), None)
+        if person is not None:
+            return {"text": _followed(person, seed), "npc_id": person.get("id"), "place_id": None}
+        return {"text": _LOST_TRAIL, "npc_id": None, "place_id": None}
+    import local_places
+    settlement = local_places.settlement_of(world, world.get("location")) or world.get("location")
+    places = sorted(key for key, rec in (world.get("locations") or {}).items()
+                    if isinstance(rec, dict) and rec.get("parent_location_id") == settlement
+                    and key != world.get("location") and not rec.get("hidden") and not rec.get("outdoors")
+                    and not rec.get("inner_of") and rec.get("name"))
+    if not places:
+        return {"text": _LOST_TRAIL, "npc_id": None, "place_id": None}
+    place = _pick(f"{seed}|place", tuple(places))
+    word = tr_case.upper_first(str(route.get("word") or "biri").strip())
+    line = (f"{word} kalabalığın arasından {world['locations'][place]['name']} kapısına kadar gidiyor ve içeri "
+            "giriyor. Birkaç adım geride kalıyorsun; kapı önünde.")
+    text = _pick(seed, (_LOST_TRAIL, line))
+    return {"text": text, "npc_id": None, "place_id": place if text == line else None}

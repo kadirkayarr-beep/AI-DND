@@ -1435,6 +1435,12 @@
   "session_bound": true,
   "signature": "(player_input, listed)"
  },
+ "_front_route_turn": {
+  "kind": "function",
+  "module": "game_parts.turn_front",
+  "session_bound": true,
+  "signature": "(front, gate, player_input, interaction_mode, action_id, session_id)"
+ },
  "_front_step": {
   "kind": "function",
   "module": "game_parts.turn_front",
@@ -2317,6 +2323,12 @@
   "session_bound": true,
   "signature": "(player_input)"
  },
+ "_question_bound_answer": {
+  "kind": "function",
+  "module": "game_parts.dialogue",
+  "session_bound": true,
+  "signature": "(world, npc, player_input)"
+ },
  "_quiet_place_line": {
   "kind": "function",
   "module": "game_parts.narration",
@@ -2442,6 +2454,12 @@
   "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration)"
+ },
+ "_repair_npc_speech": {
+  "kind": "function",
+  "module": "game_parts.dialogue",
+  "session_bound": true,
+  "signature": "(world, npc, player_input, rejected, reason_code, action_result)"
  },
  "_repair_unsupported_lore_narration": {
   "kind": "function",
@@ -2718,6 +2736,12 @@
   "module": "game_parts.character_rules",
   "session_bound": true,
   "signature": "()"
+ },
+ "_speech_after_check": {
+  "kind": "function",
+  "module": "game_parts.dialogue",
+  "session_bound": true,
+  "signature": "(text, *, world_state, npc_target, player_input, action_result, experimental_npc_dialogue, experimental_unverified_claim, narration_source, python_town_response, attributed_speech=None)"
  },
  "_speech_answer_rules": {
   "kind": "function",

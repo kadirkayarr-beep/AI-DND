@@ -36,6 +36,7 @@ import living_world
 import tr_case
 import name_catalog
 import npc_statements
+import grounded_places
 
 KEY = "grounded_actions"
 SCHEMA_VERSION = 1
@@ -3331,7 +3332,8 @@ def _line_names_place(world: dict[str, Any], player_input: str, record: dict[str
     if record.get("inner_of") and local_places.goes_further_in(world, record["inner_of"], player_input):
         return True  # "içeri" at a house is the room behind its door
     place_id = record.get("id")
-    if place_id and any(t in _THERE for t in tokens) and place_id in _trail_places(world):
+    if place_id and any(t in _THERE for t in tokens) and (
+            place_id in _trail_places(world) or place_id == _memory(world).get("last_target_id")):
         return True  # "ilk izin peşinden oraya gidiyorum": the trail the player holds points there
     npcs = world.get("npcs") if isinstance(world.get("npcs"), list) else []
     return bool(place_id) and any(
@@ -3365,49 +3367,6 @@ def _a_better_named_place(session, player_input: str, target: dict[str, Any]) ->
                 other["record"], tokens):
             return True  # "Kanyon Hanı" is the place whose whole name is said, not the longer "Kanyon Sığınağı Hanı"
     return False
-
-
-def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool, *, whole_line: bool = False):
-    """The front step chose a listed place; the walk itself is the one a named place gets."""
-    import front_proposal
-    defer = ("defer", None)
-    if place_id == front_proposal.WAY_OUT:
-        return _decide_way_out(session, player_input)
-    offered = _walk_to_offer(session, player_input)
-    if offered is not None:
-        offered[1][0].model_calls = 1  # the front reading was spent on this line
-        return offered
-    p = plan(session, player_input)
-    steps = [s for s in p["steps"] if not s.get("reported") and not s.get("not_now")]
-    if not whole_line and (p["speech"] or any(s.get("question") for s in p["steps"]) or (p["steps"] and not steps)
-                           or _SAID_AT_THE_END.search(fold(player_input))):
-        return defer  # "hana nasıl giderim?": whatever the model read, Python's own reading says this is no walk
-    import timed_gameplay
-    if (steps and all(s.get("negated") or s.get("condition") for s in steps)) or timed_gameplay.says_no(player_input):
-        return defer  # "hana gitmiyorum": the words themselves say this is no walk
-    if not whole_line and (len(steps) > 1 or spoken_request(player_input)):
-        return defer  # "hana gidip bira istiyorum": the chain that keeps the rest of the line takes it
-    target = next((c for c in candidates(session) if c["id"] == place_id and c["kind"] in {"place", "reference", "outside"}),
-                  None)
-    if target is None or (target["record"].get("inner_of") and any(s.get("outside") or (s.get("target") or {}).get("kind") == "outside" for s in steps)):
-        return defer  # 'sokağa çıkıyorum' at a house: a small model can take the first room on the list for it
-    here = (session.world_state.get("locations") or {}).get(session.world_state.get("location")) or {}
-    if (target["kind"] in {"place", "reference"} and here.get("exit_location_id") != target["id"]
-            and not _line_names_place(session.world_state, player_input, target["record"])):
-        return defer  # the reading picked a listed place the line never names ("hana giriyorum" went to a workshop)
-    if target["kind"] == "place" and _a_better_named_place(session, player_input, target):
-        return defer  # "Kanyon Öyküsü Ciltevi'ne": a word shared with the inn is not the library's name
-    verb = "enter" if inside and target["kind"] != "outside" else "go"
-    tokens = fold(player_input).split()
-    if (verb == "go" and not steps and target["kind"] != "outside"
-            and any(t.startswith(_DOOR_NOUNS) or t in _RELATIONAL for t in tokens)):
-        # "hanın kapısının dışında duruyorum", "önüne geliyorum": no walk in the words, the reading did not say in, and
-        # the words put the player at its door or in front of it, so the player comes up to it and stays outside.
-        verb = "approach"
-    step = {"verb": verb, "target": target, "negated": False}
-    run = _Run(session, player_input)
-    run.model_calls = 1  # the front reading chose this walk
-    return "execute", (run, [step], {"steps": [step]})
 
 
 def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id=None,
@@ -3446,7 +3405,7 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
     snapshot = copy.deepcopy(world)
     try:
         decision, payload = (
-            _decide_listed_walk(session, player_input, listed_place["id"], listed_place["inside"],
+            grounded_places._decide_listed_walk(session, player_input, listed_place["id"], listed_place["inside"],
                                 whole_line=bool(listed_place.get("whole_line")))
             if listed_place is not None else
             _decide(session, player_input, interaction_mode=interaction_mode,

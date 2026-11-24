@@ -17,7 +17,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import front_proposal
-import grounded_action
+import grounded_places
 import world_threads
 from api import local_play
 from api.tests import test_experimental_npc_dialogue as speech
@@ -251,7 +251,7 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
     async def test_a_walk_with_more_said_after_it_goes_to_the_chain_that_keeps_the_rest(self):
         await self.begin()
         self.client.front = {"kind": "go_to", "place_id": self.a_place()}
-        decision, _ = grounded_action._decide_listed_walk(self.session, "tapınağa gidip kapısını çalıyorum",
+        decision, _ = grounded_places._decide_listed_walk(self.session, "tapınağa gidip kapısını çalıyorum",
                                                           self.a_place(), False)
         self.assertEqual(decision, "defer")
 

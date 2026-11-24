@@ -340,14 +340,14 @@ class NpcP2ContinuityTests(unittest.IsolatedAsyncioTestCase):
                 ):
                     reply = await self.say(turn_url, client, npc, case["message"])
 
-                self.assertEqual(call_kinds(client.schemas), with_reading("speech"))
+                self.assertEqual(call_kinds(client.schemas), with_reading(*(("speech", "speech") if case["unsafe"] else ("speech",))))  # D-332: a rejected answer costs one repair call
                 matching = [
                     decision
                     for text, decision in observed_decisions
                     if case["decision_fragment"].casefold() in text.casefold()
                 ]
                 self.assertEqual(
-                    len(matching), 1,
+                    len(matching), 2 if case["label"] in ("double_negative", "quoted_positive_transfer") else 1,  # D-332: for these two the repair call's identical text survives the cleaners and is checked once more; the others are cut before the check
                     f"{case['label']} did not take one identifiable safety path: "
                     f"{observed_decisions}",
                 )

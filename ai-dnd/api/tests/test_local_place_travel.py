@@ -196,14 +196,14 @@ class LocalPlaceTravelTests(unittest.IsolatedAsyncioTestCase):
         result = await self.go(client, "Uzak Çöl'e gidiyorum.")
         self.assertEqual(self.new_places(), [])
         self.assertEqual(self.world["location"], self.city)
-        self.assertIn("olduğun yerdesin", result["narration"])
+        self.assertIn("Hangisine gidiyorsun?", result["narration"])  # D-331: a failed walk asks which known place
 
     async def test_no_proposal_stays_a_plausible_failure(self):
         await self.scene()
         result = await self.go(TravellingClient())
         self.assertEqual(self.new_places(), [])
         self.assertEqual(self.world["location"], self.city)
-        self.assertIn("olduğun yerdesin", result["narration"])
+        self.assertIn("Hangisine gidiyorsun?", result["narration"])  # D-331: a failed walk asks which known place
 
     async def test_only_the_place_is_taken_from_the_packet(self):
         await self.scene()
