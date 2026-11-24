@@ -35,8 +35,7 @@ export const MOTE_POOL = 8;
 export const FOG_BANDS = 2;
 export const ATMOSPHERE_ANIMATED_MAX = MOTE_POOL + FOG_BANDS;
 export const EVENT_EFFECT_BUDGET = MAX_ACTIVE_EFFECTS - ATMOSPHERE_ANIMATED_MAX;
-/** Crossfade between presets, mirrored by the transition duration in scene-atmosphere-layer.css. */
-const CROSSFADE_MS = 1500;
+// Crossfade between presets is 1500 ms, mirrored by the transition duration in scene-atmosphere-layer.css.
 
 /**
  * The engine's time_of_day is authoritative. Only 'day' is split, by the campaign clock:
