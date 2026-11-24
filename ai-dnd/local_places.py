@@ -251,7 +251,7 @@ def destination_kind(text: Any) -> str | None:
     """The place kind tied to the motion verb: the last one named before it."""
     words = _fold(text).split()
     found = None
-    for index, word in enumerate(words):
+    for word in words:
         if _MOTION.fullmatch(word) and found is not None:
             return found
         for kind, spec in PLACE_KINDS.items():

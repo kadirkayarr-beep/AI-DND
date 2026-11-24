@@ -685,7 +685,7 @@ def _bind_world_update_mentions(raw_updates, location_updates, validated_updates
         ("create_features", "f", 4, world_state.get("features", [])),
         ("create_shops", "s", 2, world_state.get("shops", [])),
     )
-    for field, prefix, limit, stored_items in categories:
+    for field, prefix, _limit, stored_items in categories:
         raw_items = raw_updates.get(field, []) if isinstance(raw_updates, dict) else []
         if not isinstance(raw_items, list):
             continue

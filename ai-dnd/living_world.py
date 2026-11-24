@@ -1052,7 +1052,7 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Campaign feature list exceeds the limit.")
     used_ids: set[str] = set()
     max_number = 0
-    for index, feature in enumerate(features):
+    for feature in features:
         if not isinstance(feature, dict):
             raise ValueError("Campaign feature data is invalid.")
         feature_id = feature.get("id")

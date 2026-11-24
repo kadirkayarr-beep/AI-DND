@@ -22,7 +22,7 @@ def validate(world,reply,places,jobs,npc_id):
         folded=local_dialogue.normalize_text(clause)
         if re.search(r'\b(?:eskiden|gecmiste|olsaydi|olsaydi|olsa|varsayalim|dediler|demisti)\b',folded):
             continue
-        for name,noun,kind in npc_statements._named_places(clause):
+        for name,_noun,kind in npc_statements._named_places(clause):
             if kind=='generic': continue
             key=local_dialogue.normalize_text(name)
             if not any(key==known or (key.startswith(known) and key[len(known):] in {'na','ne','nda','nde','ni','nin','nina','nini','ndan','nden'}) for known in names if known):

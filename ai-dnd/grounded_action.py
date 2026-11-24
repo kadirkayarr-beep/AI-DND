@@ -291,13 +291,13 @@ def _read_clause(clause: dict[str, Any], cands=()) -> dict[str, Any]:
         return info
     # Purpose: "Kızılhanı bulmak için tabelalara bakıyorum" -> goal search(Kızılhan).
     if "icin" in tokens:
-        for position, verb, negated, infinitive in found:
+        for position, verb, _negated, infinitive in found:
             if infinitive and position + 1 < len(tokens) and tokens[position + 1] == "icin":
                 info["purpose"] = {"verb": verb, "tokens": tokens[:position]}
                 found = [f for f in found if f[0] > position + 1] or found
                 break
     # Manner converbs before the main verb: "zorlamadan", "iterek".
-    for position, verb, negated, infinitive in found[:-1]:
+    for position, verb, _negated, _infinitive in found[:-1]:
         if re.search(r"(?:madan|meden)$", tokens[position]):
             info["manner_negated"].append(verb)
     # "dolanırken" (while), "zorlamadan" (without), "iterek" (by) qualify the act; they are not it.

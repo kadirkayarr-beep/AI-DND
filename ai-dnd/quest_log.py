@@ -139,7 +139,7 @@ def _rumors(world: dict[str, Any], lore_state: Any) -> list[dict[str, str]]:
     from adventure.projection import _heard_rumors
 
     found = [{"label": "Söylenti", "text": text} for text in _heard_rumors(world, lore_state)]
-    for row, quest in dynamic_records(world):
+    for _row, quest in dynamic_records(world):
         for objective in quest.get("objectives", []):
             if (objective.get("type") == "discover_clue" and objective.get("graph_state") == "COMPLETE"
                     and objective.get("visibility") == "known"):
