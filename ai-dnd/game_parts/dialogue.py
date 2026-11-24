@@ -418,10 +418,8 @@ def record_npc_interaction(npc, npc_reply, player_input, npc_target=None):
     if game._unverified_past_event_assertion(player_input):
         return
     
-    # Initialize memory as list if not exists
     entries = npc.setdefault("memory", [])
     
-    # Clean player input
     player_text = game._clean_world_text(player_input, 260)
     npc_text = game._clean_world_text(npc_reply, 260)
     
@@ -430,7 +428,6 @@ def record_npc_interaction(npc, npc_reply, player_input, npc_target=None):
     if game._unsupported_npc_history_or_relationship_claim(npc_text, npc, player_input):
         return
     
-    # Create structured entries
     player_entry = {"speaker": "player", "text": player_text}
     npc_entry = {"speaker": "npc", "text": npc_text}
     

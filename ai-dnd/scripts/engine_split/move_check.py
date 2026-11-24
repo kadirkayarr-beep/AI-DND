@@ -308,7 +308,8 @@ def _other_parts_differing(base_root: Path, new_root: Path, part_names: list[str
 
 
 def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive: dict, tier: str,
-               manual: list[str] = []) -> dict:
+               manual: list[str] | None = None) -> dict:
+    manual = manual or []
     base_root, new_root = Path(base_root), Path(new_root)
     differing = _other_parts_differing(base_root, new_root, list(moved.values()))
     exempt, refs = _manual_lines(manual, list(moved.values()), differing)  # ValueError on an entry outside this check

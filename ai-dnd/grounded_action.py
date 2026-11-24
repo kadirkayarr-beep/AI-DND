@@ -2175,7 +2175,7 @@ def _readable_note(session, player_input: str) -> str | None:
     return note[:200] if note else None
 
 
-def _do_read(run: _Run, step) -> dict[str, Any]:
+def _do_read(run: _Run, step) -> dict[str, Any] | None:
     note = step.get("quoted_note")
     if isinstance(note, str) and note.strip():
         return _receipt("read", "completed", None, text=f"Notta şunlar yazıyor: “{note.strip()}”")

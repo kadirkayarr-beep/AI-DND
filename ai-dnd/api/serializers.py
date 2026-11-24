@@ -293,7 +293,7 @@ def _public_combat_name(identity: Any, fallback: Any, world_state: Any) -> Any:
 def _sanitize_combat_names(projected: dict[str, Any], world_state: Any) -> dict[str, Any]:
     if not isinstance(projected, dict):
         return projected
-    for key, value in projected.items():
+    for value in projected.values():
         if isinstance(value, dict):
             _sanitize_combat_names(value, world_state)
         elif isinstance(value, list):
