@@ -543,3 +543,12 @@ Bayrak açık (AI_DND_FRONT_PROPOSAL=1, yerel oyunun varsayılanı) kırık test
 | `surface.json`, `sensitive.json`, `allowed_imports.json` | yeni motor adları (+9), iki yeni "save" işaretli bölüm, yeni `game_errors` modülü; hiçbir şey gevşemedi | sıkılaşma / ekleme |
 
 Not (Opus, Minor): `InvalidDeathModeError` artık `CampaignError` olduğu için kampanya oluşturma rotasında 500 yerine `campaign_http_exception` cevabına gider; şemadaki `Literal` kötü değeri zaten engellediği için HTTP'den ulaşılamaz.
+
+## 29. D-530 aşama 3: beş dev işlevin blokları yardımcı modüllere kesildi (dal `task/d530-split-20261125`)
+
+| Test / kilit | Değişiklik | İşaret |
+|---|---|---|
+| `size_budget.json` `files` -> `game.py` | 1116 -> 1165 (+49) = gerçek boyut; her yeni yardımcı için bir R8 yeniden-dışa-aktarma satırı (lw +12, fx +13, pi +10, dm +8, fn +6) | gevşetme olabilir |
+| `size_budget.json` `long_functions` | `parse_player_intent` (420) ve `finalize_narration` (350) anahtarları kaldırıldı (işlevler 130 ve 131 satır, sınırın altında); `plan_living_world_turn` 725 -> 308, `_execute_intent_internal` 548 -> 295, `ask_dungeon_master` 509 -> 299 düştü | gevşetme olabilir (anahtar silme) / sıkılaşma (düşenler) |
+| `surface.json`, `sensitive.json` | +49 yeni motor adı (`_lw_*`, `_fx_*`, `_pi_*`, `_dm_*`, `_fn_*`), +10 para işaretli ad; salt ekleme | ekleme |
+| `test_engine_parts_pilot` `_PART_MODULES` listesi | dört yeni parça adı eklendi (living_world_steps, turn_front_steps, intent_steps, narration_steps); salt ekleme | ekleme |
