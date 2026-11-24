@@ -1,4 +1,6 @@
 """Play fixes of 2026-11-24 (six issues); every class pins the town (seed 4401: barracks, market, workshop, harbor, smithy)."""
+import copy
+
 from api.tests.test_arrival_wiring import _ArrivalApi
 
 CITY = "fr:city:neverwinter"
@@ -158,15 +160,19 @@ class TextPurchase(_Town):
 
     async def test_undo_gives_back_the_coin_and_the_beer(self):
         world = await self.open_offer()
+        before = copy.deepcopy({"wares": world["npcs"][0].get("wares_v1"), "trades": world.get("shop_trades_v1")})
         reply = await self.turn("Bir tane alıyorum.")
         self.assertEqual(len(self.beers(world)), 1)
+        self.assertNotEqual(world.get("shop_trades_v1"), before["trades"])
         undone = await self.http.post(f"/api/game/sessions/{self.session_id}/undo",
                                       json={"action_id": str(__import__("uuid").uuid4()),
                                             "target_action_id": reply.json()["action_id"]})
         self.assertEqual(undone.status_code, 200, undone.text)
         world = self.session().world_state
-        self.assertEqual(world["currency"]["player"], 100)
+        self.assertEqual(world["currency"], {"player": 100, "barman": 0})
         self.assertEqual(self.beers(world), [])
+        self.assertEqual(world["npcs"][0].get("wares_v1"), before["wares"])
+        self.assertEqual(world.get("shop_trades_v1"), before["trades"])
 
     async def test_no_open_offer_no_sale(self):
         world = self.counter()
@@ -249,3 +255,49 @@ class AskWaresOfANonServer(_Counter):
                 self.assertEqual(self.prepared(), [])
                 self.assertEqual(self.money(), before)
                 self.assertEqual(self.w['flags']['turn_index'], turn)
+
+
+class ReviewOneFixes(TextPurchase, FollowMessenger):
+    people = FollowMessenger.people
+    async def test_a_different_thing_named_is_no_sale_of_the_offered_beer(self):
+        for line in ("Bir tane kılıç alıyorum.", "Bir tane oda alıyorum.", "Bir tane hançer alıyorum."):
+            world = await self.open_offer()
+            reply = await self.turn(line)
+            self.assertEqual(reply.status_code, 200, reply.text)
+            self.assertEqual(world["currency"]["player"], 100, line)
+            self.assertEqual(self.beers(world), [], line)
+            world["flags"].pop("counter_offer_v1", None)
+
+    async def test_a_price_other_than_the_one_shown_is_no_sale(self):
+        world = await self.open_offer()
+        world["flags"]["counter_offer_v1"]["unit_cp"] = 3
+        await self.turn("Bir tane alıyorum.")
+        self.assertEqual(world["currency"]["player"], 100)
+        self.assertEqual(self.beers(world), [])
+
+    async def test_a_place_said_long_ago_and_an_old_last_place_do_not_move_the_player(self):
+        import grounded_action
+        import npc_statements
+        world = self.session().world_state
+        places = [key for key, rec in world["locations"].items() if isinstance(rec, dict)
+                  and rec.get("parent_location_id") == CITY and not rec.get("hidden")]
+        said, other = places[0], places[1]
+        npc_statements.overheard_place(world, said, world["locations"][said]["name"])
+        grounded_action.note_last(world, other)
+        world.setdefault("flags", {})["turn_index"] = 4
+        reply = await self.turn("Oraya gidiyorum.")
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual(world["location"], CITY)
+
+    async def test_the_role_word_in_any_case_follows_the_messenger(self):
+        self.people()
+        reply = await self.turn("Habercinin peşinden gidiyorum.",
+                                front={"kind": "go_to", "place_id": "none", "person_id": "npc_haber"})
+        self.assertIn("Orlan", self.narration(reply))
+
+    def test_the_spoken_mask_covers_the_back_vowel_forms(self):
+        import npc_speech_boundary
+        text = 'Marek: "Orayı görürsün, bulursun."'
+        masked = npc_speech_boundary.mask_spoken_questions(text, 0)
+        self.assertNotIn("görürsün", masked)
+        self.assertNotIn("bulursun", masked)

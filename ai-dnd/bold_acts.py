@@ -1379,7 +1379,8 @@ def _open_offer(session, server: dict[str, Any], key: str) -> dict[str, Any]:
     session._set_scene_active_npc(server, world.get("flags", {}).get("turn_index", 0))
     world["flags"]["served_turn"] = world["flags"].get("turn_index", 0)  # 'duydun mu birşey' next is for them
     world["flags"]["counter_offer_v1"] = {"npc_id": server["id"], "key": key, "seq": offer["seq"],
-                                          "turn": world["flags"]["served_turn"]}
+                                          "turn": world["flags"]["served_turn"],
+                                          "unit_cp": offer["unit_cp"]}
     label = offer["label"]
     who = living_world.public_npc_name(server)
     line = f"{who} tezgâha dayanıyor. “{tr_case.upper_first(label)} {offer['unit_cp']} bakır. Kaç tane?”"
@@ -1466,6 +1467,7 @@ def is_act_not_talk(session, text: Any) -> bool:
     return game.open_scare_try(text) or looks_person_over(session, text)
 
 
+_FILLER = frozenset({"ben", "su", "bu", "bi", "de", "da", "ki", "lutfen", "o", "simdi", "tamam", "evet"})
 _ONE_OF_THEM = re.compile(r"\b(?:bir|1)\s+(?:tane|adet)\b")
 
 
@@ -1484,10 +1486,14 @@ def _bought_the_open_offer(session, text: str) -> dict[str, Any] | None:
             or _WALKS.search(folded) or getattr(session, "_coin_paid", None) or getattr(session, "_front_coin", 0)
             or re.search(r"\d", _ONE_OF_THEM.sub("", folded))):
         return None
-    named = shop_trade.priced_in(folded)
     quoted = shop_trade.quote(world, server["id"], opened["key"], 1)
-    if (named is not None and named[0] != opened["key"]) or quoted is None or not quoted["can_pay"]:
-        return None
+    if quoted is None or not quoted["can_pay"] or opened.get("unit_cp") != quoted["unit_cp"]:
+        return None  # the price the offer showed is the price paid
+    who = set(fold(session, f"{living_world.public_npc_name(server)} {server.get('role', '')}").split())
+    left = [word for word in _BUY.sub(" ", _ONE_OF_THEM.sub(" ", folded)).split()
+            if word not in who and word not in _FILLER and not word.startswith(opened["key"])]
+    if left:
+        return None  # the line names something else (a sword, a room): it is not this offer's count
     return equipment_economy.execute(
         session, f"/item shop_buy {shlex.quote(str(server['id']))} {opened['key']} 1 {quoted['seq']} {quoted['total_cp']}")
 

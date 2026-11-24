@@ -52,7 +52,7 @@ class CounterOrder(JourneyCase):
         self.assertEqual(text.count("karşı saldırısı"), 1)
 
     async def test_one_enemy_after_the_player_keeps_todays_words(self):
-        before = TODAY_AFTER_PLAYER  # recorded from the base commit
+        before = TODAY_AFTER_PLAYER  # the base commit's words plus the roll notes (see the constant)
         self.assertEqual(await self.punch_marek(seed=self.seed_where_the_player_wins_initiative, player_first=True),
                          before)
         self.assertNotIn("senden önce davranıp", before)
