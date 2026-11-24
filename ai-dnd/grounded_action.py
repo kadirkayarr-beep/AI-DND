@@ -566,7 +566,6 @@ def _is_bare_go(step: dict[str, Any]) -> bool:
 def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[str, Any],
          verb: str | None) -> dict[str, Any]:
     """Pick the entity a clause is about. Returns {'target', 'part', 'score', 'ambiguous'}."""
-    flags = world.get("flags", {}) if isinstance(world.get("flags"), dict) else {}
     memory = world.get(KEY) if isinstance(world.get(KEY), dict) else {}
     near = memory.get("near_target_id")
     last = memory.get("last_target_id")
@@ -756,7 +755,6 @@ _ITEM_GOAL = re.compile(r"\b(?:anahtar|para|altin|silah|hazine|esya|ipucu|iz)\w*
 
 
 def _detail_in(tokens: list[str]) -> str | None:
-    text = " ".join(tokens)
     for key in sorted(DETAILS, key=len, reverse=True):
         words = key.split()
         if len(words) > 1:
@@ -2880,7 +2878,6 @@ def _direct_door_step(step) -> bool:
         return False
     # A means of opening is not part of the registered door name. Possession
     # and success are checked by the existing unlock owner, not this parser.
-    lockpick_prefix = prefix[-1:] == ["maymuncukla"] or prefix[-2:] == ["maymuncuk", "ile"]
     if step["verb"] == "open":
         if prefix[-1:] == ["maymuncukla"]:
             prefix = prefix[:-1]

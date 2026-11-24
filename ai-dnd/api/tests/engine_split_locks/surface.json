@@ -591,10 +591,6 @@
   "kind": "data",
   "type": "Pattern"
  },
- "_SHOP_CREATION_ACTION_PATTERN": {
-  "kind": "data",
-  "type": "Pattern"
- },
  "_SHOP_ECONOMY_PATTERN": {
   "kind": "data",
   "type": "Pattern"
@@ -3193,12 +3189,6 @@
  "adventure_play": {
   "kind": "module"
  },
- "analyze_player_action": {
-  "kind": "function",
-  "module": "game_parts.intent",
-  "session_bound": true,
-  "signature": "(player_input, character_class, proficient_skills)"
- },
  "apply_check_outcome_to_world_state": {
   "kind": "function",
   "module": "game_parts.places",
@@ -3522,12 +3512,6 @@
  },
  "interaction_adventure": {
   "kind": "module"
- },
- "is_dialogue_or_emotion": {
-  "kind": "function",
-  "module": "game_parts.intent",
-  "session_bound": true,
-  "signature": "(player_input)"
  },
  "is_npc_dialogue_input": {
   "kind": "function",
@@ -4009,12 +3993,6 @@
  "update_inventory_from_player": {
   "kind": "function",
   "module": "game_parts.places",
-  "session_bound": true,
-  "signature": "(player_input)"
- },
- "update_world_state_from_player": {
-  "kind": "function",
-  "module": "game_parts.intent",
   "session_bound": true,
   "signature": "(player_input)"
  },
