@@ -252,9 +252,22 @@ def _execute_intent_internal(intent, player_input, npc_target=None, target_id=No
         result.update(action="attack", success=False, outcome="player_unconscious",
                       direct_response="Bilincin kapalı; saldırı yapamazsın.")
         return game._finish_combat_result(result, before)
-    _exit = game._fx_combat_interrupt(before=before, combat_was_active=combat_was_active, intent_type=intent_type, result=result)
-    if _exit is not game._TURN_FALL_THROUGH:
-        return _exit
+    if combat_was_active and intent_type not in {
+        "attack",
+        "combat",
+        "dialogue",
+        "query",
+        "unknown",
+        "narrative",
+    }:
+        result.update(
+            action="combat_action",
+            success=False,
+            status="unsupported",
+            outcome="unsupported_combat_action",
+            direct_response=refusals.text_for("unsupported_action"),
+        )
+        return game._finish_combat_result(result, before)
 
     character_reply = game.known_character_answer(player_input)
     if character_reply:

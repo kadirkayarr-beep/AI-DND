@@ -1,5 +1,4 @@
 import living_world
-import refusals
 import timed_gameplay
 import combat_lifecycle
 import money_owner
@@ -181,26 +180,6 @@ def _fx_query(*, npc_target, player_input, query_type, result):
             ):
                 result["npc_id"] = npc_target["id"]
             return result
-    return game._TURN_FALL_THROUGH
-
-
-def _fx_combat_interrupt(*, before, combat_was_active, intent_type, result):
-    if combat_was_active and intent_type not in {
-        "attack",
-        "combat",
-        "dialogue",
-        "query",
-        "unknown",
-        "narrative",
-    }:
-        result.update(
-            action="combat_action",
-            success=False,
-            status="unsupported",
-            outcome="unsupported_combat_action",
-            direct_response=refusals.text_for("unsupported_action"),
-        )
-        return game._finish_combat_result(result, before)
     return game._TURN_FALL_THROUGH
 
 

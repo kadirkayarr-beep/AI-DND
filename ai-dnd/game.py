@@ -493,7 +493,6 @@ from game_parts.turn_front_steps import _fx_skill_check  # noqa: F401
 from game_parts.turn_front_steps import _fx_check_skill  # noqa: F401
 from game_parts.turn_front_steps import _fx_travel  # noqa: F401
 from game_parts.turn_front_steps import _fx_query  # noqa: F401
-from game_parts.turn_front_steps import _fx_combat_interrupt  # noqa: F401
 from game_parts.turn_front_steps import _fx_negated_attack  # noqa: F401
 from game_parts.turn_front_steps import _fx_door_inspection  # noqa: F401
 from game_parts.turn_front_steps import _fx_attack_combat_end  # noqa: F401

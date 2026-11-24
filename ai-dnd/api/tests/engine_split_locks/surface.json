@@ -1607,12 +1607,6 @@
   "session_bound": true,
   "signature": "(*, deterministic, explore_type, intent_type, player_input, skill)"
  },
- "_fx_combat_interrupt": {
-  "kind": "function",
-  "module": "game_parts.turn_front_steps",
-  "session_bound": true,
-  "signature": "(*, before, combat_was_active, intent_type, result)"
- },
  "_fx_door_inspection": {
   "kind": "function",
   "module": "game_parts.turn_front_steps",
