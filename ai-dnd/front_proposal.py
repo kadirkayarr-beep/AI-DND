@@ -751,23 +751,3 @@ def share(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
     free = [row for row in rows if not str(row.get("route")).startswith("skipped:")]
     reached = sum(1 for row in free if row.get("reached_model"))
     return {"free_lines": len(free), "reached_model": reached, "share": reached / len(free) if free else 0.0}
-
-
-# Owners whose lines are money, dice, XP, purchase or rule results: a ready-made line is right for them. Chosen from
-# the owners in the 2026-11-16/17 local route log (attack, death_save, skill_check, theft, shop_offer, shop_inquiry,
-# equipment_transaction, consume, action_economy, combat_action) plus shop_economy and character_query (design 5.9).
-ENGINE_OWNERS = frozenset({
-    "shop_economy", "shop_offer", "equipment_transaction", "consume", "theft",
-    "attack", "combat_action", "death_save", "skill_check", "action_economy", "character_query",
-})
-
-
-def ready_line_share(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
-    """Design 5.9: over all player rows, how many ended in a ready-made engine or Python line instead of one the
-    model wrote. Engine-owned money, dice, XP, purchase and rule rows stay in the count but are never ready lines;
-    `unknown` counts rows whose source the log could not tell (it never hides them)."""
-    ready = sum(1 for row in rows if isinstance(row.get("narration_source"), str)
-                and row.get("owner") not in ENGINE_OWNERS
-                and row["narration_source"].startswith(("deterministic_", "python_")))
-    unknown = sum(1 for row in rows if not isinstance(row.get("narration_source"), str))
-    return {"moves": len(rows), "ready": ready, "share": ready / len(rows) if rows else 0.0, "unknown": unknown}

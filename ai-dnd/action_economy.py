@@ -603,22 +603,6 @@ def prepare_ready(session, actor, trigger, response):
     return {"kind": "ready", "ready": copy.deepcopy(r["ready"])}
 
 
-def prepare_spell_hook(session, actor, trigger, spell_metadata):
-    """Future spell engine hook; no spell casting or concentration resolution."""
-    action_slot(session, actor, "ready")
-    if (not isinstance(spell_metadata, dict) or not spell_metadata.get("spell_id")
-        or spell_metadata.get("casting_action") != "action"
-        or not isinstance(trigger, dict) or set(trigger) != {"event", "actor_id"}
-        or trigger["event"] not in {"actor_moves", "actor_attacks"}
-        or trigger["actor_id"] not in session.world_state["combat"]["participants"]):
-        fail("invalid_ready_spell_metadata", "A future spell engine must supply authoritative Action-based metadata.")
-    consume_action(session, actor, "ready")
-    ensure(session)[actor]["ready"] = {
-        "trigger": copy.deepcopy(trigger), "response": {"kind": "magic"},
-        "spell_metadata": copy.deepcopy(spell_metadata),
-    }
-
-
 def publish_event(session, event, actor):
     """Only called after an actual Python-resolved action, never from HTTP."""
     if not session.world_state["combat"]["active"]:
