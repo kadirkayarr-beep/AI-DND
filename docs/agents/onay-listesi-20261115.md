@@ -497,3 +497,19 @@ Bayrak açık (AI_DND_FRONT_PROPOSAL=1, yerel oyunun varsayılanı) kırık test
 | `test_a_rebound_validate_intent_reaches_a_moved_caller` (test_engine_parts_pilot) | silindi: yalnız silinen uyumluluk sarmalayıcısı `analyze_player_action`ı sınıyordu, üretimde çağıranı yoktu | GEVŞETME OLABİLİR |
 | `test_a_rebound_execute_intent_reaches_its_moved_caller` (test_engine_parts_pilot) | silindi: yalnız silinen `update_world_state_from_player` sarmalayıcısını sınıyordu, üretimde çağıranı yoktu | GEVŞETME OLABİLİR |
 | `test_intent_helpers_answer_as_before` (test_engine_parts_pilot) | iki assert `is_dialogue_or_emotion` yerine canlı `is_npc_dialogue_input` ile aynı sıkılıkta yeniden yazıldı (validate_intent bunu çağırıyor) | GEVŞETME OLABİLİR |
+| `test_scores_are_not_written_to_the_world (test_incident_wave8_9, DirectorV2Tests)` | silindi: yalnız silinen director_v2 modülünü sınıyordu; canlı yol adventure_director testlerinde | GEVŞETME OLABİLİR |
+| `test_mapping_dispositions_do_not_invent_entities (test_lore_1501_integration)` | silindi: yalnız silinen freeze_mapping'i sınıyordu | GEVŞETME OLABİLİR |
+| `test_vertical_slice_then_full_transform_is_deterministic (test_lore_1501_integration)` | silindi: yalnız silinen freeze_transform'u sınıyordu | GEVŞETME OLABİLİR |
+| `test_review_is_bound_to_the_payload_digest (test_lore_1501_integration)` | silindi: yalnız silinen freeze_review'u sınıyordu | GEVŞETME OLABİLİR |
+| `test_live_gate_stays_closed (test_lore_1501_integration)` | silindi: yalnız silinen live_gate modülünü sınıyordu | GEVŞETME OLABİLİR |
+| `test_campaign_state_is_unchanged_by_staging (test_lore_1501_integration)` | silindi: yalnız silinen freeze_transform hazırlama yolunu sınıyordu; canlı kampanya durumu okuma testleri duruyor | GEVŞETME OLABİLİR |
+| `test_staged_fact_cannot_become_player_knowledge_or_turkish_surface (test_lore_1501_integration)` | yeniden yazıldı: silinen freeze_transform yerine doğrudan kurulan olgu kimliğiyle; known_facts==[] ve presentation_gaps assertleri korundu, sızıntı assertinin fact_id ile yazılan son hâli totolojik olduğu için kaldırıldı | GEVŞETME OLABİLİR |
+| `test_owner_tier_is_rejected_by_pack_parsing_and_rank (test_lore_1501_integration)` | kırpıldı: silinen OwnerContinuityRecord kolu çıkarıldı; paket ayrıştırma ve rank reddi duruyor | GEVŞETME OLABİLİR |
+| `test_authorization_modules_do_not_import_the_production_loader (test_lore_1501_integration)` | kırpıldı: silinen freeze modülleri listeden çıktı; kalan modüller aynı sıkılıkta | GEVŞETME OLABİLİR |
+| `test_compaction_preserves_source_and_visibility (test_roadmap_w08)` | yeniden yazıldı: yalnız npc_statements durumuna indi; silinen memory_archive kolu çıktı | GEVŞETME OLABİLİR |
+| `test_high_importance_stays_active_and_summaries_are_not_events (test_roadmap_w08)` | silindi: yalnız silinen memory_archive'i sınıyordu | GEVŞETME OLABİLİR |
+| `test_retrieval_resolves_turkish_names_pronouns_and_aliases_within_budget (test_roadmap_w08)` | silindi: yalnız silinen memory_archive almasını sınıyordu | GEVŞETME OLABİLİR |
+| `üç test (test_roadmap_w10)` | yeniden yazıldı: kampanya kapsamlı anahtar, source_event_id damgası ve kampanyalar arası denetimler düşürüldü (silinen world_identity); canlı yol testleri duruyor | GEVŞETME OLABİLİR |
+| `test_v3_to_v4_keeps_progression_and_does_not_invent_a_feat (test_save_migration)` | silindi: yalnız silinen save_migration'ı sınıyordu; canlı v3/v5 kayıt yolu test_ordinary_campaign_resume_keeps_v3_and_v5 ile sürer | GEVŞETME OLABİLİR |
+| `test_rejected_v5_migration_leaves_the_source_bytes (test_save_migration)` | silindi: yalnız silinen save_migration'ı sınıyordu; canlı v3/v5 kayıt yolu test_ordinary_campaign_resume_keeps_v3_and_v5 ile sürer | GEVŞETME OLABİLİR |
+| `test_consistent_v4_can_migrate_to_v5 (test_save_migration)` | silindi: yalnız silinen save_migration'ı sınıyordu; canlı v3/v5 kayıt yolu test_ordinary_campaign_resume_keeps_v3_and_v5 ile sürer | GEVŞETME OLABİLİR |

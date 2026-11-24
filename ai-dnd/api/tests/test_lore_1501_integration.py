@@ -98,7 +98,6 @@ class Lore1501IntegrationTests(unittest.TestCase):
         projection = read_player_knowledge(forced, {}, LoreRegistry())
         self.assertEqual(projection["known_facts"], [])
         self.assertEqual(projection["presentation_gaps"][0]["reason"], "turkish_rendering_missing")
-        self.assertNotIn(fact_id, str(projection["known_facts"]))
 
     def test_owner_tier_is_rejected_by_pack_parsing_and_rank(self):
         with self.assertRaises(ValueError):
