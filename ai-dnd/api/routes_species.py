@@ -22,6 +22,53 @@ from api.serializers import (
 )
 
 
+def _run_species_action(record: Any, session: Any, request: SpeciesTraitActionRequest, session_lore_snapshot: Any) -> dict[str, Any]:
+    """The engine call and its quest/award follow-ups, moved out of the route body unchanged (size lock)."""
+    quest_before = copy.deepcopy(session.world_state)
+    result = session.resolve_species_trait_action(
+        request.action,
+        form=request.form,
+        ancestry=request.ancestry,
+        armed=request.armed,
+        **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
+           if request.action == "lay_on_hands" else {}),
+        **({"draconic_ancestry": request.draconic_ancestry} if request.action == "choose_draconic_ancestry"
+           else {"shape": request.shape, "target_id": request.target_id} if request.action == "breath_weapon"
+           else {}),
+    )
+    # D-105: a combat species action can end the turn and its damage (Inner Radiance) can drop a quest
+    # target; like the play turn, the quest owner reads this command's own before/after world. The
+    # panel command carries no player words, so last turn's text must not ask for work here.
+    if (quest_before.get("combat") or {}).get("active") and isinstance(result.get("effects"), dict):
+        session._adventure_player_text = ""
+        # A reward's faction standing is written onto the session's lore copy; that copy can be missing
+        # or older than the record's, so it starts from the record and the record takes the result.
+        session.campaign_lore_state = record.lore_authority
+        # D-187: a fight this command ended reaches the adventure hooks (aftermath offer, combat count).
+        ended = ({"combat_ended": True, "end_reason": session.world_state["combat"].get("end_reason")}
+                 if not session.world_state["combat"].get("active") else {})
+        transitions = session.evaluate_quest_events(
+            quest_before, {"action": "species_action", "species_action": request.action,
+                           "status": "resolved", **ended},
+        )
+        record.lore_authority = session.campaign_lore_state
+        # A session without a copy stays without one: a later turn moves only the record's lore, so a copy
+        # left here would turn stale. A copy that was already there (hear, a paid reward, Undo, a rolled-back
+        # turn) takes the new record lore: a quest command or the next turn reads it before the record.
+        session.campaign_lore_state = None if session_lore_snapshot is None else record.lore_authority
+        if transitions:
+            result["effects"]["quest_outcomes"] = transitions
+    # D-003: an award this command paid (a fight it ended, a bounty it closed) is announced by this
+    # command and its history entry, not one turn late by the next play turn (whose Undo would repeat it).
+    paid = session._publish_level_up({}).get("level_up")
+    import xp
+    lines = [xp.award_line(paid)] if paid is not None else []
+    lines += session._take_xp_unrecorded()  # D-061: a forfeited award's line goes the same way
+    if lines:
+        result["message"] = f"{result['message']} {' '.join(lines)}"
+    return result
+
+
 def register_species_routes(
     application: FastAPI,
     *,
@@ -100,48 +147,7 @@ def register_species_routes(
 
             response_payload = None
             try:
-                quest_before = copy.deepcopy(session.world_state)
-                result = session.resolve_species_trait_action(
-                    request.action,
-                    form=request.form,
-                    ancestry=request.ancestry,
-                    armed=request.armed,
-                    **({"healing_amount": request.healing_amount, "remove_poisoned": request.remove_poisoned}
-                       if request.action == "lay_on_hands" else {}),
-                    **({"draconic_ancestry": request.draconic_ancestry} if request.action == "choose_draconic_ancestry"
-                       else {"shape": request.shape, "target_id": request.target_id} if request.action == "breath_weapon"
-                       else {}),
-                )
-                # D-105: a combat species action can end the turn and its damage (Inner Radiance) can drop a quest
-                # target; like the play turn, the quest owner reads this command's own before/after world. The
-                # panel command carries no player words, so last turn's text must not ask for work here.
-                if (quest_before.get("combat") or {}).get("active") and isinstance(result.get("effects"), dict):
-                    session._adventure_player_text = ""
-                    # A reward's faction standing is written onto the session's lore copy; that copy can be missing
-                    # or older than the record's, so it starts from the record and the record takes the result.
-                    session.campaign_lore_state = record.lore_authority
-                    # D-187: a fight this command ended reaches the adventure hooks (aftermath offer, combat count).
-                    ended = ({"combat_ended": True, "end_reason": session.world_state["combat"].get("end_reason")}
-                             if not session.world_state["combat"].get("active") else {})
-                    transitions = session.evaluate_quest_events(
-                        quest_before, {"action": "species_action", "species_action": request.action,
-                                       "status": "resolved", **ended},
-                    )
-                    record.lore_authority = session.campaign_lore_state
-                    # A session without a copy stays without one: a later turn moves only the record's lore, so a copy
-                    # left here would turn stale. A copy that was already there (hear, a paid reward, Undo, a rolled-back
-                    # turn) takes the new record lore: a quest command or the next turn reads it before the record.
-                    session.campaign_lore_state = None if session_lore_snapshot is None else record.lore_authority
-                    if transitions:
-                        result["effects"]["quest_outcomes"] = transitions
-                # D-003: an award this command paid (a fight it ended, a bounty it closed) is announced by this
-                # command and its history entry, not one turn late by the next play turn (whose Undo would repeat it).
-                paid = session._publish_level_up({}).get("level_up")
-                import xp
-                lines = [xp.award_line(paid)] if paid is not None else []
-                lines += session._take_xp_unrecorded()  # D-061: a forfeited award's line goes the same way
-                if lines:
-                    result["message"] = f"{result['message']} {' '.join(lines)}"
+                result = _run_species_action(record, session, request, session_lore_snapshot)
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
                     action_id=action_id,
