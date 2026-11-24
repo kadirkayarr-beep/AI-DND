@@ -733,8 +733,6 @@ def ensure_npc_enemy_stats(npc):
         npc["damage_dice"] = 1
     if "damage_modifier" not in npc:
         npc["damage_modifier"] = 0
-    # Ensure base combat stats
-    game.ensure_npc_combat_stats(npc)
     return npc
 
 def ensure_npc_combat_stats(npc):
@@ -911,7 +909,7 @@ def _finish_species_player_turn():
         and state.get("celestial_revelation_turns_remaining", 0) > 0
     ):
         amount = character.get("proficiency_bonus", 2)
-        combat = game.ensure_combat_state()
+        game.ensure_combat_state()
         reachable = effect_targeting.eligible_effect_targets(game._session(), "player", game.INNER_RADIANCE_SPEC)
         for npc in game._session().world_state.get("npcs", []):
             if not isinstance(npc, dict) or npc.get("id") not in reachable:
@@ -2037,6 +2035,8 @@ def _combat_narration(result):
         text = "Bu tepki fırsatını kullanmazsın."
     else:
         return "Bu saldırı gerçekleşmez."
+    if outcome in ("miss", "hit", "critical_hit"):
+        text += weapon_attack.roll_note(result, "hedefin Zırh Sınıfı")
     if result.get("target_status") == "dead":
         text += f" {target} ölür."
     elif result.get("target_status") == "unconscious":
@@ -2089,6 +2089,7 @@ def _enemy_exchange_text(enemies, named=None):
             subject = (f"{public_actor} adlı rakibinin"
                        if npc is not None and living_world.npc_name_known_to_player(npc) else None)
             first = public_actor
+        before = len(text)
         if enemy.get("before_player") and enemy.get("outcome") == "miss":
             text += f" {first} senden önce davranıp saldırır; seni ıskalar."
         elif enemy.get("before_player") and enemy.get("outcome") in ("hit", "critical_hit"):
@@ -2102,6 +2103,8 @@ def _enemy_exchange_text(enemies, named=None):
             text += (f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın." if subject
                      else f" {first} karşı saldırıya geçer; {kind and 'kritik bir vuruşla '}sana isabet eder; "
                           f"{enemy['damage']} hasar alırsın.")
+        if len(text) > before:
+            text += weapon_attack.roll_note(enemy, "senin Zırh Sınıfın")
         check = enemy.get("concentration_check")  # 4C.4b: the engine's Constitution save, told as it fell
         if isinstance(check, dict) and check.get("kept"):
             text += (f" Konsantrasyonunu korursun ({check['spell_id']}; Dayanıklılık kurtarması "

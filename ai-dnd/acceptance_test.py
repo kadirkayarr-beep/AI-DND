@@ -101,7 +101,7 @@ results = []
 contradictions = 0
 state_issues = 0
 
-def check_contradiction(ar, narration, expected_failure=None):
+def check_contradiction(ar, narration, _expected_failure=None):
     """Check if narration contradicts mechanical result"""
     outcome = ar.get('outcome')
     if outcome in ('failure', 'critical_failure'):

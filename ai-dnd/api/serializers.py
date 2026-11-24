@@ -797,7 +797,7 @@ def serialize_session_state(
     quest_view = quest_log.view(
         world, lore_state if lore_state is not None else getattr(session, "campaign_lore_state", None)
     )
-    quest_state = quest_log.legacy_quests(world)
+    quest_state = quest_log.api_quest_records(world)
     offers = [
         {
             "quest_id": item["quest_id"],

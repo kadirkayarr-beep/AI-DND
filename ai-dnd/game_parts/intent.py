@@ -14,10 +14,6 @@ import interaction_adventure
 import money_owner
 
 
-def is_dialogue_or_emotion(player_input):
-    """Keep ordinary conversation, questions and feelings out of skill checks."""
-    return game.is_npc_dialogue_input(player_input)
-
 def _is_negated_dialogue_action(player_input):
     """Keep explicit negative speech acts from opening an NPC conversation."""
     text = game._normalize_turkish_typos(
@@ -370,7 +366,6 @@ def known_player_action_narration(player_input):
     """Narrate common explicit actions without asking the model to control the hero."""
     world_state = game._session().world_state
     text = player_input.casefold().strip()
-    npc_name = game._current_npc_name()
     location = game.location_display_name()
 
     if re.search(r"\b(masaya oturuyorum|oturuyorum)\b", text):
@@ -680,17 +675,6 @@ def resolve_python_world_action(player_input):
         game._mark_lock_seen(game._session().world_state, door)  # W03: the player was just shown the lock
         return f"{door['name']} {state}. {door['description']}"
     return None
-
-def analyze_player_action(
-    player_input,
-    character_class,
-    proficient_skills
-):
-    """Compatibility wrapper for the former action analyzer entry point."""
-    intent = game.validate_intent(game.normalize_intent(game.parse_player_intent(player_input), player_input), player_input)
-    if intent.get("intent") in {"stealth", "perception", "investigation", "search", "door"}:
-        return {"action_type": "check", "skill": intent.get("skill", "Perception"), "difficulty": intent.get("difficulty", "medium")}
-    return {"action_type": "narrative"}
 
 def _travel_destination_reference_in_text(text):
     """Use the last named location as the destination in an explicit travel command."""
@@ -1697,7 +1681,6 @@ def normalize_intent(raw_intent, player_input):
         confidence = 0.0
 
     # Normalize only for matching; preserve the player's original wording.
-    normalized_input = game._normalize_turkish_typos(player_input)
     unquoted_input = game._normalize_turkish_typos(
         living_world._text_outside_quotes(str(player_input))
     )
@@ -1788,12 +1771,6 @@ def normalize_intent(raw_intent, player_input):
     if isinstance(weapon_word, str) and weapon_word.strip():
         normalized["weapon_word"] = weapon_word.strip()[:40]  # only ever given to the weapon catalog (gear)
     return normalized
-
-def update_world_state_from_player(player_input):
-    """Compatibility wrapper; all travel decisions use the central resolver."""
-    intent = game.validate_intent(game.normalize_intent(game.parse_player_intent(player_input), player_input), player_input)
-    result = game.execute_intent(intent, player_input)
-    return result
 
 def execute_intent(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None):
     if check_feature is None:

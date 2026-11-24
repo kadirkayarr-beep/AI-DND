@@ -382,7 +382,7 @@ sys.exit(owner.run("http://offline.invalid", "http://offline.invalid",
 
         class ControlledDatetime(datetime):
             @classmethod
-            def now(cls, tz=None):
+            def now(cls, _tz=None):
                 value = anchor + timedelta(seconds=direction * next(reads))
                 observations.append(value.isoformat())
                 return value

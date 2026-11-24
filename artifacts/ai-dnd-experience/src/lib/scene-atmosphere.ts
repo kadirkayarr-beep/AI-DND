@@ -35,8 +35,7 @@ export const MOTE_POOL = 8;
 export const FOG_BANDS = 2;
 export const ATMOSPHERE_ANIMATED_MAX = MOTE_POOL + FOG_BANDS;
 export const EVENT_EFFECT_BUDGET = MAX_ACTIVE_EFFECTS - ATMOSPHERE_ANIMATED_MAX;
-/** Crossfade between presets, mirrored by the transition duration in scene-atmosphere-layer.css. */
-export const CROSSFADE_MS = 1500;
+// Crossfade between presets is 1500 ms, mirrored by the transition duration in scene-atmosphere-layer.css.
 
 /**
  * The engine's time_of_day is authoritative. Only 'day' is split, by the campaign clock:
@@ -163,7 +162,7 @@ export function rgbaCss(c: Rgba): string {
   return `rgba(${c[0]},${c[1]},${c[2]},${c[3].toFixed(4)})`;
 }
 
-export type WeatherVeil = {
+type WeatherVeil = {
   /** CSS background of the fixed, pointer-events-none veil above the page (same look as the old ::before). */
   background: string;
   backgroundSize?: string;
@@ -238,7 +237,7 @@ export const WEATHER_TABLE: Record<AtmosphereWeather, WeatherPreset> = {
 };
 
 /** Per-theme layer multipliers, from V4. cs darkens body colours in the night theme. */
-export const ATMOSPHERE_THEME_SCALE: Record<AtmosphereTheme, {
+const ATMOSPHERE_THEME_SCALE: Record<AtmosphereTheme, {
   cs: number; tint: number; hue: number; bloom: number; win: number; vig: number; fog: number; mote: number; mc: number;
 }> = {
   night: { cs: 0.3, tint: 2.5, hue: 1.5, bloom: 0.22, win: 0.22, vig: 1, fog: 1.6, mote: 0.3, mc: 1 },

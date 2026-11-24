@@ -138,10 +138,30 @@ def _heard_first(world: Mapping[str, Any], places: list[dict[str, Any]]) -> list
     return sorted(places, key=rank)
 
 
-def beyond_list(raw_front: Mapping[str, Any], listed: Mapping[str, Any]) -> dict[str, Any]:
-    """D-331: a go_to reading that names no listed place. After a person it follows them; else the walk fails."""
+def _line_backs_person(world: Mapping[str, Any], listed: Mapping[str, Any], person: str, line: str) -> bool:
+    """The words say who is followed: the person's name or role, or what shows of them; "onun" only for the one
+    spoken to or the only one listed."""
+    import everyday_actions
+    import game
+    npc = next((n for n in everyday_actions._present_people(world) if n.get("id") == person), None)
+    if npc is None:
+        return False
+    named = everyday_actions._named_person(world, line, game._entity_reference_in_text)
+    if named is not None and named.get("id") == person:
+        return True
+    if everyday_actions._person_by_sight([npc], line):
+        return True
+    pronoun = any(word in everyday_actions._fold(line).split() for word in ("onun", "onu", "ona", "o"))
+    return pronoun and (listed.get("speaking_with") == person or len(listed["people"]) == 1)
+
+
+def beyond_list(raw_front: Mapping[str, Any], listed: Mapping[str, Any], world: Mapping[str, Any] | None = None,
+                line: str = "") -> dict[str, Any]:
+    """D-331: a go_to reading that names no listed place. After a person it follows them (the line must back the
+    person the reading chose); else the walk fails."""
     person = raw_front.get("person_id")
-    if isinstance(person, str) and person in [row["id"] for row in listed["people"]]:
+    if (isinstance(person, str) and person in [row["id"] for row in listed["people"]]
+            and (world is None or _line_backs_person(world, listed, person, line))):
         return {"kind": "follow", "id": person}
     word = raw_front.get("person_word")
     if isinstance(word, str) and word.strip() not in ("", NONE):

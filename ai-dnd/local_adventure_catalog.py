@@ -7,7 +7,6 @@ import copy
 import math
 
 CATALOG_ID = "stone_trail_local_v1"
-SOURCE = "PROJECT_AUTHORED_CAMPAIGN_CONTENT"
 KEY = "local_adventure_v1"
 CAMP, FORK = "stone_trail_camp", "stone_trail_fork"
 ENTRY, HALL, VAULT = "stone_trail_entry", "stone_trail_hall", "stone_trail_vault"
@@ -52,11 +51,6 @@ INTERACTIONS = {
     "stone_lever": {"location": HALL, "name": "Taş Kaldıraç", "hazard_id": "stone_rubble"},
 }
 SCOUTING = {"dc": 15, "seconds": 60}
-PROVENANCE = {
-    "source_type": SOURCE,
-    "source_id": CATALOG_ID,
-    "note": "Owner-approved local campaign fiction; not a Forgotten Realms publication.",
-}
 # Rule metadata is separate from the immutable V1 geography saved in campaigns.
 SEARCH_POLICIES = {
     room: {"skill": "Perception", "dc": 15, "retry": "careful_second_pass", "seconds": 360}
@@ -67,11 +61,6 @@ INTERACTION_SECONDS = 6
 ROUTE_POLICIES = {
     "stone_camp_ruins": {"terrain_max_pace": "normal", "good_road": False,
                         "navigation_risk": "unmarked branching footpath", "weather": "clear"},
-}
-ENTITY_PROVENANCE = {
-    identity: dict(PROVENANCE)
-    for group in (LOCATIONS, DOORS, EXITS, DISCOVERIES, TRAPS, HAZARDS, INTERACTIONS)
-    for identity in group
 }
 INVESTIGATION = {
     "stone_secret": "Taş çizgilerinin bir kapı mandalına bağlandığını anladın.",

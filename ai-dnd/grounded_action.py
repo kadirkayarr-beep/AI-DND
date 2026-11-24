@@ -552,10 +552,18 @@ def _noun_hit(noun: str, tokens: list[str]) -> bool:
     return False
 
 
-def _topic_place(world: dict[str, Any], cands: list[dict[str, Any]], *, said_only: bool = False) -> dict[str, Any] | None:
+def _last_is_fresh(world: dict[str, Any]) -> bool:
+    """The place last in play was set this line or the one before (it is stamped when set; an unstamped one is old)."""
+    stamp = (world.get(KEY) or {}).get("last_target_turn")
+    return type(stamp) is int and (world.get("flags") or {}).get("turn_index", 0) - stamp <= 1
+
+
+def _topic_place(world: dict[str, Any], cands: list[dict[str, Any]], *, said_only: bool = False,
+                 max_age_turns: int = 6, fresh_last_only: bool = False) -> dict[str, Any] | None:
     """The place the talk was just about, else (for a pointing word) the place last in play."""
-    said = npc_statements.last_said_place(world)
-    wanted = (said.get("location_id") or said.get("id")) if said else (None if said_only else last_target_id(world))
+    said = npc_statements.last_said_place(world, max_age_turns=max_age_turns)
+    stale = said_only or (fresh_last_only and not _last_is_fresh(world))
+    wanted = (said.get("location_id") or said.get("id")) if said else (None if stale else last_target_id(world))
     return next((c for c in cands if c["id"] == wanted and c["kind"] in {"place", "reference", "here"}), None)
 
 
@@ -567,7 +575,6 @@ def _is_bare_go(step: dict[str, Any]) -> bool:
 def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[str, Any],
          verb: str | None) -> dict[str, Any]:
     """Pick the entity a clause is about. Returns {'target', 'part', 'score', 'ambiguous'}."""
-    flags = world.get("flags", {}) if isinstance(world.get("flags"), dict) else {}
     memory = world.get(KEY) if isinstance(world.get(KEY), dict) else {}
     near = memory.get("near_target_id")
     last = memory.get("last_target_id")
@@ -639,10 +646,12 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
             if cand["id"] not in explicit_name_ids or cand["id"] in strict_name_ids
         ]
     if not scored and verb in {"go", "approach", "enter"} and any(t in _THERE for t in clause_tokens):
-        topic = _topic_place(world, cands)
+        topic = _topic_place(world, cands, max_age_turns=1, fresh_last_only=True)  # "oraya": a place of this or the line before
         if topic is not None:
             scored.append((30, topic))
     if not scored and any(t in _PRONOUNS for t in clause_tokens):
+        if any(t in _THERE for t in clause_tokens) and not _last_is_fresh(world):
+            last = None  # "oraya" never means a place last in play long ago
         for cand in cands:
             if cand["id"] in (last, near):
                 scored.append((30, cand))
@@ -757,7 +766,6 @@ _ITEM_GOAL = re.compile(r"\b(?:anahtar|para|altin|silah|hazine|esya|ipucu|iz)\w*
 
 
 def _detail_in(tokens: list[str]) -> str | None:
-    text = " ".join(tokens)
     for key in sorted(DETAILS, key=len, reverse=True):
         words = key.split()
         if len(words) > 1:
@@ -796,11 +804,13 @@ def note_near(world: dict[str, Any], target_id: str | None) -> None:
     state["near_target_id"] = target_id
     if target_id:
         state["last_target_id"] = target_id
+        state["last_target_turn"] = world.get("flags", {}).get("turn_index", 0)
 
 
 def note_last(world: dict[str, Any], target_id: str) -> None:
     """Record what is now in play without moving the player to it."""
     _memory(world)["last_target_id"] = target_id
+    _memory(world)["last_target_turn"] = world.get("flags", {}).get("turn_index", 0)
 
 
 def last_target_id(world: dict[str, Any]) -> str | None:
@@ -1168,6 +1178,7 @@ class _Run:
     def near(self, target_id):
         self.memory["near_target_id"] = target_id
         self.memory["last_target_id"] = target_id
+        self.memory["last_target_turn"] = self.world.get("flags", {}).get("turn_index", 0)
 
 
 def _door_state_text(door: dict[str, Any]) -> str:
@@ -1604,6 +1615,7 @@ def _enter(run: _Run, place: dict[str, Any], *, prefix: str = "") -> dict[str, A
     _carry_escorts(run, place["id"])
     run.near(None)
     run.memory["last_target_id"] = place["id"]
+    run.memory["last_target_turn"] = run.world.get("flags", {}).get("turn_index", 0)
     if record.get("place_kind") in local_places.PLACE_KINDS:
         npc, feature = local_places.furnish(run.world, record, create_npc=run.game.create_npc_from_ai,
                                             create_feature=run.game.create_local_feature)
@@ -1984,6 +1996,7 @@ def _observe_detail(run: _Run, step, key: str) -> dict[str, Any]:
         return _receipt(step["verb"], "completed", host, found=False, detail=key,
                         text=f"{host['label']} çevresine bakıyorsun; görünürde bir {spec['name'].lower()} yok.")
     run.memory["last_target_id"] = feature.get("id") if feature else None
+    run.memory["last_target_turn"] = run.world.get("flags", {}).get("turn_index", 0)
     run.inspections.append({"target_name": feature.get("name") if feature else spec["name"],
                             "target_kind": "feature", "found": True})
     text = feature.get("description") if feature else spec["name"]
@@ -2030,6 +2043,7 @@ def _do_inspect(run: _Run, step) -> dict[str, Any]:
         npc = target["record"]
         looks = npc.get("appearance") or "Sıradan giyimli biri."
         run.memory["last_target_id"] = npc["id"]
+        run.memory["last_target_turn"] = run.world.get("flags", {}).get("turn_index", 0)
         return _receipt("inspect", "completed", target, text=f"{target['label']}: {looks}")
     if target["kind"] == "feature":
         feature = target["record"]
@@ -2559,6 +2573,7 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
             said = f" — {living_world.public_npc_name(speaker)} söz etmişti" if speaker else ""
             run.near(None)
             run.memory["last_target_id"] = record["id"]
+            run.memory["last_target_turn"] = run.world.get("flags", {}).get("turn_index", 0)
             return _receipt("wander", "completed", {"id": record["id"], "label": record.get("name")},
                             text=f"{lead}Bir köşede {record.get('name')} tabelasını görüyorsun{said}.")
         break
@@ -2572,6 +2587,7 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
         npc_statements.overheard_place(run.world, place["id"], place.get("name", ""))
         run.near(None)
         run.memory["last_target_id"] = place["id"]
+        run.memory["last_target_turn"] = run.world.get("flags", {}).get("turn_index", 0)
         return _receipt("wander", "completed", {"id": place["id"], "label": place.get("name")},
                         text=f"{lead}Bir köşede laflayanlardan bir söz kapıyorsun: {talk['public_line']}")
     order = sorted(_DISCOVERY_KINDS, key=lambda k: _seed(run.world, settlement, "discover", k))
@@ -2881,7 +2897,6 @@ def _direct_door_step(step) -> bool:
         return False
     # A means of opening is not part of the registered door name. Possession
     # and success are checked by the existing unlock owner, not this parser.
-    lockpick_prefix = prefix[-1:] == ["maymuncukla"] or prefix[-2:] == ["maymuncuk", "ile"]
     if step["verb"] == "open":
         if prefix[-1:] == ["maymuncukla"]:
             prefix = prefix[:-1]
@@ -3002,13 +3017,6 @@ def spoken_request(text: Any) -> str | None:
         if _REQUEST_CLAUSE.search(folded) and not re.search(r"\w+(?:mak|mek) isti", folded):
             return clause.strip()
     return None
-
-
-def _looks_like_speech(session, player_input: str) -> bool:
-    try:
-        return bool(session.is_npc_dialogue_input(player_input))
-    except Exception:
-        return False
 
 
 _SAID_AT_THE_END = re.compile(r"\b(?:diyorum|dedim|soyluyorum|soyledim|bagiriyorum|sesleniyorum)\s*$")

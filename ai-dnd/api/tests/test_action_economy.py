@@ -425,12 +425,6 @@ class ActionEconomyTests(unittest.TestCase):
         self.assertTrue(self.r["base_action_spent"])
         self.assertIsNone(self.r["opportunity"])
 
-    def test_spell_hook_preserves_metadata_without_spell_implementation(self):
-        ae.prepare_spell_hook(self.s, "player", {"event": "actor_moves", "actor_id": "player"},
-                              {"spell_id": "future-rule", "casting_action": "action", "concentration": "future-owner"})
-        self.assertEqual(self.r["ready"]["spell_metadata"]["spell_id"], "future-rule")
-        self.assertTrue(self.r["base_action_spent"])
-
     def test_save_resume_resources_not_refreshed(self):
         step(self.s, {"kind": "move", "distance_ft": 10}, {"kind": "dash"})
         self.r["reaction_spent"] = True

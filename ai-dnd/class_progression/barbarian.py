@@ -203,7 +203,6 @@ def _barbarian_four_prerequisite(session) -> str | None:
         return noncaster.asi_consistency_problem(character, core._barbarian_asi_options(session))
     except (ValueError, KeyError, TypeError):
         return "previous_level_three_state_invalid"
-    return None  # noqa: V201 (frozen dead code, deletion is 4c)
 
 
 FAST_MOVEMENT_FT = 10  # Barbarian Fast Movement, features table level 5 (+10 ft Speed)

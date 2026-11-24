@@ -1,8 +1,8 @@
 // Plan part D: main-menu music. One looped track, started when the home screen opens, faded out when it
 // closes. Browsers may refuse to play before a gesture; then the first tap, key press or touch starts it.
 // Nothing here touches the saved game.
-export const MENU_MUSIC_SRC = 'audio/nordisk-ritual.mp3';
-export const MENU_MUSIC_VOLUME = 0.35;
+const MENU_MUSIC_SRC = 'audio/nordisk-ritual.mp3';
+const MENU_MUSIC_VOLUME = 0.35;
 const FADE_MS = 900;
 
 const GESTURES = ['pointerdown', 'keydown', 'touchstart'] as const;

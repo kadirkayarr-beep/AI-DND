@@ -8,7 +8,7 @@ import {
 import './scene-atmosphere-layer.css';
 
 /** Deterministic pseudo-random in 0..1 so motes keep their place across renders. */
-export function seeded(i: number, j: number): number {
+function seeded(i: number, j: number): number {
   const x = Math.sin(i * 91.7 + j * 12.9898) * 43758.5453;
   return x - Math.floor(x);
 }
