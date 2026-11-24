@@ -1487,6 +1487,84 @@
   "session_bound": true,
   "signature": "(route, player_input)"
  },
+ "_fx_attack_ambiguous_target": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, result, target_npc)"
+ },
+ "_fx_attack_combat_end": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, enemy_actions, result)"
+ },
+ "_fx_attack_no_target": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, npc_target, result, target_id, target_npc)"
+ },
+ "_fx_attack_out_of_turn": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, combat, result)"
+ },
+ "_fx_attack_started": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, enemy_actions, result, started, target_npc, world_state)"
+ },
+ "_fx_check_skill": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, deterministic, explore_type, intent_type, player_input, skill)"
+ },
+ "_fx_combat_interrupt": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, combat_was_active, intent_type, result)"
+ },
+ "_fx_door_inspection": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, player_input, result)"
+ },
+ "_fx_inventory_reply": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, inventory_reply, result)"
+ },
+ "_fx_negated_attack": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, intent_type, player_input, result)"
+ },
+ "_fx_query": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, npc_target, player_input, query_type, result)"
+ },
+ "_fx_skill_check": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, check_evidence, check_feature, difficulty, intent, intent_type, npc_target, player_input, result, skill)"
+ },
+ "_fx_travel": {
+  "kind": "function",
+  "module": "game_parts.turn_front_steps",
+  "session_bound": true,
+  "signature": "(*, before, combat_was_active, intent, intent_type, result, world_state)"
+ },
  "_generic_no_change_response": {
   "kind": "function",
   "module": "game_parts.narration",
