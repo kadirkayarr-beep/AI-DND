@@ -937,7 +937,7 @@ def is_merchant_search(value: Any) -> bool:
 
 
 def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
-    """Install and validate bounded scene state; migrate legacy feature IDs."""
+    """Install and validate bounded scene state."""
     state = world_state.get("scene_state")
     if state is None:
         state = initial_scene_state()

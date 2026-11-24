@@ -8,25 +8,41 @@ import unittest
 
 import living_world
 from api.tests import test_campaign_api
-from api.tests import test_narration_source_record as narration_record
+from api.tests.town_seed import fixed_town
 
 
 class FreshCampaignWritesNoOldShapes(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = test_campaign_api.CampaignApiTests.asyncSetUp
     asyncTearDown = test_campaign_api.CampaignApiTests.asyncTearDown
-    started = narration_record.WriterBoundary.started
 
     async def test_a_fixed_town_campaign_has_a_seed_and_complete_records(self):
-        _campaign_id, record = await self.started(7517)
+        start = {"setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                 "region_id": "fr:region:the_north", "starting_location_id": "fr:city:neverwinter"}
+        with fixed_town(self, 7517):
+            created = (await self.http.post("/api/game/campaigns", json={"campaign_start": start})).json()
+        record = self.manager.get(created["session_id"])
         world = record.game_session.world_state
         state = living_world.ensure_scene_state(world)
         self.assertTrue(state["campaign_seed"])
+        session = record.game_session
+        world["locations"][world["location"]]["scene_kind"] = "city"  # so the catalog has candidates here
+        self.assertIn("scene_kind", world["locations"][world["location"]])
+        living_world.set_ambient_context(
+            world, {"environment": "city", "time_of_day": "night", "weather": "storm"}, session.character, "d517-fixed")
+        for turn in range(1, 6):  # the live writer, so the loops below check real records
+            living_world.select_and_record_ambient_event(world, world["location"], turn)
+        state = living_world.ensure_scene_state(world)
+        self.assertTrue(state["ambient_event_history"], "HISTORY-EMPTY")
         for item in state["ambient_event_history"]:
             self.assertTrue(item.get("instance_id"))
         for scene in state["scenes"].values():
             event = scene.get("ambient_event")
             if isinstance(event, dict):
                 self.assertTrue(event.get("instance_id"))
+        if not world.get("features"):  # a fresh start has none: make one through the live writer
+            session.create_local_feature({"location": world["location"], "name": "Meşe masa",
+                                          "description": "Duvar kenarında duran sağlam bir masa."})
+        self.assertTrue(world["features"], "no feature was written")
         for feature in world.get("features", []):
             self.assertTrue(feature.get("id"))
             self.assertFalse(feature["id"].startswith("feature_legacy_"))
