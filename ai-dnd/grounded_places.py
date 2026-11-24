@@ -33,9 +33,17 @@ def searchable_kinds(session) -> list[dict[str, str]]:
             for kind, noun in kinds if kind not in held] if _settlement(world) else []
 
 
-def known_places_question(session) -> str | None:
-    """D-331: a walk that names nothing the town has asks which of the places the player can see."""
-    names = [rec.get("name") for rec in _town_places(session.world_state).values() if rec.get("name")][:4]
+def known_places_question(session, player_input: str = "") -> str | None:
+    """D-331: a walk that names nothing the town has asks which of the places the player can see.
+
+    A line that names the place the player already stands in is answered "Zaten <place> içindesin." instead."""
+    places = _town_places(session.world_state)
+    here_id = session.world_state.get("location")
+    if here_id in places and player_input:
+        from grounded_action import _line_names_place
+        if _line_names_place(session.world_state, player_input, places[here_id]) and places[here_id].get("name"):
+            return f"Zaten {places[here_id]['name']} içindesin."
+    names = [rec.get("name") for rec in places.values() if rec.get("name")]
     if not names:
         return None
     joined = names[0] if len(names) == 1 else f"{', '.join(names[:-1])} ve {names[-1]}"

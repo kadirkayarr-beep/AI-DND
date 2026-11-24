@@ -1470,7 +1470,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         if (isinstance(raw_front, dict) and raw_front.get("kind") == "go_to"
                 and interaction_mode not in {"say", "ask_dm"}
                 and not timed_gameplay.names_a_route(world, player_input)):  # a timed road is walked by its owner
-            return front_proposal.beyond_list(raw_front, listed)  # E5: a walk to nowhere listed fails; one after a person follows
+            return front_proposal.beyond_list(raw_front, listed, world, player_input)  # E5: a walk to nowhere listed fails; one after a person follows
         return None
     import grounded_action
     import npc_speech_boundary
@@ -1649,9 +1649,7 @@ def _front_economic_offer(route, player_input):
         return result
     if purpose in {"room", "room_quote"}:
         if not bold_acts._SERVER.search(bold_acts.fold(session, str(person.get("role", "")))):
-            result = bold_acts._reply(session, economic_actions._CLARIFY["npc_unknown"], "narrative", "clarification", None, [], reason_code="npc_unknown")
-            result["action_result"]["success"] = False
-            return result
+            return None  # no room to give or quote here: the line goes on to speak_to, not to the GIVE clarification
         if purpose == "room_quote":
             result = bold_acts.room_quote(session, person)
             action = result["action_result"]
@@ -2312,4 +2310,8 @@ def _front_route_turn(front, gate, player_input, interaction_mode, action_id, se
                 walked["narration"] = f"{road_warning} {walked.get('narration') or ''}".strip()
             return walked
         front_proposal.note(game._session(), "fallback:no_walk")
+        place = (game._session().world_state.get("locations") or {}).get(front["id"])
+        if isinstance(place, dict) and place.get("name") and not str(front["id"]).startswith(front_proposal.KIND_PREFIX):
+            # "Hana nasıl giderim?": the place the reading named is what the answer is about, not a rumour
+            game._session()._front_talk = {"asks": "place", "place_id": front["id"]}
     return None
