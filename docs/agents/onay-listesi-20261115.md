@@ -489,3 +489,11 @@ Bayrak açık (AI_DND_FRONT_PROPOSAL=1, yerel oyunun varsayılanı) kırık test
 | Test | Değişiklik | İşaret |
 |---|---|---|
 | `ai-dnd/scripts/quality_gate/size_lock.json`, `test_quality_size_budget` (Task 8) | kilit "hiçbir dosya büyümez" yerine "hiçbir dosya `part_max` (2500) geçmez" oldu: yalnız `part_max` üstündeki 10 py ve 1 ts dosya ile 40 uzun işlev bugünkü boyutlarıyla dondu; 1368 küçük dosya 2500 satıra kadar büyüyebilir (spec: bugünkü büyükler dondurulur) | GEVŞETME OLABİLİR |
+
+## 27. Temizlik 2 (dal `task/temizlik-2-20261124`)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_a_rebound_validate_intent_reaches_a_moved_caller` (test_engine_parts_pilot) | silindi: yalnız silinen uyumluluk sarmalayıcısı `analyze_player_action`ı sınıyordu, üretimde çağıranı yoktu | GEVŞETME OLABİLİR |
+| `test_a_rebound_execute_intent_reaches_its_moved_caller` (test_engine_parts_pilot) | silindi: yalnız silinen `update_world_state_from_player` sarmalayıcısını sınıyordu, üretimde çağıranı yoktu | GEVŞETME OLABİLİR |
+| `test_intent_helpers_answer_as_before` (test_engine_parts_pilot) | iki assert `is_dialogue_or_emotion` yerine canlı `is_npc_dialogue_input` ile aynı sıkılıkta yeniden yazıldı (validate_intent bunu çağırıyor) | GEVŞETME OLABİLİR |

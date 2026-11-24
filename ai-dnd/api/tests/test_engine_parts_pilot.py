@@ -752,6 +752,8 @@ class IntentPart(unittest.TestCase):
 
     def test_intent_helpers_answer_as_before(self):
         # expected values captured on d9bbb857 before the move; a new session's places are tavern, forest, castle
+        self.assertTrue(game.is_npc_dialogue_input("Merhaba, nasılsın?"))
+        self.assertFalse(game.is_npc_dialogue_input("Kılıcımı çekiyorum."))
         self.assertTrue(game._reads_as_question("Burası neresi?"))
         self.assertFalse(game._reads_as_question("Kapıyı açıyorum."))
         with fixed_town(self, 20261205):
