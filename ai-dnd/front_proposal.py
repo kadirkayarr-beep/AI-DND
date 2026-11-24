@@ -76,6 +76,7 @@ def listing(session) -> dict[str, Any]:
     """The real lists for this turn: who is here, where one can walk, what was really offered, what is in the bag."""
     import game
     import grounded_action
+    import grounded_places
     import world_threads
     from adventure import dialogue_jobs
 
@@ -111,7 +112,7 @@ def listing(session) -> dict[str, Any]:
         "places": [*({"id": WAY_OUT, "name": way_out} for _ in (way_out,) if way_out),
                    *({"id": c["id"], "name": f"dışarı: {c['label']}" if c["kind"] == "outside" else c["label"]}
                      for c in _heard_first(world, [c for c in found if c["kind"] in _PLACE_KINDS]))][:MAX_PLACES]
-                  + grounded_action.searchable_kinds(session)[:MAX_KINDS],
+                  + grounded_places.searchable_kinds(session)[:MAX_KINDS],
         "things": [{"id": c["id"], "name": c["label"]} for c in found if c["kind"] in _THING_KINDS][:MAX_THINGS],
         "offers": offers,
         "bag": _bag(world),
