@@ -96,3 +96,10 @@ Ruling: no new debt row - branch removed instead - new games write dicts only, o
 - G4 fix round 1: onay-listesi section 27 row added for test_pay_basis_of_an_old_save_comes_from_its_kind -> test_pay_basis_is_only_the_stored_one (gevsetme olabilir).
 - G5 fix round 1: ready_line_share, ENGINE_OWNERS and the 5 ReadyLineShare tests restored (Ruling above rewritten: kept for the pending K-BM-5 play measurement; cost if wrong: about 15 dead lines). onay-listesi section 27 has the G5 rows (gevsetme olabilir). Park D-582 (action_economy 'magic' Ready validator and spell_mechanic_unavailable branch now unreachable).
 - G5 RESULT: slot 9 label g5fix2: exit=0, Ran 472 tests (touched modules, front_proposal, interaction_adventure, 4 journey modules, 4 engine locks); ruff ratchet=0; vulture=0.
+
+## Closing gate (round 2)
+- RESULT slot 4 label t2-off (default flag, 3 shards, tree 59c98aba): tests 11298 skipped 183 failing_ids 1 PAR_EXIT=1; failing: api.tests.test_game_name.ProtectedIdsTests.test_env_variable_name_set_is_unchanged (36 != 37; AI_DND_PHASE8_LIVE_AUTHORIZED left with live_gate.py in G2).
+- Fix: PROTECTED_ENV_NAME_COUNT 37 -> 36, onay-listesi section 27 row (gevsetme olabilir). Slot 9 t2envfix exit=0, Ran 182 tests (test_game_name + 4 journey modules).
+- RESULT slot 4 label t2-fon (fon flag, 3 shards, after fix): tests 11298 skipped 181 failing_ids 0 PAR_EXIT=0.
+- Quality gate: ruff ratchet exit 0; vulture exit 0.
+- Ruling: default-flag full suite not rerun after the one-line count fix — only failure was that pin, targeted run green, fon full run on the fixed tree green — cost if wrong: a flag-off-only failure shows in CI.
