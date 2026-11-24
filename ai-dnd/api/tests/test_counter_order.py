@@ -13,7 +13,10 @@ from api.tests.journeys.schema import load_scenario
 
 # Recorded from the base commit (3dc830ec, before this task's change): scenario 22's punch turn with the player
 # winning initiative. The enemy acts only after the punch, so today's words must stay byte for byte the same.
-TODAY_AFTER_PLAYER = "Saldırın hedefi ıskalar. Rakibinin karşı saldırısı sana isabet eder; 1 hasar alırsın."
+# Oynayis-fix 2026-11-24 (approval list): the same words, now each attack also tells its d20, total and armour class.
+TODAY_AFTER_PLAYER = ("Saldırın hedefi ıskalar. Zar 5, toplam 10; hedefin Zırh Sınıfı 30. "
+                      "Rakibinin karşı saldırısı sana isabet eder; 1 hasar alırsın. "
+                      "Zar 19, toplam 22; senin Zırh Sınıfın 12.")
 
 
 class CounterOrder(JourneyCase):

@@ -200,6 +200,8 @@ def mask_spoken_questions(text, spoken_start):
         return text
     speech = text[spoken_start:]
     speech = re.sub(r"[^.!?;\n]+\?", lambda match: " " * len(match.group(0)), speech)
+    # "Görünce anlarsın", "bir tane alırsın": what a person says the player will find out or get is no state the narrator gives.
+    speech = re.sub(r"\b\w*[aeıiu]rs[ıi]n(?:[ıi]z)?\b", lambda match: " " * len(match.group(0)), speech, flags=re.IGNORECASE)
     return text[:spoken_start] + speech
 
 

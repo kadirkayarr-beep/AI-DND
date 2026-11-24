@@ -35,6 +35,15 @@ CHOICES = frozenset({
 })
 
 
+def roll_note(attack, armour_words):
+    """The d20 an attack already rolled, told as it fell: the roll, the total and the armour class it had to meet.
+    Nothing is rolled here; an attack with no attack roll (a save, a spell) tells none."""
+    roll, total, armour = attack.get("attack_roll"), attack.get("attack_total"), attack.get("target_ac")
+    if type(roll) is not int or type(total) is not int or type(armour) is not int:
+        return ""
+    return f" Zar {roll}, toplam {total}; {armour_words} {armour}."
+
+
 def fail(code, message):
     raise CombatRequestError(code, message, 400)
 
