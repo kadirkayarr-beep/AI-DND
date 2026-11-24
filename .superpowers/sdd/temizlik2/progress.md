@@ -91,3 +91,5 @@ Branch task/temizlik-2-20261124, stacked on 5f3fb391. Input: 51 rows round 1 ski
 ## G3 fix 1
 Fixed: campaign_validation no longer accepts plain-string NPC memory entries (red test SaveValidationRejectsStringMemory in test_npc_memory_dict_only; stricter, no check reduced). Ran 382 tests green + ruff ratchet + vulture exit 0.
 Ruling: no new debt row - branch removed instead - new games write dicts only, old saves do not matter - cost if wrong: an old save with string memory is rejected at load.
+- G4 RESULT: slot 9 label g4fix: exit=0, Ran 379 tests (test_temizlik2_dedupe, test_world_threads, test_thread_hiring, test_thread_errand, 4 journey modules, 4 engine locks); ruff ratchet=0; vulture=0. Reviewer proofs g4rev (145 tests) and g4rev2 (178 tests) exit=0.
+- G4 fix round 1: onay-listesi section 27 row added for test_pay_basis_of_an_old_save_comes_from_its_kind -> test_pay_basis_is_only_the_stored_one (gevsetme olabilir).
