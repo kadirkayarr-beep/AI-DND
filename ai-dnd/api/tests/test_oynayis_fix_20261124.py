@@ -188,3 +188,47 @@ class TextPurchase(_Town):
         self.assertEqual(reply.status_code, 200, reply.text)
         self.assertEqual(world["currency"]["player"], 100)
         self.assertEqual(self.beers(world), [])
+
+
+class TheRollIsShown(__import__("unittest").TestCase):
+    def test_the_player_attack_tells_its_roll_total_and_target_ac(self):
+        from unittest.mock import patch
+        import action_economy as ae
+        from api.tests.test_combat_lifecycle import ready
+        session, npc = ready()
+        with patch("game.roll_d20", return_value=7), patch("game.roll_damage", return_value=3), \
+             patch("game.ollama.chat", side_effect=AssertionError("no model")):
+            result = ae.execute(session, {"steps": [{"kind": "attack", "target_id": npc["id"]}]})
+        resolved = result["action_result"]["economy_steps"][0]["result"]
+        self.assertIsNotNone(resolved["attack_total"])
+        note = f"Zar {resolved['attack_roll']}, toplam {resolved['attack_total']}; hedefin Zırh Sınıfı {resolved['target_ac']}."
+        self.assertIn(note, result["narration"])
+        self.assertEqual(result["narration"], session._combat_narration(resolved))
+
+    def test_a_result_without_a_roll_tells_none(self):
+        import game
+        self.assertEqual(game._combat_narration({"outcome": "miss"}), "Saldırın hedefi ıskalar.")
+
+    def test_the_enemy_attack_tells_its_roll_total_and_your_ac(self):
+        import game
+        text = game._enemy_exchange_text([{"actor": "x", "outcome": "miss", "attack_roll": 9, "attack_total": 13,
+                                           "target_ac": 15}])
+        self.assertIn("seni ıskalar. Zar 9, toplam 13; senin Zırh Sınıfın 15.", text)
+        text = game._enemy_exchange_text([{"actor": "x", "outcome": "hit", "damage": 4, "attack_roll": 14,
+                                           "attack_total": 18, "target_ac": 15}])
+        self.assertIn("4 hasar alırsın. Zar 14, toplam 18; senin Zırh Sınıfın 15.", text)
+
+    def test_the_enemy_result_the_engine_makes_carries_the_roll(self):
+        from unittest.mock import patch
+        import action_economy as ae
+        from api.tests.test_combat_lifecycle import ready
+        session, npc = ready()
+        with patch("game.roll_d20", return_value=3), patch("game.roll_damage", return_value=3), \
+             patch("game.ollama.chat", side_effect=AssertionError("no model")):
+            result = ae.execute(session, {"steps": [{"kind": "attack", "target_id": npc["id"]}, {"kind": "end_turn"}]})
+        enemies = [e for step in result["action_result"]["economy_steps"] for e in step.get("result", step).get("enemy_actions", [])
+                   if e.get("outcome") in ("hit", "miss", "critical_hit")]
+        self.assertTrue(enemies, "the fixture's rival counter-attacks")
+        for enemy in enemies:
+            self.assertIn(f"Zar {enemy['attack_roll']}, toplam {enemy['attack_total']}; senin Zırh Sınıfın {enemy['target_ac']}.",
+                          result["narration"])
