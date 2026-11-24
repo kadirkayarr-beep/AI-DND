@@ -1,0 +1,56 @@
+# resolved_narration.py@final :: _narrate_resolved_turn  lines 6-145 (140)  blocks=52
+idx | lines | n | kind | in(direct) | out | ret/raise | markers | outputs | late-closure | inputs | nonlocal
+  0 | 7-8 | 2 | if messages is None: | 2(2) | 1 | 0/0 |  | messages |  | messages resolved_turn | 
+  1 | 10-10 | 1 | npc_target = resolved_turn.npc_target | 1(1) | 1 | 0/0 |  | npc_target |  | resolved_turn | 
+  2 | 11-17 | 7 | if npc_target is None and isinstance(resolved_turn.action_result, dict | 2(2) | 1 | 0/0 |  | npc_target |  | npc_target resolved_turn | 
+  3 | 19-19 | 1 | lore_context = resolved_turn.lore_context | 1(1) | 1 | 0/0 |  | lore_context |  | resolved_turn | 
+  4 | 20-22 | 3 | if lore_context is None: | 1(1) | 1 | 0/0 |  | lore_context |  | lore_context | 
+  5 | 24-29 | 6 | narration_only = not ( | 1(1) | 1 | 0/0 | money:1 | narration_only |  | resolved_turn | 
+  6 | 30-33 | 4 | emergence = incident_hooks.before_narration( | 2(2) | 1 | 0/0 |  | emergence |  | player_input resolved_turn | 
+  7 | 34-34 | 1 | narration_model_calls = 1 | 0(0) | 1 | 0/0 | model:1 | narration_model_calls |  |  | 
+  8 | 35-35 | 1 | from api.model_phase import resolved_narration_scope | 0(0) | 1 | 0/0 |  | resolved_narration_scope |  |  | 
+  9 | 36-36 | 1 | proposes_place = game._may_propose_local_place(resolved_turn, player_i | 2(2) | 1 | 0/0 |  | proposes_place |  | player_input resolved_turn | 
+ 10 | 37-37 | 1 | packet = game._rn_build_packet(lore_context=lore_context, messages=mes | 8(8) | 1 | 0/0 |  | packet |  | lore_context messages narration_only npc_target player_input proposes_place resolved_narration_scope resolved_turn | 
+ 11 | 38-38 | 1 | packet = packet if isinstance(packet, dict) else {} | 1(1) | 1 | 0/0 |  | packet |  | packet | 
+ 12 | 39-43 | 5 | if proposes_place: | 3(3) | 0 | 0/0 |  |  |  | packet proposes_place resolved_turn | 
+ 13 | 45-45 | 1 | rejected_scene_detail_proposal = False | 0(0) | 1 | 0/0 |  | rejected_scene_detail_proposal |  |  | 
+ 14 | 46-46 | 1 | rejected_scene_detail_proposal = game._rn_rejected_scene_detail(packet | 3(3) | 1 | 0/0 |  | rejected_scene_detail_proposal |  | packet rejected_scene_detail_proposal resolved_turn | 
+ 15 | 48-48 | 1 | proposal_snapshot = game._world_snapshot() | 0(0) | 1 | 0/0 | undo:2 | proposal_snapshot |  |  | 
+ 16 | 49-52 | 4 | if packet.get("valid_response") and any((packet.get("world_updates") o | 2(2) | 0 | 0/0 |  |  |  | packet resolved_turn | 
+ 17 | 53-53 | 1 | game._rn_not_narration_only(narration_only=narration_only, packet=pack | 6(6) | 0 | 0/0 | undo:2 |  |  | narration_only packet player_input proposal_snapshot proposes_place resolved_turn | 
+ 18 | 57-57 | 1 | packet["narration"] = game._repair_internal_marks(packet.get("narratio | 1(1) | 0 | 0/0 |  |  |  | packet | 
+ 19 | 58-58 | 1 | claims = packet.get("lore_claims", []) | 1(1) | 1 | 0/0 |  | claims |  | packet | 
+ 20 | 59-67 | 9 | if (narration_only and not claims and resolved_turn.npc_target is None | 5(5) | 1 | 0/0 |  | claims |  | claims lore_context narration_only packet resolved_turn | 
+ 21 | 68-68 | 1 | lore_unsupported = not game._lore_claims_are_supported(claims, lore_co | 2(2) | 1 | 0/0 |  | lore_unsupported |  | claims lore_context | 
+ 22 | 69-69 | 1 | lore_unsupported = game._rn_lore_unsupported(claims=claims, lore_conte | 4(4) | 1 | 0/0 |  | lore_unsupported |  | claims lore_context lore_unsupported packet | 
+ 23 | 70-72 | 3 | if lore_unsupported: | 2(2) | 0 | 0/0 |  |  |  | lore_unsupported packet | 
+ 24 | 74-79 | 6 | if (resolved_turn.action_result.get("action") == "shop_setup" | 2(2) | 0 | 0/0 | money:2 |  |  | packet resolved_turn | 
+ 25 | 81-81 | 1 | import resolved_presentation | 0(0) | 1 | 0/0 |  | resolved_presentation |  |  | 
+ 26 | 82-84 | 3 | bounded_check = resolved_presentation.bounded_rebuilding_check( | 4(4) | 1 | 0/0 |  | bounded_check |  | lore_context player_input resolved_presentation resolved_turn | 
+ 27 | 85-89 | 5 | if bounded_check and packet.get("narration") != bounded_check: | 3(3) | 0 | 0/0 |  |  |  | bounded_check packet resolved_turn | 
+ 28 | 91-91 | 1 | fallback_code = packet.get("fallback_reason_code") or resolved_turn.sa | 2(2) | 1 | 0/0 |  | fallback_code |  | packet resolved_turn | 
+ 29 | 92-92 | 1 | finalized_narration = game._rn_finalize(fallback_code=fallback_code, n | 7(7) | 1 | 0/0 |  | finalized_narration |  | fallback_code narration_only npc_target packet player_input resolved_turn target_id | 
+ 30 | 93-99 | 7 | if resolved_turn.action_result.get("action") == "narrative_spell" and  | 3(3) | 1 | 0/0 |  | finalized_narration |  | finalized_narration packet resolved_turn | 
+ 31 | 100-100 | 1 | import spell_effects | 0(0) | 1 | 0/0 |  | spell_effects |  |  | 
+ 32 | 101-106 | 6 | if (resolved_turn.action_result.get("action") == "narrative_spell" | 4(4) | 1 | 0/0 | money:1 | finalized_narration |  | finalized_narration packet resolved_turn spell_effects | 
+ 33 | 107-107 | 1 | finalized_narration = game._rn_money_claim_guard(finalized_narration=f | 5(5) | 1 | 0/0 | money:1 | finalized_narration |  | finalized_narration npc_target packet player_input resolved_turn | 
+ 34 | 108-109 | 2 | if rejected_scene_detail_proposal: | 2(2) | 1 | 0/0 |  | finalized_narration |  | rejected_scene_detail_proposal resolved_turn | 
+ 35 | 110-114 | 5 | if ( | 1(1) | 1 | 0/0 |  | finalized_narration |  | resolved_turn | 
+ 36 | 115-115 | 1 | finalized_narration = game._keep_people_in_look(finalized_narration, r | 2(2) | 1 | 0/0 |  | finalized_narration |  | finalized_narration resolved_turn | 
+ 37 | 116-116 | 1 | finalized_narration = game._states_the_failed_check(finalized_narratio | 3(3) | 1 | 0/0 |  | finalized_narration |  | finalized_narration player_input resolved_turn | 
+ 38 | 117-118 | 2 | if game._narration_scene_type(resolved_turn.action_result) != "convers | 2(2) | 1 | 0/0 |  | finalized_narration |  | finalized_narration resolved_turn | 
+ 39 | 120-120 | 1 | final_dict = resolved_turn.raw_result | 1(1) | 1 | 0/0 |  | final_dict |  | resolved_turn | 
+ 40 | 121-121 | 1 | final_dict["narration"] = finalized_narration | 2(2) | 0 | 0/0 |  |  |  | final_dict finalized_narration | 
+ 41 | 123-123 | 1 | safety_diag = getattr(game._session(), "last_narration_safety", {}) or | 0(0) | 1 | 0/0 |  | safety_diag |  |  | 
+ 42 | 124-124 | 1 | validation_result = safety_diag.get("handling", "accepted") | 1(1) | 1 | 0/0 |  | validation_result |  | safety_diag | 
+ 43 | 125-125 | 1 | fallback_reason = safety_diag.get("reason_code") or packet.get("fallba | 2(2) | 1 | 0/0 |  | fallback_reason |  | packet safety_diag | 
+ 44 | 127-127 | 1 | shown_player_line = packet.get("player_line") | 1(1) | 1 | 0/0 |  | shown_player_line |  | packet | 
+ 45 | 128-128 | 1 | game._rn_scene_detail_check(final_dict=final_dict, packet=packet, play | 6(6) | 0 | 0/0 |  |  |  | final_dict packet player_input rejected_scene_detail_proposal shown_player_line validation_result | 
+ 46 | 130-135 | 6 | if validation_result in ("python_memory_response", "python_memory_fall | 2(2) | 1 | 0/0 |  | narration_source |  | packet validation_result | 
+ 47 | 137-138 | 2 | if narration_source == "qwen": | 3(3) | 0 | 0/0 |  |  |  | finalized_narration narration_source resolved_turn | 
+ 48 | 140-140 | 1 | intent_calls = resolved_turn.intent_model_calls | 1(1) | 1 | 0/0 | model:1 | intent_calls |  | resolved_turn | 
+ 49 | 141-141 | 1 | total_calls = intent_calls + narration_model_calls + emergence["model_ | 3(3) | 1 | 0/0 | model:2 | total_calls |  | emergence intent_calls narration_model_calls | 
+ 50 | 143-143 | 1 | game._rn_engine_event_evidence(fallback_reason=fallback_reason, final_ | 8(8) | 0 | 0/0 | model:2 |  |  | fallback_reason final_dict intent_calls narration_model_calls narration_source resolved_turn total_calls validation_result | 
+ 51 | 145-145 | 1 | return final_dict | 1(1) | 0 | 1/0 |  |  |  | final_dict | 
+SUMMARY {"target": "_narrate_resolved_turn", "label": "resolved_narration.py@final", "lines": 140, "blocks": 52, "blocks_ge20_lines": 0, "blocks_ge20_out_le5": 0, "lines_in_ge20_out_le5": 0, "blocks_out_le5": 52, "blocks_with_return": 1, "returns": 1, "raises": 0, "nested_defs": [], "blocks_touching": {"money": 4, "save": 0, "undo": 2, "session_write": 0, "model": 4, "locals()": 0}}
+CUTSUM {"rows_ge_min": 0, "cut_yes": 0, "cut_yes_lines": 0, "by_class": {"A": 0, "B": 0, "C": 0, "D": 0}, "hazard_blocks": 0}

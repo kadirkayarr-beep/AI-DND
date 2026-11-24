@@ -122,6 +122,7 @@ The rule is applied to blocks of 10 or more lines, at the top level of a functio
 
 **Size:**
 - Size budgets only go down. Frozen functions never grow.
+- Narrow exception (R8): only the re-export lines that R8 requires (one per new part helper) may raise the game.py `files` budget (T4 +1, T6 +8). Budget = real size, never above it. Each rise is written as a Ruling and as an approval-list row marked "gevşetme olabilir", kept in the dilim-end list for owner sign-off. Any other growth is a finding.
 - No new `long_functions` key ever appears.
 - Every helper is under 151 lines. Each task lowers `files` and `long_functions` in the same commit so that no budget sits more than 50 above its real size.
 - `_narrate_resolved_turn` keeps a count of 351 or less under its new key until Task 6 removes the key (ADR Q4).
@@ -343,17 +344,20 @@ The rule is applied to blocks of 10 or more lines, at the top level of a functio
 - `ai-dnd/game_parts/turn_exits.py`
 - `turn.py`, `game.py`, the locks
 
-**Task 9a (≈ 14 rows):**
+**Task 9a (≈ 12 rows):**
 - [ ] **Step 1: Cut** every `T9a` row from `cuts-base.json`, bottom up, into `_tx_<what>`. The rows are the top-level A/B rows before the `if held_plan is not None:` block plus the 2 rows of `--sub` `if target_id is not None:`. Rows whose block calls a `sensitive.json` function move to Task 10.
+  - **T9a note:** two T9a rows are flagged `undo` (lines 1002-1011) and `save` (lines 1433-1506) in `cuts-base.json`. They are not money, but they touch Undo and save order. Check the order (Undo before save) and use the strong reviewer (Opus) for T9a.
+  - **T9a note 2:** rows 27 and 29 (lines 1399-1430, 1508-1534) call `ensure_combat_state`, `_mark_combat_action_used`, `_resolve_player_death_turn`, which are `save` in `sensitive.json`. The whole of T9a gets the Opus review.
+  - **Moved to T10 (fix round 2):** three rows call `sensitive.json` functions with no money flag: `plan_living_world_turn` (lines 1388-1398), `parse_player_intent` (2195-2211), `validate_world_updates` (3585-3601). They are in T10 and get the Opus review.
 - [ ] **Step 2: Check identity.** `cut_check.py` expected `CHANGED 0`.
 - [ ] **Step 3: Update the locks.** Lower them. Every helper is under 151 lines.
 - [ ] **Step 4: Run** the neighbour set and engine locks in both flags.
-- [ ] **Step 5: Review.** Sonnet review with the `cut_check` report.
+- [ ] **Step 5: Review.** Opus review with the `cut_check` report (T9a holds `sensitive.json` save callers).
 - [ ] **Step 6: Commit:** `git commit -m "Turn split T9a: turn exits cut (first half)"`.
 
-**Task 9b (≈ 10 rows):** the same steps for the `T9b` rows. Commit message: `"Turn split T9b: turn exits cut (second half)"`.
+**Task 9b (≈ 9 rows):** the same steps for the `T9b` rows. Commit message: `"Turn split T9b: turn exits cut (second half)"`.
 
-### Task 10: Money-guard cuts in `_run_player_turn_internal` (≈ 8 rows)
+### Task 10: Money-guard cuts in `_run_player_turn_internal` (≈ 11 rows)
 
 **Files:** `ai-dnd/game_parts/turn_shop_guards.py` (create), `turn.py`, `game.py`, the locks.
 
@@ -438,6 +442,7 @@ What each buys:
 - **Stage boundary:** Kadir picks the minimum version, or the weekly token limit runs out during Stage 2. The slice ends after Task 7. Stage 2 rows go to the ledger as parks with their `cuts-base.json` rows, and nothing is half-cut. Each task is self-contained.
 - **Refusals:** `cut_block.py` refuses more than 30 % of a task's rows. Park them and finish the task with the rest. If the minimum set cannot reach "under 151" for `_finish_turn` or `_narrate_resolved_turn`, stop and report: then B2 needs the context-object design (a new spec).
 - **Identity:** `cut_check.py` shows `CHANGED` above 0. Redo the cut from scratch; never patch it forward.
+- **Evidence:** from Task 8 on, save every `cut_block --report` and the `cut_check` output under `docs/superpowers/plans/2026-11-23-tur-bolme-measure/` next to the RESULT line in the ledger.
 - **Speed:** a speed ratio above 1.10 at Task 7 or Task 13 stops the slice and is reported.
 - **New failures:** a targeted run shows a failure that `TBBASE` did not have. Trace it to its commit and fix or revert that cut. Never accept it as "zaten kırıktı".
 - **Overrun:** an estimate overrun does not stop the slice (S3). It is written to the roadmap with its reason.

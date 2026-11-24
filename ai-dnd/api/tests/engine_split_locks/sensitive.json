@@ -66,6 +66,9 @@
     "_finding_says_too_much": [
       "money"
     ],
+    "_finish_turn": [
+      "money"
+    ],
     "_front_economic_offer": [
       "money"
     ],
@@ -129,6 +132,9 @@
     "_player_state_for_save": [
       "save"
     ],
+    "_procedural_entity_ids": [
+      "money"
+    ],
     "_purchase_refused": [
       "money"
     ],
@@ -147,6 +153,15 @@
     ],
     "_restore_in_place": [
       "snapshot"
+    ],
+    "_rn_build_packet": [
+      "money"
+    ],
+    "_rn_money_claim_guard": [
+      "money"
+    ],
+    "_rn_not_narration_only": [
+      "money"
     ],
     "_run_player_turn_internal": [
       "money"
@@ -190,12 +205,42 @@
     "_tell_the_coin": [
       "money"
     ],
+    "_tf_build_resolved_turn": [
+      "money"
+    ],
+    "_tf_system_deterministic_flag": [
+      "money"
+    ],
+    "_tg_shop_action_result": [
+      "money"
+    ],
+    "_tg_shop_exit_a": [
+      "money"
+    ],
+    "_tg_shop_exit_b": [
+      "money"
+    ],
+    "_tg_shop_presence_exit": [
+      "money"
+    ],
+    "_tg_shop_request_exit": [
+      "money"
+    ],
     "_the_rest_of_the_line": [
       "money"
     ],
     "_thread_gate": [
       "money",
       "snapshot"
+    ],
+    "_ts_price_reply_commit": [
+      "money"
+    ],
+    "_ts_speech_money": [
+      "money"
+    ],
+    "_ts_speech_packet": [
+      "money"
     ],
     "_validate_combat_v3_payload": [
       "save"

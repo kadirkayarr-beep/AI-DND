@@ -1,0 +1,10 @@
+TOKENS none
+SYNC_OK files=1506
+modules=683 api=647 top=36
+shard 0 exit=0
+shard 1 exit=0
+shard 2 exit=1
+tests 11289 skipped 188 failing_ids 1
+  api.tests.test_talk_mode_writers.OnlyTalkModeWrites.test_every_interlocutor_clear_names_its_reason
+PAR_EXIT=1
+DONE_RC=1

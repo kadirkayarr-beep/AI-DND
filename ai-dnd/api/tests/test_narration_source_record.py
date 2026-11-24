@@ -672,6 +672,8 @@ ENGINE_REPORTERS = ("game.py", "dialogue_runtime.py")
 # game.py split: a game_parts file that mentions the source must be named here, as a move task moves the code (pinned, like
 # test_talk_mode_writers); the value scan above already reads every part through engine_source_text().
 ENGINE_PART_REPORTERS = ("game_parts/turn.py",  # _run_player_turn_internal moved there (game.py split T6.2)
+                         "game_parts/turn_finish.py",  # turn split T4: finish_turn's body (_finish_turn) moved there
+                         "game_parts/resolved_narration.py",  # turn split T5: _narrate_resolved_turn moved there
                          "game_parts/dialogue.py")  # D-332: the one-shot speech repair labels its answer with the model value
 # BM T11: the route log (`front_proposal.log_turn`) reads the engine's source from the turn telemetry and writes it,
 # with the route-log-only label "python_direct", into its own line. It stores nothing in the campaign history, so it is
@@ -716,7 +718,9 @@ class TheListIsTheEngines(unittest.TestCase):
             text = path.read_text(encoding="utf-8", errors="ignore")
             if "narration_source" in text or "narration_src" in text:
                 mentioning.add(relative.as_posix())
-        self.assertEqual(mentioning, set(ENGINE_REPORTERS) | set(ENGINE_PART_REPORTERS) | set(ROUTE_LOG_WRITERS))
+        # turn split T5: game.py itself no longer names the source (its only user, _narrate_resolved_turn, moved to a part);
+        # "game.py" stays in ENGINE_REPORTERS because it stands for the engine file and its parts in engine_values().
+        self.assertEqual(mentioning, (set(ENGINE_REPORTERS) - {"game.py"}) | set(ENGINE_PART_REPORTERS) | set(ROUTE_LOG_WRITERS))
         self.assertNotIn("python_direct", campaign_store._NARRATION_SOURCES)  # the route-log label never reaches the store
 
 

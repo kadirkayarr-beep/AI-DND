@@ -11,6 +11,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 tmp=$(mktemp -d)
 git show "$ref:ai-dnd/game_parts/turn.py" > "$tmp/turn.py"
 git show "$ref:ai-dnd/game.py" > "$tmp/game.py"
+git show "$ref:ai-dnd/game_parts/resolved_narration.py" > "$tmp/resolved_narration.py" 2>/dev/null || true
 git show "$ref:ai-dnd/game_parts/narration_safety.py" > "$tmp/narration_safety.py"
 cd "$here"
 python -I block_io.py "$tmp/turn.py" _run_player_turn_internal --label "turn.py@$tag" > "run_internal_$tag.txt"

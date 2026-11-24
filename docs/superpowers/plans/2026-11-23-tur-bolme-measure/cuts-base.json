@@ -1,0 +1,2490 @@
+[
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1028,
+   1037
+  ],
+  "n": 10,
+  "outputs": [],
+  "inputs": [
+   "action_result"
+  ],
+  "flags": [],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "is_experimental = (",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1038,
+   1047
+  ],
+  "n": 10,
+  "outputs": [
+   "is_experimental"
+  ],
+  "inputs": [
+   "action_result"
+  ],
+  "flags": [],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 2,
+  "class": "A",
+  "lines": [
+   1049,
+   1062
+  ],
+  "n": 14,
+  "outputs": [
+   "interaction_consumed",
+   "narration"
+  ],
+  "inputs": [
+   "action_result",
+   "is_experimental",
+   "narration"
+  ],
+  "flags": [],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "if isinstance(action_result, dict) and action_result.get(\"action\") in {\"attack\", \"death_save\"}:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1063,
+   1074
+  ],
+  "n": 12,
+  "outputs": [],
+  "inputs": [
+   "action_result"
+  ],
+  "flags": [],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "if isinstance(action_result, dict) and \"campaign_time\" in world_state:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1075,
+   1084
+  ],
+  "n": 10,
+  "outputs": [],
+  "inputs": [
+   "action_result"
+  ],
+  "flags": [],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "if game._is_internal_player_facing_text(narration):",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1085,
+   1095
+  ],
+  "n": 11,
+  "outputs": [
+   "narration"
+  ],
+  "inputs": [
+   "action_result",
+   "narration"
+  ],
+  "flags": [],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "result[\"_engine_event_evidence\"] = {",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1127,
+   1136
+  ],
+  "n": 10,
+  "outputs": [],
+  "inputs": [
+   "quest_outcomes",
+   "result"
+  ],
+  "flags": [],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "if is_final:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   1155,
+   1172
+  ],
+  "n": 18,
+  "outputs": [],
+  "inputs": [
+   "_incident_before_skipped_narration",
+   "action_result",
+   "is_final",
+   "narration_model_calls",
+   "result",
+   "safety_handling",
+   "safety_reason_code"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "hand",
+  "note": "uncut/hand: calls a nested def that writes nonlocal narration_model_calls; cut loses the increment (Task 3 fix 1)"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "if status in (",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1178,
+   1198
+  ],
+  "n": 21,
+  "outputs": [
+   "system_deterministic"
+  ],
+  "inputs": [
+   "action",
+   "action_result",
+   "safety_handling",
+   "status"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "if system_deterministic:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   1200,
+   1219
+  ],
+  "n": 20,
+  "outputs": [],
+  "inputs": [
+   "_incident_before_skipped_narration",
+   "action_result",
+   "narration_model_calls",
+   "result",
+   "safety_handling",
+   "safety_reason_code",
+   "system_deterministic"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T3"
+ },
+ {
+  "function": "finish_turn",
+  "sub": null,
+  "anchor": "resolved = game.ResolvedTurn(",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1221,
+   1242
+  ],
+  "n": 22,
+  "outputs": [
+   "resolved"
+  ],
+  "inputs": [
+   "action_result",
+   "narration",
+   "quest_outcomes",
+   "result",
+   "safety_handling",
+   "safety_reason_code"
+  ],
+  "flags": [
+   "money",
+   "model"
+  ],
+  "task": "T3"
+ },
+ {
+  "function": "_narrate_resolved_turn",
+  "sub": null,
+  "anchor": "with resolved_narration_scope(narration_only):",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   434,
+   449
+  ],
+  "n": 16,
+  "outputs": [
+   "packet"
+  ],
+  "inputs": [
+   "lore_context",
+   "messages",
+   "narration_only",
+   "npc_target",
+   "player_input",
+   "proposes_place",
+   "resolved_narration_scope",
+   "resolved_turn"
+  ],
+  "flags": [
+   "money",
+   "model"
+  ],
+  "task": "T6"
+ },
+ {
+  "function": "_narrate_resolved_turn",
+  "sub": null,
+  "anchor": "if isinstance(resolved_turn.action_result, dict):",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   458,
+   474
+  ],
+  "n": 17,
+  "outputs": [
+   "rejected_scene_detail_proposal"
+  ],
+  "inputs": [
+   "packet",
+   "resolved_turn"
+  ],
+  "flags": [],
+  "task": "T6"
+ },
+ {
+  "function": "_narrate_resolved_turn",
+  "sub": null,
+  "anchor": "if not narration_only:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   481,
+   598
+  ],
+  "n": 118,
+  "outputs": [],
+  "inputs": [
+   "narration_only",
+   "packet",
+   "player_input",
+   "proposal_snapshot",
+   "proposes_place",
+   "resolved_turn"
+  ],
+  "flags": [
+   "money",
+   "undo",
+   "session_write"
+  ],
+  "task": "T6"
+ },
+ {
+  "function": "_narrate_resolved_turn",
+  "sub": null,
+  "anchor": "if not lore_unsupported and _narration_has_unsupported_lore_claim(",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   614,
+   624
+  ],
+  "n": 11,
+  "outputs": [
+   "lore_unsupported"
+  ],
+  "inputs": [
+   "claims",
+   "lore_context",
+   "lore_unsupported",
+   "packet"
+  ],
+  "flags": [],
+  "task": "T6"
+ },
+ {
+  "function": "_narrate_resolved_turn",
+  "sub": null,
+  "anchor": "finalized_narration = finalize_narration(",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   647,
+   657
+  ],
+  "n": 11,
+  "outputs": [
+   "finalized_narration"
+  ],
+  "inputs": [
+   "fallback_code",
+   "narration_only",
+   "npc_target",
+   "packet",
+   "player_input",
+   "resolved_turn",
+   "target_id"
+  ],
+  "flags": [],
+  "task": "T6"
+ },
+ {
+  "function": "_narrate_resolved_turn",
+  "sub": null,
+  "anchor": "if _narrated_money_can_lie(resolved_turn.action_result) and isinstance(packet.get(\"item_claims\"), list):",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   672,
+   682
+  ],
+  "n": 11,
+  "outputs": [
+   "finalized_narration"
+  ],
+  "inputs": [
+   "claim",
+   "finalized_narration",
+   "npc_target",
+   "packet",
+   "player_input",
+   "pocket",
+   "resolved_turn"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T6"
+ },
+ {
+  "function": "_narrate_resolved_turn",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 2,
+  "class": "A",
+  "lines": [
+   703,
+   718
+  ],
+  "n": 16,
+  "outputs": [],
+  "inputs": [
+   "final_dict",
+   "packet",
+   "player_input",
+   "rejected_scene_detail_proposal",
+   "shown_player_line",
+   "validation_result"
+  ],
+  "flags": [],
+  "task": "T6"
+ },
+ {
+  "function": "_narrate_resolved_turn",
+  "sub": null,
+  "anchor": "if \"_engine_event_evidence\" in final_dict:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   733,
+   751
+  ],
+  "n": 19,
+  "outputs": [],
+  "inputs": [
+   "fallback_reason",
+   "final_dict",
+   "intent_calls",
+   "narration_model_calls",
+   "narration_source",
+   "resolved_turn",
+   "total_calls",
+   "validation_result"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T6"
+ },
+ {
+  "function": "_dispatch_player_turn",
+  "sub": null,
+  "anchor": "if combat_action is not None:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   332,
+   348
+  ],
+  "n": 17,
+  "outputs": [
+   "interaction_mode",
+   "target_id"
+  ],
+  "inputs": [
+   "combat_action",
+   "interaction_mode",
+   "player_input",
+   "target_id"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T12"
+ },
+ {
+  "function": "_dispatch_player_turn",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   349,
+   376
+  ],
+  "n": 28,
+  "outputs": [],
+  "inputs": [
+   "combat_action",
+   "interaction_mode",
+   "player_input"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T12"
+ },
+ {
+  "function": "_dispatch_player_turn",
+  "sub": null,
+  "anchor": "if combat_action is None:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   402,
+   412
+  ],
+  "n": 11,
+  "outputs": [],
+  "inputs": [
+   "combat_action",
+   "player_input",
+   "read"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T12"
+ },
+ {
+  "function": "_dispatch_player_turn",
+  "sub": null,
+  "anchor": "if combat_action is None and interaction_mode not in {\"say\", \"ask_dm\"}:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   449,
+   471
+  ],
+  "n": 23,
+  "outputs": [],
+  "inputs": [
+   "combat_action",
+   "interaction_mode",
+   "player_input",
+   "target_id"
+  ],
+  "flags": [
+   "save",
+   "session_write",
+   "model"
+  ],
+  "task": "T12"
+ },
+ {
+  "function": "_dispatch_player_turn",
+  "sub": null,
+  "anchor": "if combat_action is None and interaction_mode not in {\"say\", \"ask_dm\"}:",
+  "occurrence": 2,
+  "class": "B",
+  "lines": [
+   479,
+   503
+  ],
+  "n": 25,
+  "outputs": [],
+  "inputs": [
+   "combat_action",
+   "interaction_mode",
+   "listed",
+   "player_input",
+   "read"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T12"
+ },
+ {
+  "function": "_dispatch_player_turn",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 3,
+  "class": "B",
+  "lines": [
+   714,
+   735
+  ],
+  "n": 22,
+  "outputs": [],
+  "inputs": [
+   "action_id",
+   "combat_action",
+   "front",
+   "grounded",
+   "grounded_action",
+   "interaction_mode",
+   "messages",
+   "player_input",
+   "scene_plan",
+   "session_id",
+   "target_id"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T12"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 3,
+  "class": "A",
+  "lines": [
+   1002,
+   1011
+  ],
+  "n": 10,
+  "outputs": [
+   "procedural_ids_before"
+  ],
+  "inputs": [
+   "procedural_entity_ids",
+   "scene_plan",
+   "world_state"
+  ],
+  "flags": [
+   "undo"
+  ],
+  "task": "T9a",
+  "note": "Undo/save row: check order (Undo before save) and use the strong reviewer in T9a."
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if scene_plan is None and interaction_mode not in {\"say\", \"ask_dm\"} and held_plan is None:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1388,
+   1398
+  ],
+  "n": 11,
+  "outputs": [
+   "scene_plan"
+  ],
+  "inputs": [
+   "held_plan",
+   "interaction_mode",
+   "player_input",
+   "scene_plan",
+   "target_id"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T10",
+  "note": "Sensitive.json caller without money flag; moved to T10 (Opus review)."
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (\"campaign_time\" in world_state and not game.ensure_combat_state()[\"active\"]",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   1399,
+   1430
+  ],
+  "n": 32,
+  "outputs": [],
+  "inputs": [
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "interaction_mode",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "sleeping",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T9a",
+  "note": "Calls sensitive.json save functions; T9a gets Opus review as a whole."
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 4,
+  "class": "B",
+  "lines": [
+   1433,
+   1506
+  ],
+  "n": 74,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "combat",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "save"
+  ],
+  "task": "T9a",
+  "note": "Undo/save row: check order (Undo before save) and use the strong reviewer in T9a."
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if combat[\"active\"] and combat[\"current_actor_id\"] != \"player\":",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   1508,
+   1534
+  ],
+  "n": 27,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "combat",
+   "conversation_resolution",
+   "conversation_state_before",
+   "enemy_actions",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9a",
+  "note": "Calls sensitive.json save functions; T9a gets Opus review as a whole."
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if isinstance(planned_direct, dict) and interaction_adventure.hint(player_input) != \"plan\":",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   1537,
+   1654
+  ],
+  "n": 118,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "planned_direct",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9a"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if not local_dialogue.is_local_dialogue_input(player_input):",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   2047,
+   2063
+  ],
+  "n": 17,
+  "outputs": [
+   "name"
+  ],
+  "inputs": [
+   "player_input",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "hand",
+  "note": "uncut/hand: cut_block REFUSED conditional input (name); no hand cut. Was T9a."
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if topic_name:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2072,
+   2089
+  ],
+  "n": 18,
+  "outputs": [],
+  "inputs": [
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "topic_name",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9a"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 7,
+  "class": "B",
+  "lines": [
+   2094,
+   2110
+  ],
+  "n": 17,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "interaction_mode",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9a"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 8,
+  "class": "B",
+  "lines": [
+   2129,
+   2153
+  ],
+  "n": 25,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "check_evidence",
+   "check_feature",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_plan",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "interaction_mode",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_transitions",
+   "quest_world_before",
+   "reading_calls",
+   "resolve_intent",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T9a"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (interaction_mode not in {\"say\", \"ask_dm\"}",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2158,
+   2168
+  ],
+  "n": 11,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "check_evidence",
+   "check_feature",
+   "combat",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "interaction_mode",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "resolve_intent",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T9a"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if interaction_hint and not combat[\"active\"] and not classifier_unusable:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   2195,
+   2211
+  ],
+  "n": 17,
+  "outputs": [
+   "classifier_unusable",
+   "intent_model_calls",
+   "intent_source",
+   "raw"
+  ],
+  "inputs": [
+   "check_feature",
+   "classifier_unusable",
+   "combat",
+   "interaction_hint",
+   "npc_target",
+   "player_input",
+   "raw",
+   "scene_preparse_model_calls",
+   "world_state"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T10",
+  "note": "Sensitive.json caller without money flag; moved to T10 (Opus review)."
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if shop_request and (",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2276,
+   2290
+  ],
+  "n": 15,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "current_shop_count",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "shop_request",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T10"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (interaction_mode not in {\"say\", \"ask_dm\"}",
+  "occurrence": 2,
+  "class": "B",
+  "lines": [
+   2301,
+   2317
+  ],
+  "n": 17,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "interaction_mode",
+   "lore_context",
+   "message",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "money",
+   "model"
+  ],
+  "task": "T10"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (interaction_mode not in {\"say\", \"ask_dm\"}",
+  "occurrence": 3,
+  "class": "B",
+  "lines": [
+   2319,
+   2335
+  ],
+  "n": 17,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "interaction_mode",
+   "lore_context",
+   "message",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "money",
+   "model"
+  ],
+  "task": "T10"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (game._shop_presence_question(player_input)",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2337,
+   2352
+  ],
+  "n": 16,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "message",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T10"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 10,
+  "class": "B",
+  "lines": [
+   2354,
+   2403
+  ],
+  "n": 50,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if isinstance(npc_target, dict) and isinstance(npc_target.get(\"id\"), str):",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2464,
+   2487
+  ],
+  "n": 24,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "query_response",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 12,
+  "class": "B",
+  "lines": [
+   2489,
+   2513
+  ],
+  "n": 25,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "interaction_mode",
+   "lore_context",
+   "message",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "model"
+  ],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if work_answer and not isinstance(npc_target, dict):",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2522,
+   2535
+  ],
+  "n": 14,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "response",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "work_answer",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if supported_lore_response:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2655,
+   2667
+  ],
+  "n": 13,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "supported_lore_response",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "npc_dialogue_route = bool(npc_target and (",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   2676,
+   2688
+  ],
+  "n": 13,
+  "outputs": [
+   "npc_dialogue_route"
+  ],
+  "inputs": [
+   "answer_in_person",
+   "experimental_unverified_claim",
+   "interaction_mode",
+   "npc_place_recommendation",
+   "npc_target",
+   "player_input",
+   "spoken_reference"
+  ],
+  "flags": [],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if npc_place_recommendation:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   2703,
+   2719
+  ],
+  "n": 17,
+  "outputs": [
+   "lore_safety_input"
+  ],
+  "inputs": [
+   "lore_safety_input",
+   "npc_place_recommendation",
+   "npc_target",
+   "player_input"
+  ],
+  "flags": [],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if lore_gate:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2752,
+   2764
+  ],
+  "n": 13,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "lore_gate",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (",
+  "occurrence": 14,
+  "class": "B",
+  "lines": [
+   2767,
+   2820
+  ],
+  "n": 54,
+  "outputs": [],
+  "inputs": [
+   "action_id",
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "experimental_dialogue_session",
+   "finish_turn",
+   "front_talk",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "interaction_mode",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "smalltalk_response",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9b"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if shop_request:",
+  "occurrence": 3,
+  "class": "A",
+  "lines": [
+   3474,
+   3489
+  ],
+  "n": 16,
+  "outputs": [
+   "action_result"
+  ],
+  "inputs": [
+   "check_evidence",
+   "check_feature",
+   "npc_target",
+   "player_input",
+   "resolve_intent",
+   "shop_request",
+   "target_id",
+   "validated_intent"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T10"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if action_result.get(\"action\") in {\"attack\", \"death_save\"}:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   3505,
+   3518
+  ],
+  "n": 14,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_transitions",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "money",
+   "save"
+  ],
+  "task": "T10"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if (isinstance(findings, dict) and findings.get(\"target_id\") is None",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   3521,
+   3544
+  ],
+  "n": 24,
+  "outputs": [
+   "findings"
+  ],
+  "inputs": [
+   "action_result",
+   "findings",
+   "player_input",
+   "previous_location",
+   "raw_intent",
+   "shop_request",
+   "world_state"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T10"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if isinstance(findings, dict) and isinstance(findings.get(\"text\"), str) and findings[\"text\"].strip():",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   3545,
+   3560
+  ],
+  "n": 16,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "findings",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_transitions",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T10"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": null,
+  "anchor": "if isinstance(raw_intent, dict):",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   3585,
+   3601
+  ],
+  "n": 17,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "allow_new_features",
+   "raw_intent",
+   "scene_parent"
+  ],
+  "flags": [],
+  "task": "hand",
+  "note": "uncut/hand: cut_block REFUSED conditional input (raw_intent); no hand cut. Was T10."
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 1664,
+  "anchor": "if not isinstance(target_id, str) or not target_id:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   1665,
+   1674
+  ],
+  "n": 10,
+  "outputs": [],
+  "inputs": [
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "result",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T9a",
+  "sub_anchor": "if target_id is not None:"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 1664,
+  "anchor": "if not combat[\"active\"] and (",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   1680,
+   1690
+  ],
+  "n": 11,
+  "outputs": [
+   "npc_target"
+  ],
+  "inputs": [
+   "combat",
+   "flags",
+   "interaction_mode",
+   "npc_target",
+   "player_input",
+   "selected_npc_target",
+   "world_state",
+   "world_subject_question"
+  ],
+  "flags": [],
+  "task": "T9a",
+  "sub_anchor": "if target_id is not None:"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2824,
+  "anchor": "raw_intent = game.parse_player_intent(",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   2838,
+   2861
+  ],
+  "n": 24,
+  "outputs": [
+   "raw_intent"
+  ],
+  "inputs": [
+   "experimental_npc_dialogue",
+   "experimental_unverified_claim",
+   "name_stance",
+   "npc_target",
+   "player_input",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T11a",
+  "sub_anchor": "elif npc_dialogue_route:"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2824,
+  "anchor": "conversation_resolution, conversation_rejected = (",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   2862,
+   2875
+  ],
+  "n": 14,
+  "outputs": [
+   "conversation_rejected",
+   "conversation_resolution"
+  ],
+  "inputs": [
+   "experimental_npc_dialogue",
+   "interaction_mode",
+   "npc_target",
+   "player_input",
+   "raw_intent",
+   "validate_interaction_conversation",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T11a",
+  "sub_anchor": "elif npc_dialogue_route:"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2824,
+  "anchor": "if witness_attempt:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2890,
+   2904
+  ],
+  "n": 15,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "name",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "raw_intent",
+   "reading_calls",
+   "response",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "witness_attempt",
+   "witness_recall",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T11a",
+  "sub_anchor": "elif npc_dialogue_route:"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2824,
+  "anchor": "if experimental_npc_dialogue:",
+  "occurrence": 1,
+  "class": "B",
+  "lines": [
+   2932,
+   2955
+  ],
+  "n": 24,
+  "outputs": [],
+  "inputs": [
+   "action_id",
+   "action_result",
+   "active_conversation_before",
+   "allow_new_features",
+   "allow_new_locations",
+   "allow_new_npcs",
+   "allow_new_shops",
+   "conversation_resolution",
+   "conversation_state_before",
+   "entry_actor",
+   "entry_identity",
+   "expected_location_change",
+   "experimental_npc_dialogue",
+   "finish_conversation_resolution",
+   "finish_turn",
+   "held_reading",
+   "intent_model_calls",
+   "intent_source",
+   "lore_context",
+   "messages",
+   "name",
+   "narration_model_calls",
+   "narration_source",
+   "npc_target",
+   "player_input",
+   "procedural_entity_ids",
+   "procedural_ids_before",
+   "quest_world_before",
+   "reading_calls",
+   "scene_plan",
+   "speech_intent_calls",
+   "target_id",
+   "told_intent_calls",
+   "turn_index",
+   "value",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T11a",
+  "sub_anchor": "elif npc_dialogue_route:"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2984,
+  "anchor": "valid_speech_packet = (",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   2989,
+   3022
+  ],
+  "n": 34,
+  "outputs": [
+   "valid_speech_packet"
+  ],
+  "inputs": [
+   "raw_intent",
+   "raw_spoken",
+   "raw_stage"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T11a",
+  "sub_anchor": "if experimental_npc_dialogue:"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2984,
+  "anchor": "if valid_speech_packet:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   3023,
+   3122
+  ],
+  "n": 100,
+  "outputs": [
+   "attributed_speech",
+   "invalid_spoken_stage_direction",
+   "model_raw_narration",
+   "raw_narration",
+   "settled_money"
+  ],
+  "inputs": [
+   "action_result",
+   "attributed_speech",
+   "name_stance",
+   "npc_target",
+   "player_input",
+   "raw_intent",
+   "raw_spoken",
+   "raw_stage",
+   "recognised",
+   "settled_money",
+   "valid_speech_packet",
+   "world_state"
+  ],
+  "flags": [
+   "money",
+   "session_write"
+  ],
+  "task": "T11a",
+  "sub_anchor": "if experimental_npc_dialogue:"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "if invalid_or_empty:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   3132,
+   3153
+  ],
+  "n": 22,
+  "outputs": [
+   "heard_rumours",
+   "python_town_response",
+   "text"
+  ],
+  "inputs": [
+   "action_result",
+   "experimental_unverified_claim",
+   "intro_fallback_name",
+   "invalid_or_empty",
+   "name_stance",
+   "npc_target",
+   "player_input",
+   "raw_narration",
+   "text",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "if experimental_unverified_claim:",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   3155,
+   3175
+  ],
+  "n": 21,
+  "outputs": [
+   "unverified_history_echo"
+  ],
+  "inputs": [
+   "about",
+   "action_result",
+   "experimental_unverified_claim",
+   "invalid_or_empty",
+   "player_input",
+   "text",
+   "told_support"
+  ],
+  "flags": [],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "if not invalid_or_empty and (",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   3176,
+   3188
+  ],
+  "n": 13,
+  "outputs": [
+   "python_town_response",
+   "text"
+  ],
+  "inputs": [
+   "experimental_unverified_claim",
+   "invalid_or_empty",
+   "npc_target",
+   "player_input",
+   "raw_intent",
+   "text",
+   "unverified_history_echo",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "text = game.finalize_narration(",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   3191,
+   3201
+  ],
+  "n": 11,
+  "outputs": [
+   "text"
+  ],
+  "inputs": [
+   "action_result",
+   "attributed_speech",
+   "invalid_spoken_stage_direction",
+   "npc_target",
+   "player_input",
+   "python_town_response",
+   "text",
+   "unverified_history_echo"
+  ],
+  "flags": [],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "if experimental_npc_dialogue:",
+  "occurrence": 3,
+  "class": "A",
+  "lines": [
+   3211,
+   3251
+  ],
+  "n": 41,
+  "outputs": [
+   "speech_checks"
+  ],
+  "inputs": [
+   "attributed_speech",
+   "experimental_npc_dialogue",
+   "experimental_unverified_claim",
+   "final_safety_reason_code",
+   "invalid_or_empty",
+   "model_raw_narration",
+   "npc_target",
+   "player_input",
+   "python_town_response",
+   "raw_intent",
+   "raw_narration",
+   "raw_spoken",
+   "speech_checks",
+   "stock_swapped",
+   "text",
+   "text_before_finalize",
+   "unverified_history_echo"
+  ],
+  "flags": [],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "if experimental_npc_dialogue:",
+  "occurrence": 4,
+  "class": "A",
+  "lines": [
+   3274,
+   3291
+  ],
+  "n": 18,
+  "outputs": [
+   "text"
+  ],
+  "inputs": [
+   "accepted_model_speech",
+   "action_result",
+   "attributed_speech",
+   "experimental_npc_dialogue",
+   "final_safety_handling",
+   "name",
+   "npc_target",
+   "player_input",
+   "profile_focus",
+   "stock_swapped",
+   "text",
+   "text_before_finalize",
+   "world_state"
+  ],
+  "flags": [],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "if experimental_npc_dialogue:",
+  "occurrence": 5,
+  "class": "A",
+  "lines": [
+   3293,
+   3309
+  ],
+  "n": 17,
+  "outputs": [],
+  "inputs": [
+   "accepted_model_speech",
+   "attributed_speech",
+   "experimental_npc_dialogue",
+   "heard_rumours",
+   "named",
+   "npc_target",
+   "raw_intent",
+   "valid_speech_packet"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "if (price_reply_accepted and negotiation is not None",
+  "occurrence": 1,
+  "class": "A",
+  "lines": [
+   3346,
+   3361
+  ],
+  "n": 16,
+  "outputs": [],
+  "inputs": [
+   "action_result",
+   "check_evidence",
+   "check_feature",
+   "negotiation",
+   "npc_target",
+   "player_input",
+   "price_reply_accepted",
+   "resolve_intent",
+   "target_id"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ },
+ {
+  "function": "_run_player_turn_internal",
+  "sub": 2958,
+  "anchor": "if experimental_npc_dialogue:",
+  "occurrence": 6,
+  "class": "A",
+  "lines": [
+   3363,
+   3372
+  ],
+  "n": 10,
+  "outputs": [
+   "text"
+  ],
+  "inputs": [
+   "accepted_model_speech",
+   "attributed_speech",
+   "experimental_npc_dialogue",
+   "npc_target",
+   "player_input",
+   "raw_intent",
+   "settled_money",
+   "spoken",
+   "terms",
+   "text",
+   "valid_speech_packet",
+   "world_state"
+  ],
+  "flags": [
+   "money"
+  ],
+  "task": "T11b",
+  "sub_anchor": "if experimental_npc_dialogue or isinstance(raw_intent.get(\"narration\"), str):"
+ }
+]

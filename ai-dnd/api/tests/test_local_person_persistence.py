@@ -146,6 +146,26 @@ class LocalPersonPersistenceTests(unittest.IsolatedAsyncioTestCase):
         await self.http.aclose()
         self.tempdir.cleanup()
 
+    async def test_preparsed_local_person_still_materializes(self):
+        """T2 characterization: the preparsed local-person branch makes the person and answers as dialogue."""
+        campaign = await self._create_campaign()
+        turn = await self.http.post(
+            f"/api/game/sessions/{campaign['session_id']}/turn",
+            json={
+                "message": "Sahilde bir balıkçı bulup liman söylentilerini onunla konuşmak istiyorum.",
+                "interaction_mode": "say",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(turn.status_code, 200, turn.text)
+        self.assertEqual(turn.json()["turn_outcome"]["action"], "dialogue")
+        self.assertEqual(turn.json()["turn_outcome"]["status"], "created_local_person")
+        session = self.manager.get(campaign["session_id"]).game_session
+        made = [n for n in session.world_state["npcs"] if n.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"]
+        self.assertEqual([n["name"] for n in made], ["Neris"])
+        self.assertTrue(made[0]["id"])
+        self.assertEqual(session.world_state["flags"]["active_npc_id"], made[0]["id"])
+
     async def test_new_local_person_becomes_campaign_content_through_http(self):
         campaign = await self._create_campaign()
         turn = await self.http.post(

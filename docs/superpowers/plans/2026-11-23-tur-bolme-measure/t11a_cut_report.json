@@ -1,0 +1,149 @@
+{
+  "helpers": [
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if valid_speech_packet:",
+      "occurrence": null,
+      "sub_anchor": "if experimental_npc_dialogue:",
+      "helper": "_ts_speech_money",
+      "part": "game_parts/turn_speech.py",
+      "class": "A",
+      "params": [
+        "action_result",
+        "attributed_speech",
+        "invalid_spoken_stage_direction",
+        "model_raw_narration",
+        "name_stance",
+        "npc_statements",
+        "npc_target",
+        "player_input",
+        "raw_intent",
+        "raw_spoken",
+        "raw_stage",
+        "recognised",
+        "settled_money",
+        "valid_speech_packet",
+        "world_state"
+      ],
+      "outputs": [
+        "attributed_speech",
+        "invalid_spoken_stage_direction",
+        "model_raw_narration",
+        "raw_narration",
+        "settled_money"
+      ],
+      "block": "                if valid_speech_packet:\n                    money_owner.read_answer(game._session(), raw_intent, npc_target[\"id\"],\n                        money_owner.parts_for(world_state, game._session(), npc_target[\"id\"]))\n                    asked = raw_intent.get(\"asks_for\")\n                    if isinstance(asked, str) and asked in money_owner.askable(world_state, npc_target):\n                        game._session()._asks_for = (npc_target[\"id\"], asked)  # opened after the reply, if at all\n                    import npc_speech_boundary\n                    cleaned_spoken = game._clean_npc_speech(\n                        npc_speech_boundary.normalize_bound_speech_label(\n                            raw_spoken, npc_target,\n                            visible=any(n.get(\"id\") == npc_target.get(\"id\")\n                                        for n in game._conversation_npcs()),\n                        )\n                    )\n                    if cleaned_spoken.strip():\n                        cleaned_spoken = game._ground_local_place_recommendation_reply(\n                            cleaned_spoken,\n                            npc_target,\n                            world_state,\n                            player_input,\n                        )\n                    cleaned_stage = game._clean_npc_stage_direction(raw_stage)\n                    cleaned_stage = game._ground_local_place_recommendation_stage(\n                        cleaned_stage,\n                        npc_target,\n                        world_state,\n                        player_input,\n                    )\n                    cleaned_spoken = npc_speech_boundary.strip_player_echo(\n                        cleaned_spoken, player_input\n                    )\n                    cleaned_spoken = npc_speech_boundary.drop_ungrounded_prop_sentences(\n                        cleaned_spoken,\n                        [\n                            {\n                                \"name\": feature.get(\"name\"),\n                                \"description\": feature.get(\"description\"),\n                                \"aliases\": feature.get(\"aliases\") or [],\n                            }\n                            for feature in living_world.visible_features(world_state)\n                            if isinstance(feature, dict)\n                        ],\n                    )\n                    cleaned_spoken = npc_speech_boundary.without_no_name_claim(cleaned_spoken)\n                    cleaned_spoken = npc_speech_boundary.without_false_presence(\n                        world_state, cleaned_spoken, world_state.get(\"location\")\n                    )\n                    cleaned_stage = npc_speech_boundary.strip_player_quote(\n                        cleaned_stage, player_input\n                    )\n                    cleaned_stage = game._shown_stage_direction(cleaned_stage, world_state)\n                    if game._is_explicit_name_led_gesture_line(cleaned_spoken, npc_target):\n                        cleaned_spoken = \"\"\n                        invalid_spoken_stage_direction = True\n                    cleaned_spoken = game._without_lines_already_said(\n                        cleaned_spoken, npc_target, world_state, player_input\n                    )\n                    if recognised:  # re-review R1, RR2-1: recognition backs no added event, said or shown\n                        if cleaned_spoken.strip():\n                            cleaned_spoken = npc_statements.only_what_recognition_backs(\n                                world_state, npc_target, player_input, cleaned_spoken)\n                        if cleaned_stage.strip():\n                            cleaned_stage = npc_statements.only_what_recognition_backs(\n                                world_state, npc_target, player_input, cleaned_stage, stage=True)\n                    settled_money = game._settle_spoken_commitment(\n                        world_state, npc_target, player_input, raw_intent.get(\"commitment\"), cleaned_spoken,\n                        threat=raw_intent.get(\"threat\"), persuade=game._coin_persuasion(action_result), stage=cleaned_stage,\n                    )\n                    cleaned_spoken = settled_money[\"spoken\"]\n                    cleaned_stage = settled_money[\"stage\"]  # D-264: a coin ask cleans the gesture as it cleans the line\n                    if getattr(game._session(), \"_empty_handed\", False):\n                        cleaned_stage = \"\"  # nothing was held out, so no gesture takes it\n                    elif settled_money.get(\"unbacked\"):\n                        import pocket\n                        cleaned_stage = pocket.without_said(cleaned_stage, settled_money[\"unbacked\"])\n                    if name_stance == \"reveal\" and cleaned_spoken.strip():\n                        cleaned_spoken = game._spoken_name_answer(cleaned_spoken, npc_target)\n                    attributed_speech = {\n                        # These authority fields are stamped by Python, never\n                        # accepted from the model response.\n                        \"source\": \"experimental_attributed_speech\",\n                        \"speaker_id\": npc_target[\"id\"],\n                        \"spoken_text\": cleaned_spoken,\n                        \"stage_direction\": cleaned_stage,\n                    }\n                    # W03: a known lock may be recalled by a SEPARATE narrator note; it never replaces the NPC's line.\n                    place_note = game._attributed_place_note(cleaned_spoken, npc_target, world_state, player_input)\n                    if place_note:\n                        attributed_speech[\"narrator_note\"] = place_note\n                    raw_narration = game._compose_experimental_npc_speech(\n                        attributed_speech\n                    )\n                    model_raw_narration = {\n                        \"spoken_text\": raw_spoken,\n                        \"stage_direction\": raw_stage,\n                    }\n                else:\n                    # All schema/shape failures share one explicit fallback\n                    # class; they are not mislabeled as an empty model answer.\n                    raw_narration = None",
+      "indent": "                "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "valid_speech_packet = (",
+      "occurrence": null,
+      "sub_anchor": "if experimental_npc_dialogue:",
+      "helper": "_ts_speech_packet",
+      "part": "game_parts/turn_speech.py",
+      "class": "A",
+      "params": [
+        "raw_intent",
+        "raw_spoken",
+        "raw_stage"
+      ],
+      "outputs": [
+        "valid_speech_packet"
+      ],
+      "block": "                # Older narration-only packets and model-supplied authority\n                # fields are rejected, not silently reinterpreted.\n                valid_speech_packet = (\n                    isinstance(raw_intent, dict)\n                    and set(raw_intent).issubset({\n                        \"spoken_text\",\n                        \"stage_direction\",\n                        \"coin_answer\",\n                        \"coin_answer_for\",\n                        \"asks_for\",\n                        \"remember_player_line\",\n                        \"mentions\",\n                        \"voiced\",\n                        \"witness_recall\",\n                        \"price_negotiation\",\n                        \"commitment\",\n                        \"threat\",\n                        # The intent pre-parser can merge its recognized,\n                        # untrusted envelope into the narration packet.\n                        \"intent\",\n                        \"action\",\n                        \"target\",\n                        \"completion\",\n                        \"confidence\",\n                        \"interaction\",\n                        \"world_updates\",\n                        \"lore_claims\",\n                    })\n                    and \"narration\" not in raw_intent\n                    and \"source\" not in raw_intent\n                    and \"speaker_id\" not in raw_intent\n                    and isinstance(raw_spoken, str)\n                    and isinstance(raw_stage, str)\n                    and len(raw_spoken) <= 600\n                    and len(raw_stage) <= 600\n                )",
+      "indent": "                "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if witness_attempt:",
+      "occurrence": null,
+      "sub_anchor": "elif npc_dialogue_route:",
+      "helper": "_ts_witness_exit",
+      "part": "game_parts/turn_speech.py",
+      "class": "B",
+      "params": [
+        "finish_turn",
+        "npc_target",
+        "player_input",
+        "raw_intent",
+        "witness_attempt",
+        "witness_recall",
+        "world_state"
+      ],
+      "outputs": [],
+      "block": "        if witness_attempt:\n            witnessed_text = witness_recall.answer(\n                world_state, npc_target, player_input, raw_intent.get(\"witness_recall\"), about=\"memory\")\n            name = living_world.public_npc_name(npc_target)\n            if witnessed_text is not None:\n                response = f'{name}, \"Al\u0131nt\u0131lad\u0131\u011f\u0131n olay: {witnessed_text}\" diye g\u00f6rd\u00fc\u011f\u00fc olay\u0131 hat\u0131rlat\u0131r.'\n                action_result = {\"action\": \"dialogue\", \"status\": \"answered_from_witnessed_deed\",\n                                 \"success\": True, \"npc_id\": npc_target[\"id\"], \"state_changes\": []}\n                game.record_npc_interaction(npc_target, response, player_input, npc_target)\n            else:\n                response = f'{name}, \"Hangi olaydan s\u00f6z etti\u011fini biraz a\u00e7ar m\u0131s\u0131n?\" diye sorar.'\n                action_result = {\"action\": \"dialogue\", \"status\": \"unverified\",\n                                 \"success\": False, \"npc_id\": npc_target[\"id\"], \"state_changes\": []}\n                # Clarification is not a new canonical memory or witness source.\n            return finish_turn(action_result, response, safety_handling=\"python_scene_response\")",
+      "indent": "        "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "conversation_resolution, conversation_rejected = (",
+      "occurrence": null,
+      "sub_anchor": "elif npc_dialogue_route:",
+      "helper": "_ts_conversation_check",
+      "part": "game_parts/turn_speech.py",
+      "class": "A",
+      "params": [
+        "experimental_npc_dialogue",
+        "interaction_mode",
+        "npc_target",
+        "player_input",
+        "raw_intent",
+        "world_state"
+      ],
+      "outputs": [
+        "conversation_rejected",
+        "conversation_resolution"
+      ],
+      "block": "        conversation_resolution, conversation_rejected = (\n            game._validate_interaction_conversation(\n                player_input,\n                world_state,\n                raw_intent,\n                npc_target,\n                required=(\n                    interaction_mode == \"say\"\n                    and npc_target is not None\n                    and not experimental_npc_dialogue\n                    and not game._grounded_item_request_proposal(\n                        raw_intent, npc_target, player_input\n                    )\n                ),\n            )\n        )",
+      "indent": "        "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "raw_intent = game.parse_player_intent(",
+      "occurrence": null,
+      "sub_anchor": "elif npc_dialogue_route:",
+      "helper": "_ts_parse_intent",
+      "part": "game_parts/turn_speech.py",
+      "class": "A",
+      "params": [
+        "experimental_npc_dialogue",
+        "experimental_unverified_claim",
+        "name_stance",
+        "npc_target",
+        "player_input",
+        "world_state"
+      ],
+      "outputs": [
+        "raw_intent"
+      ],
+      "block": "        raw_intent = game.parse_player_intent(\n            player_input,\n            interaction_context=(\n                game._experimental_npc_dialogue_context(\n                    world_state, npc_target,\n                    unverified_claim=experimental_unverified_claim,\n                    followup=game._is_short_followup(player_input),\n                    personal_context=(\n                        local_dialogue.personal_question_kind(player_input)\n                        != \"local_work\"\n                    ),\n                )\n                if experimental_npc_dialogue\n                else interaction_adventure.context(\n                    world_state, npc_target, player_input\n                )\n            ),\n            dialogue_narration=not experimental_npc_dialogue,\n            experimental_npc_dialogue=experimental_npc_dialogue,\n            speech_note=(\n                game._experimental_speech_note(world_state, npc_target, name_stance, player_input)\n                if experimental_npc_dialogue else \"\"\n            ),\n        )",
+      "indent": "        "
+    },
+    {
+      "file": "game_parts/turn.py",
+      "function": "_run_player_turn_internal",
+      "anchor": "if experimental_npc_dialogue:",
+      "occurrence": null,
+      "sub_anchor": "elif npc_dialogue_route:",
+      "helper": "_ts_personal_answer_exit",
+      "part": "game_parts/turn_speech.py",
+      "class": "B",
+      "params": [
+        "conversation_resolution",
+        "experimental_npc_dialogue",
+        "finish_conversation_resolution",
+        "finish_turn",
+        "npc_target"
+      ],
+      "outputs": [],
+      "block": "        if experimental_npc_dialogue:\n            if conversation_resolution and conversation_resolution.get(\"answer_field\"):\n                value = conversation_resolution[\"answer_value\"]\n                name = living_world.public_npc_name(npc_target)\n                action_result = {\n                    \"action\": \"dialogue\",\n                    \"status\": \"answered_personal_question\",\n                    \"success\": True,\n                    \"npc_id\": npc_target[\"id\"],\n                    \"reality_category\": local_dialogue.PROCEDURAL_PERSONAL_FACT,\n                    \"state_changes\": [],\n                    \"experimental\": True,\n                }\n                return finish_turn(\n                    action_result,\n                    f'{name}, \u201c{value.strip()}\u201d diye yan\u0131t verir.',\n                    safety_handling=\"python_scene_response\",\n                )\n        else:\n            conversation_outcome = finish_conversation_resolution(\n                conversation_resolution, npc_target\n            )\n            if conversation_outcome is not None:\n                return conversation_outcome",
+      "indent": "        "
+    }
+  ]
+}

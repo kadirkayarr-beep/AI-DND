@@ -322,5 +322,28 @@ class RoutingAuditTests(unittest.TestCase):
         self.assertEqual(self.run_all(self.tree(src, game=reexporting("f"), extra=extra)), [])
 
 
+class EngineSourcesNeverReflectLocalsTests(unittest.TestCase):
+    """T2: locals()/globals()/vars() hide names from block_io and cut_block, so no game_parts file may call them."""
+
+    def test_no_engine_file_calls_locals_globals_or_vars(self):
+        import ast
+
+        hits = []
+        for path in engine_source_files()[1:]:  # game_parts only; game.py names its own namespace (3 globals() calls)
+            tree = ast.parse(Path(path).read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in {"locals", "globals", "vars"}:
+                    hits.append(f"{Path(path).name}:{node.lineno}")
+        self.assertEqual(hits, [])
+
+    def test_game_py_keeps_exactly_three_globals_calls(self):
+        import ast
+
+        tree = ast.parse(Path(engine_source_files()[0]).read_text(encoding="utf-8"))
+        names = sorted(n.func.id for n in ast.walk(tree)
+                       if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in {"locals", "globals", "vars"})
+        self.assertEqual(names, ["globals"] * 3)
+
+
 if __name__ == "__main__":
     unittest.main()

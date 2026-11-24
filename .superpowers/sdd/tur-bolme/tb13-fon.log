@@ -1,0 +1,9 @@
+TOKENS fon
+SYNC_OK files=1506
+modules=683 api=647 top=36
+shard 0 exit=0
+shard 1 exit=0
+shard 2 exit=0
+tests 11289 skipped 186 failing_ids 0
+PAR_EXIT=0
+DONE_RC=0

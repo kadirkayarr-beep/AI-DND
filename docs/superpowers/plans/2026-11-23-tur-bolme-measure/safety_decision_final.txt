@@ -1,0 +1,161 @@
+# narration_safety.py@final :: _narration_safety_decision  lines 452-1505 (1054)  blocks=131
+idx | lines | n | kind | in(direct) | out | ret/raise | markers | outputs | late-closure | inputs | nonlocal
+  0 | 455-455 | 1 | """Return a reason-coded safety decision without changing canonical st | 0(0) | 0 | 0/0 |  |  |  |  | 
+  1 | 456-456 | 1 | world_state = game._session().world_state | 0(0) | 1 | 0/0 |  | world_state |  |  | 
+  2 | 457-457 | 1 | scene_type = game._narration_scene_type(action_result) | 1(1) | 1 | 0/0 |  | scene_type |  | action_result | 
+  3 | 458-458 | 1 | attack_claims_assessed = False | 0(0) | 1 | 0/0 |  | attack_claims_assessed |  |  | 
+  4 | 459-459 | 1 | attack_fact_packet = None | 0(0) | 1 | 0/0 |  | attack_fact_packet |  |  | 
+  5 | 461-467 | 7 | def reject | 1(1) | 1 | 1/0 |  | reject |  | scene_type | 
+  6 | 469-475 | 7 | def accept | 1(1) | 1 | 1/0 |  | accept |  | scene_type | 
+  7 | 477-478 | 2 | if not isinstance(narration, str) or not narration.strip(): | 3(2) | 0 | 1/0 |  |  |  | narration reject scene_type | 
+  8 | 479-479 | 1 | import npc_speech_boundary | 0(0) | 1 | 0/0 |  | npc_speech_boundary |  |  | 
+  9 | 480-482 | 3 | speech_fields = npc_speech_boundary.fields_for_narration( | 5(5) | 1 | 0/0 |  | speech_fields |  | action_result attributed_speech narration npc_speech_boundary npc_target | 
+ 10 | 483-486 | 4 | spoken_start = ( | 2(2) | 1 | 0/0 |  | spoken_start |  | narration speech_fields | 
+ 11 | 487-494 | 8 | if ( | 7(6) | 0 | 1/0 |  |  |  | action_result narration npc_target reject scene_type speech_fields world_state | 
+ 12 | 499-502 | 4 | greeting_only = scene_type == "conversation" and bool(re.fullmatch( | 2(2) | 1 | 0/0 | model:1 | greeting_only |  | player_input scene_type | 
+ 13 | 503-521 | 19 | if greeting_only: | 4(3) | 0 | 2/0 |  |  |  | greeting_only narration reject scene_type | 
+ 14 | 523-541 | 19 | for npc in world_state.get("npcs", []): | 8(7) | 1 | 1/0 |  | npc |  | action_result attributed_speech narration npc_speech_boundary npc_target reject scene_type world_state | 
+ 15 | 542-542 | 1 | action_result = action_result or {} | 1(1) | 1 | 0/0 |  | action_result |  | action_result | 
+ 16 | 543-547 | 5 | elapsed_claim = re.search( | 1(1) | 1 | 0/0 |  | elapsed_claim |  | narration | 
+ 17 | 548-552 | 5 | if elapsed_claim: | 4(3) | 0 | 1/0 |  |  |  | action_result elapsed_claim reject scene_type | 
+ 18 | 553-563 | 11 | if action_result.get("action") == "attack": | 5(4) | 4 | 1/0 |  | attack_claims_assessed attack_fact_packet narration_claims verdict |  | action_result attack_fact_packet narration reject scene_type | 
+ 19 | 565-565 | 1 | text = narration.casefold() | 1(1) | 1 | 0/0 |  | text |  | narration | 
+ 20 | 566-566 | 1 | input_text = str(player_input).casefold() | 1(1) | 1 | 0/0 |  | input_text |  | player_input | 
+ 21 | 568-627 | 60 | def is_verified_attack_damage_claim | 4(4) | 1 | 7/0 |  | is_verified_attack_damage_claim |  | action_result attack_claims_assessed attack_fact_packet text | 
+ 22 | 629-711 | 83 | if npc_target and isinstance(npc_target, dict) and npc_target.get("id" | 8(7) | 3 | 4/0 |  | match target_id target_known_names |  | narration npc_speech_boundary npc_target player_input reject scene_type text world_state | 
+ 23 | 713-734 | 22 | if action_result.get("action") == "dialogue": | 4(3) | 1 | 2/0 |  | transfer_claim |  | action_result reject scene_type text | 
+ 24 | 736-739 | 4 | unsupported_npc_claim = game._unsupported_npc_history_or_relationship_ | 5(5) | 1 | 0/0 |  | unsupported_npc_claim |  | action_result narration npc_target player_input spoken_start | 
+ 25 | 740-741 | 2 | if unsupported_npc_claim: | 3(2) | 0 | 1/0 |  |  |  | reject scene_type unsupported_npc_claim | 
+ 26 | 742-742 | 1 | action_outcome = action_result.get("outcome") | 1(1) | 1 | 0/0 |  | action_outcome |  | action_result | 
+ 27 | 743-743 | 1 | character_name = str(game._session().character.get("name", "")).casefo | 0(0) | 1 | 0/0 |  | character_name |  |  | 
+ 28 | 744-747 | 4 | character_name_pattern = ( | 1(1) | 1 | 0/0 |  | character_name_pattern |  | character_name | 
+ 29 | 748-750 | 3 | character_name_matches = ( | 2(2) | 1 | 0/0 |  | character_name_matches |  | character_name_pattern text | 
+ 30 | 751-755 | 5 | if speech_fields is not None and character_name in target_known_names: | 7(7) | 1 | 0/0 |  | character_name_matches |  | character_name character_name_matches npc_speech_boundary speech_fields spoken_start target_known_names text | 
+ 31 | 756-782 | 27 | if character_name_matches: | 8(7) | 4 | 2/0 | model:1 | aliases current_location match travel_result |  | action_result character_name_matches match reject scene_type spoken_start text world_state | 
+ 32 | 789-792 | 4 | npc_speech = ( | 1(1) | 1 | 0/0 |  | npc_speech |  | action_result | 
+ 33 | 793-793 | 1 | conditional = None | 0(0) | 1 | 0/0 |  | conditional |  |  | 
+ 34 | 794-811 | 18 | if not npc_speech: | 2(2) | 1 | 0/0 |  | conditional |  | npc_speech text | 
+ 35 | 812-813 | 2 | if conditional: | 3(2) | 0 | 1/0 |  |  |  | conditional reject scene_type | 
+ 36 | 817-832 | 16 | pre_agency_claims = ( | 0(0) | 1 | 0/0 |  | pre_agency_claims |  |  | 
+ 37 | 833-845 | 13 | for reason_code, pattern in pre_agency_claims: | 8(4) | 4 | 1/0 |  | claim claims pattern reason_code |  | action_result attack_claims_assessed attack_fact_packet is_verified_attack_damage_claim pre_agency_claims reject scene_type text | 
+ 38 | 846-861 | 16 | if (action_outcome or game._mechanical_outcome(player_input)) in ( | 5(4) | 0 | 2/0 |  |  |  | action_outcome player_input reject scene_type text | 
+ 39 | 863-863 | 1 | arrival_text = living_world._text_outside_quotes(narration) | 1(1) | 1 | 0/0 |  | arrival_text |  | narration | 
+ 40 | 864-864 | 1 | current_location = world_state.get("location") | 1(1) | 1 | 0/0 |  | current_location |  | world_state | 
+ 41 | 865-865 | 1 | current_record = world_state.get("locations", {}).get(current_location | 2(2) | 1 | 0/0 |  | current_record |  | current_location world_state | 
+ 42 | 866-869 | 4 | current_is_city = ( | 3(3) | 1 | 0/0 |  | current_is_city |  | current_location current_record world_state | 
+ 43 | 870-874 | 5 | uncommitted_departure = re.search( | 1(1) | 1 | 0/0 |  | uncommitted_departure |  | arrival_text | 
+ 44 | 875-879 | 5 | committed_travel = ( | 1(1) | 1 | 0/0 |  | committed_travel |  | action_result | 
+ 45 | 880-881 | 2 | if current_is_city and uncommitted_departure and not committed_travel: | 5(4) | 0 | 1/0 |  |  |  | committed_travel current_is_city reject scene_type uncommitted_departure | 
+ 46 | 883-915 | 33 | for npc in world_state.get("npcs", []): | 8(7) | 6 | 2/0 |  | name_pattern normalized_name npc npc_location npc_name present_action |  | current_location npc npc_target reject scene_type target_id text world_state | 
+ 47 | 917-918 | 2 | if game._unsupported_available_quest_claim(narration): | 3(2) | 0 | 1/0 |  |  |  | narration reject scene_type | 
+ 48 | 923-930 | 8 | second_person_verb = re.compile( | 0(0) | 1 | 0/0 |  | second_person_verb |  |  | 
+ 49 | 931-931 | 1 | player_action_text = text | 1(1) | 1 | 0/0 |  | player_action_text |  | text | 
+ 50 | 934-938 | 5 | if npc_target or re.search(r'"[^"]+"|“[^”]+”', text): | 2(2) | 1 | 0/0 |  | player_action_text |  | npc_target text | 
+ 51 | 939-941 | 3 | player_action_text = npc_speech_boundary.mask_spoken_questions( | 3(3) | 1 | 0/0 |  | player_action_text |  | npc_speech_boundary player_action_text spoken_start | 
+ 52 | 942-944 | 3 | normalized_action_text = game._normalize_turkish_typos( | 1(1) | 1 | 0/0 |  | normalized_action_text |  | player_action_text | 
+ 53 | 945-945 | 1 | npc_name_question = False | 0(0) | 1 | 0/0 |  | npc_name_question |  |  | 
+ 54 | 946-953 | 8 | if npc_target: | 3(3) | 2 | 0/0 | model:1 | npc_name npc_name_question |  | normalized_action_text npc_name npc_target | 
+ 55 | 954-958 | 5 | travel_result = ( | 1(1) | 1 | 0/0 |  | travel_result |  | action_result | 
+ 56 | 959-963 | 5 | observe_result = ( | 1(1) | 1 | 0/0 |  | observe_result |  | action_result | 
+ 57 | 964-975 | 12 | agency_prefixes = ( | 0(0) | 1 | 0/0 |  | agency_prefixes |  |  | 
+ 58 | 976-978 | 3 | travel_prefixes = ( | 0(0) | 1 | 0/0 |  | travel_prefixes |  |  | 
+ 59 | 979-981 | 3 | if action_result.get("proposal_required"): | 1(1) | 1 | 0/0 |  | travel_prefixes |  | action_result | 
+ 60 | 982-995 | 14 | input_verb_suffixes = tuple(sorted(( | 0(0) | 1 | 0/0 |  | input_verb_suffixes |  |  | 
+ 61 | 996-996 | 1 | input_verb_stems = set() | 0(0) | 1 | 0/0 |  | input_verb_stems |  |  | 
+ 62 | 997-1006 | 10 | for word in re.findall( | 4(4) | 0 | 0/0 |  |  |  | agency_prefixes input_text input_verb_stems input_verb_suffixes | 
+ 63 | 1007-1067 | 61 | for match in second_person_verb.finditer(player_action_text): | 13(12) | 1 | 1/0 |  | match |  | agency_prefixes input_verb_stems match npc_name_question observe_result player_action_text reject scene_type second_person_verb spoken_start text travel_prefixes travel_result | 
+ 64 | 1069-1071 | 3 | mental_state_trigger = game._unverified_player_mental_state_trigger( | 2(2) | 1 | 0/0 |  | mental_state_trigger |  | player_action_text second_person_verb | 
+ 65 | 1072-1072 | 1 | feeling = game._PLAYER_FEELING_RE.search(player_action_text) | 1(1) | 1 | 0/0 |  | feeling |  | player_action_text | 
+ 66 | 1073-1074 | 2 | if feeling and not mental_state_trigger: | 2(2) | 1 | 0/0 |  | mental_state_trigger |  | feeling mental_state_trigger | 
+ 67 | 1075-1076 | 2 | if mental_state_trigger: | 3(2) | 0 | 1/0 |  |  |  | mental_state_trigger reject scene_type | 
+ 68 | 1078-1083 | 6 | unsupported_goal = re.search( | 1(1) | 1 | 0/0 |  | unsupported_goal |  | text | 
+ 69 | 1084-1089 | 6 | if travel_result and unsupported_goal and not re.search( | 5(4) | 0 | 1/0 |  |  |  | input_text reject scene_type travel_result unsupported_goal | 
+ 70 | 1091-1106 | 16 | for sitting in re.finditer(r"\bbirlikte\s+(otur\w*)\b", text): | 6(5) | 0 | 1/0 |  |  |  | action_result npc_speech_boundary reject scene_type spoken_start text | 
+ 71 | 1107-1111 | 5 | forced_player_action = re.search( | 1(1) | 1 | 0/0 |  | forced_player_action |  | text | 
+ 72 | 1112-1113 | 2 | if forced_player_action: | 3(2) | 0 | 1/0 |  |  |  | forced_player_action reject scene_type | 
+ 73 | 1114-1118 | 5 | unsolicited_offer = re.search( | 1(1) | 1 | 0/0 |  | unsolicited_offer |  | text | 
+ 74 | 1119-1122 | 4 | if unsolicited_offer and not npc_speech and not any( | 5(4) | 0 | 1/0 |  |  |  | input_text npc_speech reject scene_type unsolicited_offer | 
+ 75 | 1123-1130 | 8 | unsupported_transfer = re.compile( | 0(0) | 1 | 0/0 |  | unsupported_transfer |  |  | 
+ 76 | 1131-1142 | 12 | for transfer_claim in unsupported_transfer.finditer(text): | 6(5) | 1 | 1/0 |  | transfer_claim |  | action_result reject scene_type text transfer_claim unsupported_transfer | 
+ 77 | 1143-1147 | 5 | inventory_transfer = re.compile( | 0(0) | 1 | 0/0 |  | inventory_transfer |  |  | 
+ 78 | 1148-1154 | 7 | for transfer_claim in inventory_transfer.finditer(text): | 6(5) | 0 | 1/0 |  |  |  | action_result inventory_transfer reject scene_type text transfer_claim | 
+ 79 | 1155-1158 | 4 | generic_transfer = re.search( | 1(1) | 1 | 0/0 |  | generic_transfer |  | text | 
+ 80 | 1159-1162 | 4 | if generic_transfer and not game._authorized_item_transfer_matches( | 4(3) | 0 | 1/0 |  |  |  | action_result generic_transfer reject scene_type | 
+ 81 | 1164-1185 | 22 | if npc_target: | 5(4) | 0 | 2/0 |  |  |  | input_text npc_target reject scene_type text | 
+ 82 | 1187-1191 | 5 | registered_names = { | 1(1) | 1 | 0/0 |  | registered_names |  | world_state | 
+ 83 | 1192-1194 | 3 | registered_name_tokens = { | 1(1) | 1 | 0/0 |  | registered_name_tokens |  | registered_names | 
+ 84 | 1195-1195 | 1 | known_places = {str(world_state.get("location", "")).casefold()} | 1(1) | 1 | 0/0 |  | known_places |  | world_state | 
+ 85 | 1196-1197 | 2 | for location in world_state.get("locations", {}).values(): | 2(2) | 1 | 0/0 |  | location |  | known_places world_state | 
+ 86 | 1198-1200 | 3 | known_place_forms = { | 1(1) | 1 | 0/0 |  | known_place_forms |  | known_places | 
+ 87 | 1201-1209 | 9 | for place in tuple(known_place_forms): | 1(1) | 0 | 0/0 |  |  |  | known_place_forms | 
+ 88 | 1210-1210 | 1 | name_patterns = game._NARRATED_NAME_PATTERNS | 0(0) | 1 | 0/0 |  | name_patterns |  |  | 
+ 89 | 1211-1211 | 1 | unseen_people = game._unseen_registered_names(world_state) | 1(1) | 1 | 0/0 |  | unseen_people |  | world_state | 
+ 90 | 1212-1212 | 1 | import npc_speech_boundary | 0(0) | 1 | 0/0 |  | npc_speech_boundary |  |  | 
+ 91 | 1213-1215 | 3 | entity_narration = npc_speech_boundary.narrated_entity_text( | 5(5) | 1 | 0/0 |  | entity_narration |  | action_result attributed_speech narration npc_speech_boundary npc_target | 
+ 92 | 1216-1220 | 5 | def reject_entity | 4(3) | 1 | 1/0 |  | reject_entity |  | entity_narration narration reject scene_type | 
+ 93 | 1221-1221 | 1 | entity_scan = npc_speech_boundary.mask_visible_entity_labels(entity_na | 3(3) | 1 | 0/0 |  | entity_scan |  | entity_narration npc_speech_boundary world_state | 
+ 94 | 1222-1247 | 26 | for pattern in name_patterns: | 15(12) | 1 | 1/0 |  | pattern |  | action_result entity_narration entity_scan known_place_forms known_places match name_patterns narration pattern registered_name_tokens registered_names reject reject_entity scene_type world_state | 
+ 95 | 1248-1249 | 2 | if game._has_unregistered_person_name(entity_scan): | 6(2) | 0 | 1/0 |  |  |  | entity_narration entity_scan narration reject reject_entity scene_type | 
+ 96 | 1252-1252 | 1 | unseen_speakers = game._unseen_speakers(entity_scan, unseen_people) | 2(2) | 1 | 0/0 |  | unseen_speakers |  | entity_scan unseen_people | 
+ 97 | 1253-1255 | 3 | if unseen_speakers: | 6(3) | 0 | 1/0 |  |  |  | entity_narration narration reject reject_entity scene_type unseen_speakers | 
+ 98 | 1256-1256 | 1 | introductions = game._unseen_self_introductions(entity_narration, unse | 2(2) | 1 | 0/0 |  | introductions |  | entity_narration unseen_people | 
+ 99 | 1257-1258 | 2 | if introductions: | 6(2) | 0 | 1/0 |  |  |  | entity_narration introductions narration reject reject_entity scene_type | 
+100 | 1260-1262 | 3 | unregistered_object = game._unregistered_persistent_object_claim( | 2(2) | 1 | 0/0 | save:1 | unregistered_object |  | narration world_state | 
+101 | 1263-1264 | 2 | if unregistered_object: | 3(2) | 0 | 1/0 | save:1 |  |  | reject scene_type unregistered_object | 
+102 | 1265-1265 | 1 | held_object = game._unregistered_held_object(world_state, narration) | 2(2) | 1 | 0/0 |  | held_object |  | narration world_state | 
+103 | 1266-1266 | 1 | held_action = action_result.get("action") if isinstance(action_result, | 1(1) | 1 | 0/0 |  | held_action |  | action_result | 
+104 | 1267-1267 | 1 | held_outcome = action_result.get("outcome") if isinstance(action_resul | 1(1) | 1 | 0/0 |  | held_outcome |  | action_result | 
+105 | 1268-1272 | 5 | if held_object and ( | 5(4) | 0 | 1/0 | save:1 |  |  | held_action held_object held_outcome reject scene_type | 
+106 | 1274-1278 | 5 | arrival_sentences = re.split( | 1(1) | 1 | 0/0 |  | arrival_sentences |  | arrival_text | 
+107 | 1279-1283 | 5 | completed_player_arrival = re.compile( | 0(0) | 1 | 0/0 |  | completed_player_arrival |  |  | 
+108 | 1284-1303 | 20 | for location_id, location in world_state.get("locations", {}).items(): | 8(7) | 0 | 1/0 |  |  |  | aliases arrival_sentences completed_player_arrival current_location location reject scene_type world_state | 
+109 | 1307-1341 | 35 | for npc in world_state.get("npcs", []): | 12(11) | 3 | 2/0 |  | normalized_name npc npc_name |  | current_location name_pattern normalized_name npc npc_location npc_name npc_target present_action reject scene_type text world_state | 
+110 | 1345-1368 | 24 | hard_claims = ( | 0(0) | 1 | 0/0 |  | hard_claims |  |  | 
+111 | 1369-1381 | 13 | for reason_code, pattern in hard_claims: | 12(8) | 0 | 1/0 |  |  |  | action_result attack_claims_assessed attack_fact_packet claim claims hard_claims is_verified_attack_damage_claim pattern reason_code reject scene_type text | 
+112 | 1383-1383 | 1 | quest_outcomes = action_result.get("quest_outcomes") | 1(1) | 1 | 0/0 |  | quest_outcomes |  | action_result | 
+113 | 1384-1389 | 6 | quest_transition = re.search( | 1(1) | 1 | 0/0 |  | quest_transition |  | text | 
+114 | 1390-1391 | 2 | if quest_transition and not quest_outcomes: | 4(3) | 0 | 1/0 |  |  |  | quest_outcomes quest_transition reject scene_type | 
+115 | 1393-1396 | 4 | weather_change = re.search( | 1(1) | 1 | 0/0 |  | weather_change |  | text | 
+116 | 1397-1398 | 2 | if weather_change: | 3(2) | 0 | 1/0 |  |  |  | reject scene_type weather_change | 
+117 | 1400-1416 | 17 | for npc in world_state.get("npcs", []): | 7(6) | 0 | 1/0 |  |  |  | normalized_name npc npc_name reject scene_type text world_state | 
+118 | 1418-1423 | 6 | if any(phrase in text for phrase in ( | 3(2) | 0 | 1/0 |  |  |  | reject scene_type text | 
+119 | 1424-1424 | 1 | outcome = action_outcome or game._mechanical_outcome(player_input) | 2(2) | 1 | 0/0 |  | outcome |  | action_outcome player_input | 
+120 | 1425-1433 | 9 | if outcome in ("failure", "critical_failure"): | 4(3) | 0 | 1/0 |  |  |  | outcome reject scene_type text | 
+121 | 1434-1440 | 7 | if outcome in ("success", "critical_success"): | 5(4) | 0 | 2/0 |  |  |  | action_result outcome reject scene_type text | 
+122 | 1441-1449 | 9 | if ("kapı" in input_text or "kilit" in input_text) and outcome in ( | 5(4) | 0 | 1/0 |  |  |  | input_text outcome reject scene_type text | 
+123 | 1451-1451 | 1 | door = game._current_door() | 0(0) | 1 | 0/0 |  | door |  |  | 
+124 | 1452-1483 | 32 | if door: | 4(3) | 0 | 5/0 |  |  |  | door reject scene_type text | 
+125 | 1485-1485 | 1 | import narration_claims | 0(0) | 1 | 0/0 |  | narration_claims |  |  | 
+126 | 1486-1486 | 1 | verdict = narration_claims.assess(narration, game._narration_fact_pack | 3(3) | 1 | 0/0 |  | verdict |  | action_result narration narration_claims | 
+127 | 1487-1488 | 2 | if verdict["reject"]: | 3(2) | 0 | 1/0 |  |  |  | reject scene_type verdict | 
+128 | 1492-1497 | 6 | if speech_fields is not None and game._narration_has_unsupported_lore_ | 4(3) | 0 | 1/0 |  |  |  | reject scene_type speech_fields world_state | 
+129 | 1499-1503 | 5 | if combat_lifecycle.quoted_or_conditional_not_attack(game._session(),  | 5(4) | 0 | 1/0 |  |  |  | narration narration_claims player_input reject scene_type | 
+130 | 1505-1505 | 1 | return accept() | 2(1) | 0 | 1/0 |  |  |  | accept scene_type | 
+SUMMARY {"target": "_narration_safety_decision", "label": "narration_safety.py@final", "lines": 1054, "blocks": 131, "blocks_ge20_lines": 12, "blocks_ge20_out_le5": 11, "lines_in_ge20_out_le5": 412, "blocks_out_le5": 130, "blocks_with_return": 51, "returns": 72, "raises": 0, "nested_defs": ["accept", "is_verified_attack_damage_claim", "reject", "reject_entity"], "blocks_touching": {"money": 0, "save": 3, "undo": 0, "session_write": 0, "model": 3, "locals()": 0}}
+CUT yes B 503-521 n=19 out=0 ret=2 hazard=- flags=- :: if greeting_only:
+CUT no  C 523-541 n=19 out=1 ret=1 hazard=- flags=- :: for npc in world_state.get("npcs", []):
+CUT no  C 553-563 n=11 out=4 ret=1 hazard=- flags=- :: if action_result.get("action") == "attack":
+CUT no  D 568-627 n=60 out=1 ret=7 hazard=- flags=- :: def is_verified_attack_damage_claim
+CUT no  C 629-711 n=83 out=3 ret=4 hazard=- flags=- :: if npc_target and isinstance(npc_target, dict) and
+CUT no  C 713-734 n=22 out=1 ret=2 hazard=- flags=- :: if action_result.get("action") == "dialogue":
+CUT no  C 756-782 n=27 out=4 ret=2 hazard=- flags=model :: if character_name_matches:
+CUT yes A 794-811 n=18 out=1 ret=0 hazard=- flags=- :: if not npc_speech:
+CUT yes A 817-832 n=16 out=1 ret=0 hazard=- flags=- :: pre_agency_claims = (
+CUT no  C 833-845 n=13 out=4 ret=1 hazard=- flags=- :: for reason_code, pattern in pre_agency_claims:
+CUT yes B 846-861 n=16 out=0 ret=2 hazard=- flags=- :: if (action_outcome or game._mechanical_outcome(pla
+CUT no  C 883-915 n=33 out=6 ret=2 hazard=- flags=- :: for npc in world_state.get("npcs", []):
+CUT yes A 964-975 n=12 out=1 ret=0 hazard=- flags=- :: agency_prefixes = (
+CUT yes A 982-995 n=14 out=1 ret=0 hazard=- flags=- :: input_verb_suffixes = tuple(sorted((
+CUT yes A 997-1006 n=10 out=0 ret=0 hazard=- flags=- :: for word in re.findall(
+CUT no  C 1007-1067 n=61 out=1 ret=1 hazard=- flags=- :: for match in second_person_verb.finditer(player_ac
+CUT yes B 1091-1106 n=16 out=0 ret=1 hazard=- flags=- :: for sitting in re.finditer(r"\bbirlikte\s+(otur\w*
+CUT no  C 1131-1142 n=12 out=1 ret=1 hazard=- flags=- :: for transfer_claim in unsupported_transfer.findite
+CUT yes B 1164-1185 n=22 out=0 ret=2 hazard=- flags=- :: if npc_target:
+CUT no  C 1222-1247 n=26 out=1 ret=1 hazard=- flags=- :: for pattern in name_patterns:
+CUT yes B 1284-1303 n=20 out=0 ret=1 hazard=- flags=- :: for location_id, location in world_state.get("loca
+CUT no  C 1307-1341 n=35 out=3 ret=2 hazard=- flags=- :: for npc in world_state.get("npcs", []):
+CUT yes A 1345-1368 n=24 out=1 ret=0 hazard=- flags=- :: hard_claims = (
+CUT yes B 1369-1381 n=13 out=0 ret=1 hazard=- flags=- :: for reason_code, pattern in hard_claims:
+CUT yes B 1400-1416 n=17 out=0 ret=1 hazard=- flags=- :: for npc in world_state.get("npcs", []):
+CUT yes B 1452-1483 n=32 out=0 ret=5 hazard=- flags=- :: if door:
+CUTSUM {"rows_ge_min": 26, "cut_yes": 14, "cut_yes_lines": 249, "by_class": {"A": 6, "B": 8, "C": 11, "D": 1}, "hazard_blocks": 0}
