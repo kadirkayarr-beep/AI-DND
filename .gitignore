@@ -106,3 +106,5 @@ graphify-out/
 /attached_assets/*.pdf
 /attached_assets/*.rar
 /attached_assets/.*.pdf.*~
+
+.desloppify/
