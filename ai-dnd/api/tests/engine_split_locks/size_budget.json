@@ -1,6 +1,6 @@
 {
   "files": {
-    "game.py": 1151,
+    "game.py": 1159,
     "game_parts/narration_safety.py": 1505,
     "game_parts/turn.py": 2318
   },
@@ -12,7 +12,7 @@
     "game_parts/living_world_turn.py::plan_living_world_turn": 308,
     "game_parts/lore.py::_player_question_has_unverified_lore_claim": 196,
     "game_parts/lore.py::_supported_lore_question_response": 479,
-    "game_parts/narration.py::ask_dungeon_master": 509,
+    "game_parts/narration.py::ask_dungeon_master": 299,
     "game_parts/narration.py::finalize_narration": 350,
     "game_parts/narration.py::validate_world_updates": 155,
     "game_parts/narration_safety.py::_narration_safety_decision": 1054,

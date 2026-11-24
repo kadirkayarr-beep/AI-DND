@@ -1145,6 +1145,30 @@
   "session_bound": true,
   "signature": "(player_input, messages, target_id, scene_plan, interaction_mode, action_id, session_id, check_feature, check_evidence)"
  },
+ "_dm_anchored_inquiry": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, allow_new_features, player_input, update_permissions)"
+ },
+ "_dm_direct_query": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, scene_guidance, scene_type)"
+ },
+ "_dm_json_candidate": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, candidate, data)"
+ },
+ "_dm_npc_dialogue": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, npc_dialogue_guidance, npc_target)"
+ },
  "_dm_prompt_note": {
   "kind": "function",
   "module": "game_parts.text_rules_a",
@@ -1156,6 +1180,30 @@
   "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(allow_new_shops=False, narration_only=False)"
+ },
+ "_dm_return_details": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, claims_supported, data, lore_claims, narration, player_line, refs_supported, return_details, updates)"
+ },
+ "_dm_shop_creation": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, allow_new_shops)"
+ },
+ "_dm_travel_guidance": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, narration_only, travel_guidance)"
+ },
+ "_dm_user_prompt": {
+  "kind": "function",
+  "module": "game_parts.narration_steps",
+  "session_bound": true,
+  "signature": "(*, action_result, context, living_scene_context, lore_claim_guidance, lore_context_json, npc_dialogue_guidance, npc_target, outcome_guidance, player_input, pocket, recent_narration_context, scene_guidance, shop_creation_guidance, travel_guidance, travel_status, truth_card, update_permissions, walking_away, world_state)"
  },
  "_down_outside_combat_turn": {
   "kind": "function",

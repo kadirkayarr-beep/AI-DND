@@ -42,6 +42,12 @@
     "_dm_response_schema_for_turn": [
       "money"
     ],
+    "_dm_shop_creation": [
+      "money"
+    ],
+    "_dm_user_prompt": [
+      "money"
+    ],
     "_economic_listing": [
       "money"
     ],

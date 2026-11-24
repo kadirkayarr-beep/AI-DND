@@ -80,7 +80,7 @@ class WrapperFilter(unittest.TestCase):
         self.assertEqual(game._PART_MODULES, ("game_parts.character_rules", "game_parts.coin",
                                               "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.intent_steps",
                                               "game_parts.living_world_steps", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration",
-                                              "game_parts.narration_safety", "game_parts.new_game", "game_parts.places",
+                                              "game_parts.narration_safety", "game_parts.narration_steps", "game_parts.new_game", "game_parts.places",
                                               "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a",
                                               "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_dispatch_steps", "game_parts.turn_exits", "game_parts.turn_finish",
                                               "game_parts.turn_front", "game_parts.turn_front_steps", "game_parts.turn_shop_guards", "game_parts.turn_speech"))

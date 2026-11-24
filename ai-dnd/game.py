@@ -511,6 +511,14 @@ from game_parts.intent_steps import _pi_npc_dialogue_schema  # noqa: F401
 from game_parts.intent_steps import _pi_require_conversation  # noqa: F401
 from game_parts.intent_steps import _pi_recent_scene  # noqa: F401
 from game_parts.intent_steps import _pi_base_prompt  # noqa: F401
+from game_parts.narration_steps import _dm_return_details  # noqa: F401
+from game_parts.narration_steps import _dm_json_candidate  # noqa: F401
+from game_parts.narration_steps import _dm_user_prompt  # noqa: F401
+from game_parts.narration_steps import _dm_npc_dialogue  # noqa: F401
+from game_parts.narration_steps import _dm_anchored_inquiry  # noqa: F401
+from game_parts.narration_steps import _dm_shop_creation  # noqa: F401
+from game_parts.narration_steps import _dm_direct_query  # noqa: F401
+from game_parts.narration_steps import _dm_travel_guidance  # noqa: F401
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"
@@ -545,7 +553,7 @@ def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_P
 
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
-_PART_MODULES = ("game_parts.character_rules", "game_parts.coin", "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.intent_steps", "game_parts.living_world_steps", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration", "game_parts.narration_safety", "game_parts.new_game", "game_parts.places", "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a", "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_dispatch_steps", "game_parts.turn_exits", "game_parts.turn_finish", "game_parts.turn_front", "game_parts.turn_front_steps", "game_parts.turn_shop_guards", "game_parts.turn_speech")
+_PART_MODULES = ("game_parts.character_rules", "game_parts.coin", "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.intent_steps", "game_parts.living_world_steps", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration", "game_parts.narration_safety", "game_parts.narration_steps", "game_parts.new_game", "game_parts.places", "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a", "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_dispatch_steps", "game_parts.turn_exits", "game_parts.turn_finish", "game_parts.turn_front", "game_parts.turn_front_steps", "game_parts.turn_shop_guards", "game_parts.turn_speech")
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
                           if isinstance(value, types.FunctionType)
                           and (value.__module__ == __name__ or value.__module__ in _PART_MODULES))
