@@ -197,12 +197,33 @@ class TextPurchase(_Town):
 
 
 class TheRollIsShown(__import__("unittest").TestCase):
-    def test_only_the_roll_note_is_taken_out_for_the_safety_check(self):
+    def test_only_the_roll_actually_made_is_taken_out_for_the_safety_check(self):
         import weapon_attack
+        made = {"economy_steps": [{"result": {"attack_roll": 20, "attack_total": 25, "target_ac": 10}}]}
         text = "Haydut ölür. Zar 20, toplam 25; hedefin Zırh Sınıfı 10. +10 deneyim puanı."
-        self.assertEqual(weapon_attack.without_roll_note(text), "Haydut ölür. +10 deneyim puanı.")
-        loose = "Zar 20 atarsın, toplam 25."
-        self.assertEqual(weapon_attack.without_roll_note(loose), loose)
+        self.assertEqual(weapon_attack.without_roll_note(text, made), "Haydut ölür. +10 deneyim puanı.")
+        enemy = {"enemy_actions": [{"attack_roll": 19, "attack_total": 22, "target_ac": 12}]}
+        self.assertEqual(weapon_attack.without_roll_note("Vurur. Zar 19, toplam 22; senin Zırh Sınıfın 12.", enemy), "Vurur.")
+        for other in ("Haydut ölür. Zar 20, toplam 99; hedefin Zırh Sınıfı 10.", "Zar 20 atarsın, toplam 25."):
+            self.assertEqual(weapon_attack.without_roll_note(other, made), other)
+        self.assertEqual(weapon_attack.without_roll_note(text, None), text)
+
+    def test_a_roll_note_of_other_numbers_in_the_fallback_is_still_flagged(self):
+        import game
+        from unittest.mock import patch
+        import weapon_attack
+        made = {"action": "attack", "attack_roll": 20, "attack_total": 25, "target_ac": 10}
+        seen = []
+        real = game._narration_safety_decision
+        def spy(text, *args, **kwargs):
+            seen.append(text)
+            return real(text, *args, **kwargs)
+        fake = "Haydut ölür. Zar 20, toplam 99; hedefin Zırh Sınıfı 10."
+        with patch.object(game, "_narration_safety_decision", spy):
+            game.finalize_narration("Haydut düşer.", "Saldırıyorum.", action_result=made, resolved_fallback_response=fake,
+                                    fallback_reason_code="MODEL_WORLD_PROPOSAL_REJECTED")
+        self.assertIn(fake, seen)
+        self.assertEqual(weapon_attack.without_roll_note(fake, made), fake)
 
     def test_the_player_attack_tells_its_roll_total_and_target_ac(self):
         from unittest.mock import patch
@@ -308,6 +329,15 @@ class ReviewOneFixes(TextPurchase, FollowMessenger):
         masked = npc_speech_boundary.mask_spoken_questions(text, 0)
         self.assertNotIn("görürsün", masked)
         self.assertNotIn("anlarsın", masked)
+
+    def test_the_spoken_mask_takes_only_the_you_will_find_out_form(self):
+        import npc_speech_boundary
+        for kept in ("anlatırsın", "görüyorsun", "anlamıyorsun", "görmezsin", "anlıyorsun"):
+            text = f'Marek: "Sen {kept}."'
+            self.assertIn(kept, npc_speech_boundary.mask_spoken_questions(text, 0))
+        for masked in ("anlarsın", "görürsün", "anlarsınız"):
+            text = f'Marek: "Sen {masked}."'
+            self.assertNotIn(masked, npc_speech_boundary.mask_spoken_questions(text, 0))
 
     def test_the_spoken_mask_leaves_walks_and_feelings_told_to_the_player(self):
         import npc_speech_boundary

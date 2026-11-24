@@ -44,9 +44,21 @@ def roll_note(attack, armour_words):
     return f" Zar {roll}, toplam {total}; {armour_words} {armour}."
 
 
-def without_roll_note(text):
-    """The text with the roll note taken out: Python's own roll is no number a safety check should weigh."""
-    return re.sub(r" Zar \d+, toplam -?\d+; (?:hedefin|senin) Zırh Sınıf\w* \d+\.", "", text)
+def without_roll_note(text, action_result):
+    """The text with this turn's own roll notes taken out, each exactly as roll_note built it from a result in
+    action_result: Python's roll is no number a safety check should weigh, a note of any other numbers is."""
+    stack = [action_result]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            for words in ("hedefin Zırh Sınıfı", "senin Zırh Sınıfın"):
+                note = roll_note(item, words)
+                if note:
+                    text = text.replace(note, "")
+            stack.extend(item.values())
+        elif isinstance(item, list):
+            stack.extend(item)
+    return text
 
 
 def fail(code, message):

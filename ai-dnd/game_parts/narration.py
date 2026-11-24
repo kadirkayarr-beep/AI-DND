@@ -1770,7 +1770,7 @@ def finalize_narration(
         ):
             candidate = game.clean_dm_response(resolved_fallback_response)
             if candidate.strip() and not game._narration_safety_decision(
-                weapon_attack.without_roll_note(candidate), player_input, npc_target, action_result
+                weapon_attack.without_roll_note(candidate, action_result), player_input, npc_target, action_result
             )["unsafe"]:
                 return candidate
         if default_response is not None:
