@@ -170,7 +170,7 @@ def roll_members(session, actors, existing_results=None, existing_groups=None):
     groups = copy.deepcopy(existing_groups or {})
     results = copy.deepcopy(existing_results or {})
     signatures = {}
-    for actor, config in configs.items():
+    for config in configs.values():
         group = config["group_id"]
         if group is None:
             continue

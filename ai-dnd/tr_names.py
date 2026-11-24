@@ -1,4 +1,4 @@
-"""Turkish names for spells and items: one table, content/names/tr_names.json.
+"""Turkish names for spells and items (the tr_ prefix means Turkish): one table, content/names/tr_names.json.
 
 Ids stay English everywhere (saves, engine, rules). The table only changes what a
 player reads and what a player may type. A name that is not in the table falls

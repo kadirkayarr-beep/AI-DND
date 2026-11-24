@@ -1,4 +1,6 @@
 """Explicit server-only local model selection; never downloads. Only the 12B has a fallback (LOCAL_FALLBACK_MODELS)."""
+from __future__ import annotations
+
 import os
 from typing import Literal, get_args
 

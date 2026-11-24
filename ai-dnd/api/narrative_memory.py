@@ -631,7 +631,7 @@ def build_narrative_context(
             explicit_ids.add(entity_id)
 
     mentions: dict[str, list[str]] = {}
-    for kind, records in (("npc", npc_records), ("location", location_records)):
+    for records in (npc_records, location_records):
         for entity_id, record in records.items():
             name = str(record.get("name", "")).strip().casefold()
             if name and re.search(rf"(?<!\w){re.escape(name)}(?:['’]?[a-zçğıöşü]+)?(?!\w)", text):
@@ -641,7 +641,7 @@ def build_narrative_context(
         for name, ids in sorted(mentions.items())
         if len(ids) > 1
     ]
-    for name, ids in mentions.items():
+    for ids in mentions.values():
         if len(ids) == 1:
             explicit_ids.add(ids[0])
 

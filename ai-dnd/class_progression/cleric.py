@@ -3,6 +3,7 @@
 Prepared spells (PDF 68) are chosen from the Cleric list in the preparation window (`spell_preparation`): the creation's level-1
 list plus the PHB Cleric spells of each level the Cleric has slots for. Level 3: Life Domain is the one subclass offered (approved
 decision 5); its features are pending.
+Prepared caster: ClassProgression and the character_progression helpers reach this class through prepared_caster, so this module does not import them itself.
 """
 from __future__ import annotations
 

@@ -291,13 +291,13 @@ def _read_clause(clause: dict[str, Any], cands=()) -> dict[str, Any]:
         return info
     # Purpose: "Kızılhanı bulmak için tabelalara bakıyorum" -> goal search(Kızılhan).
     if "icin" in tokens:
-        for position, verb, negated, infinitive in found:
+        for position, verb, _negated, infinitive in found:
             if infinitive and position + 1 < len(tokens) and tokens[position + 1] == "icin":
                 info["purpose"] = {"verb": verb, "tokens": tokens[:position]}
                 found = [f for f in found if f[0] > position + 1] or found
                 break
     # Manner converbs before the main verb: "zorlamadan", "iterek".
-    for position, verb, negated, infinitive in found[:-1]:
+    for position, verb, _negated, _infinitive in found[:-1]:
         if re.search(r"(?:madan|meden)$", tokens[position]):
             info["manner_negated"].append(verb)
     # "dolanırken" (while), "zorlamadan" (without), "iterek" (by) qualify the act; they are not it.
@@ -2175,7 +2175,7 @@ def _readable_note(session, player_input: str) -> str | None:
     return note[:200] if note else None
 
 
-def _do_read(run: _Run, step) -> dict[str, Any]:
+def _do_read(run: _Run, step) -> dict[str, Any] | None:
     note = step.get("quoted_note")
     if isinstance(note, str) and note.strip():
         return _receipt("read", "completed", None, text=f"Notta şunlar yazıyor: “{note.strip()}”")
@@ -3706,7 +3706,9 @@ def _bookkeeping(run: _Run, narration: str, action_result: dict[str, Any]) -> di
         try:
             session.evaluate_quest_events(run.before, action_result)
         except Exception:
-            pass
+            # A failed quest evaluation must not fail the turn; the narration is already written. Log it so stale quest state leaves a trace.
+            import logging
+            logging.getLogger(__name__).exception("quest events failed after a location change; turn continues")
     session.messages.extend([
         {"role": "user", "content": run.text},
         {"role": "assistant", "content": narration},

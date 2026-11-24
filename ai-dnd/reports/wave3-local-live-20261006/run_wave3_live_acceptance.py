@@ -368,7 +368,7 @@ def main() -> None:
                     and attack["after"].get("combat_active") is True
                     and (attack["after"].get("conversation") or {}).get("active") is False
                 )
-                else ("FAIL" if attack["http_status"] == 200 else "FAIL"),
+                else "FAIL",
                 "http_status": attack["http_status"],
                 "combat_active": attack["after"].get("combat_active"),
                 "conversation": attack["after"].get("conversation"),
