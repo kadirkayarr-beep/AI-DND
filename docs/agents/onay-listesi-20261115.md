@@ -495,6 +495,12 @@ Bayrak açık (AI_DND_FRONT_PROPOSAL=1, yerel oyunun varsayılanı) kırık test
 |---|---|---|
 | `ai-dnd/scripts/quality_gate/size_lock.json`, `test_quality_size_budget` (Task 8) | kilit "hiçbir dosya büyümez" yerine "hiçbir dosya `part_max` (2500) geçmez" oldu: yalnız `part_max` üstündeki 10 py ve 1 ts dosya ile 40 uzun işlev bugünkü boyutlarıyla dondu; 1368 küçük dosya 2500 satıra kadar büyüyebilir (spec: bugünkü büyükler dondurulur) | GEVŞETME OLABİLİR |
 
+## 26. D-517 eski-kayıt uyum kodu (dal `task/d517-legacy-20261124`)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_playable_living_world` `test_legacy_save_migrates_feature_ids_idempotently`, `test_living_world_v2_foundation` `test_legacy_scene_event_gets_a_stable_instance_identity` | silindi: yalnız eski kayıt şeklini (id'siz özellik, instance_id'siz olay) besliyordu; yeni oyun bu şekli hiç yazmıyor ve onarım kodu kalktı. Yerine `test_d517_living_world_legacy`: taze kampanya tam kayıt yazar, eski şekil reddedilir (daha sıkı) | gevşetme olabilir (eski kayıt artık yüklenmiyor; sahip kuralı: eski kayıtlar önemsiz) |
+
 ## 27. Temizlik 2 (dal `task/temizlik-2-20261124`)
 
 | Test | Değişiklik | İşaret |

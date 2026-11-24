@@ -27,20 +27,6 @@ MAX_BEAT_TEXT = 240
 MAX_AMBIENT_EVENT_HISTORY = 32
 
 
-def _legacy_ambient_event_instance_id(
-    campaign_seed: str,
-    location_id: str,
-    event_id: str,
-    count: int,
-    turn_index: int,
-) -> str:
-    identity = json.dumps(
-        [campaign_seed, location_id, event_id, count, turn_index],
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"ai-dnd:ambient-event:{identity}"))
-
 # The first 16 names are the legacy pool and must stay first and in order:
 # campaigns without a seed (old saves, fixtures) still draw from exactly these.
 # The names after them are only reachable through a campaign seed.
@@ -946,7 +932,7 @@ def is_merchant_search(value: Any) -> bool:
 
 
 def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
-    """Install and validate bounded scene state; migrate legacy feature IDs."""
+    """Install and validate bounded scene state."""
     state = world_state.get("scene_state")
     if state is None:
         state = initial_scene_state()
@@ -1006,21 +992,6 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
     ):
         raise ValueError("Campaign ambient context is invalid.")
     for item in state["ambient_event_history"]:
-        if (
-            isinstance(item, dict)
-            and not item.get("instance_id")
-            and isinstance(item.get("event_id"), str)
-            and isinstance(item.get("location_id"), str)
-            and type(item.get("turn_index")) is int
-            and type(item.get("count")) is int
-        ):
-            item["instance_id"] = _legacy_ambient_event_instance_id(
-                state["campaign_seed"],
-                item["location_id"],
-                item["event_id"],
-                item["count"],
-                item["turn_index"],
-            )
         if (
             not isinstance(item, dict)
             or not isinstance(item.get("event_id"), str)
@@ -1086,20 +1057,7 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("Campaign feature data is invalid.")
         feature_id = feature.get("id")
         if not isinstance(feature_id, str) or not feature_id:
-            fingerprint = json.dumps(
-                [
-                    feature.get("location"),
-                    feature.get("name"),
-                    feature.get("description"),
-                    index,
-                ],
-                ensure_ascii=False,
-                separators=(",", ":"),
-            )
-            feature_id = "feature_legacy_" + hashlib.sha256(
-                fingerprint.encode("utf-8")
-            ).hexdigest()[:16]
-            feature["id"] = feature_id
+            raise ValueError("Campaign feature data is invalid.")
         if feature_id in used_ids:
             raise ValueError("Campaign feature IDs are duplicated.")
         used_ids.add(feature_id)
@@ -1121,32 +1079,6 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
         referent_total += len(scene["referents"])
         ambient_event = scene.get("ambient_event")
         if isinstance(ambient_event, dict):
-            if (
-                not ambient_event.get("instance_id")
-                and isinstance(ambient_event.get("event_id"), str)
-                and type(ambient_event.get("count")) is int
-                and ambient_event["count"] > 0
-            ):
-                history_match = next(
-                    (
-                        item for item in reversed(state["ambient_event_history"])
-                        if item.get("event_id") == ambient_event["event_id"]
-                        and item.get("location_id") == location_id
-                        and item.get("count") == ambient_event["count"]
-                    ),
-                    None,
-                )
-                ambient_event["instance_id"] = (
-                    history_match["instance_id"]
-                    if history_match is not None
-                    else _legacy_ambient_event_instance_id(
-                        state["campaign_seed"],
-                        location_id,
-                        ambient_event["event_id"],
-                        ambient_event["count"],
-                        0,
-                    )
-                )
             if (
                 ambient_event.get("event_type") == "BLUE"
                 and isinstance(ambient_event.get("instance_id"), str)

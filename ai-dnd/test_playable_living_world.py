@@ -1978,29 +1978,6 @@ class PlayableLivingWorldTests(unittest.TestCase):
                 self.assertIn("yöneticisinin kim olduğu", response)
                 self.assertNotIn("kesin yanıt belirsiz", response)
 
-    def test_legacy_save_migrates_feature_ids_idempotently(self):
-        location = self.root_location
-        legacy = self.session.serialize_game_state()
-        legacy_world = legacy["world_state"]
-        legacy_world.pop("scene_state", None)
-        legacy_world["features"] = [{
-            "location": location,
-            "name": "Eski taş masa",
-            "description": "Duvar kenarında duran bir masa.",
-        }]
-        with tempfile.TemporaryDirectory() as directory:
-            save_path = Path(directory) / "legacy-save.json"
-            save_path.write_text(
-                json.dumps(legacy, ensure_ascii=False),
-                encoding="utf-8",
-            )
-            self.session.load_game(save_path)
-            first_id = self.world["features"][0]["id"]
-            self.session.load_game(save_path)
-            second_id = self.world["features"][0]["id"]
-        self.assertTrue(first_id.startswith("feature_"))
-        self.assertEqual(first_id, second_id)
-
     def test_invalid_scene_state_load_is_atomic(self):
         before = self.session.serialize_game_state()
         corrupt = copy.deepcopy(before)
