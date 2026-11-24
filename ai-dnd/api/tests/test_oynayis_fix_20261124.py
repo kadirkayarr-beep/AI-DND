@@ -75,3 +75,49 @@ class DirectionsNotRumour(_Town):
         inn = world["location"]
         reply = await self.turn("Hana nasıl giderim?", front={"kind": "go_to", "place_id": inn})
         self.assertIn(f"Zaten {world['locations'][inn]['name']} içindesin.", self.narration(reply))
+
+
+class FollowMessenger(_Town):
+    def people(self):
+        world = self.session().world_state
+        for npc_id, name, role in (("npc_hadrik", "Hadrik", "Nöbetçi çavuş"), ("npc_haber", "Orlan", "Haberci")):
+            world["npcs"].append({"id": npc_id, "name": name, "public_name": name, "role": role,
+                                  "name_known_to_player": True, "role_known_to_player": True,
+                                  "reality_layer": "PROCEDURAL_LOCAL_FICTION", "relationship": "neutral",
+                                  "knowledge": [], "combat_status": "active", "current_hp": 12, "status": "active",
+                                  "memory": [], "location": world["location"]})
+
+    async def test_a_listed_person_the_line_never_names_is_not_followed(self):
+        self.people()
+        reply = await self.turn("Habercinin peşinden gidiyorum.",
+                                front={"kind": "go_to", "place_id": "none", "person_id": "npc_hadrik"})
+        text = self.narration(reply)
+        self.assertNotIn("Hadrik", text)
+
+    async def test_a_listed_person_the_line_names_is_followed(self):
+        self.people()
+        reply = await self.turn("Hadrik'in peşinden gidiyorum.",
+                                front={"kind": "go_to", "place_id": "none", "person_id": "npc_hadrik"})
+        self.assertIn("Hadrik", self.narration(reply))
+
+    async def test_a_place_said_many_turns_ago_is_not_what_oraya_means(self):
+        import npc_statements
+        world = self.session().world_state
+        place = next(key for key, rec in world["locations"].items() if isinstance(rec, dict)
+                     and rec.get("place_kind") == "workshop" and rec.get("parent_location_id") == CITY)
+        npc_statements.overheard_place(world, place, world["locations"][place]["name"])
+        world.setdefault("flags", {})["turn_index"] = 6
+        reply = await self.turn("Oraya gidiyorum.")
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual(world["location"], CITY)
+
+    async def test_a_place_said_in_the_line_before_is_what_oraya_means(self):
+        import npc_statements
+        world = self.session().world_state
+        place = next(key for key, rec in world["locations"].items() if isinstance(rec, dict)
+                     and rec.get("place_kind") == "workshop" and rec.get("parent_location_id") == CITY)
+        npc_statements.overheard_place(world, place, world["locations"][place]["name"])
+        world.setdefault("flags", {})["turn_index"] = 1
+        reply = await self.turn("Oraya gidiyorum.")
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual(world["location"], place)

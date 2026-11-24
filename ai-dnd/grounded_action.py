@@ -552,9 +552,10 @@ def _noun_hit(noun: str, tokens: list[str]) -> bool:
     return False
 
 
-def _topic_place(world: dict[str, Any], cands: list[dict[str, Any]], *, said_only: bool = False) -> dict[str, Any] | None:
+def _topic_place(world: dict[str, Any], cands: list[dict[str, Any]], *, said_only: bool = False,
+                 max_age_turns: int = 6) -> dict[str, Any] | None:
     """The place the talk was just about, else (for a pointing word) the place last in play."""
-    said = npc_statements.last_said_place(world)
+    said = npc_statements.last_said_place(world, max_age_turns=max_age_turns)
     wanted = (said.get("location_id") or said.get("id")) if said else (None if said_only else last_target_id(world))
     return next((c for c in cands if c["id"] == wanted and c["kind"] in {"place", "reference", "here"}), None)
 
@@ -639,7 +640,7 @@ def bind(clause_tokens: list[str], cands: list[dict[str, Any]], *, world: dict[s
             if cand["id"] not in explicit_name_ids or cand["id"] in strict_name_ids
         ]
     if not scored and verb in {"go", "approach", "enter"} and any(t in _THERE for t in clause_tokens):
-        topic = _topic_place(world, cands)
+        topic = _topic_place(world, cands, max_age_turns=1)  # "oraya": a place named in the line before, not one said long ago
         if topic is not None:
             scored.append((30, topic))
     if not scored and any(t in _PRONOUNS for t in clause_tokens):

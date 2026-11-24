@@ -1473,7 +1473,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         if (isinstance(raw_front, dict) and raw_front.get("kind") == "go_to"
                 and interaction_mode not in {"say", "ask_dm"}
                 and not timed_gameplay.names_a_route(world, player_input)):  # a timed road is walked by its owner
-            return front_proposal.beyond_list(raw_front, listed)  # E5: a walk to nowhere listed fails; one after a person follows
+            return front_proposal.beyond_list(raw_front, listed, world, player_input)  # E5: a walk to nowhere listed fails; one after a person follows
         return None
     import grounded_action
     import npc_speech_boundary
