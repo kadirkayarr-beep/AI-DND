@@ -2316,4 +2316,8 @@ def _front_route_turn(front, gate, player_input, interaction_mode, action_id, se
                 walked["narration"] = f"{road_warning} {walked.get('narration') or ''}".strip()
             return walked
         front_proposal.note(game._session(), "fallback:no_walk")
+        place = (game._session().world_state.get("locations") or {}).get(front["id"])
+        if isinstance(place, dict) and place.get("name") and not str(front["id"]).startswith(front_proposal.KIND_PREFIX):
+            # "Hana nasıl giderim?": the place the reading named is what the answer is about, not a rumour
+            game._session()._front_talk = {"asks": "place", "place_id": front["id"]}
     return None

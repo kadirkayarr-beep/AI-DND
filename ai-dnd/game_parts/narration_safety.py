@@ -173,9 +173,12 @@ def _unsupported_npc_history_or_relationship_claim(
 
     return None
 
-def _unverified_player_mental_state_trigger(player_action_text, second_person_verb):
+def _unverified_player_mental_state_trigger(player_action_text, second_person_verb, spoken_start=None):
     for match in second_person_verb.finditer(player_action_text):
         normalized_verb = game._normalize_turkish_typos(match.group(0))
+        if (spoken_start is not None and match.start() >= spoken_start
+                and re.search(r"[aeiu]rsin(?:iz)?$", normalized_verb)):
+            continue  # "görünce anlarsın": what a person says the player will find out, not a state the narrator gives
         if normalized_verb.endswith(
             ("abilirsin", "ebilirsin", "abilirsiniz", "ebilirsiniz",
              "malisin", "melisin", "malisiniz", "melisiniz")
@@ -1067,7 +1070,7 @@ def _narration_safety_decision(
         return reject("INVENTED_PLAYER_ACTION", match.group(0))
 
     mental_state_trigger = game._unverified_player_mental_state_trigger(
-        player_action_text, second_person_verb
+        player_action_text, second_person_verb, spoken_start
     )
     feeling = game._PLAYER_FEELING_RE.search(player_action_text)
     if feeling and not mental_state_trigger:

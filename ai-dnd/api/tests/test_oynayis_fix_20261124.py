@@ -37,3 +37,41 @@ class InnAgain(_Town):
         text = grounded_places.known_places_question(self.session(), "Şuraya gidiyorum.")
         for rec in places.values():
             self.assertIn(rec["name"], text)
+
+
+class DirectionsNotRumour(_Town):
+    def present_person(self):
+        world = self.session().world_state
+        world["npcs"].append({"id": "npc_walker", "name": "Hadrik", "public_name": "Hadrik", "role": "Nöbetçi çavuş",
+                              "reality_layer": "PROCEDURAL_LOCAL_FICTION", "relationship": "neutral",
+                              "knowledge": [], "combat_status": "active", "current_hp": 12, "status": "active",
+                              "memory": [], "location": world["location"]})
+
+    def workshop(self):
+        world = self.session().world_state
+        return next(key for key, rec in world["locations"].items() if isinstance(rec, dict)
+                    and rec.get("place_kind") == "workshop" and rec.get("parent_location_id") == CITY)
+
+    async def test_a_rejected_speech_to_a_directions_question_answers_about_the_place_not_a_lead(self):
+        self.present_person()
+        shop = self.workshop()
+        name = self.session().world_state["locations"][shop]["name"]
+        reply = await self.turn("Hadrik, Çömlekçi'ye nasıl giderim?", spoken="Sen atölyeye girdin ve korktun.",
+                                front={"kind": "go_to", "place_id": shop})
+        text = self.narration(reply)
+        self.assertIn(name, text)
+        self.assertEqual(self.session().world_state["location"], CITY)
+
+    async def test_the_safety_check_lets_a_person_say_you_will_understand(self):
+        self.present_person()
+        shop = self.workshop()
+        reply = await self.turn("Hadrik, Çömlekçi'ye nasıl giderim?", spoken="Şu sokağın sonunda, görünce anlarsın.",
+                                front={"kind": "go_to", "place_id": shop})
+        self.assertIn("anlarsın", self.narration(reply))
+
+    async def test_asking_the_way_to_the_place_you_stand_in_says_so(self):
+        world = self.session().world_state
+        await self.turn("Köydeki tavernaya gidiyorum.", front={"kind": "go_to", "place_id": "kind:tavern"})
+        inn = world["location"]
+        reply = await self.turn("Hana nasıl giderim?", front={"kind": "go_to", "place_id": inn})
+        self.assertIn(f"Zaten {world['locations'][inn]['name']} içindesin.", self.narration(reply))
