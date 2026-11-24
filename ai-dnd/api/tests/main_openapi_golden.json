@@ -1,0 +1,9313 @@
+{
+ "components": {
+  "schemas": {
+   "AmbientEventActionRequest": {
+    "additionalProperties": false,
+    "properties": {
+     "action": {
+      "enum": [
+       "interact",
+       "observe"
+      ],
+      "title": "Action",
+      "type": "string"
+     },
+     "action_id": {
+      "maxLength": 36,
+      "minLength": 36,
+      "title": "Action Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "action_id",
+     "action"
+    ],
+    "title": "AmbientEventActionRequest",
+    "type": "object"
+   },
+   "AmbientEventCommandResult": {
+    "additionalProperties": false,
+    "properties": {
+     "result": {
+      "$ref": "#/components/schemas/AmbientEventResult"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     }
+    },
+    "required": [
+     "session_id",
+     "state",
+     "result"
+    ],
+    "title": "AmbientEventCommandResult",
+    "type": "object"
+   },
+   "AmbientEventResult": {
+    "additionalProperties": false,
+    "properties": {
+     "action_id": {
+      "maxLength": 36,
+      "minLength": 36,
+      "title": "Action Id",
+      "type": "string"
+     },
+     "canonical_event_id": {
+      "anyOf": [
+       {
+        "maxLength": 36,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Canonical Event Id"
+     },
+     "event_instance_id": {
+      "maxLength": 96,
+      "minLength": 1,
+      "title": "Event Instance Id",
+      "type": "string"
+     },
+     "message": {
+      "anyOf": [
+       {
+        "maxLength": 240,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Message"
+     },
+     "reason_code": {
+      "anyOf": [
+       {
+        "maxLength": 64,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Code"
+     },
+     "status": {
+      "enum": [
+       "APPLIED",
+       "REJECTED",
+       "NO_EFFECT",
+       "ALREADY_APPLIED"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "transition_id": {
+      "anyOf": [
+       {
+        "maxLength": 160,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Transition Id"
+     }
+    },
+    "required": [
+     "event_instance_id",
+     "action_id",
+     "status"
+    ],
+    "title": "AmbientEventResult",
+    "type": "object"
+   },
+   "BarbarianLevel2Choices": {
+    "additionalProperties": false,
+    "properties": {},
+    "title": "BarbarianLevel2Choices",
+    "type": "object"
+   },
+   "BarbarianLevel3Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "primal_knowledge_skill": {
+      "enum": [
+       "Animal Handling",
+       "Athletics",
+       "Intimidation",
+       "Nature",
+       "Perception",
+       "Survival"
+      ],
+      "title": "Primal Knowledge Skill",
+      "type": "string"
+     },
+     "subclass_id": {
+      "const": "berserker",
+      "title": "Subclass Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "subclass_id",
+     "primal_knowledge_skill"
+    ],
+    "title": "BarbarianLevel3Choices",
+    "type": "object"
+   },
+   "BarbarianLevel4Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "asi": {
+      "$ref": "#/components/schemas/LevelUpAsiChoice"
+     }
+    },
+    "required": [
+     "asi"
+    ],
+    "title": "BarbarianLevel4Choices",
+    "type": "object"
+   },
+   "BarbarianLevelChoices": {
+    "additionalProperties": false,
+    "properties": {
+     "2": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     },
+     "3": {
+      "$ref": "#/components/schemas/BarbarianLevel3Choices"
+     },
+     "4": {
+      "$ref": "#/components/schemas/BarbarianLevel4Choices"
+     },
+     "5": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     }
+    },
+    "required": [
+     "2"
+    ],
+    "title": "BarbarianLevelChoices",
+    "type": "object"
+   },
+   "BarbarianStartingCreationOptions": {
+    "additionalProperties": false,
+    "properties": {
+     "level_2": {
+      "$ref": "#/components/schemas/BarbarianStartingLevel2Options"
+     },
+     "level_3": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel3Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_4": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel4Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_5": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel5Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "supported_starting_levels": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Supported Starting Levels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_starting_levels",
+     "level_2"
+    ],
+    "title": "BarbarianStartingCreationOptions",
+    "type": "object"
+   },
+   "BarbarianStartingLevel2Options": {
+    "additionalProperties": false,
+    "properties": {
+     "choices": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     },
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     }
+    },
+    "required": [
+     "choices",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "BarbarianStartingLevel2Options",
+    "type": "object"
+   },
+   "BarbarianStartingLevel3Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "primal_knowledge_skill_options": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Primal Knowledge Skill Options",
+      "type": "array"
+     },
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/BarbarianStartingSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     }
+    },
+    "required": [
+     "subclass_options",
+     "primal_knowledge_skill_options",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "BarbarianStartingLevel3Options",
+    "type": "object"
+   },
+   "BarbarianStartingLevel4Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "supported_asi_choices": {
+      "items": {
+       "$ref": "#/components/schemas/LevelUpAsiChoice"
+      },
+      "title": "Supported Asi Choices",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_asi_choices",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "BarbarianStartingLevel4Options",
+    "type": "object"
+   },
+   "BarbarianStartingLevel5Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     }
+    },
+    "required": [
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "BarbarianStartingLevel5Options",
+    "type": "object"
+   },
+   "BarbarianStartingSubclassOption": {
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "const": "berserker",
+      "title": "Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "BarbarianStartingSubclassOption",
+    "type": "object"
+   },
+   "CampaignCreateRequest": {
+    "additionalProperties": false,
+    "properties": {
+     "campaign_start": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CampaignStartSelection"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "character": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CharacterCreateInput"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "death_mode": {
+      "default": "PERMADEATH",
+      "enum": [
+       "NORMAL",
+       "PERMADEATH",
+       "IRONMAN"
+      ],
+      "title": "Death Mode",
+      "type": "string"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "maxLength": 100,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     }
+    },
+    "title": "CampaignCreateRequest",
+    "type": "object"
+   },
+   "CampaignDetailResponse": {
+    "properties": {
+     "campaign": {
+      "$ref": "#/components/schemas/CampaignSummary"
+     },
+     "combat_history": {
+      "items": {
+       "$ref": "#/components/schemas/CombatHistoryEntry"
+      },
+      "title": "Combat History",
+      "type": "array"
+     },
+     "history": {
+      "items": {
+       "$ref": "#/components/schemas/CampaignHistoryEntry"
+      },
+      "title": "History",
+      "type": "array"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     }
+    },
+    "required": [
+     "campaign",
+     "state",
+     "history",
+     "combat_history"
+    ],
+    "title": "CampaignDetailResponse",
+    "type": "object"
+   },
+   "CampaignHistoryEntry": {
+    "properties": {
+     "created_at": {
+      "title": "Created At",
+      "type": "string"
+     },
+     "narration": {
+      "title": "Narration",
+      "type": "string"
+     },
+     "narration_source": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Narration Source"
+     },
+     "player_message": {
+      "title": "Player Message",
+      "type": "string"
+     },
+     "skill_check_result": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SkillCheckResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "undo_note": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Undo Note"
+     },
+     "undo_target_unknown": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Undo Target Unknown"
+     },
+     "undone": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Undone"
+     }
+    },
+    "required": [
+     "player_message",
+     "narration",
+     "created_at"
+    ],
+    "title": "CampaignHistoryEntry",
+    "type": "object"
+   },
+   "CampaignSessionResponse": {
+    "properties": {
+     "campaign_id": {
+      "title": "Campaign Id",
+      "type": "string"
+     },
+     "combat_history": {
+      "items": {
+       "$ref": "#/components/schemas/CombatHistoryEntry"
+      },
+      "title": "Combat History",
+      "type": "array"
+     },
+     "history": {
+      "items": {
+       "$ref": "#/components/schemas/CampaignHistoryEntry"
+      },
+      "title": "History",
+      "type": "array"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     }
+    },
+    "required": [
+     "campaign_id",
+     "session_id",
+     "name",
+     "state",
+     "history",
+     "combat_history"
+    ],
+    "title": "CampaignSessionResponse",
+    "type": "object"
+   },
+   "CampaignStartLocationOption": {
+    "additionalProperties": false,
+    "properties": {
+     "entity_id": {
+      "title": "Entity Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "entity_id",
+     "name"
+    ],
+    "title": "CampaignStartLocationOption",
+    "type": "object"
+   },
+   "CampaignStartOptionsResponse": {
+    "additionalProperties": false,
+    "properties": {
+     "settings": {
+      "items": {
+       "$ref": "#/components/schemas/CampaignStartSettingOption"
+      },
+      "title": "Settings",
+      "type": "array"
+     }
+    },
+    "required": [
+     "settings"
+    ],
+    "title": "CampaignStartOptionsResponse",
+    "type": "object"
+   },
+   "CampaignStartRegionOption": {
+    "additionalProperties": false,
+    "properties": {
+     "coverage_status": {
+      "title": "Coverage Status",
+      "type": "string"
+     },
+     "epoch_id": {
+      "title": "Epoch Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "region_id": {
+      "title": "Region Id",
+      "type": "string"
+     },
+     "region_pack_id": {
+      "title": "Region Pack Id",
+      "type": "string"
+     },
+     "starting_locations": {
+      "items": {
+       "$ref": "#/components/schemas/CampaignStartLocationOption"
+      },
+      "title": "Starting Locations",
+      "type": "array"
+     }
+    },
+    "required": [
+     "region_pack_id",
+     "region_id",
+     "name",
+     "epoch_id",
+     "coverage_status",
+     "starting_locations"
+    ],
+    "title": "CampaignStartRegionOption",
+    "type": "object"
+   },
+   "CampaignStartSelection": {
+    "additionalProperties": false,
+    "properties": {
+     "region_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Region Id",
+      "type": "string"
+     },
+     "region_pack_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Region Pack Id",
+      "type": "string"
+     },
+     "setting_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Setting Id",
+      "type": "string"
+     },
+     "starting_location_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Starting Location Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "setting_id",
+     "region_pack_id",
+     "region_id",
+     "starting_location_id"
+    ],
+    "title": "CampaignStartSelection",
+    "type": "object"
+   },
+   "CampaignStartSettingOption": {
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "regions": {
+      "items": {
+       "$ref": "#/components/schemas/CampaignStartRegionOption"
+      },
+      "title": "Regions",
+      "type": "array"
+     },
+     "setting_id": {
+      "title": "Setting Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "setting_id",
+     "name",
+     "regions"
+    ],
+    "title": "CampaignStartSettingOption",
+    "type": "object"
+   },
+   "CampaignSummary": {
+    "properties": {
+     "campaign_id": {
+      "title": "Campaign Id",
+      "type": "string"
+     },
+     "character_class": {
+      "title": "Character Class",
+      "type": "string"
+     },
+     "character_level": {
+      "title": "Character Level",
+      "type": "integer"
+     },
+     "character_name": {
+      "title": "Character Name",
+      "type": "string"
+     },
+     "character_race": {
+      "title": "Character Race",
+      "type": "string"
+     },
+     "created_at": {
+      "title": "Created At",
+      "type": "string"
+     },
+     "last_played_at": {
+      "title": "Last Played At",
+      "type": "string"
+     },
+     "location": {
+      "title": "Location",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "save_version": {
+      "title": "Save Version",
+      "type": "integer"
+     },
+     "updated_at": {
+      "title": "Updated At",
+      "type": "string"
+     }
+    },
+    "required": [
+     "campaign_id",
+     "name",
+     "created_at",
+     "updated_at",
+     "last_played_at",
+     "save_version",
+     "character_name",
+     "character_race",
+     "character_class",
+     "character_level",
+     "location"
+    ],
+    "title": "CampaignSummary",
+    "type": "object"
+   },
+   "CharacterCreateInput": {
+    "additionalProperties": false,
+    "properties": {
+     "ability_score_method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ability Score Method"
+     },
+     "ability_scores": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "integer"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ability Scores"
+     },
+     "alignment": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alignment"
+     },
+     "appearance": {
+      "anyOf": [
+       {
+        "maxLength": 1000,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Appearance"
+     },
+     "background": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Background"
+     },
+     "background_ability_bonuses": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "integer"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Background Ability Bonuses"
+     },
+     "background_equipment_option": {
+      "anyOf": [
+       {
+        "enum": [
+         "A",
+         "B"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Background Equipment Option"
+     },
+     "backstory": {
+      "anyOf": [
+       {
+        "maxLength": 2000,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Backstory"
+     },
+     "cantrips": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cantrips"
+     },
+     "class": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Class"
+     },
+     "equipment_choices": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Equipment Choices"
+     },
+     "equipment_package": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Equipment Package"
+     },
+     "expertise_skills": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expertise Skills"
+     },
+     "fighting_style": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fighting Style"
+     },
+     "giant_ancestry": {
+      "anyOf": [
+       {
+        "enum": [
+         "cloud",
+         "fire",
+         "frost",
+         "hill",
+         "stone",
+         "storm"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Giant Ancestry"
+     },
+     "languages": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Languages"
+     },
+     "level_choices": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SorcererLevelChoices"
+       },
+       {
+        "$ref": "#/components/schemas/BarbarianLevelChoices"
+       },
+       {
+        "$ref": "#/components/schemas/FighterLevelChoices"
+       },
+       {
+        "$ref": "#/components/schemas/MonkLevelChoices"
+       },
+       {
+        "$ref": "#/components/schemas/RogueLevelChoices"
+       },
+       {
+        "$ref": "#/components/schemas/PaladinLevelChoices"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Level Choices"
+     },
+     "mode": {
+      "enum": [
+       "custom",
+       "random"
+      ],
+      "title": "Mode",
+      "type": "string"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "maxLength": 40,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "origin": {
+      "anyOf": [
+       {
+        "maxLength": 240,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Origin"
+     },
+     "origin_feat": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Origin Feat"
+     },
+     "personality": {
+      "anyOf": [
+       {
+        "maxLength": 1000,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Personality"
+     },
+     "proficient_skills": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Proficient Skills"
+     },
+     "proficient_tools": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Proficient Tools"
+     },
+     "race": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Race"
+     },
+     "species": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Species"
+     },
+     "species_bonus_feat": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Species Bonus Feat"
+     },
+     "species_bonus_skills": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Species Bonus Skills"
+     },
+     "spells": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spells"
+     },
+     "starting_level": {
+      "default": 1,
+      "maximum": 5.0,
+      "minimum": 1.0,
+      "title": "Starting Level",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "mode"
+    ],
+    "title": "CharacterCreateInput",
+    "type": "object"
+   },
+   "CharacterCreationCatalogResponse": {
+    "additionalProperties": false,
+    "properties": {
+     "ability_score_methods": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Ability Score Methods",
+      "type": "array"
+     },
+     "alignments": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Alignments",
+      "type": "array"
+     },
+     "backgrounds": {
+      "additionalProperties": true,
+      "title": "Backgrounds",
+      "type": "object"
+     },
+     "barbarian_starting_creation": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingCreationOptions"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "classes": {
+      "additionalProperties": true,
+      "title": "Classes",
+      "type": "object"
+     },
+     "equipment_rules": {
+      "additionalProperties": true,
+      "title": "Equipment Rules",
+      "type": "object"
+     },
+     "fighter_starting_creation": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FighterStartingCreationOptions"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "languages": {
+      "additionalProperties": true,
+      "title": "Languages",
+      "type": "object"
+     },
+     "monk_starting_creation": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/MonkStartingCreationOptions"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "origin_feats": {
+      "additionalProperties": true,
+      "title": "Origin Feats",
+      "type": "object"
+     },
+     "paladin_starting_creation": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PaladinStartingCreationOptions"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "races": {
+      "additionalProperties": true,
+      "title": "Races",
+      "type": "object"
+     },
+     "rogue_starting_creation": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RogueStartingCreationOptions"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "skills": {
+      "additionalProperties": true,
+      "title": "Skills",
+      "type": "object"
+     },
+     "sorcerer_starting_creation": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SorcererStartingCreationOptions"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "spells_catalog": {
+      "additionalProperties": true,
+      "title": "Spells Catalog",
+      "type": "object"
+     }
+    },
+    "required": [
+     "races",
+     "classes",
+     "backgrounds",
+     "ability_score_methods",
+     "alignments",
+     "origin_feats",
+     "spells_catalog",
+     "skills",
+     "equipment_rules",
+     "languages"
+    ],
+    "title": "CharacterCreationCatalogResponse",
+    "type": "object"
+   },
+   "CharacterCreationOptions": {
+    "properties": {
+     "classes": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Classes",
+      "type": "array"
+     },
+     "races": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Races",
+      "type": "array"
+     }
+    },
+    "required": [
+     "races",
+     "classes"
+    ],
+    "title": "CharacterCreationOptions",
+    "type": "object"
+   },
+   "ClericLevel3Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "subclass_id": {
+      "const": "life_domain",
+      "title": "Subclass Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "subclass_id"
+    ],
+    "title": "ClericLevel3Choices",
+    "type": "object"
+   },
+   "ClericLevel4Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "asi": {
+      "$ref": "#/components/schemas/LevelUpAsiChoice"
+     },
+     "cantrips": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Cantrips",
+      "type": "array"
+     }
+    },
+    "required": [
+     "cantrips",
+     "asi"
+    ],
+    "title": "ClericLevel4Choices",
+    "type": "object"
+   },
+   "CombatActionInput": {
+    "additionalProperties": false,
+    "properties": {
+     "steps": {
+      "items": {
+       "$ref": "#/components/schemas/EconomyStepInput"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+     }
+    },
+    "required": [
+     "steps"
+    ],
+    "title": "CombatActionInput",
+    "type": "object"
+   },
+   "CombatAttackResult": {
+    "additionalProperties": false,
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action"
+     },
+     "action_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action Id"
+     },
+     "actor": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actor"
+     },
+     "actor_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actor Name"
+     },
+     "attack_bonus": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Bonus"
+     },
+     "attack_roll": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Roll"
+     },
+     "attack_rolls": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Rolls"
+     },
+     "attack_total": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Total"
+     },
+     "concentration_check": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ConcentrationCheckResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "critical": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Critical"
+     },
+     "critical_state": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Critical State"
+     },
+     "damage": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Damage"
+     },
+     "damage_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Damage Type"
+     },
+     "death_resolution": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/DeathResolutionResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "death_save": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/DeathSaveResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "disadvantage": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disadvantage"
+     },
+     "hp_damage": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hp Damage"
+     },
+     "outcome": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Outcome"
+     },
+     "resolution": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolution"
+     },
+     "resolution_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolution Id"
+     },
+     "species_effects": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Species Effects"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "success": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Success"
+     },
+     "target": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target"
+     },
+     "target_ac": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Ac"
+     },
+     "target_hp_after": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Hp After"
+     },
+     "target_hp_before": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Hp Before"
+     },
+     "target_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Id"
+     },
+     "target_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Name"
+     },
+     "target_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Status"
+     },
+     "temporary_hp_absorbed": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Temporary Hp Absorbed"
+     },
+     "temporary_hp_after": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Temporary Hp After"
+     },
+     "temporary_hp_before": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Temporary Hp Before"
+     },
+     "weapon": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Weapon"
+     }
+    },
+    "title": "CombatAttackResult",
+    "type": "object"
+   },
+   "CombatHistoryEntry": {
+    "additionalProperties": false,
+    "properties": {
+     "event_id": {
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "title": "Event Id",
+      "type": "string"
+     },
+     "result": {
+      "$ref": "#/components/schemas/CombatTurnResult"
+     },
+     "turn_index": {
+      "minimum": 0.0,
+      "title": "Turn Index",
+      "type": "integer"
+     },
+     "undone": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Undone"
+     }
+    },
+    "required": [
+     "event_id",
+     "turn_index",
+     "result"
+    ],
+    "title": "CombatHistoryEntry",
+    "type": "object"
+   },
+   "CombatTurnResult": {
+    "additionalProperties": false,
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action"
+     },
+     "action_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action Id"
+     },
+     "actor": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actor"
+     },
+     "actor_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Actor Name"
+     },
+     "attack_bonus": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Bonus"
+     },
+     "attack_or_save": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Or Save"
+     },
+     "attack_roll": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Roll"
+     },
+     "attack_rolls": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Rolls"
+     },
+     "attack_total": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attack Total"
+     },
+     "casting_ability": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Casting Ability"
+     },
+     "combat_ended": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Combat Ended"
+     },
+     "combat_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Combat Id"
+     },
+     "combat_started": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Combat Started"
+     },
+     "combat_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Combat Status"
+     },
+     "concentration_check": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ConcentrationCheckResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "critical": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Critical"
+     },
+     "critical_state": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Critical State"
+     },
+     "current_actor_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Actor Id"
+     },
+     "current_turn_index": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Turn Index"
+     },
+     "damage": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Damage"
+     },
+     "damage_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Damage Type"
+     },
+     "death_resolution": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/DeathResolutionResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "death_save": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/DeathSaveResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "disadvantage": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disadvantage"
+     },
+     "economy_steps": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Economy Steps"
+     },
+     "end_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End Reason"
+     },
+     "enemy_action": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CombatAttackResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "enemy_actions": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/CombatAttackResult"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Enemy Actions"
+     },
+     "heal_source": {
+      "anyOf": [
+       {
+        "enum": [
+         "spell",
+         "rest",
+         "class_feature",
+         "species",
+         "death_save",
+         "potion"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Heal Source"
+     },
+     "healing": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Healing"
+     },
+     "hp_damage": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hp Damage"
+     },
+     "outcome": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Outcome"
+     },
+     "resolution": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolution"
+     },
+     "resolution_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolution Id"
+     },
+     "round": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Round"
+     },
+     "save_dc": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Save Dc"
+     },
+     "save_roll": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Save Roll"
+     },
+     "slot_spent": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slot Spent"
+     },
+     "species_effects": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Species Effects"
+     },
+     "spell": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spell"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "success": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Success"
+     },
+     "target": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target"
+     },
+     "target_ac": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Ac"
+     },
+     "target_hp_after": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Hp After"
+     },
+     "target_hp_before": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Hp Before"
+     },
+     "target_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Id"
+     },
+     "target_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Name"
+     },
+     "target_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Status"
+     },
+     "temporary_hp_absorbed": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Temporary Hp Absorbed"
+     },
+     "temporary_hp_after": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Temporary Hp After"
+     },
+     "temporary_hp_before": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Temporary Hp Before"
+     },
+     "turn_owner": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Turn Owner"
+     },
+     "weapon": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Weapon"
+     }
+    },
+    "title": "CombatTurnResult",
+    "type": "object"
+   },
+   "ConcentrationCheckResult": {
+    "additionalProperties": false,
+    "description": "The player's Concentration after one damage instance (D-052): `spell_concentration.after_damage`'s result.",
+    "properties": {
+     "bless_roll": {
+      "anyOf": [
+       {
+        "maximum": 4.0,
+        "minimum": 1.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bless Roll"
+     },
+     "dc": {
+      "anyOf": [
+       {
+        "maximum": 30.0,
+        "minimum": 10.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dc"
+     },
+     "kept": {
+      "title": "Kept",
+      "type": "boolean"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "enum": [
+         "incapacitated",
+         "duration_ended",
+         "combat_ended"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     },
+     "roll": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Roll"
+     },
+     "spell_id": {
+      "title": "Spell Id",
+      "type": "string"
+     },
+     "total": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total"
+     }
+    },
+    "required": [
+     "spell_id",
+     "kept"
+    ],
+    "title": "ConcentrationCheckResult",
+    "type": "object"
+   },
+   "DeathResolutionResult": {
+    "additionalProperties": false,
+    "properties": {
+     "cause": {
+      "enum": [
+       "massive_damage",
+       "failed_death_saves",
+       "dehydration",
+       "malnutrition",
+       "extended_travel"
+      ],
+      "title": "Cause",
+      "type": "string"
+     },
+     "mode": {
+      "enum": [
+       "NORMAL",
+       "PERMADEATH",
+       "IRONMAN"
+      ],
+      "title": "Mode",
+      "type": "string"
+     },
+     "outcome": {
+      "enum": [
+       "rolled_back",
+       "dead"
+      ],
+      "title": "Outcome",
+      "type": "string"
+     },
+     "rolled_back": {
+      "title": "Rolled Back",
+      "type": "boolean"
+     },
+     "terminal": {
+      "title": "Terminal",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "mode",
+     "outcome",
+     "cause",
+     "rolled_back",
+     "terminal"
+    ],
+    "title": "DeathResolutionResult",
+    "type": "object"
+   },
+   "DeathSaveResult": {
+    "additionalProperties": false,
+    "properties": {
+     "action_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action Id"
+     },
+     "dead": {
+      "title": "Dead",
+      "type": "boolean"
+     },
+     "death_resolution": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/DeathResolutionResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "failures": {
+      "maximum": 3.0,
+      "minimum": 0.0,
+      "title": "Failures",
+      "type": "integer"
+     },
+     "outcome": {
+      "enum": [
+       "success",
+       "failure",
+       "natural_1",
+       "stable",
+       "revived",
+       "dead",
+       "rolled_back"
+      ],
+      "title": "Outcome",
+      "type": "string"
+     },
+     "prone": {
+      "title": "Prone",
+      "type": "boolean"
+     },
+     "resolution_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolution Id"
+     },
+     "roll": {
+      "maximum": 20.0,
+      "minimum": 1.0,
+      "title": "Roll",
+      "type": "integer"
+     },
+     "stable": {
+      "title": "Stable",
+      "type": "boolean"
+     },
+     "successes": {
+      "maximum": 3.0,
+      "minimum": 0.0,
+      "title": "Successes",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "roll",
+     "outcome",
+     "successes",
+     "failures",
+     "stable",
+     "dead",
+     "prone"
+    ],
+    "title": "DeathSaveResult",
+    "type": "object"
+   },
+   "EconomicAction": {
+    "description": "One economic step of a turn, told apart by kind.",
+    "discriminator": {
+     "mapping": {
+      "cancel": "#/components/schemas/EconomicActionCancel",
+      "confirm": "#/components/schemas/EconomicActionConfirm",
+      "prepare": "#/components/schemas/EconomicActionPrepare"
+     },
+     "propertyName": "kind"
+    },
+    "oneOf": [
+     {
+      "$ref": "#/components/schemas/EconomicActionPrepare"
+     },
+     {
+      "$ref": "#/components/schemas/EconomicActionConfirm"
+     },
+     {
+      "$ref": "#/components/schemas/EconomicActionCancel"
+     }
+    ],
+    "title": "EconomicAction"
+   },
+   "EconomicActionCancel": {
+    "additionalProperties": false,
+    "description": "Close an open card; cancelling moves no coin, goods or time.",
+    "properties": {
+     "kind": {
+      "const": "cancel",
+      "title": "Kind",
+      "type": "string"
+     },
+     "offer_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Offer Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "kind",
+     "offer_id"
+    ],
+    "title": "EconomicActionCancel",
+    "type": "object"
+   },
+   "EconomicActionConfirm": {
+    "additionalProperties": false,
+    "description": "Confirm exactly the card the player saw, named by its id and confirmation digest.",
+    "properties": {
+     "confirmation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Confirmation Digest",
+      "type": "string"
+     },
+     "kind": {
+      "const": "confirm",
+      "title": "Kind",
+      "type": "string"
+     },
+     "offer_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Offer Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "kind",
+     "offer_id",
+     "confirmation_digest"
+    ],
+    "title": "EconomicActionConfirm",
+    "type": "object"
+   },
+   "EconomicActionPrepare": {
+    "additionalProperties": false,
+    "description": "Ask the engine to prepare a card; preparing alone moves no coin, goods or time.",
+    "properties": {
+     "kind": {
+      "const": "prepare",
+      "title": "Kind",
+      "type": "string"
+     },
+     "proposal": {
+      "$ref": "#/components/schemas/EconomicProposalIn"
+     }
+    },
+    "required": [
+     "kind",
+     "proposal"
+    ],
+    "title": "EconomicActionPrepare",
+    "type": "object"
+   },
+   "EconomicProposalIn": {
+    "additionalProperties": false,
+    "description": "What the client may propose. The server fills source_action_id and sets goods and room prices itself.",
+    "properties": {
+     "amount_cp": {
+      "anyOf": [
+       {
+        "maximum": 999999999.0,
+        "minimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Amount Cp"
+     },
+     "count": {
+      "default": 1,
+      "maximum": 999999999.0,
+      "minimum": 1.0,
+      "title": "Count",
+      "type": "integer"
+     },
+     "dependency": {
+      "default": "base_required",
+      "enum": [
+       "base_required",
+       "all_or_none"
+      ],
+      "title": "Dependency",
+      "type": "string"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "purpose": {
+      "enum": [
+       "purchase",
+       "room",
+       "gift",
+       "tip",
+       "item_gift"
+      ],
+      "title": "Purpose",
+      "type": "string"
+     },
+     "recipient_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Recipient Id",
+      "type": "string"
+     },
+     "source_id": {
+      "anyOf": [
+       {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Id"
+     },
+     "tender_cp": {
+      "anyOf": [
+       {
+        "maximum": 999999999.0,
+        "minimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tender Cp"
+     },
+     "text_span": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/TextSpan"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tip_cp": {
+      "default": 0,
+      "maximum": 999999999.0,
+      "minimum": 0.0,
+      "title": "Tip Cp",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "purpose",
+     "recipient_id"
+    ],
+    "title": "EconomicProposalIn",
+    "type": "object"
+   },
+   "EconomyStepInput": {
+    "additionalProperties": false,
+    "properties": {
+     "ability": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ability"
+     },
+     "cunning_option": {
+      "anyOf": [
+       {
+        "enum": [
+         "dash",
+         "disengage"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cunning Option"
+     },
+     "cunning_strike": {
+      "anyOf": [
+       {
+        "enum": [
+         "poison",
+         "trip",
+         "withdraw"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cunning Strike"
+     },
+     "cunning_strike_move_ft": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cunning Strike Move Ft"
+     },
+     "deflect_mode": {
+      "anyOf": [
+       {
+        "enum": [
+         "off",
+         "reduce",
+         "redirect"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deflect Mode"
+     },
+     "distance_ft": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Distance Ft"
+     },
+     "form": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Form"
+     },
+     "healing_amount": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Healing Amount"
+     },
+     "kind": {
+      "enum": [
+       "attack",
+       "continue_attack",
+       "move",
+       "dash",
+       "ready",
+       "react",
+       "decline_reaction",
+       "end_turn",
+       "species",
+       "disengage",
+       "dodge",
+       "help",
+       "hide",
+       "influence",
+       "magic",
+       "search",
+       "study",
+       "utilize",
+       "convert_spell_slot",
+       "activate_rage",
+       "extend_rage",
+       "second_wind",
+       "action_surge",
+       "lay_on_hands",
+       "divine_smite",
+       "divine_sense",
+       "cunning_action",
+       "steady_aim",
+       "uncanny_dodge",
+       "martial_arts_strike",
+       "flurry_of_blows",
+       "flurry_strike",
+       "patient_defense",
+       "step_of_the_wind",
+       "uncanny_metabolism",
+       "set_deflect_attacks"
+      ],
+      "title": "Kind",
+      "type": "string"
+     },
+     "metamagic": {
+      "anyOf": [
+       {
+        "const": "quickened_spell",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Metamagic"
+     },
+     "open_hand_technique": {
+      "anyOf": [
+       {
+        "enum": [
+         "push",
+         "topple"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Open Hand Technique"
+     },
+     "opportunity_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Opportunity Id"
+     },
+     "radiant_damage": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Radiant Damage"
+     },
+     "reckless_attack": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reckless Attack"
+     },
+     "remove_poisoned": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Remove Poisoned"
+     },
+     "resource": {
+      "default": "action",
+      "enum": [
+       "action",
+       "bonus"
+      ],
+      "title": "Resource",
+      "type": "string"
+     },
+     "response": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ReadyResponseInput"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "sacred_weapon": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sacred Weapon"
+     },
+     "slot_level": {
+      "anyOf": [
+       {
+        "maximum": 9.0,
+        "minimum": 1.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slot Level"
+     },
+     "spend_focus": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spend Focus"
+     },
+     "stunning_strike": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Stunning Strike"
+     },
+     "target_id": {
+      "anyOf": [
+       {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Id"
+     },
+     "trigger": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ReadyTriggerInput"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "uncanny_dodge_enabled": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Uncanny Dodge Enabled"
+     }
+    },
+    "required": [
+     "kind"
+    ],
+    "title": "EconomyStepInput",
+    "type": "object"
+   },
+   "FighterLevel3Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "subclass_id": {
+      "const": "champion",
+      "title": "Subclass Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "subclass_id"
+    ],
+    "title": "FighterLevel3Choices",
+    "type": "object"
+   },
+   "FighterLevelChoices": {
+    "additionalProperties": false,
+    "description": "Levels 2 and 5 have no choices and level 4 is the ordinary ASI: the same strict objects as Barbarian.",
+    "properties": {
+     "2": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     },
+     "3": {
+      "$ref": "#/components/schemas/FighterLevel3Choices"
+     },
+     "4": {
+      "$ref": "#/components/schemas/BarbarianLevel4Choices"
+     },
+     "5": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     }
+    },
+    "required": [
+     "2"
+    ],
+    "title": "FighterLevelChoices",
+    "type": "object"
+   },
+   "FighterStartingCreationOptions": {
+    "additionalProperties": false,
+    "properties": {
+     "level_2": {
+      "$ref": "#/components/schemas/BarbarianStartingLevel2Options"
+     },
+     "level_3": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FighterStartingLevel3Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_4": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel4Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_5": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel5Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "supported_starting_levels": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Supported Starting Levels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_starting_levels",
+     "level_2"
+    ],
+    "title": "FighterStartingCreationOptions",
+    "type": "object"
+   },
+   "FighterStartingLevel3Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/FighterStartingSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     }
+    },
+    "required": [
+     "subclass_options",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "FighterStartingLevel3Options",
+    "type": "object"
+   },
+   "FighterStartingSubclassOption": {
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "const": "champion",
+      "title": "Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "FighterStartingSubclassOption",
+    "type": "object"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "title": "Detail",
+      "type": "array"
+     }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+   },
+   "HealthResponse": {
+    "properties": {
+     "engine": {
+      "const": "AI-DND",
+      "default": "AI-DND",
+      "title": "Engine",
+      "type": "string"
+     },
+     "model": {
+      "default": "qwen3:8b",
+      "enum": [
+       "qwen3:8b",
+       "qwen3.5:4b-q4_K_M",
+       "qwen3.5:9b-q4_K_M",
+       "gemma4-fast",
+       "gemma4-12b-dm"
+      ],
+      "title": "Model",
+      "type": "string"
+     },
+     "model_chain": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model Chain"
+     },
+     "spend_warning": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spend Warning"
+     },
+     "status": {
+      "const": "ok",
+      "default": "ok",
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "title": "HealthResponse",
+    "type": "object"
+   },
+   "IdentityContextField": {
+    "additionalProperties": false,
+    "properties": {
+     "allow_as_context": {
+      "default": false,
+      "title": "Allow As Context",
+      "type": "boolean"
+     },
+     "field": {
+      "title": "Field",
+      "type": "string"
+     },
+     "locked": {
+      "default": false,
+      "title": "Locked",
+      "type": "boolean"
+     },
+     "text": {
+      "default": "",
+      "maxLength": 1000,
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "field"
+    ],
+    "title": "IdentityContextField",
+    "type": "object"
+   },
+   "IdentitySuggestionJob": {
+    "additionalProperties": false,
+    "properties": {
+     "code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Code"
+     },
+     "draft_id": {
+      "title": "Draft Id",
+      "type": "string"
+     },
+     "field": {
+      "title": "Field",
+      "type": "string"
+     },
+     "input_revision": {
+      "title": "Input Revision",
+      "type": "integer"
+     },
+     "request_id": {
+      "title": "Request Id",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "suggestion": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Suggestion"
+     }
+    },
+    "required": [
+     "request_id",
+     "draft_id",
+     "field",
+     "input_revision",
+     "status"
+    ],
+    "title": "IdentitySuggestionJob",
+    "type": "object"
+   },
+   "IdentitySuggestionRequest": {
+    "additionalProperties": false,
+    "properties": {
+     "character_class": {
+      "anyOf": [
+       {
+        "maxLength": 40,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Character Class"
+     },
+     "context_fields": {
+      "items": {
+       "$ref": "#/components/schemas/IdentityContextField"
+      },
+      "maxItems": 4,
+      "title": "Context Fields",
+      "type": "array"
+     },
+     "current_text": {
+      "default": "",
+      "maxLength": 1000,
+      "title": "Current Text",
+      "type": "string"
+     },
+     "draft_id": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Draft Id",
+      "type": "string"
+     },
+     "field": {
+      "title": "Field",
+      "type": "string"
+     },
+     "input_revision": {
+      "maximum": 100000.0,
+      "minimum": 0.0,
+      "title": "Input Revision",
+      "type": "integer"
+     },
+     "locked": {
+      "default": false,
+      "title": "Locked",
+      "type": "boolean"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "maxLength": 80,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "request_id": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+     },
+     "species": {
+      "anyOf": [
+       {
+        "maxLength": 40,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Species"
+     }
+    },
+    "required": [
+     "draft_id",
+     "field",
+     "request_id",
+     "input_revision"
+    ],
+    "title": "IdentitySuggestionRequest",
+    "type": "object"
+   },
+   "LevelUpAppliedResult": {
+    "properties": {
+     "changes": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Changes",
+      "type": "array"
+     },
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "null"
+     },
+     "status": {
+      "const": "applied",
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "status",
+     "changes",
+     "effects_pending"
+    ],
+    "title": "LevelUpAppliedResult",
+    "type": "object"
+   },
+   "LevelUpApplyRequest": {
+    "additionalProperties": false,
+    "properties": {
+     "action_id": {
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "title": "Action Id",
+      "type": "string"
+     },
+     "campaign_id": {
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "title": "Campaign Id",
+      "type": "string"
+     },
+     "choices": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LevelUpChoices"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpFiveChoices"
+       },
+       {
+        "$ref": "#/components/schemas/SorcererLevel2Choices"
+       },
+       {
+        "$ref": "#/components/schemas/SorcererLevel3Choices"
+       },
+       {
+        "$ref": "#/components/schemas/BarbarianLevel2Choices"
+       },
+       {
+        "$ref": "#/components/schemas/BarbarianLevel3Choices"
+       },
+       {
+        "$ref": "#/components/schemas/BarbarianLevel4Choices"
+       },
+       {
+        "$ref": "#/components/schemas/FighterLevel3Choices"
+       },
+       {
+        "$ref": "#/components/schemas/MonkLevel3Choices"
+       },
+       {
+        "$ref": "#/components/schemas/RogueLevel3Choices"
+       },
+       {
+        "$ref": "#/components/schemas/PaladinLevel2Choices"
+       },
+       {
+        "$ref": "#/components/schemas/PaladinLevel3Choices"
+       },
+       {
+        "$ref": "#/components/schemas/PaladinLevel4Choices"
+       },
+       {
+        "$ref": "#/components/schemas/PaladinLevel5Choices"
+       },
+       {
+        "$ref": "#/components/schemas/WizardSpellbookChoices"
+       },
+       {
+        "$ref": "#/components/schemas/WizardLevel3Choices"
+       },
+       {
+        "$ref": "#/components/schemas/WizardLevel4Choices"
+       },
+       {
+        "$ref": "#/components/schemas/ClericLevel3Choices"
+       },
+       {
+        "$ref": "#/components/schemas/ClericLevel4Choices"
+       }
+      ],
+      "title": "Choices"
+     },
+     "expected_revision": {
+      "minimum": 0.0,
+      "title": "Expected Revision",
+      "type": "integer"
+     },
+     "target_level": {
+      "maximum": 5.0,
+      "minimum": 2.0,
+      "title": "Target Level",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "action_id",
+     "campaign_id",
+     "expected_revision",
+     "target_level",
+     "choices"
+    ],
+    "title": "LevelUpApplyRequest",
+    "type": "object"
+   },
+   "LevelUpAsiChoice": {
+    "additionalProperties": false,
+    "properties": {
+     "feat": {
+      "const": "Ability Score Improvement",
+      "title": "Feat",
+      "type": "string"
+     },
+     "increase": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LevelUpStrengthIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpDexterityIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpConIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpIntelligenceIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpWisdomIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpCharismaIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpStrengthDexterityIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpStrengthConstitutionIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpStrengthIntelligenceIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpStrengthWisdomIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpStrengthCharismaIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpDexterityConstitutionIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpDexterityIntelligenceIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpDexterityWisdomIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpDexterityCharismaIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpConstitutionIntelligenceIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpConstitutionWisdomIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpConstitutionCharismaIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpIntelligenceWisdomIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpIntelligenceCharismaIncrease"
+       },
+       {
+        "$ref": "#/components/schemas/LevelUpWisdomCharismaIncrease"
+       }
+      ],
+      "title": "Increase"
+     }
+    },
+    "required": [
+     "feat",
+     "increase"
+    ],
+    "title": "LevelUpAsiChoice",
+    "type": "object"
+   },
+   "LevelUpCharismaIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "charisma": {
+      "maximum": 2.0,
+      "minimum": 2.0,
+      "title": "Charisma",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "charisma"
+    ],
+    "title": "LevelUpCharismaIncrease",
+    "type": "object"
+   },
+   "LevelUpChoices": {
+    "additionalProperties": false,
+    "properties": {
+     "asi": {
+      "$ref": "#/components/schemas/LevelUpAsiChoice"
+     },
+     "cantrips": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Cantrips",
+      "type": "array"
+     },
+     "prepared_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Prepared Spells",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spells",
+     "cantrips",
+     "asi"
+    ],
+    "title": "LevelUpChoices",
+    "type": "object"
+   },
+   "LevelUpCommandResult": {
+    "properties": {
+     "action_id": {
+      "title": "Action Id",
+      "type": "string"
+     },
+     "result": {
+      "$ref": "#/components/schemas/LevelUpAppliedResult"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     }
+    },
+    "required": [
+     "session_id",
+     "action_id",
+     "state",
+     "result"
+    ],
+    "title": "LevelUpCommandResult",
+    "type": "object"
+   },
+   "LevelUpConIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "constitution": {
+      "maximum": 2.0,
+      "minimum": 2.0,
+      "title": "Constitution",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "constitution"
+    ],
+    "title": "LevelUpConIncrease",
+    "type": "object"
+   },
+   "LevelUpConstitutionCharismaIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "charisma": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Charisma",
+      "type": "integer"
+     },
+     "constitution": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Constitution",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "constitution",
+     "charisma"
+    ],
+    "title": "LevelUpConstitutionCharismaIncrease",
+    "type": "object"
+   },
+   "LevelUpConstitutionIntelligenceIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "constitution": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Constitution",
+      "type": "integer"
+     },
+     "intelligence": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Intelligence",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "constitution",
+     "intelligence"
+    ],
+    "title": "LevelUpConstitutionIntelligenceIncrease",
+    "type": "object"
+   },
+   "LevelUpConstitutionWisdomIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "constitution": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Constitution",
+      "type": "integer"
+     },
+     "wisdom": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Wisdom",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "constitution",
+     "wisdom"
+    ],
+    "title": "LevelUpConstitutionWisdomIncrease",
+    "type": "object"
+   },
+   "LevelUpDexterityCharismaIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "charisma": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Charisma",
+      "type": "integer"
+     },
+     "dexterity": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Dexterity",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "dexterity",
+     "charisma"
+    ],
+    "title": "LevelUpDexterityCharismaIncrease",
+    "type": "object"
+   },
+   "LevelUpDexterityConstitutionIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "constitution": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Constitution",
+      "type": "integer"
+     },
+     "dexterity": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Dexterity",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "dexterity",
+     "constitution"
+    ],
+    "title": "LevelUpDexterityConstitutionIncrease",
+    "type": "object"
+   },
+   "LevelUpDexterityIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "dexterity": {
+      "maximum": 2.0,
+      "minimum": 2.0,
+      "title": "Dexterity",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "dexterity"
+    ],
+    "title": "LevelUpDexterityIncrease",
+    "type": "object"
+   },
+   "LevelUpDexterityIntelligenceIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "dexterity": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Dexterity",
+      "type": "integer"
+     },
+     "intelligence": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Intelligence",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "dexterity",
+     "intelligence"
+    ],
+    "title": "LevelUpDexterityIntelligenceIncrease",
+    "type": "object"
+   },
+   "LevelUpDexterityWisdomIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "dexterity": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Dexterity",
+      "type": "integer"
+     },
+     "wisdom": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Wisdom",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "dexterity",
+     "wisdom"
+    ],
+    "title": "LevelUpDexterityWisdomIncrease",
+    "type": "object"
+   },
+   "LevelUpFiveChoices": {
+    "additionalProperties": false,
+    "properties": {
+     "prepared_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Prepared Spells",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spells"
+    ],
+    "title": "LevelUpFiveChoices",
+    "type": "object"
+   },
+   "LevelUpIntelligenceCharismaIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "charisma": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Charisma",
+      "type": "integer"
+     },
+     "intelligence": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Intelligence",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "intelligence",
+     "charisma"
+    ],
+    "title": "LevelUpIntelligenceCharismaIncrease",
+    "type": "object"
+   },
+   "LevelUpIntelligenceIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "intelligence": {
+      "maximum": 2.0,
+      "minimum": 2.0,
+      "title": "Intelligence",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "intelligence"
+    ],
+    "title": "LevelUpIntelligenceIncrease",
+    "type": "object"
+   },
+   "LevelUpIntelligenceWisdomIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "intelligence": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Intelligence",
+      "type": "integer"
+     },
+     "wisdom": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Wisdom",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "intelligence",
+     "wisdom"
+    ],
+    "title": "LevelUpIntelligenceWisdomIncrease",
+    "type": "object"
+   },
+   "LevelUpPreviewResponse": {
+    "properties": {
+     "campaign_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Campaign Id"
+     },
+     "cantrip_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Cantrip Ids",
+      "type": "array"
+     },
+     "capacity": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Capacity"
+     },
+     "choices_required": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "title": "Choices Required",
+      "type": "object"
+     },
+     "class_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Class Name"
+     },
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "fighting_style_options": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fighting Style Options"
+     },
+     "from_level": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "From Level"
+     },
+     "metamagic_options": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Metamagic Options",
+      "type": "array"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     },
+     "primal_knowledge_skill_options": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Primal Knowledge Skill Options"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     },
+     "revision": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Revision"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "spellbook_spell_ids": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spellbook Spell Ids"
+     },
+     "status": {
+      "enum": [
+       "ready",
+       "blocked"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/SorcererSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     },
+     "supported_asi_choices": {
+      "items": {
+       "$ref": "#/components/schemas/LevelUpAsiChoice"
+      },
+      "title": "Supported Asi Choices",
+      "type": "array"
+     },
+     "target_level": {
+      "default": 4,
+      "enum": [
+       2,
+       3,
+       4,
+       5
+      ],
+      "title": "Target Level",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "session_id",
+     "campaign_id",
+     "revision",
+     "status",
+     "reason"
+    ],
+    "title": "LevelUpPreviewResponse",
+    "type": "object"
+   },
+   "LevelUpResult": {
+    "additionalProperties": false,
+    "properties": {
+     "hit_points_gained": {
+      "minimum": 0.0,
+      "title": "Hit Points Gained",
+      "type": "integer"
+     },
+     "new_level": {
+      "maximum": 5.0,
+      "minimum": 1.0,
+      "title": "New Level",
+      "type": "integer"
+     },
+     "previous_level": {
+      "maximum": 5.0,
+      "minimum": 1.0,
+      "title": "Previous Level",
+      "type": "integer"
+     },
+     "xp_gained": {
+      "minimum": 1.0,
+      "title": "Xp Gained",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "previous_level",
+     "new_level",
+     "xp_gained",
+     "hit_points_gained"
+    ],
+    "title": "LevelUpResult",
+    "type": "object"
+   },
+   "LevelUpStrengthCharismaIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "charisma": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Charisma",
+      "type": "integer"
+     },
+     "strength": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Strength",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "strength",
+     "charisma"
+    ],
+    "title": "LevelUpStrengthCharismaIncrease",
+    "type": "object"
+   },
+   "LevelUpStrengthConstitutionIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "constitution": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Constitution",
+      "type": "integer"
+     },
+     "strength": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Strength",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "strength",
+     "constitution"
+    ],
+    "title": "LevelUpStrengthConstitutionIncrease",
+    "type": "object"
+   },
+   "LevelUpStrengthDexterityIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "dexterity": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Dexterity",
+      "type": "integer"
+     },
+     "strength": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Strength",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "strength",
+     "dexterity"
+    ],
+    "title": "LevelUpStrengthDexterityIncrease",
+    "type": "object"
+   },
+   "LevelUpStrengthIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "strength": {
+      "maximum": 2.0,
+      "minimum": 2.0,
+      "title": "Strength",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "strength"
+    ],
+    "title": "LevelUpStrengthIncrease",
+    "type": "object"
+   },
+   "LevelUpStrengthIntelligenceIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "intelligence": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Intelligence",
+      "type": "integer"
+     },
+     "strength": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Strength",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "strength",
+     "intelligence"
+    ],
+    "title": "LevelUpStrengthIntelligenceIncrease",
+    "type": "object"
+   },
+   "LevelUpStrengthWisdomIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "strength": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Strength",
+      "type": "integer"
+     },
+     "wisdom": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Wisdom",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "strength",
+     "wisdom"
+    ],
+    "title": "LevelUpStrengthWisdomIncrease",
+    "type": "object"
+   },
+   "LevelUpWisdomCharismaIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "charisma": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Charisma",
+      "type": "integer"
+     },
+     "wisdom": {
+      "maximum": 1.0,
+      "minimum": 1.0,
+      "title": "Wisdom",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "wisdom",
+     "charisma"
+    ],
+    "title": "LevelUpWisdomCharismaIncrease",
+    "type": "object"
+   },
+   "LevelUpWisdomIncrease": {
+    "additionalProperties": false,
+    "properties": {
+     "wisdom": {
+      "maximum": 2.0,
+      "minimum": 2.0,
+      "title": "Wisdom",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "wisdom"
+    ],
+    "title": "LevelUpWisdomIncrease",
+    "type": "object"
+   },
+   "MonkLevel3Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "subclass_id": {
+      "const": "open_hand",
+      "title": "Subclass Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "subclass_id"
+    ],
+    "title": "MonkLevel3Choices",
+    "type": "object"
+   },
+   "MonkLevelChoices": {
+    "additionalProperties": false,
+    "description": "Levels 2 and 5 have no choices and level 4 is the ordinary ASI: the same strict objects as Barbarian.",
+    "properties": {
+     "2": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     },
+     "3": {
+      "$ref": "#/components/schemas/MonkLevel3Choices"
+     },
+     "4": {
+      "$ref": "#/components/schemas/BarbarianLevel4Choices"
+     },
+     "5": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     }
+    },
+    "required": [
+     "2"
+    ],
+    "title": "MonkLevelChoices",
+    "type": "object"
+   },
+   "MonkStartingCreationOptions": {
+    "additionalProperties": false,
+    "properties": {
+     "level_2": {
+      "$ref": "#/components/schemas/BarbarianStartingLevel2Options"
+     },
+     "level_3": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/MonkStartingLevel3Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_4": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel4Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_5": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel5Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "supported_starting_levels": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Supported Starting Levels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_starting_levels",
+     "level_2"
+    ],
+    "title": "MonkStartingCreationOptions",
+    "type": "object"
+   },
+   "MonkStartingLevel3Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/MonkStartingSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     }
+    },
+    "required": [
+     "subclass_options",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "MonkStartingLevel3Options",
+    "type": "object"
+   },
+   "MonkStartingSubclassOption": {
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "const": "open_hand",
+      "title": "Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "MonkStartingSubclassOption",
+    "type": "object"
+   },
+   "PaladinLevel2Choices": {
+    "additionalProperties": false,
+    "description": "Cantrips exist only with Blessed Warrior: exactly two, and the step owner checks them against the Cleric list.",
+    "properties": {
+     "cantrips": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Cantrips",
+      "type": "array"
+     },
+     "fighting_style": {
+      "enum": [
+       "Archery",
+       "Defense",
+       "Dueling",
+       "Great Weapon Fighting",
+       "Two-Weapon Fighting",
+       "Blessed Warrior"
+      ],
+      "title": "Fighting Style",
+      "type": "string"
+     },
+     "prepared_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Prepared Spells",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spells",
+     "fighting_style"
+    ],
+    "title": "PaladinLevel2Choices",
+    "type": "object"
+   },
+   "PaladinLevel3Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "prepared_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Prepared Spells",
+      "type": "array"
+     },
+     "subclass_id": {
+      "const": "oath_of_devotion",
+      "title": "Subclass Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "prepared_spells",
+     "subclass_id"
+    ],
+    "title": "PaladinLevel3Choices",
+    "type": "object"
+   },
+   "PaladinLevel4Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "asi": {
+      "$ref": "#/components/schemas/LevelUpAsiChoice"
+     },
+     "prepared_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Prepared Spells",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spells",
+     "asi"
+    ],
+    "title": "PaladinLevel4Choices",
+    "type": "object"
+   },
+   "PaladinLevel5Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "prepared_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Prepared Spells",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spells"
+    ],
+    "title": "PaladinLevel5Choices",
+    "type": "object"
+   },
+   "PaladinLevelChoices": {
+    "additionalProperties": false,
+    "properties": {
+     "2": {
+      "$ref": "#/components/schemas/PaladinLevel2Choices"
+     },
+     "3": {
+      "$ref": "#/components/schemas/PaladinLevel3Choices"
+     },
+     "4": {
+      "$ref": "#/components/schemas/PaladinLevel4Choices"
+     },
+     "5": {
+      "$ref": "#/components/schemas/PaladinLevel5Choices"
+     }
+    },
+    "required": [
+     "2"
+    ],
+    "title": "PaladinLevelChoices",
+    "type": "object"
+   },
+   "PaladinStartingCreationOptions": {
+    "additionalProperties": false,
+    "properties": {
+     "level_2": {
+      "$ref": "#/components/schemas/PaladinStartingLevel2Options"
+     },
+     "level_3": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PaladinStartingLevel3Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_4": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PaladinStartingLevel4Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_5": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PaladinStartingLevel5Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "supported_starting_levels": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Supported Starting Levels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_starting_levels",
+     "level_2"
+    ],
+    "title": "PaladinStartingCreationOptions",
+    "type": "object"
+   },
+   "PaladinStartingLevel2Options": {
+    "additionalProperties": false,
+    "properties": {
+     "blessed_warrior_cantrip_count": {
+      "title": "Blessed Warrior Cantrip Count",
+      "type": "integer"
+     },
+     "blessed_warrior_cantrip_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Blessed Warrior Cantrip Ids",
+      "type": "array"
+     },
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "fighting_style_options": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Fighting Style Options",
+      "type": "array"
+     },
+     "prepared_spell_count": {
+      "title": "Prepared Spell Count",
+      "type": "integer"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spell_count",
+     "prepared_spell_ids",
+     "fighting_style_options",
+     "blessed_warrior_cantrip_count",
+     "blessed_warrior_cantrip_ids",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "PaladinStartingLevel2Options",
+    "type": "object"
+   },
+   "PaladinStartingLevel3Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "prepared_spell_count": {
+      "title": "Prepared Spell Count",
+      "type": "integer"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     },
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/PaladinStartingSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spell_count",
+     "prepared_spell_ids",
+     "subclass_options",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "PaladinStartingLevel3Options",
+    "type": "object"
+   },
+   "PaladinStartingLevel4Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "prepared_spell_count": {
+      "title": "Prepared Spell Count",
+      "type": "integer"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     },
+     "supported_asi_choices": {
+      "items": {
+       "$ref": "#/components/schemas/LevelUpAsiChoice"
+      },
+      "title": "Supported Asi Choices",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spell_count",
+     "prepared_spell_ids",
+     "supported_asi_choices",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "PaladinStartingLevel4Options",
+    "type": "object"
+   },
+   "PaladinStartingLevel5Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "prepared_spell_count": {
+      "title": "Prepared Spell Count",
+      "type": "integer"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spell_count",
+     "prepared_spell_ids",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "PaladinStartingLevel5Options",
+    "type": "object"
+   },
+   "PaladinStartingSubclassOption": {
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "const": "oath_of_devotion",
+      "title": "Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "PaladinStartingSubclassOption",
+    "type": "object"
+   },
+   "PublicEconomicResolution": {
+    "additionalProperties": false,
+    "description": "The player-safe receipt of one economic result: no NPC purse, acceptance record or check difficulty.",
+    "properties": {
+     "change_cp": {
+      "title": "Change Cp",
+      "type": "integer"
+     },
+     "lines": {
+      "items": {
+       "$ref": "#/components/schemas/PublicOfferLine"
+      },
+      "title": "Lines",
+      "type": "array"
+     },
+     "net_debit_cp": {
+      "title": "Net Debit Cp",
+      "type": "integer"
+     },
+     "offer_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Offer Id"
+     },
+     "operation_id": {
+      "title": "Operation Id",
+      "type": "string"
+     },
+     "public_summary": {
+      "title": "Public Summary",
+      "type": "string"
+     },
+     "reason_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Code"
+     },
+     "refusals": {
+      "items": {
+       "$ref": "#/components/schemas/PublicLineRefusal"
+      },
+      "title": "Refusals",
+      "type": "array"
+     },
+     "status": {
+      "enum": [
+       "applied",
+       "refused"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "tender_cp": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tender Cp"
+     }
+    },
+    "required": [
+     "operation_id",
+     "offer_id",
+     "status",
+     "reason_code",
+     "lines",
+     "refusals",
+     "tender_cp",
+     "change_cp",
+     "net_debit_cp",
+     "public_summary"
+    ],
+    "title": "PublicEconomicResolution",
+    "type": "object"
+   },
+   "PublicLineRefusal": {
+    "additionalProperties": false,
+    "properties": {
+     "line_id": {
+      "title": "Line Id",
+      "type": "string"
+     },
+     "reason_code": {
+      "title": "Reason Code",
+      "type": "string"
+     }
+    },
+    "required": [
+     "line_id",
+     "reason_code"
+    ],
+    "title": "PublicLineRefusal",
+    "type": "object"
+   },
+   "PublicOfferLine": {
+    "additionalProperties": false,
+    "properties": {
+     "count": {
+      "title": "Count",
+      "type": "integer"
+     },
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "line_id": {
+      "title": "Line Id",
+      "type": "string"
+     },
+     "optional": {
+      "title": "Optional",
+      "type": "boolean"
+     },
+     "total_cp": {
+      "title": "Total Cp",
+      "type": "integer"
+     },
+     "unit_cp": {
+      "title": "Unit Cp",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "line_id",
+     "label",
+     "count",
+     "unit_cp",
+     "total_cp",
+     "optional"
+    ],
+    "title": "PublicOfferLine",
+    "type": "object"
+   },
+   "QuestCommandResult": {
+    "additionalProperties": false,
+    "properties": {
+     "outcome": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/QuestOutcome"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "quest": {
+      "$ref": "#/components/schemas/QuestState"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     }
+    },
+    "required": [
+     "session_id",
+     "state",
+     "quest",
+     "outcome"
+    ],
+    "title": "QuestCommandResult",
+    "type": "object"
+   },
+   "QuestObjectiveState": {
+    "additionalProperties": false,
+    "properties": {
+     "description": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+     },
+     "objective_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Objective Id",
+      "type": "string"
+     },
+     "progress": {
+      "minimum": 0.0,
+      "title": "Progress",
+      "type": "integer"
+     },
+     "required_count": {
+      "maximum": 1000.0,
+      "minimum": 1.0,
+      "title": "Required Count",
+      "type": "integer"
+     },
+     "status": {
+      "enum": [
+       "active",
+       "completed",
+       "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "objective_id",
+     "description",
+     "status",
+     "progress",
+     "required_count"
+    ],
+    "title": "QuestObjectiveState",
+    "type": "object"
+   },
+   "QuestOutcome": {
+    "additionalProperties": false,
+    "properties": {
+     "event_id": {
+      "title": "Event Id",
+      "type": "string"
+     },
+     "objective_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Objective Id"
+     },
+     "quest_id": {
+      "title": "Quest Id",
+      "type": "string"
+     },
+     "source_event_id": {
+      "title": "Source Event Id",
+      "type": "string"
+     },
+     "transition": {
+      "enum": [
+       "accepted",
+       "objective_progress",
+       "objective_completed",
+       "completed",
+       "cancelled"
+      ],
+      "title": "Transition",
+      "type": "string"
+     },
+     "turn_index": {
+      "minimum": 0.0,
+      "title": "Turn Index",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "event_id",
+     "quest_id",
+     "transition",
+     "source_event_id",
+     "turn_index"
+    ],
+    "title": "QuestOutcome",
+    "type": "object"
+   },
+   "QuestState": {
+    "additionalProperties": false,
+    "properties": {
+     "description": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+     },
+     "giver_npc_id": {
+      "anyOf": [
+       {
+        "maxLength": 120,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Giver Npc Id"
+     },
+     "objectives": {
+      "items": {
+       "$ref": "#/components/schemas/QuestObjectiveState"
+      },
+      "title": "Objectives",
+      "type": "array"
+     },
+     "quest_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Quest Id",
+      "type": "string"
+     },
+     "status": {
+      "enum": [
+       "accepted",
+       "completed",
+       "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "title": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "quest_id",
+     "title",
+     "description",
+     "status",
+     "objectives"
+    ],
+    "title": "QuestState",
+    "type": "object"
+   },
+   "ReadyResponseInput": {
+    "additionalProperties": false,
+    "properties": {
+     "distance_ft": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Distance Ft"
+     },
+     "kind": {
+      "enum": [
+       "attack",
+       "move"
+      ],
+      "title": "Kind",
+      "type": "string"
+     },
+     "target_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Id"
+     }
+    },
+    "required": [
+     "kind"
+    ],
+    "title": "ReadyResponseInput",
+    "type": "object"
+   },
+   "ReadyTriggerInput": {
+    "additionalProperties": false,
+    "properties": {
+     "actor_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Actor Id",
+      "type": "string"
+     },
+     "event": {
+      "enum": [
+       "actor_moves",
+       "actor_attacks"
+      ],
+      "title": "Event",
+      "type": "string"
+     }
+    },
+    "required": [
+     "event",
+     "actor_id"
+    ],
+    "title": "ReadyTriggerInput",
+    "type": "object"
+   },
+   "RogueLevel3Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "subclass_id": {
+      "const": "assassin",
+      "title": "Subclass Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "subclass_id"
+    ],
+    "title": "RogueLevel3Choices",
+    "type": "object"
+   },
+   "RogueLevelChoices": {
+    "additionalProperties": false,
+    "description": "Levels 2 and 5 have no choices and level 4 is the ordinary ASI: the same strict objects as Barbarian.",
+    "properties": {
+     "2": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     },
+     "3": {
+      "$ref": "#/components/schemas/RogueLevel3Choices"
+     },
+     "4": {
+      "$ref": "#/components/schemas/BarbarianLevel4Choices"
+     },
+     "5": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     }
+    },
+    "required": [
+     "2"
+    ],
+    "title": "RogueLevelChoices",
+    "type": "object"
+   },
+   "RogueStartingCreationOptions": {
+    "additionalProperties": false,
+    "properties": {
+     "level_2": {
+      "$ref": "#/components/schemas/BarbarianStartingLevel2Options"
+     },
+     "level_3": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RogueStartingLevel3Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_4": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel4Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_5": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BarbarianStartingLevel5Options"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "supported_starting_levels": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Supported Starting Levels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_starting_levels",
+     "level_2"
+    ],
+    "title": "RogueStartingCreationOptions",
+    "type": "object"
+   },
+   "RogueStartingLevel3Options": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Pending",
+      "type": "array"
+     },
+     "effects_supported": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Effects Supported",
+      "type": "array"
+     },
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/RogueStartingSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     }
+    },
+    "required": [
+     "subclass_options",
+     "effects_supported",
+     "effects_pending"
+    ],
+    "title": "RogueStartingLevel3Options",
+    "type": "object"
+   },
+   "RogueStartingSubclassOption": {
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "const": "assassin",
+      "title": "Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "RogueStartingSubclassOption",
+    "type": "object"
+   },
+   "SessionResponse": {
+    "properties": {
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     }
+    },
+    "required": [
+     "session_id",
+     "state"
+    ],
+    "title": "SessionResponse",
+    "type": "object"
+   },
+   "ShopCounterHeld": {
+    "properties": {
+     "count": {
+      "const": 1,
+      "title": "Count",
+      "type": "integer"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "npc_id": {
+      "title": "Npc Id",
+      "type": "string"
+     },
+     "tip_cp": {
+      "minimum": 1.0,
+      "title": "Tip Cp",
+      "type": "integer"
+     },
+     "total_cp": {
+      "minimum": 1.0,
+      "title": "Total Cp",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "npc_id",
+     "key",
+     "count",
+     "tip_cp",
+     "total_cp"
+    ],
+    "title": "ShopCounterHeld",
+    "type": "object"
+   },
+   "ShopCounterLine": {
+    "properties": {
+     "discount_cp": {
+      "minimum": 0.0,
+      "title": "Discount Cp",
+      "type": "integer"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "stock": {
+      "minimum": 0.0,
+      "title": "Stock",
+      "type": "integer"
+     },
+     "unit_cp": {
+      "minimum": 0.0,
+      "title": "Unit Cp",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "key",
+     "label",
+     "unit_cp",
+     "stock",
+     "discount_cp"
+    ],
+    "title": "ShopCounterLine",
+    "type": "object"
+   },
+   "ShopCounterPurse": {
+    "properties": {
+     "cp": {
+      "minimum": 0.0,
+      "title": "Cp",
+      "type": "integer"
+     },
+     "gp": {
+      "minimum": 0.0,
+      "title": "Gp",
+      "type": "integer"
+     },
+     "sp": {
+      "minimum": 0.0,
+      "title": "Sp",
+      "type": "integer"
+     },
+     "total_cp": {
+      "minimum": 0.0,
+      "title": "Total Cp",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "total_cp",
+     "gp",
+     "sp",
+     "cp"
+    ],
+    "title": "ShopCounterPurse",
+    "type": "object"
+   },
+   "ShopCounterResponse": {
+    "description": "What the counter here offers now; reading it writes nothing and makes no receipt.",
+    "properties": {
+     "campaign_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Campaign Id"
+     },
+     "held": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ShopCounterHeld"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "lines": {
+      "items": {
+       "$ref": "#/components/schemas/ShopCounterLine"
+      },
+      "title": "Lines",
+      "type": "array"
+     },
+     "purse": {
+      "$ref": "#/components/schemas/ShopCounterPurse"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     },
+     "revision": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Revision"
+     },
+     "seq": {
+      "minimum": 0.0,
+      "title": "Seq",
+      "type": "integer"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "status": {
+      "enum": [
+       "ready",
+       "unavailable"
+      ],
+      "title": "Status",
+      "type": "string"
+     },
+     "vendor": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ShopCounterVendor"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "required": [
+     "session_id",
+     "campaign_id",
+     "revision",
+     "status",
+     "reason",
+     "vendor",
+     "lines",
+     "purse",
+     "seq"
+    ],
+    "title": "ShopCounterResponse",
+    "type": "object"
+   },
+   "ShopCounterVendor": {
+    "properties": {
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "npc_id": {
+      "title": "Npc Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "npc_id",
+     "name"
+    ],
+    "title": "ShopCounterVendor",
+    "type": "object"
+   },
+   "SkillCheckResult": {
+    "additionalProperties": false,
+    "properties": {
+     "ability": {
+      "enum": [
+       "strength",
+       "dexterity",
+       "constitution",
+       "intelligence",
+       "wisdom",
+       "charisma"
+      ],
+      "title": "Ability",
+      "type": "string"
+     },
+     "ability_modifier": {
+      "title": "Ability Modifier",
+      "type": "integer"
+     },
+     "action_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action Id"
+     },
+     "advantage": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Advantage"
+     },
+     "check_feature": {
+      "anyOf": [
+       {
+        "enum": [
+         "primal_knowledge",
+         "tactical_mind"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Check Feature"
+     },
+     "d20": {
+      "maximum": 20.0,
+      "minimum": 1.0,
+      "title": "D20",
+      "type": "integer"
+     },
+     "d20_rolls": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "D20 Rolls"
+     },
+     "dc": {
+      "maximum": 30.0,
+      "minimum": 1.0,
+      "title": "Dc",
+      "type": "integer"
+     },
+     "difficulty": {
+      "enum": [
+       "easy",
+       "medium",
+       "hard",
+       "very_hard",
+       "extreme"
+      ],
+      "title": "Difficulty",
+      "type": "string"
+     },
+     "disadvantage": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disadvantage"
+     },
+     "expertise": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expertise"
+     },
+     "original_ability": {
+      "anyOf": [
+       {
+        "enum": [
+         "dexterity",
+         "wisdom",
+         "charisma"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Original Ability"
+     },
+     "outcome": {
+      "enum": [
+       "success",
+       "failure"
+      ],
+      "title": "Outcome",
+      "type": "string"
+     },
+     "proficiency_modifier": {
+      "minimum": 0.0,
+      "title": "Proficiency Modifier",
+      "type": "integer"
+     },
+     "proficient": {
+      "title": "Proficient",
+      "type": "boolean"
+     },
+     "resolution_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolution Id"
+     },
+     "skill": {
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Skill",
+      "type": "string"
+     },
+     "tactical_mind_roll": {
+      "anyOf": [
+       {
+        "maximum": 10.0,
+        "minimum": 1.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tactical Mind Roll"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     },
+     "total_modifier": {
+      "title": "Total Modifier",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "skill",
+     "ability",
+     "d20",
+     "proficient",
+     "ability_modifier",
+     "proficiency_modifier",
+     "total_modifier",
+     "total",
+     "difficulty",
+     "dc",
+     "outcome"
+    ],
+    "title": "SkillCheckResult",
+    "type": "object"
+   },
+   "SorcererEffectsPendingByLevel": {
+    "additionalProperties": false,
+    "properties": {
+     "1": {
+      "items": {
+       "type": "string"
+      },
+      "title": "1",
+      "type": "array"
+     },
+     "2": {
+      "items": {
+       "type": "string"
+      },
+      "title": "2",
+      "type": "array"
+     },
+     "3": {
+      "items": {
+       "type": "string"
+      },
+      "title": "3",
+      "type": "array"
+     },
+     "4": {
+      "items": {
+       "type": "string"
+      },
+      "title": "4",
+      "type": "array"
+     },
+     "5": {
+      "items": {
+       "type": "string"
+      },
+      "title": "5",
+      "type": "array"
+     }
+    },
+    "required": [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5"
+    ],
+    "title": "SorcererEffectsPendingByLevel",
+    "type": "object"
+   },
+   "SorcererLevel2Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "metamagic": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Metamagic",
+      "type": "array"
+     },
+     "prepared_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Prepared Spells",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spells",
+     "metamagic"
+    ],
+    "title": "SorcererLevel2Choices",
+    "type": "object"
+   },
+   "SorcererLevel3Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "prepared_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Prepared Spells",
+      "type": "array"
+     },
+     "subclass_id": {
+      "title": "Subclass Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "prepared_spells",
+     "subclass_id"
+    ],
+    "title": "SorcererLevel3Choices",
+    "type": "object"
+   },
+   "SorcererLevelChoices": {
+    "additionalProperties": false,
+    "properties": {
+     "2": {
+      "$ref": "#/components/schemas/SorcererLevel2Choices"
+     },
+     "3": {
+      "$ref": "#/components/schemas/SorcererLevel3Choices"
+     },
+     "4": {
+      "$ref": "#/components/schemas/LevelUpChoices"
+     },
+     "5": {
+      "$ref": "#/components/schemas/LevelUpFiveChoices"
+     }
+    },
+    "title": "SorcererLevelChoices",
+    "type": "object"
+   },
+   "SorcererStartingCreationOptions": {
+    "additionalProperties": false,
+    "properties": {
+     "effects_pending_by_level": {
+      "$ref": "#/components/schemas/SorcererEffectsPendingByLevel"
+     },
+     "level_2": {
+      "$ref": "#/components/schemas/SorcererStartingLevel2Options"
+     },
+     "level_3": {
+      "$ref": "#/components/schemas/SorcererStartingLevel3Options"
+     },
+     "level_4": {
+      "$ref": "#/components/schemas/SorcererStartingLevel4Options"
+     },
+     "level_5": {
+      "$ref": "#/components/schemas/SorcererStartingLevel5Options"
+     },
+     "supported_starting_levels": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Supported Starting Levels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_starting_levels",
+     "level_2",
+     "level_3",
+     "level_4",
+     "level_5",
+     "effects_pending_by_level"
+    ],
+    "title": "SorcererStartingCreationOptions",
+    "type": "object"
+   },
+   "SorcererStartingLevel2Options": {
+    "additionalProperties": false,
+    "properties": {
+     "metamagic_count": {
+      "title": "Metamagic Count",
+      "type": "integer"
+     },
+     "metamagic_options": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Metamagic Options",
+      "type": "array"
+     },
+     "prepared_spell_count": {
+      "title": "Prepared Spell Count",
+      "type": "integer"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spell_count",
+     "prepared_spell_ids",
+     "metamagic_count",
+     "metamagic_options"
+    ],
+    "title": "SorcererStartingLevel2Options",
+    "type": "object"
+   },
+   "SorcererStartingLevel3Options": {
+    "additionalProperties": false,
+    "properties": {
+     "prepared_spell_count": {
+      "title": "Prepared Spell Count",
+      "type": "integer"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     },
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/SorcererSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spell_count",
+     "prepared_spell_ids",
+     "subclass_options"
+    ],
+    "title": "SorcererStartingLevel3Options",
+    "type": "object"
+   },
+   "SorcererStartingLevel4Options": {
+    "additionalProperties": false,
+    "properties": {
+     "cantrip_count": {
+      "title": "Cantrip Count",
+      "type": "integer"
+     },
+     "cantrip_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Cantrip Ids",
+      "type": "array"
+     },
+     "prepared_spell_count": {
+      "title": "Prepared Spell Count",
+      "type": "integer"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     },
+     "supported_asi_choices": {
+      "items": {
+       "$ref": "#/components/schemas/LevelUpAsiChoice"
+      },
+      "title": "Supported Asi Choices",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spell_count",
+     "prepared_spell_ids",
+     "cantrip_count",
+     "cantrip_ids",
+     "supported_asi_choices"
+    ],
+    "title": "SorcererStartingLevel4Options",
+    "type": "object"
+   },
+   "SorcererStartingLevel5Options": {
+    "additionalProperties": false,
+    "properties": {
+     "prepared_spell_count": {
+      "title": "Prepared Spell Count",
+      "type": "integer"
+     },
+     "prepared_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared Spell Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "prepared_spell_count",
+     "prepared_spell_ids"
+    ],
+    "title": "SorcererStartingLevel5Options",
+    "type": "object"
+   },
+   "SorcererSubclassOption": {
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "SorcererSubclassOption",
+    "type": "object"
+   },
+   "SpeciesTraitActionRequest": {
+    "additionalProperties": false,
+    "properties": {
+     "action": {
+      "enum": [
+       "healing_hands",
+       "celestial_revelation",
+       "large_form",
+       "adrenaline_rush",
+       "cloud_jaunt",
+       "arm_giant_ancestry",
+       "choose_giant_ancestry",
+       "short_rest",
+       "long_rest",
+       "spend_hit_die",
+       "second_wind",
+       "lay_on_hands",
+       "divine_sense",
+       "choose_draconic_ancestry",
+       "breath_weapon"
+      ],
+      "title": "Action",
+      "type": "string"
+     },
+     "action_id": {
+      "format": "uuid",
+      "title": "Action Id",
+      "type": "string"
+     },
+     "ancestry": {
+      "anyOf": [
+       {
+        "enum": [
+         "cloud",
+         "fire",
+         "frost",
+         "hill",
+         "stone",
+         "storm"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ancestry"
+     },
+     "armed": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Armed"
+     },
+     "draconic_ancestry": {
+      "anyOf": [
+       {
+        "enum": [
+         "black",
+         "blue",
+         "brass",
+         "bronze",
+         "copper",
+         "gold",
+         "green",
+         "red",
+         "silver",
+         "white"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Draconic Ancestry"
+     },
+     "form": {
+      "anyOf": [
+       {
+        "enum": [
+         "heavenly_wings",
+         "inner_radiance",
+         "necrotic_shroud"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Form"
+     },
+     "healing_amount": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Healing Amount"
+     },
+     "remove_poisoned": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Remove Poisoned"
+     },
+     "shape": {
+      "anyOf": [
+       {
+        "enum": [
+         "cone",
+         "line"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shape"
+     },
+     "target_id": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Id"
+     }
+    },
+    "required": [
+     "action",
+     "action_id"
+    ],
+    "title": "SpeciesTraitActionRequest",
+    "type": "object"
+   },
+   "SpeciesTraitActionResult": {
+    "additionalProperties": false,
+    "properties": {
+     "action": {
+      "title": "Action",
+      "type": "string"
+     },
+     "effects": {
+      "additionalProperties": true,
+      "title": "Effects",
+      "type": "object"
+     },
+     "message": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+     }
+    },
+    "required": [
+     "action",
+     "message",
+     "effects"
+    ],
+    "title": "SpeciesTraitActionResult",
+    "type": "object"
+   },
+   "SpeciesTraitCommandResult": {
+    "additionalProperties": false,
+    "properties": {
+     "action_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action Id"
+     },
+     "result": {
+      "$ref": "#/components/schemas/SpeciesTraitActionResult"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     }
+    },
+    "required": [
+     "session_id",
+     "state",
+     "result"
+    ],
+    "title": "SpeciesTraitCommandResult",
+    "type": "object"
+   },
+   "SpellPrepareCommandResult": {
+    "additionalProperties": false,
+    "properties": {
+     "action_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action Id"
+     },
+     "result": {
+      "$ref": "#/components/schemas/SpellPrepareResult"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     }
+    },
+    "required": [
+     "session_id",
+     "state",
+     "result"
+    ],
+    "title": "SpellPrepareCommandResult",
+    "type": "object"
+   },
+   "SpellPrepareDropped": {
+    "additionalProperties": false,
+    "properties": {
+     "reason": {
+      "enum": [
+       "duplicate",
+       "cantrip",
+       "not_in_spellbook",
+       "not_on_class_list"
+      ],
+      "title": "Reason",
+      "type": "string"
+     },
+     "spell_id": {
+      "title": "Spell Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "spell_id",
+     "reason"
+    ],
+    "title": "SpellPrepareDropped",
+    "type": "object"
+   },
+   "SpellPrepareRequest": {
+    "additionalProperties": false,
+    "description": "4C.2: the player's own preparation list; the engine keeps the valid names and never adds one.",
+    "properties": {
+     "action_id": {
+      "format": "uuid",
+      "title": "Action Id",
+      "type": "string"
+     },
+     "close": {
+      "default": false,
+      "title": "Close",
+      "type": "boolean"
+     },
+     "prepared": {
+      "anyOf": [
+       {
+        "items": {
+         "maxLength": 64,
+         "type": "string"
+        },
+        "maxItems": 32,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prepared"
+     },
+     "spellbook": {
+      "anyOf": [
+       {
+        "items": {
+         "maxLength": 64,
+         "type": "string"
+        },
+        "maxItems": 32,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spellbook"
+     }
+    },
+    "required": [
+     "action_id"
+    ],
+    "title": "SpellPrepareRequest",
+    "type": "object"
+   },
+   "SpellPrepareResult": {
+    "additionalProperties": false,
+    "properties": {
+     "dropped": {
+      "items": {
+       "$ref": "#/components/schemas/SpellPrepareDropped"
+      },
+      "title": "Dropped",
+      "type": "array"
+     },
+     "excess": {
+      "title": "Excess",
+      "type": "integer"
+     },
+     "limit": {
+      "title": "Limit",
+      "type": "integer"
+     },
+     "message": {
+      "title": "Message",
+      "type": "string"
+     },
+     "open": {
+      "title": "Open",
+      "type": "boolean"
+     },
+     "prepared": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared",
+      "type": "array"
+     },
+     "status": {
+      "enum": [
+       "prepared",
+       "too_many",
+       "spellbook_saved"
+      ],
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "status",
+     "prepared",
+     "dropped",
+     "limit",
+     "excess",
+     "open",
+     "message"
+    ],
+    "title": "SpellPrepareResult",
+    "type": "object"
+   },
+   "SpellPrepareViewResponse": {
+    "additionalProperties": false,
+    "properties": {
+     "blocked_reason": {
+      "anyOf": [
+       {
+        "enum": [
+         "not_preparing_class",
+         "spellbook_missing"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Blocked Reason"
+     },
+     "candidates": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Candidates",
+      "type": "array"
+     },
+     "class_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Class Name"
+     },
+     "limit": {
+      "title": "Limit",
+      "type": "integer"
+     },
+     "not_in_engine": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Not In Engine",
+      "type": "array"
+     },
+     "open": {
+      "title": "Open",
+      "type": "boolean"
+     },
+     "prepared": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Prepared",
+      "type": "array"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "enum": [
+         "creation",
+         "long_rest",
+         "migration",
+         "level_up"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "spellbook": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spellbook"
+     },
+     "spellbook_options": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Spellbook Options",
+      "type": "array"
+     },
+     "suggested_spellbook": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Suggested Spellbook",
+      "type": "array"
+     },
+     "supported": {
+      "title": "Supported",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "supported",
+     "open",
+     "limit",
+     "candidates",
+     "prepared",
+     "session_id"
+    ],
+    "title": "SpellPrepareViewResponse",
+    "type": "object"
+   },
+   "TextSpan": {
+    "additionalProperties": false,
+    "description": "Where in the line a proposal was read; traceability only, never authority.",
+    "properties": {
+     "end": {
+      "maximum": 4000.0,
+      "minimum": 0.0,
+      "title": "End",
+      "type": "integer"
+     },
+     "start": {
+      "maximum": 4000.0,
+      "minimum": 0.0,
+      "title": "Start",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "start",
+     "end"
+    ],
+    "title": "TextSpan",
+    "type": "object"
+   },
+   "TurnOutcome": {
+    "additionalProperties": false,
+    "description": "Player-safe receipt of what the turn actually resolved (LR00-P5).\n\nOnly names the player can already see; never hidden IDs, DCs or secrets.",
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "maxLength": 48,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action"
+     },
+     "found": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Found"
+     },
+     "heal_source": {
+      "anyOf": [
+       {
+        "enum": [
+         "spell",
+         "rest",
+         "class_feature",
+         "species",
+         "death_save",
+         "potion"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Heal Source"
+     },
+     "healing": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Healing"
+     },
+     "kind": {
+      "anyOf": [
+       {
+        "maxLength": 48,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kind"
+     },
+     "place_created": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Place Created"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "maxLength": 48,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "maxLength": 48,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "target_name": {
+      "anyOf": [
+       {
+        "maxLength": 120,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Name"
+     }
+    },
+    "title": "TurnOutcome",
+    "type": "object"
+   },
+   "TurnRequest": {
+    "additionalProperties": false,
+    "properties": {
+     "action_id": {
+      "format": "uuid",
+      "title": "Action Id",
+      "type": "string"
+     },
+     "check_feature": {
+      "anyOf": [
+       {
+        "enum": [
+         "primal_knowledge",
+         "tactical_mind"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Check Feature"
+     },
+     "combat_action": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CombatActionInput"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "combat_id": {
+      "anyOf": [
+       {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Combat Id"
+     },
+     "combat_round": {
+      "anyOf": [
+       {
+        "minimum": 1.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Combat Round"
+     },
+     "combat_turn_index": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Combat Turn Index"
+     },
+     "economic_action": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/EconomicAction"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "interaction_mode": {
+      "anyOf": [
+       {
+        "enum": [
+         "say",
+         "do",
+         "ask_dm"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Interaction Mode"
+     },
+     "message": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+     },
+     "target_id": {
+      "anyOf": [
+       {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Id"
+     }
+    },
+    "required": [
+     "message",
+     "action_id"
+    ],
+    "title": "TurnRequest",
+    "type": "object"
+   },
+   "TurnResponse": {
+    "properties": {
+     "action_id": {
+      "title": "Action Id",
+      "type": "string"
+     },
+     "combat_history_entry": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CombatHistoryEntry"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "combat_result": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CombatTurnResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "economic_resolution": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PublicEconomicResolution"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "level_up": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LevelUpResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "narration": {
+      "title": "Narration",
+      "type": "string"
+     },
+     "quest_outcomes": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/QuestOutcome"
+      },
+      "title": "Quest Outcomes",
+      "type": "array"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "skill_check_result": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SkillCheckResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     },
+     "turn_outcome": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/TurnOutcome"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "required": [
+     "session_id",
+     "action_id",
+     "narration",
+     "state"
+    ],
+    "title": "TurnResponse",
+    "type": "object"
+   },
+   "TurnUndoRequest": {
+    "additionalProperties": false,
+    "description": "Undo exactly the last completed turn, named by its action ID (LR00-P7).",
+    "properties": {
+     "action_id": {
+      "format": "uuid",
+      "title": "Action Id",
+      "type": "string"
+     },
+     "target_action_id": {
+      "format": "uuid",
+      "title": "Target Action Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "action_id",
+     "target_action_id"
+    ],
+    "title": "TurnUndoRequest",
+    "type": "object"
+   },
+   "TurnUndoResponse": {
+    "properties": {
+     "action_id": {
+      "title": "Action Id",
+      "type": "string"
+     },
+     "narration": {
+      "title": "Narration",
+      "type": "string"
+     },
+     "session_id": {
+      "title": "Session Id",
+      "type": "string"
+     },
+     "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+     },
+     "undone_action_id": {
+      "title": "Undone Action Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "session_id",
+     "action_id",
+     "undone_action_id",
+     "narration",
+     "state"
+    ],
+    "title": "TurnUndoResponse",
+    "type": "object"
+   },
+   "ValidationError": {
+    "properties": {
+     "ctx": {
+      "title": "Context",
+      "type": "object"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "title": "Location",
+      "type": "array"
+     },
+     "msg": {
+      "title": "Message",
+      "type": "string"
+     },
+     "type": {
+      "title": "Error Type",
+      "type": "string"
+     }
+    },
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError",
+    "type": "object"
+   },
+   "WizardLevel3Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "spellbook_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Spellbook Spells",
+      "type": "array"
+     },
+     "subclass_id": {
+      "const": "evoker",
+      "title": "Subclass Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "spellbook_spells",
+     "subclass_id"
+    ],
+    "title": "WizardLevel3Choices",
+    "type": "object"
+   },
+   "WizardLevel4Choices": {
+    "additionalProperties": false,
+    "properties": {
+     "asi": {
+      "$ref": "#/components/schemas/LevelUpAsiChoice"
+     },
+     "cantrips": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Cantrips",
+      "type": "array"
+     },
+     "spellbook_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Spellbook Spells",
+      "type": "array"
+     }
+    },
+    "required": [
+     "spellbook_spells",
+     "cantrips",
+     "asi"
+    ],
+    "title": "WizardLevel4Choices",
+    "type": "object"
+   },
+   "WizardSpellbookChoices": {
+    "additionalProperties": false,
+    "description": "Wizard levels 2 and 5: two spells for the spellbook (PHB PDF 164); the step owner checks them against the slotted Wizard lists.",
+    "properties": {
+     "spellbook_spells": {
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Spellbook Spells",
+      "type": "array"
+     }
+    },
+    "required": [
+     "spellbook_spells"
+    ],
+    "title": "WizardSpellbookChoices",
+    "type": "object"
+   }
+  }
+ },
+ "info": {
+  "description": "Thin HTTP adapter for the canonical Python AI-DND engine.",
+  "title": "AI-DND API",
+  "version": "1.0.0"
+ },
+ "openapi": "3.1.0",
+ "paths": {
+  "/api/campaign-start-options": {
+   "get": {
+    "operationId": "campaign_start_options_api_campaign_start_options_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignStartOptionsResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Campaign Start Options"
+   }
+  },
+  "/api/campaigns": {
+   "get": {
+    "operationId": "list_campaigns_api_campaigns_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/CampaignSummary"
+         },
+         "title": "Response List Campaigns Api Campaigns Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "List Campaigns"
+   },
+   "post": {
+    "operationId": "create_campaign_api_campaigns_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CampaignCreateRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignSessionResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Create Campaign"
+   }
+  },
+  "/api/campaigns/{campaign_id}": {
+   "delete": {
+    "operationId": "delete_campaign_api_campaigns__campaign_id__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "campaign_id",
+      "required": true,
+      "schema": {
+       "title": "Campaign Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Delete Campaign Api Campaigns  Campaign Id  Delete",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Delete Campaign"
+   },
+   "get": {
+    "operationId": "get_campaign_api_campaigns__campaign_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "campaign_id",
+      "required": true,
+      "schema": {
+       "title": "Campaign Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignDetailResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Campaign"
+   }
+  },
+  "/api/campaigns/{campaign_id}/resume": {
+   "post": {
+    "operationId": "resume_campaign_api_campaigns__campaign_id__resume_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "campaign_id",
+      "required": true,
+      "schema": {
+       "title": "Campaign Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignSessionResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Resume Campaign"
+   }
+  },
+  "/api/campaigns/{campaign_id}/save": {
+   "post": {
+    "operationId": "save_campaign_api_campaigns__campaign_id__save_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "campaign_id",
+      "required": true,
+      "schema": {
+       "title": "Campaign Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignSummary"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Save Campaign"
+   }
+  },
+  "/api/character-creation-catalog": {
+   "get": {
+    "operationId": "character_creation_catalog_api_character_creation_catalog_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CharacterCreationCatalogResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Character Creation Catalog"
+   }
+  },
+  "/api/character-identity-suggestions": {
+   "post": {
+    "operationId": "create_character_identity_suggestion_api_character_identity_suggestions_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/IdentitySuggestionRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/IdentitySuggestionJob"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Create Character Identity Suggestion"
+   }
+  },
+  "/api/character-identity-suggestions/{request_id}": {
+   "get": {
+    "operationId": "read_character_identity_suggestion_api_character_identity_suggestions__request_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "request_id",
+      "required": true,
+      "schema": {
+       "title": "Request Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/IdentitySuggestionJob"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Read Character Identity Suggestion"
+   }
+  },
+  "/api/character-options": {
+   "get": {
+    "operationId": "character_creation_options_api_character_options_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CharacterCreationOptions"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Character Creation Options"
+   }
+  },
+  "/api/game/campaign-start-options": {
+   "get": {
+    "operationId": "campaign_start_options_api_game_campaign_start_options_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignStartOptionsResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Campaign Start Options"
+   }
+  },
+  "/api/game/campaigns": {
+   "get": {
+    "operationId": "list_campaigns_api_game_campaigns_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/CampaignSummary"
+         },
+         "title": "Response List Campaigns Api Game Campaigns Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "List Campaigns"
+   },
+   "post": {
+    "operationId": "create_campaign_api_game_campaigns_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CampaignCreateRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignSessionResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Create Campaign"
+   }
+  },
+  "/api/game/campaigns/{campaign_id}": {
+   "delete": {
+    "operationId": "delete_campaign_api_game_campaigns__campaign_id__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "campaign_id",
+      "required": true,
+      "schema": {
+       "title": "Campaign Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Delete Campaign Api Game Campaigns  Campaign Id  Delete",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Delete Campaign"
+   },
+   "get": {
+    "operationId": "get_campaign_api_game_campaigns__campaign_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "campaign_id",
+      "required": true,
+      "schema": {
+       "title": "Campaign Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignDetailResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Campaign"
+   }
+  },
+  "/api/game/campaigns/{campaign_id}/resume": {
+   "post": {
+    "operationId": "resume_campaign_api_game_campaigns__campaign_id__resume_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "campaign_id",
+      "required": true,
+      "schema": {
+       "title": "Campaign Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignSessionResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Resume Campaign"
+   }
+  },
+  "/api/game/campaigns/{campaign_id}/save": {
+   "post": {
+    "operationId": "save_campaign_api_game_campaigns__campaign_id__save_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "campaign_id",
+      "required": true,
+      "schema": {
+       "title": "Campaign Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CampaignSummary"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Save Campaign"
+   }
+  },
+  "/api/game/character-creation-catalog": {
+   "get": {
+    "operationId": "character_creation_catalog_api_game_character_creation_catalog_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CharacterCreationCatalogResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Character Creation Catalog"
+   }
+  },
+  "/api/game/character-identity-suggestions": {
+   "post": {
+    "operationId": "create_character_identity_suggestion_api_game_character_identity_suggestions_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/IdentitySuggestionRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/IdentitySuggestionJob"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Create Character Identity Suggestion"
+   }
+  },
+  "/api/game/character-identity-suggestions/{request_id}": {
+   "get": {
+    "operationId": "read_character_identity_suggestion_api_game_character_identity_suggestions__request_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "request_id",
+      "required": true,
+      "schema": {
+       "title": "Request Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/IdentitySuggestionJob"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Read Character Identity Suggestion"
+   }
+  },
+  "/api/game/character-options": {
+   "get": {
+    "operationId": "character_creation_options_api_game_character_options_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CharacterCreationOptions"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Character Creation Options"
+   }
+  },
+  "/api/game/health": {
+   "get": {
+    "operationId": "health_api_game_health_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HealthResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Health"
+   }
+  },
+  "/api/game/logout": {
+   "post": {
+    "operationId": "logout_api_game_logout_post",
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Logout"
+   }
+  },
+  "/api/game/sessions": {
+   "post": {
+    "operationId": "create_session_api_game_sessions_post",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Create Session"
+   }
+  },
+  "/api/game/sessions/{session_id}/actions/unresolved": {
+   "get": {
+    "operationId": "read_unresolved_action_api_game_sessions__session_id__actions_unresolved_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Read Unresolved Action Api Game Sessions  Session Id  Actions Unresolved Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Read Unresolved Action"
+   }
+  },
+  "/api/game/sessions/{session_id}/actions/{action_id}": {
+   "get": {
+    "operationId": "read_action_status_api_game_sessions__session_id__actions__action_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "action_id",
+      "required": true,
+      "schema": {
+       "format": "uuid",
+       "title": "Action Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Read Action Status Api Game Sessions  Session Id  Actions  Action Id  Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Read Action Status"
+   }
+  },
+  "/api/game/sessions/{session_id}/actions/{action_id}/abandon": {
+   "post": {
+    "description": "Player-initiated close of an action id; the answer comes from the stored receipt or refusal only.",
+    "operationId": "abandon_action_api_game_sessions__session_id__actions__action_id__abandon_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "action_id",
+      "required": true,
+      "schema": {
+       "format": "uuid",
+       "title": "Action Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Abandon Action Api Game Sessions  Session Id  Actions  Action Id  Abandon Post",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Abandon Action"
+   }
+  },
+  "/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions": {
+   "post": {
+    "operationId": "resolve_ambient_event_action_api_game_sessions__session_id__ambient_events__event_instance_id__actions_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "event_instance_id",
+      "required": true,
+      "schema": {
+       "format": "uuid",
+       "title": "Event Instance Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AmbientEventActionRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AmbientEventCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Resolve Ambient Event Action"
+   }
+  },
+  "/api/game/sessions/{session_id}/level-up": {
+   "get": {
+    "operationId": "getGameSessionLevelUp",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LevelUpPreviewResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Preview Earned Level Up"
+   },
+   "post": {
+    "operationId": "applyGameSessionLevelUp",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LevelUpApplyRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LevelUpCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Apply Earned Level Up"
+   }
+  },
+  "/api/game/sessions/{session_id}/quests/{quest_id}/accept": {
+   "post": {
+    "operationId": "accept_quest_api_game_sessions__session_id__quests__quest_id__accept_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "quest_id",
+      "required": true,
+      "schema": {
+       "title": "Quest Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuestCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Accept Quest"
+   }
+  },
+  "/api/game/sessions/{session_id}/quests/{quest_id}/cancel": {
+   "post": {
+    "operationId": "cancel_quest_api_game_sessions__session_id__quests__quest_id__cancel_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "quest_id",
+      "required": true,
+      "schema": {
+       "title": "Quest Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuestCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cancel Quest"
+   }
+  },
+  "/api/game/sessions/{session_id}/shop": {
+   "get": {
+    "description": "The counter's quote, read under the turn lock so it is never half a turn; it writes nothing.",
+    "operationId": "getGameSessionShop",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ShopCounterResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Read Shop Counter"
+   }
+  },
+  "/api/game/sessions/{session_id}/species-actions": {
+   "post": {
+    "operationId": "resolve_species_trait_action_api_game_sessions__session_id__species_actions_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SpeciesTraitActionRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SpeciesTraitCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Resolve Species Trait Action"
+   }
+  },
+  "/api/game/sessions/{session_id}/spellcasting/prepare": {
+   "get": {
+    "description": "4C.2: the preparation window, its limit and candidates. Writes nothing.",
+    "operationId": "getGameSessionSpellPreparation",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SpellPrepareViewResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Read Spell Preparation"
+   },
+   "post": {
+    "description": "4C.2: save the player's preparation list (same receipt, replay and rollback contract as species actions).",
+    "operationId": "prepareGameSessionSpells",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SpellPrepareRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SpellPrepareCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Prepare Spells"
+   }
+  },
+  "/api/game/sessions/{session_id}/state": {
+   "get": {
+    "operationId": "read_state_api_game_sessions__session_id__state_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Read State Api Game Sessions  Session Id  State Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Read State"
+   }
+  },
+  "/api/game/sessions/{session_id}/turn": {
+   "post": {
+    "operationId": "play_turn_api_game_sessions__session_id__turn_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TurnRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TurnResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Play Turn"
+   }
+  },
+  "/api/game/sessions/{session_id}/undo": {
+   "post": {
+    "description": "Undo the last completed turn and its effects; keep it as history evidence.",
+    "operationId": "undo_last_turn_api_game_sessions__session_id__undo_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TurnUndoRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TurnUndoResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Undo Last Turn"
+   }
+  },
+  "/api/health": {
+   "get": {
+    "operationId": "health_api_health_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HealthResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Health"
+   }
+  },
+  "/api/logout": {
+   "post": {
+    "operationId": "logout_api_logout_post",
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Logout"
+   }
+  },
+  "/api/sessions": {
+   "post": {
+    "operationId": "create_session_api_sessions_post",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Create Session"
+   }
+  },
+  "/api/sessions/{session_id}/ambient-events/{event_instance_id}/actions": {
+   "post": {
+    "operationId": "resolve_ambient_event_action_api_sessions__session_id__ambient_events__event_instance_id__actions_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "event_instance_id",
+      "required": true,
+      "schema": {
+       "format": "uuid",
+       "title": "Event Instance Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AmbientEventActionRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AmbientEventCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Resolve Ambient Event Action"
+   }
+  },
+  "/api/sessions/{session_id}/quests/{quest_id}/accept": {
+   "post": {
+    "operationId": "accept_quest_api_sessions__session_id__quests__quest_id__accept_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "quest_id",
+      "required": true,
+      "schema": {
+       "title": "Quest Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuestCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Accept Quest"
+   }
+  },
+  "/api/sessions/{session_id}/quests/{quest_id}/cancel": {
+   "post": {
+    "operationId": "cancel_quest_api_sessions__session_id__quests__quest_id__cancel_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "quest_id",
+      "required": true,
+      "schema": {
+       "title": "Quest Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuestCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cancel Quest"
+   }
+  },
+  "/api/sessions/{session_id}/species-actions": {
+   "post": {
+    "operationId": "resolve_species_trait_action_compat_api_sessions__session_id__species_actions_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SpeciesTraitActionRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SpeciesTraitCommandResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Resolve Species Trait Action Compat"
+   }
+  },
+  "/api/sessions/{session_id}/state": {
+   "get": {
+    "operationId": "read_state_api_sessions__session_id__state_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Read State Api Sessions  Session Id  State Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Read State"
+   }
+  },
+  "/api/sessions/{session_id}/turn": {
+   "post": {
+    "operationId": "play_turn_api_sessions__session_id__turn_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TurnRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TurnResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Play Turn"
+   }
+  },
+  "/api/sessions/{session_id}/undo": {
+   "post": {
+    "description": "Undo the last completed turn and its effects; keep it as history evidence.",
+    "operationId": "undo_last_turn_api_sessions__session_id__undo_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "session_id",
+      "required": true,
+      "schema": {
+       "title": "Session Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TurnUndoRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TurnUndoResponse"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Undo Last Turn"
+   }
+  }
+ }
+}

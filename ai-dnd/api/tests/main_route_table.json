@@ -8,7 +8,10 @@
 "openapi",
 null,
 null,
-false
+false,
+"None",
+null,
+"None"
 ],
 [
 "/docs",
@@ -19,7 +22,10 @@ false
 "swagger_ui_html",
 null,
 null,
-false
+false,
+"None",
+null,
+"None"
 ],
 [
 "/docs/oauth2-redirect",
@@ -30,7 +36,10 @@ false
 "swagger_ui_redirect",
 null,
 null,
-false
+false,
+"None",
+null,
+"None"
 ],
 [
 "/redoc",
@@ -41,7 +50,10 @@ false
 "redoc_html",
 null,
 null,
-false
+false,
+"None",
+null,
+"None"
 ],
 [
 "/api/health",
@@ -51,7 +63,10 @@ false
 "health",
 null,
 null,
-true
+true,
+"<class 'api.schemas.HealthResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/health",
@@ -61,7 +76,10 @@ true
 "health",
 null,
 null,
-true
+true,
+"<class 'api.schemas.HealthResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/logout",
@@ -71,7 +89,10 @@ true
 "logout",
 204,
 null,
-true
+true,
+"None",
+false,
+"[]"
 ],
 [
 "/api/logout",
@@ -81,7 +102,10 @@ true
 "logout",
 204,
 null,
-true
+true,
+"None",
+false,
+"[]"
 ],
 [
 "/api/character-options",
@@ -91,7 +115,10 @@ true
 "character_creation_options",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CharacterCreationOptions'>",
+false,
+"[]"
 ],
 [
 "/api/game/character-options",
@@ -101,7 +128,10 @@ true
 "character_creation_options",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CharacterCreationOptions'>",
+false,
+"[]"
 ],
 [
 "/api/character-creation-catalog",
@@ -111,7 +141,10 @@ true
 "character_creation_catalog",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CharacterCreationCatalogResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/character-creation-catalog",
@@ -121,7 +154,10 @@ true
 "character_creation_catalog",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CharacterCreationCatalogResponse'>",
+false,
+"[]"
 ],
 [
 "/api/campaign-start-options",
@@ -131,7 +167,10 @@ true
 "campaign_start_options",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignStartOptionsResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/campaign-start-options",
@@ -141,7 +180,10 @@ true
 "campaign_start_options",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignStartOptionsResponse'>",
+false,
+"[]"
 ],
 [
 "/api/character-identity-suggestions",
@@ -151,7 +193,10 @@ true
 "create_character_identity_suggestion",
 null,
 null,
-true
+true,
+"<class 'api.identity_suggestion.IdentitySuggestionJob'>",
+false,
+"[]"
 ],
 [
 "/api/game/character-identity-suggestions",
@@ -161,7 +206,10 @@ true
 "create_character_identity_suggestion",
 null,
 null,
-true
+true,
+"<class 'api.identity_suggestion.IdentitySuggestionJob'>",
+false,
+"[]"
 ],
 [
 "/api/character-identity-suggestions/{request_id}",
@@ -171,7 +219,10 @@ true
 "read_character_identity_suggestion",
 null,
 null,
-true
+true,
+"<class 'api.identity_suggestion.IdentitySuggestionJob'>",
+false,
+"[]"
 ],
 [
 "/api/game/character-identity-suggestions/{request_id}",
@@ -181,7 +232,10 @@ true
 "read_character_identity_suggestion",
 null,
 null,
-true
+true,
+"<class 'api.identity_suggestion.IdentitySuggestionJob'>",
+false,
+"[]"
 ],
 [
 "/api/sessions",
@@ -191,7 +245,10 @@ true
 "create_session",
 null,
 null,
-true
+true,
+"<class 'api.schemas.SessionResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions",
@@ -201,7 +258,10 @@ true
 "create_session",
 null,
 null,
-true
+true,
+"<class 'api.schemas.SessionResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/campaigns",
@@ -211,7 +271,10 @@ true
 "list_campaigns",
 null,
 null,
-true
+true,
+"list[api.schemas.CampaignSummary]",
+false,
+"[]"
 ],
 [
 "/api/campaigns",
@@ -221,7 +284,10 @@ true
 "list_campaigns",
 null,
 null,
-true
+true,
+"list[api.schemas.CampaignSummary]",
+false,
+"[]"
 ],
 [
 "/api/game/campaigns",
@@ -231,7 +297,10 @@ true
 "create_campaign",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignSessionResponse'>",
+false,
+"[]"
 ],
 [
 "/api/campaigns",
@@ -241,7 +310,10 @@ true
 "create_campaign",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignSessionResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/campaigns/{campaign_id}",
@@ -251,7 +323,10 @@ true
 "get_campaign",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignDetailResponse'>",
+false,
+"[]"
 ],
 [
 "/api/campaigns/{campaign_id}",
@@ -261,7 +336,10 @@ true
 "get_campaign",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignDetailResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/campaigns/{campaign_id}",
@@ -271,7 +349,10 @@ true
 "delete_campaign",
 null,
 null,
-true
+true,
+"dict[str, typing.Any]",
+false,
+"[]"
 ],
 [
 "/api/campaigns/{campaign_id}",
@@ -281,7 +362,10 @@ true
 "delete_campaign",
 null,
 null,
-true
+true,
+"dict[str, typing.Any]",
+false,
+"[]"
 ],
 [
 "/api/game/campaigns/{campaign_id}/resume",
@@ -291,7 +375,10 @@ true
 "resume_campaign",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignSessionResponse'>",
+false,
+"[]"
 ],
 [
 "/api/campaigns/{campaign_id}/resume",
@@ -301,7 +388,10 @@ true
 "resume_campaign",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignSessionResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/campaigns/{campaign_id}/save",
@@ -311,7 +401,10 @@ true
 "save_campaign",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignSummary'>",
+false,
+"[]"
 ],
 [
 "/api/campaigns/{campaign_id}/save",
@@ -321,7 +414,10 @@ true
 "save_campaign",
 null,
 null,
-true
+true,
+"<class 'api.schemas.CampaignSummary'>",
+false,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/state",
@@ -331,7 +427,10 @@ true
 "read_state",
 null,
 null,
-true
+true,
+"dict[str, typing.Any]",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/state",
@@ -341,7 +440,10 @@ true
 "read_state",
 null,
 null,
-true
+true,
+"dict[str, typing.Any]",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/actions/unresolved",
@@ -351,7 +453,10 @@ true
 "read_unresolved_action",
 null,
 null,
-true
+true,
+"dict[str, typing.Any]",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/actions/{action_id}",
@@ -361,7 +466,10 @@ true
 "read_action_status",
 null,
 null,
-true
+true,
+"dict[str, typing.Any]",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/actions/{action_id}/abandon",
@@ -371,7 +479,10 @@ true
 "abandon_action",
 null,
 null,
-true
+true,
+"dict[str, typing.Any]",
+false,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/turn",
@@ -381,7 +492,10 @@ true
 "play_turn",
 null,
 null,
-true
+true,
+"<class 'api.schemas.TurnResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/turn",
@@ -391,7 +505,10 @@ true
 "play_turn",
 null,
 null,
-true
+true,
+"<class 'api.schemas.TurnResponse'>",
+false,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/undo",
@@ -401,7 +518,10 @@ true
 "undo_last_turn",
 null,
 null,
-true
+true,
+"<class 'api.schemas.TurnUndoResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/undo",
@@ -411,7 +531,10 @@ true
 "undo_last_turn",
 null,
 null,
-true
+true,
+"<class 'api.schemas.TurnUndoResponse'>",
+false,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/quests/{quest_id}/accept",
@@ -421,7 +544,10 @@ true
 "accept_quest",
 null,
 null,
-true
+true,
+"<class 'api.schemas.QuestCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/quests/{quest_id}/accept",
@@ -431,7 +557,10 @@ true
 "accept_quest",
 null,
 null,
-true
+true,
+"<class 'api.schemas.QuestCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/quests/{quest_id}/cancel",
@@ -441,7 +570,10 @@ true
 "cancel_quest",
 null,
 null,
-true
+true,
+"<class 'api.schemas.QuestCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/quests/{quest_id}/cancel",
@@ -451,7 +583,10 @@ true
 "cancel_quest",
 null,
 null,
-true
+true,
+"<class 'api.schemas.QuestCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/species-actions",
@@ -461,7 +596,10 @@ true
 "resolve_species_trait_action",
 null,
 null,
-true
+true,
+"<class 'api.schemas.SpeciesTraitCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/species-actions",
@@ -471,7 +609,10 @@ true
 "resolve_species_trait_action_compat",
 null,
 null,
-true
+true,
+"<class 'api.schemas.SpeciesTraitCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/spellcasting/prepare",
@@ -481,7 +622,10 @@ true
 "read_spell_preparation",
 null,
 "getGameSessionSpellPreparation",
-true
+true,
+"<class 'api.schemas.SpellPrepareViewResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/spellcasting/prepare",
@@ -491,7 +635,10 @@ true
 "prepare_spells",
 null,
 "prepareGameSessionSpells",
-true
+true,
+"<class 'api.schemas.SpellPrepareCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
@@ -501,7 +648,10 @@ true
 "resolve_ambient_event_action",
 null,
 null,
-true
+true,
+"<class 'api.schemas.AmbientEventCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
@@ -511,7 +661,10 @@ true
 "resolve_ambient_event_action",
 null,
 null,
-true
+true,
+"<class 'api.schemas.AmbientEventCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/level-up",
@@ -521,7 +674,10 @@ true
 "preview_earned_level_up",
 null,
 null,
-false
+false,
+"<class 'api.schemas.LevelUpPreviewResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/level-up",
@@ -531,7 +687,10 @@ false
 "preview_earned_level_up",
 null,
 "getGameSessionLevelUp",
-true
+true,
+"<class 'api.schemas.LevelUpPreviewResponse'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/shop",
@@ -541,7 +700,10 @@ true
 "read_shop_counter",
 null,
 "getGameSessionShop",
-true
+true,
+"<class 'api.schemas.ShopCounterResponse'>",
+true,
+"[]"
 ],
 [
 "/api/sessions/{session_id}/level-up",
@@ -551,7 +713,10 @@ true
 "apply_earned_level_up",
 null,
 null,
-false
+false,
+"<class 'api.schemas.LevelUpCommandResult'>",
+false,
+"[]"
 ],
 [
 "/api/game/sessions/{session_id}/level-up",
@@ -561,6 +726,9 @@ false
 "apply_earned_level_up",
 null,
 "applyGameSessionLevelUp",
-true
+true,
+"<class 'api.schemas.LevelUpCommandResult'>",
+false,
+"[]"
 ]
 ]
