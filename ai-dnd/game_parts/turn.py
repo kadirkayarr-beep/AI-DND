@@ -2598,7 +2598,7 @@ def _run_player_turn_internal(
         if ledger["status"] == "supported":
             supported_entry = f"“{ledger['quote']}”"
         elif ledger["status"] == "unsupported" or (
-            supported_entry and not npc_statements.legacy_entry_supports(supported_entry, player_input)
+            supported_entry and not npc_statements.entry_supports_claim(supported_entry, player_input)
         ):
             supported_entry = None
         import npc_told

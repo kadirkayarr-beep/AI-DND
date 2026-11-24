@@ -926,8 +926,8 @@ def commitment_identity(speaker_id: str, recipient_id: str, scope: dict[str, Any
         f"{_scope_key(speaker_id, recipient_id, scope)}\x1f{origin_event_id}".encode("utf-8")).hexdigest()[:16]
 
 
-def legacy_entry_supports(entry_text: str, claim: str) -> bool:
-    """Older saves (no ledger): a memory line supports a claim only if it shares its subject.
+def entry_supports_claim(entry_text: str, claim: str) -> bool:
+    """No ledger entry: a memory line supports a claim only if it shares its subject.
 
     The P6 run answered "Evet, bunu söylemiştim: <a greeting>" because one
     common word overlapped. The claimed object (what was promised or said)
