@@ -7,7 +7,7 @@ slot is spent. This registry is not the character-creation flavor catalog.
 from __future__ import annotations
 
 import re
-from typing import Any, Callable
+from typing import Any
 
 import tr_names
 from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
@@ -74,9 +74,6 @@ _FOLD = str.maketrans({
 _CAST_VERB = re.compile(
     r"\b(?:cast|buyu\s+yap\w*|buyusu\w*)\b",
 )
-_SELF_TARGET = re.compile(r"\b(?:kendime|kendimi|myself)\b")
-
-
 def fold_text(value: str) -> str:
     text = str(value).casefold().replace("\u0307", "")
     return text.translate(_FOLD)
@@ -132,29 +129,6 @@ def validate_saved_spell_fields(player: dict[str, Any]) -> None:
                for key, count in slots.items())
     ):
         raise ValueError("Kayıt büyü yuvası geçersiz.")
-
-
-def casting_profile(character: dict[str, Any]) -> dict[str, Any] | None:
-    definition = CLASS_DEFINITIONS.get(str(character.get("class", ""))) or {}
-    ability = definition.get("spellcasting_ability")
-    if not isinstance(ability, str):
-        return None
-    modifier = character.get(f"{ability}_mod")
-    if type(modifier) is not int or isinstance(modifier, bool):
-        modifiers = character.get("modifiers")
-        if isinstance(modifiers, dict) and type(modifiers.get(ability)) is int:
-            modifier = modifiers[ability]
-        else:
-            modifier = 0
-    proficiency = character.get("proficiency_bonus", 0)
-    if type(proficiency) is not int or isinstance(proficiency, bool):
-        proficiency = 0
-    return {
-        "ability": ability,
-        "modifier": modifier,
-        "attack_bonus": proficiency + modifier,
-        "save_dc": 8 + proficiency + modifier,
-    }
 
 
 def _unsupported_aliases() -> dict[str, str]:
@@ -239,10 +213,6 @@ def classify_cast_phrase(player_input: str) -> dict[str, str] | None:
     return {"kind": "unknown", "spell_id": ""}
 
 
-def targets_self(player_input: str) -> bool:
-    return _SELF_TARGET.search(fold_text(player_input)) is not None
-
-
 def legality(character: dict[str, Any], spell_id: str) -> str | None:
     """Return a rejection outcome, or None when the spell may be resolved."""
     spell = SPELLS[spell_id]
@@ -260,10 +230,3 @@ def legality(character: dict[str, Any], spell_id: str) -> str | None:
     return None
 
 
-def spend_slot(character: dict[str, Any]) -> None:
-    slots = character.setdefault("spell_slots_remaining", {"1": 0})
-    slots["1"] = remaining_slots(character) - 1
-
-
-def roll_dice(roll: Callable[[int], int], sides: int, count: int) -> int:
-    return sum(roll(sides) for _ in range(count))

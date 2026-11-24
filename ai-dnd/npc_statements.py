@@ -149,8 +149,7 @@ _BUT = frozenset({"ama", "fakat", "ancak"}) & _NAME_OPENERS
 _EMPTY_ANSWER = frozenset({"hayir", "dedi", "dedim", "dediydim", "demistim", "soyledim"}) & _FILLER
 
 
-def fold(text: Any) -> str:
-    return living_world.normalize_text(text)
+fold = living_world.normalize_text
 
 
 def _state(world: dict[str, Any]) -> dict[str, Any]:
