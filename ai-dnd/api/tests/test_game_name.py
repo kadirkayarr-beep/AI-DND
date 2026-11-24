@@ -13,7 +13,7 @@ from api.tests.engine_sources import engine_source_text
 REPO_ROOT = Path(__file__).resolve().parents[3]
 # Distinct AI_DND_ names in ai-dnd/**/*.py (tests and docs excluded) plus tools/**, counted in Task 3.
 # Task 1's ledger value (58) is a row count of a wider scan (READMEs included); this pins the test's own scope.
-PROTECTED_ENV_NAME_COUNT = 37  # 36 + AI_DND_RUMOUR_LANE (D-249 rumour lane switch, heard_rumours.py)
+PROTECTED_ENV_NAME_COUNT = 36  # 37 - AI_DND_PHASE8_LIVE_AUTHORIZED (live_gate.py removed in Cleanup G2; no other reader)
 
 
 class SaveFileNameTests(unittest.TestCase):

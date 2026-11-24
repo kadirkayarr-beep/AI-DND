@@ -5,7 +5,6 @@ module loads while character_progression is still loading and tests patch names 
 """
 from __future__ import annotations
 
-import copy
 from typing import Any
 
 import character_progression as core
@@ -117,31 +116,6 @@ def _prerequisite(session, target_level: int) -> str | None:
     return None
 
 
-def _apply_three(session, preview):
-    snapshot = session._capture_runtime_snapshot()
-    gain = 0 if preview["hit_points"]["already_applied"] else preview["hit_points"]["gain"]
-    try:
-        character = copy.deepcopy(session.character)
-        character["max_hp"] += gain
-        if character["current_hp"] > 0:
-            character["current_hp"] += gain
-        character.update(level=max(SUBCLASS_LEVEL, character["level"]), progression_level=SUBCLASS_LEVEL, subclass_id=features.SUBCLASS)
-        character["proficiency_bonus"] = core.proficiency_bonus_for_level(character["level"])
-        session.character.clear()
-        session.character.update(character)
-        combat = session.world_state.get("combat", {})
-        if combat.get("active"):
-            session._sync_combat_participant_records(combat)
-        core.validate_saved(session.character, session.world_state)
-        session._player_state_for_save()
-    except Exception:
-        session._restore_runtime_snapshot(snapshot)
-        return core._reject("resulting_state_invalid")
-    return {"status": "applied", "reason": None, "changes": [
-        {"kind": "level", "from": 2, "to": 3}, {"kind": "hit_points", "gain": gain}, {"kind": "subclass", "id": features.SUBCLASS}],
-        "effects_pending": list(preview["effects_pending"])}
-
-
 class Monk(ClassProgression):
     name = "Monk"
     supported_level = LAST_LEVEL
@@ -213,7 +187,7 @@ class Monk(ClassProgression):
     def apply_level(self, session, preview, choices):
         target = preview["to_level"]
         if target == SUBCLASS_LEVEL:
-            return _apply_three(session, preview)
+            return noncaster.apply_subclass_step(session, preview, SUBCLASS_LEVEL, features.SUBCLASS)
         if target == FIRST_ASI_LEVEL:
             return noncaster.apply_asi_step(session, preview, choices, armor_class_ability="wisdom")
         if target == LAST_LEVEL:

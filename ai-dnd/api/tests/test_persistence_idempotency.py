@@ -3759,7 +3759,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                 raise AssertionError("Winning handler did not finish")
                             original_lock.acquire()
 
-                        def __exit__(self, exc_type, exc_value, traceback):
+                        def __exit__(self, _exc_type, _exc_value, traceback):
                             try:
                                 if local.winner:
                                     winning_commit["snapshot"] = test.snapshot(record)

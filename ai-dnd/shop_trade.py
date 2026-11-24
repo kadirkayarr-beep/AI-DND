@@ -97,10 +97,6 @@ def priced_in(text: Any) -> tuple[str, str, int] | None:
                  if any(_says(word, token) for word in _words(entry) for token in tokens)), None)
 
 
-def is_priced(text: Any) -> bool:
-    return priced_in(text) is not None
-
-
 def is_vendor(world: dict[str, Any], npc: Any) -> bool:
     """Whoever serves sells the list; nobody else does."""
     return isinstance(npc, dict) and bool(SERVER.search(living_world.normalize_text(npc.get("role"))))

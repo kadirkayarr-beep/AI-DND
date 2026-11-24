@@ -109,7 +109,7 @@ def dynamic_records(world: dict[str, Any]) -> list[tuple[dict[str, Any], dict[st
     return [(record.row, record.quest) for record in _records(world) if record.row["record_kind"] == "dynamic"]
 
 
-def legacy_quests(world: dict[str, Any]) -> list[dict[str, Any]]:
+def api_quest_records(world: dict[str, Any]) -> list[dict[str, Any]]:
     """The API's old ``quests`` field: the records that are not dynamic, with their lower-case statuses."""
     return [
         {

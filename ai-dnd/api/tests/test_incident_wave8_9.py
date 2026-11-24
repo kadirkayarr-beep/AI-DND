@@ -3,7 +3,6 @@
 import unittest
 
 import adventure.arcs as arcs
-import adventure.director_v2 as director_v2
 import adventure.templates as templates
 import companions
 import game
@@ -17,20 +16,6 @@ def _world():
     world["location"] = "tavern"
     world["npcs"].append({"id": "npc.friend", "name": "Teren", "role": "traveler", "location": "tavern"})
     return session, world
-
-
-class DirectorV2Tests(unittest.TestCase):
-    def test_scores_are_not_written_to_the_world(self):
-        _, world = _world()
-        before = dict(world)
-        table = director_v2.scores(world)
-        self.assertIn("MISSING_PERSON", table)
-        self.assertEqual(director_v2.style_signal(world), "cautious")
-        self.assertEqual(world.keys(), before.keys())
-        self.assertNotIn("director_v2", world)
-        world["adventure_recent_categories"] = ["combat", "combat"]
-        self.assertEqual(director_v2.style_signal(world), "direct")
-        self.assertEqual(director_v2.choose(world), "BOUNTY")
 
 
 class ArcAndDriftTests(unittest.TestCase):

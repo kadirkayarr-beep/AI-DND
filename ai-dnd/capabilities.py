@@ -207,45 +207,6 @@ def expand_open_scope(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return leaves
 
 
-def can_complete_leaf(leaf_id: str, leaves: list[dict[str, Any]], completed: set[str]) -> dict[str, Any]:
-    """A leaf may complete only when EVERY leaf it depends on, transitively, is already completed.
-
-    Finding the target id is not enough: the dependency's earlier leaves must be complete too (an out-of-order completion of a
-    class's last leaf does not satisfy a subclass), and an `unresolved:` dependency is never satisfied.
-    """
-    by_id = {leaf["leaf_id"]: leaf for leaf in leaves}
-    if leaf_id not in by_id:
-        return {"allowed": False, "unmet": [leaf_id], "reason": "unknown_leaf"}
-    if leaf_id in completed:
-        return {"allowed": False, "unmet": [], "reason": "already_completed"}
-    unmet: list[str] = []
-    seen: set[str] = set()
-    stack = list(by_id[leaf_id]["dependencies"])
-    while stack:
-        dependency = stack.pop()
-        if dependency in seen:
-            continue
-        seen.add(dependency)
-        if dependency not in completed or dependency not in by_id:
-            unmet.append(dependency)
-        if dependency in by_id:
-            stack.extend(by_id[dependency]["dependencies"])
-    if leaf_id in seen:
-        return {"allowed": False, "unmet": sorted(unmet), "reason": "dependency_cycle"}
-    return {"allowed": not unmet, "unmet": sorted(unmet), "reason": None if not unmet else "dependencies_incomplete"}
-
-
-_VIEW_LABELS = {"COMPLETE": "usable", "INCOMPLETE": "partial", "NOT_ASSESSED": "not_yet_supported",
-                "OPEN": "not_yet_supported", "INVALID_ROW": "not_yet_supported", "UNKNOWN_ENTRY": "unknown"}
-
-
-def capability_view(entry_id: str, character: dict[str, Any]) -> dict[str, Any]:
-    """What a menu may honestly show: only a COMPLETE entry is selectable; everything else says what is missing."""
-    status = capability_status(entry_id, character)
-    return {"entry_id": entry_id, "label": _VIEW_LABELS.get(status["status"], "not_yet_supported"),
-            "selectable": status["status"] == "COMPLETE", "missing_axes": status["missing_axes"], "status": status["status"]}
-
-
 def release_blockers(rows: list[dict[str, Any]], open_scope_items: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     """Entries and declared open scope areas that are not COMPLETE; a full release needs this list to be empty.
 

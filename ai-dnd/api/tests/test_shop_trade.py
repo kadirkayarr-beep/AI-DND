@@ -122,8 +122,8 @@ class CounterTrade(unittest.TestCase):
     def test_a_vendor_is_one_who_serves(self):
         self.assertTrue(shop_trade.is_vendor(self.w, self.w["npcs"][0]))
         self.assertFalse(shop_trade.is_vendor(self.w, {"id": "x", "role": "Muhafız"}))
-        self.assertTrue(shop_trade.is_priced("bira"))
-        self.assertFalse(shop_trade.is_priced("kılıç"))
+        self.assertIsNotNone(shop_trade.priced_in("bira"))
+        self.assertIsNone(shop_trade.priced_in("kılıç"))
 
 
 class WordsOpenTheCounter(CounterTrade):
