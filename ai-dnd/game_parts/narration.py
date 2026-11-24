@@ -1674,7 +1674,7 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
         import grounded_action
         import grounded_places
         return (grounded_action.road_ends_line(game._session())
-                or grounded_places.known_places_question(game._session())
+                or grounded_places.known_places_question(game._session(), player_input)
                 or "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin.")
     if action == "explore" and isinstance(result.get("inspection"), dict):
         return str(result["inspection"].get("text") or "")
