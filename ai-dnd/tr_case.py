@@ -1,4 +1,4 @@
-"""Turkish first-letter capitals: str.upper turns i into I, losing the dot."""
+"""Turkish first-letter capitals: str.upper turns i into I, losing the dot. The tr_ prefix means Turkish."""
 from __future__ import annotations
 
 
