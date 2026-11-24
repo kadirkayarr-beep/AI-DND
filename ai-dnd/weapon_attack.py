@@ -44,6 +44,11 @@ def roll_note(attack, armour_words):
     return f" Zar {roll}, toplam {total}; {armour_words} {armour}."
 
 
+def without_roll_note(text):
+    """The text with the roll note taken out: Python's own roll is no number a safety check should weigh."""
+    return re.sub(r" Zar \d+, toplam -?\d+; (?:hedefin|senin) Zırh Sınıf\w* \d+\.", "", text)
+
+
 def fail(code, message):
     raise CombatRequestError(code, message, 400)
 

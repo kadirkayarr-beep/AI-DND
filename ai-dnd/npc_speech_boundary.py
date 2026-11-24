@@ -200,8 +200,9 @@ def mask_spoken_questions(text, spoken_start):
         return text
     speech = text[spoken_start:]
     speech = re.sub(r"[^.!?;\n]+\?", lambda match: " " * len(match.group(0)), speech)
-    # "Görünce anlarsın", "bir tane alırsın": what a person says the player will find out or get is no state the narrator gives.
-    speech = re.sub(r"\b\w*(?:[aeıiu]rs[ıi]n|(?<!y)[oöuü]rs[uü]n)(?:[ıiuü]z)?\b", lambda match: " " * len(match.group(0)), speech, flags=re.IGNORECASE)
+    # "Görünce anlarsın": what a person says the player will find out is no state the narrator gives. Only these
+    # find-out verbs: "hana girersin", "korkmuş hissedersin" are still claims about the player.
+    speech = re.sub(r"\b(?:anla|gör)\w*rs[ıiuü]n(?:[ıiuü]z)?\b", lambda match: " " * len(match.group(0)), speech, flags=re.IGNORECASE)
     return text[:spoken_start] + speech
 
 

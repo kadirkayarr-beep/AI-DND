@@ -197,6 +197,13 @@ class TextPurchase(_Town):
 
 
 class TheRollIsShown(__import__("unittest").TestCase):
+    def test_only_the_roll_note_is_taken_out_for_the_safety_check(self):
+        import weapon_attack
+        text = "Haydut ölür. Zar 20, toplam 25; hedefin Zırh Sınıfı 10. +10 deneyim puanı."
+        self.assertEqual(weapon_attack.without_roll_note(text), "Haydut ölür. +10 deneyim puanı.")
+        loose = "Zar 20 atarsın, toplam 25."
+        self.assertEqual(weapon_attack.without_roll_note(loose), loose)
+
     def test_the_player_attack_tells_its_roll_total_and_target_ac(self):
         from unittest.mock import patch
         import action_economy as ae
@@ -297,7 +304,13 @@ class ReviewOneFixes(TextPurchase, FollowMessenger):
 
     def test_the_spoken_mask_covers_the_back_vowel_forms(self):
         import npc_speech_boundary
-        text = 'Marek: "Orayı görürsün, bulursun."'
+        text = 'Marek: "Orayı görürsün, anlarsın."'
         masked = npc_speech_boundary.mask_spoken_questions(text, 0)
         self.assertNotIn("görürsün", masked)
-        self.assertNotIn("bulursun", masked)
+        self.assertNotIn("anlarsın", masked)
+
+    def test_the_spoken_mask_leaves_walks_and_feelings_told_to_the_player(self):
+        import npc_speech_boundary
+        for claim in ("Sonra hana girersin.", "Korkmuş hissedersin.", "Tavernaya doğru yürürsün.", "Dışarı çıkarsın."):
+            text = f'Neris: "{claim}"'
+            self.assertEqual(npc_speech_boundary.mask_spoken_questions(text, 0), text)
