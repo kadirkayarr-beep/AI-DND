@@ -485,7 +485,7 @@ class StockLinesDoNotRepeat(OneTownScene):
         import interaction_adventure
         npc = {"id": "npc_a", "name": "Veyra", "name_known_to_player": True, "memory": []}
         said = []
-        for turn in range(5):
+        for _ in range(5):
             line = interaction_adventure.immersive_unknown(npc, "soru?")
             self.assertNotIn(line, said)
             said.append(line)

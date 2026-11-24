@@ -80,7 +80,7 @@ class TheStreet(unittest.TestCase):
     def test_asking_with_nobody_around_goes_through_what_is_new_before_repeating(self):
         world, state, jobs = seeded_with_two_jobs()
         heard = set()
-        for turn in range(len(world_threads.active(world))):
+        for _ in range(len(world_threads.active(world))):
             world["flags"]["turn_index"] = 0  # the old way picked by the turn number: the same one, over and over
             line = game._overheard_work(world)
             heard.add(next(t["thread_id"] for t in state["threads"] if t["public_line"] in line))

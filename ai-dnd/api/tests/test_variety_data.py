@@ -337,7 +337,7 @@ class NewCampaignTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(world["location"], inn["id"], shown)
 
     async def test_going_to_a_place_by_its_name_arrives_and_meets_its_person(self):
-        for attempt in range(6):
+        for _ in range(6):
             sid, session = await self.start()
             world = session.world_state
             await self.post(sid, "Çevremi gözlemliyorum.")
