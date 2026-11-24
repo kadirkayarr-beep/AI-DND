@@ -494,3 +494,35 @@ Bayrak açık (AI_DND_FRONT_PROPOSAL=1, yerel oyunun varsayılanı) kırık test
 | Test | Değişiklik | İşaret |
 |---|---|---|
 | `ai-dnd/scripts/quality_gate/size_lock.json`, `test_quality_size_budget` (Task 8) | kilit "hiçbir dosya büyümez" yerine "hiçbir dosya `part_max` (2500) geçmez" oldu: yalnız `part_max` üstündeki 10 py ve 1 ts dosya ile 40 uzun işlev bugünkü boyutlarıyla dondu; 1368 küçük dosya 2500 satıra kadar büyüyebilir (spec: bugünkü büyükler dondurulur) | GEVŞETME OLABİLİR |
+
+## 27. Temizlik 2 (dal `task/temizlik-2-20261124`)
+
+| Test | Değişiklik | İşaret |
+|---|---|---|
+| `test_a_rebound_validate_intent_reaches_a_moved_caller` (test_engine_parts_pilot) | silindi: yalnız silinen uyumluluk sarmalayıcısı `analyze_player_action`ı sınıyordu, üretimde çağıranı yoktu | GEVŞETME OLABİLİR |
+| `test_a_rebound_execute_intent_reaches_its_moved_caller` (test_engine_parts_pilot) | silindi: yalnız silinen `update_world_state_from_player` sarmalayıcısını sınıyordu, üretimde çağıranı yoktu | GEVŞETME OLABİLİR |
+| `test_intent_helpers_answer_as_before` (test_engine_parts_pilot) | iki assert `is_dialogue_or_emotion` yerine canlı `is_npc_dialogue_input` ile aynı sıkılıkta yeniden yazıldı (validate_intent bunu çağırıyor) | GEVŞETME OLABİLİR |
+| `test_scores_are_not_written_to_the_world (test_incident_wave8_9, DirectorV2Tests)` | silindi: yalnız silinen director_v2 modülünü sınıyordu; canlı yol adventure_director testlerinde | GEVŞETME OLABİLİR |
+| `test_mapping_dispositions_do_not_invent_entities (test_lore_1501_integration)` | silindi: yalnız silinen freeze_mapping'i sınıyordu | GEVŞETME OLABİLİR |
+| `test_vertical_slice_then_full_transform_is_deterministic (test_lore_1501_integration)` | silindi: yalnız silinen freeze_transform'u sınıyordu | GEVŞETME OLABİLİR |
+| `test_review_is_bound_to_the_payload_digest (test_lore_1501_integration)` | silindi: yalnız silinen freeze_review'u sınıyordu | GEVŞETME OLABİLİR |
+| `test_live_gate_stays_closed (test_lore_1501_integration)` | silindi: yalnız silinen live_gate modülünü sınıyordu | GEVŞETME OLABİLİR |
+| `test_campaign_state_is_unchanged_by_staging (test_lore_1501_integration)` | silindi: yalnız silinen freeze_transform hazırlama yolunu sınıyordu; canlı kampanya durumu okuma testleri duruyor | GEVŞETME OLABİLİR |
+| `test_staged_fact_cannot_become_player_knowledge_or_turkish_surface (test_lore_1501_integration)` | yeniden yazıldı: silinen freeze_transform yerine doğrudan kurulan olgu kimliğiyle; known_facts==[] ve presentation_gaps assertleri korundu, sızıntı assertinin fact_id ile yazılan son hâli totolojik olduğu için kaldırıldı | GEVŞETME OLABİLİR |
+| `test_owner_tier_is_rejected_by_pack_parsing_and_rank (test_lore_1501_integration)` | kırpıldı: silinen OwnerContinuityRecord kolu çıkarıldı; paket ayrıştırma ve rank reddi duruyor | GEVŞETME OLABİLİR |
+| `test_authorization_modules_do_not_import_the_production_loader (test_lore_1501_integration)` | kırpıldı: silinen freeze modülleri listeden çıktı; kalan modüller aynı sıkılıkta | GEVŞETME OLABİLİR |
+| `test_compaction_preserves_source_and_visibility (test_roadmap_w08)` | yeniden yazıldı: yalnız npc_statements durumuna indi; silinen memory_archive kolu çıktı | GEVŞETME OLABİLİR |
+| `test_high_importance_stays_active_and_summaries_are_not_events (test_roadmap_w08)` | silindi: yalnız silinen memory_archive'i sınıyordu | GEVŞETME OLABİLİR |
+| `test_retrieval_resolves_turkish_names_pronouns_and_aliases_within_budget (test_roadmap_w08)` | silindi: yalnız silinen memory_archive almasını sınıyordu | GEVŞETME OLABİLİR |
+| `üç test (test_roadmap_w10)` | yeniden yazıldı: kampanya kapsamlı anahtar, source_event_id damgası ve kampanyalar arası denetimler düşürüldü (silinen world_identity); canlı yol testleri duruyor | GEVŞETME OLABİLİR |
+| `test_v3_to_v4_keeps_progression_and_does_not_invent_a_feat (test_save_migration)` | silindi: yalnız silinen save_migration'ı sınıyordu; canlı v3/v5 kayıt yolu test_ordinary_campaign_resume_keeps_v3_and_v5 ile sürer | GEVŞETME OLABİLİR |
+| `test_rejected_v5_migration_leaves_the_source_bytes (test_save_migration)` | silindi: yalnız silinen save_migration'ı sınıyordu; canlı v3/v5 kayıt yolu test_ordinary_campaign_resume_keeps_v3_and_v5 ile sürer | GEVŞETME OLABİLİR |
+| `test_consistent_v4_can_migrate_to_v5 (test_save_migration)` | silindi: yalnız silinen save_migration'ı sınıyordu; canlı v3/v5 kayıt yolu test_ordinary_campaign_resume_keeps_v3_and_v5 ile sürer | GEVŞETME OLABİLİR |
+| `test_pay_basis_of_an_old_save_comes_from_its_kind` (test_world_threads, TheJobMachine) | yeniden yazıldı: `test_pay_basis_is_only_the_stored_one`; eski kayıt kind/template tahmin yedeği silindi (D-547, eski kayıt önemsiz); yeni iş parçacıkları `world_threads._open_thread` ile hep pay_basis yazar, `test_temizlik2_dedupe.PayBasisIsStored` sabitler | GEVŞETME OLABİLİR |
+| `test_spell_hook_preserves_metadata_without_spell_implementation` (test_action_economy) | silindi: yalnız silinen `prepare_spell_hook`u sınıyordu; üretimde çağıranı yoktu (`prepare_ready` 'magic' türünü zaten reddediyor) | GEVŞETME OLABİLİR |
+| `test_completion_requires_every_dependency_transitively` (test_roadmap_c01) | silindi: yalnız silinen `can_complete_leaf`i sınıyordu; üretimde çağıranı yoktu | GEVŞETME OLABİLİR |
+| `test_closing_the_counting_leaf_does_not_close_open_scope` (test_roadmap_c01) | kırpıldı: `expand_open_scope` + `can_complete_leaf` satırları çıktı; `release_blockers` assertleri duruyor | GEVŞETME OLABİLİR |
+| `test_menu_view_only_offers_complete_entries_and_names_what_is_missing` (test_roadmap_c01) | yeniden adlandırıldı: `test_every_class_leaf_names_its_existing_owner`; silinen `capability_view` assertleri çıktı, sınıf yaprağı sahip assertı duruyor | GEVŞETME OLABİLİR |
+| `test_knowledge_layers_never_promote_note_to_fact` gözlemi `unwitnessed_npc_learned_event` (test_roadmap_w01) | gözlem ve docstring özelliği ('tanık olmayan NPC öğrenmez') silindi: yalnız silinen `record_witness`i sınıyordu. Canlı kapsam: dinleyici denetimi `test_interaction_adventure.test_private_and_public_speech_have_explicit_nontelepathic_listeners` ve farkındalık testleri `test_incident_gate_b`, `test_killing_witness` | GEVŞETME OLABİLİR |
+| `test_a_vendor_is_one_who_serves` (test_shop_trade) | `is_priced` assertleri `priced_in` ile aynı sıkılıkta yeniden yazıldı (`is_priced` silindi) | GEVŞETME OLABİLİR |
+| `PROTECTED_ENV_NAME_COUNT` 37 -> 36 (test_game_name) | `AI_DND_PHASE8_LIVE_AUTHORIZED` kayboldu: tek okuyucusu `lore_authority/live_gate.py` G2 temizliğinde silindi (ölü modül); başka AI_DND_ adı kalkmadı, sayım eşit sıkılıkta pinli | GEVŞETME OLABİLİR |

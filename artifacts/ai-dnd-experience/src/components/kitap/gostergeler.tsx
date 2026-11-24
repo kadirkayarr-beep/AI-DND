@@ -13,7 +13,7 @@ import './kitap.css';
 const tamSayi = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n);
 
 /** Health is valid only as whole numbers with 0 <= can <= enCok and enCok > 0. */
-export function canGecerli(can: unknown, enCok: unknown): boolean {
+function canGecerli(can: unknown, enCok: unknown): boolean {
   return tamSayi(can) && tamSayi(enCok) && enCok > 0 && can >= 0 && can <= enCok;
 }
 

@@ -1,6 +1,6 @@
 type CatalogRecord = Record<string, any>;
 
-export type NormalizedSpellOption = CatalogRecord & { id: string };
+type NormalizedSpellOption = CatalogRecord & { id: string };
 export type NormalizedOriginFeatOption = {
   id: string;
   label: string;

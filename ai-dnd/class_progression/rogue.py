@@ -5,7 +5,6 @@ module loads while character_progression is still loading and tests patch names 
 """
 from __future__ import annotations
 
-import copy
 from typing import Any
 
 import character_progression as core
@@ -95,35 +94,14 @@ def _prerequisite(session, target_level: int) -> str | None:
     return None
 
 
-def _apply_three(session, preview):
-    """Atomic level 3: unpaid Hit Points, the subclass and the Assassin's Tools (kit and proficiency, once each)."""
-    snapshot = session._capture_runtime_snapshot()
-    gain = 0 if preview["hit_points"]["already_applied"] else preview["hit_points"]["gain"]
-    try:
-        character = copy.deepcopy(session.character)
-        character["max_hp"] += gain
-        if character["current_hp"] > 0:
-            character["current_hp"] += gain
-        character.update(level=max(SUBCLASS_LEVEL, character["level"]), progression_level=SUBCLASS_LEVEL, subclass_id=features.SUBCLASS)
-        character["proficiency_bonus"] = core.proficiency_bonus_for_level(character["level"])
-        character["proficient_tools"] = list(dict.fromkeys([*character.get("proficient_tools", []), *ASSASSIN_TOOLS]))
-        session.character.clear()
-        session.character.update(character)
-        inventory = session.world_state.setdefault("inventory", [])
-        for kit in ASSASSIN_TOOLS:
-            if not features.carries(session, kit):
-                inventory.append(kit)
-        combat = session.world_state.get("combat", {})
-        if combat.get("active"):
-            session._sync_combat_participant_records(combat)
-        core.validate_saved(session.character, session.world_state)
-        session._player_state_for_save()
-    except Exception:
-        session._restore_runtime_snapshot(snapshot)
-        return core._reject("resulting_state_invalid")
-    return {"status": "applied", "reason": None, "changes": [
-        {"kind": "level", "from": 2, "to": 3}, {"kind": "hit_points", "gain": gain}, {"kind": "subclass", "id": features.SUBCLASS}],
-        "effects_pending": list(preview["effects_pending"])}
+def _grant_assassin_tools(session):
+    """Level 3 extra: the Assassin's Tools, kit and proficiency, once each."""
+    character = session.character
+    character["proficient_tools"] = list(dict.fromkeys([*character.get("proficient_tools", []), *ASSASSIN_TOOLS]))
+    inventory = session.world_state.setdefault("inventory", [])
+    for kit in ASSASSIN_TOOLS:
+        if not features.carries(session, kit):
+            inventory.append(kit)
 
 
 class Rogue(ClassProgression):
@@ -234,7 +212,8 @@ class Rogue(ClassProgression):
     def apply_level(self, session, preview, choices):
         target = preview["to_level"]
         if target == SUBCLASS_LEVEL:
-            return _apply_three(session, preview)
+            return noncaster.apply_subclass_step(session, preview, SUBCLASS_LEVEL, features.SUBCLASS,
+                                                 extra=_grant_assassin_tools)
         if target == FIRST_ASI_LEVEL:
             return noncaster.apply_asi_step(session, preview, choices)
         if target == LAST_LEVEL:

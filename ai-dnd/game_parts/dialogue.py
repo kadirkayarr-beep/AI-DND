@@ -546,7 +546,7 @@ def npc_memory_supports_claim(npc, player_input):
     if ledger["status"] != "absent":
         return ledger["status"] == "supported"
     entry = game.npc_memory_supporting_entry(npc, player_input)
-    return bool(entry) and npc_statements.legacy_entry_supports(entry, player_input)
+    return bool(entry) and npc_statements.entry_supports_claim(entry, player_input)
 
 def npc_memory_supporting_entry(npc, player_input):
     """Check if NPC memory supports a player's claim about past conversation.
@@ -586,14 +586,10 @@ def npc_memory_supporting_entry(npc, player_input):
         search_speakers = {"npc", "player"}  # General claim - search both
     
     for entry in npc.get("memory", []):
-        # Handle both legacy string format and new structured format
-        if isinstance(entry, dict):
-            speaker = entry.get("speaker", "")
-            memory_text = entry.get("text", "")
-        else:
-            # Legacy format - treat as unknown speaker
-            speaker = "unknown"
-            memory_text = entry
+        if not isinstance(entry, dict):
+            continue
+        speaker = entry.get("speaker", "")
+        memory_text = entry.get("text", "")
         
         # Past-event truth requires independently accepted event provenance;
         # neither a player utterance, NPC repetition nor legacy text provides it.

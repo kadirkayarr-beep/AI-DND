@@ -612,24 +612,6 @@ class IntentPart(unittest.TestCase):
     def test_intent_s_lives_in_the_part(self):  # Plan 4 T5.4e
         self.assertEqual(set(INTENT_S) - set(routing_audit.re_exports(ROOT).get("intent", ())), set())
 
-    def test_a_rebound_validate_intent_reaches_a_moved_caller(self):  # Review Focus 5
-        # analyze_player_action (moved in intent-1) reads game.parse_player_intent, game.normalize_intent and
-        # game.validate_intent, three of the four names trace_ai_pipeline.py rebinds; no session, model or campaign
-        seen = []
-
-        def validate(intent, player_input):
-            seen.append((intent, player_input))
-            return {"intent": "perception", "skill": "Perception", "difficulty": "hard"}
-
-        with patch.object(game, "parse_player_intent", return_value={"raw": 1}) as parse, \
-             patch.object(game, "normalize_intent", return_value={"norm": 1}) as norm, \
-             patch.object(game, "validate_intent", side_effect=validate):
-            out = game.analyze_player_action("Etrafa bakıyorum.", "Fighter", [])
-        parse.assert_called_once_with("Etrafa bakıyorum.")
-        norm.assert_called_once_with({"raw": 1}, "Etrafa bakıyorum.")
-        self.assertEqual(seen, [({"norm": 1}, "Etrafa bakıyorum.")])
-        self.assertEqual(out, {"action_type": "check", "skill": "Perception", "difficulty": "hard"})
-
     def test_intent_session_helpers_use_the_given_session(self):  # Review Focus 4
         # both names read game._session() (measured on d9bbb857): record what it returns during the session= call
         real = game._session
@@ -757,23 +739,6 @@ class IntentPart(unittest.TestCase):
             self.assertEqual(json.dumps(default_after, sort_keys=True, default=str), default_world)
             self.assertFalse({npc["id"] for npc in new} & set(default_after.get("currency", {})))
 
-    def test_a_rebound_execute_intent_reaches_its_moved_caller(self):  # Plan 4 T5.4e, Review Focus 5
-        # trace_ai_pipeline.py rebinds game.execute_intent; update_world_state_from_player (moved in intent-s) must call
-        # the rebound name; the parse/normalize/validate patches are the shape test_shops.py uses
-        seen = []
-
-        def record(intent, player_input, *args, **kwargs):
-            seen.append((intent, player_input, args, kwargs))
-            return {"action": "narrative", "success": True, "state_changes": []}
-
-        with fixed_town(self, 20261350):
-            s = game.create_session(seed=11)
-            s.world_state["location"] = "tavern"
-            with patch.object(game, "parse_player_intent", return_value={}),                  patch.object(game, "normalize_intent", return_value={}),                  patch.object(game, "validate_intent", return_value={"intent_type": "narrative"}),                  patch.object(game, "execute_intent", side_effect=record):
-                out = game.update_world_state_from_player("The wind is blowing.", session=s)
-        self.assertEqual(seen, [({"intent_type": "narrative"}, "The wind is blowing.", (), {})])
-        self.assertEqual(out, {"action": "narrative", "success": True, "state_changes": []})
-
     def test_a_patched_ollama_reaches_the_moved_parse(self):  # Plan 4 T5.4e
         # parse_player_intent (moved in intent-s) asks the model through game.ollama; a patched module must answer it
         fixed = {"intent": "perception", "skill": "Perception", "difficulty": "medium",
@@ -788,8 +753,8 @@ class IntentPart(unittest.TestCase):
 
     def test_intent_helpers_answer_as_before(self):
         # expected values captured on d9bbb857 before the move; a new session's places are tavern, forest, castle
-        self.assertTrue(game.is_dialogue_or_emotion("Merhaba, nasılsın?"))
-        self.assertFalse(game.is_dialogue_or_emotion("Kılıcımı çekiyorum."))
+        self.assertTrue(game.is_npc_dialogue_input("Merhaba, nasılsın?"))
+        self.assertFalse(game.is_npc_dialogue_input("Kılıcımı çekiyorum."))
         self.assertTrue(game._reads_as_question("Burası neresi?"))
         self.assertFalse(game._reads_as_question("Kapıyı açıyorum."))
         with fixed_town(self, 20261205):

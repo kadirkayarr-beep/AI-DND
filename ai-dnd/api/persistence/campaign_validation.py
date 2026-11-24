@@ -120,8 +120,6 @@ def _validate_engine_save(engine_save: Any, error_type: type[Exception]) -> None
         if not isinstance(memory, list):
             raise error_type("Campaign NPC memory is invalid.")
         for entry in memory:
-            if isinstance(entry, str):
-                continue
             if (
                 not isinstance(entry, dict)
                 or entry.get("speaker") not in ("player", "npc")

@@ -1,7 +1,7 @@
 import type { SpellPrepareDropped, SpellPrepareResult, SpellPrepareViewResponse } from '@workspace/api-client-react';
 
 /** The classes that prepare from a window (engine `spell_scope.PREPARING`); other casters never see this screen. */
-export const PREPARING_CLASSES: readonly string[] = ['Wizard', 'Cleric'];
+const PREPARING_CLASSES: readonly string[] = ['Wizard', 'Cleric'];
 
 export function preparesSpells(state: { character?: { class?: string | null } | null; spellcasting?: unknown } | null | undefined): boolean {
   return !!state?.spellcasting && PREPARING_CLASSES.includes(state.character?.class ?? '');
@@ -138,7 +138,7 @@ export function sameSpellList(a: readonly string[] | null | undefined, b: readon
 
 export const UNVERIFIED_SAVE = 'Kayıtlı liste, sunucunun döndürdüğü listeyle uyuşmuyor; liste kaydedilmemiş olabilir. Durumu yenile ve kayıtlı listeni kontrol et.';
 
-export function errorStatus(error: unknown): number | undefined {
+function errorStatus(error: unknown): number | undefined {
   const status = error && typeof error === 'object' ? (error as { status?: unknown }).status : undefined;
   return typeof status === 'number' ? status : undefined;
 }

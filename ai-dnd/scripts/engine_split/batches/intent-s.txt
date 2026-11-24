@@ -2,5 +2,4 @@ deterministic_check_for_action
 _handle_query
 parse_player_intent
 normalize_intent
-update_world_state_from_player
 execute_intent

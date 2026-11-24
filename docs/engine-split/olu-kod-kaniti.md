@@ -29,7 +29,7 @@ Sabitleme testi ne demek: bölme sırasında taşınan işlevin taşındıktan s
 
 Kadir'in "evet"i bir satırın adını ve yalnız o satırda yazılı testleri kapsar.
 
-Durum (2026-11-22): Kadir sohbette "10. sil" dedi. Denetleyicinin kararı: bu cevap yalnız iki satırı kapsar: `_filter_unsupported_lore_paragraphs` ve `_existing_local_tavern` (dört koşul da tutuyor). Kapsamadıkları Kadir'e geri döner ve her biri ayrı "evet" ister: üç niyet satırı (`analyze_player_action`, `update_world_state_from_player`, `is_dialogue_or_emotion`; öneri "sil (yalnız sabitleme testiyle birlikte)"), başlık içe aktarma tablosundaki `game` satırı (öneri "sil"; "10. sil" bu tablo yazılmadan önce verildi), her yama hedefi ve her yeniden dışa vurum satırı. Silme Görev 8'de, oynayıştan sonra yapılır; push, PR ve birleştirme ayrıca onay ister.
+Durum (2026-11-22): Kadir sohbette "10. sil" dedi. Denetleyicinin kararı: bu cevap yalnız iki satırı kapsar: `_filter_unsupported_lore_paragraphs` ve `_existing_local_tavern` (dört koşul da tutuyor). Kapsamadıkları Kadir'e geri döner ve her biri ayrı "evet" ister: üç niyet satırı (`analyze_player_action`, `update_world_state_from_player`, `is_dialogue_or_emotion`; öneri "sil (yalnız sabitleme testiyle birlikte)"), başlık içe aktarma tablosundaki `game` satırı (öneri "sil"; "10. sil" bu tablo yazılmadan önce verildi), her yama hedefi ve her yeniden dışa vurum satırı. Silme Görev 8'de, oynayıştan sonra yapılır; push, PR ve birleştirme ayrıca onay ister. Güncelleme (task/temizlik-2-20261124): üç niyet satırı (`analyze_player_action`, `update_world_state_from_player`, `is_dialogue_or_emotion`) bu dalda silindi (ledger Ruling).
 
 ## Kullanılmayan başlık içe aktarmaları (`game.py`)
 

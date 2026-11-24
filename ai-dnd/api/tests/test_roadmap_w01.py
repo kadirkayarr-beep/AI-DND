@@ -1,8 +1,7 @@
 """W01: knowledge layers stay separate — world fact, NPC belief, player knowledge.
 
-A rumour, a manual note or an attributed claim never becomes a canonical fact; an NPC who did not witness an event does not
-learn it; a name the player does not know appears in no player-facing projection (UI state, narrative memory/context for the
-model, public interaction view) and never under a debug label such as UNKNOWN FACTS; no mind-reading mechanic exists, so no
+A rumour, a manual note or an attributed claim never becomes a canonical fact; a name the player does not know appears in
+no player-facing projection (UI state, narrative memory/context for the model, public interaction view) and never under a debug label such as UNKNOWN FACTS; no mind-reading mechanic exists, so no
 thought is disclosed (a secret perspective entry stays out of every projection).
 """
 from __future__ import annotations
@@ -77,24 +76,13 @@ class KnowledgeLayerTests(unittest.TestCase):
             any(entry["kind"] != "player_claim" for entry in claims)
             or claim_event["event_id"] in interaction.known_evidence({**world, interaction.KEY: state})
             or world.get("player_knowledge") != before_knowledge)
-        # --- a witness fact for an NPC that was not a listener is refused ----------------------------------------------
-        accepted = interaction._event(world, state, "witnessed_fact", "Köprüde bir kavga oldu.", world["npcs"][-1])
-        world[interaction.KEY] = state
-        bystander = npc(world, "npc_far", "Uzaktaki Kişi")
-        try:
-            interaction.record_witness(world, accepted["event_id"], "Köprüde bir kavga oldu.", [bystander["id"]])
-            unwitnessed_learned = True
-        except ValueError:
-            unwitnessed_learned = bool(interaction.get(world)["perspectives"].get("npc_far"))
         obs = {
             "manual_note_promoted_to_fact": manual_note_promoted,
-            "unwitnessed_npc_learned_event": unwitnessed_learned,
             "secret_labels_in_player_payload": secret_labels,
             "mind_reading_disclosures": [],
             "rule_permitted_disclosures": [],
         }
         self.assertIs(obs["manual_note_promoted_to_fact"], False)
-        self.assertIs(obs["unwitnessed_npc_learned_event"], False)
         self.assertEqual(obs["secret_labels_in_player_payload"], [])
         self.assertEqual(obs["mind_reading_disclosures"], obs["rule_permitted_disclosures"])
 

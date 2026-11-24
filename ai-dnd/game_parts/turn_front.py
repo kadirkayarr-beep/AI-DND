@@ -1315,13 +1315,10 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     # Said to a chosen person, a line is read when a clause hands coin now (D1), or when it is said to whoever serves
     # here so a room or an order can name its bound recipient without coin (D0); a say line to anyone else that names
     # no coin spends no model call. Either way the line stays with the person the player chose.
-    import shop_trade
     typed_economic = interaction_mode == "say" and target_id is not None
     said_coin = (typed_economic and combat_action is None
                  and check_feature is None and not fighting and isinstance(player_input, str)
                  and front_proposal.names_coin(player_input))
-    served = (typed_economic and combat_action is None and check_feature is None and not fighting
-              and shop_trade.is_vendor(world, next((n for n in game.active_npcs() if n.get("id") == target_id), None)))
     # In a fight, a line about the one chosen there that the fight's own words did not hear is read for a blow only
     # ('tatar yayımı bacağına doğrultup ateş ediyorum'); anything else it says still goes the old way.
     fought = (fighting and target_id is not None and interaction_mode not in {"say", "ask_dm"}
@@ -1544,7 +1541,6 @@ def _defer_spoken_coin_offer(route):
     import equipment_economy
     import bold_acts
     import economic_actions
-    import world_reactions
     if (person is None or not equipment_economy.npc_can_act(person)
             or economic_actions._held_deed(session.world_state, person) is not None
             or bold_acts.offer_still_open(session.world_state, person) is not None):

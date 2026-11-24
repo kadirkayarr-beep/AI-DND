@@ -388,20 +388,6 @@ def _coin_writers_has_game_row(root: Path) -> bool | None:
     return None
 
 
-def _legacy_exec_scripts(root: Path) -> int:
-    folder = root / "legacy_debug"
-    count = 0
-    for p in sorted(folder.glob("*.py")) if folder.exists() else []:
-        try:
-            tree = ast.parse(p.read_text(encoding="utf-8"))
-        except (SyntaxError, UnicodeDecodeError):
-            continue
-        if any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "exec"
-               for n in ast.walk(tree)):
-            count += 1
-    return count
-
-
 OWNER_COMMENT = re.compile(r"Kadir|\bowner\b|\bD-\d{3}", re.IGNORECASE)
 
 
@@ -457,7 +443,6 @@ def verify_claims(root: Path) -> list[dict]:
           _non_constant_default_functions(tree))
 
     count("closed helpers", 151, len(closed_helpers(game)))
-    count("legacy_debug scripts that call exec(", 25, _legacy_exec_scripts(root))
 
     imports, names, calls, session_names = _game_usage(root)
     count("import game sites", 430, imports)
