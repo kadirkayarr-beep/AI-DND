@@ -96,7 +96,13 @@ class MemoryAttemptStore:
 
 
 class SqliteAttemptStore:
-    """Adapter over the one SQLite owner, campaign_store."""
+    """Adapter over the one SQLite owner, campaign_store.
+
+    run() takes any store with claim/update/get/compact/finish_accepted. Two exist: this one for campaign sessions
+    (session_manager) and MemoryAttemptStore, the in-memory double the incident tests and smokes use. So the thin
+    forwards are the port, not a wrapper to remove; only finish_accepted differs (here the autosave transaction finishes
+    the row).
+    """
 
     def __init__(self, campaign_store):
         self._store = campaign_store
