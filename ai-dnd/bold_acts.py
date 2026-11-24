@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import re
+import shlex
 from typing import Any, Literal
 
 import living_world
@@ -1465,6 +1466,32 @@ def is_act_not_talk(session, text: Any) -> bool:
     return game.open_scare_try(text) or looks_person_over(session, text)
 
 
+_ONE_OF_THEM = re.compile(r"\b(?:bir|1)\s+(?:tane|adet)\b")
+
+
+def _bought_the_open_offer(session, text: str) -> dict[str, Any] | None:
+    """"Bir tane alıyorum" after the counter asked "Kaç tane?": the same typed counter trade the panel's buy sends.
+
+    Only with this person's offer still open, one of the goods the offer names, a buying verb, no other goods and no
+    coin in the line; the trade itself (price, stock, purse, receipt) is `shop_trade.commit` through the typed
+    `/item shop_buy` owner, so the Undo and save checks of that path stay."""
+    import equipment_economy
+    server = _server_here(session)
+    world = session.world_state
+    folded = fold(session, text)
+    opened = offer_still_open(world, server) if server is not None else None
+    if (opened is None or "?" in text or not _ONE_OF_THEM.search(folded) or not _BUY.search(folded)
+            or _WALKS.search(folded) or getattr(session, "_coin_paid", None) or getattr(session, "_front_coin", 0)
+            or re.search(r"\d", _ONE_OF_THEM.sub("", folded))):
+        return None
+    named = shop_trade.priced_in(folded)
+    quoted = shop_trade.quote(world, server["id"], opened["key"], 1)
+    if (named is not None and named[0] != opened["key"]) or quoted is None or not quoted["can_pay"]:
+        return None
+    return equipment_economy.execute(
+        session, f"/item shop_buy {shlex.quote(str(server['id']))} {opened['key']} 1 {quoted['seq']} {quoted['total_cp']}")
+
+
 def resolve(session, text: Any, deed: str | None = None, *, ask=None) -> dict[str, Any] | None:
     """deed is what the front reading found, the empty text for nothing; None means no reading, so the words decide.
 
@@ -1477,6 +1504,10 @@ def resolve(session, text: Any, deed: str | None = None, *, ask=None) -> dict[st
     if isinstance(text, str) and text.lstrip().startswith("/"):
         return None  # a typed command has its own owner; the word lists never read it
     if isinstance(text, str):
+        if money_owner.current(session) is None:
+            bought = _bought_the_open_offer(session, text)
+            if bought is not None:
+                return bought
         if money_owner.current(session) is not None:
             settled = decided(session) or (_search_body(session, text) if "?" not in text else None)
         else:

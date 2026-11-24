@@ -121,3 +121,70 @@ class FollowMessenger(_Town):
         reply = await self.turn("Oraya gidiyorum.")
         self.assertEqual(reply.status_code, 200, reply.text)
         self.assertEqual(world["location"], place)
+
+
+class TextPurchase(_Town):
+    def counter(self):
+        world = self.session().world_state
+        world["npcs"] = [{"id": "barman", "name": "Marek", "role": "Barmen", "location": world["location"],
+                          "current_hp": 10}]
+        world["currency"] = {"player": 100, "barman": 0}
+        return world
+
+    @staticmethod
+    def beers(world):
+        return [item for item in world["inventory"] if isinstance(item, dict) and item.get("name") == "Bira"]
+
+    async def open_offer(self, line="Marek, bira alıyorum."):
+        world = self.counter()
+        reply = await self.turn(line)
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual((world["flags"].get("counter_offer_v1") or {}).get("key"), "bira")
+        self.assertEqual(world["currency"]["player"], 100)
+        return world
+
+    async def test_one_after_an_open_offer_is_a_sale_exactly_once(self):
+        world = await self.open_offer()
+        reply = await self.turn("Bir tane alıyorum.")
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual(world["currency"]["player"], 96)
+        self.assertEqual(world["currency"]["barman"], 4)
+        self.assertEqual(len(self.beers(world)), 1)
+        self.assertIn("4 bakır", reply.json()["narration"])
+        again = await self.turn("Bir tane alıyorum.")  # the offer is settled: the same words buy nothing more
+        self.assertEqual(again.status_code, 200, again.text)
+        self.assertEqual(world["currency"]["player"], 96)
+        self.assertEqual(len(self.beers(world)), 1)
+
+    async def test_undo_gives_back_the_coin_and_the_beer(self):
+        world = await self.open_offer()
+        reply = await self.turn("Bir tane alıyorum.")
+        self.assertEqual(len(self.beers(world)), 1)
+        undone = await self.http.post(f"/api/game/sessions/{self.session_id}/undo",
+                                      json={"action_id": str(__import__("uuid").uuid4()),
+                                            "target_action_id": reply.json()["action_id"]})
+        self.assertEqual(undone.status_code, 200, undone.text)
+        world = self.session().world_state
+        self.assertEqual(world["currency"]["player"], 100)
+        self.assertEqual(self.beers(world), [])
+
+    async def test_no_open_offer_no_sale(self):
+        world = self.counter()
+        reply = await self.turn("Bir tane alıyorum.")
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual(world["currency"]["player"], 100)
+        self.assertEqual(self.beers(world), [])
+
+    async def test_another_item_named_is_no_sale_of_the_offered_one(self):
+        world = await self.open_offer()
+        reply = await self.turn("Bir tane şarap alıyorum.")
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual(world["currency"]["player"], 100)
+        self.assertEqual(self.beers(world), [])
+
+    async def test_a_coin_amount_in_the_line_is_not_read_as_a_bare_count(self):
+        world = await self.open_offer()
+        reply = await self.turn("Bir tane alıyorum, al 10 bakır.")
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual(world["currency"]["player"], 100)
+        self.assertEqual(self.beers(world), [])
