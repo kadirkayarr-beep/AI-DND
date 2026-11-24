@@ -30,7 +30,7 @@ def failing_job():
 def close_effect_count(world, thread, owner):
     reason = f"thread:{thread['thread_id']}:failed"
     noted = (world.get(relationships.KEY) or {}).get(owner["id"], {}).get("events", []).count(reason)
-    deeds = [d for d in bold_acts.deeds(world) if d.get("kind") == "broken_promise" and d.get("victim_id") == owner["id"]]
+    deeds = [d for d in bold_acts.ensure_deeds(world) if d.get("kind") == "broken_promise" and d.get("victim_id") == owner["id"]]
     return noted, len(deeds)
 
 

@@ -1,6 +1,6 @@
 """What a town's troubles came to: a small ledger of things that happened without the player.
 
-These are not deeds. `bold_acts.deeds` is what the player did and what guards answer
+These are not deeds. `bold_acts.ensure_deeds` is what the player did and what guards answer
 for; a shop closing has nothing to do with that, so it lives here, inside the world
 thread state, and is kept and rolled back with it. Python writes every line and the
 model only voices it.

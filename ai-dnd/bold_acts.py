@@ -176,7 +176,8 @@ def is_arson(session, text: Any) -> bool:
     return isinstance(text, str) and "?" not in text and bool(_ARSON.search(fold(session, text)))
 
 
-def deeds(world: dict[str, Any]) -> list[dict[str, Any]]:
+def ensure_deeds(world: dict[str, Any]) -> list[dict[str, Any]]:
+    """The deed ledger itself (made empty on first use), so callers may append to it."""
     return world.setdefault("flags", {}).setdefault("deeds", [])
 
 
@@ -192,7 +193,7 @@ def remember(session, kind: str, text: str, *, victim_id: str | None = None, see
     """
     world = session.world_state
     witnesses = [npc["id"] for npc in session.active_npcs() if isinstance(npc.get("id"), str)] if seen else []
-    ledger = deeds(world)
+    ledger = ensure_deeds(world)
     deed = {
         "kind": kind, "text": text[:160], "location": world.get("location"), "victim_id": victim_id,
         "witnesses": witnesses, "turn": int(world.get("flags", {}).get("turn_index", 0) or 0),
@@ -469,7 +470,7 @@ def attacked(session, npc: dict[str, Any]) -> None:
 
 def put_down(world: dict[str, Any], npc: dict[str, Any]) -> None:
     """The blow that knocked them out belongs to the assault they will remember."""
-    for deed in reversed(deeds(world)):
+    for deed in reversed(ensure_deeds(world)):
         if deed.get("kind") == "assault" and deed.get("victim_id") == npc.get("id"):
             deed["knocked_out"] = True
             return
@@ -486,7 +487,7 @@ def killed(session, npc: dict[str, Any]) -> None:
     # an enemy. Knowingly accepted: a hostile who had already yielded or fallen and is finished off gets the same pass.
     fights_own = npc.get("hostile") is True
     if fights_own:
-        for deed in reversed(deeds(world)):
+        for deed in reversed(ensure_deeds(world)):
             if deed.get("kind") == "killing" and deed.get("victim_id") == npc.get("id"):
                 deed["in_fight"] = True
                 break
@@ -771,7 +772,7 @@ def _coin_to_take(world: dict[str, Any], person: dict[str, Any] | None) -> bool:
     indoors = _door_out(world, here) is not None and local_places.settlement_of(world, here) != here
     return indoors and not any(
         deed.get("till") and deed.get("location") == here and now - deed.get("at", now) < TILL_REFILLS_SECONDS
-        for deed in deeds(world))
+        for deed in ensure_deeds(world))
 
 
 def _purse_of(world: dict[str, Any], person: dict[str, Any]) -> int:

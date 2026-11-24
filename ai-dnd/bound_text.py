@@ -232,8 +232,11 @@ def paper_words(session: Any, text: Any, looked_at: str = "", *, to_someone: boo
     return PAPER_LINE.format(words=kept["text"])
 
 
-def read_turn(session: Any, text: Any, looked_at: str = "", *, to_someone: bool = False) -> dict[str, Any] | None:
-    """Reading a paper is its own turn: Python's words, and nothing else about the world moves."""
+def take_reading_turn(session: Any, text: Any, looked_at: str = "", *, to_someone: bool = False) -> dict[str, Any] | None:
+    """Reading a paper is its own turn: Python's words, and nothing else about the world moves.
+
+    It writes: the turn index goes up and both lines join session.messages.
+    """
     shown = paper_words(session, text, looked_at, to_someone=to_someone)
     if shown is None:
         return None
@@ -245,8 +248,11 @@ def read_turn(session: Any, text: Any, looked_at: str = "", *, to_someone: bool 
                               "state_changes": [], "direct_response": shown}}
 
 
-def notice_of(world: dict[str, Any], settlement_id: Any) -> str | None:
-    """The public notice on this town's board, chosen once."""
+def post_notice_once(world: dict[str, Any], settlement_id: Any) -> str | None:
+    """The public notice on this town's board, chosen once.
+
+    The first call writes: it keeps the choice in the world (keep), which can make the town hear of a thread.
+    """
     key = f"board:{settlement_id}"
     kept = seen(world, key)
     if kept is None:
