@@ -567,6 +567,10 @@
   "kind": "data",
   "type": "str"
  },
+ "_REQUIRED_PLAYER": {
+  "kind": "data",
+  "type": "set"
+ },
  "_REWOUND_LINE": {
   "kind": "data",
   "type": "str"
@@ -3463,17 +3467,65 @@
   "session_bound": true,
   "signature": "(player, version)"
  },
+ "_validate_save_header": {
+  "kind": "function",
+  "module": "game_parts.savefile",
+  "session_bound": true,
+  "signature": "(payload)"
+ },
  "_validate_save_payload": {
   "kind": "function",
   "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(payload)"
  },
+ "_validate_save_subsystems": {
+  "kind": "function",
+  "module": "game_parts.savefile",
+  "session_bound": true,
+  "signature": "(player, saved_world, version)"
+ },
+ "_validate_saved_character": {
+  "kind": "function",
+  "module": "game_parts.savefile",
+  "session_bound": true,
+  "signature": "(player, saved_world, version)"
+ },
  "_validate_saved_multilevel_slots": {
   "kind": "function",
   "module": "game_parts.savefile",
   "session_bound": true,
   "signature": "(player, saved_world)"
+ },
+ "_validate_saved_player_fields": {
+  "kind": "function",
+  "module": "game_parts.savefile",
+  "session_bound": true,
+  "signature": "(player)"
+ },
+ "_validate_saved_quests": {
+  "kind": "function",
+  "module": "game_parts.savefile",
+  "session_bound": true,
+  "signature": "(saved_world)"
+ },
+ "_validate_saved_world_fields": {
+  "kind": "function",
+  "module": "game_parts.savefile",
+  "session_bound": true,
+  "signature": "(saved_world)"
+ },
+ "_validate_saved_world_lists": {
+  "kind": "function",
+  "module": "game_parts.savefile",
+  "session_bound": true,
+  "signature": "(payload, saved_world)"
+ },
+ "_validate_saved_world_sections": {
+  "kind": "function",
+  "module": "game_parts.savefile",
+  "session_bound": true,
+  "signature": "(player, saved_world, version)"
  },
  "_validate_species_trait_state": {
   "kind": "function",
