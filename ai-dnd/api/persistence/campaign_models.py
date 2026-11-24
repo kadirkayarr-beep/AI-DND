@@ -38,6 +38,10 @@ class CampaignIdConflictError(CampaignError):
     """A generated campaign identifier already exists."""
 
 
+class InvalidDeathModeError(CampaignError, ValueError):
+    """A new campaign asked for a death mode the game does not have (still a ValueError for older callers)."""
+
+
 @dataclass(frozen=True)
 class StoredCampaign:
     metadata: dict[str, Any]

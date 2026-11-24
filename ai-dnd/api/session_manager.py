@@ -44,6 +44,7 @@ from api.persistence.campaign_models import (
     CampaignNotFoundError,
     CampaignStaleError,
     CampaignStorageError,
+    InvalidDeathModeError,
 )
 from api.persistence.campaign_serializer import restore_stored_campaign
 from api.persistence.campaign_validation import serialize_campaign_payload
@@ -195,8 +196,13 @@ class SessionManager:
         death_mode: str = "PERMADEATH",
         principal: Principal | None = None,
     ) -> tuple[str, str, ManagedSession, dict[str, Any]]:
+        """Create and store a new campaign.
+
+        Raises InvalidDeathModeError (bad death mode), CharacterCreationError (bad character),
+        InvalidCampaignStartError (unknown start) and other CampaignError subclasses from the store.
+        """
         if death_mode not in game.DEATH_MODES:
-            raise ValueError("Campaign death mode is invalid.")
+            raise InvalidDeathModeError("Campaign death mode is invalid.")
         owner = self._resolve_principal(principal)
         store = self._require_campaign_store()
         session = self._session_factory()
