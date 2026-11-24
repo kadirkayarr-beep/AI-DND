@@ -6,11 +6,12 @@ from dataclasses import dataclass
 from typing import Literal
 
 import living_world
+from game_errors import GameInputError
 
 INCAPACITATED = {"incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"}
 
 
-class CombatRequestError(ValueError):
+class CombatRequestError(GameInputError):
     def __init__(self, code, message, status_code=409):
         super().__init__(message)
         self.code = code

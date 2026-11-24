@@ -12,6 +12,7 @@ import timed_gameplay
 import copy
 import interaction_adventure
 import money_owner
+from game_errors import GameInfrastructureError
 
 
 def _is_negated_dialogue_action(player_input):
@@ -918,7 +919,7 @@ def _local_place_recommendation_guidance(
         f"{json.dumps(options, ensure_ascii=False, separators=(',', ':'))}\n"
     )
 
-class IntentInfrastructureError(Exception):
+class IntentInfrastructureError(GameInfrastructureError):
     """The intent classifier could not run; the turn must not be committed."""
 
     def __init__(self, code):

@@ -6,8 +6,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from game_errors import GameError
 
-class CampaignError(Exception):
+
+class CampaignError(GameError):
     """Base class for safe, user-facing campaign failures."""
 
 
