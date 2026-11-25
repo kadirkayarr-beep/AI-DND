@@ -264,6 +264,17 @@ def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> No
         raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
 
 
+def _put_back_turn(record: Any, session: Any, snapshot: dict[str, Any], lore: Any, metadata: Any, journal: Any,
+                   memory: Any) -> None:
+    """A play-turn refusal before commit: the verified session rollback, then every turn-owned field, in this order."""
+    _rollback_session(record, session, snapshot)
+    session.campaign_lore_state = lore
+    session.world_metadata = metadata
+    record.journal = journal
+    record.narrative_memory = memory
+    record.lore_authority = lore
+
+
 def _turn_outcome(action_result: Any) -> TurnOutcome | None:
     """Player-safe receipt projection for the result card (LR00-P5)."""
     if not isinstance(action_result, dict):
@@ -1650,12 +1661,8 @@ def create_app(
                     )
                 )
             except Exception as error:
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 _logger.error(
                     "Engine lore evidence failed validation (error_type=%s)",
                     type(error).__name__,
@@ -1682,12 +1689,8 @@ def create_app(
                     )
                 )
             except Exception as error:
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 _logger.error(
                     "Narrative continuity update failed (error_type=%s)",
                     type(error).__name__,
@@ -1742,12 +1745,8 @@ def create_app(
                     staged_lore_authority,
                 )
             except Exception as error:
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 if isinstance(error, SkillCheckResultSerializationError):
                     _logger.error(
                         "Engine returned an invalid skill-check result."
@@ -1789,12 +1788,8 @@ def create_app(
                 )
             except Exception as error:
                 # Nothing is saved yet: the answer could not be built, so the turn is put back whole (B1).
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 _logger.error("Turn response could not be built (error_type=%s)", type(error).__name__)
                 raise refuse_before_commit(500, "engine_error", "The turn response could not be built safely.") from None
             record.lore_authority = staged_lore_authority
