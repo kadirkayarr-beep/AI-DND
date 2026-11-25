@@ -8,6 +8,7 @@ level because each one is the same atomic transaction with different choices.
 from __future__ import annotations
 
 import copy
+import logging
 from typing import Any
 
 import character_progression as core
@@ -243,6 +244,7 @@ def _apply(session, preview, choices):
         core.validate_saved(session.character, session.world_state)
         session._validate_save_payload(session.serialize_game_state())
     except Exception:
+        logging.getLogger(__name__).exception("Level step failed; the snapshot is restored and the step refused")
         session._restore_runtime_snapshot(snapshot)
         noncaster._restore_format(session, captured)
         return core._reject("resulting_state_invalid")

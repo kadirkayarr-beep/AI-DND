@@ -7,10 +7,12 @@ arrival text when the model is not asked, fails or is refused.
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import living_world
 import local_places
+import model_phase
 
 # The text and the marker only. The narrator's schema sits at Haiku's grammar limit: one more field and every
 # call came back HTTP 400 "The compiled grammar is too large" (Task 6b). A packet that still proposes is refused below.
@@ -189,7 +191,8 @@ def narrate(game, scene: dict[str, Any], *, player_input, messages, lead: str = 
                 format=SCHEMA, think=False, options={"temperature": 0.6, "num_predict": 450},
             )
         packet = game._extract_json_object(game.ollama_response_content(response))
-    except Exception:  # a fake that asserts, a timeout, a dead server: the turn keeps the Python text
+    except Exception as error:  # a fake that asserts, a timeout, a dead server: the turn keeps the Python text
+        model_phase.log_fallback(logging.getLogger(__name__), error, "Arrival narration")
         return python("model_error", 1)
     if not isinstance(packet, dict) or not isinstance(packet.get("narration"), str):
         return python("invalid_packet", 1)

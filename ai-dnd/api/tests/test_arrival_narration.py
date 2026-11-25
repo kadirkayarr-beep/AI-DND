@@ -233,6 +233,14 @@ class Narrate(Fixture):
         _, info = self.narrate(answer=AssertionError("must not call a real model"))
         self.assertEqual((info["source"], info["reason_code"]), ("python", "model_error"))
 
+    def test_a_model_outage_logs_at_debug_and_any_other_type_warns(self):  # T3: the fallback is never silent
+        for error, level in ((RuntimeError("down"), "DEBUG"), (TimeoutError("slow"), "DEBUG"), (OSError("socket"), "DEBUG"),
+                             (KeyError("bug"), "WARNING")):
+            with self.subTest(type(error).__name__), self.assertLogs("arrival_narration", "DEBUG") as logged:
+                _, info = self.narrate(answer=error)
+            self.assertEqual((info["source"], info["reason_code"]), ("python", "model_error"))
+            self.assertEqual([r.levelname for r in logged.records], [level])
+
     def test_the_call_is_resolved_narration(self):
         phases = []
         self.narrate(answer=lambda **kw: phases.append(model_phase.ModelFailure("X").phase) or "Rüzgâr.")

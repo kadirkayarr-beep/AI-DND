@@ -6,6 +6,8 @@ via ``create_npc_from_ai``. Canon names are rejected. Promoted ids survive TTL.
 
 from __future__ import annotations
 
+import logging
+
 from incidents import commit
 from incidents.models import OPEN_LIFECYCLES
 
@@ -24,7 +26,8 @@ def _registry():
     try:
         from api.lore_authority import PRODUCTION_REGISTRY
         from api.lore_authority.models import EntityType
-    except Exception:
+    except Exception:  # best effort: without the registry only the built-in canon name is refused
+        logging.getLogger(__name__).warning("Lore registry could not be loaded", exc_info=True)
         return None, None
     return PRODUCTION_REGISTRY, EntityType
 

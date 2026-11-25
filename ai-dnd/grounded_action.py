@@ -34,6 +34,7 @@ from typing import Any
 
 import exits
 import living_world
+import model_phase
 import tr_case
 import name_catalog
 import npc_statements
@@ -1173,7 +1174,8 @@ class _Run:
             return {}
         try:
             return self.session.advance_campaign_time(seconds, "exploration") or {}
-        except Exception:
+        except Exception:  # best effort: an act's clock step never costs the player the act itself
+            logging.getLogger(__name__).warning("Campaign time could not advance for a grounded act", exc_info=True)
             return {}
 
     def near(self, target_id):
@@ -1283,7 +1285,8 @@ def _campaign_hour(world) -> int | None:
         import campaign_time
         public = campaign_time.public_time(world)
         return public.get("hour") if isinstance(public, dict) else None
-    except Exception:
+    except Exception:  # best effort: an unknown hour counts as open hours
+        logging.getLogger(__name__).warning("Campaign hour could not be read", exc_info=True)
         return None
 
 
@@ -1717,7 +1720,8 @@ def _do_knock(run: _Run, step) -> dict[str, Any]:
     try:
         import campaign_time
         public = campaign_time.public_time(run.world) or {}
-    except Exception:
+    except Exception:  # best effort: a knock without the clock falls into the first time bucket
+        logging.getLogger(__name__).warning("Campaign time could not be read for a knock", exc_info=True)
         public = {}
     bucket = f"{public.get('day_index', 0)}:{(public.get('hour') or 0) // 3}"
     key = f"{door['id']}|{bucket}"
@@ -2772,7 +2776,8 @@ def model_ground(run: _Run, player_input: str, cands: list[dict[str, Any]]) -> l
             format=schema, think=False, options={"temperature": 0.0, "num_predict": 220},
         )
         data = game._extract_json_object(game.ollama_response_content(response))
-    except Exception:
+    except Exception as error:  # the grounding call is optional: without it the deterministic owners answer
+        model_phase.log_fallback(logging.getLogger(__name__), error, "Grounding call")
         data = None
     run.model_calls += 1
     run.model_ms.append(int((time.monotonic() - started) * 1000))
@@ -3419,7 +3424,8 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
             if listed_place is not None else
             _decide(session, player_input, interaction_mode=interaction_mode,
                     allow_model=allow_model and not dry_run, phase=phase))
-    except Exception:
+    except Exception:  # broad: deferring hands the line to the older owners, so a bug here never costs the turn
+        logging.getLogger(__name__).warning("grounded_action could not decide; the line is deferred", exc_info=True)
         decision, payload = "defer", None
     if decision == "defer" or dry_run:
         if world != snapshot:
@@ -3436,7 +3442,6 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
     except Exception:
         # A bug here must not cost the player the turn or leave half an act
         # in the save: restore everything and let the older owners answer.
-        import logging
         logging.getLogger(__name__).exception("grounded_action failed; turn handed back to older owners")
         world.clear()
         world.update(snapshot)

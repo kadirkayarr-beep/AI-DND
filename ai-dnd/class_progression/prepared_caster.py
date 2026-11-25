@@ -10,6 +10,7 @@ Shared helpers are read through `core.` at call time (this module loads while ch
 from __future__ import annotations
 
 import copy
+import logging
 import functools
 import json
 from pathlib import Path
@@ -257,6 +258,7 @@ class PreparedCaster(ClassProgression):
             core.validate_saved(session.character, session.world_state)
             session._validate_save_payload(session.serialize_game_state())
         except Exception:
+            logging.getLogger(__name__).exception("Level step failed; the snapshot is restored and the step refused")
             session._restore_runtime_snapshot(snapshot)
             noncaster._restore_format(session, captured)
             return core._reject("resulting_state_invalid")

@@ -25,6 +25,7 @@ Limits, all configurable on the service:
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import threading
@@ -38,7 +39,9 @@ from api.auth import Principal
 from api.local_model_config import selected_local_model
 from api.model_chain import ModelChain
 from api.ollama_adapter import _LOCAL_CALL_LOCK, LOCAL_KEEP_ALIVE, local_context_window
+import model_phase
 
+_logger = logging.getLogger("ai_dnd.api.identity_suggestion")
 
 FIELDS = ("origin", "appearance", "personality", "backstory")
 LABELS = {
@@ -500,7 +503,8 @@ class IdentitySuggestionService:
         def invoke(box: dict[str, object] = outcome, text: str = prompt) -> None:
             try:
                 box["text"] = self._provider(text)
-            except Exception:
+            except Exception as error:  # a worker thread: any failure becomes the job's provider_failed, never a crash
+                model_phase.log_fallback(_logger, error, "Identity suggestion")
                 box["error"] = True
 
         worker = threading.Thread(target=invoke, daemon=True)

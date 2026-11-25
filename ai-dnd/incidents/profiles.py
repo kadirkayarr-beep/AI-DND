@@ -7,6 +7,8 @@ owner signs their review files.
 
 from __future__ import annotations
 
+import logging
+
 from incidents.models import REWARD_CLASSES
 
 _VERIFIED = frozenset({"VERIFIED", "VERIFIED_PARTIAL", "APPROVED"})
@@ -99,7 +101,8 @@ def _pack_coverage(pack_id):
         return None
     try:
         from api.lore_authority.pack_loader import load_pack_index
-    except Exception:
+    except Exception:  # best effort: an unknown coverage keeps the profile off, as a missing review does
+        logging.getLogger(__name__).warning("Lore pack index could not be loaded", exc_info=True)
         return None
     for entry in load_pack_index():
         if entry.get("pack_id") == pack_id:
@@ -117,7 +120,8 @@ def _pack_entities():
     try:
         from api.lore_authority.pack_loader import REVIEWED_PACK
         from api.lore_authority.models import EntityType
-    except Exception:
+    except Exception:  # best effort: without the pack only the built-in protected name is kept
+        logging.getLogger(__name__).warning("Reviewed lore pack could not be loaded", exc_info=True)
         return (), None
     return REVIEWED_PACK.entities, EntityType
 

@@ -1,5 +1,6 @@
 import game
 import collections
+import logging
 import combat_lifecycle
 import hashlib
 import interaction_adventure
@@ -622,7 +623,8 @@ _STOCK_SAID = collections.deque(maxlen=256)  # only for a call with no session; 
 def _stock_said():
     try:
         session = game._session()
-    except Exception:
+    except Exception:  # best effort: without a session the module's own list still marks stock lines
+        logging.getLogger("game_parts.dialogue").warning("No session for the stock-line list; the module list is used", exc_info=True)
         session = None
     if session is None:
         return _STOCK_SAID

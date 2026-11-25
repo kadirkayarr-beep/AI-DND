@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import logging
 import threading
 import uuid
 from dataclasses import dataclass
 
 import emergence_audit
+import model_phase
 from incidents import envelope as envelope_owner
 from incidents import gate as gate_owner
 from incidents import untrusted, versions
@@ -192,7 +194,8 @@ def run(store, *, campaign_id, envelope, world, propose, model_id, player_text="
         try:
             calls = 1
             raw = propose(packet)
-        except Exception:
+        except Exception as error:  # the proposal is optional: any failure is a quiet no_proposal for the turn
+            model_phase.log_fallback(logging.getLogger(__name__), error, "Incident proposal")
             raw = None
         if not isinstance(raw, str):
             _finish(store, row, "no_proposal", reason="no_response", calls=calls)

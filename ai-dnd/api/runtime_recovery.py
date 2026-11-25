@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from typing import Any
+
+_logger = logging.getLogger("ai_dnd.api.runtime_recovery")
 
 
 def state_digest(state: Any) -> str:
@@ -33,7 +36,8 @@ def restore_trusted_runtime(record: Any, snapshot: dict[str, Any], restore: Any 
         if verified and callable(capture) and isinstance(snapshot.get("runtime"), dict):
             # The save omits dice, messages and pending XP; a restore that silently skipped them is not trusted.
             verified = state_digest(capture()) == state_digest(snapshot["runtime"])
-    except Exception:
+    except Exception:  # any type: a restore that raised is never trusted, and the session closes
+        _logger.exception("Trusted runtime restore failed; the session is closed")
         verified = False
     record.usable = verified
     return verified

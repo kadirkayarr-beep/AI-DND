@@ -2,6 +2,7 @@ import game
 import equipment_economy
 import hashlib
 import json
+import logging
 import living_world
 import local_dialogue
 import re
@@ -1053,7 +1054,8 @@ def _names_present_creature(text):
         return True
     try:
         npcs = game._session().world_state.get("npcs", [])
-    except Exception:  # no bound session: stay conservative
+    except Exception:  # no bound session: stay conservative (broad: this guess must never fail the reading)
+        logging.getLogger("game_parts.intent").warning("No session to name a creature against; answering yes", exc_info=True)
         return True
     for npc in npcs if isinstance(npcs, list) else []:
         if not isinstance(npc, dict):
@@ -1363,9 +1365,11 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         return {"intent": "unknown", "classifier_unusable": True}
     except game.IntentInfrastructureError:
         raise
-    except Exception:
+    except Exception as error:
         # A provider outage or timeout keeps its deterministic fallback; only a
         # reply that arrived but is not usable JSON must not read as a normal turn.
+        import model_phase
+        model_phase.log_fallback(logging.getLogger("game_parts.intent"), error, "Intent reading")
         return {"intent": "unknown"}
 
 def normalize_intent(raw_intent, player_input):
