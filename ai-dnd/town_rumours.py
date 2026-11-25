@@ -9,21 +9,24 @@ is true stays here: the prompt gets only the words.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import living_world
 import npc_statements
 import world_threads
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 MAX_RUMOURS = 2
 HEARD_PERCENT = 50  # of the people who have not got the trouble itself
 
 
-def is_true(world: dict[str, Any], thread: dict[str, Any]) -> bool:
+def is_true(world: dict[str, Any], thread: Mapping[str, Any]) -> bool:
     return world_threads._rank(living_world._campaign_seed(world), thread["thread_id"], "rumour") % 2 == 0
 
 
-def _words_of(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
+def _words_of(world: dict[str, Any], thread: Mapping[str, Any]) -> str | None:
     if is_true(world, thread):
         return thread["public_line"]
     lines = world_threads.catalog().get("rumour_lines") or []

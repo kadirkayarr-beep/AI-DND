@@ -66,6 +66,9 @@ class Thread(TypedDict, total=False):
     offered_terms_shown: dict[str, Any]
     log: list[dict[str, Any]]
     close_failed: dict[str, Any]
+    seal_broken: bool
+    parcel_gone: bool
+    delivered_late: bool
 
 
 class ThreadState(TypedDict):

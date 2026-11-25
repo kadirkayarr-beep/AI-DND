@@ -6,12 +6,15 @@ Only what the screen just showed can be taken, as a plain thing with no worth. C
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import living_world
 import tr_case
 import shop_trade
 import world_threads
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 _INTO_THE_BAG = re.compile(r"\b(?:cebe|cebime|cebine|cantama|cantaya|cantamiza|heybeme|heybeye|torbama|torbaya)\b")
 _PUTS_IT_THERE = re.compile(r"\b(?:ali(?:p|yorum)|at(?:iyorum|ip|tim|ayim)|koy\w*|sok\w*|topl\w*|tik\w*)\b")
@@ -556,7 +559,7 @@ def _toss(session, text: str, words: list[str]) -> dict[str, Any] | None:
     return None
 
 
-def _only_set_down(world: dict[str, Any], thread: dict[str, Any], words: list[str], at: int) -> bool:
+def _only_set_down(world: dict[str, Any], thread: Mapping[str, Any], words: list[str], at: int) -> bool:
     """'At-' alone, or 'at-' in front of the person the parcel is for, does not throw an errand away."""
     if not words[at].startswith("at"):
         return False

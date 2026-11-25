@@ -463,7 +463,7 @@ def _npc(world, npc_id):
     return next((n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("id") == npc_id), None)
 
 
-def owner_of(world: dict[str, Any], thread: Thread) -> dict[str, Any] | None:
+def owner_of(world: dict[str, Any], thread: Mapping[str, Any]) -> dict[str, Any] | None:
     """The person behind the work, once they exist; the place's role survives them walking off."""
     return _npc(world, thread.get("owner_npc_id")) or next(
         (n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("place_role_of") == thread.get("place_id")),
@@ -471,7 +471,7 @@ def owner_of(world: dict[str, Any], thread: Thread) -> dict[str, Any] | None:
     )
 
 
-def recipient_of(world: dict[str, Any], thread: Thread) -> dict[str, Any] | None:
+def recipient_of(world: dict[str, Any], thread: Mapping[str, Any]) -> dict[str, Any] | None:
     place_id = thread.get("target_place_id")
     return _npc(world, thread.get("recipient_npc_id")) or (next(
         (n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("place_role_of") == place_id),
