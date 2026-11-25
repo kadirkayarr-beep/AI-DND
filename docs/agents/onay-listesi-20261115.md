@@ -552,3 +552,10 @@ Not (Opus, Minor): `InvalidDeathModeError` artık `CampaignError` olduğu için 
 | `size_budget.json` `long_functions` | `parse_player_intent` (420) ve `finalize_narration` (350) anahtarları kaldırıldı (işlevler 130 ve 131 satır, sınırın altında); `plan_living_world_turn` 725 -> 308, `_execute_intent_internal` 548 -> 295, `ask_dungeon_master` 509 -> 299 düştü | gevşetme olabilir (anahtar silme) / sıkılaşma (düşenler) |
 | `surface.json`, `sensitive.json` | +49 yeni motor adı (`_lw_*`, `_fx_*`, `_pi_*`, `_dm_*`, `_fn_*`), +10 para işaretli ad; salt ekleme | ekleme |
 | `test_engine_parts_pilot` `_PART_MODULES` listesi | dört yeni parça adı eklendi (living_world_steps, turn_front_steps, intent_steps, narration_steps); salt ekleme | ekleme |
+
+## 30. D-531 aşama 4: play_turn create_app'ten api/routes_turn.py'ye bölündü (dal `task/play-turn-split-20261125`)
+
+| Test / kilit | Değişiklik | İşaret |
+|---|---|---|
+| `test_refusal_census.test_every_text_for_caller_also_notes` | yalnız `api/routes_turn.py` içindeki `refuse_before_commit` işlevi atlanır (HTTP panel metni, kuralın tek istisnası; api/main.py'den buraya taşındı). Dosyanın geri kalanı kurala bağlı: `note` çağırmayan yeni bir `text_for` çağıranı yakalanır (bozma koşusu pt4f-mut-census kırmızı). api/main.py'nin dosya muafiyeti eskisi gibi | sıkılaşma (işlev düzeyinde muafiyet) |
+| `scripts/quality_gate/size_lock.json` | `api/main.py` 2309 -> 1473, `api/main.py::create_app` 1711 -> 883; yeni uzun işlev anahtarı yok (routes_turn'deki en uzun işlev 98 satır) | sıkılaşma |
