@@ -53,7 +53,7 @@
    "cwd": "ai-dnd"
   },
   "skylos": {
-   "cmd": "SKYLOS_GREP_BUDGET=1500 skylos ai-dnd --no-upload --json > skylos.json",
+   "cmd": "skylos ai-dnd --no-upload --json > skylos.json (needs a real ripgrep binary on PATH)",
    "cwd": "."
   },
   "typecheck": {
@@ -3285,7 +3285,21 @@
    "F841|ai-dnd/test_narrative_rebalance.py": 3,
    "F841|ai-dnd/test_regression.py": 3
   },
-  "skylos": "tool error: no output (2026-11-25: grep budget 120 s exhausted, rerun timed out at 1700 s)",
+  "skylos": {
+   "analysis_errors": 0,
+   "circular_dependencies": 3,
+   "dead_code_abstentions": 0,
+   "dead_code_rescues": 0,
+   "suppressed": 883,
+   "top_risks": 1,
+   "unused_classes": 0,
+   "unused_files": 0,
+   "unused_functions": 19,
+   "unused_imports": 7,
+   "unused_parameters": 0,
+   "unused_variables": 22,
+   "whitelisted": 98301
+  },
   "vulture60": {
    "attribute|ai-dnd/api/lore_authority/registry.py": 3,
    "attribute|ai-dnd/api/persistence/campaign_store.py": 1,

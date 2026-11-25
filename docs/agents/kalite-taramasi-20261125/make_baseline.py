@@ -21,7 +21,7 @@ COMMANDS = {
     "gitleaks": {"cwd": ".", "cmd": "gitleaks detect --redact --no-banner --no-color --baseline-path ai-dnd/scripts/quality_gate/gitleaks-baseline.json --report-format json --report-path gitleaks.json"},
     "knip": {"cwd": ".", "cmd": "PORT=3000 BASE_PATH=/ DATABASE_URL=postgres://localhost/unused npm_config_ignore_scripts=true pnpm dlx knip@6.48.0 --reporter json > knip.json"},
     "fallow": {"cwd": ".", "cmd": "DO_NOT_TRACK=1 npm_config_ignore_scripts=true pnpm dlx fallow@3.45.0 dead-code --format json --quiet > fallow.json"},
-    "skylos": {"cwd": ".", "cmd": "SKYLOS_GREP_BUDGET=1500 skylos ai-dnd --no-upload --json > skylos.json"},
+    "skylos": {"cwd": ".", "cmd": "skylos ai-dnd --no-upload --json > skylos.json (needs a real ripgrep binary on PATH)"},
     "typecheck": {"cwd": ".", "cmd": "pnpm run typecheck > typecheck.txt"},
     "bandit": {"cwd": ".", "cmd": "bandit -r ai-dnd -f json -q -o bandit.json"},
     "pyright": {"cwd": ".", "cmd": "pyright -p docs/agents/kalite-taramasi-20261125/pyrightconfig.json --outputjson > pyright.json"},

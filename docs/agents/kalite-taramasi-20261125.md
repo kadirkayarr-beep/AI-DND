@@ -47,7 +47,7 @@ Python araçları repo dışında `AI-DND-TOOLS/gate-venv-20261125` (Python 3.14
 | Araç | Bulgu | Defter |
 |---|---|---|
 | fallow (baseline 271) | yeni bulgu 0 | — |
-| skylos | ilk koşu: grep bütçesi (120 s) bitti, 1095 adayın hiçbiri doğrulanmadı; `SKYLOS_GREP_BUDGET=1500` ile yeniden koşu 1700 s'de zaman aşımına uğradı. Araç hatası: bulgu sayısı yok (sıfır değil). Yan çıktı: 3 içe aktarma döngüsü (ör. action_economy <-> weapon_attack), desloppify'nin 4 döngüsüyle örtüşüyor | D-600 |
+| skylos | ilk iki koşu bitmedi (makinede gerçek `rg` yoktu); ripgrep 16.0.0 kurulunca 289 s'de bitti (2026-11-26): kullanılmayan işlev 19 (17'si yanlış alarm), import 7, değişken 22, döngü 3, analiz hatası 0; CI ile aynı | D-600, D-601 |
 | ruff B/BLE/SIM (kapı dışı) | 1239: B023 589 (kaynak 17), SIM117 183, B905 167 (kaynak 12), BLE001 156 (kaynak 74), SIM102 50, … | D-591, D-584 eki |
 | vulture güven 60 | 1483 aday (kaynak 475) | D-594 |
 | bandit | kaynakta orta/yüksek önemde bulgu yok; testlerde B108 (sabit /tmp) ve B310; düşük önem kaynakta B105 7, B101 (assert) desloppify'de 101 | D-598 |
@@ -70,7 +70,7 @@ D-596 (world_threads kayıtta None → TypeError), D-597 (T4/T4b artıkları).
 | Kova | Sayı |
 |---|---|
 | Mevcut satıra ek | 2 (D-583, D-584) |
-| Yeni satır | 16 (D-585 … D-600) |
+| Yeni satır | 17 (D-585 … D-601) |
 | Yanlış alarm | vulture 60–79 adaylarının çoğu ve deptry DEP001 kardeş içe aktarmaları gürültü olarak satırlarında not edildi; ayrı satır açılmadı |
 
 ## Açık/kısmi satır durum tazeleme (G7)
